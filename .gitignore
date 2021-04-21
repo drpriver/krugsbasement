@@ -1,6 +1,6 @@
-webdndvenv
+venv
 *.db
 *.egg-info
 __pycache__
 .mypy_cache
-
+*.so
