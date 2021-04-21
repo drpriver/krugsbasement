@@ -16,7 +16,7 @@
         entry.appendChild(text);
         log.appendChild(entry);
       }
-      log.scrollTo({behavior:'smooth', top:log.scrollHeight})
+      log.scrollTo({behavior:'smooth', top:log.scrollHeight});
     });
 
     socket.on('connect', function() {
@@ -57,7 +57,7 @@
     height: 100%;
     max-height: 100%;
     display: grid;
-    grid-template-rows: auto 4em;
+    grid-template-rows: auto 100px;
   }
   #chat-history {
     overflow-y: scroll;
@@ -84,6 +84,10 @@
     canvas.width = window.innerWidth - chat_rect.width;
     canvas.height = window.innerHeight-6;
     request_render();
+    const hist = document.getElementById('chat-history');
+    const ta = document.getElementById('chatinput');
+    hist.style.height = window.innerHeight-12-100 + 'px';
+    hist.scrollTo({top:hist.scrollHeight});
   };
   document.addEventListener('DOMContentLoaded', resize_canvas);
   window.addEventListener('resize', resize_canvas);
@@ -154,13 +158,15 @@
     requestAnimationFrame(render);
   }
   const lines = [];
+  const lines_by_id = {}
   socket.on('canvas-object-publish', function(canv_obj){
     if(canv_obj.type == 'quadpath'){
-      if(canv_obj.id < lines.length){
-        lines[canv_obj.id] = canv_obj.data;
+      if(lines_by_id[canv_obj.id]){
+        lines_by_id[canv_obj.id].push(canv_obj.data);
       }
-      else{
-        lines.push(canv_obj.data);
+      else {
+        lines_by_id[canv_obj.id] = [canv_obj.data];
+        lines.push(lines_by_id[canv_obj.id]);
       }
       request_render();
     }
@@ -265,20 +271,19 @@
       });
       console.log('lineid', lineid);
       let points = [];
-      // lines.push(points);
       function add_point(e){
         console.log('lineid', lineid);
         e.stopPropagation();
         e.preventDefault();
-        points.push({x:(e.offsetX/scale-camera_x)|0, y:(e.offsetY/scale-camera_y)|0});
         if(lineid){
-          socket.emit('canvas-object', {type:'quadpath', data:points, id:lineid});
-          if(points.length > 50){
-            points = [points[points.length-3], points[points.length-2], points[points.length-1]];
-            socket.emit('get-canv-obj-id', function(response){
-              lineid = response;
-            });
+          for(let i = 0; i < points.length; i++){
+            socket.emit('canvas-object', {type:'quadpath', data:points[i], id:lineid});
           }
+          points = [];
+          socket.emit('canvas-object', {type:'quadpath', data:{x:(e.offsetX/scale-camera_x)|0, y:(e.offsetY/scale-camera_y)|0}, id:lineid});
+        }
+        else {
+          points.push({x:(e.offsetX/scale-camera_x)|0, y:(e.offsetY/scale-camera_y)|0});
         }
       }
       canvas.addEventListener('mousemove', add_point);

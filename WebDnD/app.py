@@ -30,7 +30,8 @@ def handle_connection():
 
 @socketio.on('canvas-object')
 def handle_canvas_object(data):
-    emit('canvas-object-publish', data, broadcast=True)
+    emit('canvas-object-publish', data, broadcast=True, include_self=True)
+
 canvas_obj_id = 0
 @socketio.on('get-canv-obj-id')
 def get_canv_obj_id():
@@ -44,5 +45,5 @@ def index():
     return html
 
 if __name__ == '__main__':
-    socketio.run(app)
+    socketio.run(app, host="0.0.0.0")
 
