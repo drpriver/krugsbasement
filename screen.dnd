@@ -15,9 +15,11 @@
   ::div
     Wall
   ::div
-    Rect
+    Floor
   ::div
     Text
+  ::div
+    Ez-Token
   ::div
     ::raw
       <input type="color" id="color-picker" name="color-picker", value="#ff3333"></input>

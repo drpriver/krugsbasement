@@ -9,7 +9,7 @@
 //  image
 //  text
 //
-//  all objects start as 
+//  all objects start as
 //  {
 //    type: 'some-type',
 //    id: 'foo-bar',
@@ -33,7 +33,7 @@
 //    base_y: 99,
 //    color: '#fff',
 //    // points are just raw x,y pairs in a flat array.
-//    points: [x,y, x,y, x,y], 
+//    points: [x,y, x,y, x,y],
 //    path: a Path2d object,
 //  }
 //
@@ -52,7 +52,7 @@
 //    base_y: 256,
 //    color: '#fff',
 //    // points are just raw x,y pairs in a flat array.
-//    points: [x,y, x,y, x,y], 
+//    points: [x,y, x,y, x,y],
 //    path: a Path2d object,
 //  }
 //
@@ -120,7 +120,18 @@
 //    id: 'foo-bar',
 //    base_x: 3,
 //    base_y: 99,
-//    text: "foo-bar",
+//    text: "foozle",
+//  }
+//
+//  ez-token
+//  --------
+//  {
+//    type: 'ez-token',
+//    id: 'foo-bar',
+//    base_x: 32,
+//    base_y: 96,
+//    text: "foozle",
+//    color: "#fff",
 //  }
 //
 //
@@ -210,7 +221,7 @@ function snap_to_grid(x){
     if(remainder < (REFERENCE_WIDTH>>1)){
         x -= remainder;
     }
-    else{ 
+    else{
         x += REFERENCE_WIDTH - remainder;
     }
     return x;
@@ -275,10 +286,178 @@ function gridline_translate(obj, dx, dy){
     obj.base_y += dy;
     gridline_recalculate_path(obj);
 }
+function make_gridrect(id, base_x, base_y, color){
+    base_x = snap_to_grid(base_x);
+    base_y = snap_to_grid(base_y);
+    const obj =  {
+        type: 'grid-rectangle',
+        id: id,
+        base_x: base_x,
+        base_y: base_y,
+        color: color,
+        width: 0,
+        height: 0,
+    };
+    return obj;
+}
+function add_gridrect(id, base_x, base_y, color){
+    const obj = make_gridrect(id, base_x, base_y, color);
+    add_canv_obj(obj);
+}
+function change_gridrect(obj, x0, y0, x1, y1){
+    x0 = snap_to_grid(x0);
+    y0 = snap_to_grid(y0);
+    x1 = snap_to_grid(x1);
+    y1 = snap_to_grid(y1);
+    if(x1 < x0){
+        let temp = x1;
+        x1 = x0;
+        x0 = temp;
+    }
+    if(y1 < y0){
+        let temp = y1;
+        y1 = y0;
+        y0 = temp;
+    }
+    obj.base_x = x0;
+    obj.base_y = y0;
+    obj.width = x1 - x0;
+    obj.height = y1 - y0;
+    request_render();
+}
+function change_gridrect_by_id(id, x0, y0, x1, y1){
+    let obj = canvas_objs[id];
+    console.assert(obj);
+    console.assert(obj.type === 'grid-rectangle');
+    change_gridrect(obj, x0, y0, x1, y1);
+}
+function gridrect_translate(obj, dx, dy){
+    obj.base_x += dx;
+    obj.base_y += dy;
+}
+function make_text(id, base_x, base_y, text){
+    base_x = base_x - (base_x & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
+    base_y = base_y - (base_y & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
+    const obj =  {
+        type: 'text',
+        id: id,
+        base_x: Math.round(base_x),
+        base_y: Math.round(base_y),
+        text: text,
+    };
+    return obj;
+}
+function add_text(id, base_x, base_y, text){
+    const obj = make_text(id, base_x, base_y, text);
+    add_canv_obj(obj);
+}
+function make_ez_token(id, base_x, base_y, text, color){
+    base_x = base_x - (base_x & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
+    base_y = base_y - (base_y & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
+
+    const obj =  {
+        type: 'ez-token',
+        id: id,
+        base_x: Math.round(base_x),
+        base_y: Math.round(base_y),
+        text: text,
+        color:color,
+    };
+    return obj;
+}
+function add_ez_token(id, base_x, base_y, text, color){
+    const obj = make_ez_token(id, base_x, base_y, text, color);
+    add_canv_obj(obj);
+}
 document.addEventListener('DOMContentLoaded', resize_canvas);
 window.addEventListener('resize', resize_canvas);
 const canvas_obj_array = [];
 const canvas_objs = {};
+const selected = new Set();
+const selection_area = {
+    is_selecting: false,
+    x0:0, y0:0,
+    x1:0, y1:0,
+};
+function update_selection(x0, y0, x1, y1){
+    if(x0 > x1){
+        let temp = x0;
+        x0 = x1;
+        x1 = temp;
+    }
+    if(y0 > y1){
+        let temp = y0;
+        y0 = y1;
+        y1 = temp;
+    }
+    selection_area.x0 = x0;
+    selection_area.y0 = y0;
+    selection_area.x1 = x1;
+    selection_area.y1 = y1;
+}
+function point_in_rect(x, y, x0, y0, x1, y1){
+    return (x >= x0) && (x <= x1) && (y >= y0) && (y <= y1);
+}
+function finalize_selection(){
+    selected.clear();
+    selection_area.is_selecting = false;
+    const length = canvas_obj_array.length;
+    const x0 = selection_area.x0;
+    const y0 = selection_area.y0;
+    const x1 = selection_area.x1;
+    const y1 = selection_area.y1;
+    for(let i = 0; i < length; ++i){
+        const obj = canvas_obj_array[i];
+        switch(obj.type){
+            case 'grid-line': // fall-through
+            case 'freehand-line':{
+                if(point_in_rect(obj.base_x, obj.base_y, x0, y0, x1, y1)){
+                    selected.add(obj.id);
+                    break;
+                }
+                const points = obj.points;
+                const length = points.length;
+                for(let j = 0; j < length; j+=2){
+                    const x = points[j] + obj.base_x;
+                    const y = points[j+1] + obj.base_y;
+                    if(point_in_rect(x, y, x0, y0, x1, y1)){
+                        selected.add(obj.id);
+                        break;
+                    }
+                }
+            }break;
+            case 'grid-rectangle':{
+                const bx = obj.base_x;
+                const by = obj.base_y;
+                const ox = obj.width + bx;
+                const oy = obj.height + by;
+                if(point_in_rect(bx, by, x0, y0, x1, y1)){
+                    selected.add(obj.id);
+                    break;
+                }
+                if(point_in_rect(bx, oy, x0, y0, x1, y1)){
+                    selected.add(obj.id);
+                    break;
+                }
+                if(point_in_rect(ox, by, x0, y0, x1, y1)){
+                    selected.add(obj.id);
+                    break;
+                }
+                if(point_in_rect(ox, oy, x0, y0, x1, y1)){
+                    selected.add(obj.id);
+                    break;
+                }
+            }break;
+            case 'ez-token':{
+                if(point_in_rect(obj.base_x, obj.base_y, x0, y0, x1, y1)){
+                    selected.add(obj.id);
+                    break;
+                }
+            }break;
+        }
+    }
+    request_render();
+}
 
 function add_canv_obj(obj){
     canvas_objs[obj.id] = obj;
@@ -316,20 +495,91 @@ function render(){
   }
   ctx.translate(camera_x, camera_y);
   let length = canvas_obj_array.length;
+  const SELECTED_COLOR = '#f012df';
   for(let i = 0; i < length; ++i){
       let obj = canvas_obj_array[i];
+      const is_selected = selected.has(obj.id);
       switch(obj.type){
           case 'freehand-line':{
-              ctx.lineWidth = 4;
-              ctx.strokeStyle = obj.color;
-              ctx.stroke(obj.path);
+              // TODO: delete incomplete objects that are canceled.
+              // Maybe we just leave them but don't broadcast them on
+              // page load.
+              if(obj.path){
+                if(is_selected){
+                  ctx.lineWidth=8;
+                  ctx.strokeStyle = SELECTED_COLOR;
+                  ctx.stroke(obj.path);
+                }
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = obj.color;
+                ctx.stroke(obj.path);
+              }
           }break;
           case 'grid-line':{
-              ctx.lineWidth = Math.max(3/scale, 6);
-              ctx.strokeStyle = obj.color;
-              ctx.stroke(obj.path);
+              // TODO: delete incomplete objects that are canceled.
+              if(obj.path){
+                if(is_selected){
+                  ctx.lineWidth=2*Math.max(3/scale, 6);
+                  ctx.strokeStyle = SELECTED_COLOR;
+                  ctx.stroke(obj.path);
+                }
+                ctx.lineWidth = Math.max(3/scale, 6);
+                ctx.strokeStyle = obj.color;
+                ctx.stroke(obj.path);
+              }
+          }break;
+          case 'grid-rectangle':{
+              if(obj.width && obj.height){
+                if(is_selected){
+                  ctx.fillStyle = SELECTED_COLOR+'aa';
+                  ctx.fillRect(obj.base_x-2, obj.base_y-2, obj.width+2, obj.height+2);
+                }
+                ctx.fillStyle = obj.color + 'aa';
+                ctx.fillRect(obj.base_x, obj.base_y, obj.width, obj.height);
+              }
+          }break;
+          case 'text':{
+              if(obj.text){
+                ctx.font = '18px sans';
+                ctx.textBaseline = 'middle';
+                ctx.textAlign = "center";
+                if(is_selected){
+                    let metric = ctx.measureText(obj.text);
+                    let width = metric.width+4;
+                    let height = metric.fontBoundingBoxAscent + 4;
+                    ctx.fillStyle = SELECTED_COLOR+'aa';
+                    ctx.fillRect(obj.base_x-width/2, obj.base_y-height/2, width, height);
+                }
+                ctx.fillStyle = '#000';
+                ctx.fillText(obj.text, obj.base_x, obj.base_y);
+              }
+          }break;
+          case 'ez-token':{
+              if(is_selected){
+                  ctx.beginPath();
+                  ctx.fillStyle = SELECTED_COLOR;
+                  ctx.arc(obj.base_x, obj.base_y, 30, 0, 2*Math.PI);
+                  ctx.fill();
+              }
+              ctx.beginPath();
+              ctx.fillStyle = '#000';
+              ctx.arc(obj.base_x, obj.base_y, 28, 0, 2*Math.PI);
+              ctx.fill();
+              ctx.beginPath();
+              ctx.fillStyle = obj.color;
+              ctx.arc(obj.base_x, obj.base_y, 24, 0, 2*Math.PI);
+              ctx.fill();
+              ctx.font = '24 sans';
+              ctx.textBaseline = 'middle';
+              ctx.textAlign = "center";
+              ctx.fillStyle = '#000';
+              ctx.fillText(obj.text, obj.base_x, obj.base_y);
           }break;
       }
+  }
+  if(selection_area.is_selecting){
+    ctx.fillStyle = '#55555555';
+    ctx.fillRect(selection_area.x0, selection_area.y0, selection_area.x1-selection_area.x0, selection_area.y1-selection_area.y0);
   }
   // request_render();
 }
@@ -340,7 +590,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const tools_div = document.getElementById('tools');
     const tools = tools_div.children;
     color_picker = document.getElementById('color-picker');
-    
+
     for(let i = 0; i < tools.length-1; ++i){
         const tool = tools[i];
         if(tool.innerHTML.trim() === 'Pan'){
@@ -411,6 +661,31 @@ document.addEventListener('DOMContentLoaded', function(){
   let lineid = 0;
   canvas.addEventListener('mousedown', function(e){
       switch(current_tool){
+          case 'Select':{
+              let clicked_x = e.offsetX/scale - camera_x;
+              let clicked_y = e.offsetY/scale - camera_y;
+              selection_area.is_selecting = true;
+              update_selection(clicked_x-5/scale, clicked_y-5/scale, clicked_x+5/scale, clicked_y+5/scale);
+              request_render();
+              function select(e){
+                  e.stopPropagation();
+                  e.preventDefault();
+                  let select_x = e.offsetX/scale - camera_x;
+                  let select_y = e.offsetY/scale - camera_y;
+                  update_selection(clicked_x, clicked_y, select_x, select_y);
+                  request_render();
+              }
+            canvas.addEventListener('mousemove', select);
+            function finish_select(){
+              finalize_selection();
+              canvas.removeEventListener('mousemove', select);
+              window.removeEventListener('mouseup', finish_select);
+              canvas.removeEventListener('mouseleave', finish_select);
+            }
+            window.addEventListener('mouseup', finish_select);
+            canvas.addEventListener('mouseleave', finish_select);
+
+          }break;
           case 'Pan':{
               let clicked_x = e.offsetX/scale;
               let clicked_y = e.offsetY/scale;
@@ -470,6 +745,48 @@ document.addEventListener('DOMContentLoaded', function(){
             window.addEventListener('mouseup', finish_point);
             canvas.addEventListener('mouseleave', finish_point);
           }break;
+         case 'Floor':{
+            ++lineid;
+             const x0 = e.offsetX/scale-camera_x;
+             const y0 = e.offsetY/scale-camera_y;
+              add_gridrect(lineid, x0, y0, color_picker.value);
+            function add_point(e){
+              e.stopPropagation();
+              e.preventDefault();
+              change_gridrect_by_id(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, x0, y0);
+              request_render();
+            }
+            canvas.addEventListener('mousemove', add_point);
+            function finish_point(){
+              canvas.removeEventListener('mousemove', add_point);
+              window.removeEventListener('mouseup', finish_point);
+              canvas.removeEventListener('mouseleave', finish_point);
+            }
+            window.addEventListener('mouseup', finish_point);
+            canvas.addEventListener('mouseleave', finish_point);
+         }break;
+        case 'Text':{
+            const text = prompt("Enter Text:");
+            if(!text.trim()){
+                break;
+            }
+            const x0 = e.offsetX/scale-camera_x;
+            const y0 = e.offsetY/scale-camera_y;
+            ++lineid;
+            add_text(lineid, x0, y0, text);
+            request_render();
+        }break;
+        case 'Ez-Token':{
+            const text = prompt("Enter Token Name:");
+            if(!text.trim()){
+                break;
+            }
+            const x0 = e.offsetX/scale-camera_x;
+            const y0 = e.offsetY/scale-camera_y;
+            ++lineid;
+            add_ez_token(lineid, x0, y0, text, color_picker.value);
+            request_render();
+        }break;
       }
   });
 });
