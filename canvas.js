@@ -335,11 +335,13 @@ function render(){
 }
 document.addEventListener('DOMContentLoaded', render);
 let current_tool = "Pan";
+let color_picker = null;
 document.addEventListener('DOMContentLoaded', function(){
     const tools_div = document.getElementById('tools');
     const tools = tools_div.children;
+    color_picker = document.getElementById('color-picker');
     
-    for(let i = 0; i < tools.length; ++i){
+    for(let i = 0; i < tools.length-1; ++i){
         const tool = tools[i];
         if(tool.innerHTML.trim() === 'Pan'){
             tool.classList.toggle('selected');
@@ -348,7 +350,7 @@ document.addEventListener('DOMContentLoaded', function(){
             e.stopPropagation();
             e.preventDefault();
             current_tool = tool.innerHTML.trim();
-            for(let j = 0; j < tools.length; ++j){
+            for(let j = 0; j < tools.length-1; ++j){
                 tools[j].classList.remove('selected');
             }
             tool.classList.toggle('selected');
@@ -434,7 +436,7 @@ document.addEventListener('DOMContentLoaded', function(){
           }break;
           case 'Line':{
             ++lineid;
-              add_freehand_line(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, '#f00');
+              add_freehand_line(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, color_picker.value);
             function add_point(e){
               e.stopPropagation();
               e.preventDefault();
@@ -452,7 +454,7 @@ document.addEventListener('DOMContentLoaded', function(){
           }break;
           case 'Wall':{
             ++lineid;
-              add_gridline(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, '#f00');
+              add_gridline(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, color_picker.value);
             function add_point(e){
               e.stopPropagation();
               e.preventDefault();

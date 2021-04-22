@@ -18,6 +18,9 @@
     Rect
   ::div
     Text
+  ::div
+    ::raw
+      <input type="color" id="color-picker" name="color-picker", value="#ff3333"></input>
     
 ::css @inline
   * {
