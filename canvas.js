@@ -53,6 +53,7 @@
 //    color: '#fff',
 //    // points are just raw x,y pairs in a flat array.
 //    points: [x,y, x,y, x,y], 
+//    path: a Path2d object,
 //  }
 //
 //  rectangle
@@ -123,10 +124,11 @@
 //  }
 //
 //
+// THIS NEEDS TO ALWAYS BE POWER OF 2
 const REFERENCE_WIDTH = 64; // the size of a square at scale = 1.
 let camera_x = -34;
 let camera_y = 56;
-let scale = 0.25;
+let scale = 1;
 let animation_requested = false;
 let canvas = null;
 let ctx = null;
@@ -144,20 +146,20 @@ function resize_canvas(){
   hist.scrollTo({top:hist.scrollHeight});
 };
 function make_freehand_line(id, base_x, base_y, color){
-    const path = new Path2D();
-    path.moveTo(base_x, base_y);
-    return {
+    const obj =  {
         type: 'freehand-line',
         id: id,
         base_x: base_x,
         base_y: base_y,
         points: [],
         color: color,
-        path: path,
+        path: null,
     };
+    return obj;
 }
 function add_freehand_line(id, base_x, base_y, color){
-    add_canv_obj(make_freehand_line(id, base_x, base_y, color));
+    const obj = make_freehand_line(id, base_x, base_y, color);
+    add_canv_obj(obj);
 }
 function add_freehand_point(obj, x, y){
     x -= obj.base_x;
@@ -201,9 +203,80 @@ function freehand_translate(obj, dx, dy){
     obj.base_y += dy;
     freehand_recalculate_path(obj);
 }
+
+function snap_to_grid(x){
+    x = Math.round(x);
+    const remainder = x & (REFERENCE_WIDTH-1);
+    if(remainder < (REFERENCE_WIDTH>>1)){
+        x -= remainder;
+    }
+    else{ 
+        x += REFERENCE_WIDTH - remainder;
+    }
+    return x;
+}
+function make_gridline(id, base_x, base_y, color){
+    base_x = snap_to_grid(base_x);
+    base_y = snap_to_grid(base_y);
+    const obj =  {
+        type: 'grid-line',
+        id: id,
+        base_x: base_x,
+        base_y: base_y,
+        points: [],
+        color: color,
+        path: null,
+    };
+    return obj;
+}
+function add_gridline(id, base_x, base_y, color){
+    const obj = make_gridline(id, base_x, base_y, color);
+    add_canv_obj(obj);
+}
+function add_gridline_point(obj, x, y){
+    x = snap_to_grid(x);
+    y = snap_to_grid(y);
+    x -= obj.base_x;
+    y -= obj.base_y;
+    const points = obj.points;
+    if(points.length){
+        if(points[points.length-2] == x && points[points.length-1] == y){
+            return;
+        }
+    }
+    points.push(x);
+    points.push(y);
+    gridline_recalculate_path(obj);
+}
+function gridline_recalculate_path(obj){
+    // this is the same as freehand??
+    const points = obj.points;
+    const base_x = obj.base_x;
+    const base_y = obj.base_y;
+    const length = points.length;
+    const path = new Path2D();
+    path.moveTo(base_x, base_y);
+    for(let i = 0; i < length; i+=2){
+        const x1 = points[i] + base_x
+        const y1 = points[i+1] + base_y;
+        path.lineTo(x1, y1);
+    }
+    obj.path = path;
+}
+function add_gridline_point_by_id(id, x, y){
+    // this is the same as freehand
+    let obj = canvas_objs[id];
+    console.assert(obj);
+    console.assert(obj.type === 'grid-line');
+    add_gridline_point(obj, x, y);
+}
+function gridline_translate(obj, dx, dy){
+    obj.base_x += dx;
+    obj.base_y += dy;
+    gridline_recalculate_path(obj);
+}
 document.addEventListener('DOMContentLoaded', resize_canvas);
 window.addEventListener('resize', resize_canvas);
-const fh = make_freehand_line('lmao', 126, 256, '#3f6');
 const canvas_obj_array = [];
 const canvas_objs = {};
 
@@ -211,8 +284,6 @@ function add_canv_obj(obj){
     canvas_objs[obj.id] = obj;
     canvas_obj_array.push(obj);
 }
-add_canv_obj(fh);
-
 
 function request_render(){
   if(animation_requested){
@@ -233,10 +304,10 @@ function render(){
   let SCALE = scale;
   ctx.scale(SCALE, SCALE);
   ctx.fillStyle = 'rgb(150, 150, 150)';
-  let grid_base_x = camera_x & 63;
-  let grid_base_y = camera_y & 63;
+  let grid_base_x = camera_x & (REFERENCE_WIDTH-1);
+  let grid_base_y = camera_y & (REFERENCE_WIDTH-1);
   let grid_max_x = width/SCALE;
-  let grid_max_y = width/SCALE;
+  let grid_max_y = height/SCALE;
   for(let x = grid_base_x; x < grid_max_x; x+= REFERENCE_WIDTH){
     ctx.fillRect(x, 0, 1/SCALE, height/SCALE);
   }
@@ -250,6 +321,11 @@ function render(){
       switch(obj.type){
           case 'freehand-line':{
               ctx.lineWidth = 4;
+              ctx.strokeStyle = obj.color;
+              ctx.stroke(obj.path);
+          }break;
+          case 'grid-line':{
+              ctx.lineWidth = Math.max(3/scale, 6);
               ctx.strokeStyle = obj.color;
               ctx.stroke(obj.path);
           }break;
@@ -358,14 +434,29 @@ document.addEventListener('DOMContentLoaded', function(){
           }break;
           case 'Line':{
             ++lineid;
-              console.log('scale', scale);
-              console.log('camera_x', camera_x);
-              console.log('camera_y', camera_y);
               add_freehand_line(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, '#f00');
             function add_point(e){
               e.stopPropagation();
               e.preventDefault();
               add_freehand_point_by_id(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y);
+              request_render();
+            }
+            canvas.addEventListener('mousemove', add_point);
+            function finish_point(){
+              canvas.removeEventListener('mousemove', add_point);
+              window.removeEventListener('mouseup', finish_point);
+              canvas.removeEventListener('mouseleave', finish_point);
+            }
+            window.addEventListener('mouseup', finish_point);
+            canvas.addEventListener('mouseleave', finish_point);
+          }break;
+          case 'Wall':{
+            ++lineid;
+              add_gridline(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, '#f00');
+            function add_point(e){
+              e.stopPropagation();
+              e.preventDefault();
+              add_gridline_point_by_id(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y);
               request_render();
             }
             canvas.addEventListener('mousemove', add_point);
