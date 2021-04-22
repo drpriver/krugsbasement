@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', function(){
   let history_index = 0;
   let current_text = "";
   ta.addEventListener('keydown', function(e){
+    e.stopPropagation();
     let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
     if(!modified && e.key == "Enter"){
       e.stopPropagation();

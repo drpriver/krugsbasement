@@ -33,6 +33,7 @@ function bbox_overlaps(bbox1, bbox2){
 //    id: 'foo-bar',
 //    base_x: 3,
 //    base_y: 99,
+//    deleted: false,
 //  }
 //
 //  and then the rest of the fields are different.
@@ -112,9 +113,9 @@ function bbox_overlaps(bbox1, bbox2){
 //  We only allow axis-aligned ellipses.
 //  {
 //    type: 'ellipse',
-//    id: 'foo-bar',
+    //    id: 'foo-bar',
 //    base_x: 3,
-//    base_y: 99,
+    //    base_y: 99,
 //    color: '#fff',
 //    r_x: 12,
 //    r_y: 18,
@@ -122,42 +123,42 @@ function bbox_overlaps(bbox1, bbox2){
 //
 //  image
 //  -----
-//  {
+    //  {
 //    type: 'image',
 //    id: 'foo-bar',
-//    base_x: 3,
-//    base_y: 99,
-//    width: 99,
-//    height: 99,
-//    url: "foo-bar",
+    //    base_x: 3,
+    //    base_y: 99,
+    //    width: 99,
+    //    height: 99,
+    //    url: "foo-bar",
 //    img: Image(),
-//  }
-//
-//  text
-//  ----
+    //  }
+    //
+    //  text
+    //  ----
 //  {
 //    type: 'text',
 //    id: 'foo-bar',
-//    base_x: 3,
+    //    base_x: 3,
 //    base_y: 99,
-//    text: "foozle",
+    //    text: "foozle",
 //    bbox: bbox,
-//  }
-//
-//  ez-token
-//  --------
-//  {
-//    type: 'ez-token',
-//    id: 'foo-bar',
-//    base_x: 32,
-//    base_y: 96,
-//    text: "foozle",
+    //  }
+    //
+    //  ez-token
+    //  --------
+    //  {
+    //    type: 'ez-token',
+    //    id: 'foo-bar',
+    //    base_x: 32,
+    //    base_y: 96,
+    //    text: "foozle",
 //    color: "#fff",
-//  }
+    //  }
 //
 //
 // THIS NEEDS TO ALWAYS BE POWER OF 2
-const REFERENCE_WIDTH = 64; // the size of a square at scale = 1.
+    const REFERENCE_WIDTH = 64; // the size of a square at scale = 1.
 let camera_x = -34;
 let camera_y = 56;
 let scale = 1;
@@ -165,17 +166,17 @@ let animation_requested = false;
 let canvas = null;
 let ctx = null;
 function resize_canvas(){
-  canvas = document.getElementsByTagName('canvas')[0];
-  ctx = canvas.getContext('2d');
-  const parent_rect = canvas.parentElement.getBoundingClientRect();
-  const chat_rect = document.getElementById('chat').getBoundingClientRect();
-  canvas.width = window.innerWidth - chat_rect.width;
-  canvas.height = window.innerHeight-6;
-  request_render();
-  const hist = document.getElementById('chat-history');
-  const ta = document.getElementById('chatinput');
-  hist.style.height = window.innerHeight-12-100 + 'px';
-  hist.scrollTo({top:hist.scrollHeight});
+    canvas = document.getElementsByTagName('canvas')[0];
+    ctx = canvas.getContext('2d');
+    const parent_rect = canvas.parentElement.getBoundingClientRect();
+    const chat_rect = document.getElementById('chat').getBoundingClientRect();
+    canvas.width = window.innerWidth - chat_rect.width;
+    canvas.height = window.innerHeight-6;
+    request_render();
+    const hist = document.getElementById('chat-history');
+    const ta = document.getElementById('chatinput');
+    hist.style.height = window.innerHeight-12-100 + 'px';
+    hist.scrollTo({top:hist.scrollHeight});
 };
 function make_freehand_line(id, base_x, base_y, color){
     const obj =  {
@@ -183,6 +184,7 @@ function make_freehand_line(id, base_x, base_y, color){
         id: id,
         base_x: base_x,
         base_y: base_y,
+        deleted: false,
         points: [],
         color: color,
         path: null,
@@ -233,7 +235,7 @@ function freehand_recalculate_path(obj){
         y0 = y1;
     }
     if(length > 2){
-        path.quadraticCurveTo(points[length-4]+base_x, points[length-3]+base_y,  x0, y0);
+        path.quadraticCurveTo(points[length-4]+base_x, points[length-3]+base_y, x0, y0);
     }
     obj.path = path;
 }
@@ -268,6 +270,7 @@ function make_gridline(id, base_x, base_y, color){
         id: id,
         base_x: base_x,
         base_y: base_y,
+        deleted: false,
         points: [],
         color: color,
         path: null,
@@ -341,6 +344,7 @@ function make_gridrect(id, base_x, base_y, color){
         id: id,
         base_x: base_x,
         base_y: base_y,
+        deleted: false,
         color: color,
         width: 0,
         height: 0,
@@ -390,6 +394,7 @@ function make_text(id, base_x, base_y, text){
         id: id,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
+        deleted: false,
         text: text,
         bbox: { x0: 0, y0: 0, x1: 0, y1: 0, },
     };
@@ -408,6 +413,7 @@ function make_ez_token(id, base_x, base_y, text, color){
         id: id,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
+        deleted: false,
         text: text,
         color:color,
     };
@@ -420,7 +426,7 @@ function add_ez_token(id, base_x, base_y, text, color){
 document.addEventListener('DOMContentLoaded', resize_canvas);
 window.addEventListener('resize', resize_canvas);
 const canvas_obj_array = [];
-const canvas_objs = {};
+const canvas_objs = Object.create(null);
 const selected = new Set();
 const selection_area = {
     is_selecting: false,
@@ -456,6 +462,8 @@ function note_selections(){
     const selection_bbox = {x0:x0, y0:y0, x1:x1, y1:y1,};
     for(let i = 0; i < length; ++i){
         const obj = canvas_obj_array[i];
+        if(obj.deleted)
+            continue;
         switch(obj.type){
             case 'grid-line': // fall-through
             case 'freehand-line':{
@@ -519,143 +527,151 @@ function finalize_selection(){
     request_render();
 }
 
+function end_selecting(){
+    selected.clear();
+    selection_area.is_selecting = false;
+    request_render();
+}
+
 function add_canv_obj(obj){
     canvas_objs[obj.id] = obj;
     canvas_obj_array.push(obj);
 }
 
 function request_render(){
-  if(animation_requested){
-    return;
-  }
-  animation_requested = true;
-  // only call this from here to avoid double renders.
-  requestAnimationFrame(render);
+    if(animation_requested){
+        return;
+    }
+    animation_requested = true;
+    // only call this from here to avoid double renders.
+    requestAnimationFrame(render);
 }
 function render(){
-  if(!ctx)
-    return;
-  if(selection_area.is_selecting){
-      selected.clear();
-      note_selections();
-  }
-  animation_requested = false;
-  const width = canvas.width;
-  const height = canvas.height;
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, width, height);
-  let SCALE = scale;
-  ctx.scale(SCALE, SCALE);
-  ctx.fillStyle = 'rgb(150, 150, 150)';
-  let grid_base_x = camera_x & (REFERENCE_WIDTH-1);
-  let grid_base_y = camera_y & (REFERENCE_WIDTH-1);
-  let grid_max_x = width/SCALE;
-  let grid_max_y = height/SCALE;
-  for(let x = grid_base_x; x < grid_max_x; x+= REFERENCE_WIDTH){
-    ctx.fillRect(x, 0, 1/SCALE, height/SCALE);
-  }
-  for(let y = grid_base_y; y < grid_max_y; y+= REFERENCE_WIDTH){
-    ctx.fillRect(0, y, width/SCALE, 1/SCALE);
-  }
-  ctx.translate(camera_x, camera_y);
-  let length = canvas_obj_array.length;
-  // const SELECTED_COLOR = '#f012df';
-  const SELECTED_COLOR = '#33ffdd';
-  for(let i = 0; i < length; ++i){
-      let obj = canvas_obj_array[i];
-      const is_selected = selected.has(obj.id);
-      switch(obj.type){
-          case 'freehand-line':{
-              // TODO: delete incomplete objects that are canceled.
-              // Maybe we just leave them but don't broadcast them on
-              // page load.
-              if(obj.path){
-                if(is_selected){
-                  ctx.lineWidth=8;
-                  ctx.strokeStyle = SELECTED_COLOR;
-                  ctx.stroke(obj.path);
+    if(!ctx)
+        return;
+    if(selection_area.is_selecting){
+        selected.clear();
+        note_selections();
+    }
+    animation_requested = false;
+    const width = canvas.width;
+    const height = canvas.height;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    let SCALE = scale;
+    ctx.scale(SCALE, SCALE);
+    ctx.fillStyle = 'rgb(150, 150, 150)';
+    let grid_base_x = camera_x & (REFERENCE_WIDTH-1);
+    let grid_base_y = camera_y & (REFERENCE_WIDTH-1);
+    let grid_max_x = width/SCALE;
+    let grid_max_y = height/SCALE;
+    for(let x = grid_base_x; x < grid_max_x; x+= REFERENCE_WIDTH){
+        ctx.fillRect(x, 0, 1/SCALE, height/SCALE);
+    }
+    for(let y = grid_base_y; y < grid_max_y; y+= REFERENCE_WIDTH){
+        ctx.fillRect(0, y, width/SCALE, 1/SCALE);
+    }
+    ctx.translate(camera_x, camera_y);
+    let length = canvas_obj_array.length;
+    // const SELECTED_COLOR = '#f012df';
+    const SELECTED_COLOR = '#33ffdd';
+    for(let i = 0; i < length; ++i){
+        let obj = canvas_obj_array[i];
+        if(obj.deleted)
+            continue;
+        const is_selected = selected.has(obj.id);
+        switch(obj.type){
+            case 'freehand-line':{
+                // TODO: delete incomplete objects that are canceled.
+                // Maybe we just leave them but don't broadcast them on
+                // page load.
+                if(obj.path){
+                    if(is_selected){
+                        ctx.lineWidth=8;
+                        ctx.strokeStyle = SELECTED_COLOR;
+                        ctx.stroke(obj.path);
+                    }
+                    ctx.lineWidth = 4;
+                    ctx.strokeStyle = obj.color;
+                    ctx.stroke(obj.path);
                 }
-                ctx.lineWidth = 4;
-                ctx.strokeStyle = obj.color;
-                ctx.stroke(obj.path);
-              }
-          }break;
-          case 'grid-line':{
-              // TODO: delete incomplete objects that are canceled.
-              if(obj.path){
-                if(is_selected){
-                  ctx.lineWidth=2*Math.max(3/scale, 6);
-                  ctx.strokeStyle = SELECTED_COLOR;
-                  ctx.stroke(obj.path);
+            }break;
+            case 'grid-line':{
+                // TODO: delete incomplete objects that are canceled.
+                if(obj.path){
+                    if(is_selected){
+                        ctx.lineWidth=2*Math.max(3/scale, 6);
+                        ctx.strokeStyle = SELECTED_COLOR;
+                        ctx.stroke(obj.path);
+                    }
+                    ctx.lineWidth = Math.max(3/scale, 6);
+                    ctx.strokeStyle = obj.color;
+                    ctx.stroke(obj.path);
                 }
-                ctx.lineWidth = Math.max(3/scale, 6);
-                ctx.strokeStyle = obj.color;
-                ctx.stroke(obj.path);
-              }
-          }break;
-          case 'grid-rectangle':{
-              if(obj.width && obj.height){
-                if(is_selected){
-                  ctx.fillStyle = SELECTED_COLOR+'aa';
-                  ctx.fillRect(obj.base_x-2, obj.base_y-2, obj.width+2, obj.height+2);
+            }break;
+            case 'grid-rectangle':{
+                if(obj.width && obj.height){
+                    if(is_selected){
+                        ctx.fillStyle = SELECTED_COLOR+'aa';
+                        ctx.fillRect(obj.base_x-2, obj.base_y-2, obj.width+2, obj.height+2);
+                    }
+                    ctx.fillStyle = obj.color + 'aa';
+                    ctx.fillRect(obj.base_x, obj.base_y, obj.width, obj.height);
                 }
-                ctx.fillStyle = obj.color + 'aa';
-                ctx.fillRect(obj.base_x, obj.base_y, obj.width, obj.height);
-              }
-          }break;
-          case 'text':{
-              if(obj.text){
-                ctx.font = '18px sans';
+            }break;
+            case 'text':{
+                if(obj.text){
+                    ctx.font = '18px sans';
+                    ctx.textBaseline = 'middle';
+                    ctx.textAlign = "center";
+                    if(obj.bbox.x0 == obj.bbox.x1){
+                        let metric = ctx.measureText(obj.text);
+                        let width = metric.width;
+                        let height = metric.fontBoundingBoxAscent + 2;
+                        obj.bbox.x0 = -width/2;
+                        obj.bbox.x1 = width/2;
+                        obj.bbox.y0 = -height/2;
+                        obj.bbox.y1 = -height/2;
+                    }
+                    if(is_selected){
+                        let metric = ctx.measureText(obj.text);
+                        let width = metric.width+4;
+                        let height = metric.fontBoundingBoxAscent + 4;
+                        ctx.fillStyle = SELECTED_COLOR+'aa';
+                        ctx.fillRect(obj.base_x-width/2, obj.base_y-height/2, width, height);
+                    }
+                    ctx.fillStyle = '#000';
+                    ctx.fillText(obj.text, obj.base_x, obj.base_y);
+                }
+            }break;
+            case 'ez-token':{
+                if(is_selected){
+                    ctx.beginPath();
+                    ctx.fillStyle = SELECTED_COLOR;
+                    ctx.arc(obj.base_x, obj.base_y, 30, 0, 2*Math.PI);
+                    ctx.fill();
+                }
+                ctx.beginPath();
+                ctx.fillStyle = '#000';
+                ctx.arc(obj.base_x, obj.base_y, 28, 0, 2*Math.PI);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.fillStyle = obj.color;
+                ctx.arc(obj.base_x, obj.base_y, 24, 0, 2*Math.PI);
+                ctx.fill();
+                ctx.font = '24 sans';
                 ctx.textBaseline = 'middle';
                 ctx.textAlign = "center";
-                if(obj.bbox.x0 == obj.bbox.x1){
-                    let metric = ctx.measureText(obj.text);
-                    let width = metric.width;
-                    let height = metric.fontBoundingBoxAscent + 2;
-                    obj.bbox.x0 = -width/2;
-                    obj.bbox.x1 = width/2;
-                    obj.bbox.y0 = -height/2;
-                    obj.bbox.y1 = -height/2;
-                }
-                if(is_selected){
-                    let metric = ctx.measureText(obj.text);
-                    let width = metric.width+4;
-                    let height = metric.fontBoundingBoxAscent + 4;
-                    ctx.fillStyle = SELECTED_COLOR+'aa';
-                    ctx.fillRect(obj.base_x-width/2, obj.base_y-height/2, width, height);
-                }
                 ctx.fillStyle = '#000';
                 ctx.fillText(obj.text, obj.base_x, obj.base_y);
-              }
-          }break;
-          case 'ez-token':{
-              if(is_selected){
-                  ctx.beginPath();
-                  ctx.fillStyle = SELECTED_COLOR;
-                  ctx.arc(obj.base_x, obj.base_y, 30, 0, 2*Math.PI);
-                  ctx.fill();
-              }
-              ctx.beginPath();
-              ctx.fillStyle = '#000';
-              ctx.arc(obj.base_x, obj.base_y, 28, 0, 2*Math.PI);
-              ctx.fill();
-              ctx.beginPath();
-              ctx.fillStyle = obj.color;
-              ctx.arc(obj.base_x, obj.base_y, 24, 0, 2*Math.PI);
-              ctx.fill();
-              ctx.font = '24 sans';
-              ctx.textBaseline = 'middle';
-              ctx.textAlign = "center";
-              ctx.fillStyle = '#000';
-              ctx.fillText(obj.text, obj.base_x, obj.base_y);
-          }break;
-      }
-  }
-  if(selection_area.is_selecting){
-    ctx.fillStyle = '#55555555';
-    ctx.fillRect(selection_area.x0, selection_area.y0, selection_area.x1-selection_area.x0, selection_area.y1-selection_area.y0);
-  }
-  // request_render();
+            }break;
+        }
+    }
+    if(selection_area.is_selecting){
+        ctx.fillStyle = '#55555555';
+        ctx.fillRect(selection_area.x0, selection_area.y0, selection_area.x1-selection_area.x0, selection_area.y1-selection_area.y0);
+    }
+    // request_render();
 }
 document.addEventListener('DOMContentLoaded', render);
 let current_tool = "Pan";
@@ -674,6 +690,14 @@ document.addEventListener('DOMContentLoaded', function(){
             e.stopPropagation();
             e.preventDefault();
             current_tool = tool.innerHTML.trim();
+            switch(current_tool){
+                case 'Pan':
+                case 'Select':
+                    break;
+                default:
+                    end_selecting();
+                    break;
+            }
             for(let j = 0; j < tools.length-1; ++j){
                 tools[j].classList.remove('selected');
             }
@@ -682,186 +706,211 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 });
 document.addEventListener('DOMContentLoaded', function(){
-  const canvas = document.getElementsByTagName('canvas')[0];
-  canvas.addEventListener('wheel', function(e){
-    e.stopPropagation();
-    e.preventDefault();
-    const oldscale = scale;
-    let dy = e.deltaY;
-    const dscale = 50;
-    if(dy > dscale)
-      dy = dscale;
-    if(dy < -dscale)
-      dy = -scale;
-    scale *= 1 + (-dy/dscale);
-    if(scale < 0.25)
-      scale = 0.25;
-    if(scale > 4)
-      scale = 4;
-    camera_x -= e.offsetX/oldscale;
-    camera_x += e.offsetX/scale;
-    camera_y -= e.offsetY/oldscale;
-    camera_y += e.offsetY/scale;
-    camera_x = Math.round(camera_x);
-    camera_y = Math.round(camera_y);
-    request_render();
-  });
-  window.addEventListener('keydown', function(e){
-    if(e.key == 'ArrowLeft'){
-      e.stopPropagation();
-      e.preventDefault();
-      camera_x += 256;
-      request_render();
-    }
-    else if(e.key == 'ArrowRight'){
-      e.stopPropagation();
-      e.preventDefault();
-      camera_x -= 256;
-      request_render();
-    }
-    else if(e.key == 'ArrowUp'){
-      e.stopPropagation();
-      e.preventDefault();
-      camera_y += 256;
-      request_render();
-    }
-    else if(e.key == 'ArrowDown'){
-      e.stopPropagation();
-      e.preventDefault();
-      camera_y -= 256;
-      request_render();
-    }
-  });
-  let lineid = 0;
-  canvas.addEventListener('mousedown', function(e){
-      e.stopPropagation();
-      e.preventDefault();
-      switch(current_tool){
-          case 'Select':{
-              let clicked_x = e.offsetX/scale - camera_x;
-              let clicked_y = e.offsetY/scale - camera_y;
-              selection_area.is_selecting = true;
-              update_selection(clicked_x-5/scale, clicked_y-5/scale, clicked_x+5/scale, clicked_y+5/scale);
-              request_render();
-              function select(e){
-                  e.stopPropagation();
-                  e.preventDefault();
-                  let select_x = e.offsetX/scale - camera_x;
-                  let select_y = e.offsetY/scale - camera_y;
-                  update_selection(clicked_x, clicked_y, select_x, select_y);
-                  request_render();
-              }
-            canvas.addEventListener('mousemove', select);
-            function finish_select(){
-              finalize_selection();
-              canvas.removeEventListener('mousemove', select);
-              window.removeEventListener('mouseup', finish_select);
-              canvas.removeEventListener('mouseleave', finish_select);
-            }
-            window.addEventListener('mouseup', finish_select);
-            canvas.addEventListener('mouseleave', finish_select);
-          }break;
-          case 'Pan':{
-              let clicked_x = e.offsetX/scale;
-              let clicked_y = e.offsetY/scale;
-              function pan(e){
-                  e.stopPropagation();
-                  e.preventDefault();
-                  let pan_x = e.offsetX/scale;
-                  let pan_y = e.offsetY/scale;
-                  camera_x -= clicked_x - pan_x;
-                  camera_y -= clicked_y - pan_y;
-                  clicked_x = pan_x;
-                  clicked_y = pan_y;
-                  request_render();
-              }
-            canvas.addEventListener('mousemove', pan);
-            function finish_pan(){
-              canvas.removeEventListener('mousemove', pan);
-              window.removeEventListener('mouseup', finish_pan);
-              canvas.removeEventListener('mouseleave', finish_pan);
-            }
-            window.addEventListener('mouseup', finish_pan);
-            canvas.addEventListener('mouseleave', finish_pan);
-          }break;
-          case 'Line':{
-            ++lineid;
-              add_freehand_line(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, color_picker.value);
-            function add_point(e){
-              e.stopPropagation();
-              e.preventDefault();
-              add_freehand_point_by_id(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y);
-              request_render();
-            }
-            canvas.addEventListener('mousemove', add_point);
-            function finish_point(){
-              canvas.removeEventListener('mousemove', add_point);
-              window.removeEventListener('mouseup', finish_point);
-              canvas.removeEventListener('mouseleave', finish_point);
-            }
-            window.addEventListener('mouseup', finish_point);
-            canvas.addEventListener('mouseleave', finish_point);
-          }break;
-          case 'Wall':{
-            ++lineid;
-              add_gridline(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, color_picker.value);
-            function add_point(e){
-              e.stopPropagation();
-              e.preventDefault();
-              add_gridline_point_by_id(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y);
-              request_render();
-            }
-            canvas.addEventListener('mousemove', add_point);
-            function finish_point(){
-              canvas.removeEventListener('mousemove', add_point);
-              window.removeEventListener('mouseup', finish_point);
-              canvas.removeEventListener('mouseleave', finish_point);
-            }
-            window.addEventListener('mouseup', finish_point);
-            canvas.addEventListener('mouseleave', finish_point);
-          }break;
-         case 'Floor':{
-            ++lineid;
-             const x0 = e.offsetX/scale-camera_x;
-             const y0 = e.offsetY/scale-camera_y;
-              add_gridrect(lineid, x0, y0, color_picker.value);
-            function add_point(e){
-              e.stopPropagation();
-              e.preventDefault();
-              change_gridrect_by_id(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, x0, y0);
-              request_render();
-            }
-            canvas.addEventListener('mousemove', add_point);
-            function finish_point(){
-              canvas.removeEventListener('mousemove', add_point);
-              window.removeEventListener('mouseup', finish_point);
-              canvas.removeEventListener('mouseleave', finish_point);
-            }
-            window.addEventListener('mouseup', finish_point);
-            canvas.addEventListener('mouseleave', finish_point);
-         }break;
-        case 'Text':{
-            const text = prompt("Enter Text:");
-            if(!text.trim()){
+    const canvas = document.getElementsByTagName('canvas')[0];
+    canvas.addEventListener('wheel', function(e){
+        e.stopPropagation();
+        e.preventDefault();
+        const oldscale = scale;
+        let dy = e.deltaY;
+        const dscale = 50;
+        if(dy > dscale)
+            dy = dscale;
+        if(dy < -dscale)
+            dy = -scale;
+        scale *= 1 + (-dy/dscale);
+        if(scale < 0.25)
+            scale = 0.25;
+        if(scale > 4)
+            scale = 4;
+        camera_x -= e.offsetX/oldscale;
+        camera_x += e.offsetX/scale;
+        camera_y -= e.offsetY/oldscale;
+        camera_y += e.offsetY/scale;
+        camera_x = Math.round(camera_x);
+        camera_y = Math.round(camera_y);
+        request_render();
+    });
+    window.addEventListener('keydown', function(e){
+        switch(e.key){
+            case 'ArrowLeft':{
+                e.stopPropagation();
+                e.preventDefault();
+                camera_x += 256;
+                request_render();
+            }break;
+            case 'ArrowRight':{
+                e.stopPropagation();
+                e.preventDefault();
+                camera_x -= 256;
+                request_render();
+            }break;
+            case 'ArrowUp':{
+                e.stopPropagation();
+                e.preventDefault();
+                camera_y += 256;
+                request_render();
+            }break;
+            case 'ArrowDown':{
+                e.stopPropagation();
+                e.preventDefault();
+                camera_y -= 256;
+                request_render();
+            }break;
+            case 'Backspace': // fall-through
+            case 'Delete':{
+                e.stopPropagation();
+                e.preventDefault();
+                for(let item of selected){
+                    canvas_objs[item].deleted = true;
+                }
+                end_selecting();
+            }break;
+            default:
                 break;
-            }
-            const x0 = e.offsetX/scale-camera_x;
-            const y0 = e.offsetY/scale-camera_y;
-            ++lineid;
-            add_text(lineid, x0, y0, text);
-            request_render();
-        }break;
-        case 'Ez-Token':{
-            const text = prompt("Enter Token Name:");
-            if(!text.trim()){
-                break;
-            }
-            const x0 = e.offsetX/scale-camera_x;
-            const y0 = e.offsetY/scale-camera_y;
-            ++lineid;
-            add_ez_token(lineid, x0, y0, text, color_picker.value);
-            request_render();
-        }break;
-      }
-  });
+        }
+    });
+    let lineid = 0;
+    let prev_tool = null;
+    canvas.addEventListener('mousedown', function(e){
+        e.stopPropagation();
+        e.preventDefault();
+        if(e.buttons === 4){
+            prev_tool = current_tool;
+            current_tool = 'Pan';
+        }
+        switch(current_tool){
+            case 'Select':{
+                let clicked_x = e.offsetX/scale - camera_x;
+                let clicked_y = e.offsetY/scale - camera_y;
+                selection_area.is_selecting = true;
+                update_selection(clicked_x-5/scale, clicked_y-5/scale, clicked_x+5/scale, clicked_y+5/scale);
+                request_render();
+                function select(e){
+                    e.stopPropagation();
+                    e.preventDefault();
+                    let select_x = e.offsetX/scale - camera_x;
+                    let select_y = e.offsetY/scale - camera_y;
+                    update_selection(clicked_x, clicked_y, select_x, select_y);
+                    request_render();
+                }
+                canvas.addEventListener('mousemove', select);
+                function finish_select(){
+                    finalize_selection();
+                    canvas.removeEventListener('mousemove', select);
+                    window.removeEventListener('mouseup', finish_select);
+                    canvas.removeEventListener('mouseleave', finish_select);
+                }
+                window.addEventListener('mouseup', finish_select);
+                canvas.addEventListener('mouseleave', finish_select);
+            }break;
+            case 'Pan':{
+                let clicked_x = e.offsetX/scale;
+                let clicked_y = e.offsetY/scale;
+                function pan(e){
+                    e.stopPropagation();
+                    e.preventDefault();
+                    let pan_x = e.offsetX/scale;
+                    let pan_y = e.offsetY/scale;
+                    camera_x -= clicked_x - pan_x;
+                    camera_y -= clicked_y - pan_y;
+                    clicked_x = pan_x;
+                    clicked_y = pan_y;
+                    request_render();
+                }
+                canvas.addEventListener('mousemove', pan);
+                function finish_pan(){
+                    if(prev_tool){
+                        current_tool = prev_tool;
+                        prev_tool = null;
+                    }
+                    canvas.removeEventListener('mousemove', pan);
+                    window.removeEventListener('mouseup', finish_pan);
+                    canvas.removeEventListener('mouseleave', finish_pan);
+                }
+                window.addEventListener('mouseup', finish_pan);
+                canvas.addEventListener('mouseleave', finish_pan);
+            }break;
+            case 'Line':{
+                ++lineid;
+                add_freehand_line(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, color_picker.value);
+                function add_point(e){
+                    e.stopPropagation();
+                    e.preventDefault();
+                    add_freehand_point_by_id(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y);
+                    request_render();
+                }
+                canvas.addEventListener('mousemove', add_point);
+                function finish_point(){
+                    canvas.removeEventListener('mousemove', add_point);
+                    window.removeEventListener('mouseup', finish_point);
+                    canvas.removeEventListener('mouseleave', finish_point);
+                }
+                window.addEventListener('mouseup', finish_point);
+                canvas.addEventListener('mouseleave', finish_point);
+            }break;
+            case 'Wall':{
+                ++lineid;
+                add_gridline(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, color_picker.value);
+                function add_point(e){
+                    e.stopPropagation();
+                    e.preventDefault();
+                    add_gridline_point_by_id(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y);
+                    request_render();
+                }
+                canvas.addEventListener('mousemove', add_point);
+                function finish_point(){
+                    canvas.removeEventListener('mousemove', add_point);
+                    window.removeEventListener('mouseup', finish_point);
+                    canvas.removeEventListener('mouseleave', finish_point);
+                }
+                window.addEventListener('mouseup', finish_point);
+                canvas.addEventListener('mouseleave', finish_point);
+            }break;
+            case 'Floor':{
+                ++lineid;
+                const x0 = e.offsetX/scale-camera_x;
+                const y0 = e.offsetY/scale-camera_y;
+                add_gridrect(lineid, x0, y0, color_picker.value);
+                function add_point(e){
+                    e.stopPropagation();
+                    e.preventDefault();
+                    change_gridrect_by_id(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, x0, y0);
+                    request_render();
+                }
+                canvas.addEventListener('mousemove', add_point);
+                function finish_point(){
+                    canvas.removeEventListener('mousemove', add_point);
+                    window.removeEventListener('mouseup', finish_point);
+                    canvas.removeEventListener('mouseleave', finish_point);
+                }
+                window.addEventListener('mouseup', finish_point);
+                canvas.addEventListener('mouseleave', finish_point);
+            }break;
+            case 'Text':{
+                const text = prompt("Enter Text:");
+                if(!text.trim()){
+                    break;
+                }
+                const x0 = e.offsetX/scale-camera_x;
+                const y0 = e.offsetY/scale-camera_y;
+                ++lineid;
+                add_text(lineid, x0, y0, text);
+                request_render();
+            }break;
+            case 'Ez-Token':{
+                const text = prompt("Enter Token Name:");
+                if(!text.trim()){
+                    break;
+                }
+                const x0 = e.offsetX/scale-camera_x;
+                const y0 = e.offsetY/scale-camera_y;
+                ++lineid;
+                add_ez_token(lineid, x0, y0, text, color_picker.value);
+                request_render();
+            }break;
+            default:{
+                console.log('unknown tool:', current_tool);
+            }break;
+        }
+    });
 });
