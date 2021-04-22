@@ -1,3 +1,21 @@
+// bbox
+// {
+//   // These are relative to some base_x, base_y.
+//   x0: float,
+//   y0: float,
+//   x1: float,
+//   y1: float,
+// }
+//
+// Note, for this function, make sure the bboxes have been adjusted
+// to the same frame of reference.
+function bbox_overlaps(bbox1, bbox2){
+    x0 = Math.max(bbox1.x0, bbox2.x0);
+    y0 = Math.max(bbox1.y0, bbox2.y0);
+    x1 = Math.min(bbox1.x1, bbox2.x1);
+    y1 = Math.min(bbox1.y1, bbox2.y1);
+    return x0 <= x1 && y0 <= y1;
+}
 //
 //  Canvas Obj Types
 //  ================
@@ -35,6 +53,7 @@
 //    // points are just raw x,y pairs in a flat array.
 //    points: [x,y, x,y, x,y],
 //    path: a Path2d object,
+//    bbox: bbox,
 //  }
 //
 //  grid-line
@@ -54,6 +73,7 @@
 //    // points are just raw x,y pairs in a flat array.
 //    points: [x,y, x,y, x,y],
 //    path: a Path2d object,
+//    bbox: bbox,
 //  }
 //
 //  rectangle
@@ -121,6 +141,7 @@
 //    base_x: 3,
 //    base_y: 99,
 //    text: "foozle",
+//    bbox: bbox,
 //  }
 //
 //  ez-token
@@ -165,6 +186,7 @@ function make_freehand_line(id, base_x, base_y, color){
         points: [],
         color: color,
         path: null,
+        bbox: { x0: 0, y0: 0, x1: 0, y1: 0, },
     };
     return obj;
 }
@@ -178,6 +200,18 @@ function add_freehand_point(obj, x, y){
     const points = obj.points;
     points.push(x);
     points.push(y);
+    if(x < obj.bbox.x0){
+        obj.bbox.x0 = x;
+    }
+    if(x > obj.bbox.x1){
+        obj.bbox.x1 = x;
+    }
+    if(y < obj.bbox.y0){
+        obj.bbox.y0 = y;
+    }
+    if(y > obj.bbox.y1){
+        obj.bbox.y1 = y;
+    }
     freehand_recalculate_path(obj);
 }
 function freehand_recalculate_path(obj){
@@ -237,6 +271,7 @@ function make_gridline(id, base_x, base_y, color){
         points: [],
         color: color,
         path: null,
+        bbox: { x0: 0, y0: 0, x1: 0, y1: 0, },
     };
     return obj;
 }
@@ -257,6 +292,18 @@ function add_gridline_point(obj, x, y){
     }
     points.push(x);
     points.push(y);
+    if(x < obj.bbox.x0){
+        obj.bbox.x0 = x;
+    }
+    if(x > obj.bbox.x1){
+        obj.bbox.x1 = x;
+    }
+    if(y < obj.bbox.y0){
+        obj.bbox.y0 = y;
+    }
+    if(y > obj.bbox.y1){
+        obj.bbox.y1 = y;
+    }
     gridline_recalculate_path(obj);
 }
 function gridline_recalculate_path(obj){
@@ -344,6 +391,7 @@ function make_text(id, base_x, base_y, text){
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
         text: text,
+        bbox: { x0: 0, y0: 0, x1: 0, y1: 0, },
     };
     return obj;
 }
@@ -398,19 +446,28 @@ function update_selection(x0, y0, x1, y1){
 function point_in_rect(x, y, x0, y0, x1, y1){
     return (x >= x0) && (x <= x1) && (y >= y0) && (y <= y1);
 }
-function finalize_selection(){
-    selected.clear();
-    selection_area.is_selecting = false;
+function note_selections(){
+    const before = performance.now();
     const length = canvas_obj_array.length;
     const x0 = selection_area.x0;
     const y0 = selection_area.y0;
     const x1 = selection_area.x1;
     const y1 = selection_area.y1;
+    const selection_bbox = {x0:x0, y0:y0, x1:x1, y1:y1,};
     for(let i = 0; i < length; ++i){
         const obj = canvas_obj_array[i];
         switch(obj.type){
             case 'grid-line': // fall-through
             case 'freehand-line':{
+                const line_bbox = {
+                    x0:obj.bbox.x0 + obj.base_x,
+                    y0:obj.bbox.y0 + obj.base_y,
+                    x1:obj.bbox.x1 + obj.base_x,
+                    y1:obj.bbox.y1 + obj.base_y,
+                };
+                if(!bbox_overlaps(line_bbox, selection_bbox)){
+                    break;
+                }
                 if(point_in_rect(obj.base_x, obj.base_y, x0, y0, x1, y1)){
                     selected.add(obj.id);
                     break;
@@ -427,35 +484,38 @@ function finalize_selection(){
                 }
             }break;
             case 'grid-rectangle':{
-                const bx = obj.base_x;
-                const by = obj.base_y;
-                const ox = obj.width + bx;
-                const oy = obj.height + by;
-                if(point_in_rect(bx, by, x0, y0, x1, y1)){
-                    selected.add(obj.id);
-                    break;
-                }
-                if(point_in_rect(bx, oy, x0, y0, x1, y1)){
-                    selected.add(obj.id);
-                    break;
-                }
-                if(point_in_rect(ox, by, x0, y0, x1, y1)){
-                    selected.add(obj.id);
-                    break;
-                }
-                if(point_in_rect(ox, oy, x0, y0, x1, y1)){
+                const rect_bbox = {
+                    x0:obj.base_x,
+                    y0:obj.base_y,
+                    x1:obj.base_x+obj.width,
+                    y1:obj.base_y+obj.height,
+                };
+                if(bbox_overlaps(rect_bbox, selection_bbox)){
                     selected.add(obj.id);
                     break;
                 }
             }break;
             case 'ez-token':{
-                if(point_in_rect(obj.base_x, obj.base_y, x0, y0, x1, y1)){
+                const token_bbox = {
+                    x0: obj.base_x - 28,
+                    x1: obj.base_x + 28,
+                    y0: obj.base_y - 28,
+                    y1: obj.base_y + 28,
+                };
+                if(bbox_overlaps(token_bbox, selection_bbox)){
                     selected.add(obj.id);
                     break;
                 }
             }break;
         }
     }
+    const after = performance.now();
+    // console.log('note_selections', after-before, 'ms');
+}
+function finalize_selection(){
+    selected.clear();
+    selection_area.is_selecting = false;
+    note_selections();
     request_render();
 }
 
@@ -475,6 +535,10 @@ function request_render(){
 function render(){
   if(!ctx)
     return;
+  if(selection_area.is_selecting){
+      selected.clear();
+      note_selections();
+  }
   animation_requested = false;
   const width = canvas.width;
   const height = canvas.height;
@@ -495,7 +559,8 @@ function render(){
   }
   ctx.translate(camera_x, camera_y);
   let length = canvas_obj_array.length;
-  const SELECTED_COLOR = '#f012df';
+  // const SELECTED_COLOR = '#f012df';
+  const SELECTED_COLOR = '#33ffdd';
   for(let i = 0; i < length; ++i){
       let obj = canvas_obj_array[i];
       const is_selected = selected.has(obj.id);
@@ -543,6 +608,15 @@ function render(){
                 ctx.font = '18px sans';
                 ctx.textBaseline = 'middle';
                 ctx.textAlign = "center";
+                if(obj.bbox.x0 == obj.bbox.x1){
+                    let metric = ctx.measureText(obj.text);
+                    let width = metric.width;
+                    let height = metric.fontBoundingBoxAscent + 2;
+                    obj.bbox.x0 = -width/2;
+                    obj.bbox.x1 = width/2;
+                    obj.bbox.y0 = -height/2;
+                    obj.bbox.y1 = -height/2;
+                }
                 if(is_selected){
                     let metric = ctx.measureText(obj.text);
                     let width = metric.width+4;
@@ -660,6 +734,8 @@ document.addEventListener('DOMContentLoaded', function(){
   });
   let lineid = 0;
   canvas.addEventListener('mousedown', function(e){
+      e.stopPropagation();
+      e.preventDefault();
       switch(current_tool){
           case 'Select':{
               let clicked_x = e.offsetX/scale - camera_x;
@@ -684,7 +760,6 @@ document.addEventListener('DOMContentLoaded', function(){
             }
             window.addEventListener('mouseup', finish_select);
             canvas.addEventListener('mouseleave', finish_select);
-
           }break;
           case 'Pan':{
               let clicked_x = e.offsetX/scale;
