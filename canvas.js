@@ -113,9 +113,9 @@ function bbox_overlaps(bbox1, bbox2){
 //  We only allow axis-aligned ellipses.
 //  {
 //    type: 'ellipse',
-    //    id: 'foo-bar',
+//    id: 'foo-bar',
 //    base_x: 3,
-    //    base_y: 99,
+//    base_y: 99,
 //    color: '#fff',
 //    r_x: 12,
 //    r_y: 18,
@@ -123,42 +123,42 @@ function bbox_overlaps(bbox1, bbox2){
 //
 //  image
 //  -----
-    //  {
+//  {
 //    type: 'image',
 //    id: 'foo-bar',
-    //    base_x: 3,
-    //    base_y: 99,
-    //    width: 99,
-    //    height: 99,
-    //    url: "foo-bar",
+//    base_x: 3,
+//    base_y: 99,
+//    width: 99,
+//    height: 99,
+//    url: "foo-bar",
 //    img: Image(),
-    //  }
-    //
-    //  text
-    //  ----
+//  }
+//
+//  text
+//  ----
 //  {
 //    type: 'text',
 //    id: 'foo-bar',
-    //    base_x: 3,
+//    base_x: 3,
 //    base_y: 99,
-    //    text: "foozle",
+//    text: "foozle",
 //    bbox: bbox,
-    //  }
-    //
-    //  ez-token
-    //  --------
-    //  {
-    //    type: 'ez-token',
-    //    id: 'foo-bar',
-    //    base_x: 32,
-    //    base_y: 96,
-    //    text: "foozle",
+//  }
+//
+//  ez-token
+//  --------
+//  {
+//    type: 'ez-token',
+//    id: 'foo-bar',
+//    base_x: 32,
+//    base_y: 96,
+//    text: "foozle",
 //    color: "#fff",
-    //  }
+//  }
 //
 //
 // THIS NEEDS TO ALWAYS BE POWER OF 2
-    const REFERENCE_WIDTH = 64; // the size of a square at scale = 1.
+const REFERENCE_WIDTH = 64; // the size of a square at scale = 1.
 let camera_x = -34;
 let camera_y = 56;
 let scale = 1;
