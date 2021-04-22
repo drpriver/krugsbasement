@@ -9,14 +9,6 @@ app = Flask('WebDnd')
 socketio = SocketIO(app)
 
 
-def report_dndc_error(error_type:int, filename:str, row:int, col:int, message:str) -> None:
-    import sys
-    print(f'{error_type=}', f'{filename=}', f'{row=}', f'{col=}', f'{message=}', file=sys.stderr)
-
-@socketio.on('my event')
-def handle_message(data):
-    print('received message: ', data)
-
 @socketio.on('chat-input')
 def chat_input(data:str):
     if not data:
@@ -41,7 +33,7 @@ def get_canv_obj_id():
 
 @app.route('/')
 def index():
-    html, _ = pydndc.htmlgen(open('screen.dnd').read(), error_reporter=report_dndc_error)
+    html, _ = pydndc.htmlgen(open('screen.dnd').read())
     return html
 
 if __name__ == '__main__':

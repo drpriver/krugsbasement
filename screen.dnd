@@ -1,27 +1,3 @@
-::js @noinline
-  https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js
-::js @inline
-    var socket = io();
-    socket.on('chat-msg', function(msgs){
-      const log = document.getElementById('chat-history');
-      for(let i = 0; i < msgs.length; i++){
-        const msg = msgs[i];
-        const entry = document.createElement('div');
-        if(msg.user){
-          const user = document.createElement('b');
-          user.appendChild(document.createTextNode(msg.user+': '));
-          entry.appendChild(user);
-        }
-        const text = document.createTextNode(msg.text);
-        entry.appendChild(text);
-        log.appendChild(entry);
-      }
-      log.scrollTo({behavior:'smooth', top:log.scrollHeight});
-    });
-
-    socket.on('connect', function() {
-    });
-    //endjs
 ::div.map
   ::raw
     <canvas id="map"></canvas>
@@ -29,10 +5,47 @@
   ::div.log @id(chat-history)
   ::raw
     <textarea id="chatinput"></textarea>
+::div @id(tools)
+  ::div
+    Select
+  ::div
+    Pan
+  ::div
+    Line
+  ::div
+    Wall
+  ::div
+    Rect
+  ::div
+    Text
     
 ::css @inline
   * {
     box-sizing: border-box;
+  }
+  #tools{
+    position: absolute;
+    bottom: 5px;
+    left: 80px;
+    border: 2px solid black;
+    padding: 4px;
+    background-color: #fff;
+  }
+  #tools > div {
+    display: inline-block;
+    border: 1px solid grey;
+    padding: 4px;
+    cursor: pointer;
+    background-color: #eee;
+  }
+  #tools > div.selected {
+    background-color: #fff;
+  }
+  #tools > div:hover {
+    background-color: #aaa;
+  }
+  #tools > div.selected:hover {
+    background-color: #fff;
   }
   html, body {
     height: 100%;
@@ -76,224 +89,12 @@
     border: 1px solid red;
   }
   /*endcss*/
+::js @noinline
+  https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js
 ::js @inline
-  function resize_canvas(){
-    const canvas = document.getElementsByTagName('canvas')[0];
-    const parent_rect = canvas.parentElement.getBoundingClientRect();
-    const chat_rect = document.getElementById('chat').getBoundingClientRect();
-    canvas.width = window.innerWidth - chat_rect.width;
-    canvas.height = window.innerHeight-6;
-    request_render();
-    const hist = document.getElementById('chat-history');
-    const ta = document.getElementById('chatinput');
-    hist.style.height = window.innerHeight-12-100 + 'px';
-    hist.scrollTo({top:hist.scrollHeight});
-  };
-  document.addEventListener('DOMContentLoaded', resize_canvas);
-  window.addEventListener('resize', resize_canvas);
-  document.addEventListener('DOMContentLoaded', function(){
-    const ta = document.getElementById('chatinput');
-    const history = [];
-    let history_index = 0;
-    let current_text = "";
-    ta.addEventListener('keydown', function(e){
-      let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
-      if(!modified && e.key == "Enter"){
-        e.stopPropagation();
-        e.preventDefault();
-        const entry = document.createElement('div');
-        const value = ta.value;
-        if(value.length){
-          ta.value = "";
-          socket.emit('chat-input', value);
-          if(!(history.length && value == history[history.length-1])){
-            history.push(value);
-          }
-          history_index = history.length;
-          current_text = "";
-        }
-      }
-      else if(!modified && e.key == "ArrowUp"){
-        e.stopPropagation();
-        e.preventDefault();
-        if(history_index > 0 && history_index <= history.length){
-          if(history_index == history.length){
-            current_text = ta.value;
-          }
-          history_index--;
-          ta.value = history[history_index];
-        }
-      }
-      else if(!modified && e.key == "ArrowDown"){
-        e.stopPropagation();
-        e.preventDefault();
-        if(history_index >= 0 && history_index < history.length){
-          history_index++;
-          if(history_index == history.length){
-            ta.value = current_text;
-          }
-          else{
-            ta.value = history[history_index];
-          }
-        }
-      }
-    });
-  });
+  var socket = io();
   //endjs
-::js @inline
-  const REFERENCE_WIDTH = 512; // the size of a square at scale = 1.
-  // note that the interior of a square is 69 as the border
-  // 1.
-  // A square includes the top and left border, but not the bottom or right.
-  let camera_x = -34;
-  let camera_y = 56;
-  let scale = 0.125;
-  let animation_requested = false;
-  function request_render(){
-    if(animation_requested){
-      return;
-    }
-    animation_requested = true;
-    // only call this from here to avoid double renders.
-    requestAnimationFrame(render);
-  }
-  const lines = [];
-  const lines_by_id = {}
-  socket.on('canvas-object-publish', function(canv_obj){
-    if(canv_obj.type == 'quadpath'){
-      if(lines_by_id[canv_obj.id]){
-        lines_by_id[canv_obj.id].push(canv_obj.data);
-      }
-      else {
-        lines_by_id[canv_obj.id] = [canv_obj.data];
-        lines.push(lines_by_id[canv_obj.id]);
-      }
-      request_render();
-    }
-  });
-  function render(){
-    animation_requested = false;
-    const canvas = document.getElementsByTagName('canvas')[0];
-    const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = 'rgb(100, 100, 100)';
-    const step = Math.round(REFERENCE_WIDTH*scale) | 0;
-    let base_x = Math.round(scale*camera_x) % step;
-    if(base_x < 0)
-      base_x += step;
-    let base_y = Math.round(scale*camera_y) % step;
-    if(base_y < 0)
-      base_y += step;
-    for(let x = base_x; x < width; x += step){
-      ctx.fillRect(x, 0, scale*2, height);
-    }
-    for(let y = base_y; y < height; y += step){
-      ctx.fillRect(0, y, width, scale*2);
-    }
-    ctx.lineWidth = 20*scale;
-    ctx.strokeStyle = 'rgb(0, 255, 0)';
-    for(let j = 0; j < lines.length; j++){
-      const points = lines[j];
-      ctx.beginPath();
-      let base_x = camera_x*scale;
-      let base_y = camera_y*scale;
-      if(points.length > 2){
-        ctx.moveTo(points[0].x*scale+base_x, points[0].y*scale+base_y);
-        let i = 0;
-        for(i = 1; i < points.length - 2; i ++){
-          let xc = (points[i].x*scale + points[i + 1].x*scale) / 2 + base_x;
-          let yc = (points[i].y*scale + points[i + 1].y*scale) / 2 + base_y;
-          ctx.quadraticCurveTo(base_x+points[i].x*scale, base_y+points[i].y*scale, xc, yc);
-        }
-        ctx.quadraticCurveTo(base_x+points[i].x*scale, base_y+points[i].y*scale, base_x+points[i+1].x*scale,base_y+points[i+1].y*scale);
-      }
-      ctx.stroke();
-    }
-  }
-  document.addEventListener('DOMContentLoaded', render);
-  document.addEventListener('DOMContentLoaded', function(){
-    const canvas = document.getElementsByTagName('canvas')[0];
-    canvas.addEventListener('wheel', function(e){
-      e.stopPropagation();
-      e.preventDefault();
-      const oldscale = scale;
-      let dy = e.deltaY;
-      const dscale = 100;
-      if(dy > dscale)
-        dy = dscale;
-      if(dy < -dscale)
-        dy = -scale;
-      scale *= 1 + (-dy/dscale);
-      if(scale < 16/512)
-        scale = 16/512;
-      if(scale > 3)
-        scale = 3;
-      camera_x -= e.offsetX/oldscale;
-      camera_x += e.offsetX/scale;
-      camera_y -= e.offsetY/oldscale;
-      camera_y += e.offsetY/scale;
-      camera_x = Math.round(camera_x);
-      camera_y = Math.round(camera_y);
-      request_render();
-    });
-    window.addEventListener('keydown', function(e){
-      if(e.key == 'ArrowLeft'){
-        e.stopPropagation();
-        e.preventDefault();
-        camera_x += 512;
-        request_render();
-      }
-      else if(e.key == 'ArrowRight'){
-        e.stopPropagation();
-        e.preventDefault();
-        camera_x -= 512;
-        request_render();
-      }
-      else if(e.key == 'ArrowUp'){
-        e.stopPropagation();
-        e.preventDefault();
-        camera_y += 512;
-        request_render();
-      }
-      else if(e.key == 'ArrowDown'){
-        e.stopPropagation();
-        e.preventDefault();
-        camera_y -= 512;
-        request_render();
-      }
-    });
-    canvas.addEventListener('mousedown', function(e){
-      let lineid;
-      socket.emit('get-canv-obj-id', function(response){
-        lineid = response;
-      });
-      console.log('lineid', lineid);
-      let points = [];
-      function add_point(e){
-        console.log('lineid', lineid);
-        e.stopPropagation();
-        e.preventDefault();
-        if(lineid){
-          for(let i = 0; i < points.length; i++){
-            socket.emit('canvas-object', {type:'quadpath', data:points[i], id:lineid});
-          }
-          points = [];
-          socket.emit('canvas-object', {type:'quadpath', data:{x:(e.offsetX/scale-camera_x)|0, y:(e.offsetY/scale-camera_y)|0}, id:lineid});
-        }
-        else {
-          points.push({x:(e.offsetX/scale-camera_x)|0, y:(e.offsetY/scale-camera_y)|0});
-        }
-      }
-      canvas.addEventListener('mousemove', add_point);
-      function finish_point(){
-        canvas.removeEventListener('mousemove', add_point);
-        window.removeEventListener('mouseup', finish_point);
-        canvas.removeEventListener('mouseleave', finish_point);
-      }
-      window.addEventListener('mouseup', finish_point);
-      canvas.addEventListener('mouseleave', finish_point);
-    });
-  });
- //endjs
+::js
+  chat.js
+::js 
+  canvas.js
