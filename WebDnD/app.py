@@ -15,7 +15,8 @@ def chat_input(data:str):
     if not data:
         return
     responses = WebDnD.chat.handle_input(data)
-    emit('chat-msg', responses, broadcast=True)
+    if responses:
+        emit('chat-msg', responses, broadcast=True)
 
 session_id = 0
 @socketio.on('connect')
@@ -26,16 +27,23 @@ def handle_connection():
     session_id += 1
     emit('session-id', session_id)
 
-@socketio.on('canvas-object')
-def handle_canvas_object(data):
-    emit('canvas-object-publish', data, broadcast=True, include_self=True)
+@socketio.on('canvas-create')
+def handle_canvas_create(data):
+    responses = WebDnD.canvas.handle_create(data)
+    if responses:
+        emit('canvas-create', responses, broadcast=True)
 
-canvas_obj_id = 0
-@socketio.on('get-canv-obj-id')
-def get_canv_obj_id():
-    global canvas_obj_id
-    canvas_obj_id += 1
-    return canvas_obj_id
+@socketio.on('canvas-delete')
+def handle_canvas_delete(data):
+    responses = WebDnD.canvas.handle_delete(data)
+    if responses:
+        emit('canvas-delete', responses, broadcast=True)
+
+@socketio.on('canvas-update')
+def handle_canvas_udpate(data):
+    responses = WebDnD.canvas.handle_update(data)
+    if responses:
+        emit('canvas-update', responses, broadcast=True)
 
 @app.route('/')
 def index():

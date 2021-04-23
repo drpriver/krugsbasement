@@ -245,6 +245,26 @@ function add_freehand_point(obj, x, y){
     }
     freehand_recalculate_path(obj);
 }
+function freehand_recalculate_bbox(obj){
+    const points = obj.points;
+    const length = points.length;
+    for(let i = 0; i < length; i+=2){
+        let x = points[i];
+        let y = points[i+1];
+        if(x < obj.bbox.x0){
+            obj.bbox.x0 = x;
+        }
+        if(x > obj.bbox.x1){
+            obj.bbox.x1 = x;
+        }
+        if(y < obj.bbox.y0){
+            obj.bbox.y0 = y;
+        }
+        if(y > obj.bbox.y1){
+            obj.bbox.y1 = y;
+        }
+    }
+}
 function freehand_recalculate_path(obj){
     const points = obj.points;
     const base_x = obj.base_x;
@@ -339,6 +359,27 @@ function add_gridline_point(obj, x, y){
         obj.bbox.y1 = y;
     }
     gridline_recalculate_path(obj);
+}
+function gridline_recalculate_bbox(obj){
+    // this is the same as freehand??
+    const points = obj.points;
+    const length = points.length;
+    for(let i = 0; i < length; i+=2){
+        let x = points[i];
+        let y = points[i+1];
+        if(x < obj.bbox.x0){
+            obj.bbox.x0 = x;
+        }
+        if(x > obj.bbox.x1){
+            obj.bbox.x1 = x;
+        }
+        if(y < obj.bbox.y0){
+            obj.bbox.y0 = y;
+        }
+        if(y > obj.bbox.y1){
+            obj.bbox.y1 = y;
+        }
+    }
 }
 function gridline_recalculate_path(obj){
     // this is the same as freehand??
@@ -483,6 +524,49 @@ document.addEventListener('DOMContentLoaded', resize_canvas);
 window.addEventListener('resize', resize_canvas);
 const canvas_obj_array = [];
 const canvas_objs = Object.create(null);
+socket.on('canvas-create', function(objs){
+    const length = objs.length;
+    for(let i = 0; i < length; ++i){
+        const obj = objs[i];
+        let origin = get_session_id_from_obj_id(obj.id);
+        if(origin == session_id)
+            continue;
+        switch(obj.type){
+            case 'freehand-line':
+                obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+                freehand_recalculate_bbox(obj);
+                freehand_recalculate_path(obj);
+                break;
+            case 'grid-line':
+                obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+                gridline_recalculate_bbox(obj);
+                gridline_recalculate_path(obj);
+                break;
+            // case 'rectangle':
+                // break;
+            case 'grid-rectangle':
+                break;
+            case 'image':{
+                const img = new Image(obj.width, obj.height);
+                img.src = url;
+                obj.img = img;
+            }break;
+            case 'text':
+                obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+                break;
+            case 'ez-token':
+                break;
+        }
+        const existing_obj = canvas_objs[obj.id];
+        if(existing_obj){
+            console.log('object already exists???', obj.id);
+        }
+        else {
+            add_canv_obj(obj);
+        }
+        request_render();
+    }
+});
 const selected = new Set();
 const selection_area = {
     is_selecting: false,
@@ -699,6 +783,50 @@ function add_canv_obj(obj){
     canvas_objs[obj.id] = obj;
     canvas_obj_array.push(obj);
 }
+function publish_obj_by_id(id){
+    const obj = canvas_objs[id];
+    if(!obj){
+        console.log('invalid id given for publishing:', id);
+        return;
+    }
+    let stripped_obj = {
+        type: obj.type,
+        id: obj.id,
+        base_x: obj.base_x,
+        base_y: obj.base_y,
+        deleted: obj.deleted,
+    };
+    switch(obj.type){
+        case 'freehand-line':
+            stripped_obj.points = obj.points;
+            stripped_obj.color = obj.color;
+            break;
+        case 'grid-line':
+            stripped_obj.points = obj.points;
+            stripped_obj.color = obj.color;
+            break;
+        // case 'rectangle':
+            // break;
+        case 'grid-rectangle':
+            stripped_obj.width = obj.width;
+            stripped_obj.height = obj.height;
+            stripped_obj.color = obj.color;
+            break;
+        case 'image':
+            stripped_obj.width = obj.width;
+            stripped_obj.height = obj.height;
+            stripped_obj.url = obj.url;
+            break;
+        case 'text':
+            stripped_obj.text = obj.text;
+            break;
+        case 'ez-token':
+            stripped_obj.color = obj.color;
+            stripped_obj.text = obj.text;
+            break;
+    }
+    socket.emit('canvas-create', stripped_obj);
+}
 
 function request_render(){
     if(animation_requested){
@@ -838,8 +966,6 @@ function render(){
                         y1:obj.bbox.y1 + obj.base_y,
                     };
                     if(!bbox_overlaps(text_bbox, canvas_bbox)){
-                        console.log(text_bbox);
-                        console.log(canvas_bbox);
                         break;
                     }
                     if(is_selected){
@@ -942,6 +1068,19 @@ document.addEventListener('DOMContentLoaded', function(){
         });
     }
 });
+
+// Combines the session id with the local id to create a
+// unique id for an object
+function make_obj_id(localid){
+    let id = (session_id << 20) + localid;
+    return id;
+}
+// Extracts the session id from an object's id so that we can ignore objects we
+// created.
+function get_session_id_from_obj_id(objid){
+    let id = objid >> 20;
+    return id;
+}
 document.addEventListener('DOMContentLoaded', function(){
     const canvas = document.getElementsByTagName('canvas')[0];
     canvas.addEventListener('wheel', function(e){
@@ -999,6 +1138,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 e.preventDefault();
                 for(let item of selected){
                     canvas_objs[item].deleted = true;
+                    // TODO: publish delete event
                 }
                 end_selecting();
             }break;
@@ -1006,7 +1146,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 break;
         }
     });
-    let lineid = 0;
+    let localid = 0;
     let prev_tool = null;
     canvas.addEventListener('mousedown', function(e){
         e.stopPropagation();
@@ -1057,6 +1197,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mousemove', move);
                     window.removeEventListener('mouseup', finish_move);
                     canvas.removeEventListener('mouseleave', finish_move);
+                    // TODO: publish movement
                 }
                 window.addEventListener('mouseup', finish_move);
                 canvas.addEventListener('mouseleave', finish_move);
@@ -1089,8 +1230,8 @@ document.addEventListener('DOMContentLoaded', function(){
                 canvas.addEventListener('mouseleave', finish_pan);
             }break;
             case 'Line':{
-                ++lineid;
-                let id = (session_id << 20) + lineid;
+                ++localid;
+                let id = make_obj_id(localid);
                 add_freehand_line(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, color_picker.value);
                 function add_point(e){
                     e.stopPropagation();
@@ -1103,13 +1244,14 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mousemove', add_point);
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
+                    publish_obj_by_id(id);
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case 'Wall':{
-                ++lineid;
-                let id = (session_id << 20) + lineid;
+                ++localid;
+                let id = make_obj_id(localid);
                 add_gridline(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, color_picker.value);
                 function add_point(e){
                     e.stopPropagation();
@@ -1122,13 +1264,14 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mousemove', add_point);
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
+                    publish_obj_by_id(id);
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case 'Floor':{
-                ++lineid;
-                let id = (session_id << 20) + lineid;
+                ++localid;
+                let id = make_obj_id(localid);
                 const x0 = e.offsetX/scale-camera_x;
                 const y0 = e.offsetY/scale-camera_y;
                 add_gridrect(id, x0, y0, color_picker.value);
@@ -1143,6 +1286,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mousemove', add_point);
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
+                    publish_obj_by_id(id);
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
@@ -1154,9 +1298,10 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
                 const x0 = e.offsetX/scale-camera_x;
                 const y0 = e.offsetY/scale-camera_y;
-                ++lineid;
-                let id = (session_id << 20) + lineid;
+                ++localid;
+                let id = make_obj_id(localid);
                 add_text(id, x0, y0, text);
+                publish_obj_by_id(id);
                 request_render();
             }break;
             case 'Image':{
@@ -1166,9 +1311,10 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
                 const x0 = e.offsetX/scale-camera_x;
                 const y0 = e.offsetY/scale-camera_y;
-                ++lineid;
-                let id = (session_id << 20) + lineid;
+                ++localid;
+                let id = make_obj_id(localid);
                 add_image(id, x0, y0, REFERENCE_WIDTH-2, REFERENCE_WIDTH-2, text);
+                publish_obj_by_id(id);
                 request_render();
             }break;
             case 'Ez-Token':{
@@ -1178,9 +1324,10 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
                 const x0 = e.offsetX/scale-camera_x;
                 const y0 = e.offsetY/scale-camera_y;
-                ++lineid;
-                let id = (session_id << 20) + lineid;
+                ++localid;
+                let id = make_obj_id(localid);
                 add_ez_token(id, x0, y0, text, color_picker.value);
+                publish_obj_by_id(id);
                 request_render();
             }break;
             default:{
