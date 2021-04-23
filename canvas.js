@@ -218,6 +218,7 @@ function add_random_fh_line(){
         let y = Math.random()*400 + base_y;
         add_freehand_point_by_id(id, x, y);
     }
+    publish_obj_by_id(id);
     request_render();
 }
 
@@ -559,13 +560,86 @@ socket.on('canvas-create', function(objs){
         }
         const existing_obj = canvas_objs[obj.id];
         if(existing_obj){
-            console.log('object already exists???', obj.id);
+            // console.log('object already exists???', obj.id);
         }
         else {
             add_canv_obj(obj);
         }
-        request_render();
     }
+    request_render();
+});
+socket.on('canvas-delete', function(obj_ids){
+    const length = obj_ids.length;
+    for(let i = 0; i < length; i++){
+        const id = obj_ids[i];
+        let origin = get_session_id_from_obj_id(id);
+        if(origin == session_id)
+            continue;
+        const obj = canvas_objs[id];
+        if(obj){
+            obj.deleted = true;
+        }
+        else {
+            // console.log('Deleting unknown object??', id);
+        }
+    }
+    request_render();
+});
+socket.on('canvas-update', function(obj_states){
+    const length = obj_states.length;
+    for(let i = 0; i < length; ++i){
+        const state = obj_states[i];
+        const obj = canvas_objs[state.id];
+        if(!obj){
+            // console.log('Updating unknown object??', state.id);
+            continue;
+        }
+        obj.base_x = state.base_x;
+        obj.base_y = state.base_y;
+        obj.deleted = state.deleted;
+        switch(obj.type){
+            case 'freehand-line':
+                obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+                obj.points = state.points;
+                obj.color = state.color;
+                freehand_recalculate_bbox(obj);
+                freehand_recalculate_path(obj);
+                break;
+            case 'grid-line':
+                obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+                obj.points = state.points;
+                obj.color = state.color;
+                gridline_recalculate_bbox(obj);
+                gridline_recalculate_path(obj);
+                break;
+            // case 'rectangle':
+                // break;
+            case 'grid-rectangle':
+                obj.width = state.width;
+                obj.height = state.height;
+                obj.color = state.color;
+                break;
+            case 'image':{
+                const needs_new_image = (obj.width !== state.width) || (obj.height !== state.height) || (obj.url !== state.url);
+                obj.width = state.width;
+                obj.height = state.height;
+                if(needs_new_image){
+                    const img = new Image(obj.width, obj.height);
+                    img.src = url;
+                    obj.img = img;
+                }
+            }break;
+            case 'text':
+                obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+                obj.text = state.text;
+                break;
+            case 'ez-token':
+                obj.color = state.color;
+                obj.text = state.text;
+                break;
+        }
+    }
+    request_render();
 });
 const selected = new Set();
 const selection_area = {
@@ -783,12 +857,7 @@ function add_canv_obj(obj){
     canvas_objs[obj.id] = obj;
     canvas_obj_array.push(obj);
 }
-function publish_obj_by_id(id){
-    const obj = canvas_objs[id];
-    if(!obj){
-        console.log('invalid id given for publishing:', id);
-        return;
-    }
+function strip_obj(obj){
     let stripped_obj = {
         type: obj.type,
         id: obj.id,
@@ -825,7 +894,34 @@ function publish_obj_by_id(id){
             stripped_obj.text = obj.text;
             break;
     }
+    return stripped_obj;
+}
+function publish_delete_by_ids(ids){
+    socket.emit('canvas-delete', ids)
+}
+function publish_obj_by_id(id){
+    const obj = canvas_objs[id];
+    if(!obj){
+        console.log('invalid id given for publishing:', id);
+        return;
+    }
+    const stripped_obj = strip_obj(obj);
     socket.emit('canvas-create', stripped_obj);
+}
+function publish_obj_updates_by_ids(ids){
+    const length = ids.length;
+    const updates = []
+    for(let i = 0; i < length; ++i){
+        const id = ids[i];
+        const obj = canvas_objs[id];
+        if(!obj){
+            console.log('Invalid id given for publishing update', id);
+            continue;
+        }
+        const stripped = strip_obj(obj);
+        updates.push(stripped);
+    }
+    socket.emit('canvas-update', updates);
 }
 
 function request_render(){
@@ -1138,11 +1234,12 @@ document.addEventListener('DOMContentLoaded', function(){
                 e.preventDefault();
                 for(let item of selected){
                     canvas_objs[item].deleted = true;
-                    // TODO: publish delete event
                 }
+                publish_delete_by_ids(Array.from(selected));
                 end_selecting();
             }break;
             default:
+                console.log(e.key);
                 break;
         }
     });
@@ -1197,7 +1294,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mousemove', move);
                     window.removeEventListener('mouseup', finish_move);
                     canvas.removeEventListener('mouseleave', finish_move);
-                    // TODO: publish movement
+                    publish_obj_updates_by_ids(Array.from(selected));
                 }
                 window.addEventListener('mouseup', finish_move);
                 canvas.addEventListener('mouseleave', finish_move);

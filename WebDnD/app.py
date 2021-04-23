@@ -2,6 +2,8 @@ from flask import Flask
 from flask_socketio import SocketIO, send, emit
 import WebDnD.chat
 import WebDnD.canvas
+import random
+import pickle
 
 import pydndc
 
@@ -19,6 +21,22 @@ def chat_input(data:str):
         emit('chat-msg', responses, broadcast=True)
 
 session_id = 0
+try:
+    with open('BadDb/session_id.pickle', 'rb') as fp:
+        session_id = pickle.load(fp)
+except Exception as e:
+    print(e)
+    pass
+import atexit
+import os
+def save_session_id():
+    try:
+        with open('BadDb/session_id.pickle_', 'wb') as fp:
+            pickle.dump(session_id, fp)
+        os.rename('BadDb/session_id.pickle_', 'BadDb/session_id.pickle')
+    except Exception as e:
+        print(e)
+atexit.register(save_session_id)
 @socketio.on('connect')
 def handle_connection():
     emit('chat-msg', WebDnD.chat.get_history())
@@ -29,6 +47,7 @@ def handle_connection():
 
 @socketio.on('canvas-create')
 def handle_canvas_create(data):
+    assert data
     responses = WebDnD.canvas.handle_create(data)
     if responses:
         emit('canvas-create', responses, broadcast=True)

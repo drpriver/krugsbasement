@@ -1,8 +1,10 @@
 from typing import List, Dict
 import random
 from .dice import dice_from_string
+from WebDnD.persist import Persister
 
-HISTORY = []  # type: List[dict]
+HISTORY = Persister([], 'BadDb/chat.json').obj # type: List[dict]
+
 def handle_input(data:str, user:str='anon') -> List[dict]:
     result = []
     result.append({'user':user, 'text':data})
