@@ -14,8 +14,16 @@ socket.on('chat-msg', function(msgs){
   }
   log.scrollTo({behavior:'smooth', top:log.scrollHeight});
 });
+function resize_chat(){
+    const hist = document.getElementById('chat-history');
+    const ta = document.getElementById('chatinput');
+    hist.style.height = window.innerHeight-12-100 + 'px';
+    hist.scrollTo({top:hist.scrollHeight});
+}
 
 document.addEventListener('DOMContentLoaded', function(){
+  resize_chat();
+  window.addEventListener('resize', resize_chat);
   const ta = document.getElementById('chatinput');
   const history = [];
   let history_index = 0;

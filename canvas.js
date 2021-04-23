@@ -31,7 +31,7 @@ function bbox_overlaps(bbox1, bbox2){
 //  all objects start as
 //  {
 //    type: 'some-type',
-//    id: 'foo-bar',
+//    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
 //    deleted: false,
@@ -48,9 +48,10 @@ function bbox_overlaps(bbox1, bbox2){
 //  points.
 //  {
 //    type: 'freehand-line',
-//    id: 'foo-bar',
+//    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
+//    deleted: false,
 //    color: '#fff',
 //    // points are just raw x,y pairs in a flat array.
 //    points: [x,y, x,y, x,y],
@@ -68,9 +69,10 @@ function bbox_overlaps(bbox1, bbox2){
 //  this way so that their relative positions are maintained.
 //  {
 //    type: 'grid-line',
-//    id: 'foo-bar',
+//    id: 10001,
 //    base_x: 0,
 //    base_y: 256,
+//    deleted: false,
 //    color: '#fff',
 //    // points are just raw x,y pairs in a flat array.
 //    points: [x,y, x,y, x,y],
@@ -84,9 +86,10 @@ function bbox_overlaps(bbox1, bbox2){
 //  base_x and base_y is the top-left corner of the box.
 //  {
 //    type: 'rectangle',
-//    id: 'foo-bar',
+//    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
+//    deleted: false,
 //    color: '#fff',
 //    width: 12,
 //    height: 18,
@@ -100,9 +103,10 @@ function bbox_overlaps(bbox1, bbox2){
 //  base_x and base_y is the top-left corner of the box.
 //  {
 //    type: 'grid-rectangle',
-//    id: 'foo-bar',
+//    id: 10001,
 //    base_x: 0,
 //    base_y: 256,
+//    deleted: false,
 //    color: '#fff',
 //    width: 64,
 //    height: 128,
@@ -114,9 +118,10 @@ function bbox_overlaps(bbox1, bbox2){
 //  We only allow axis-aligned ellipses.
 //  {
 //    type: 'ellipse',
-//    id: 'foo-bar',
+//    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
+//    deleted: false,
 //    color: '#fff',
 //    r_x: 12,
 //    r_y: 18,
@@ -126,9 +131,10 @@ function bbox_overlaps(bbox1, bbox2){
 //  -----
 //  {
 //    type: 'image',
-//    id: 'foo-bar',
+//    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
+//    deleted: false,
 //    width: 99,
 //    height: 99,
 //    url: "foo-bar",
@@ -139,9 +145,10 @@ function bbox_overlaps(bbox1, bbox2){
 //  ----
 //  {
 //    type: 'text',
-//    id: 'foo-bar',
+//    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
+//    deleted: false,
 //    text: "foozle",
 //    bbox: bbox,
 //  }
@@ -150,9 +157,10 @@ function bbox_overlaps(bbox1, bbox2){
 //  --------
 //  {
 //    type: 'ez-token',
-//    id: 'foo-bar',
+//    id: 10001,
 //    base_x: 32,
 //    base_y: 96,
+//    deleted: false,
 //    text: "foozle",
 //    color: "#fff",
 //  }
@@ -163,8 +171,8 @@ const REFERENCE_WIDTH = 64; // the size of a square at scale = 1.
 // These are in REFERENCE_WIDTH space.
 // To go from screen space to grid space, divide by `scale` and subtract
 // `camera_x`/`camera_y`.
-let camera_x = -34;
-let camera_y = 56;
+let camera_x = 0;
+let camera_y = 0;
 let scale = 1;
 // State variable so that we don't double render in a single frame.
 // requestAnimationFrame calls stack, so to avoid double drawing, you
@@ -182,12 +190,7 @@ function resize_canvas(){
     canvas.width = window.innerWidth - chat_rect.width;
     canvas.height = window.innerHeight-6;
     request_render();
-    // FIXME: this file is supposed to just be canvas stuff.
-    const hist = document.getElementById('chat-history');
-    const ta = document.getElementById('chatinput');
-    hist.style.height = window.innerHeight-12-100 + 'px';
-    hist.scrollTo({top:hist.scrollHeight});
-};
+}
 
 //
 // freehand-line stuff.
@@ -735,17 +738,17 @@ function render(){
     let length = canvas_obj_array.length;
     // const SELECTED_COLOR = '#f012df';
     const SELECTED_COLOR = '#33ffdd';
+    const canvas_bbox = {
+        x0:-camera_x,
+        y0:-camera_y,
+        x1:-camera_x+width/scale,
+        y1:-camera_y+height/scale,
+    };
     for(let i = 0; i < length; ++i){
         let obj = canvas_obj_array[i];
         if(obj.deleted)
             continue;
         const is_selected = selected.has(obj.id);
-        const canvas_bbox = {
-            x0:-camera_x,
-            y0:-camera_y,
-            x1:-camera_x+width/scale,
-            y1:-camera_y+height/scale,
-        };
         switch(obj.type){
             case 'freehand-line':{
                 // This works well enough for now.
@@ -1087,11 +1090,12 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case 'Line':{
                 ++lineid;
-                add_freehand_line(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, color_picker.value);
+                let id = (session_id << 20) + lineid;
+                add_freehand_line(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, color_picker.value);
                 function add_point(e){
                     e.stopPropagation();
                     e.preventDefault();
-                    add_freehand_point_by_id(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y);
+                    add_freehand_point_by_id(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y);
                     request_render();
                 }
                 canvas.addEventListener('mousemove', add_point);
@@ -1105,11 +1109,12 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case 'Wall':{
                 ++lineid;
-                add_gridline(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, color_picker.value);
+                let id = (session_id << 20) + lineid;
+                add_gridline(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, color_picker.value);
                 function add_point(e){
                     e.stopPropagation();
                     e.preventDefault();
-                    add_gridline_point_by_id(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y);
+                    add_gridline_point_by_id(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y);
                     request_render();
                 }
                 canvas.addEventListener('mousemove', add_point);
@@ -1123,13 +1128,14 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case 'Floor':{
                 ++lineid;
+                let id = (session_id << 20) + lineid;
                 const x0 = e.offsetX/scale-camera_x;
                 const y0 = e.offsetY/scale-camera_y;
-                add_gridrect(lineid, x0, y0, color_picker.value);
+                add_gridrect(id, x0, y0, color_picker.value);
                 function add_point(e){
                     e.stopPropagation();
                     e.preventDefault();
-                    change_gridrect_by_id(lineid, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, x0, y0);
+                    change_gridrect_by_id(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, x0, y0);
                     request_render();
                 }
                 canvas.addEventListener('mousemove', add_point);
@@ -1149,7 +1155,8 @@ document.addEventListener('DOMContentLoaded', function(){
                 const x0 = e.offsetX/scale-camera_x;
                 const y0 = e.offsetY/scale-camera_y;
                 ++lineid;
-                add_text(lineid, x0, y0, text);
+                let id = (session_id << 20) + lineid;
+                add_text(id, x0, y0, text);
                 request_render();
             }break;
             case 'Image':{
@@ -1160,7 +1167,8 @@ document.addEventListener('DOMContentLoaded', function(){
                 const x0 = e.offsetX/scale-camera_x;
                 const y0 = e.offsetY/scale-camera_y;
                 ++lineid;
-                add_image(lineid, x0, y0, REFERENCE_WIDTH-2, REFERENCE_WIDTH-2, text);
+                let id = (session_id << 20) + lineid;
+                add_image(id, x0, y0, REFERENCE_WIDTH-2, REFERENCE_WIDTH-2, text);
                 request_render();
             }break;
             case 'Ez-Token':{
@@ -1171,7 +1179,8 @@ document.addEventListener('DOMContentLoaded', function(){
                 const x0 = e.offsetX/scale-camera_x;
                 const y0 = e.offsetY/scale-camera_y;
                 ++lineid;
-                add_ez_token(lineid, x0, y0, text, color_picker.value);
+                let id = (session_id << 20) + lineid;
+                add_ez_token(id, x0, y0, text, color_picker.value);
                 request_render();
             }break;
             default:{

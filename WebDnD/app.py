@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_socketio import SocketIO, send, emit
 import WebDnD.chat
+import WebDnD.canvas
 
 import pydndc
 
@@ -16,9 +17,14 @@ def chat_input(data:str):
     responses = WebDnD.chat.handle_input(data)
     emit('chat-msg', responses, broadcast=True)
 
+session_id = 0
 @socketio.on('connect')
 def handle_connection():
     emit('chat-msg', WebDnD.chat.get_history())
+    emit('canvas-create', WebDnD.canvas.get_live_objects())
+    global session_id
+    session_id += 1
+    emit('session-id', session_id)
 
 @socketio.on('canvas-object')
 def handle_canvas_object(data):

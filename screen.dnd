@@ -100,10 +100,7 @@
   /*endcss*/
 ::js @noinline
   https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js
-::js @inline
-  var socket = io();
-  //endjs
 ::js
+  toplevel.js
   chat.js
-::js 
   canvas.js
