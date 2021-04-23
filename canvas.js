@@ -192,6 +192,19 @@ function make_freehand_line(id, base_x, base_y, color){
     };
     return obj;
 }
+function add_random_fh_line(){
+    const id = Math.round(Math.random()*(1<<31));
+    const base_x = Math.random()*32000;
+    const base_y = Math.random()*32000;
+    add_freehand_line(id, base_x, base_y, '#f0f');
+    for(let i = 0; i < 20; i++){
+        let x = Math.random()*400 + base_x;
+        let y = Math.random()*400 + base_y;
+        add_freehand_point_by_id(id, x, y);
+    }
+    request_render();
+}
+
 function add_freehand_line(id, base_x, base_y, color){
     const obj = make_freehand_line(id, base_x, base_y, color);
     add_canv_obj(obj);
@@ -547,6 +560,7 @@ function request_render(){
     requestAnimationFrame(render);
 }
 function render(){
+    const before = performance.now();
     if(!ctx)
         return;
     if(selection_area.is_selecting){
@@ -580,11 +594,25 @@ function render(){
         if(obj.deleted)
             continue;
         const is_selected = selected.has(obj.id);
+        const canvas_bbox = {
+            x0:-camera_x,
+            y0:-camera_y,
+            x1:-camera_x+width/scale,
+            y1:-camera_y+height/scale,
+        };
         switch(obj.type){
             case 'freehand-line':{
-                // TODO: delete incomplete objects that are canceled.
-                // Maybe we just leave them but don't broadcast them on
-                // page load.
+                // This works well enough for now.
+                // If things get hairy, I could build a quadtree or whatever.
+                const line_bbox = {
+                    x0:obj.bbox.x0 + obj.base_x,
+                    y0:obj.bbox.y0 + obj.base_y,
+                    x1:obj.bbox.x1 + obj.base_x,
+                    y1:obj.bbox.y1 + obj.base_y,
+                };
+                if(!bbox_overlaps(canvas_bbox, line_bbox)){
+                    break;
+                }
                 if(obj.path){
                     if(is_selected){
                         ctx.lineWidth=8;
@@ -597,6 +625,15 @@ function render(){
                 }
             }break;
             case 'grid-line':{
+                const line_bbox = {
+                    x0:obj.bbox.x0 + obj.base_x,
+                    y0:obj.bbox.y0 + obj.base_y,
+                    x1:obj.bbox.x1 + obj.base_x,
+                    y1:obj.bbox.y1 + obj.base_y,
+                };
+                if(!bbox_overlaps(canvas_bbox,line_bbox)){
+                    break;
+                }
                 // TODO: delete incomplete objects that are canceled.
                 if(obj.path){
                     if(is_selected){
@@ -610,6 +647,15 @@ function render(){
                 }
             }break;
             case 'grid-rectangle':{
+                const rect_bbox = {
+                    x0:obj.base_x,
+                    y0:obj.base_y,
+                    x1:obj.base_x+obj.width,
+                    y1:obj.base_y+obj.height,
+                };
+                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                    break;
+                }
                 if(obj.width && obj.height){
                     if(is_selected){
                         ctx.fillStyle = SELECTED_COLOR+'aa';
@@ -645,6 +691,15 @@ function render(){
                 }
             }break;
             case 'ez-token':{
+                const token_bbox = {
+                    x0: obj.base_x - 28,
+                    x1: obj.base_x + 28,
+                    y0: obj.base_y - 28,
+                    y1: obj.base_y + 28,
+                };
+                if(!bbox_overlaps(token_bbox, canvas_bbox)){
+                    break;
+                }
                 if(is_selected){
                     ctx.beginPath();
                     ctx.fillStyle = SELECTED_COLOR;
@@ -672,6 +727,7 @@ function render(){
         ctx.fillRect(selection_area.x0, selection_area.y0, selection_area.x1-selection_area.x0, selection_area.y1-selection_area.y0);
     }
     // request_render();
+    console.log('rendering:', (performance.now()-before).toFixed(4)+'ms');
 }
 document.addEventListener('DOMContentLoaded', render);
 let current_tool = "Pan";
