@@ -7,9 +7,11 @@
     <textarea id="chatinput"></textarea>
 ::div @id(tools)
   ::div
+    Pan
+  ::div
     Select
   ::div
-    Pan
+    Move
   ::div
     Line
   ::div

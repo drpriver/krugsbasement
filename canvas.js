@@ -159,12 +159,20 @@ function bbox_overlaps(bbox1, bbox2){
 //
 // THIS NEEDS TO ALWAYS BE POWER OF 2
 const REFERENCE_WIDTH = 64; // the size of a square at scale = 1.
+// These are in REFERENCE_WIDTH space.
+// To go from screen space to grid space, divide by `scale` and subtract
+// `camera_x`/`camera_y`.
 let camera_x = -34;
 let camera_y = 56;
 let scale = 1;
+// State variable so that we don't double render in a single frame.
+// requestAnimationFrame calls stack, so to avoid double drawing, you
+// need to keep track of this.
 let animation_requested = false;
+// The main canvas and its context. These are set once the content loads.
 let canvas = null;
 let ctx = null;
+//
 function resize_canvas(){
     canvas = document.getElementsByTagName('canvas')[0];
     ctx = canvas.getContext('2d');
@@ -173,11 +181,15 @@ function resize_canvas(){
     canvas.width = window.innerWidth - chat_rect.width;
     canvas.height = window.innerHeight-6;
     request_render();
+    // FIXME: this file is supposed to just be canvas stuff.
     const hist = document.getElementById('chat-history');
     const ta = document.getElementById('chatinput');
     hist.style.height = window.innerHeight-12-100 + 'px';
     hist.scrollTo({top:hist.scrollHeight});
 };
+
+//
+// freehand-line stuff.
 function make_freehand_line(id, base_x, base_y, color){
     const obj =  {
         type: 'freehand-line',
@@ -264,6 +276,7 @@ function freehand_translate(obj, dx, dy){
     freehand_recalculate_path(obj);
 }
 
+// Rounds a single dimension to the grid.
 function snap_to_grid(x){
     x = Math.round(x);
     const remainder = x & (REFERENCE_WIDTH-1);
@@ -275,6 +288,7 @@ function snap_to_grid(x){
     }
     return x;
 }
+
 function make_gridline(id, base_x, base_y, color){
     base_x = snap_to_grid(base_x);
     base_y = snap_to_grid(base_y);
@@ -466,7 +480,7 @@ function point_in_rect(x, y, x0, y0, x1, y1){
     return (x >= x0) && (x <= x1) && (y >= y0) && (y <= y1);
 }
 function note_selections(){
-    const before = performance.now();
+    // const before = performance.now();
     const length = canvas_obj_array.length;
     const x0 = selection_area.x0;
     const y0 = selection_area.y0;
@@ -528,9 +542,21 @@ function note_selections(){
                     break;
                 }
             }break;
+            case 'text':{
+                const text_bbox = {
+                    x0:obj.bbox.x0 + obj.base_x,
+                    y0:obj.bbox.y0 + obj.base_y,
+                    x1:obj.bbox.x1 + obj.base_x,
+                    y1:obj.bbox.y1 + obj.base_y,
+                };
+                if(bbox_overlaps(text_bbox, selection_bbox)){
+                    selected.add(obj.id);
+                    break;
+                }
+            }
         }
     }
-    const after = performance.now();
+    // const after = performance.now();
     // console.log('note_selections', after-before, 'ms');
 }
 function finalize_selection(){
@@ -560,7 +586,7 @@ function request_render(){
     requestAnimationFrame(render);
 }
 function render(){
-    const before = performance.now();
+    // const before = performance.now();
     if(!ctx)
         return;
     if(selection_area.is_selecting){
@@ -631,7 +657,7 @@ function render(){
                     x1:obj.bbox.x1 + obj.base_x,
                     y1:obj.bbox.y1 + obj.base_y,
                 };
-                if(!bbox_overlaps(canvas_bbox,line_bbox)){
+                if(!bbox_overlaps(canvas_bbox, line_bbox)){
                     break;
                 }
                 // TODO: delete incomplete objects that are canceled.
@@ -672,19 +698,34 @@ function render(){
                     ctx.textAlign = "center";
                     if(obj.bbox.x0 == obj.bbox.x1){
                         let metric = ctx.measureText(obj.text);
+                        // Metric object varies between browser, but I believe
+                        // they all have width?
                         let width = metric.width;
-                        let height = metric.fontBoundingBoxAscent + 2;
+                        // Only some have this property.
+                        let height = metric.fontBoundingBoxAscent? metric.fontBoundingBoxAscent + 2 : 18;
                         obj.bbox.x0 = -width/2;
                         obj.bbox.x1 = width/2;
                         obj.bbox.y0 = -height/2;
-                        obj.bbox.y1 = -height/2;
+                        obj.bbox.y1 = height/2;
+                    }
+                    const text_bbox = {
+                        x0:obj.bbox.x0 + obj.base_x,
+                        y0:obj.bbox.y0 + obj.base_y,
+                        x1:obj.bbox.x1 + obj.base_x,
+                        y1:obj.bbox.y1 + obj.base_y,
+                    };
+                    if(!bbox_overlaps(text_bbox, canvas_bbox)){
+                        console.log(text_bbox);
+                        console.log(canvas_bbox);
+                        break;
                     }
                     if(is_selected){
-                        let metric = ctx.measureText(obj.text);
-                        let width = metric.width+4;
-                        let height = metric.fontBoundingBoxAscent + 4;
                         ctx.fillStyle = SELECTED_COLOR+'aa';
-                        ctx.fillRect(obj.base_x-width/2, obj.base_y-height/2, width, height);
+                        const x = obj.base_x+obj.bbox.x0;
+                        const y = obj.base_y+obj.bbox.y0;
+                        const width = obj.bbox.x1-obj.bbox.x0;
+                        const height = obj.bbox.y1-obj.bbox.y0;
+                        ctx.fillRect(x, y, width, height);
                     }
                     ctx.fillStyle = '#000';
                     ctx.fillText(obj.text, obj.base_x, obj.base_y);
@@ -727,7 +768,7 @@ function render(){
         ctx.fillRect(selection_area.x0, selection_area.y0, selection_area.x1-selection_area.x0, selection_area.y1-selection_area.y0);
     }
     // request_render();
-    console.log('rendering:', (performance.now()-before).toFixed(4)+'ms');
+    // console.log('rendering:', (performance.now()-before).toFixed(4)+'ms');
 }
 document.addEventListener('DOMContentLoaded', render);
 let current_tool = "Pan";
@@ -944,7 +985,7 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case 'Text':{
                 const text = prompt("Enter Text:");
-                if(!text.trim()){
+                if(!text || !text.trim()){
                     break;
                 }
                 const x0 = e.offsetX/scale-camera_x;
