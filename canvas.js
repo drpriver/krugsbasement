@@ -21,11 +21,12 @@ function bbox_overlaps(bbox1, bbox2){
 //  ================
 //  freehand-line
 //  grid-line
-//  rectangle
+//  rectangle - doesn't exist yet
 //  grid-rectangle
-//  ellipse
-//  image
+//  ellipse - doesn't exist yet
+//  image - doesn't exist yet
 //  text
+//  ez-token
 //
 //  all objects start as
 //  {
@@ -77,7 +78,7 @@ function bbox_overlaps(bbox1, bbox2){
 //    bbox: bbox,
 //  }
 //
-//  rectangle
+//  rectangle - doesn't exist yet
 //  ---------
 //  An axis-aligned box.
 //  base_x and base_y is the top-left corner of the box.
@@ -107,7 +108,7 @@ function bbox_overlaps(bbox1, bbox2){
 //    height: 128,
 //  }
 //
-//  ellipse
+//  ellipse - doesn't exist yet
 //  -------
 //  base_x and base_y is the center of the ellipse.
 //  We only allow axis-aligned ellipses.
@@ -121,7 +122,7 @@ function bbox_overlaps(bbox1, bbox2){
 //    r_y: 18,
 //  }
 //
-//  image
+//  image - doesn't exist yet
 //  -----
 //  {
 //    type: 'image',
@@ -518,6 +519,7 @@ function note_selections(){
                     }
                 }
             }break;
+            // case 'rectangle': // fall-through
             case 'grid-rectangle':{
                 const rect_bbox = {
                     x0:obj.base_x,
@@ -532,6 +534,7 @@ function note_selections(){
             }break;
             case 'ez-token':{
                 const token_bbox = {
+                    // TODO move magic numbers to a variable
                     x0: obj.base_x - 28,
                     x1: obj.base_x + 28,
                     y0: obj.base_y - 28,
@@ -570,6 +573,94 @@ function end_selecting(){
     selected.clear();
     selection_area.is_selecting = false;
     request_render();
+}
+function move_selected_objects(base_x, base_y, dx, dy){
+    const selected_objs = [];
+    let result = [base_x+dx, base_y+dy];
+    let rigid = false;
+    for(let item of selected){
+        const obj = canvas_objs[item];
+        if(obj.deleted)
+            continue;
+        switch(obj.type){
+            case 'grid-rectangle':
+            case 'grid-line':
+                rigid = true;
+                break;
+            default:
+                break;
+        }
+        selected_objs.push(obj);
+    }
+    if(!selected_objs.length)
+        return result;
+    if(rigid){
+        const aligned_old_x = snap_to_grid(base_x);
+        const aligned_old_y = snap_to_grid(base_y);
+        const aligned_new_x = snap_to_grid(base_x+dx);
+        const aligned_new_y = snap_to_grid(base_y+dy);
+        dx = aligned_new_x - aligned_old_x;
+        dy = aligned_new_y - aligned_old_y;
+        if(dx || dy){
+            for(let i = 0; i < selected_objs.length; i++){
+                const obj = selected_objs[i];
+                obj.base_x += dx;
+                obj.base_y += dy;
+                switch(obj.type){
+                    case 'freehand-line':
+                        freehand_recalculate_path(obj);
+                        break;
+                    case 'grid-line':
+                        gridline_recalculate_path(obj);
+                        break;
+                    //  rectangle - doesn't exist yet
+                    case 'grid-rectangle':
+                        break;
+                    //  ellipse - doesn't exist yet
+                    //  image - doesn't exist yet
+                    case 'text':
+                        break;
+                    case 'ez-token':
+                        break;
+                    default:
+                        console.log('unhandled obj type');
+                        break;
+                }
+            }
+        }
+        result = [aligned_new_x, aligned_new_y];
+    }
+    else {
+        for(let i = 0; i < selected_objs.length; i++){
+            const obj = selected_objs[i];
+            obj.base_x += dx;
+            obj.base_y += dy;
+            // FIXME: this sucks, we need to switch on type here
+            // so that path objects can get updated.
+            switch(obj.type){
+                case 'freehand-line':
+                    freehand_recalculate_path(obj);
+                    break;
+                case 'grid-line':
+                    gridline_recalculate_path(obj);
+                    break;
+                //  rectangle - doesn't exist yet
+                case 'grid-rectangle':
+                    break;
+                //  ellipse - doesn't exist yet
+                //  image - doesn't exist yet
+                case 'text':
+                    break;
+                case 'ez-token':
+                    break;
+                default:
+                    console.log('unhandled obj type');
+                    break;
+            }
+        }
+    }
+    request_render();
+    return result;
 }
 
 function add_canv_obj(obj){
@@ -790,6 +881,7 @@ document.addEventListener('DOMContentLoaded', function(){
             switch(current_tool){
                 case 'Pan':
                 case 'Select':
+                case 'Move':
                     break;
                 default:
                     end_selecting();
@@ -899,6 +991,27 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
                 window.addEventListener('mouseup', finish_select);
                 canvas.addEventListener('mouseleave', finish_select);
+            }break;
+            case 'Move':{
+                let clicked_x = e.offsetX/scale - camera_x;
+                let clicked_y = e.offsetY/scale - camera_y;
+                function move(e){
+                    e.stopPropagation();
+                    e.preventDefault();
+                    let move_x = e.offsetX/scale - camera_x;
+                    let move_y = e.offsetY/scale - camera_y;
+                    let new_coords = move_selected_objects(clicked_x, clicked_y, move_x - clicked_x, move_y - clicked_y);
+                    clicked_x = new_coords[0];
+                    clicked_y = new_coords[1];;
+                }
+                canvas.addEventListener('mousemove', move);
+                function finish_move(){
+                    canvas.removeEventListener('mousemove', move);
+                    window.removeEventListener('mouseup', finish_move);
+                    canvas.removeEventListener('mouseleave', finish_move);
+                }
+                window.addEventListener('mouseup', finish_move);
+                canvas.addEventListener('mouseleave', finish_move);
             }break;
             case 'Pan':{
                 let clicked_x = e.offsetX/scale;
