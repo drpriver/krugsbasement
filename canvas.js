@@ -122,7 +122,7 @@ function bbox_overlaps(bbox1, bbox2){
 //    r_y: 18,
 //  }
 //
-//  image - doesn't exist yet
+//  image
 //  -----
 //  {
 //    type: 'image',
@@ -451,6 +451,31 @@ function add_ez_token(id, base_x, base_y, text, color){
     const obj = make_ez_token(id, base_x, base_y, text, color);
     add_canv_obj(obj);
 }
+
+function make_image(id, base_x, base_y, width, height, url){
+    const img = new Image(width, height);
+    img.src = url;
+    base_x = Math.round(base_x);
+    base_y = Math.round(base_y);
+    base_x = base_x - (base_x & (REFERENCE_WIDTH-1)) + 1;
+    base_y = base_y - (base_y & (REFERENCE_WIDTH-1)) + 1;
+    const obj =  {
+        type: 'image',
+        id: id,
+        base_x: base_x,
+        base_y: base_y,
+        deleted: false,
+        width: width,
+        height: height,
+        url: url,
+        img: img,
+    };
+    return obj;
+}
+function add_image(id, base_x, base_y, width, height, url){
+    const obj = make_image(id, base_x, base_y, width, height, url);
+    add_canv_obj(obj);
+}
 document.addEventListener('DOMContentLoaded', resize_canvas);
 window.addEventListener('resize', resize_canvas);
 const canvas_obj_array = [];
@@ -520,6 +545,7 @@ function note_selections(){
                 }
             }break;
             // case 'rectangle': // fall-through
+            case 'image': // fall-through
             case 'grid-rectangle':{
                 const rect_bbox = {
                     x0:obj.base_x,
@@ -585,6 +611,7 @@ function move_selected_objects(base_x, base_y, dx, dy){
         switch(obj.type){
             case 'grid-rectangle':
             case 'grid-line':
+            case 'image':
                 rigid = true;
                 break;
             default:
@@ -617,7 +644,8 @@ function move_selected_objects(base_x, base_y, dx, dy){
                     case 'grid-rectangle':
                         break;
                     //  ellipse - doesn't exist yet
-                    //  image - doesn't exist yet
+                    case 'image':
+                        break;
                     case 'text':
                         break;
                     case 'ez-token':
@@ -648,7 +676,8 @@ function move_selected_objects(base_x, base_y, dx, dy){
                 case 'grid-rectangle':
                     break;
                 //  ellipse - doesn't exist yet
-                //  image - doesn't exist yet
+                case 'image':
+                    break;
                 case 'text':
                     break;
                 case 'ez-token':
@@ -776,7 +805,7 @@ function render(){
                 if(obj.width && obj.height){
                     if(is_selected){
                         ctx.fillStyle = SELECTED_COLOR+'aa';
-                        ctx.fillRect(obj.base_x-2, obj.base_y-2, obj.width+2, obj.height+2);
+                        ctx.fillRect(obj.base_x-2, obj.base_y-2, obj.width+4, obj.height+4);
                     }
                     ctx.fillStyle = obj.color + 'aa';
                     ctx.fillRect(obj.base_x, obj.base_y, obj.width, obj.height);
@@ -851,6 +880,22 @@ function render(){
                 ctx.textAlign = "center";
                 ctx.fillStyle = '#000';
                 ctx.fillText(obj.text, obj.base_x, obj.base_y);
+            }break;
+            case 'image':{
+                const rect_bbox = {
+                    x0:obj.base_x,
+                    y0:obj.base_y,
+                    x1:obj.base_x+obj.width,
+                    y1:obj.base_y+obj.height,
+                };
+                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                    break;
+                }
+                if(is_selected){
+                    ctx.fillStyle = SELECTED_COLOR+'aa';
+                    ctx.fillRect(obj.base_x-2, obj.base_y-2, obj.width+4, obj.height+4);
+                }
+                ctx.drawImage(obj.img, obj.base_x, obj.base_y, obj.width, obj.height);
             }break;
         }
     }
@@ -1105,6 +1150,17 @@ document.addEventListener('DOMContentLoaded', function(){
                 const y0 = e.offsetY/scale-camera_y;
                 ++lineid;
                 add_text(lineid, x0, y0, text);
+                request_render();
+            }break;
+            case 'Image':{
+                const text = prompt("Enter URl:");
+                if(!text || !text.trim()){
+                    break;
+                }
+                const x0 = e.offsetX/scale-camera_x;
+                const y0 = e.offsetY/scale-camera_y;
+                ++lineid;
+                add_image(lineid, x0, y0, REFERENCE_WIDTH-2, REFERENCE_WIDTH-2, text);
                 request_render();
             }break;
             case 'Ez-Token':{

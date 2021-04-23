@@ -23,6 +23,8 @@
   ::div
     Ez-Token
   ::div
+    Image
+  ::div
     ::raw
       <input type="color" id="color-picker" name="color-picker", value="#ff3333"></input>
     
