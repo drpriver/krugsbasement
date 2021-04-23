@@ -946,11 +946,11 @@ document.addEventListener('DOMContentLoaded', function(){
         e.preventDefault();
         const oldscale = scale;
         let dy = e.deltaY;
-        const dscale = 50;
+        const dscale = 120;
         if(dy > dscale)
             dy = dscale;
         if(dy < -dscale)
-            dy = -scale;
+            dy = -dscale;
         scale *= 1 + (-dy/dscale);
         if(scale < 0.25)
             scale = 0.25;
