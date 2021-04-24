@@ -63,6 +63,9 @@ def handle_canvas_udpate(data):
     responses = WebDnD.canvas.handle_update(data)
     if responses:
         emit('canvas-update', responses, broadcast=True)
+@socketio.on('canvas-gather')
+def canvas_gather(where):
+    emit('canvas-gather', where, broadcast=True)
 
 @app.route('/')
 def index():

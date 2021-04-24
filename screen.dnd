@@ -1,32 +1,35 @@
 ::div.map
   ::raw
     <canvas id="map"></canvas>
+  ::div @id(tools)
+    ::div
+      Pan
+    ::div
+      Select
+      ::raw
+        <span></span>
+        <span>☰</span>
+    ::div
+      Move
+    ::div
+      Line
+    ::div
+      Wall
+    ::div
+      Floor
+    ::div
+      Text
+    ::div
+      Ez-Token
+    ::div
+      Image
+    ::div
+      ::raw
+        <input type="color" id="color-picker" name="color-picker", value="#ff3333"></input>
 ::div.chat @id(chat)
   ::div.log @id(chat-history)
   ::raw
     <textarea id="chatinput"></textarea>
-::div @id(tools)
-  ::div
-    Pan
-  ::div
-    Select
-  ::div
-    Move
-  ::div
-    Line
-  ::div
-    Wall
-  ::div
-    Floor
-  ::div
-    Text
-  ::div
-    Ez-Token
-  ::div
-    Image
-  ::div
-    ::raw
-      <input type="color" id="color-picker" name="color-picker", value="#ff3333"></input>
     
 ::css @inline
   * {
@@ -42,19 +45,25 @@
   }
   #tools > div {
     display: inline-block;
-    border: 1px solid grey;
+    border: 1px solid gray;
     padding: 4px;
     cursor: pointer;
     background-color: #eee;
+    box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.3);
+    border-radius: 4px;
+    min-width: 3em;
+    text-align: center;
+    font-family: "Helvetica Neue", "Segoe UI", sans-serif;
   }
   #tools > div.selected {
     background-color: #fff;
+    box-shadow: inset 1px 1px 1px 1px rgba(0,0,0,0.3);
   }
   #tools > div:hover {
-    background-color: #aaa;
+    background-color: #ccc;
   }
   #tools > div.selected:hover {
-    background-color: #fff;
+    background-color: #f8f8f8;
   }
   html, body {
     height: 100%;
@@ -89,6 +98,7 @@
   #chat-history div {
     border: 1px dotted gray;
     margin:-1px 0 0 -1px;
+    font-family: "Helvetica Neue", "Segoe UI", sans-serif;
   }
   .chat > textarea {
     grid-row: 2;
@@ -96,6 +106,24 @@
   }
   canvas {
     border: 1px solid red;
+  }
+  section.menu {
+    position: absolute;
+    background-color: white;
+    border: 1px solid black;
+    box-shadow: 4px 4px rgba(0,0,0,0.18);
+    border-radius: 3px;
+    margin: 0;
+  }
+  section.menuitem {
+    border: 1px solid black;
+    padding: 4px 4px 4px 4px;
+    margin: -1px 0 0 -1px;
+    font-family: "Helvetica Neue", "Segoe UI", sans-serif;
+    cursor: pointer;
+  }
+  section.menuitem:hover {
+    background-color: #ccc;
   }
   /*endcss*/
 ::js @noinline

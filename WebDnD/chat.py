@@ -2,6 +2,7 @@ from typing import List, Dict
 import random
 from .dice import dice_from_string
 from WebDnD.persist import Persister
+from flask_socketio import emit
 
 HISTORY = Persister([], 'BadDb/chat.json').obj # type: List[dict]
 
@@ -40,6 +41,15 @@ def handle_input(data:str, user:str='anon') -> List[dict]:
                 rollstr = rollstr[:-1]
                 rollstr += f' = {roll.sum}'
                 result.append({'user':'server', 'text':rollstr})
+        if parts[0] in {'/gather'} and len(parts) == 3:
+            try:
+                x = int(parts[1])
+                y = int(parts[2])
+            except:
+                pass
+            else:
+                emit('canvas-gather', {'x':x, 'y':y}, broadcast=True)
+
     HISTORY.extend(result)
     return result
 

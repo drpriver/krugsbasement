@@ -24,9 +24,18 @@ function bbox_overlaps(bbox1, bbox2){
 //  rectangle - doesn't exist yet
 //  grid-rectangle
 //  ellipse - doesn't exist yet
-//  image - doesn't exist yet
+//  image
 //  text
 //  ez-token
+const FREEHAND_LINE = 1;
+const GRID_LINE = 2;
+// const RECT = 3;
+const GRID_RECT = 4;
+// const FILLED_RECT = 5;
+// const ELLIPSE = 6;
+const IMAGE = 7;
+const TEXT = 8;
+const EZ_TOKEN = 9;
 //
 //  all objects start as
 //  {
@@ -47,7 +56,7 @@ function bbox_overlaps(bbox1, bbox2){
 //  The server can optimize the lines by removing redundant
 //  points.
 //  {
-//    type: 'freehand-line',
+//    type: FREEHAND_LINE,
 //    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
@@ -68,7 +77,7 @@ function bbox_overlaps(bbox1, bbox2){
 //  grid point. When moving multiple objects, all of them need to snap
 //  this way so that their relative positions are maintained.
 //  {
-//    type: 'grid-line',
+//    type: GRID_LINE,
 //    id: 10001,
 //    base_x: 0,
 //    base_y: 256,
@@ -85,7 +94,7 @@ function bbox_overlaps(bbox1, bbox2){
 //  An axis-aligned box.
 //  base_x and base_y is the top-left corner of the box.
 //  {
-//    type: 'rectangle',
+//    type: RECT,
 //    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
@@ -102,7 +111,7 @@ function bbox_overlaps(bbox1, bbox2){
 //  grid-line.
 //  base_x and base_y is the top-left corner of the box.
 //  {
-//    type: 'grid-rectangle',
+//    type: GRID_RECT,
 //    id: 10001,
 //    base_x: 0,
 //    base_y: 256,
@@ -117,7 +126,7 @@ function bbox_overlaps(bbox1, bbox2){
 //  base_x and base_y is the center of the ellipse.
 //  We only allow axis-aligned ellipses.
 //  {
-//    type: 'ellipse',
+//    type: ELLIPSE,
 //    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
@@ -130,7 +139,7 @@ function bbox_overlaps(bbox1, bbox2){
 //  image
 //  -----
 //  {
-//    type: 'image',
+//    type: IMAGE,
 //    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
@@ -144,7 +153,7 @@ function bbox_overlaps(bbox1, bbox2){
 //  text
 //  ----
 //  {
-//    type: 'text',
+//    type: TEXT,
 //    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
@@ -156,7 +165,7 @@ function bbox_overlaps(bbox1, bbox2){
 //  ez-token
 //  --------
 //  {
-//    type: 'ez-token',
+//    type: EZ_TOKEN,
 //    id: 10001,
 //    base_x: 32,
 //    base_y: 96,
@@ -171,8 +180,15 @@ const REFERENCE_WIDTH = 64; // the size of a square at scale = 1.
 // These are in REFERENCE_WIDTH space.
 // To go from screen space to grid space, divide by `scale` and subtract
 // `camera_x`/`camera_y`.
+// TODO: all this camera_N stuff is totally fucked.
+// I should've added camera_x from the start, not subtract.
 let camera_x = 0;
 let camera_y = 0;
+socket.on('canvas-gather', function(where){
+    camera_x = where.x;
+    camera_y = where.y;
+    request_render();
+});
 let scale = 1;
 // State variable so that we don't double render in a single frame.
 // requestAnimationFrame calls stack, so to avoid double drawing, you
@@ -196,7 +212,7 @@ function resize_canvas(){
 // freehand-line stuff.
 function make_freehand_line(id, base_x, base_y, color){
     const obj =  {
-        type: 'freehand-line',
+        type: FREEHAND_LINE,
         id: id,
         base_x: base_x,
         base_y: base_y,
@@ -292,7 +308,7 @@ function freehand_recalculate_path(obj){
 function add_freehand_point_by_id(id, x, y){
     let obj = canvas_objs[id];
     console.assert(obj);
-    console.assert(obj.type === 'freehand-line');
+    console.assert(obj.type === FREEHAND_LINE);
     add_freehand_point(obj, x, y);
 }
 function freehand_translate(obj, dx, dy){
@@ -313,12 +329,11 @@ function snap_to_grid(x){
     }
     return x;
 }
-
 function make_gridline(id, base_x, base_y, color){
     base_x = snap_to_grid(base_x);
     base_y = snap_to_grid(base_y);
     const obj =  {
-        type: 'grid-line',
+        type: GRID_LINE,
         id: id,
         base_x: base_x,
         base_y: base_y,
@@ -401,7 +416,7 @@ function add_gridline_point_by_id(id, x, y){
     // this is the same as freehand
     let obj = canvas_objs[id];
     console.assert(obj);
-    console.assert(obj.type === 'grid-line');
+    console.assert(obj.type === GRID_LINE);
     add_gridline_point(obj, x, y);
 }
 function gridline_translate(obj, dx, dy){
@@ -413,7 +428,7 @@ function make_gridrect(id, base_x, base_y, color){
     base_x = snap_to_grid(base_x);
     base_y = snap_to_grid(base_y);
     const obj =  {
-        type: 'grid-rectangle',
+        type: GRID_RECT,
         id: id,
         base_x: base_x,
         base_y: base_y,
@@ -452,7 +467,7 @@ function change_gridrect(obj, x0, y0, x1, y1){
 function change_gridrect_by_id(id, x0, y0, x1, y1){
     let obj = canvas_objs[id];
     console.assert(obj);
-    console.assert(obj.type === 'grid-rectangle');
+    console.assert(obj.type === GRID_RECT);
     change_gridrect(obj, x0, y0, x1, y1);
 }
 function gridrect_translate(obj, dx, dy){
@@ -463,7 +478,7 @@ function make_text(id, base_x, base_y, text){
     base_x = base_x - (base_x & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
     base_y = base_y - (base_y & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
     const obj =  {
-        type: 'text',
+        type: TEXT,
         id: id,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
@@ -482,7 +497,7 @@ function make_ez_token(id, base_x, base_y, text, color){
     base_y = base_y - (base_y & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
 
     const obj =  {
-        type: 'ez-token',
+        type: EZ_TOKEN,
         id: id,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
@@ -498,14 +513,12 @@ function add_ez_token(id, base_x, base_y, text, color){
 }
 
 function make_image(id, base_x, base_y, width, height, url){
-    const img = new Image(width, height);
-    img.src = url;
     base_x = Math.round(base_x);
     base_y = Math.round(base_y);
     base_x = base_x - (base_x & (REFERENCE_WIDTH-1)) + 1;
     base_y = base_y - (base_y & (REFERENCE_WIDTH-1)) + 1;
     const obj =  {
-        type: 'image',
+        type: IMAGE,
         id: id,
         base_x: base_x,
         base_y: base_y,
@@ -513,8 +526,14 @@ function make_image(id, base_x, base_y, width, height, url){
         width: width,
         height: height,
         url: url,
-        img: img,
+        img: null,
     };
+    const img = new Image(width, height);
+    img.addEventListener('load', function(){
+        obj.img = img;
+        request_render();
+    });
+    img.src = url;
     return obj;
 }
 function add_image(id, base_x, base_y, width, height, url){
@@ -533,29 +552,33 @@ socket.on('canvas-create', function(objs){
         if(origin == session_id)
             continue;
         switch(obj.type){
-            case 'freehand-line':
+            case FREEHAND_LINE:
                 obj.bbox = {x0:0, x1:0, y0:0, y1:0};
                 freehand_recalculate_bbox(obj);
                 freehand_recalculate_path(obj);
                 break;
-            case 'grid-line':
+            case GRID_LINE:
                 obj.bbox = {x0:0, x1:0, y0:0, y1:0};
                 gridline_recalculate_bbox(obj);
                 gridline_recalculate_path(obj);
                 break;
             // case 'rectangle':
                 // break;
-            case 'grid-rectangle':
+            case GRID_RECT:
                 break;
-            case 'image':{
+            case IMAGE:{
+                obj.img = null;
                 const img = new Image(obj.width, obj.height);
-                img.src = url;
-                obj.img = img;
+                img.addEventListener('load', function(){
+                    obj.img = img;
+                    request_render();
+                });
+                img.src = obj.url;
             }break;
-            case 'text':
+            case TEXT:
                 obj.bbox = {x0:0, x1:0, y0:0, y1:0};
                 break;
-            case 'ez-token':
+            case EZ_TOKEN:
                 break;
         }
         const existing_obj = canvas_objs[obj.id];
@@ -598,42 +621,43 @@ socket.on('canvas-update', function(obj_states){
         obj.base_y = state.base_y;
         obj.deleted = state.deleted;
         switch(obj.type){
-            case 'freehand-line':
+            case FREEHAND_LINE:
                 obj.bbox = {x0:0, x1:0, y0:0, y1:0};
                 obj.points = state.points;
                 obj.color = state.color;
                 freehand_recalculate_bbox(obj);
                 freehand_recalculate_path(obj);
                 break;
-            case 'grid-line':
+            case GRID_LINE:
                 obj.bbox = {x0:0, x1:0, y0:0, y1:0};
                 obj.points = state.points;
                 obj.color = state.color;
                 gridline_recalculate_bbox(obj);
                 gridline_recalculate_path(obj);
                 break;
-            // case 'rectangle':
-                // break;
-            case 'grid-rectangle':
+            case GRID_RECT:
                 obj.width = state.width;
                 obj.height = state.height;
                 obj.color = state.color;
                 break;
-            case 'image':{
+            case IMAGE:{
                 const needs_new_image = (obj.width !== state.width) || (obj.height !== state.height) || (obj.url !== state.url);
                 obj.width = state.width;
                 obj.height = state.height;
                 if(needs_new_image){
                     const img = new Image(obj.width, obj.height);
-                    img.src = url;
-                    obj.img = img;
+                    img.addEventListener('load', function(){
+                        obj.img = img;
+                        request_render();
+                    });
+                    img.src = obj.url;
                 }
             }break;
-            case 'text':
+            case TEXT:
                 obj.bbox = {x0:0, x1:0, y0:0, y1:0};
                 obj.text = state.text;
                 break;
-            case 'ez-token':
+            case EZ_TOKEN:
                 obj.color = state.color;
                 obj.text = state.text;
                 break;
@@ -642,7 +666,14 @@ socket.on('canvas-update', function(obj_states){
     request_render();
 });
 const selected = new Set();
+// These are a bit flags
+// Select background things (walls, lines).
+const SELECT_MAP = 1;
+// can select token types
+const SELECT_TOKEN = 2;
+const SELECT_ANY = SELECT_MAP | SELECT_TOKEN;
 const selection_area = {
+    select_type: SELECT_ANY,
     is_selecting: false,
     x0:0, y0:0,
     x1:0, y1:0,
@@ -674,13 +705,16 @@ function note_selections(){
     const x1 = selection_area.x1;
     const y1 = selection_area.y1;
     const selection_bbox = {x0:x0, y0:y0, x1:x1, y1:y1,};
+    const selection_type = selection_area.select_type;
     for(let i = 0; i < length; ++i){
         const obj = canvas_obj_array[i];
         if(obj.deleted)
             continue;
         switch(obj.type){
-            case 'grid-line': // fall-through
-            case 'freehand-line':{
+            case GRID_LINE: // fall-through
+            case FREEHAND_LINE:{
+                if(!(selection_type & SELECT_MAP))
+                    break;
                 const line_bbox = {
                     x0:obj.bbox.x0 + obj.base_x,
                     y0:obj.bbox.y0 + obj.base_y,
@@ -706,8 +740,10 @@ function note_selections(){
                 }
             }break;
             // case 'rectangle': // fall-through
-            case 'image': // fall-through
-            case 'grid-rectangle':{
+            case IMAGE: // fall-through
+            case GRID_RECT:{
+                if(!(selection_type & SELECT_MAP))
+                    break;
                 const rect_bbox = {
                     x0:obj.base_x,
                     y0:obj.base_y,
@@ -719,7 +755,9 @@ function note_selections(){
                     break;
                 }
             }break;
-            case 'ez-token':{
+            case EZ_TOKEN:{
+                if(!(selection_type & SELECT_TOKEN))
+                    break;
                 const token_bbox = {
                     // TODO move magic numbers to a variable
                     x0: obj.base_x - 28,
@@ -732,7 +770,9 @@ function note_selections(){
                     break;
                 }
             }break;
-            case 'text':{
+            case TEXT:{
+                if(!(selection_type & SELECT_MAP))
+                    break;
                 const text_bbox = {
                     x0:obj.bbox.x0 + obj.base_x,
                     y0:obj.bbox.y0 + obj.base_y,
@@ -755,10 +795,15 @@ function finalize_selection(){
     note_selections();
     request_render();
 }
-
 function end_selecting(){
     selected.clear();
     selection_area.is_selecting = false;
+    request_render();
+}
+function change_select_mode(mode){
+    selected.clear();
+    selection_area.select_type = mode;
+    note_selections();
     request_render();
 }
 function move_selected_objects(base_x, base_y, dx, dy){
@@ -770,9 +815,9 @@ function move_selected_objects(base_x, base_y, dx, dy){
         if(obj.deleted)
             continue;
         switch(obj.type){
-            case 'grid-rectangle':
-            case 'grid-line':
-            case 'image':
+            case GRID_RECT:
+            case GRID_LINE:
+            case IMAGE:
                 rigid = true;
                 break;
             default:
@@ -795,21 +840,19 @@ function move_selected_objects(base_x, base_y, dx, dy){
                 obj.base_x += dx;
                 obj.base_y += dy;
                 switch(obj.type){
-                    case 'freehand-line':
+                    case FREEHAND_LINE:
                         freehand_recalculate_path(obj);
                         break;
-                    case 'grid-line':
+                    case GRID_LINE:
                         gridline_recalculate_path(obj);
                         break;
-                    //  rectangle - doesn't exist yet
-                    case 'grid-rectangle':
+                    case GRID_RECT:
                         break;
-                    //  ellipse - doesn't exist yet
-                    case 'image':
+                    case IMAGE:
                         break;
-                    case 'text':
+                    case TEXT:
                         break;
-                    case 'ez-token':
+                    case EZ_TOKEN:
                         break;
                     default:
                         console.log('unhandled obj type');
@@ -827,21 +870,19 @@ function move_selected_objects(base_x, base_y, dx, dy){
             // FIXME: this sucks, we need to switch on type here
             // so that path objects can get updated.
             switch(obj.type){
-                case 'freehand-line':
+                case FREEHAND_LINE:
                     freehand_recalculate_path(obj);
                     break;
-                case 'grid-line':
+                case GRID_LINE:
                     gridline_recalculate_path(obj);
                     break;
-                //  rectangle - doesn't exist yet
-                case 'grid-rectangle':
+                case GRID_RECT:
                     break;
-                //  ellipse - doesn't exist yet
-                case 'image':
+                case IMAGE:
                     break;
-                case 'text':
+                case TEXT:
                     break;
-                case 'ez-token':
+                case EZ_TOKEN:
                     break;
                 default:
                     console.log('unhandled obj type');
@@ -866,30 +907,30 @@ function strip_obj(obj){
         deleted: obj.deleted,
     };
     switch(obj.type){
-        case 'freehand-line':
+        case FREEHAND_LINE:
             stripped_obj.points = obj.points;
             stripped_obj.color = obj.color;
             break;
-        case 'grid-line':
+        case GRID_LINE:
             stripped_obj.points = obj.points;
             stripped_obj.color = obj.color;
             break;
         // case 'rectangle':
             // break;
-        case 'grid-rectangle':
+        case GRID_RECT:
             stripped_obj.width = obj.width;
             stripped_obj.height = obj.height;
             stripped_obj.color = obj.color;
             break;
-        case 'image':
+        case IMAGE:
             stripped_obj.width = obj.width;
             stripped_obj.height = obj.height;
             stripped_obj.url = obj.url;
             break;
-        case 'text':
+        case TEXT:
             stripped_obj.text = obj.text;
             break;
-        case 'ez-token':
+        case EZ_TOKEN:
             stripped_obj.color = obj.color;
             stripped_obj.text = obj.text;
             break;
@@ -974,7 +1015,7 @@ function render(){
             continue;
         const is_selected = selected.has(obj.id);
         switch(obj.type){
-            case 'freehand-line':{
+            case FREEHAND_LINE:{
                 // This works well enough for now.
                 // If things get hairy, I could build a quadtree or whatever.
                 const line_bbox = {
@@ -997,7 +1038,7 @@ function render(){
                     ctx.stroke(obj.path);
                 }
             }break;
-            case 'grid-line':{
+            case GRID_LINE:{
                 const line_bbox = {
                     x0:obj.bbox.x0 + obj.base_x,
                     y0:obj.bbox.y0 + obj.base_y,
@@ -1019,7 +1060,7 @@ function render(){
                     ctx.stroke(obj.path);
                 }
             }break;
-            case 'grid-rectangle':{
+            case GRID_RECT:{
                 const rect_bbox = {
                     x0:obj.base_x,
                     y0:obj.base_y,
@@ -1038,7 +1079,7 @@ function render(){
                     ctx.fillRect(obj.base_x, obj.base_y, obj.width, obj.height);
                 }
             }break;
-            case 'text':{
+            case TEXT:{
                 if(obj.text){
                     ctx.font = '18px sans';
                     ctx.textBaseline = 'middle';
@@ -1076,7 +1117,7 @@ function render(){
                     ctx.fillText(obj.text, obj.base_x, obj.base_y);
                 }
             }break;
-            case 'ez-token':{
+            case EZ_TOKEN:{
                 const token_bbox = {
                     x0: obj.base_x - 28,
                     x1: obj.base_x + 28,
@@ -1106,7 +1147,7 @@ function render(){
                 ctx.fillStyle = '#000';
                 ctx.fillText(obj.text, obj.base_x, obj.base_y);
             }break;
-            case 'image':{
+            case IMAGE:{
                 const rect_bbox = {
                     x0:obj.base_x,
                     y0:obj.base_y,
@@ -1120,7 +1161,12 @@ function render(){
                     ctx.fillStyle = SELECTED_COLOR+'aa';
                     ctx.fillRect(obj.base_x-2, obj.base_y-2, obj.width+4, obj.height+4);
                 }
-                ctx.drawImage(obj.img, obj.base_x, obj.base_y, obj.width, obj.height);
+                if(obj.img)
+                    ctx.drawImage(obj.img, obj.base_x, obj.base_y, obj.width, obj.height);
+                else {
+                    ctx.fillStyle = '#337733aa';
+                    ctx.fillRect(obj.base_x, obj.base_y, obj.width, obj.height);
+                }
             }break;
         }
     }
@@ -1132,7 +1178,16 @@ function render(){
     // console.log('rendering:', (performance.now()-before).toFixed(4)+'ms');
 }
 document.addEventListener('DOMContentLoaded', render);
-let current_tool = "Pan";
+const PAN_TOOL      = 'Pan';
+const SELECT_TOOL   = 'Select';
+const MOVE_TOOL     = 'Move';
+const LINE_TOOL     = 'Line';
+const WALL_TOOL     = 'Wall';
+const FLOOR_TOOL    = 'Floor';
+const TEXT_TOOL     = 'Text';
+const EZ_TOKEN_TOOL = 'Ez-Token';
+const IMAGE_TOOL    = 'Image';
+let current_tool = PAN_TOOL;
 let color_picker = null;
 let tools = null;
 function change_tool(toolname){
@@ -1140,9 +1195,9 @@ function change_tool(toolname){
         return;
     current_tool = toolname;
     switch(toolname){
-        case 'Pan':
-        case 'Select':
-        case 'Move':
+        case PAN_TOOL:
+        case SELECT_TOOL:
+        case MOVE_TOOL:
             break;
         default:
             end_selecting();
@@ -1151,7 +1206,7 @@ function change_tool(toolname){
     for(let j = 0; j < tools.length-1; ++j){
         const tool = tools[j];
         tool.classList.remove('selected');
-        if(tool.innerHTML.trim() == toolname){
+        if(tool.firstChild.textContent.trim() == toolname){
             tool.classList.toggle('selected');
         }
     }
@@ -1165,11 +1220,94 @@ document.addEventListener('DOMContentLoaded', function(){
         tool.addEventListener('click', function(e){
             e.stopPropagation();
             e.preventDefault();
-            const toolname = tool.innerHTML.trim();
+            const toolname = tool.firstChild.textContent.trim();
             change_tool(toolname);
         });
+        if(tool.firstChild.textContent.trim() == 'Select'){
+            let has_menu = false;
+            const name = tool.getElementsByTagName('span')[0];
+            switch(selection_area.select_type){
+                case SELECT_ANY:
+                    name.innerText = 'Any';
+                    break;
+                case SELECT_MAP:
+                    name.innerText = 'Map';
+                    break;
+                case SELECT_TOKEN:
+                    name.innerText = 'Token';
+                    break;
+            }
+            const triangle = tool.getElementsByTagName('span')[1];
+            triangle.addEventListener('click', function(e){
+                e.preventDefault();
+                e.stopPropagation();
+                if(has_menu)
+                    return;
+                has_menu = true;
+                const trimenu = document.createElement('section');
+                trimenu.classList.toggle('menu');
+                trimenu.style.left = e.clientX + 'px';
+                const window_height = window.innerHeight;
+                trimenu.style.bottom = (window_height - e.clientY)+'px'
+                function close_select_menu(e){
+                    if(e){
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
+                    document.body.removeChild(trimenu);
+                    canvas.removeEventListener('mousedown', close_select_menu);
+                    has_menu = false;
+                }
+                const options = [
+                    {
+                        func: function(e){
+                            e.stopPropagation();
+                            e.preventDefault();
+                            name.innerText = 'Any';
+                            change_tool(SELECT_TOOL);
+                            change_select_mode(SELECT_ANY);
+                            close_select_menu();
+                        },
+                        text:'Any',
+                    },
+                    {
+                        func: function(e){
+                            e.stopPropagation();
+                            e.preventDefault();
+                            change_tool(SELECT_TOOL);
+                            name.innerText = 'Map';
+                            change_select_mode(SELECT_MAP);
+                            close_select_menu();
+                        },
+                        text:'Map',
+                    },
+                    {
+                        func: function(e){
+                            e.stopPropagation();
+                            e.preventDefault();
+                            change_tool(SELECT_TOOL);
+                            name.innerText = 'Token';
+                            change_select_mode(SELECT_TOKEN);
+                            close_select_menu();
+                        },
+                        text:'Token',
+                    },
+                ];
+                for(let i = 0; i < options.length; ++i){
+                    const option = options[i];
+                    const s = document.createElement('section');
+                    s.classList.toggle('menuitem')
+                    const text = document.createTextNode(option.text);
+                    s.appendChild(text);
+                    s.addEventListener('mousedown', option.func);
+                    trimenu.appendChild(s);
+                }
+                document.body.appendChild(trimenu);
+                canvas.addEventListener('mousedown', close_select_menu);
+            });
+        }
     }
-    change_tool('Pan');
+    change_tool(PAN_TOOL);
 });
 
 // Combines the session id with the local id to create a
@@ -1185,7 +1323,7 @@ function get_session_id_from_obj_id(objid){
     return id;
 }
 document.addEventListener('DOMContentLoaded', function(){
-    const canvas = document.getElementsByTagName('canvas')[0];
+    canvas = document.getElementsByTagName('canvas')[0];
     canvas.addEventListener('wheel', function(e){
         e.stopPropagation();
         e.preventDefault();
@@ -1246,31 +1384,31 @@ document.addEventListener('DOMContentLoaded', function(){
                 end_selecting();
             }break;
             case 'q':
-                change_tool('Pan');
+                change_tool(PAN_TOOL);
                 break;
             case 'w':
-                change_tool('Select');
+                change_tool(SELECT_TOOL);
                 break;
             case 'e':
-                change_tool('Move');
+                change_tool(MOVE_TOOL);
                 break;
             case 'a':
-                change_tool('Line');
+                change_tool(LINE_TOOL);
                 break;
             case 's':
-                change_tool('Wall');
+                change_tool(WALL_TOOL);
                 break;
             case 'd':
-                change_tool('Floor');
+                change_tool(FLOOR_TOOL);
                 break;
             case 'z':
-                change_tool('Text');
+                change_tool(TEXT_TOOL);
                 break;
             case 'x':
-                change_tool('Ez-Token');
+                change_tool(EZ_TOKEN_TOOL);
                 break;
             case 'c':
-                change_tool('Image');
+                change_tool(IMAGE_TOOL);
                 break;
             default:
                 console.log(e.key);
@@ -1280,14 +1418,17 @@ document.addEventListener('DOMContentLoaded', function(){
     let localid = 0;
     let prev_tool = null;
     canvas.addEventListener('mousedown', function(e){
+        if(e.button !== 0){ //0 is the 'primary' button
+            return;
+        }
         e.stopPropagation();
         e.preventDefault();
         if(e.buttons === 4){
             prev_tool = current_tool;
-            current_tool = 'Pan';
+            current_tool = PAN_TOOL;
         }
         switch(current_tool){
-            case 'Select':{
+            case SELECT_TOOL:{
                 let clicked_x = e.offsetX/scale - camera_x;
                 let clicked_y = e.offsetY/scale - camera_y;
                 selection_area.is_selecting = true;
@@ -1311,7 +1452,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('mouseup', finish_select);
                 canvas.addEventListener('mouseleave', finish_select);
             }break;
-            case 'Move':{
+            case MOVE_TOOL:{
                 let clicked_x = e.offsetX/scale - camera_x;
                 let clicked_y = e.offsetY/scale - camera_y;
                 function move(e){
@@ -1333,7 +1474,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('mouseup', finish_move);
                 canvas.addEventListener('mouseleave', finish_move);
             }break;
-            case 'Pan':{
+            case PAN_TOOL:{
                 let clicked_x = e.offsetX/scale;
                 let clicked_y = e.offsetY/scale;
                 function pan(e){
@@ -1360,7 +1501,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('mouseup', finish_pan);
                 canvas.addEventListener('mouseleave', finish_pan);
             }break;
-            case 'Line':{
+            case LINE_TOOL:{
                 ++localid;
                 let id = make_obj_id(localid);
                 add_freehand_line(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, color_picker.value);
@@ -1380,7 +1521,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
-            case 'Wall':{
+            case WALL_TOOL:{
                 ++localid;
                 let id = make_obj_id(localid);
                 add_gridline(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, color_picker.value);
@@ -1400,7 +1541,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
-            case 'Floor':{
+            case  FLOOR_TOOL:{
                 ++localid;
                 let id = make_obj_id(localid);
                 const x0 = e.offsetX/scale-camera_x;
@@ -1422,7 +1563,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
-            case 'Text':{
+            case TEXT_TOOL:{
                 const text = prompt("Enter Text:");
                 if(!text || !text.trim()){
                     break;
@@ -1435,7 +1576,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 publish_obj_by_id(id);
                 request_render();
             }break;
-            case 'Image':{
+            case IMAGE_TOOL:{
                 const text = prompt("Enter URl:");
                 if(!text || !text.trim()){
                     break;
@@ -1448,9 +1589,9 @@ document.addEventListener('DOMContentLoaded', function(){
                 publish_obj_by_id(id);
                 request_render();
             }break;
-            case 'Ez-Token':{
+            case EZ_TOKEN_TOOL:{
                 const text = prompt("Enter Token Name:");
-                if(!text.trim()){
+                if(!text || !text.trim()){
                     break;
                 }
                 const x0 = e.offsetX/scale-camera_x;
@@ -1465,5 +1606,43 @@ document.addEventListener('DOMContentLoaded', function(){
                 console.log('unknown tool:', current_tool);
             }break;
         }
+    });
+    canvas.addEventListener('contextmenu', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        const ctxmenu = document.createElement('section');
+        ctxmenu.classList.toggle('menu');
+        ctxmenu.style.left = e.clientX + 'px';
+        ctxmenu.style.top = e.clientY + 'px';
+        const x = e.offsetX/scale - camera_x - canvas.width/2/scale;
+        const y = e.offsetY/scale - camera_y - canvas.height/2/scale;
+        function remove_menu(e){
+            canvas.removeEventListener('mousedown', remove_menu);
+            document.body.removeChild(ctxmenu);
+            if(e){
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        }
+        canvas.addEventListener('mousedown', remove_menu);
+        const items = [
+            {
+                label: 'Gather Party',
+                func: function(){socket.emit('canvas-gather', {x:-x, y:-y}); remove_menu();},
+            },
+            {
+                label: 'Cancel',
+                func: function(){remove_menu();},
+            },
+        ];
+        for(let i = 0; i < items.length; i++){
+            const item = items[i];
+            const menuitem = document.createElement('section');
+            menuitem.classList.toggle('menuitem');
+            menuitem.addEventListener('click', item.func);
+            menuitem.appendChild(document.createTextNode(item.label));
+            ctxmenu.appendChild(menuitem);
+        }
+        document.body.appendChild(ctxmenu);
     });
 });
