@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import random
 from collections import namedtuple
-verbose_roll_result = namedtuple('verbose_roll', ['sum', 'dice_size','dice_outputs'])
+verbose_roll_result = namedtuple('verbose_roll_result', ['sum', 'dice_size','dice_outputs'])
 class Dice:
     def verbose_roll(self):
         assert(len(self._dice) == 1)

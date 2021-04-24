@@ -27,15 +27,17 @@ function bbox_overlaps(bbox1, bbox2){
 //  image
 //  text
 //  ez-token
+//  img-token
 const FREEHAND_LINE = 1;
 const GRID_LINE = 2;
-// const RECT = 3;
+const RECT = 3;
 const GRID_RECT = 4;
 // const FILLED_RECT = 5;
 // const ELLIPSE = 6;
 const IMAGE = 7;
 const TEXT = 8;
 const EZ_TOKEN = 9;
+const IMG_TOKEN = 10;
 //
 //  all objects start as
 //  {
@@ -89,7 +91,7 @@ const EZ_TOKEN = 9;
 //    bbox: bbox,
 //  }
 //
-//  rectangle - doesn't exist yet
+//  rectangle
 //  ---------
 //  An axis-aligned box.
 //  base_x and base_y is the top-left corner of the box.
@@ -164,6 +166,7 @@ const EZ_TOKEN = 9;
 //
 //  ez-token
 //  --------
+//  A token that just has a simple text label.
 //  {
 //    type: EZ_TOKEN,
 //    id: 10001,
@@ -172,6 +175,19 @@ const EZ_TOKEN = 9;
 //    deleted: false,
 //    text: "foozle",
 //    color: "#fff",
+//  }
+//
+//  img-token
+//  --------
+//  A token that has an image as its contents.
+//  {
+//    type: IMG_TOKEN,
+//    id: 10001,
+//    base_x: 32,
+//    base_y: 96,
+//    deleted: false,
+//    url: "foozle.com/foo.png",
+//    img: Image,
 //  }
 //
 //
@@ -474,6 +490,50 @@ function gridrect_translate(obj, dx, dy){
     obj.base_x += dx;
     obj.base_y += dy;
 }
+function make_rect(id, base_x, base_y, color){
+    const obj =  {
+        type: RECT,
+        id: id,
+        base_x: base_x,
+        base_y: base_y,
+        deleted: false,
+        color: color,
+        width: 0,
+        height: 0,
+    };
+    return obj;
+}
+function add_rect(id, base_x, base_y, color){
+    const obj = make_rect(id, base_x, base_y, color);
+    add_canv_obj(obj);
+}
+function change_rect(obj, x0, y0, x1, y1){
+    if(x1 < x0){
+        let temp = x1;
+        x1 = x0;
+        x0 = temp;
+    }
+    if(y1 < y0){
+        let temp = y1;
+        y1 = y0;
+        y0 = temp;
+    }
+    obj.base_x = x0;
+    obj.base_y = y0;
+    obj.width = x1 - x0;
+    obj.height = y1 - y0;
+    request_render();
+}
+function change_rect_by_id(id, x0, y0, x1, y1){
+    let obj = canvas_objs[id];
+    console.assert(obj);
+    console.assert(obj.type === RECT);
+    change_rect(obj, x0, y0, x1, y1);
+}
+function rect_translate(obj, dx, dy){
+    obj.base_x += dx;
+    obj.base_y += dy;
+}
 function make_text(id, base_x, base_y, text){
     base_x = base_x - (base_x & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
     base_y = base_y - (base_y & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
@@ -509,6 +569,31 @@ function make_ez_token(id, base_x, base_y, text, color){
 }
 function add_ez_token(id, base_x, base_y, text, color){
     const obj = make_ez_token(id, base_x, base_y, text, color);
+    add_canv_obj(obj);
+}
+function make_img_token(id, base_x, base_y, url){
+    base_x = base_x - (base_x & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
+    base_y = base_y - (base_y & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
+
+    const obj =  {
+        type: IMG_TOKEN,
+        id: id,
+        base_x: Math.round(base_x),
+        base_y: Math.round(base_y),
+        deleted: false,
+        url: url,
+        img: null,
+    };
+    const img = new Image(REFERENCE_WIDTH, REFERENCE_WIDTH);
+    img.addEventListener('load', function(){
+        obj.img = img;
+        request_render();
+    });
+    img.src = url;
+    return obj;
+}
+function add_img_token(id, base_x, base_y, url){
+    const obj = make_img_token(id, base_x, base_y, url);
     add_canv_obj(obj);
 }
 
@@ -562,8 +647,8 @@ socket.on('canvas-create', function(objs){
                 gridline_recalculate_bbox(obj);
                 gridline_recalculate_path(obj);
                 break;
-            // case 'rectangle':
-                // break;
+            case RECT:
+                break;
             case GRID_RECT:
                 break;
             case IMAGE:{
@@ -580,6 +665,15 @@ socket.on('canvas-create', function(objs){
                 break;
             case EZ_TOKEN:
                 break;
+            case IMG_TOKEN:{
+                obj.img = null;
+                const img = new Image(REFERENCE_WIDTH, REFERENCE_WIDTH);
+                img.addEventListener('load', function(){
+                    obj.img = img;
+                    request_render();
+                });
+                img.src = obj.url;
+            }break;
         }
         const existing_obj = canvas_objs[obj.id];
         if(existing_obj){
@@ -635,6 +729,11 @@ socket.on('canvas-update', function(obj_states){
                 gridline_recalculate_bbox(obj);
                 gridline_recalculate_path(obj);
                 break;
+            case RECT:
+                obj.width = state.width;
+                obj.height = state.height;
+                obj.color = state.color;
+                break;
             case GRID_RECT:
                 obj.width = state.width;
                 obj.height = state.height;
@@ -661,6 +760,9 @@ socket.on('canvas-update', function(obj_states){
                 obj.color = state.color;
                 obj.text = state.text;
                 break;
+            case IMG_TOKEN:{
+                // idk
+            }break;
         }
     }
     request_render();
@@ -739,7 +841,7 @@ function note_selections(){
                     }
                 }
             }break;
-            // case 'rectangle': // fall-through
+            case RECT: // fall-through
             case IMAGE: // fall-through
             case GRID_RECT:{
                 if(!(selection_type & SELECT_MAP))
@@ -755,6 +857,7 @@ function note_selections(){
                     break;
                 }
             }break;
+            case IMG_TOKEN:// fall-through
             case EZ_TOKEN:{
                 if(!(selection_type & SELECT_TOKEN))
                     break;
@@ -846,6 +949,7 @@ function move_selected_objects(base_x, base_y, dx, dy){
                     case GRID_LINE:
                         gridline_recalculate_path(obj);
                         break;
+                    case RECT:
                     case GRID_RECT:
                         break;
                     case IMAGE:
@@ -853,6 +957,8 @@ function move_selected_objects(base_x, base_y, dx, dy){
                     case TEXT:
                         break;
                     case EZ_TOKEN:
+                        break;
+                    case IMG_TOKEN:
                         break;
                     default:
                         console.log('unhandled obj type');
@@ -876,6 +982,7 @@ function move_selected_objects(base_x, base_y, dx, dy){
                 case GRID_LINE:
                     gridline_recalculate_path(obj);
                     break;
+                case RECT:
                 case GRID_RECT:
                     break;
                 case IMAGE:
@@ -883,6 +990,8 @@ function move_selected_objects(base_x, base_y, dx, dy){
                 case TEXT:
                     break;
                 case EZ_TOKEN:
+                    break;
+                case IMG_TOKEN:
                     break;
                 default:
                     console.log('unhandled obj type');
@@ -915,8 +1024,11 @@ function strip_obj(obj){
             stripped_obj.points = obj.points;
             stripped_obj.color = obj.color;
             break;
-        // case 'rectangle':
-            // break;
+        case RECT:
+            stripped_obj.width = obj.width;
+            stripped_obj.height = obj.height;
+            stripped_obj.color = obj.color;
+            break;
         case GRID_RECT:
             stripped_obj.width = obj.width;
             stripped_obj.height = obj.height;
@@ -933,6 +1045,9 @@ function strip_obj(obj){
         case EZ_TOKEN:
             stripped_obj.color = obj.color;
             stripped_obj.text = obj.text;
+            break;
+        case IMG_TOKEN:
+            stripped_obj.url = obj.url;
             break;
     }
     return stripped_obj;
@@ -1060,6 +1175,27 @@ function render(){
                     ctx.stroke(obj.path);
                 }
             }break;
+            case RECT:{
+                const rect_bbox = {
+                    x0:obj.base_x,
+                    y0:obj.base_y,
+                    x1:obj.base_x+obj.width,
+                    y1:obj.base_y+obj.height,
+                };
+                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                    break;
+                }
+                if(obj.width && obj.height){
+                    if(is_selected){
+                        ctx.lineWidth=8;
+                        ctx.strokeStyle = SELECTED_COLOR;
+                        ctx.strokeRect(obj.base_x-2, obj.base_y-2, obj.width+4, obj.height+4);
+                    }
+                    ctx.lineWidth=4;
+                    ctx.strokeStyle = obj.color;
+                    ctx.strokeRect(obj.base_x, obj.base_y, obj.width, obj.height);
+                }
+            }break;
             case GRID_RECT:{
                 const rect_bbox = {
                     x0:obj.base_x,
@@ -1168,6 +1304,36 @@ function render(){
                     ctx.fillRect(obj.base_x, obj.base_y, obj.width, obj.height);
                 }
             }break;
+            case IMG_TOKEN:{
+                const token_bbox = {
+                    x0: obj.base_x - 28,
+                    x1: obj.base_x + 28,
+                    y0: obj.base_y - 28,
+                    y1: obj.base_y + 28,
+                };
+                if(!bbox_overlaps(token_bbox, canvas_bbox)){
+                    break;
+                }
+                if(is_selected){
+                    ctx.beginPath();
+                    ctx.fillStyle = SELECTED_COLOR;
+                    ctx.arc(obj.base_x, obj.base_y, 30, 0, 2*Math.PI);
+                    ctx.fill();
+                }
+                ctx.beginPath();
+                ctx.fillStyle = '#000';
+                ctx.arc(obj.base_x, obj.base_y, 28, 0, 2*Math.PI);
+                ctx.fill();
+                if(obj.img){
+                    ctx.drawImage(obj.img, obj.base_x-28, obj.base_y-28, 56, 56);
+                }
+                else {
+                    ctx.beginPath();
+                    ctx.fillStyle = '#333333';
+                    ctx.arc(obj.base_x, obj.base_y, 24, 0, 2*Math.PI);
+                    ctx.fill();
+                }
+            }break;
         }
     }
     if(selection_area.is_selecting){
@@ -1183,10 +1349,12 @@ const SELECT_TOOL   = 'Select';
 const MOVE_TOOL     = 'Move';
 const LINE_TOOL     = 'Line';
 const WALL_TOOL     = 'Wall';
+const RECT_TOOL     = 'Rect';
 const FLOOR_TOOL    = 'Floor';
 const TEXT_TOOL     = 'Text';
 const EZ_TOKEN_TOOL = 'Ez-Token';
 const IMAGE_TOOL    = 'Image';
+const IMG_TOKEN_TOOL = 'Img-Token';
 let current_tool = PAN_TOOL;
 let color_picker = null;
 let tools = null;
@@ -1396,9 +1564,12 @@ document.addEventListener('DOMContentLoaded', function(){
                 change_tool(LINE_TOOL);
                 break;
             case 's':
-                change_tool(WALL_TOOL);
+                change_tool(RECT_TOOL);
                 break;
             case 'd':
+                change_tool(WALL_TOOL);
+                break;
+            case 'e':
                 change_tool(FLOOR_TOOL);
                 break;
             case 'z':
@@ -1541,7 +1712,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
-            case  FLOOR_TOOL:{
+            case FLOOR_TOOL:{
                 ++localid;
                 let id = make_obj_id(localid);
                 const x0 = e.offsetX/scale-camera_x;
@@ -1551,6 +1722,28 @@ document.addEventListener('DOMContentLoaded', function(){
                     e.stopPropagation();
                     e.preventDefault();
                     change_gridrect_by_id(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, x0, y0);
+                    request_render();
+                }
+                canvas.addEventListener('mousemove', add_point);
+                function finish_point(){
+                    canvas.removeEventListener('mousemove', add_point);
+                    window.removeEventListener('mouseup', finish_point);
+                    canvas.removeEventListener('mouseleave', finish_point);
+                    publish_obj_by_id(id);
+                }
+                window.addEventListener('mouseup', finish_point);
+                canvas.addEventListener('mouseleave', finish_point);
+            }break;
+            case RECT_TOOL:{
+                ++localid;
+                let id = make_obj_id(localid);
+                const x0 = e.offsetX/scale-camera_x;
+                const y0 = e.offsetY/scale-camera_y;
+                add_rect(id, x0, y0, color_picker.value);
+                function add_point(e){
+                    e.stopPropagation();
+                    e.preventDefault();
+                    change_rect_by_id(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, x0, y0);
                     request_render();
                 }
                 canvas.addEventListener('mousemove', add_point);
@@ -1577,7 +1770,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 request_render();
             }break;
             case IMAGE_TOOL:{
-                const text = prompt("Enter URl:");
+                const text = prompt("Enter URL:");
                 if(!text || !text.trim()){
                     break;
                 }
@@ -1599,6 +1792,19 @@ document.addEventListener('DOMContentLoaded', function(){
                 ++localid;
                 let id = make_obj_id(localid);
                 add_ez_token(id, x0, y0, text, color_picker.value);
+                publish_obj_by_id(id);
+                request_render();
+            }break;
+            case IMG_TOKEN_TOOL:{
+                const text = prompt("Enter URL:");
+                if(!text || !text.trim()){
+                    break;
+                }
+                const x0 = e.offsetX/scale-camera_x;
+                const y0 = e.offsetY/scale-camera_y;
+                ++localid;
+                let id = make_obj_id(localid);
+                add_img_token(id, x0, y0, text);
                 publish_obj_by_id(id);
                 request_render();
             }break;

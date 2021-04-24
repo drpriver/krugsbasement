@@ -14,6 +14,8 @@
     ::div
       Line
     ::div
+      Rect
+    ::div
       Wall
     ::div
       Floor
@@ -21,6 +23,8 @@
       Text
     ::div
       Ez-Token
+    ::div
+      Img-Token
     ::div
       Image
     ::div

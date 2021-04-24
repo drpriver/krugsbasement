@@ -1,7 +1,12 @@
 import json
 import atexit
 import os
-class Persister:
+from typing import Generic, TypeVar, Callable, Optional, Union, Any
+
+T = TypeVar('T')
+JsType = Union[str, dict, list, int, float]
+
+class Persister(Generic[T]):
     '''
     An object that handles saving and loading mutable objects.
 
@@ -11,12 +16,25 @@ class Persister:
     So, it doesn't work on like ints and shit, but works with
     dicts and lists.
     '''
-    def __init__(self, obj, filepath):
+    def __init__(self, obj:T, filepath:str, save_func:Optional[Callable[[T], JsType]]=None, load_func:Optional[Callable[[JsType], T]]=None) -> None:
+        '''
+        obj: the obj to be persisted.
+        filepath: where to save/load the object.
+        save_func: if given, a function that converts the object into something
+                   that can be json serialized.
+        load_func: if given, a function that converts the json object into the
+                   real object.
+        '''
         self.obj = obj
         self.filepath = filepath
+        self.save_func = save_func
         try:
             with open(filepath, 'r') as fp:
-                self.obj = json.load(fp)
+                jsobj = json.load(fp)
+                if load_func:
+                    self.obj = load_func(jsobj)
+                else:
+                    self.obj = jsobj
         except Exception as e:
             print(e)
         atexit.register(self.save)
@@ -25,8 +43,9 @@ class Persister:
         if dirname and dirname != '.':
             os.makedirs(dirname, exist_ok=True)
         try:
+            obj = self.save_func(self.obj) if self.save_func else self.obj
             with open(self.filepath+'_', 'w') as fp:
-                json.dump(self.obj, fp)
+                json.dump(obj, fp)
             os.rename(self.filepath+'_', self.filepath)
         except Exception as e:
             print(e)

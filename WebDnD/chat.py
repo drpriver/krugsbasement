@@ -1,10 +1,10 @@
 from typing import List, Dict
 import random
 from .dice import dice_from_string
-from WebDnD.persist import Persister
+from .persist import Persister
 from flask_socketio import emit
-
-HISTORY = Persister([], 'BadDb/chat.json').obj # type: List[dict]
+HISTORY = []  # type: List[dict]
+HISTORY = Persister(HISTORY, 'BadDb/chat.json').obj
 
 def handle_input(data:str, user:str='anon') -> List[dict]:
     result = []
