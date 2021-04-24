@@ -1134,35 +1134,42 @@ function render(){
 document.addEventListener('DOMContentLoaded', render);
 let current_tool = "Pan";
 let color_picker = null;
-document.addEventListener('DOMContentLoaded', function(){
-    const tools_div = document.getElementById('tools');
-    const tools = tools_div.children;
-    color_picker = document.getElementById('color-picker');
-
-    for(let i = 0; i < tools.length-1; ++i){
-        const tool = tools[i];
-        if(tool.innerHTML.trim() === 'Pan'){
+let tools = null;
+function change_tool(toolname){
+    if(!tools)
+        return;
+    current_tool = toolname;
+    switch(toolname){
+        case 'Pan':
+        case 'Select':
+        case 'Move':
+            break;
+        default:
+            end_selecting();
+            break;
+    }
+    for(let j = 0; j < tools.length-1; ++j){
+        const tool = tools[j];
+        tool.classList.remove('selected');
+        if(tool.innerHTML.trim() == toolname){
             tool.classList.toggle('selected');
         }
+    }
+}
+document.addEventListener('DOMContentLoaded', function(){
+    const tools_div = document.getElementById('tools');
+    tools = tools_div.children;
+    color_picker = document.getElementById('color-picker');
+    for(let i = 0; i < tools.length-1; ++i){
+        const tool = tools[i];
         tool.addEventListener('click', function(e){
             e.stopPropagation();
             e.preventDefault();
-            current_tool = tool.innerHTML.trim();
-            switch(current_tool){
-                case 'Pan':
-                case 'Select':
-                case 'Move':
-                    break;
-                default:
-                    end_selecting();
-                    break;
-            }
-            for(let j = 0; j < tools.length-1; ++j){
-                tools[j].classList.remove('selected');
-            }
-            tool.classList.toggle('selected');
+            const toolname = tool.innerHTML.trim();
+            change_tool(toolname);
         });
     }
+    change_tool('Pan');
 });
 
 // Combines the session id with the local id to create a
@@ -1238,6 +1245,33 @@ document.addEventListener('DOMContentLoaded', function(){
                 publish_delete_by_ids(Array.from(selected));
                 end_selecting();
             }break;
+            case 'q':
+                change_tool('Pan');
+                break;
+            case 'w':
+                change_tool('Select');
+                break;
+            case 'e':
+                change_tool('Move');
+                break;
+            case 'a':
+                change_tool('Line');
+                break;
+            case 's':
+                change_tool('Wall');
+                break;
+            case 'd':
+                change_tool('Floor');
+                break;
+            case 'z':
+                change_tool('Text');
+                break;
+            case 'x':
+                change_tool('Ez-Token');
+                break;
+            case 'c':
+                change_tool('Image');
+                break;
             default:
                 console.log(e.key);
                 break;
