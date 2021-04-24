@@ -21,7 +21,8 @@ function bbox_overlaps(bbox1, bbox2){
 //  ================
 //  freehand-line
 //  grid-line
-//  rectangle - doesn't exist yet
+//  rectangle
+//  filled-rectangle
 //  grid-rectangle
 //  ellipse - doesn't exist yet
 //  image
@@ -32,7 +33,7 @@ const FREEHAND_LINE = 1;
 const GRID_LINE = 2;
 const RECT = 3;
 const GRID_RECT = 4;
-// const FILLED_RECT = 5;
+const FILLED_RECT = 5;
 // const ELLIPSE = 6;
 const IMAGE = 7;
 const TEXT = 8;
@@ -102,6 +103,21 @@ const IMG_TOKEN = 10;
 //    base_y: 99,
 //    deleted: false,
 //    color: '#fff',
+//    width: 12,
+//    height: 18,
+//  }
+//  filled-rectangle
+//  ---------
+//  An axis-aligned box, but the center is filled with 'color2'
+//  base_x and base_y is the top-left corner of the box.
+//  {
+//    type: FILLED_RECT,
+//    id: 10001,
+//    base_x: 3,
+//    base_y: 99,
+//    deleted: false,
+//    color: '#fff',
+//    color2: '#fff',
 //    width: 12,
 //    height: 18,
 //  }
@@ -206,6 +222,39 @@ socket.on('canvas-gather', function(where){
     request_render();
 });
 let scale = 1;
+function reset_zoom(){
+    const center_x = canvas.width/2/scale - camera_x;
+    const center_y = canvas.height/2/scale - camera_y;
+    scale = 1;
+    camera_x = canvas.width/2/scale - center_x;
+    camera_y = canvas.height/2/scale - center_y;
+    request_render();
+}
+function zoom_in(){
+    const center_x = canvas.width/2/scale - camera_x;
+    const center_y = canvas.height/2/scale - camera_y;
+    scale *= 1.50;
+    if(scale < 0.25)
+        scale = 0.25;
+    if(scale > 4)
+        scale = 4;
+    camera_x = canvas.width/2/scale - center_x;
+    camera_y = canvas.height/2/scale - center_y;
+    request_render();
+}
+function zoom_out(){
+    const center_x = canvas.width/2/scale - camera_x;
+    const center_y = canvas.height/2/scale - camera_y;
+    scale /= 1.50;
+    if(scale < 0.25)
+        scale = 0.25;
+    if(scale > 4)
+        scale = 4;
+    camera_x = canvas.width/2/scale - center_x;
+    camera_y = canvas.height/2/scale - center_y;
+    request_render();
+}
+
 // State variable so that we don't double render in a single frame.
 // requestAnimationFrame calls stack, so to avoid double drawing, you
 // need to keep track of this.
@@ -327,11 +376,6 @@ function add_freehand_point_by_id(id, x, y){
     console.assert(obj.type === FREEHAND_LINE);
     add_freehand_point(obj, x, y);
 }
-function freehand_translate(obj, dx, dy){
-    obj.base_x += dx;
-    obj.base_y += dy;
-    freehand_recalculate_path(obj);
-}
 
 // Rounds a single dimension to the grid.
 function snap_to_grid(x){
@@ -435,11 +479,6 @@ function add_gridline_point_by_id(id, x, y){
     console.assert(obj.type === GRID_LINE);
     add_gridline_point(obj, x, y);
 }
-function gridline_translate(obj, dx, dy){
-    obj.base_x += dx;
-    obj.base_y += dy;
-    gridline_recalculate_path(obj);
-}
 function make_gridrect(id, base_x, base_y, color){
     base_x = snap_to_grid(base_x);
     base_y = snap_to_grid(base_y);
@@ -486,10 +525,6 @@ function change_gridrect_by_id(id, x0, y0, x1, y1){
     console.assert(obj.type === GRID_RECT);
     change_gridrect(obj, x0, y0, x1, y1);
 }
-function gridrect_translate(obj, dx, dy){
-    obj.base_x += dx;
-    obj.base_y += dy;
-}
 function make_rect(id, base_x, base_y, color){
     const obj =  {
         type: RECT,
@@ -530,9 +565,46 @@ function change_rect_by_id(id, x0, y0, x1, y1){
     console.assert(obj.type === RECT);
     change_rect(obj, x0, y0, x1, y1);
 }
-function rect_translate(obj, dx, dy){
-    obj.base_x += dx;
-    obj.base_y += dy;
+function make_filled_rect(id, base_x, base_y, color, color2){
+    const obj =  {
+        type: FILLED_RECT,
+        id: id,
+        base_x: base_x,
+        base_y: base_y,
+        deleted: false,
+        color: color,
+        color2: color2,
+        width: 0,
+        height: 0,
+    };
+    return obj;
+}
+function add_filled_rect(id, base_x, base_y, color, color2){
+    const obj = make_filled_rect(id, base_x, base_y, color, color2);
+    add_canv_obj(obj);
+}
+function change_filled_rect(obj, x0, y0, x1, y1){
+    if(x1 < x0){
+        let temp = x1;
+        x1 = x0;
+        x0 = temp;
+    }
+    if(y1 < y0){
+        let temp = y1;
+        y1 = y0;
+        y0 = temp;
+    }
+    obj.base_x = x0;
+    obj.base_y = y0;
+    obj.width = x1 - x0;
+    obj.height = y1 - y0;
+    request_render();
+}
+function change_filled_rect_by_id(id, x0, y0, x1, y1){
+    let obj = canvas_objs[id];
+    console.assert(obj);
+    console.assert(obj.type === FILLED_RECT);
+    change_rect(obj, x0, y0, x1, y1);
 }
 function make_text(id, base_x, base_y, text){
     base_x = base_x - (base_x & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
@@ -647,6 +719,8 @@ socket.on('canvas-create', function(objs){
                 gridline_recalculate_bbox(obj);
                 gridline_recalculate_path(obj);
                 break;
+            case FILLED_RECT:
+                break;
             case RECT:
                 break;
             case GRID_RECT:
@@ -689,9 +763,6 @@ socket.on('canvas-delete', function(obj_ids){
     const length = obj_ids.length;
     for(let i = 0; i < length; i++){
         const id = obj_ids[i];
-        let origin = get_session_id_from_obj_id(id);
-        if(origin == session_id)
-            continue;
         const obj = canvas_objs[id];
         if(obj){
             obj.deleted = true;
@@ -728,6 +799,12 @@ socket.on('canvas-update', function(obj_states){
                 obj.color = state.color;
                 gridline_recalculate_bbox(obj);
                 gridline_recalculate_path(obj);
+                break;
+            case FILLED_RECT:
+                obj.width = state.width;
+                obj.height = state.height;
+                obj.color = state.color;
+                obj.color2 = state.color2;
                 break;
             case RECT:
                 obj.width = state.width;
@@ -841,6 +918,7 @@ function note_selections(){
                     }
                 }
             }break;
+            case FILLED_RECT:
             case RECT: // fall-through
             case IMAGE: // fall-through
             case GRID_RECT:{
@@ -949,6 +1027,7 @@ function move_selected_objects(base_x, base_y, dx, dy){
                     case GRID_LINE:
                         gridline_recalculate_path(obj);
                         break;
+                    case FILLED_RECT:
                     case RECT:
                     case GRID_RECT:
                         break;
@@ -982,6 +1061,7 @@ function move_selected_objects(base_x, base_y, dx, dy){
                 case GRID_LINE:
                     gridline_recalculate_path(obj);
                     break;
+                case FILLED_RECT:
                 case RECT:
                 case GRID_RECT:
                     break;
@@ -1023,6 +1103,12 @@ function strip_obj(obj){
         case GRID_LINE:
             stripped_obj.points = obj.points;
             stripped_obj.color = obj.color;
+            break;
+        case FILLED_RECT:
+            stripped_obj.width = obj.width;
+            stripped_obj.height = obj.height;
+            stripped_obj.color = obj.color;
+            stripped_obj.color2 = obj.color2;
             break;
         case RECT:
             stripped_obj.width = obj.width;
@@ -1173,6 +1259,29 @@ function render(){
                     ctx.lineWidth = Math.max(3/scale, 6);
                     ctx.strokeStyle = obj.color;
                     ctx.stroke(obj.path);
+                }
+            }break;
+            case FILLED_RECT:{
+                const rect_bbox = {
+                    x0:obj.base_x,
+                    y0:obj.base_y,
+                    x1:obj.base_x+obj.width,
+                    y1:obj.base_y+obj.height,
+                };
+                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                    break;
+                }
+                if(obj.width && obj.height){
+                    if(is_selected){
+                        ctx.lineWidth=8;
+                        ctx.strokeStyle = SELECTED_COLOR;
+                        ctx.strokeRect(obj.base_x-2, obj.base_y-2, obj.width+4, obj.height+4);
+                    }
+                    ctx.lineWidth=4;
+                    ctx.fillStyle = obj.color2;
+                    ctx.fillRect(obj.base_x, obj.base_y, obj.width, obj.height);
+                    ctx.strokeStyle = obj.color;
+                    ctx.strokeRect(obj.base_x, obj.base_y, obj.width, obj.height);
                 }
             }break;
             case RECT:{
@@ -1344,19 +1453,21 @@ function render(){
     // console.log('rendering:', (performance.now()-before).toFixed(4)+'ms');
 }
 document.addEventListener('DOMContentLoaded', render);
-const PAN_TOOL      = 'Pan';
-const SELECT_TOOL   = 'Select';
-const MOVE_TOOL     = 'Move';
-const LINE_TOOL     = 'Line';
-const WALL_TOOL     = 'Wall';
-const RECT_TOOL     = 'Rect';
-const FLOOR_TOOL    = 'Floor';
-const TEXT_TOOL     = 'Text';
-const EZ_TOKEN_TOOL = 'Ez-Token';
-const IMAGE_TOOL    = 'Image';
-const IMG_TOKEN_TOOL = 'Img-Token';
+const PAN_TOOL         = 'Pan';
+const SELECT_TOOL      = 'Select';
+const MOVE_TOOL        = 'Move';
+const LINE_TOOL        = 'Line';
+const WALL_TOOL        = 'Wall';
+const RECT_TOOL        = 'Rect';
+const FILLED_RECT_TOOL = 'Filled-Rect';
+const FLOOR_TOOL       = 'Floor';
+const TEXT_TOOL        = 'Text';
+const EZ_TOKEN_TOOL    = 'Ez-Token';
+const IMAGE_TOOL       = 'Image';
+const IMG_TOKEN_TOOL   = 'Img-Token';
 let current_tool = PAN_TOOL;
 let color_picker = null;
+let color_picker2 = null;
 let tools = null;
 function change_tool(toolname){
     if(!tools)
@@ -1383,6 +1494,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const tools_div = document.getElementById('tools');
     tools = tools_div.children;
     color_picker = document.getElementById('color-picker');
+    color_picker2 = document.getElementById('color-picker2');
     for(let i = 0; i < tools.length-1; ++i){
         const tool = tools[i];
         tool.addEventListener('click', function(e){
@@ -1567,9 +1679,12 @@ document.addEventListener('DOMContentLoaded', function(){
                 change_tool(RECT_TOOL);
                 break;
             case 'd':
+                change_tool(FILLED_RECT_TOOL);
+                break;
+            case 'f':
                 change_tool(WALL_TOOL);
                 break;
-            case 'e':
+            case 'g':
                 change_tool(FLOOR_TOOL);
                 break;
             case 'z':
@@ -1756,6 +1871,28 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
+            case FILLED_RECT_TOOL:{
+                ++localid;
+                let id = make_obj_id(localid);
+                const x0 = e.offsetX/scale-camera_x;
+                const y0 = e.offsetY/scale-camera_y;
+                add_filled_rect(id, x0, y0, color_picker.value, color_picker2.value);
+                function add_point(e){
+                    e.stopPropagation();
+                    e.preventDefault();
+                    change_filled_rect_by_id(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, x0, y0);
+                    request_render();
+                }
+                canvas.addEventListener('mousemove', add_point);
+                function finish_point(){
+                    canvas.removeEventListener('mousemove', add_point);
+                    window.removeEventListener('mouseup', finish_point);
+                    canvas.removeEventListener('mouseleave', finish_point);
+                    publish_obj_by_id(id);
+                }
+                window.addEventListener('mouseup', finish_point);
+                canvas.addEventListener('mouseleave', finish_point);
+            }break;
             case TEXT_TOOL:{
                 const text = prompt("Enter Text:");
                 if(!text || !text.trim()){
@@ -1833,18 +1970,38 @@ document.addEventListener('DOMContentLoaded', function(){
         canvas.addEventListener('mousedown', remove_menu);
         const items = [
             {
+                label: 'Zoom In',
+                func: function(){zoom_in();remove_menu();},
+                disabled: false,
+            },
+            {
+                label: 'Zoom Out',
+                func: function(){zoom_out();remove_menu();},
+                disabled: false,
+            },
+            {
+                label: 'Reset Zoom',
+                func: function(){reset_zoom();remove_menu();},
+                disabled: false,
+            },
+            {
                 label: 'Gather Party',
                 func: function(){socket.emit('canvas-gather', {x:-x, y:-y}); remove_menu();},
+                disabled: false,
             },
             {
                 label: 'Cancel',
                 func: function(){remove_menu();},
+                disabled: false,
             },
         ];
         for(let i = 0; i < items.length; i++){
             const item = items[i];
             const menuitem = document.createElement('section');
             menuitem.classList.toggle('menuitem');
+            if(item.disabled){
+                menuitem.classList.toggle('disabled');
+            }
             menuitem.addEventListener('click', item.func);
             menuitem.appendChild(document.createTextNode(item.label));
             ctxmenu.appendChild(menuitem);

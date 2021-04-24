@@ -16,6 +16,8 @@
     ::div
       Rect
     ::div
+      Filled-Rect
+    ::div
       Wall
     ::div
       Floor
@@ -29,7 +31,8 @@
       Image
     ::div
       ::raw
-        <input type="color" id="color-picker" name="color-picker", value="#ff3333"></input>
+        <input type="color" id="color-picker", value="#ff3333">
+        <input type="color" id="color-picker2", value="#ffffff">
 ::div.chat @id(chat)
   ::div.log @id(chat-history)
   ::raw
@@ -46,6 +49,7 @@
     border: 2px solid black;
     padding: 4px;
     background-color: #fff;
+    user-select: none;
   }
   #tools > div {
     display: inline-block;
@@ -110,6 +114,7 @@
   }
   canvas {
     border: 1px solid red;
+    user-select: none;
   }
   section.menu {
     position: absolute;
@@ -118,13 +123,15 @@
     box-shadow: 4px 4px rgba(0,0,0,0.18);
     border-radius: 3px;
     margin: 0;
+    user-select: none;
   }
   section.menuitem {
-    border: 1px solid black;
     padding: 4px 4px 4px 4px;
-    margin: -1px 0 0 -1px;
     font-family: "Helvetica Neue", "Segoe UI", sans-serif;
     cursor: pointer;
+  }
+  section.menuitem.disabled {
+    color: gray;
   }
   section.menuitem:hover {
     background-color: #ccc;
