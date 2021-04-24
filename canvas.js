@@ -1418,12 +1418,12 @@ document.addEventListener('DOMContentLoaded', function(){
     let localid = 0;
     let prev_tool = null;
     canvas.addEventListener('mousedown', function(e){
-        if(e.button !== 0){ //0 is the 'primary' button
+        if(e.button !== 0 && e.button !== 1){ //0 is the 'primary' button
             return;
         }
         e.stopPropagation();
         e.preventDefault();
-        if(e.buttons === 4){
+        if(e.button === 1){
             prev_tool = current_tool;
             current_tool = PAN_TOOL;
         }

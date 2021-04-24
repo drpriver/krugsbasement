@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_socketio import SocketIO, send, emit
-import WebDnD.chat
-import WebDnD.canvas
+from . import chat
+from . import canvas
 import random
 import pickle
 
@@ -16,7 +16,7 @@ socketio = SocketIO(app)
 def chat_input(data:str):
     if not data:
         return
-    responses = WebDnD.chat.handle_input(data)
+    responses = chat.handle_input(data)
     if responses:
         emit('chat-msg', responses, broadcast=True)
 
@@ -39,8 +39,8 @@ def save_session_id():
 atexit.register(save_session_id)
 @socketio.on('connect')
 def handle_connection():
-    emit('chat-msg', WebDnD.chat.get_history())
-    emit('canvas-create', WebDnD.canvas.get_live_objects())
+    emit('chat-msg', chat.get_history())
+    emit('canvas-create', canvas.get_live_objects())
     global session_id
     session_id += 1
     emit('session-id', session_id)
@@ -48,19 +48,19 @@ def handle_connection():
 @socketio.on('canvas-create')
 def handle_canvas_create(data):
     assert data
-    responses = WebDnD.canvas.handle_create(data)
+    responses = canvas.handle_create(data)
     if responses:
         emit('canvas-create', responses, broadcast=True)
 
 @socketio.on('canvas-delete')
 def handle_canvas_delete(data):
-    responses = WebDnD.canvas.handle_delete(data)
+    responses = canvas.handle_delete(data)
     if responses:
         emit('canvas-delete', responses, broadcast=True)
 
 @socketio.on('canvas-update')
 def handle_canvas_udpate(data):
-    responses = WebDnD.canvas.handle_update(data)
+    responses = canvas.handle_update(data)
     if responses:
         emit('canvas-update', responses, broadcast=True)
 @socketio.on('canvas-gather')
