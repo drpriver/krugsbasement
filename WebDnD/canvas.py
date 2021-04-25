@@ -1,7 +1,9 @@
 from typing import List, Dict
 from .persist import Persister
 OBJS = []  # type: List[dict]
-OBJS = Persister(OBJS, 'BadDb/canvas.json').obj
+def save_canvas_objs(objs:List[dict]) -> List[dict]:
+    return [o for o in objs if not o['deleted']]
+OBJS = Persister(OBJS, 'BadDb/canvas.json', save_func=save_canvas_objs).obj
 OBJS_BY_ID = {o['id']:o for o in OBJS} # type: Dict[int, dict]
 
 def get_live_objects() -> List[dict]:

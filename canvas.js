@@ -42,7 +42,7 @@ const IMG_TOKEN = 10;
 //
 //  all objects start as
 //  {
-//    type: 'some-type',
+//    type: TYPE_ENUM,
 //    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
@@ -330,6 +330,12 @@ function add_freehand_point(obj, x, y){
 function freehand_recalculate_bbox(obj){
     const points = obj.points;
     const length = points.length;
+    if(length > 1){
+        obj.bbox.x0 = points[0];
+        obj.bbox.y0 = points[1];
+        obj.bbox.x1 = points[0];
+        obj.bbox.y1 = points[1];
+    }
     for(let i = 0; i < length; i+=2){
         let x = points[i];
         let y = points[i+1];
@@ -440,6 +446,12 @@ function gridline_recalculate_bbox(obj){
     // this is the same as freehand??
     const points = obj.points;
     const length = points.length;
+    if(length > 1){
+        obj.bbox.x0 = points[0];
+        obj.bbox.y0 = points[1];
+        obj.bbox.x1 = points[0];
+        obj.bbox.y1 = points[1];
+    }
     for(let i = 0; i < length; i+=2){
         let x = points[i];
         let y = points[i+1];
@@ -701,6 +713,134 @@ document.addEventListener('DOMContentLoaded', resize_canvas);
 window.addEventListener('resize', resize_canvas);
 const canvas_obj_array = [];
 const canvas_objs = Object.create(null);
+const copied_objs = [];
+let localid = 0;
+function clear_copy_buffer(){
+    copied_objs.length = 0;
+}
+function copy_selected_objs_to_copy_buffer(){
+    for(let obj_id of selected){
+        const obj = canvas_objs[obj_id];
+        if(obj.deleted)
+            continue;
+        const stripped = strip_obj(obj, STRIP_FLAGS_NONE);
+        copied_objs.push(stripped);
+    }
+}
+
+function cut_selected_objs_to_copy_buffer(){
+    for(let obj_id of selected){
+        const obj = canvas_objs[obj_id];
+        if(obj.deleted)
+            continue;
+        const stripped = strip_obj(obj, STRIP_FLAGS_NONE);
+        copied_objs.push(stripped);
+        obj.deleted = true;
+    }
+    publish_delete_by_ids(Array.from(selected));
+    selected.clear()
+    request_render();
+}
+function paste_from_copy_buffer_at(x, y){
+    const length = copied_objs.length;
+    // Do a pre-pass to get the top left corner of the objects.
+    let x0 = 0;
+    let y0 = 0;
+    if(length){
+        x0 = copied_objs[0].base_x;
+        y0 = copied_objs[0].base_y;
+    }
+    for(let i = 0; i < length; ++i){
+        const stripped = copied_objs[i];
+        if(stripped.base_x < x0)
+            x0 = stripped.base_x;
+        if(stripped.base_y < y0)
+            y0 = stripped.base_y;
+    }
+    const dx = x - x0;
+    const dy = y - y0;
+    for(let i = 0; i < length; ++i){
+        const stripped = copied_objs[i];
+        // This is a lot of very similar code to the below function in
+        // canvas-create, but there is a lot of weirdness over copying
+        // objects in JS, so I am just grabbing attributes by hand.
+        ++localid;
+        const obj = {
+            type: stripped.type,
+            id: make_obj_id(localid),
+            base_x: stripped.base_x + dx,
+            base_y: stripped.base_y + dy,
+            deleted: false,
+        };
+        switch(obj.type){
+            case FREEHAND_LINE:
+                obj.color = stripped.color;
+                obj.points = Array.from(stripped.points);
+                obj.path = null;
+                obj.bbox = {x0:0, y0:0, x1:0, y1:0};
+                freehand_recalculate_bbox(obj);
+                freehand_recalculate_path(obj);
+                break;
+            case GRID_LINE:
+                obj.color = stripped.color;
+                obj.points = Array.from(stripped.points);
+                obj.path = null;
+                obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+                gridline_recalculate_bbox(obj);
+                gridline_recalculate_path(obj);
+                break;
+            case RECT:
+                obj.color = stripped.color;
+                obj.width = stripped.width;
+                obj.height = stripped.height;
+                break;
+            case FILLED_RECT:
+                obj.color = stripped.color;
+                obj.color2 = stripped.color2;
+                obj.width = stripped.width;
+                obj.height = stripped.height;
+                break;
+            case GRID_RECT:
+                obj.color = stripped.color;
+                obj.width = stripped.width;
+                obj.height = stripped.height;
+                break;
+            case IMAGE:{
+                obj.width = stripped.width;
+                obj.height = stripped.height;
+                obj.url = stripped.url;
+                obj.img = null;
+                const img = new Image(obj.width, obj.height);
+                img.addEventListener('load', function(){
+                    obj.img = img;
+                    request_render();
+                });
+                img.src = obj.url;
+            }break;
+            case TEXT:
+                obj.text = stripped.text;
+                obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+                break;
+            case EZ_TOKEN:
+                obj.text = stripped.text;
+                obj.color = stripped.color;
+                break;
+            case IMG_TOKEN:{
+                obj.url = stripped.url;
+                obj.img = null;
+                const img = new Image(REFERENCE_WIDTH, REFERENCE_WIDTH);
+                img.addEventListener('load', function(){
+                    obj.img = img;
+                    request_render();
+                });
+                img.src = obj.url;
+            }break;
+        }
+        add_canv_obj(obj);
+        publish_obj_by_id(obj.id);
+    }
+    request_render();
+}
 socket.on('canvas-create', function(objs){
     const length = objs.length;
     for(let i = 0; i < length; ++i){
@@ -1087,14 +1227,18 @@ function add_canv_obj(obj){
     canvas_objs[obj.id] = obj;
     canvas_obj_array.push(obj);
 }
-function strip_obj(obj){
+const STRIP_FLAGS_NONE = 0;
+const STRIP_INCLUDE_ID = 1;
+function strip_obj(obj, include_flags){
     let stripped_obj = {
         type: obj.type,
-        id: obj.id,
         base_x: obj.base_x,
         base_y: obj.base_y,
         deleted: obj.deleted,
     };
+    if(include_flags & STRIP_INCLUDE_ID){
+        stripped_obj.id = obj.id;
+    }
     switch(obj.type){
         case FREEHAND_LINE:
             stripped_obj.points = obj.points;
@@ -1147,7 +1291,7 @@ function publish_obj_by_id(id){
         console.log('invalid id given for publishing:', id);
         return;
     }
-    const stripped_obj = strip_obj(obj);
+    const stripped_obj = strip_obj(obj, STRIP_INCLUDE_ID);
     socket.emit('canvas-create', stripped_obj);
 }
 function publish_obj_updates_by_ids(ids){
@@ -1160,7 +1304,7 @@ function publish_obj_updates_by_ids(ids){
             console.log('Invalid id given for publishing update', id);
             continue;
         }
-        const stripped = strip_obj(obj);
+        const stripped = strip_obj(obj, STRIP_INCLUDE_ID);
         updates.push(stripped);
     }
     socket.emit('canvas-update', updates);
@@ -1628,6 +1772,10 @@ document.addEventListener('DOMContentLoaded', function(){
         request_render();
     });
     window.addEventListener('keydown', function(e){
+        const ctrl_or_cmd_is_pressed = e.ctrlKey || e.metaKey;
+        const other_modifiers = e.altKey || e.shiftKey;
+        const shift = e.shiftKey;
+        const shortcut = ctrl_or_cmd_is_pressed && !other_modifiers;
         switch(e.key){
             case 'ArrowLeft':{
                 e.stopPropagation();
@@ -1691,22 +1839,49 @@ document.addEventListener('DOMContentLoaded', function(){
                 change_tool(TEXT_TOOL);
                 break;
             case 'x':
-                change_tool(EZ_TOKEN_TOOL);
+                if(shortcut){
+                    if(selected.size !== 0){
+                        clear_copy_buffer();
+                        cut_selected_objs_to_copy_buffer();
+                    }
+                }
+                else {
+                    change_tool(EZ_TOKEN_TOOL);
+                }
                 break;
             case 'c':
-                change_tool(IMAGE_TOOL);
+                if(shortcut){
+                    if(selected.size !== 0){
+                        clear_copy_buffer();
+                        copy_selected_objs_to_copy_buffer();
+                    }
+                }
+                else {
+                    change_tool(IMAGE_TOOL);
+                }
                 break;
+            case 'v':
+                if(shortcut){
+                    if(copied_objs.length){
+                        const x = canvas.width/4/scale - camera_x;
+                        const y = canvas.height/4/scale - camera_y;
+                        paste_from_copy_buffer_at(x, y);
+                    }
+                }
             default:
                 console.log(e.key);
                 break;
         }
     });
-    let localid = 0;
     let prev_tool = null;
+    // this state variable is kind of janky.
+    let ctxmenu_is_active = 0;
     canvas.addEventListener('mousedown', function(e){
         if(e.button !== 0 && e.button !== 1){ //0 is the 'primary' button
             return;
         }
+        if(ctxmenu_is_active !== 0)
+            return;
         e.stopPropagation();
         e.preventDefault();
         if(e.button === 1){
@@ -1953,15 +2128,19 @@ document.addEventListener('DOMContentLoaded', function(){
     canvas.addEventListener('contextmenu', function(e){
         e.preventDefault();
         e.stopPropagation();
+        ctxmenu_is_active++;
         const ctxmenu = document.createElement('section');
         ctxmenu.classList.toggle('menu');
         ctxmenu.style.left = e.clientX + 'px';
         ctxmenu.style.top = e.clientY + 'px';
         const x = e.offsetX/scale - camera_x - canvas.width/2/scale;
         const y = e.offsetY/scale - camera_y - canvas.height/2/scale;
+        const click_x = e.offsetX/scale - camera_x;
+        const click_y = e.offsetY/scale - camera_y;
         function remove_menu(e){
             canvas.removeEventListener('mousedown', remove_menu);
             document.body.removeChild(ctxmenu);
+            ctxmenu_is_active--;
             if(e){
                 e.stopPropagation();
                 e.preventDefault();
@@ -1988,6 +2167,32 @@ document.addEventListener('DOMContentLoaded', function(){
                 label: 'Gather Party',
                 func: function(){socket.emit('canvas-gather', {x:-x, y:-y}); remove_menu();},
                 disabled: false,
+            },
+            {
+                label: 'Cut',
+                func: function(){
+                    clear_copy_buffer();
+                    cut_selected_objs_to_copy_buffer();
+                    remove_menu();
+                },
+                disabled: selected.size === 0,
+            },
+            {
+                label: 'Copy',
+                func: function(){
+                    clear_copy_buffer();
+                    copy_selected_objs_to_copy_buffer();
+                    remove_menu();
+                },
+                disabled: selected.size === 0,
+            },
+            {
+                label: 'Paste',
+                func: function(){
+                    paste_from_copy_buffer_at(click_x, click_y);
+                    remove_menu();
+                },
+                disabled: copied_objs.length === 0,
             },
             {
                 label: 'Cancel',
