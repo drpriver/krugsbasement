@@ -136,6 +136,39 @@
   section.menuitem:hover {
     background-color: #ccc;
   }
+  section.hover {
+    position:absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 400px;
+    min-height: 200px;
+    background-color: white;
+    border-radius: 8px;
+    border: 1px solid black;
+    box-shadow: 3px 3px 3px 3px rgba(0,0,0,0.3);
+    font-family: sans-serif;
+  }
+  section.hover input.numeric-input {
+    width: 5em;
+  }
+  section.hover h2 {
+    margin: auto;
+    text-align: center;
+    padding: 1em 1em 1em 1em;
+  }
+  section.hover > table.input-container {
+    margin: auto;
+  }
+  section.hover input {
+    border: 1px solid gray;
+    padding: 4px 4px 4px 4px;
+  }
+  section.hover > div.hover-button-container {
+    margin: auto;
+    text-align: center;
+    padding: 1em 1em 1em 1em;
+  }
   /*endcss*/
 ::js @noinline
   https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js

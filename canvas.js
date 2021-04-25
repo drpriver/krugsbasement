@@ -177,6 +177,7 @@ const IMG_TOKEN = 10;
 //    base_y: 99,
 //    deleted: false,
 //    text: "foozle",
+//    size: 18,
 //    bbox: bbox,
 //  }
 //
@@ -618,7 +619,7 @@ function change_filled_rect_by_id(id, x0, y0, x1, y1){
     console.assert(obj.type === FILLED_RECT);
     change_rect(obj, x0, y0, x1, y1);
 }
-function make_text(id, base_x, base_y, text){
+function make_text(id, base_x, base_y, text, size){
     base_x = base_x - (base_x & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
     base_y = base_y - (base_y & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
     const obj =  {
@@ -628,12 +629,13 @@ function make_text(id, base_x, base_y, text){
         base_y: Math.round(base_y),
         deleted: false,
         text: text,
+        size: size,
         bbox: { x0: 0, y0: 0, x1: 0, y1: 0, },
     };
     return obj;
 }
-function add_text(id, base_x, base_y, text){
-    const obj = make_text(id, base_x, base_y, text);
+function add_text(id, base_x, base_y, text, size){
+    const obj = make_text(id, base_x, base_y, text, size);
     add_canv_obj(obj);
 }
 function make_ez_token(id, base_x, base_y, text, color){
@@ -820,6 +822,7 @@ function paste_from_copy_buffer_at(x, y){
             case TEXT:
                 obj.text = stripped.text;
                 obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+                obj.size = stripped.size;
                 break;
             case EZ_TOKEN:
                 obj.text = stripped.text;
@@ -1271,6 +1274,7 @@ function strip_obj(obj, include_flags){
             break;
         case TEXT:
             stripped_obj.text = obj.text;
+            stripped_obj.size = obj.size;
             break;
         case EZ_TOKEN:
             stripped_obj.color = obj.color;
@@ -1470,7 +1474,7 @@ function render(){
             }break;
             case TEXT:{
                 if(obj.text){
-                    ctx.font = '18px sans';
+                    ctx.font = obj.size + 'px sans-serif';
                     ctx.textBaseline = 'middle';
                     ctx.textAlign = "center";
                     if(obj.bbox.x0 == obj.bbox.x1){
@@ -1479,7 +1483,7 @@ function render(){
                         // they all have width?
                         let width = metric.width;
                         // Only some have this property.
-                        let height = metric.fontBoundingBoxAscent? metric.fontBoundingBoxAscent + 2 : 18;
+                        let height = metric.fontBoundingBoxAscent? metric.fontBoundingBoxAscent + 2 : obj.size;
                         obj.bbox.x0 = -width/2;
                         obj.bbox.x1 = width/2;
                         obj.bbox.y0 = -height/2;
@@ -1530,7 +1534,7 @@ function render(){
                 ctx.fillStyle = obj.color;
                 ctx.arc(obj.base_x, obj.base_y, 24, 0, 2*Math.PI);
                 ctx.fill();
-                ctx.font = '24 sans';
+                ctx.font = '18px sans-serif';
                 ctx.textBaseline = 'middle';
                 ctx.textAlign = "center";
                 ctx.fillStyle = '#000';
@@ -1772,6 +1776,8 @@ document.addEventListener('DOMContentLoaded', function(){
         request_render();
     });
     window.addEventListener('keydown', function(e){
+        if(document.activeElement !== document.body)
+            return;
         const ctrl_or_cmd_is_pressed = e.ctrlKey || e.metaKey;
         const other_modifiers = e.altKey || e.shiftKey;
         const shift = e.shiftKey;
@@ -1869,7 +1875,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     }
                 }
             default:
-                console.log(e.key);
+                // console.log(e.key);
                 break;
         }
     });
@@ -2069,56 +2075,123 @@ document.addEventListener('DOMContentLoaded', function(){
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case TEXT_TOOL:{
-                const text = prompt("Enter Text:");
-                if(!text || !text.trim()){
-                    break;
-                }
                 const x0 = e.offsetX/scale-camera_x;
                 const y0 = e.offsetY/scale-camera_y;
-                ++localid;
-                let id = make_obj_id(localid);
-                add_text(id, x0, y0, text);
-                publish_obj_by_id(id);
-                request_render();
+                /*
+                    <tr>
+                        <td>Alignment:</td>
+                        <td>
+                        <input type="radio" name="alignment" id="align-left" value="Left">
+                        <label for="align-left">Left</label>
+                        <input type="radio" name="alignment" id="align-middle" value="Middle" checked>
+                        <label for="align-middle">Middle</label>
+                        <input type="radio" name="alignment" id="align-right" value="Right">
+                        <label for="align-right">Right</label>
+                        </td>
+                    </tr>
+                */
+                const html = `
+                <h2>Enter Text</h2>
+                <table class="input-container">
+                    <tr>
+                        <td><label for="text-size">Size:</label>
+                        <td><input type="number" id="text-size" name="text-size" min="8" max="72" value="18" class="numeric-input">
+                    </tr>
+                    <tr>
+                        <td><label for="text">Text:</label>
+                        <td><input type="text" name="text" id="hover-text" value="">
+                    </tr>
+                </table>
+                `;
+                make_ok_dialog(html, function(hoverpop){
+                    const text_input = document.getElementById('hover-text');
+                    const text = text_input.value;
+                    if(!text || !text.trim())
+                        return;
+                    const size_el = document.getElementById('text-size')
+                    const size = (+size_el.value) | 0;
+                    if(size < 8)
+                        return;
+                    if(size > 72)
+                        return;
+                    ++localid;
+                    let id = make_obj_id(localid);
+                    add_text(id, x0, y0, text, size);
+                    publish_obj_by_id(id);
+                    request_render();
+                });
             }break;
             case IMAGE_TOOL:{
-                const text = prompt("Enter URL:");
-                if(!text || !text.trim()){
-                    break;
-                }
                 const x0 = e.offsetX/scale-camera_x;
                 const y0 = e.offsetY/scale-camera_y;
-                ++localid;
-                let id = make_obj_id(localid);
-                add_image(id, x0, y0, REFERENCE_WIDTH-2, REFERENCE_WIDTH-2, text);
-                publish_obj_by_id(id);
-                request_render();
+                const html = `
+                    <h2>Enter Image</h2>
+                    <table class="input-container">
+                        <tr>
+                            <td><label for="url">URL:</label>
+                            <td><input type="url" name="url" id="hover-url" value="">
+                        </tr>
+                    </table>
+                `;
+                make_ok_dialog(html, function(hoverpop){
+                    const text = document.getElementById('hover-url').value;
+                    if(!text || !text.trim()){
+                        return;
+                    }
+                    ++localid;
+                    let id = make_obj_id(localid);
+                    add_image(id, x0, y0, REFERENCE_WIDTH-2, REFERENCE_WIDTH-2, text);
+                    publish_obj_by_id(id);
+                    request_render();
+                });
             }break;
             case EZ_TOKEN_TOOL:{
-                const text = prompt("Enter Token Name:");
-                if(!text || !text.trim()){
-                    break;
-                }
                 const x0 = e.offsetX/scale-camera_x;
                 const y0 = e.offsetY/scale-camera_y;
-                ++localid;
-                let id = make_obj_id(localid);
-                add_ez_token(id, x0, y0, text, color_picker.value);
-                publish_obj_by_id(id);
-                request_render();
+                const html = `
+                    <h2>Enter Token</h2>
+                    <table class="input-container">
+                        <tr>
+                            <td><label for="text">Text:</label>
+                            <td><input type="text" name="text" id="hover-text" value="">
+                        </tr>
+                    </table>
+                `;
+                make_ok_dialog(html, function(hoverpop){
+                    const text_input = document.getElementById('hover-text');
+                    const text = text_input.value;
+                    if(!text || !text.trim())
+                        return;
+                    ++localid;
+                    let id = make_obj_id(localid);
+                    add_ez_token(id, x0, y0, text, color_picker.value);
+                    publish_obj_by_id(id);
+                    request_render();
+                });
             }break;
             case IMG_TOKEN_TOOL:{
-                const text = prompt("Enter URL:");
-                if(!text || !text.trim()){
-                    break;
-                }
                 const x0 = e.offsetX/scale-camera_x;
                 const y0 = e.offsetY/scale-camera_y;
-                ++localid;
-                let id = make_obj_id(localid);
-                add_img_token(id, x0, y0, text);
-                publish_obj_by_id(id);
-                request_render();
+                const html = `
+                    <h2>Enter Image</h2>
+                    <table class="input-container">
+                        <tr>
+                            <td><label for="url">Token Image URL:</label>
+                            <td><input type="url" name="url" id="hover-url" value="">
+                        </tr>
+                    </table>
+                `;
+                make_ok_dialog(html, function(hoverpop){
+                    const text = document.getElementById('hover-url').value;
+                    if(!text || !text.trim()){
+                        return;
+                    }
+                    ++localid;
+                    let id = make_obj_id(localid);
+                    add_img_token(id, x0, y0, text);
+                    publish_obj_by_id(id);
+                    request_render();
+                });
             }break;
             default:{
                 console.log('unknown tool:', current_tool);
@@ -2214,3 +2287,68 @@ document.addEventListener('DOMContentLoaded', function(){
         document.body.appendChild(ctxmenu);
     });
 });
+
+function make_ok_dialog(html, on_ok){
+    const hoverpop = document.createElement('section');
+    hoverpop.classList.toggle('hover');
+    html += `
+        <div class="hover-button-container">
+            <button type="button" id="hoverpop-ok">Ok</button>
+            <button type="button" id="hoverpop-cancel">Cancel</button>
+        </div>
+        `;
+    hoverpop.innerHTML = html;
+    document.body.appendChild(hoverpop);
+    function remove_hoverpop(){
+        document.body.removeChild(hoverpop);
+    }
+    const ok = document.getElementById('hoverpop-ok');
+    function submit(){
+        on_ok(hoverpop);
+        remove_hoverpop();
+    }
+    ok.addEventListener('click', function(){
+        submit();
+    });
+    const cancel = document.getElementById('hoverpop-cancel');
+    cancel.addEventListener('click', function(){
+        remove_hoverpop();
+    });
+    const text_inputs = hoverpop.getElementsByTagName('input');
+    for(let i = 0; i < text_inputs.length; i++){
+        const text_input = text_inputs[i];
+        if(text_input.type == 'text' || text_input.type == 'url'){
+            text_input.addEventListener('keydown', function(e){
+                let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
+                if(!modified && e.key == "Enter"){
+                    e.preventDefault();
+                    e.stopPropagation();
+                    ok.click();
+                }
+            });
+        }
+    }
+}
+
+/*
+document.addEventListener('DOMContentLoaded', function(){
+    const html = `
+        <h2>Enter Image</h2>
+        <table class="input-container">
+            <tr>
+                <td><label for="url">URL:</label>
+                <td><input type="url" name="url" id="hover-url" value="">
+            </tr>
+            <tr>
+                <td><label for="width">Width:</label>
+                <td><input type="number" name="width" id="hover-width" value="1" class="numeric-input" min="1" max="5">
+            </tr>
+            <tr>
+                <td><label for="height">Height:</label>
+                <td><input type="number" name="height" id="hover-width" value="1" class="numeric-input" min="1" max="5">
+            </tr>
+        </table>
+    `;
+    make_ok_dialog(html, function(hoverpop){});
+});
+*/
