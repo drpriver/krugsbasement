@@ -29,6 +29,7 @@ function bbox_overlaps(bbox1, bbox2){
 //  text
 //  ez-token
 //  img-token
+//  door
 const FREEHAND_LINE = 1;
 const GRID_LINE = 2;
 const RECT = 3;
@@ -39,6 +40,7 @@ const IMAGE = 7;
 const TEXT = 8;
 const EZ_TOKEN = 9;
 const IMG_TOKEN = 10;
+const DOOR = 11;
 //
 //  all objects start as
 //  {
@@ -207,8 +209,37 @@ const IMG_TOKEN = 10;
 //    img: Image,
 //  }
 //
+//  door
+//  --------
+//  A door.
+//  {
+//    type: DOOR,
+//    id: 10001,
+//    base_x: 32,
+//    base_y: 96,
+//    deleted: false,
+//    doortype: DOOR_DOOR,
+//    color: '#fff',
+//    width: 1, // in squares
+//    orientation: VERTICAL,
+//  }
+
+
+// Door subtypes
+// ------------
+// door: regular dungeon door (rectangle, white filling)
+const DOOR_DOOR = 0;
+let current_door = DOOR_DOOR;
+
+// orientations
+const VERTICAL = 0;
+const HORIZONTAL = 1;
+const TOPLEFT_DOWNRIGHT = 2;
+const TOPRIGHT_DOWNLEFT = 3;
+
 //
-// THIS NEEDS TO ALWAYS BE POWER OF 2
+// THIS NEEDS TO ALWAYS BE POWER OF 2.
+// Also if it changes, lots of things will probably break.
 const REFERENCE_WIDTH = 64; // the size of a square at scale = 1.
 // These are in REFERENCE_WIDTH space.
 // To go from screen space to grid space, divide by `scale` and subtract
@@ -312,6 +343,12 @@ function add_freehand_point(obj, x, y){
     x -= obj.base_x;
     y -= obj.base_y;
     const points = obj.points;
+    if(points.length > 1){
+        let diff = Math.abs(points[points.length-2] - x);
+        diff += Math.abs(points[points.length-1] - y);
+        if(diff < 2)
+            return;
+    }
     points.push(x);
     points.push(y);
     if(x < obj.bbox.x0){
@@ -369,6 +406,8 @@ function freehand_recalculate_path(obj){
         const xc = (x0+x1)/2;
         const yc = (y0+y1)/2;
         path.quadraticCurveTo(x0, y0, xc, yc);
+        let diff = Math.abs(x1 - x0);
+        diff += Math.abs(y1 - y0);
         x0 = x1;
         y0 = y1;
     }
@@ -378,7 +417,7 @@ function freehand_recalculate_path(obj){
     obj.path = path;
 }
 function add_freehand_point_by_id(id, x, y){
-    let obj = canvas_objs[id];
+    let obj = canvas_objs.get(id);
     console.assert(obj);
     console.assert(obj.type === FREEHAND_LINE);
     add_freehand_point(obj, x, y);
@@ -396,6 +435,7 @@ function snap_to_grid(x){
     }
     return x;
 }
+
 function make_gridline(id, base_x, base_y, color){
     base_x = snap_to_grid(base_x);
     base_y = snap_to_grid(base_y);
@@ -417,15 +457,27 @@ function add_gridline(id, base_x, base_y, color){
     add_canv_obj(obj);
 }
 function add_gridline_point(obj, x, y){
+    const points = obj.points;
+    const last_x = points.length? points[points.length-2]+obj.base_x : obj.base_x;
+    const last_y = points.length? points[points.length-1]+obj.base_y : obj.base_x;
+    const dist = Math.abs(last_x - x) + Math.abs(last_y - y);
+    if(dist < 60)
+        return;
+    if(dist < 128){
+        let xrem = Math.round(x) & (REFERENCE_WIDTH-1);
+        let yrem = Math.round(y) & (REFERENCE_WIDTH-1);
+        if((xrem > 16 && xrem < 48) || (yrem > 16 && yrem < 48)){
+            return;
+        }
+    }
     x = snap_to_grid(x);
     y = snap_to_grid(y);
     x -= obj.base_x;
     y -= obj.base_y;
-    const points = obj.points;
-    if(points.length){
-        if(points[points.length-2] == x && points[points.length-1] == y){
+    if(points.length > 1){
+        const diff = Math.abs(points[points.length-2]-x) + Math.abs(points[points.length-1]-y);
+        if(diff < 2)
             return;
-        }
     }
     points.push(x);
     points.push(y);
@@ -487,7 +539,7 @@ function gridline_recalculate_path(obj){
 }
 function add_gridline_point_by_id(id, x, y){
     // this is the same as freehand
-    let obj = canvas_objs[id];
+    let obj = canvas_objs.get(id);
     console.assert(obj);
     console.assert(obj.type === GRID_LINE);
     add_gridline_point(obj, x, y);
@@ -533,10 +585,28 @@ function change_gridrect(obj, x0, y0, x1, y1){
     request_render();
 }
 function change_gridrect_by_id(id, x0, y0, x1, y1){
-    let obj = canvas_objs[id];
+    let obj = canvas_objs.get(id);
     console.assert(obj);
     console.assert(obj.type === GRID_RECT);
     change_gridrect(obj, x0, y0, x1, y1);
+}
+function make_door(id, x, y, doortype, color, orientation){
+    const obj = {
+        type: DOOR,
+        id: id,
+        base_x: x,
+        base_y: y,
+        deleted: false,
+        doortype: doortype,
+        color: color,
+        width: 1,
+        orientation: orientation,
+    };
+    return obj;
+}
+function add_door(id, base_x, base_y, doortype, color, orientation){
+    const obj = make_door(id, base_x, base_y, doortype, color, orientation);
+    add_canv_obj(obj);
 }
 function make_rect(id, base_x, base_y, color){
     const obj =  {
@@ -573,7 +643,7 @@ function change_rect(obj, x0, y0, x1, y1){
     request_render();
 }
 function change_rect_by_id(id, x0, y0, x1, y1){
-    let obj = canvas_objs[id];
+    let obj = canvas_objs.get(id);
     console.assert(obj);
     console.assert(obj.type === RECT);
     change_rect(obj, x0, y0, x1, y1);
@@ -614,7 +684,7 @@ function change_filled_rect(obj, x0, y0, x1, y1){
     request_render();
 }
 function change_filled_rect_by_id(id, x0, y0, x1, y1){
-    let obj = canvas_objs[id];
+    let obj = canvas_objs.get(id);
     console.assert(obj);
     console.assert(obj.type === FILLED_RECT);
     change_rect(obj, x0, y0, x1, y1);
@@ -714,7 +784,8 @@ function add_image(id, base_x, base_y, width, height, url){
 document.addEventListener('DOMContentLoaded', resize_canvas);
 window.addEventListener('resize', resize_canvas);
 const canvas_obj_array = [];
-const canvas_objs = Object.create(null);
+// const canvas_objs = Object.create(null);
+const canvas_objs = new Map();
 const copied_objs = [];
 let localid = 0;
 function clear_copy_buffer(){
@@ -722,7 +793,7 @@ function clear_copy_buffer(){
 }
 function copy_selected_objs_to_copy_buffer(){
     for(let obj_id of selected){
-        const obj = canvas_objs[obj_id];
+        const obj = canvas_objs.get(obj_id);
         if(obj.deleted)
             continue;
         const stripped = strip_obj(obj, STRIP_FLAGS_NONE);
@@ -732,7 +803,7 @@ function copy_selected_objs_to_copy_buffer(){
 
 function cut_selected_objs_to_copy_buffer(){
     for(let obj_id of selected){
-        const obj = canvas_objs[obj_id];
+        const obj = canvas_objs.get(obj_id);
         if(obj.deleted)
             continue;
         const stripped = strip_obj(obj, STRIP_FLAGS_NONE);
@@ -838,6 +909,12 @@ function paste_from_copy_buffer_at(x, y){
                 });
                 img.src = obj.url;
             }break;
+            case DOOR:{
+                obj.doortype = stripped.doortype;
+                obj.color = stripped.color;
+                obj.width = stripped.width;
+                obj.orientation = stripped.orientation;
+            }break;
         }
         add_canv_obj(obj);
         publish_obj_by_id(obj.id);
@@ -891,8 +968,10 @@ socket.on('canvas-create', function(objs){
                 });
                 img.src = obj.url;
             }break;
+            case DOOR:{
+            }break;
         }
-        const existing_obj = canvas_objs[obj.id];
+        const existing_obj = canvas_objs.get(obj.id);
         if(existing_obj){
             // console.log('object already exists???', obj.id);
         }
@@ -906,7 +985,7 @@ socket.on('canvas-delete', function(obj_ids){
     const length = obj_ids.length;
     for(let i = 0; i < length; i++){
         const id = obj_ids[i];
-        const obj = canvas_objs[id];
+        const obj = canvas_objs.get(id);
         if(obj){
             obj.deleted = true;
         }
@@ -920,7 +999,7 @@ socket.on('canvas-update', function(obj_states){
     const length = obj_states.length;
     for(let i = 0; i < length; ++i){
         const state = obj_states[i];
-        const obj = canvas_objs[state.id];
+        const obj = canvas_objs.get(state.id);
         if(!obj){
             // console.log('Updating unknown object??', state.id);
             continue;
@@ -983,6 +1062,12 @@ socket.on('canvas-update', function(obj_states){
             case IMG_TOKEN:{
                 // idk
             }break;
+            case DOOR:
+                obj.color = state.color;
+                obj.doortype = state.doortype;
+                obj.width = state.width;
+                obj.orientation = state.orientation;
+                break;
         }
     }
     request_render();
@@ -1108,6 +1193,36 @@ function note_selections(){
                     break;
                 }
             }
+            case DOOR:{
+
+                const is_vertical = obj.orientation === VERTICAL;
+                if(is_vertical){
+                    // FIXME: I just hardcoded some random values.
+                    const bbox = {
+                        x0 : obj.base_x - 32,
+                        x1 : obj.base_x + 32,
+                        y0 : obj.base_y - 5,
+                        y1 : obj.base_y +5,
+                    };
+                    if(bbox_overlaps(bbox, selection_bbox)){
+                        selected.add(obj.id);
+                        break;
+                    }
+                }
+                else {
+                    // FIXME: I just hardcoded some random values.
+                    const bbox = {
+                        x0 : obj.base_x - 5,
+                        x1 : obj.base_x + 5,
+                        y0 : obj.base_y - 32,
+                        y1 : obj.base_y + 32,
+                    };
+                    if(bbox_overlaps(bbox, selection_bbox)){
+                        selected.add(obj.id);
+                        break;
+                    }
+                }
+            }break;
         }
     }
     // const after = performance.now();
@@ -1135,13 +1250,16 @@ function move_selected_objects(base_x, base_y, dx, dy){
     let result = [base_x+dx, base_y+dy];
     let rigid = false;
     for(let item of selected){
-        const obj = canvas_objs[item];
+        const obj = canvas_objs.get(item);
         if(obj.deleted)
             continue;
         switch(obj.type){
             case GRID_RECT:
             case GRID_LINE:
             case IMAGE:
+            case DOOR:
+            case EZ_TOKEN:
+            case IMG_TOKEN:
                 rigid = true;
                 break;
             default:
@@ -1182,6 +1300,8 @@ function move_selected_objects(base_x, base_y, dx, dy){
                         break;
                     case IMG_TOKEN:
                         break;
+                    case DOOR:
+                        break;
                     default:
                         console.log('unhandled obj type');
                         break;
@@ -1216,6 +1336,8 @@ function move_selected_objects(base_x, base_y, dx, dy){
                     break;
                 case IMG_TOKEN:
                     break;
+                case DOOR:
+                    break;
                 default:
                     console.log('unhandled obj type');
                     break;
@@ -1227,7 +1349,7 @@ function move_selected_objects(base_x, base_y, dx, dy){
 }
 
 function add_canv_obj(obj){
-    canvas_objs[obj.id] = obj;
+    canvas_objs.set(obj.id, obj);
     canvas_obj_array.push(obj);
 }
 const STRIP_FLAGS_NONE = 0;
@@ -1283,6 +1405,12 @@ function strip_obj(obj, include_flags){
         case IMG_TOKEN:
             stripped_obj.url = obj.url;
             break;
+        case DOOR:
+            stripped_obj.color = obj.color;
+            stripped_obj.width = obj.width;
+            stripped_obj.doortype = obj.doortype;
+            stripped_obj.orientation = obj.orientation;
+            break;
     }
     return stripped_obj;
 }
@@ -1290,7 +1418,7 @@ function publish_delete_by_ids(ids){
     socket.emit('canvas-delete', ids)
 }
 function publish_obj_by_id(id){
-    const obj = canvas_objs[id];
+    const obj = canvas_objs.get(id);
     if(!obj){
         console.log('invalid id given for publishing:', id);
         return;
@@ -1303,7 +1431,7 @@ function publish_obj_updates_by_ids(ids){
     const updates = []
     for(let i = 0; i < length; ++i){
         const id = ids[i];
-        const obj = canvas_objs[id];
+        const obj = canvas_objs.get(id);
         if(!obj){
             console.log('Invalid id given for publishing update', id);
             continue;
@@ -1591,6 +1719,102 @@ function render(){
                     ctx.fill();
                 }
             }break;
+            case DOOR:{
+                const is_vertical = obj.orientation === VERTICAL;
+                if(!is_vertical){
+                    // FIXME: I just hardcoded some random values.
+                    const bbox = {
+                        x0 : obj.base_x - 32,
+                        x1 : obj.base_x + 32,
+                        y0 : obj.base_y - 5,
+                        y1 : obj.base_y +5,
+                    };
+                    if(!bbox_overlaps(bbox, canvas_bbox)){
+                        break;
+                    }
+                }
+                else {
+                    // FIXME: I just hardcoded some random values.
+                    const bbox = {
+                        x0 : obj.base_x - 5,
+                        x1 : obj.base_x + 5,
+                        y0 : obj.base_y - 32,
+                        y1 : obj.base_y + 32,
+                    };
+                    if(!bbox_overlaps(bbox, canvas_bbox)){
+                        break;
+                    }
+                }
+                switch(obj.doortype){
+                    case DOOR_DOOR:{
+                        if(is_selected){
+                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.lineWidth=8;
+                            switch(obj.orientation){
+                                case VERTICAL:
+                                    ctx.strokeRect(obj.base_x-10, obj.base_y-24, 20, 48);
+                                    break;
+                                case HORIZONTAL:
+                                    ctx.strokeRect(obj.base_x-24, obj.base_y-10, 48, 20);
+                                    break;
+                                case TOPLEFT_DOWNRIGHT:
+                                    ctx.lineWidth=22;
+                                    ctx.beginPath();
+                                    ctx.moveTo(obj.base_x-22, obj.base_y-22)
+                                    ctx.lineTo(obj.base_x+22, obj.base_y+22);
+                                    ctx.stroke();
+                                    break;
+                                case TOPRIGHT_DOWNLEFT:
+                                    ctx.lineWidth=22;
+                                    ctx.beginPath();
+                                    ctx.moveTo(obj.base_x+22, obj.base_y-22)
+                                    ctx.lineTo(obj.base_x-22, obj.base_y+22);
+                                    ctx.stroke();
+                                    break;
+                            }
+                        }
+                        ctx.fillStyle = '#fff';
+                        ctx.strokeStyle = obj.color;
+                        ctx.lineWidth=4;
+                        switch(obj.orientation){
+                            case VERTICAL:
+                                ctx.fillRect(obj.base_x-10, obj.base_y-24, 20, 48);
+                                ctx.strokeRect(obj.base_x-10, obj.base_y-24, 20, 48);
+                                break;
+                            case HORIZONTAL:
+                                ctx.fillRect(obj.base_x-24, obj.base_y-10, 48, 20);
+                                ctx.strokeRect(obj.base_x-24, obj.base_y-10, 48, 20);
+                                break;
+                            case TOPLEFT_DOWNRIGHT:
+                                ctx.lineWidth=18;
+                                ctx.beginPath();
+                                ctx.moveTo(obj.base_x-20, obj.base_y-20)
+                                ctx.lineTo(obj.base_x+20, obj.base_y+20);
+                                ctx.stroke();
+                                ctx.strokeStyle = '#fff';
+                                ctx.lineWidth=10;
+                                ctx.beginPath();
+                                ctx.moveTo(obj.base_x-16, obj.base_y-16)
+                                ctx.lineTo(obj.base_x+16, obj.base_y+16);
+                                ctx.stroke();
+                                break;
+                            case TOPRIGHT_DOWNLEFT:
+                                ctx.lineWidth=18;
+                                ctx.beginPath();
+                                ctx.moveTo(obj.base_x+20, obj.base_y-20)
+                                ctx.lineTo(obj.base_x-20, obj.base_y+20);
+                                ctx.stroke();
+                                ctx.strokeStyle = '#fff';
+                                ctx.lineWidth=10;
+                                ctx.beginPath();
+                                ctx.moveTo(obj.base_x+16, obj.base_y-16)
+                                ctx.lineTo(obj.base_x-16, obj.base_y+16);
+                                ctx.stroke();
+                                break;
+                        }
+                    }break;
+                }
+            }break;
         }
     }
     if(selection_area.is_selecting){
@@ -1606,6 +1830,7 @@ const SELECT_TOOL      = 'Select';
 const MOVE_TOOL        = 'Move';
 const LINE_TOOL        = 'Line';
 const WALL_TOOL        = 'Wall';
+const DOOR_TOOL        = 'Door';
 const RECT_TOOL        = 'Rect';
 const FILLED_RECT_TOOL = 'Filled-Rect';
 const FLOOR_TOOL       = 'Floor';
@@ -1812,7 +2037,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 e.stopPropagation();
                 e.preventDefault();
                 for(let item of selected){
-                    canvas_objs[item].deleted = true;
+                    canvas_objs.get(item).deleted = true;
                 }
                 publish_delete_by_ids(Array.from(selected));
                 end_selecting();
@@ -1839,6 +2064,9 @@ document.addEventListener('DOMContentLoaded', function(){
                 change_tool(WALL_TOOL);
                 break;
             case 'g':
+                change_tool(DOOR_TOOL);
+                break;
+            case 'h':
                 change_tool(FLOOR_TOOL);
                 break;
             case 'z':
@@ -2007,6 +2235,56 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
+            }break;
+            case DOOR_TOOL:{
+                let x0 = snap_to_grid(e.offsetX/scale-camera_x);
+                let y0 = snap_to_grid(e.offsetY/scale-camera_y);
+                let x1 = x0;
+                let y1 = y0;
+                function change_point(e){
+                    e.stopPropagation();
+                    e.preventDefault();
+                    x1 = snap_to_grid(e.offsetX/scale-camera_x);
+                    y1 = snap_to_grid(e.offsetY/scale-camera_y);
+                    if(x1 > x0 + REFERENCE_WIDTH)
+                        x1 = x0 + REFERENCE_WIDTH;
+                    if(x1 < x0 - REFERENCE_WIDTH)
+                        x1 = x0 - REFERENCE_WIDTH;
+                    if(y1 > y0 + REFERENCE_WIDTH)
+                        y1 = y0 + REFERENCE_WIDTH;
+                    if(y1 < y0 - REFERENCE_WIDTH)
+                        y1 = y0 - REFERENCE_WIDTH;
+                }
+                canvas.addEventListener('mousemove', change_point);
+                function finish_door(){
+                    canvas.removeEventListener('mousemove', change_point);
+                    window.removeEventListener('mouseup', finish_door);
+                    canvas.removeEventListener('mouseleave', finish_door);
+                    if(x0 !== x1 || y0 !== y1){
+                        ++localid;
+                        let id = make_obj_id(localid);
+                        let orientation;
+                        if(y1 === y0){
+                            orientation = HORIZONTAL;
+                        }
+                        else if(x1 == x0){
+                            orientation = VERTICAL;
+                        }
+                        else if((x1 < x0 && y1 < y0) || (x1 > x0 && y1 > y0)){
+                            orientation = TOPLEFT_DOWNRIGHT;
+                        }
+                        else {
+                            orientation = TOPRIGHT_DOWNLEFT;
+                        }
+                        let x = ((x0 + x1)/2) | 0;
+                        let y = ((y0 + y1)/2) | 0;
+                        add_door(id, x, y, current_door, color_picker.value, orientation);
+                        publish_obj_by_id(id);
+                        request_render();
+                    }
+                }
+                window.addEventListener('mouseup', finish_door);
+                canvas.addEventListener('mouseleave', finish_door);
             }break;
             case FLOOR_TOOL:{
                 ++localid;

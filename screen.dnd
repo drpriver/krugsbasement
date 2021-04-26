@@ -20,6 +20,11 @@
     ::div
       Wall
     ::div
+      Door
+      ::raw
+        <span></span>
+        <span>☰</span>
+    ::div
       Floor
     ::div
       Text
@@ -176,3 +181,9 @@
   toplevel.js
   chat.js
   canvas.js
+  random_color.js
+::js @inline
+  document.addEventListener('DOMContentLoaded', function(){
+    const color_picker = document.getElementById('color-picker');
+    color_picker.value = random_color();
+  });
