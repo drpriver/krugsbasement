@@ -37,8 +37,8 @@ David20::title @hide
       Image
     ::div
       ::raw
-        <input type="color" id="color-picker", value="#000000">
-        <input type="color" id="color-picker2", value="#ffffff">
+        <input type="color" id="color-picker" value="#000000">
+        <input type="color" id="color-picker2" value="#ffffff">
 ::div.chat @id(chat)
   ::div.log @id(chat-history)
   ::raw

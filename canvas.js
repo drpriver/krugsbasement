@@ -1805,10 +1805,10 @@ function render(){
             }break;
             case EZ_TOKEN:{
                 const token_bbox = {
-                    x0: obj.base_x - 28,
-                    x1: obj.base_x + 28,
-                    y0: obj.base_y - 28,
-                    y1: obj.base_y + 28,
+                    x0: obj.base_x - 32,
+                    x1: obj.base_x + 32,
+                    y0: obj.base_y - 32,
+                    y1: obj.base_y + 32,
                 };
                 if(!bbox_overlaps(token_bbox, canvas_bbox)){
                     break;
@@ -1816,16 +1816,16 @@ function render(){
                 if(is_selected){
                     ctx.beginPath();
                     ctx.fillStyle = SELECTED_COLOR;
-                    ctx.arc(obj.base_x, obj.base_y, 30, 0, 2*Math.PI);
+                    ctx.arc(obj.base_x, obj.base_y, 36, 0, 2*Math.PI);
                     ctx.fill();
                 }
                 ctx.beginPath();
                 ctx.fillStyle = '#000';
-                ctx.arc(obj.base_x, obj.base_y, 28, 0, 2*Math.PI);
+                ctx.arc(obj.base_x, obj.base_y, 32, 0, 2*Math.PI);
                 ctx.fill();
                 ctx.beginPath();
                 ctx.fillStyle = obj.color;
-                ctx.arc(obj.base_x, obj.base_y, 24, 0, 2*Math.PI);
+                ctx.arc(obj.base_x, obj.base_y, 30, 0, 2*Math.PI);
                 ctx.fill();
                 ctx.font = '18px sans-serif';
                 ctx.textBaseline = 'middle';
@@ -2404,6 +2404,7 @@ document.addEventListener('DOMContentLoaded', function(){
     let prev_tool = null;
     // this state variable is kind of janky.
     let ctxmenu_is_active = 0;
+    let ez_token_color = '#ff3333';
     canvas.addEventListener('mousedown', function(e){
         if(e.button !== 0 && e.button !== 1){ //0 is the 'primary' button
             return;
@@ -2738,6 +2739,10 @@ document.addEventListener('DOMContentLoaded', function(){
                     <h2>Enter Token</h2>
                     <table class="input-container">
                         <tr>
+                            <td><label for="color">Color:</label>
+                            <td><input type="color" id="hover-color" value="`+ez_token_color+`">
+                        </tr>
+                        <tr>
                             <td><label for="text">Text:</label>
                             <td><input type="text" name="text" id="hover-text" value="">
                         </tr>
@@ -2749,7 +2754,8 @@ document.addEventListener('DOMContentLoaded', function(){
                     if(!text || !text.trim())
                         return;
                     let id = get_new_id();
-                    add_ez_token(id, x0, y0, text, color_picker.value);
+                    ez_token_color = document.getElementById('hover-color').value;
+                    add_ez_token(id, x0, y0, text, ez_token_color);
                     publish_obj_by_id(id);
                     note_create_by_id_for_undo(id);
                     request_render();
@@ -2917,9 +2923,14 @@ function make_ok_dialog(html, on_ok){
         remove_hoverpop();
     });
     const text_inputs = hoverpop.getElementsByTagName('input');
+    let did_focus = false;;
     for(let i = 0; i < text_inputs.length; i++){
         const text_input = text_inputs[i];
         if(text_input.type == 'text' || text_input.type == 'url'){
+            if(!did_focus){
+                text_input.focus();
+                did_focus = true;
+            }
             text_input.addEventListener('keydown', function(e){
                 let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
                 if(!modified && e.key == "Enter"){
