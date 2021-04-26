@@ -229,6 +229,10 @@ const DOOR = 11;
 // ------------
 // door: regular dungeon door (rectangle, white filling)
 const DOOR_DOOR = 0;
+// const DOOR_DOUBLE = 1;
+// const DOOR_PORTCULLIS = 2;
+const DOOR_SECRET = 3;
+const DOOR_BRICKED_WALL = 4;
 let current_door = DOOR_DOOR;
 
 // orientations
@@ -287,10 +291,6 @@ function zoom_out(){
     request_render();
 }
 
-// State variable so that we don't double render in a single frame.
-// requestAnimationFrame calls stack, so to avoid double drawing, you
-// need to keep track of this.
-let animation_requested = false;
 // The main canvas and its context. These are set once the content loads.
 let canvas = null;
 let ctx = null;
@@ -308,6 +308,8 @@ function resize_canvas(){
 //
 // freehand-line stuff.
 function make_freehand_line(id, base_x, base_y, color){
+    base_x = Math.round(base_x);
+    base_y = Math.round(base_y);
     const obj =  {
         type: FREEHAND_LINE,
         id: id,
@@ -321,20 +323,6 @@ function make_freehand_line(id, base_x, base_y, color){
     };
     return obj;
 }
-function add_random_fh_line(){
-    const id = Math.round(Math.random()*(1<<31));
-    const base_x = Math.random()*32000;
-    const base_y = Math.random()*32000;
-    add_freehand_line(id, base_x, base_y, '#f0f');
-    for(let i = 0; i < 20; i++){
-        let x = Math.random()*400 + base_x;
-        let y = Math.random()*400 + base_y;
-        add_freehand_point_by_id(id, x, y);
-    }
-    publish_obj_by_id(id);
-    request_render();
-}
-
 function add_freehand_line(id, base_x, base_y, color){
     const obj = make_freehand_line(id, base_x, base_y, color);
     add_canv_obj(obj);
@@ -342,6 +330,8 @@ function add_freehand_line(id, base_x, base_y, color){
 function add_freehand_point(obj, x, y){
     x -= obj.base_x;
     y -= obj.base_y;
+    x = Math.round(x);
+    y = Math.round(y);
     const points = obj.points;
     if(points.length > 1){
         let diff = Math.abs(points[points.length-2] - x);
@@ -652,8 +642,8 @@ function make_filled_rect(id, base_x, base_y, color, color2){
     const obj =  {
         type: FILLED_RECT,
         id: id,
-        base_x: base_x,
-        base_y: base_y,
+        base_x: Math.round(base_x),
+        base_y: Math.round(base_y),
         deleted: false,
         color: color,
         color2: color2,
@@ -677,10 +667,10 @@ function change_filled_rect(obj, x0, y0, x1, y1){
         y1 = y0;
         y0 = temp;
     }
-    obj.base_x = x0;
-    obj.base_y = y0;
-    obj.width = x1 - x0;
-    obj.height = y1 - y0;
+    obj.base_x = Math.round(x0);
+    obj.base_y = Math.round(y0);
+    obj.width = Math.round(x1 - x0);
+    obj.height = Math.round(y1 - y0);
     request_render();
 }
 function change_filled_rect_by_id(id, x0, y0, x1, y1){
@@ -784,10 +774,167 @@ function add_image(id, base_x, base_y, width, height, url){
 document.addEventListener('DOMContentLoaded', resize_canvas);
 window.addEventListener('resize', resize_canvas);
 const canvas_obj_array = [];
-// const canvas_objs = Object.create(null);
 const canvas_objs = new Map();
-const copied_objs = [];
+let undo_stack = [];
+let undo_position = 0;
+const UNDO_EVENT_CREATE = 0;
+const UNDO_EVENT_DELETE = 1;
+const UNDO_EVENT_UPDATE = 2;
+const UNDO_EVENT_MASS_CREATE = 3;
+// undo event object layouts
+// {
+//  type: UNDO_EVENT_CREATE,
+//  id: 123,
+// }
+// {
+//  type: UNDO_EVENT_MASS_CREATE,
+//  ids: [123],
+// }
+// {
+//  type: UNDO_EVENT_DELETE,
+//  ids: [123, 456, 789],
+// }
+// {
+//  type: UNDO_EVENT_UPDATE,
+//  id: 123,
+//  before: {...},
+//  after: {...},
+// }
+function push_undo_event(undo_event){
+    undo_stack.length = undo_position;
+    undo_stack.push(undo_event);
+    const MAX_UNDO_STACK = 100;
+    if(undo_stack.length > MAX_UNDO_STACK){
+        const new_stack = [];
+        // Is there a better way to slice arrays?
+        for(let i = undo_stack.length-Math.floor(MAX_UNDO_STACK/2); i < undo_stack.length; i++){
+            new_stack.push(undo_stack[i]);
+        }
+        undo_stack = new_stack;
+    }
+    undo_position = undo_stack.length;
+}
+function note_delete_by_ids_for_undo(deleted){
+    const undo_event = {
+        type: UNDO_EVENT_DELETE,
+        ids: deleted,
+    };
+    push_undo_event(undo_event);
+}
+function note_create_by_id_for_undo(created_id){
+    const undo_event = {
+        type: UNDO_EVENT_CREATE,
+        id: created_id,
+    };
+    push_undo_event(undo_event);
+}
+function note_updates_for_undo(before, after){
+    const undo_event = {
+        type: UNDO_EVENT_UPDATE,
+        before: before,
+        after: after,
+    };
+    push_undo_event(undo_event);
+}
+function note_mass_create_for_undo(created_ids){
+    const undo_event = {
+        type: UNDO_EVENT_MASS_CREATE,
+        ids: created_ids,
+    };
+    push_undo_event(undo_event);
+}
+function do_one_undo(){
+    if(!undo_position)
+        return;
+    undo_position--;
+    const undo_event = undo_stack[undo_position];
+    switch(undo_event.type){
+        case UNDO_EVENT_CREATE:{
+            const obj = canvas_objs.get(undo_event.id);
+            obj.deleted = true;
+            publish_delete_by_ids([obj.id]);
+        }break;
+        case UNDO_EVENT_DELETE:{
+            const ids = undo_event.ids;
+            const length = ids.length;
+            const stripped = get_stripped_state_by_id(ids);
+            for(let i = 0; i < length; i++){
+                const obj = canvas_objs.get(ids[i]);
+                obj.deleted = false;
+                stripped[i].deleted = false;
+            }
+            // maybe there should be an undelete?
+            publish_obj_updates(stripped);
+        }break;
+        case UNDO_EVENT_MASS_CREATE:{
+            const ids = undo_event.ids;
+            const length = ids.length;
+            for(let i = 0; i < length; i++){
+                const obj = canvas_objs.get(ids[i]);
+                obj.deleted = true;
+            }
+            publish_delete_by_ids([ids]);
+        }break;
+        case UNDO_EVENT_UPDATE:{
+            set_obj_states_from_stripped_objs(undo_event.before);
+            publish_obj_updates(undo_event.before);
+        }break;
+    }
+    request_render();
+}
+function do_one_redo(){
+    if(undo_position == undo_stack.length)
+        return;
+    const undo_event = undo_stack[undo_position];
+    switch(undo_event.type){
+        case UNDO_EVENT_CREATE:{
+            const obj = canvas_objs.get(undo_event.id);
+            obj.deleted = false;
+            const stripped = get_stripped_state_by_id([undo_event.id]);
+            publish_obj_updates(stripped);
+        }break;
+        case UNDO_EVENT_DELETE:{
+            const ids = undo_event.ids;
+            const length = ids.length;
+            for(let i = 0; i < length; i++){
+                const obj = canvas_objs.get(ids[i]);
+                obj.deleted = true;
+            }
+            publish_delete_by_ids(undo_event.ids);
+        }break;
+        case UNDO_EVENT_MASS_CREATE:{
+            const ids = undo_event.ids;
+            const length = ids.length;
+            for(let i = 0; i < length; i++){
+                const obj = canvas_objs.get(ids[i]);
+                obj.deleted = false;
+            }
+            const stripped = get_stripped_state_by_id(undo_event.ids);
+            publish_obj_updates(stripped);
+        }break;
+        case UNDO_EVENT_UPDATE:{
+            set_obj_states_from_stripped_objs(undo_event.after);
+            publish_obj_updates(undo_event.after);
+        }break;
+    }
+    undo_position++;
+    request_render();
+}
+function undo_is_impossible(){
+    return !undo_position;
+}
+function redo_is_impossible(){
+    return undo_position == undo_stack.length;
+}
 let localid = 0;
+// Combines the session id with the local id to create a
+// unique id for an object
+function get_new_id(){
+    ++localid;
+    let id = (session_id << 20) + localid;
+    return id;
+}
+const copied_objs = [];
 function clear_copy_buffer(){
     copied_objs.length = 0;
 }
@@ -811,10 +958,13 @@ function cut_selected_objs_to_copy_buffer(){
         obj.deleted = true;
     }
     publish_delete_by_ids(Array.from(selected));
+    note_delete_by_ids_for_undo(Array.from(selected));
     selected.clear()
     request_render();
 }
 function paste_from_copy_buffer_at(x, y){
+    x = snap_to_grid(x);
+    y = snap_to_grid(y);
     const length = copied_objs.length;
     // Do a pre-pass to get the top left corner of the objects.
     let x0 = 0;
@@ -832,15 +982,16 @@ function paste_from_copy_buffer_at(x, y){
     }
     const dx = x - x0;
     const dy = y - y0;
+    const new_ids = [];
     for(let i = 0; i < length; ++i){
         const stripped = copied_objs[i];
         // This is a lot of very similar code to the below function in
         // canvas-create, but there is a lot of weirdness over copying
         // objects in JS, so I am just grabbing attributes by hand.
-        ++localid;
+        let id = get_new_id();
         const obj = {
             type: stripped.type,
-            id: make_obj_id(localid),
+            id: id,
             base_x: stripped.base_x + dx,
             base_y: stripped.base_y + dy,
             deleted: false,
@@ -917,8 +1068,10 @@ function paste_from_copy_buffer_at(x, y){
             }break;
         }
         add_canv_obj(obj);
+        new_ids.push(id);
         publish_obj_by_id(obj.id);
     }
+    note_mass_create_for_undo(new_ids);
     request_render();
 }
 socket.on('canvas-create', function(objs){
@@ -995,7 +1148,13 @@ socket.on('canvas-delete', function(obj_ids){
     }
     request_render();
 });
+
+
 socket.on('canvas-update', function(obj_states){
+    set_obj_states_from_stripped_objs(obj_states);
+    request_render();
+});
+function set_obj_states_from_stripped_objs(obj_states){
     const length = obj_states.length;
     for(let i = 0; i < length; ++i){
         const state = obj_states[i];
@@ -1070,8 +1229,7 @@ socket.on('canvas-update', function(obj_states){
                 break;
         }
     }
-    request_render();
-});
+}
 const selected = new Set();
 // These are a bit flags
 // Select background things (walls, lines).
@@ -1426,7 +1584,7 @@ function publish_obj_by_id(id){
     const stripped_obj = strip_obj(obj, STRIP_INCLUDE_ID);
     socket.emit('canvas-create', stripped_obj);
 }
-function publish_obj_updates_by_ids(ids){
+function get_stripped_state_by_id(ids){
     const length = ids.length;
     const updates = []
     for(let i = 0; i < length; ++i){
@@ -1439,9 +1597,16 @@ function publish_obj_updates_by_ids(ids){
         const stripped = strip_obj(obj, STRIP_INCLUDE_ID);
         updates.push(stripped);
     }
+    return updates;
+}
+function publish_obj_updates(updates){
     socket.emit('canvas-update', updates);
 }
 
+// State variable so that we don't double render in a single frame.
+// requestAnimationFrame calls stack, so to avoid double drawing, you
+// need to keep track of this.
+let animation_requested = false;
 function request_render(){
     if(animation_requested){
         return;
@@ -1813,6 +1978,68 @@ function render(){
                                 break;
                         }
                     }break;
+                    case DOOR_SECRET:{
+                        ctx.save();
+                        ctx.textBaseline = 'middle';
+                        ctx.textAlign = 'center';
+                        if(is_selected){
+                            ctx.font = '44px sans-serif';
+                            ctx.fillStyle = SELECTED_COLOR;
+                            ctx.fillText('S', obj.base_x, obj.base_y);
+                            }
+                        ctx.font = '36px sans-serif';
+                        ctx.fillStyle = '#000';
+                        ctx.fillText('S', obj.base_x, obj.base_y);
+                        ctx.restore();
+                    }break;
+                    case DOOR_BRICKED_WALL:{
+                        if(is_selected){
+                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.lineWidth=8;
+                            ctx.beginPath();
+                            switch(obj.orientation){
+                                case VERTICAL:
+                                    ctx.moveTo(obj.base_x, obj.base_y-22)
+                                    ctx.lineTo(obj.base_x, obj.base_y+22);
+                                    break;
+                                case HORIZONTAL:
+                                    ctx.moveTo(obj.base_x-22, obj.base_y)
+                                    ctx.lineTo(obj.base_x+22, obj.base_y);
+                                    break;
+                                case TOPLEFT_DOWNRIGHT:
+                                    ctx.moveTo(obj.base_x-22, obj.base_y-22)
+                                    ctx.lineTo(obj.base_x+22, obj.base_y+22);
+                                    break;
+                                case TOPRIGHT_DOWNLEFT:
+                                    ctx.moveTo(obj.base_x+22, obj.base_y-22)
+                                    ctx.lineTo(obj.base_x-22, obj.base_y+22);
+                                    break;
+                            }
+                            ctx.stroke();
+                        }
+                        ctx.strokeStyle = '#ff1111';
+                        ctx.lineWidth=6;
+                        ctx.beginPath();
+                        switch(obj.orientation){
+                            case VERTICAL:
+                                ctx.moveTo(obj.base_x, obj.base_y-22)
+                                ctx.lineTo(obj.base_x, obj.base_y+22);
+                                break;
+                            case HORIZONTAL:
+                                ctx.moveTo(obj.base_x-22, obj.base_y)
+                                ctx.lineTo(obj.base_x+22, obj.base_y);
+                                break;
+                            case TOPLEFT_DOWNRIGHT:
+                                ctx.moveTo(obj.base_x-22, obj.base_y-22)
+                                ctx.lineTo(obj.base_x+22, obj.base_y+22);
+                                break;
+                            case TOPRIGHT_DOWNLEFT:
+                                ctx.moveTo(obj.base_x+22, obj.base_y-22)
+                                ctx.lineTo(obj.base_x-22, obj.base_y+22);
+                                break;
+                        }
+                        ctx.stroke();
+                    }break;
                 }
             }break;
         }
@@ -1959,16 +2186,76 @@ document.addEventListener('DOMContentLoaded', function(){
                 canvas.addEventListener('mousedown', close_select_menu);
             });
         }
+        if(tool.firstChild.textContent.trim() == 'Door'){
+            let has_menu = false;
+            const name = tool.getElementsByTagName('span')[0];
+            function change_door(doortype){
+                current_door = doortype;
+                switch(current_door){
+                    case DOOR_DOOR:
+                        name.innerText = '';
+                        break;
+                    case DOOR_SECRET:
+                        name.innerText = '- Secret';
+                        break;
+                    case DOOR_BRICKED_WALL:
+                        name.innerText = '- Bricks';
+                        break;
+                }
+            }
+            const triangle = tool.getElementsByTagName('span')[1];
+            triangle.addEventListener('click', function(e){
+                e.preventDefault();
+                e.stopPropagation();
+                if(has_menu)
+                    return;
+                has_menu = true;
+                const trimenu = document.createElement('section');
+                trimenu.classList.toggle('menu');
+                trimenu.style.left = e.clientX + 'px';
+                const window_height = window.innerHeight;
+                trimenu.style.bottom = (window_height - e.clientY)+'px'
+                function close_menu(e){
+                    if(e){
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
+                    document.body.removeChild(trimenu);
+                    canvas.removeEventListener('mousedown', close_menu);
+                    has_menu = false;
+                }
+                function make_cb(dt){
+                    function cb(e){
+                        e.stopPropagation();
+                        e.preventDefault();
+                        change_tool(DOOR_TOOL);
+                        change_door(dt);
+                        close_menu();
+                    }
+                    return cb;
+                }
+                const options = [
+                    {doortype:DOOR_DOOR,         text:'Door',         },
+                    {doortype:DOOR_SECRET,       text:'Secret Door',  },
+                    {doortype:DOOR_BRICKED_WALL, text:'Bricked Wall', },
+                ];
+                for(let i = 0; i < options.length; ++i){
+                    const option = options[i];
+                    const s = document.createElement('section');
+                    s.classList.toggle('menuitem')
+                    const text = document.createTextNode(option.text);
+                    s.appendChild(text);
+                    s.addEventListener('mousedown', make_cb(option.doortype));
+                    trimenu.appendChild(s);
+                }
+                document.body.appendChild(trimenu);
+                canvas.addEventListener('mousedown', close_menu);
+            });
+        }
     }
     change_tool(PAN_TOOL);
 });
 
-// Combines the session id with the local id to create a
-// unique id for an object
-function make_obj_id(localid){
-    let id = (session_id << 20) + localid;
-    return id;
-}
 // Extracts the session id from an object's id so that we can ignore objects we
 // created.
 function get_session_id_from_obj_id(objid){
@@ -2009,37 +2296,28 @@ document.addEventListener('DOMContentLoaded', function(){
         const shortcut = ctrl_or_cmd_is_pressed && !other_modifiers;
         switch(e.key){
             case 'ArrowLeft':{
-                e.stopPropagation();
-                e.preventDefault();
                 camera_x += 256;
                 request_render();
             }break;
             case 'ArrowRight':{
-                e.stopPropagation();
-                e.preventDefault();
                 camera_x -= 256;
                 request_render();
             }break;
             case 'ArrowUp':{
-                e.stopPropagation();
-                e.preventDefault();
                 camera_y += 256;
                 request_render();
             }break;
             case 'ArrowDown':{
-                e.stopPropagation();
-                e.preventDefault();
                 camera_y -= 256;
                 request_render();
             }break;
             case 'Backspace': // fall-through
             case 'Delete':{
-                e.stopPropagation();
-                e.preventDefault();
                 for(let item of selected){
                     canvas_objs.get(item).deleted = true;
                 }
                 publish_delete_by_ids(Array.from(selected));
+                note_delete_by_ids_for_undo(Array.from(selected));
                 end_selecting();
             }break;
             case 'q':
@@ -2069,8 +2347,21 @@ document.addEventListener('DOMContentLoaded', function(){
             case 'h':
                 change_tool(FLOOR_TOOL);
                 break;
+            case 'y':
+                if(shortcut){
+                    do_one_redo();
+                }
+                else {
+                    return; // avoid the stop prop stuff
+                }
+                break;
             case 'z':
-                change_tool(TEXT_TOOL);
+                if(shortcut){
+                    do_one_undo();
+                }
+                else {
+                    change_tool(TEXT_TOOL);
+                }
                 break;
             case 'x':
                 if(shortcut){
@@ -2101,11 +2392,14 @@ document.addEventListener('DOMContentLoaded', function(){
                         const y = canvas.height/4/scale - camera_y;
                         paste_from_copy_buffer_at(x, y);
                     }
+                    break;
                 }
             default:
-                // console.log(e.key);
-                break;
+                return;
         }
+        // unhandled keys should return to avoid this.
+        e.stopPropagation();
+        e.preventDefault();
     });
     let prev_tool = null;
     // this state variable is kind of janky.
@@ -2148,13 +2442,23 @@ document.addEventListener('DOMContentLoaded', function(){
                 canvas.addEventListener('mouseleave', finish_select);
             }break;
             case MOVE_TOOL:{
+                if(!selected.size)
+                    return;
                 let clicked_x = e.offsetX/scale - camera_x;
                 let clicked_y = e.offsetY/scale - camera_y;
+                let rawclick_x = e.offsetX;
+                let rawclick_y = e.offsetY;
+                let changed = false;
+                const before_update = get_stripped_state_by_id(Array.from(selected));
                 function move(e){
                     e.stopPropagation();
                     e.preventDefault();
+                    const diff = Math.abs(e.offsetX - rawclick_x) + Math.abs(e.offsetY - rawclick_y);
+                    if(diff < 2)
+                        return;
                     let move_x = e.offsetX/scale - camera_x;
                     let move_y = e.offsetY/scale - camera_y;
+                    changed = true;
                     let new_coords = move_selected_objects(clicked_x, clicked_y, move_x - clicked_x, move_y - clicked_y);
                     clicked_x = new_coords[0];
                     clicked_y = new_coords[1];;
@@ -2164,7 +2468,11 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mousemove', move);
                     window.removeEventListener('mouseup', finish_move);
                     canvas.removeEventListener('mouseleave', finish_move);
-                    publish_obj_updates_by_ids(Array.from(selected));
+                    if(!changed)
+                        return;
+                    const after_update = get_stripped_state_by_id(Array.from(selected));
+                    publish_obj_updates(after_update);
+                    note_updates_for_undo(before_update, after_update);
                 }
                 window.addEventListener('mouseup', finish_move);
                 canvas.addEventListener('mouseleave', finish_move);
@@ -2197,8 +2505,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 canvas.addEventListener('mouseleave', finish_pan);
             }break;
             case LINE_TOOL:{
-                ++localid;
-                let id = make_obj_id(localid);
+                let id = get_new_id();
                 add_freehand_line(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, color_picker.value);
                 function add_point(e){
                     e.stopPropagation();
@@ -2212,13 +2519,13 @@ document.addEventListener('DOMContentLoaded', function(){
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
                     publish_obj_by_id(id);
+                    note_create_by_id_for_undo(id);
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case WALL_TOOL:{
-                ++localid;
-                let id = make_obj_id(localid);
+                let id = get_new_id();
                 add_gridline(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, color_picker.value);
                 function add_point(e){
                     e.stopPropagation();
@@ -2232,6 +2539,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
                     publish_obj_by_id(id);
+                    note_create_by_id_for_undo(id);
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
@@ -2261,8 +2569,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     window.removeEventListener('mouseup', finish_door);
                     canvas.removeEventListener('mouseleave', finish_door);
                     if(x0 !== x1 || y0 !== y1){
-                        ++localid;
-                        let id = make_obj_id(localid);
+                        let id = get_new_id();
                         let orientation;
                         if(y1 === y0){
                             orientation = HORIZONTAL;
@@ -2280,6 +2587,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         let y = ((y0 + y1)/2) | 0;
                         add_door(id, x, y, current_door, color_picker.value, orientation);
                         publish_obj_by_id(id);
+                        note_create_by_id_for_undo(id);
                         request_render();
                     }
                 }
@@ -2287,8 +2595,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 canvas.addEventListener('mouseleave', finish_door);
             }break;
             case FLOOR_TOOL:{
-                ++localid;
-                let id = make_obj_id(localid);
+                let id = get_new_id();
                 const x0 = e.offsetX/scale-camera_x;
                 const y0 = e.offsetY/scale-camera_y;
                 add_gridrect(id, x0, y0, color_picker.value);
@@ -2304,13 +2611,13 @@ document.addEventListener('DOMContentLoaded', function(){
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
                     publish_obj_by_id(id);
+                    note_create_by_id_for_undo(id);
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case RECT_TOOL:{
-                ++localid;
-                let id = make_obj_id(localid);
+                let id = get_new_id();
                 const x0 = e.offsetX/scale-camera_x;
                 const y0 = e.offsetY/scale-camera_y;
                 add_rect(id, x0, y0, color_picker.value);
@@ -2326,13 +2633,13 @@ document.addEventListener('DOMContentLoaded', function(){
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
                     publish_obj_by_id(id);
+                    note_create_by_id_for_undo(id);
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case FILLED_RECT_TOOL:{
-                ++localid;
-                let id = make_obj_id(localid);
+                let id = get_new_id();
                 const x0 = e.offsetX/scale-camera_x;
                 const y0 = e.offsetY/scale-camera_y;
                 add_filled_rect(id, x0, y0, color_picker.value, color_picker2.value);
@@ -2348,6 +2655,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
                     publish_obj_by_id(id);
+                    note_create_by_id_for_undo(id);
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
@@ -2392,10 +2700,10 @@ document.addEventListener('DOMContentLoaded', function(){
                         return;
                     if(size > 72)
                         return;
-                    ++localid;
-                    let id = make_obj_id(localid);
+                    let id = get_new_id();
                     add_text(id, x0, y0, text, size);
                     publish_obj_by_id(id);
+                    note_create_by_id_for_undo(id);
                     request_render();
                 });
             }break;
@@ -2416,10 +2724,10 @@ document.addEventListener('DOMContentLoaded', function(){
                     if(!text || !text.trim()){
                         return;
                     }
-                    ++localid;
-                    let id = make_obj_id(localid);
+                    let id = get_new_id();
                     add_image(id, x0, y0, REFERENCE_WIDTH-2, REFERENCE_WIDTH-2, text);
                     publish_obj_by_id(id);
+                    note_create_by_id_for_undo(id);
                     request_render();
                 });
             }break;
@@ -2440,10 +2748,10 @@ document.addEventListener('DOMContentLoaded', function(){
                     const text = text_input.value;
                     if(!text || !text.trim())
                         return;
-                    ++localid;
-                    let id = make_obj_id(localid);
+                    let id = get_new_id();
                     add_ez_token(id, x0, y0, text, color_picker.value);
                     publish_obj_by_id(id);
+                    note_create_by_id_for_undo(id);
                     request_render();
                 });
             }break;
@@ -2464,10 +2772,10 @@ document.addEventListener('DOMContentLoaded', function(){
                     if(!text || !text.trim()){
                         return;
                     }
-                    ++localid;
-                    let id = make_obj_id(localid);
+                    let id = get_new_id();
                     add_img_token(id, x0, y0, text);
                     publish_obj_by_id(id);
+                    note_create_by_id_for_undo(id);
                     request_render();
                 });
             }break;
@@ -2518,6 +2826,22 @@ document.addEventListener('DOMContentLoaded', function(){
                 label: 'Gather Party',
                 func: function(){socket.emit('canvas-gather', {x:-x, y:-y}); remove_menu();},
                 disabled: false,
+            },
+            {
+                label: 'Undo',
+                func: function(){
+                    do_one_undo();
+                    remove_menu();
+                },
+                disabled: undo_is_impossible(),
+            },
+            {
+                label: 'Redo',
+                func: function(){
+                    do_one_redo();
+                    remove_menu();
+                },
+                disabled: redo_is_impossible(),
             },
             {
                 label: 'Cut',
@@ -2630,3 +2954,4 @@ document.addEventListener('DOMContentLoaded', function(){
     make_ok_dialog(html, function(hoverpop){});
 });
 */
+

@@ -60,9 +60,12 @@ def canvas_gather(where:Dict[str, int]) -> None:
     else:
         emit('canvas-gather', where, broadcast=True)
 
+def error_reporter(message_type:int, filename:str, line:int, col:int, message:str):
+    print(f'{line+1}:{col+1}: {message}')
+
 @app.route('/')
 def index() -> str:
-    html, _ = pydndc.htmlgen(open('screen.dnd').read())
+    html, _ = pydndc.htmlgen(open('screen.dnd').read(), error_reporter=error_reporter)
     return html
 
 if __name__ == '__main__':

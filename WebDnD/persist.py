@@ -45,7 +45,7 @@ class Persister(Generic[T]):
         try:
             obj = self.save_func(self.obj) if self.save_func else self.obj
             with open(self.filepath+'_', 'w') as fp:
-                json.dump(obj, fp)
+                json.dump(obj, fp, separators=(',',':'))
             os.rename(self.filepath+'_', self.filepath)
         except Exception as e:
             print(e)
