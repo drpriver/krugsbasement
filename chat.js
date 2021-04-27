@@ -2,32 +2,32 @@ const MSG_PLAIN = 0;
 const MSG_DICEROLL = 1;
 const MSG_ERROR = 2;
 socket.on('chat-msg', function(msgs){
-  const log = document.getElementById('chat-history');
-  for(let i = 0; i < msgs.length; i++){
-    const msg = msgs[i];
-    const entry = document.createElement('div');
-    switch(msg.type){
-        case MSG_PLAIN:{
-            if(msg.user){
-              const user = document.createElement('b');
-              user.appendChild(document.createTextNode(msg.user+': '));
-              entry.appendChild(user);
-            }
-            const text = document.createTextNode(msg.text);
-            entry.appendChild(text);
-        }break;
-        case MSG_DICEROLL:{
-            entry.classList.toggle('dice-roll-msg');
-            entry.innerHTML += msg.text;
-        }break;
-        case MSG_ERROR:{
-            const text = document.createTextNode(msg.text);
-            entry.appendChild(text);
-        }break;
+    const log = document.getElementById('chat-history');
+    for(let i = 0; i < msgs.length; i++){
+        const msg = msgs[i];
+        const entry = document.createElement('div');
+        switch(msg.type){
+            case MSG_PLAIN:{
+                if(msg.user){
+                    const user = document.createElement('b');
+                    user.appendChild(document.createTextNode(msg.user+': '));
+                    entry.appendChild(user);
+                }
+                const text = document.createTextNode(msg.text);
+                entry.appendChild(text);
+            }break;
+            case MSG_DICEROLL:{
+                entry.classList.toggle('dice-roll-msg');
+                entry.innerHTML += msg.text;
+            }break;
+            case MSG_ERROR:{
+                const text = document.createTextNode(msg.text);
+                entry.appendChild(text);
+            }break;
+        }
+        log.appendChild(entry);
     }
-    log.appendChild(entry);
-  }
-  log.scrollTo({behavior:'smooth', top:log.scrollHeight});
+    log.scrollTo({behavior:'smooth', top:log.scrollHeight});
 });
 function resize_chat(){
     const hist = document.getElementById('chat-history');
@@ -37,54 +37,54 @@ function resize_chat(){
 }
 
 document.addEventListener('DOMContentLoaded', function(){
-  resize_chat();
-  window.addEventListener('resize', resize_chat);
-  const ta = document.getElementById('chatinput');
-  const history = [];
-  let history_index = 0;
-  let current_text = "";
-  ta.addEventListener('keydown', function(e){
-    e.stopPropagation();
-    let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
-    if(!modified && e.key == "Enter"){
-      e.stopPropagation();
-      e.preventDefault();
-      const entry = document.createElement('div');
-      const value = ta.value;
-      if(value.length){
-        ta.value = "";
-        socket.emit('chat-input', value);
-        if(!(history.length && value == history[history.length-1])){
-          history.push(value);
+    resize_chat();
+    window.addEventListener('resize', resize_chat);
+    const ta = document.getElementById('chatinput');
+    const history = [];
+    let history_index = 0;
+    let current_text = "";
+    ta.addEventListener('keydown', function(e){
+        e.stopPropagation();
+        let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
+        if(!modified && e.key == "Enter"){
+            e.stopPropagation();
+            e.preventDefault();
+            const entry = document.createElement('div');
+            const value = ta.value;
+            if(value.length){
+                ta.value = "";
+                socket.emit('chat-input', value);
+                if(!(history.length && value == history[history.length-1])){
+                    history.push(value);
+                }
+                history_index = history.length;
+                current_text = "";
+            }
         }
-        history_index = history.length;
-        current_text = "";
-      }
-    }
-    else if(!modified && e.key == "ArrowUp"){
-      e.stopPropagation();
-      e.preventDefault();
-      if(history_index > 0 && history_index <= history.length){
-        if(history_index == history.length){
-          current_text = ta.value;
+        else if(!modified && e.key == "ArrowUp"){
+            e.stopPropagation();
+            e.preventDefault();
+            if(history_index > 0 && history_index <= history.length){
+                if(history_index == history.length){
+                    current_text = ta.value;
+                }
+                history_index--;
+                ta.value = history[history_index];
+            }
         }
-        history_index--;
-        ta.value = history[history_index];
-      }
-    }
-    else if(!modified && e.key == "ArrowDown"){
-      e.stopPropagation();
-      e.preventDefault();
-      if(history_index >= 0 && history_index < history.length){
-        history_index++;
-        if(history_index == history.length){
-          ta.value = current_text;
+        else if(!modified && e.key == "ArrowDown"){
+            e.stopPropagation();
+            e.preventDefault();
+            if(history_index >= 0 && history_index < history.length){
+                history_index++;
+                if(history_index == history.length){
+                    ta.value = current_text;
+                }
+                else{
+                    ta.value = history[history_index];
+                }
+            }
         }
-        else{
-          ta.value = history[history_index];
-        }
-      }
-    }
-  });
+    });
 });
 //endjs
