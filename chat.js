@@ -1,8 +1,7 @@
 const MSG_PLAIN = 0;
 const MSG_DICEROLL = 1;
 const MSG_ERROR = 2;
-socket.on('chat-msg', function(msgs){
-    const log = document.getElementById('chat-history');
+function add_chat_msgs(log, msgs){
     for(let i = 0; i < msgs.length; i++){
         const msg = msgs[i];
         const entry = document.createElement('div');
@@ -17,7 +16,7 @@ socket.on('chat-msg', function(msgs){
                 entry.appendChild(text);
             }break;
             case MSG_DICEROLL:{
-                entry.classList.toggle('dice-roll-msg');
+                entry.classList.add('dice-roll-msg');
                 entry.innerHTML += msg.text;
             }break;
             case MSG_ERROR:{
@@ -27,7 +26,16 @@ socket.on('chat-msg', function(msgs){
         }
         log.appendChild(entry);
     }
+}
+socket.on('chat-msg', function(msgs){
+    const log = document.getElementById('chat-history');
+    add_chat_msgs(log, msgs);
     log.scrollTo({behavior:'smooth', top:log.scrollHeight});
+});
+socket.on('chat-create', function(msgs){
+    const log = document.getElementById('chat-history');
+    add_chat_msgs(log, msgs);
+    log.scrollTop = log.scrollHeight;
 });
 function resize_chat(){
     const hist = document.getElementById('chat-history');
@@ -87,4 +95,3 @@ document.addEventListener('DOMContentLoaded', function(){
         }
     });
 });
-//endjs

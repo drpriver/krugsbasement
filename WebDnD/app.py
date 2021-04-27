@@ -27,7 +27,7 @@ session_id = Persister(0, 'BadDb/app.json', save_func=save_session_id).obj
 
 @socketio.on('connect')
 def handle_connection() -> None:
-    emit('chat-msg', chat.get_history())
+    emit('chat-create', chat.get_history())
     emit('canvas-create', canvas.get_live_objects())
     global session_id
     session_id += 1

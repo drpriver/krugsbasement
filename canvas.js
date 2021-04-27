@@ -2090,7 +2090,7 @@ function change_tool(toolname){
         const tool = tools[j];
         tool.classList.remove('selected');
         if(tool.firstChild.textContent.trim() == toolname){
-            tool.classList.toggle('selected');
+            tool.classList.add('selected');
         }
     }
 }
@@ -2129,7 +2129,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     return;
                 has_menu = true;
                 const trimenu = document.createElement('section');
-                trimenu.classList.toggle('menu');
+                trimenu.classList.add('menu');
                 trimenu.style.left = e.clientX + 'px';
                 const window_height = window.innerHeight;
                 trimenu.style.bottom = (window_height - e.clientY)+'px'
@@ -2180,7 +2180,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 for(let i = 0; i < options.length; ++i){
                     const option = options[i];
                     const s = document.createElement('section');
-                    s.classList.toggle('menuitem')
+                    s.classList.add('menuitem')
                     const text = document.createTextNode(option.text);
                     s.appendChild(text);
                     s.addEventListener('mousedown', option.func);
@@ -2215,7 +2215,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     return;
                 has_menu = true;
                 const trimenu = document.createElement('section');
-                trimenu.classList.toggle('menu');
+                trimenu.classList.add('menu');
                 trimenu.style.left = e.clientX + 'px';
                 const window_height = window.innerHeight;
                 trimenu.style.bottom = (window_height - e.clientY)+'px'
@@ -2246,7 +2246,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 for(let i = 0; i < options.length; ++i){
                     const option = options[i];
                     const s = document.createElement('section');
-                    s.classList.toggle('menuitem')
+                    s.classList.add('menuitem')
                     const text = document.createTextNode(option.text);
                     s.appendChild(text);
                     s.addEventListener('mousedown', make_cb(option.doortype));
@@ -2799,7 +2799,7 @@ document.addEventListener('DOMContentLoaded', function(){
         e.stopPropagation();
         ctxmenu_is_active++;
         const ctxmenu = document.createElement('section');
-        ctxmenu.classList.toggle('menu');
+        ctxmenu.classList.add('menu');
         ctxmenu.style.left = e.clientX + 'px';
         ctxmenu.style.top = e.clientY + 'px';
         const x = e.offsetX/scale - camera_x - canvas.width/2/scale;
@@ -2888,9 +2888,9 @@ document.addEventListener('DOMContentLoaded', function(){
         for(let i = 0; i < items.length; i++){
             const item = items[i];
             const menuitem = document.createElement('section');
-            menuitem.classList.toggle('menuitem');
+            menuitem.classList.add('menuitem');
             if(item.disabled){
-                menuitem.classList.toggle('disabled');
+                menuitem.classList.add('disabled');
             }
             menuitem.addEventListener('click', item.func);
             menuitem.appendChild(document.createTextNode(item.label));
@@ -2906,7 +2906,7 @@ function make_ok_dialog(html, on_ok){
         return;
     hover_is_open = true;
     const hoverpop = document.createElement('section');
-    hoverpop.classList.toggle('hover');
+    hoverpop.classList.add('hover');
     html += `
         <div class="hover-button-container">
             <button type="button" id="hoverpop-ok">Ok</button>
