@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify, request, Response
 from flask_socketio import SocketIO, emit
 from . import chat
 from . import canvas
@@ -46,7 +46,7 @@ def handle_canvas_delete(data:List[int]) -> None:
         emit('canvas-delete', responses, broadcast=True)
 
 @socketio.on('canvas-update')
-def handle_canvas_udpate(data:List[dict]) -> None:
+def handle_canvas_update(data:List[dict]) -> None:
     responses = canvas.handle_update(data)
     if responses:
         emit('canvas-update', responses, broadcast=True)
@@ -71,6 +71,16 @@ def index() -> str:
         return ''
     else:
         return html
+
+@app.route('/state', methods=['GET', 'POST'])
+def get_app_state():
+    if request.method == 'GET':
+        state = {'chat':chat.get_history(), 'canvas':canvas.get_live_objects(), 'app':{'session_id':session_id}}
+        return jsonify(state)
+    else:
+        newstate = request.get_json()
+        print(f'{newstate=}')
+        return {}
 
 if __name__ == '__main__':
     socketio.run(app, host="0.0.0.0")

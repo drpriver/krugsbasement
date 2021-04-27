@@ -201,3 +201,16 @@ David20::title @hide
   toplevel.js
   chat.js
   canvas.js
+
+::js @inline
+  async function get_state(){
+    const resp = await fetch('/state');
+    const state = await resp.json();
+    return state;
+  }
+  function get(){
+    const link = document.createElement('a');
+    link.download = 'state.json';
+    link.href = '/state';
+    link.click();
+  }

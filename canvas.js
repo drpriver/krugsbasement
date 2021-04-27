@@ -41,6 +41,10 @@ const TEXT = 8;
 const EZ_TOKEN = 9;
 const IMG_TOKEN = 10;
 const DOOR = 11;
+// flags
+const FLAG_NONE = 0;
+const FLAG_DELETED = 1;
+const FLAG_ALL = FLAG_NONE | FLAG_DELETED;
 //
 //  all objects start as
 //  {
@@ -48,7 +52,7 @@ const DOOR = 11;
 //    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
-//    deleted: false,
+//    flags: FLAG_NONE,
 //  }
 //
 //  and then the rest of the fields are different.
@@ -65,7 +69,7 @@ const DOOR = 11;
 //    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
-//    deleted: false,
+//    flags: FLAG_NONE,
 //    color: '#fff',
 //    // points are just raw x,y pairs in a flat array.
 //    points: [x,y, x,y, x,y],
@@ -86,7 +90,7 @@ const DOOR = 11;
 //    id: 10001,
 //    base_x: 0,
 //    base_y: 256,
-//    deleted: false,
+//    flags: FLAG_NONE,
 //    color: '#fff',
 //    // points are just raw x,y pairs in a flat array.
 //    points: [x,y, x,y, x,y],
@@ -103,7 +107,7 @@ const DOOR = 11;
 //    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
-//    deleted: false,
+//    flags: FLAG_NONE,
 //    color: '#fff',
 //    width: 12,
 //    height: 18,
@@ -117,7 +121,7 @@ const DOOR = 11;
 //    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
-//    deleted: false,
+//    flags: FLAG_NONE,
 //    color: '#fff',
 //    color2: '#fff',
 //    width: 12,
@@ -135,7 +139,7 @@ const DOOR = 11;
 //    id: 10001,
 //    base_x: 0,
 //    base_y: 256,
-//    deleted: false,
+//    flags: FLAG_NONE,
 //    color: '#fff',
 //    width: 64,
 //    height: 128,
@@ -150,7 +154,7 @@ const DOOR = 11;
 //    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
-//    deleted: false,
+//    flags: FLAG_NONE,
 //    color: '#fff',
 //    r_x: 12,
 //    r_y: 18,
@@ -163,7 +167,7 @@ const DOOR = 11;
 //    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
-//    deleted: false,
+//    flags: FLAG_NONE,
 //    width: 99,
 //    height: 99,
 //    url: "foo-bar",
@@ -177,7 +181,7 @@ const DOOR = 11;
 //    id: 10001,
 //    base_x: 3,
 //    base_y: 99,
-//    deleted: false,
+//    flags: FLAG_NONE,
 //    text: "foozle",
 //    size: 18,
 //    bbox: bbox,
@@ -191,7 +195,7 @@ const DOOR = 11;
 //    id: 10001,
 //    base_x: 32,
 //    base_y: 96,
-//    deleted: false,
+//    flags: FLAG_NONE,
 //    text: "foozle",
 //    color: "#fff",
 //  }
@@ -204,7 +208,7 @@ const DOOR = 11;
 //    id: 10001,
 //    base_x: 32,
 //    base_y: 96,
-//    deleted: false,
+//    flags: FLAG_NONE,
 //    url: "foozle.com/foo.png",
 //    img: Image,
 //  }
@@ -217,7 +221,7 @@ const DOOR = 11;
 //    id: 10001,
 //    base_x: 32,
 //    base_y: 96,
-//    deleted: false,
+//    flags: FLAG_NONE,
 //    doortype: DOOR_DOOR,
 //    color: '#fff',
 //    width: 1, // in squares
@@ -315,7 +319,7 @@ function make_freehand_line(id, base_x, base_y, color){
         id: id,
         base_x: base_x,
         base_y: base_y,
-        deleted: false,
+        flags: FLAG_NONE,
         points: [],
         color: color,
         path: null,
@@ -434,7 +438,7 @@ function make_gridline(id, base_x, base_y, color){
         id: id,
         base_x: base_x,
         base_y: base_y,
-        deleted: false,
+        flags: FLAG_NONE,
         points: [],
         color: color,
         path: null,
@@ -542,7 +546,7 @@ function make_gridrect(id, base_x, base_y, color){
         id: id,
         base_x: base_x,
         base_y: base_y,
-        deleted: false,
+        flags: FLAG_NONE,
         color: color,
         width: 0,
         height: 0,
@@ -586,7 +590,7 @@ function make_door(id, x, y, doortype, color, orientation){
         id: id,
         base_x: x,
         base_y: y,
-        deleted: false,
+        flags: FLAG_NONE,
         doortype: doortype,
         color: color,
         width: 1,
@@ -604,7 +608,7 @@ function make_rect(id, base_x, base_y, color){
         id: id,
         base_x: base_x,
         base_y: base_y,
-        deleted: false,
+        flags: FLAG_NONE,
         color: color,
         width: 0,
         height: 0,
@@ -644,7 +648,7 @@ function make_filled_rect(id, base_x, base_y, color, color2){
         id: id,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
-        deleted: false,
+        flags: FLAG_NONE,
         color: color,
         color2: color2,
         width: 0,
@@ -687,7 +691,7 @@ function make_text(id, base_x, base_y, text, size){
         id: id,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
-        deleted: false,
+        flags: FLAG_NONE,
         text: text,
         size: size,
         bbox: { x0: 0, y0: 0, x1: 0, y1: 0, },
@@ -707,7 +711,7 @@ function make_ez_token(id, base_x, base_y, text, color){
         id: id,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
-        deleted: false,
+        flags: FLAG_NONE,
         text: text,
         color:color,
     };
@@ -726,7 +730,7 @@ function make_img_token(id, base_x, base_y, url){
         id: id,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
-        deleted: false,
+        flags: FLAG_NONE,
         url: url,
         img: null,
     };
@@ -753,7 +757,7 @@ function make_image(id, base_x, base_y, width, height, url){
         id: id,
         base_x: base_x,
         base_y: base_y,
-        deleted: false,
+        flags: FLAG_NONE,
         width: width,
         height: height,
         url: url,
@@ -851,7 +855,7 @@ function do_one_undo(){
     switch(undo_event.type){
         case UNDO_EVENT_CREATE:{
             const obj = canvas_objs.get(undo_event.id);
-            obj.deleted = true;
+            obj.flags |= FLAG_DELETED;
             publish_delete_by_ids([obj.id]);
         }break;
         case UNDO_EVENT_DELETE:{
@@ -860,8 +864,8 @@ function do_one_undo(){
             const stripped = get_stripped_state_by_id(ids);
             for(let i = 0; i < length; i++){
                 const obj = canvas_objs.get(ids[i]);
-                obj.deleted = false;
-                stripped[i].deleted = false;
+                obj.flags &= ~FLAG_DELETED;
+                stripped[i].flags &= ~FLAG_DELETED;
             }
             // maybe there should be an undelete?
             publish_obj_updates(stripped);
@@ -871,7 +875,7 @@ function do_one_undo(){
             const length = ids.length;
             for(let i = 0; i < length; i++){
                 const obj = canvas_objs.get(ids[i]);
-                obj.deleted = true;
+                obj.flags |= FLAG_DELETED;
             }
             publish_delete_by_ids([ids]);
         }break;
@@ -889,7 +893,7 @@ function do_one_redo(){
     switch(undo_event.type){
         case UNDO_EVENT_CREATE:{
             const obj = canvas_objs.get(undo_event.id);
-            obj.deleted = false;
+            obj.flags &= ~FLAG_DELETED;
             const stripped = get_stripped_state_by_id([undo_event.id]);
             publish_obj_updates(stripped);
         }break;
@@ -898,7 +902,7 @@ function do_one_redo(){
             const length = ids.length;
             for(let i = 0; i < length; i++){
                 const obj = canvas_objs.get(ids[i]);
-                obj.deleted = true;
+                obj.flags |= FLAG_DELETED; 
             }
             publish_delete_by_ids(undo_event.ids);
         }break;
@@ -907,7 +911,7 @@ function do_one_redo(){
             const length = ids.length;
             for(let i = 0; i < length; i++){
                 const obj = canvas_objs.get(ids[i]);
-                obj.deleted = false;
+                obj.flags &= ~ FLAG_DELETED;
             }
             const stripped = get_stripped_state_by_id(undo_event.ids);
             publish_obj_updates(stripped);
@@ -941,7 +945,7 @@ function clear_copy_buffer(){
 function copy_selected_objs_to_copy_buffer(){
     for(let obj_id of selected){
         const obj = canvas_objs.get(obj_id);
-        if(obj.deleted)
+        if(obj.flags & FLAG_DELETED)
             continue;
         const stripped = strip_obj(obj, STRIP_FLAGS_NONE);
         copied_objs.push(stripped);
@@ -951,11 +955,11 @@ function copy_selected_objs_to_copy_buffer(){
 function cut_selected_objs_to_copy_buffer(){
     for(let obj_id of selected){
         const obj = canvas_objs.get(obj_id);
-        if(obj.deleted)
+        if(obj.flags & FLAG_DELETED)
             continue;
         const stripped = strip_obj(obj, STRIP_FLAGS_NONE);
         copied_objs.push(stripped);
-        obj.deleted = true;
+        obj.flags |= FLAG_DELETED;
     }
     publish_delete_by_ids(Array.from(selected));
     note_delete_by_ids_for_undo(Array.from(selected));
@@ -994,7 +998,7 @@ function paste_from_copy_buffer_at(x, y){
             id: id,
             base_x: stripped.base_x + dx,
             base_y: stripped.base_y + dy,
-            deleted: false,
+            flags: FLAG_NONE,
         };
         switch(obj.type){
             case FREEHAND_LINE:
@@ -1140,7 +1144,7 @@ socket.on('canvas-delete', function(obj_ids){
         const id = obj_ids[i];
         const obj = canvas_objs.get(id);
         if(obj){
-            obj.deleted = true;
+            obj.flags |= FLAG_DELETED;
         }
         else {
             // console.log('Deleting unknown object??', id);
@@ -1165,7 +1169,7 @@ function set_obj_states_from_stripped_objs(obj_states){
         }
         obj.base_x = state.base_x;
         obj.base_y = state.base_y;
-        obj.deleted = state.deleted;
+        obj.flags = state.flags;
         switch(obj.type){
             case FREEHAND_LINE:
                 obj.bbox = {x0:0, x1:0, y0:0, y1:0};
@@ -1273,7 +1277,7 @@ function note_selections(){
     const selection_type = selection_area.select_type;
     for(let i = 0; i < length; ++i){
         const obj = canvas_obj_array[i];
-        if(obj.deleted)
+        if(obj.flags & FLAG_DELETED)
             continue;
         switch(obj.type){
             case GRID_LINE: // fall-through
@@ -1409,7 +1413,7 @@ function move_selected_objects(base_x, base_y, dx, dy){
     let rigid = false;
     for(let item of selected){
         const obj = canvas_objs.get(item);
-        if(obj.deleted)
+        if(obj.flags & FLAG_DELETED)
             continue;
         switch(obj.type){
             case GRID_RECT:
@@ -1517,7 +1521,7 @@ function strip_obj(obj, include_flags){
         type: obj.type,
         base_x: obj.base_x,
         base_y: obj.base_y,
-        deleted: obj.deleted,
+        flags: obj.flags,
     };
     if(include_flags & STRIP_INCLUDE_ID){
         stripped_obj.id = obj.id;
@@ -1653,7 +1657,7 @@ function render(){
     };
     for(let i = 0; i < length; ++i){
         let obj = canvas_obj_array[i];
-        if(obj.deleted)
+        if(obj.flags & FLAG_DELETED)
             continue;
         const is_selected = selected.has(obj.id);
         switch(obj.type){
@@ -2314,7 +2318,7 @@ document.addEventListener('DOMContentLoaded', function(){
             case 'Backspace': // fall-through
             case 'Delete':{
                 for(let item of selected){
-                    canvas_objs.get(item).deleted = true;
+                    canvas_objs.get(item).flags |= FLAG_DELETED;
                 }
                 publish_delete_by_ids(Array.from(selected));
                 note_delete_by_ids_for_undo(Array.from(selected));
@@ -2896,7 +2900,11 @@ document.addEventListener('DOMContentLoaded', function(){
     });
 });
 
+let hover_is_open = false;
 function make_ok_dialog(html, on_ok){
+    if(hover_is_open)
+        return;
+    hover_is_open = true;
     const hoverpop = document.createElement('section');
     hoverpop.classList.toggle('hover');
     html += `
@@ -2909,6 +2917,7 @@ function make_ok_dialog(html, on_ok){
     document.body.appendChild(hoverpop);
     function remove_hoverpop(){
         document.body.removeChild(hoverpop);
+        hover_is_open = false;
     }
     const ok = document.getElementById('hoverpop-ok');
     function submit(){
