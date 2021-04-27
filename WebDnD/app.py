@@ -65,8 +65,12 @@ def error_reporter(message_type:int, filename:str, line:int, col:int, message:st
 
 @app.route('/')
 def index() -> str:
-    html, _ = pydndc.htmlgen(open('screen.dnd').read(), error_reporter=error_reporter)
-    return html
+    try:
+        html, _ = pydndc.htmlgen(open('screen.dnd').read(), error_reporter=error_reporter)
+    except:
+        return ''
+    else:
+        return html
 
 if __name__ == '__main__':
     socketio.run(app, host="0.0.0.0")

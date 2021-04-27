@@ -1,15 +1,30 @@
+const MSG_PLAIN = 0;
+const MSG_DICEROLL = 1;
+const MSG_ERROR = 2;
 socket.on('chat-msg', function(msgs){
   const log = document.getElementById('chat-history');
   for(let i = 0; i < msgs.length; i++){
     const msg = msgs[i];
     const entry = document.createElement('div');
-    if(msg.user){
-      const user = document.createElement('b');
-      user.appendChild(document.createTextNode(msg.user+': '));
-      entry.appendChild(user);
+    switch(msg.type){
+        case MSG_PLAIN:{
+            if(msg.user){
+              const user = document.createElement('b');
+              user.appendChild(document.createTextNode(msg.user+': '));
+              entry.appendChild(user);
+            }
+            const text = document.createTextNode(msg.text);
+            entry.appendChild(text);
+        }break;
+        case MSG_DICEROLL:{
+            entry.classList.toggle('dice-roll-msg');
+            entry.innerHTML += msg.text;
+        }break;
+        case MSG_ERROR:{
+            const text = document.createTextNode(msg.text);
+            entry.appendChild(text);
+        }break;
     }
-    const text = document.createTextNode(msg.text);
-    entry.appendChild(text);
     log.appendChild(entry);
   }
   log.scrollTo({behavior:'smooth', top:log.scrollHeight});

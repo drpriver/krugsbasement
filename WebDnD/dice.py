@@ -1,137 +1,111 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 import random
-from collections import namedtuple
-verbose_roll_result = namedtuple('verbose_roll_result', ['sum', 'dice_size','dice_outputs'])
-class Dice:
-    def verbose_roll(self):
-        assert(len(self._dice) == 1)
-        base, count = next(iter(self._dice.items()))
-        dice_outputs = [random.randint(1,base) for _ in range(count)]
-        result= sum(dice_outputs)
-        return verbose_roll_result(sum = result, dice_size = base, dice_outputs = dice_outputs )
-    def roll(self):
-        result = 0
-        for base, count in self._dice.items():
-            if abs(base) == 1:
-                result += count * base
-                continue
-            if base < 0:
-                c = -1
-                base = -base
-            else:
-                c = 1
-            if count < 0:
-                result -= c * sum( random.randint(1, base) for _ in range(-count))
-            else:
-                result += c * sum( random.randint(1, base) for _ in range(count))
-        return result
-    def __call__(self):
-        return self.roll()
-    def __init__(self, dice = {}):
-        """Dice are mapped die_size: count"""
-        self._dice = dict(dice)
-        self._trim()
-    def _clone(self):
-        clone = Dice(self._dice)
-        return clone
-    def _trim(self):
-        dice = {k: n for k,n in self._dice.items() if n and k}
-        self._dice = dice
-    def _add_int(self, integer):
-        new = self._clone()
-        new._dice[1] = self._dice.get(1, 0) + integer
-        new._trim()
-        return new
-    def _add_Dice(self, dice):
-        new = Dice( { k: self._dice.get(k, 0) + dice._dice.get(k, 0) for k in set(self._dice).union(set(dice._dice)) } )
-        return new
-    def _int_mul(self, integer):
-        if integer > 0:
-            new = Dice( {k:integer*n for k,n in self._dice.items() } )
-        elif integer == 0:
-            new = Dice()
-        else:
-            new = Dice( {-1*k:integer*n*-1 for k,n in self._dice.items() } )
-            if new._dice.get(-1, 0):
-                new._dice[1] = new._dice.pop(-1)*-1
-        return new
-    def __str__(self):
-        result = ''
-        n = 0
-        for k in reversed(sorted(self._dice.keys())):
-            if not n:
-                if k == 1:
-                    result += f'{self._dice[k]}'
-                elif k < 0:
-                    result += f'-{self._dice[k]}d{-k}'
-                else:
-                    result += f'{self._dice[k]}d{k}'
-                n = 1
-            else:
-                if k == 1:
-                    result += f'{self._dice[k]:+}'
-                elif k < 0:
-                    result += f'-{self._dice[k]}d{-k}'
-                else:
-                    result += f'{self._dice[k]:+}d{k}'
-        if not result:
-            result = '0'
-        return result
-    def __repr__(self):
-        return 'Dice('+repr(self._dice)+')'
-    def __add__(self, other):
-        if isinstance(other, int):
-            return self._add_int(other)
-        elif isinstance(other, Dice):
-            return self._add_Dice(other)
-        else:
-            raise TypeError(other)
-    def __radd__(self, other):
-        return self.__add__(other)
-    def __mul__(self, integer):
-        if not isinstance(integer, int):
-            raise TypeError(integer)
-        else:
-            return self._int_mul(integer)
-    def __rmul__(self, integer):
-        return self.__mul__(integer)
-    def m(self, integer):
-        return self.__mul__(integer)
-    def __sub__(self, other):
-        return self.__add__(-1 * other)
-    def __neg__(self):
-        return self.__mul__(-1)
-    def __eq__(self, other):
-        if type(other) != Dice:
-            return False
-        self_bases = set(self._dice)
-        other_bases = set(other._dice)
-        if self_bases != other_bases:
-            return False
-        for base in self_bases:
-            if self._dice[base] != other._dice[base]:
-                return False
-        return True
-    @property
-    def mean(self):
-        result = sum(count * (base+1)/2 for base, count in self._dice.items())
-        return result
-roll = Dice.roll
-def PMF(integer):
-    return Dice({integer:1})
-def constant(integer):
-    return Dice({1:integer})
+from typing import NamedTuple, List, DefaultDict, Tuple
+from collections import defaultdict
 import re
-def dice_tokenizer(dicestring):
+from io import StringIO
+MINUS = '\u2212'
+NBSPACE='&nbsp;'
+class Die:
+    def __init__(self, base:int, count:int=1, negative:bool=False):
+        self.base     = base
+        self.count    = count
+        self.negative = negative
+    def __eq__(self, other:object)->bool:
+        if not isinstance(other, Die):
+            return False
+        return (self.base, self.count, self.negative) == (other.base, other.count, other.negative)
+    def roll(self) -> DieRoll:
+        if self.base == 1:
+            return DieRoll(self, [self.count])
+        return DieRoll(self, [random.randint(1, self.base) for _ in range(self.count)])
+
+class DieRoll(NamedTuple):
+    die: Die
+    value: List[int]
+
+def format_die_roll_results(results:List[DieRoll]) -> str:
+    if not results:
+        return '<span class="dice-constant">0</span><br> = <span class="dice-total">0</span>'
+    buff = StringIO()
+    
+    val = 0
+    first = results[0]
+    def write_die(roll:DieRoll):
+        nonlocal val
+        if roll.die.base == 1:
+            if roll.die.negative:
+                buff.write(' '+MINUS+NBSPACE)
+            elif buff.tell() != 0:
+                buff.write(' +'+NBSPACE)
+            else:
+                buff.write(NBSPACE*2)
+            buff.write('<span class="dice-constant">'+str(abs(roll.die.count))+'</span>')
+            val += roll.die.count
+            return
+        for v in roll.value:
+            if roll.die.negative:
+                buff.write(' '+MINUS+NBSPACE)
+            elif buff.tell() != 0:
+                buff.write(' +'+NBSPACE)
+            else:
+                buff.write(NBSPACE*2)
+            buff.write('[')
+            if v == roll.die.base:
+                buff.write('<span class="dice-roll dice-roll-max">')
+            elif v == 1:
+                buff.write('<span class="dice-roll dice-roll-min">')
+            else:
+                buff.write('<span class="dice-roll">')
+            if roll.die.negative:
+                val -= v
+            else:
+                val += v
+            buff.write(str(v))
+            buff.write('</span>')
+            buff.write(']')
+    for r in results:
+        write_die(r)
+    buff.write('<br> = ')
+    buff.write('<span class="dice-total">')
+    buff.write(str(val))
+    buff.write('</span>')
+    return buff.getvalue()
+
+def dice_tokenizer(dicestring:str) -> List[str]:
+    if len(dicestring) > 256:
+        raise ValueError
+    # This is super silly, but parsing strings will be short.
+    dicestring = dicestring.replace(MINUS, '-')
     dicestring =  re.sub(r'\s+', '', dicestring)
     while '++' in dicestring or '+-' in dicestring or '-+' in dicestring or '--' in dicestring:
         dicestring = re.sub(r'\+\+', '+', dicestring)
         dicestring = re.sub(r'\+-',  '-', dicestring)
         dicestring = re.sub(r'-\+',  '-', dicestring)
         dicestring = re.sub(r'--',   '+', dicestring)
-    tokens = re.findall(r'\+*(-*\w+)', dicestring)
+    tokens = []
+    this_tok = ''
+    for c in dicestring:
+        if c == '+':
+            if not this_tok:
+                continue
+            tokens.append(this_tok)
+            this_tok =''
+            continue
+        if c == '-':
+            if not this_tok:
+                continue
+            tokens.append(this_tok)
+            this_tok ='-'
+            continue
+        this_tok += c
+    if not this_tok:
+        raise ValueError
+    tokens.append(this_tok)
     return tokens
-def token_normalize(token):
+
+def token_normalize(token:str) -> str:
     if 'd' not in token:
         return token
     if token[0] == '-':
@@ -143,12 +117,15 @@ def token_normalize(token):
         return '1' + token
     else:
         return token
-def dice_from_token(token):
+
+def dice_from_token(token:str) -> Die:
     if token[0] == '-':
         negative = True
         token = token[1:]
     else:
         negative = False
+    if not token:
+        raise ValueError('Cannot parse die from empty string')
     if 'd' not in token:
         base = 1
         count = int(token)
@@ -156,85 +133,75 @@ def dice_from_token(token):
         count_token, base_token = token.split('d')
         count = int(count_token)
         base = int(base_token)
+    if base == 1:
+        return Die(base=base, count=-count if negative else count, negative=False)
     if negative:
-        if base == 1:
-            return Dice({base:-count})
-        else:
-            return Dice({-base:count})
+        return Die(base=base, count=count, negative=True)
     else:
-        return Dice({base:count})
-def dice_from_string(dicestring):
-    return sum(dice_from_token(token_normalize(token)) for token in dice_tokenizer(dicestring))
+        return Die(base=base, count=count, negative=False)
 
-test_dice_strings=[
-    'd6',
-    '1',
-    '1+4',
-    'd6+3',
-    '2d6',
-    '2d6+3',
-    '2d6+1d8',
-    '1d6',
-    '1d6-3',
-    '3-1d6',
-    'd6-1d6',
-    'd4-8+2d6-d20',
-    ]
-def test():
-    for ds in test_dice_strings:
-        die = dice_from_string(ds)
-        print(die, '->', die.roll())
-if __name__=='__main__':
-    import sys
-    args = sys.argv[1:]
-    if args:
-        dice = dice_from_string(' '.join(args))
-        print('  ', dice, '-> ', dice.roll())
-    else:
-        import platform
-        windows = (platform.system().lower()=='windows')
-        print('ctrl-d to exit')
-        print('enter rerolls last die')
-        print('"v" or "verbose" toggles verbose mode')
-        dice = None
-        verbose = False
-        while True:
-            try:
-                r = input('>> ')
-            except EOFError:
-                print()
-                break
-            r = r.replace('roll','')
-            r = r.replace('r','')
-            r = r.replace('/','')
-            r = r.strip().lower()
-            if r =='v' or r == 'verbose':
-                verbose = not verbose
-                continue
-            if r=='q' or r=='quit':
-                print()
-                break
-            if not r and not dice:
-                if not windows:
-                    print("\033[F", end='')
-                    continue
-            if r:
+def simplify_dice_array(dice: List[Die]) -> List[Die]:
+    counts = defaultdict(int)  # type: DefaultDict[Tuple[int, bool], int]
+    for d in dice:
+        if not d.count:
+            continue
+        if not d.base:
+            continue
+        counts[(d.base, d.negative)] += d.count
+    result = []
+    for (base, negative), count in counts.items():
+        if count == 0:
+            continue
+        result.append(Die(base=base, count=count, negative=negative))
+    result.sort(key = lambda x: (-x.base, x.negative))
+    return result
+
+def dice_from_string(dicestring:str) -> List[Die]:
+    # if dicestring.strip() == '0':
+        # return [Die(0, 0, negative=False)]
+    dice = [dice_from_token(token_normalize(token)) for token in dice_tokenizer(dicestring)]
+    dice = simplify_dice_array(dice)
+    return dice
+
+def roll_and_format_dice_array(dice:List[Die]) -> str:
+    ndice = sum(d.count for d in dice)
+    if ndice > 64:
+        return 'Too many dice'
+    rolls = [d.roll() for d in dice]
+    return format_die_roll_results(rolls)
+
+if __name__ == '__main__':
+    from unittest import TestCase, main
+    class TestDiceParsing(TestCase):
+        def test_dice_parses(self) -> None:
+            cases = [
+                ('d6', [Die(6)]),
+                ('1', [Die(1, 1)]),
+                ('1+4', [Die(1, 5)]),
+                ('d6+3', [Die(6), Die(1,3)]),
+                ('2d6', [Die(6,2)]),
+                ('2d6+3', [Die(6,2), Die(1,3)]),
+                ('1d6', [Die(6)]),
+                ('1d6-3', [Die(6), Die(1,-3)]),
+                ('3-1d6', [Die(6, 1, True), Die(1,3)]),
+                ('d6-1d6', [Die(6, 1, False), Die(6,1, True)]),
+                ('d4-8+2d6-d20', [Die(20, 1, True), Die(6,2), Die(4), Die(1, -8)]),
+                ('d4'+MINUS+'8+2d6-d20', [Die(20, 1, True), Die(6,2), Die(4), Die(1, -8)]),
+                ('0', []),
+                ('1-1', []),
+                ]
+            for string, gt_dice in cases:
+                dice = dice_from_string(string)
+                self.assertEqual(dice, gt_dice)
+        def test_rejects_invalid(self) -> None:
+            cases = ['', '-', MINUS, '++', 'd20-', 'asd', '2&2', 'akjsdkl;as9283', '0b1', '0x3', '-+']
+            for case in cases:
                 try:
-                    dice = dice_from_string(r)
-                except ValueError:
-                    print("   Error in parsing input")
-                    continue
-            else:
-                if not windows:
-                    print("\033[F", end='')
-            if verbose:
-                try:
-                    verbose_result = dice.verbose_roll()
-                except AssertionError:
-                    pass
+                    x = dice_from_string(case)
+                except Exception:
+                    self.assertTrue(True)
                 else:
-                    print('  ', dice, '->', ','.join(f'[{num}]' for num in verbose_result.dice_outputs), '->', verbose_result.sum)
-                    continue
-            print('  ', dice, '->', dice.roll())
-            
+                    self.fail(f'dice_from_string({case!r}) = {x}, should\'ve thrown')
 
+
+    main()

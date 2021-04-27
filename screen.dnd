@@ -86,7 +86,7 @@ David20::title @hide
   }
   body > div {
     display: grid;
-    grid-template-columns: auto 14em;
+    grid-template-columns: auto 17em;
     grid-template-rows: 1fr;
     height: 100%;
     margin: 0;
@@ -107,11 +107,12 @@ David20::title @hide
   #chat-history {
     overflow-y: scroll;
     height: 800px;
-    width: 14em;
+    width: 17em;
   }
   #chat-history div {
     border: 1px dotted gray;
     margin:-1px 0 0 -1px;
+    padding: 2px 12px;
     font-family: "Helvetica Neue", "Segoe UI", sans-serif;
   }
   .chat > textarea {
@@ -174,6 +175,24 @@ David20::title @hide
     margin: auto;
     text-align: center;
     padding: 1em 1em 1em 1em;
+  }
+  div.dice-roll-msg{
+  }
+  span.dice-roll, span.dice-constant {
+    font-size: 1.2em;
+    vertical-align:middle;
+    padding: 2px;
+  }
+  span.dice-total {
+    font-size: 2em;
+    vertical-align:middle;
+    padding: 4px;
+  }
+  span.dice-roll-max {
+    color: green;
+  }
+  span.dice-roll-min {
+    color: red;
   }
   /*endcss*/
 ::js @noinline
