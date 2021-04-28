@@ -78,7 +78,13 @@ def imgs(filename):
 @app.route('/state', methods=['GET', 'POST'])
 def get_app_state():
     if request.method == 'GET':
+        args = request.args
         state = {'chat':chat.get_history(), 'canvas':canvas.get_live_objects(), 'app':{'session_id':session_id}}
+        if 'which' in args:
+            try:
+                state = state[args['which']]
+            except:
+                return jsonify({})
         return jsonify(state)
     else:
         newstate = request.get_json()

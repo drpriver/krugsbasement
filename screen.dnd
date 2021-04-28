@@ -13,18 +13,21 @@ David20::title @hide
     ::div
       Move
     ::div
-      Line
-    ::div
-      Rect
-    ::div
-      Filled-Rect
-    ::div
       Wall
+      ::raw
+        <span></span>
+        <span>☰</span>
     ::div
       Door
       ::raw
         <span></span>
         <span>☰</span>
+    ::div
+      Line
+    ::div
+      Rect
+    ::div
+      Filled-Rect
     ::div
       Floor
     ::div
@@ -206,14 +209,15 @@ David20::title @hide
   canvas.js
 
 ::js @inline
-  async function get_state(){
-    const resp = await fetch('/state');
-    const state = await resp.json();
-    return state;
-  }
-  function get(){
+  function get(which){
     const link = document.createElement('a');
-    link.download = 'state.json';
-    link.href = '/state';
+    if(which){
+      link.download = which + '.json';
+      link.href = '/state?which='+which;
+    }
+    else{
+      link.download = 'state.json';
+      link.href = '/state';
+    }
     link.click();
   }

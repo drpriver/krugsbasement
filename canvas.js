@@ -241,7 +241,12 @@ const DOOR_DOOR = 0;
 // const DOOR_PORTCULLIS = 2;
 const DOOR_SECRET = 3;
 const DOOR_BRICKED_WALL = 4;
+const DOOR_PORTAL = 5;
 let current_door = DOOR_DOOR;
+
+//
+// wall state flags
+let walls_snap_to_half_grid = false;
 
 // orientations
 const VERTICAL = 0;
@@ -433,10 +438,28 @@ function snap_to_grid(x){
     }
     return x;
 }
+function snap_to_half_grid(x){
+    const SNAP = REFERENCE_WIDTH/2;
+    x = Math.round(x);
+    const remainder = x & (SNAP-1);
+    if(remainder < (SNAP>>1)){
+        x -= remainder;
+    }
+    else{
+        x += SNAP - remainder;
+    }
+    return x;
+}
 
 function make_gridline(id, base_x, base_y, color){
-    base_x = snap_to_grid(base_x);
-    base_y = snap_to_grid(base_y);
+    if(walls_snap_to_half_grid){
+        base_x = snap_to_half_grid(base_x);
+        base_y = snap_to_half_grid(base_y);
+    }
+    else{
+        base_x = snap_to_grid(base_x);
+        base_y = snap_to_grid(base_y);
+    }
     const obj =  {
         type: GRID_LINE,
         id: id,
@@ -459,17 +482,32 @@ function add_gridline_point(obj, x, y){
     const last_x = points.length? points[points.length-2]+obj.base_x : obj.base_x;
     const last_y = points.length? points[points.length-1]+obj.base_y : obj.base_x;
     const dist = Math.abs(last_x - x) + Math.abs(last_y - y);
-    if(dist < 60)
-        return;
-    if(dist < 128){
-        let xrem = Math.round(x) & (REFERENCE_WIDTH-1);
-        let yrem = Math.round(y) & (REFERENCE_WIDTH-1);
-        if((xrem > 16 && xrem < 48) || (yrem > 16 && yrem < 48)){
+    if(walls_snap_to_half_grid){
+        if(dist < 30)
             return;
+        if(dist < 64){
+            let xrem = Math.round(x) & ((REFERENCE_WIDTH>>1)-1);
+            let yrem = Math.round(y) & ((REFERENCE_WIDTH>>1)-1);
+            if((xrem > 8 && xrem < 24) || (yrem > 8 && yrem < 24)){
+                return;
+            }
         }
+        x = snap_to_half_grid(x);
+        y = snap_to_half_grid(y);
     }
-    x = snap_to_grid(x);
-    y = snap_to_grid(y);
+    else {
+        if(dist < 60)
+            return;
+        if(dist < 128){
+            let xrem = Math.round(x) & (REFERENCE_WIDTH-1);
+            let yrem = Math.round(y) & (REFERENCE_WIDTH-1);
+            if((xrem > 16 && xrem < 48) || (yrem > 16 && yrem < 48)){
+                return;
+            }
+        }
+        x = snap_to_grid(x);
+        y = snap_to_grid(y);
+    }
     x -= obj.base_x;
     y -= obj.base_y;
     if(points.length > 1){
@@ -812,8 +850,8 @@ const UNDO_EVENT_MASS_CREATE = 3;
 // {
 //  type: UNDO_EVENT_UPDATE,
 //  id: 123,
-//  before: {...},
-//  after: {...},
+//  before: {stripped...},
+//  after: {stripped...},
 // }
 function push_undo_event(undo_event){
     undo_stack.length = undo_position;
@@ -2115,6 +2153,60 @@ function render(){
                                 break;
                         }
                     }break;
+                    case DOOR_PORTAL:{
+                        if(is_selected){
+                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.lineWidth=8;
+                            switch(obj.orientation){
+                                case VERTICAL:
+                                    ctx.strokeRect(obj.base_x-10, obj.base_y-16, 20, 32);
+                                    break;
+                                case HORIZONTAL:
+                                    ctx.strokeRect(obj.base_x-16, obj.base_y-10, 32, 20);
+                                    break;
+                                case TOPLEFT_DOWNRIGHT:
+                                    ctx.lineWidth=22;
+                                    ctx.beginPath();
+                                    ctx.moveTo(obj.base_x-22, obj.base_y-22)
+                                    ctx.lineTo(obj.base_x+22, obj.base_y+22);
+                                    ctx.stroke();
+                                    break;
+                                case TOPRIGHT_DOWNLEFT:
+                                    ctx.lineWidth=22;
+                                    ctx.beginPath();
+                                    ctx.moveTo(obj.base_x+22, obj.base_y-22)
+                                    ctx.lineTo(obj.base_x-22, obj.base_y+22);
+                                    ctx.stroke();
+                                    break;
+                            }
+                        }
+                        ctx.fillStyle = '#fff';
+                        ctx.lineWidth=4;
+                        switch(obj.orientation){
+                            case VERTICAL:
+                                ctx.fillRect(obj.base_x-10, obj.base_y-16, 20, 32);
+                                break;
+                            case HORIZONTAL:
+                                ctx.fillRect(obj.base_x-16, obj.base_y-10, 32, 20);
+                                break;
+                            case TOPLEFT_DOWNRIGHT:
+                                ctx.strokeStyle = '#fff';
+                                ctx.lineWidth=10;
+                                ctx.beginPath();
+                                ctx.moveTo(obj.base_x-16, obj.base_y-16)
+                                ctx.lineTo(obj.base_x+16, obj.base_y+16);
+                                ctx.stroke();
+                                break;
+                            case TOPRIGHT_DOWNLEFT:
+                                ctx.strokeStyle = '#fff';
+                                ctx.lineWidth=10;
+                                ctx.beginPath();
+                                ctx.moveTo(obj.base_x+16, obj.base_y-16)
+                                ctx.lineTo(obj.base_x-16, obj.base_y+16);
+                                ctx.stroke();
+                                break;
+                        }
+                    }break;
                     case DOOR_SECRET:{
                         ctx.save();
                         ctx.textBaseline = 'middle';
@@ -2338,6 +2430,9 @@ document.addEventListener('DOMContentLoaded', function(){
                     case DOOR_BRICKED_WALL:
                         name.innerText = '- Bricks';
                         break;
+                    case DOOR_PORTAL:
+                        name.innerText = '- Portal';
+                        break;
                 }
             }
             const triangle = tool.getElementsByTagName('span')[1];
@@ -2375,6 +2470,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     {doortype:DOOR_DOOR,         text:'Door',         },
                     {doortype:DOOR_SECRET,       text:'Secret Door',  },
                     {doortype:DOOR_BRICKED_WALL, text:'Bricked Wall', },
+                    {doortype:DOOR_PORTAL,       text:'Portal', },
                 ];
                 for(let i = 0; i < options.length; ++i){
                     const option = options[i];
@@ -2383,6 +2479,69 @@ document.addEventListener('DOMContentLoaded', function(){
                     const text = document.createTextNode(option.text);
                     s.appendChild(text);
                     s.addEventListener('mousedown', make_cb(option.doortype));
+                    trimenu.appendChild(s);
+                }
+                document.body.appendChild(trimenu);
+                canvas.addEventListener('mousedown', close_menu);
+            });
+        }
+        // Lot of copy paste amongst these tools.
+        // Can probably abstract over it maybe?
+        // Meh. The 4th one is where I draw the line.
+        if(tool.firstChild.textContent.trim() == 'Wall'){
+            let has_menu = false;
+            const name = tool.getElementsByTagName('span')[0];
+            function change_wall(on_the_half){
+                walls_snap_to_half_grid = on_the_half;
+                if(on_the_half){
+                    name.innerText = "- 5'";
+                }
+                else {
+                    name.innerText = ''
+                }
+            }
+            const triangle = tool.getElementsByTagName('span')[1];
+            triangle.addEventListener('click', function(e){
+                e.preventDefault();
+                e.stopPropagation();
+                if(has_menu)
+                    return;
+                has_menu = true;
+                const trimenu = document.createElement('section');
+                trimenu.classList.add('menu');
+                trimenu.style.left = e.clientX + 'px';
+                const window_height = window.innerHeight;
+                trimenu.style.bottom = (window_height - e.clientY)+'px'
+                function close_menu(e){
+                    if(e){
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
+                    document.body.removeChild(trimenu);
+                    canvas.removeEventListener('mousedown', close_menu);
+                    has_menu = false;
+                }
+                function make_cb(on_the_half){
+                    function cb(e){
+                        e.stopPropagation();
+                        e.preventDefault();
+                        change_tool(WALL_TOOL);
+                        change_wall(on_the_half);
+                        close_menu();
+                    }
+                    return cb;
+                }
+                const options = [
+                    {on_the_half:false, text: "10' Grid"},
+                    {on_the_half:true,  text: "5' Grid" },
+                ];
+                for(let i = 0; i < options.length; ++i){
+                    const option = options[i];
+                    const s = document.createElement('section');
+                    s.classList.add('menuitem')
+                    const text = document.createTextNode(option.text);
+                    s.appendChild(text);
+                    s.addEventListener('mousedown', make_cb(option.on_the_half));
                     trimenu.appendChild(s);
                 }
                 document.body.appendChild(trimenu);
@@ -2471,19 +2630,19 @@ document.addEventListener('DOMContentLoaded', function(){
                 change_tool(MOVE_TOOL);
                 break;
             case 'a':
-                change_tool(LINE_TOOL);
-                break;
-            case 's':
-                change_tool(RECT_TOOL);
-                break;
-            case 'd':
-                change_tool(FILLED_RECT_TOOL);
-                break;
-            case 'f':
                 change_tool(WALL_TOOL);
                 break;
-            case 'g':
+            case 's':
                 change_tool(DOOR_TOOL);
+                break;
+            case 'd':
+                change_tool(LINE_TOOL);
+                break;
+            case 'f':
+                change_tool(RECT_TOOL);
+                break;
+            case 'g':
+                change_tool(FILLED_RECT_TOOL);
                 break;
             case 'h':
                 change_tool(FLOOR_TOOL);

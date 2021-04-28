@@ -2,6 +2,134 @@ const MSG_PLAIN = 0;
 const MSG_DICEROLL = 1;
 const MSG_ERROR = 2;
 
+function add_chat_msgs(log, msgs){
+    for(let i = 0; i < msgs.length; i++){
+        const msg = msgs[i];
+        const entry = document.createElement('div');
+        switch(msg.type){
+            case MSG_PLAIN:{
+                if(msg.user){
+                    const user = document.createElement('b');
+                    user.appendChild(document.createTextNode(msg.user+': '));
+                    entry.appendChild(user);
+                }
+                const text = document.createTextNode(msg.data);
+                entry.appendChild(text);
+            }break;
+            case MSG_DICEROLL:{
+                entry.classList.add('dice-roll-msg');
+                const formatted = format_dice_roll(msg.data)
+                entry.innerHTML += formatted;
+            }break;
+            case MSG_ERROR:{
+                const error = document.createElement('span');
+                error.classList.add('chat-error');
+                const text = document.createTextNode(msg.data);
+                error.appendChild(text);
+                entry.appendChild(error);
+            }break;
+        }
+        log.appendChild(entry);
+    }
+}
+
+socket.on('chat-msg', function(msgs){
+    const log = document.getElementById('chat-history');
+    add_chat_msgs(log, msgs);
+    log.scrollTo({behavior:'smooth', top:log.scrollHeight});
+});
+
+socket.on('chat-create', function(msgs){
+    const log = document.getElementById('chat-history');
+    add_chat_msgs(log, msgs);
+    log.scrollTop = log.scrollHeight;
+});
+
+function resize_chat(){
+    const hist = document.getElementById('chat-history');
+    const ta = document.getElementById('chatinput');
+    hist.style.height = window.innerHeight-12-100 + 'px';
+    hist.scrollTo({top:hist.scrollHeight});
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+    resize_chat();
+    window.addEventListener('resize', resize_chat);
+    const ta = document.getElementById('chatinput');
+    const history = [];
+    let history_index = 0;
+    let current_text = "";
+    ta.addEventListener('keydown', function(e){
+        e.stopPropagation();
+        let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
+        if(!modified && e.key == "Enter"){
+            e.stopPropagation();
+            e.preventDefault();
+            const entry = document.createElement('div');
+            const value = ta.value;
+            if(value.length){
+                ta.value = "";
+                const trimmed = value.trim();
+                if(maybe_handle_command(value)){
+                }
+                else {
+                    socket.emit('chat-input', value);
+                }
+                if(!(history.length && value == history[history.length-1])){
+                    history.push(value);
+                }
+                history_index = history.length;
+                current_text = "";
+            }
+        }
+        else if(!modified && e.key == "ArrowUp"){
+            e.stopPropagation();
+            e.preventDefault();
+            if(history_index > 0 && history_index <= history.length){
+                if(history_index == history.length){
+                    current_text = ta.value;
+                }
+                history_index--;
+                ta.value = history[history_index];
+            }
+        }
+        else if(!modified && e.key == "ArrowDown"){
+            e.stopPropagation();
+            e.preventDefault();
+            if(history_index >= 0 && history_index < history.length){
+                history_index++;
+                if(history_index == history.length){
+                    ta.value = current_text;
+                }
+                else{
+                    ta.value = history[history_index];
+                }
+            }
+        }
+    });
+});
+
+
+function maybe_handle_command(value){
+    let splitted = value.split(" ");
+    let split = [];
+    for(let s of splitted){
+        if(!s)
+            continue;
+        split.push(s);
+    }
+    if(split.length && split[0] === "/get-state"){
+        if(split.length > 1){
+            get(split[1]);
+        }
+        else{
+            get('');
+        }
+        return true;
+    }
+    return false;
+}
+
 function format_dice_roll(roll_result){
     // This is pretty janky. I don't know if js has a
     // stringbuilder or if js strings are always string builders
@@ -71,106 +199,3 @@ function format_dice_roll(roll_result){
     result += '</span>';
     return result;
 }
-function add_chat_msgs(log, msgs){
-    for(let i = 0; i < msgs.length; i++){
-        const msg = msgs[i];
-        const entry = document.createElement('div');
-        switch(msg.type){
-            case MSG_PLAIN:{
-                if(msg.user){
-                    const user = document.createElement('b');
-                    user.appendChild(document.createTextNode(msg.user+': '));
-                    entry.appendChild(user);
-                }
-                const text = document.createTextNode(msg.data);
-                entry.appendChild(text);
-            }break;
-            case MSG_DICEROLL:{
-                entry.classList.add('dice-roll-msg');
-                const formatted = format_dice_roll(msg.data)
-                entry.innerHTML += formatted;
-            }break;
-            case MSG_ERROR:{
-                const error = document.createElement('span');
-                error.classList.add('chat-error');
-                const text = document.createTextNode(msg.data);
-                error.appendChild(text);
-                entry.appendChild(error);
-            }break;
-        }
-        log.appendChild(entry);
-    }
-}
-socket.on('chat-msg', function(msgs){
-    const log = document.getElementById('chat-history');
-    add_chat_msgs(log, msgs);
-    log.scrollTo({behavior:'smooth', top:log.scrollHeight});
-});
-socket.on('chat-create', function(msgs){
-    const log = document.getElementById('chat-history');
-    add_chat_msgs(log, msgs);
-    log.scrollTop = log.scrollHeight;
-});
-function resize_chat(){
-    const hist = document.getElementById('chat-history');
-    const ta = document.getElementById('chatinput');
-    hist.style.height = window.innerHeight-12-100 + 'px';
-    hist.scrollTo({top:hist.scrollHeight});
-}
-
-document.addEventListener('DOMContentLoaded', function(){
-    resize_chat();
-    window.addEventListener('resize', resize_chat);
-    const ta = document.getElementById('chatinput');
-    const history = [];
-    let history_index = 0;
-    let current_text = "";
-    ta.addEventListener('keydown', function(e){
-        e.stopPropagation();
-        let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
-        if(!modified && e.key == "Enter"){
-            e.stopPropagation();
-            e.preventDefault();
-            const entry = document.createElement('div');
-            const value = ta.value;
-            if(value.length){
-                ta.value = "";
-                if(value.trim() === "/get"){
-                    get();
-                }
-                else {
-                    socket.emit('chat-input', value);
-                }
-                if(!(history.length && value == history[history.length-1])){
-                    history.push(value);
-                }
-                history_index = history.length;
-                current_text = "";
-            }
-        }
-        else if(!modified && e.key == "ArrowUp"){
-            e.stopPropagation();
-            e.preventDefault();
-            if(history_index > 0 && history_index <= history.length){
-                if(history_index == history.length){
-                    current_text = ta.value;
-                }
-                history_index--;
-                ta.value = history[history_index];
-            }
-        }
-        else if(!modified && e.key == "ArrowDown"){
-            e.stopPropagation();
-            e.preventDefault();
-            if(history_index >= 0 && history_index < history.length){
-                history_index++;
-                if(history_index == history.length){
-                    ta.value = current_text;
-                }
-                else{
-                    ta.value = history[history_index];
-                }
-            }
-        }
-    });
-});
