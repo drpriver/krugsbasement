@@ -198,6 +198,8 @@ const FLAG_ALL = FLAG_NONE | FLAG_DELETED;
 //    flags: FLAG_NONE,
 //    text: "foozle",
 //    color: "#fff",
+//    width: 1, // in squares
+//    height: 1, // in squares
 //  }
 //
 //  img-token
@@ -211,6 +213,8 @@ const FLAG_ALL = FLAG_NONE | FLAG_DELETED;
 //    flags: FLAG_NONE,
 //    url: "foozle.com/foo.png",
 //    img: Image,
+//    width: 1, // in squares
+//    height: 1, // in squares
 //  }
 //
 //  door
@@ -702,10 +706,9 @@ function add_text(id, base_x, base_y, text, size){
     const obj = make_text(id, base_x, base_y, text, size);
     add_canv_obj(obj);
 }
-function make_ez_token(id, base_x, base_y, text, color){
-    base_x = base_x - (base_x & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
-    base_y = base_y - (base_y & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
-
+function make_ez_token(id, base_x, base_y, text, color, width, height){
+    base_x = base_x - (base_x & (REFERENCE_WIDTH-1));
+    base_y = base_y - (base_y & (REFERENCE_WIDTH-1));
     const obj =  {
         type: EZ_TOKEN,
         id: id,
@@ -714,16 +717,18 @@ function make_ez_token(id, base_x, base_y, text, color){
         flags: FLAG_NONE,
         text: text,
         color:color,
+        width: width,
+        height: height,
     };
     return obj;
 }
-function add_ez_token(id, base_x, base_y, text, color){
-    const obj = make_ez_token(id, base_x, base_y, text, color);
+function add_ez_token(id, base_x, base_y, text, color, width, height){
+    const obj = make_ez_token(id, base_x, base_y, text, color, width, height);
     add_canv_obj(obj);
 }
 function make_img_token(id, base_x, base_y, url){
-    base_x = base_x - (base_x & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
-    base_y = base_y - (base_y & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
+    base_x = base_x - (base_x & (REFERENCE_WIDTH-1));
+    base_y = base_y - (base_y & (REFERENCE_WIDTH-1));
 
     const obj =  {
         type: IMG_TOKEN,
@@ -733,12 +738,14 @@ function make_img_token(id, base_x, base_y, url){
         flags: FLAG_NONE,
         url: url,
         img: null,
+        width: 1, 
+        height: 1,
     };
     const img = new Image(REFERENCE_WIDTH, REFERENCE_WIDTH);
     img.addEventListener('load', function(){
         obj.img = img;
         request_render();
-    });
+    }, {once:true});
     img.src = url;
     return obj;
 }
@@ -763,11 +770,15 @@ function make_image(id, base_x, base_y, width, height, url){
         url: url,
         img: null,
     };
-    const img = new Image(width, height);
+    const img = width && height? new Image(width, height) : new Image();
     img.addEventListener('load', function(){
         obj.img = img;
+        if(!width || !height){
+            obj.width = img.width;
+            obj.height = img.height;
+        }
         request_render();
-    });
+    }, {once:true});
     img.src = url;
     return obj;
 }
@@ -1042,7 +1053,7 @@ function paste_from_copy_buffer_at(x, y){
                 img.addEventListener('load', function(){
                     obj.img = img;
                     request_render();
-                });
+                }, {once:true});
                 img.src = obj.url;
             }break;
             case TEXT:
@@ -1053,15 +1064,19 @@ function paste_from_copy_buffer_at(x, y){
             case EZ_TOKEN:
                 obj.text = stripped.text;
                 obj.color = stripped.color;
+                obj.width = stripped.width;
+                obj.height = stripped.height;
                 break;
             case IMG_TOKEN:{
                 obj.url = stripped.url;
                 obj.img = null;
-                const img = new Image(REFERENCE_WIDTH, REFERENCE_WIDTH);
+                obj.width = stripped.width;
+                obj.height = stripped.height;
+                const img = new Image(obj.width, obj.height);
                 img.addEventListener('load', function(){
                     obj.img = img;
                     request_render();
-                });
+                }, {once:true});
                 img.src = obj.url;
             }break;
             case DOOR:{
@@ -1108,7 +1123,7 @@ socket.on('canvas-create', function(objs){
                 img.addEventListener('load', function(){
                     obj.img = img;
                     request_render();
-                });
+                }, {once:true});
                 img.src = obj.url;
             }break;
             case TEXT:
@@ -1118,11 +1133,11 @@ socket.on('canvas-create', function(objs){
                 break;
             case IMG_TOKEN:{
                 obj.img = null;
-                const img = new Image(REFERENCE_WIDTH, REFERENCE_WIDTH);
+                const img = new Image(obj.width, obj.height);
                 img.addEventListener('load', function(){
                     obj.img = img;
                     request_render();
-                });
+                }, {once:true});
                 img.src = obj.url;
             }break;
             case DOOR:{
@@ -1210,7 +1225,7 @@ function set_obj_states_from_stripped_objs(obj_states){
                     img.addEventListener('load', function(){
                         obj.img = img;
                         request_render();
-                    });
+                    }, {once:true});
                     img.src = obj.url;
                 }
             }break;
@@ -1221,8 +1236,12 @@ function set_obj_states_from_stripped_objs(obj_states){
             case EZ_TOKEN:
                 obj.color = state.color;
                 obj.text = state.text;
+                obj.width = state.width;
+                obj.height = state.height;
                 break;
             case IMG_TOKEN:{
+                obj.width = state.width;
+                obj.height = state.height;
                 // idk
             }break;
             case DOOR:
@@ -1329,12 +1348,13 @@ function note_selections(){
             case EZ_TOKEN:{
                 if(!(selection_type & SELECT_TOKEN))
                     break;
+                const radius_x = obj.width*REFERENCE_WIDTH/2;
+                const radius_y = obj.height*REFERENCE_WIDTH/2;
                 const token_bbox = {
-                    // TODO move magic numbers to a variable
-                    x0: obj.base_x - 28,
-                    x1: obj.base_x + 28,
-                    y0: obj.base_y - 28,
-                    y1: obj.base_y + 28,
+                    x0: obj.base_x,
+                    x1: obj.base_x + 2*radius_x,
+                    y0: obj.base_y,
+                    y1: obj.base_y + 2*radius_y,
                 };
                 if(bbox_overlaps(token_bbox, selection_bbox)){
                     selected.add(obj.id);
@@ -1356,7 +1376,8 @@ function note_selections(){
                 }
             }
             case DOOR:{
-
+                if(!(selection_type & SELECT_MAP))
+                    break;
                 const is_vertical = obj.orientation === VERTICAL;
                 if(is_vertical){
                     // FIXME: I just hardcoded some random values.
@@ -1563,9 +1584,13 @@ function strip_obj(obj, include_flags){
         case EZ_TOKEN:
             stripped_obj.color = obj.color;
             stripped_obj.text = obj.text;
+            stripped_obj.width = obj.width;
+            stripped_obj.height = obj.height;
             break;
         case IMG_TOKEN:
             stripped_obj.url = obj.url;
+            stripped_obj.width = obj.width;
+            stripped_obj.height = obj.height;
             break;
         case DOOR:
             stripped_obj.color = obj.color;
@@ -1605,6 +1630,106 @@ function get_stripped_state_by_id(ids){
 }
 function publish_obj_updates(updates){
     socket.emit('canvas-update', updates);
+}
+
+function edit_is_impossible(){
+    if(selected.size !== 1)
+        return true;
+    const first = selected.values().next().value;
+    const obj = canvas_objs.get(first);
+    switch(obj.type){
+        case FREEHAND_LINE:
+            return true;
+        case GRID_LINE:
+            return true;
+        case RECT:
+            return true;
+        case GRID_RECT:
+            return true;
+        case FILLED_RECT:
+            return true;
+        case IMAGE:
+            return false;
+        case TEXT:
+            return true;
+        case EZ_TOKEN:
+            return false;
+        case IMG_TOKEN:
+            return false;
+        case DOOR:
+            return true;
+    }
+    return false;
+}
+
+function launch_edit_dialog(){
+    if(selected.size !== 1)
+        return;
+    const first = selected.values().next().value;
+    const obj = canvas_objs.get(first);
+    switch(obj.type){
+        case FREEHAND_LINE:
+            return;
+        case GRID_LINE:
+            return;
+        case RECT:
+            return;
+        case GRID_RECT:
+            return;
+        case FILLED_RECT:
+            return;
+        case IMAGE:
+            return;
+        case TEXT:
+            return;
+        case EZ_TOKEN:{
+            const html = `
+            <h2>Edit Token</h2>
+            <table class="input-container">
+                <tr>
+                    <td><label for="color">Color:</label>
+                    <td><input type="color" id="hover-color" value="`+obj.color+`">
+                </tr>
+                <tr>
+                    <td><label for="width">Width (sq):</label>
+                    <td><input type="number" name="width" id="hover-width" min="1" max="5" value="`+obj.width+`" class="numeric-input">
+                    <td><label for="height">Height (sq):</label>
+                    <td><input type="number" name="height" id="hover-height" min="1" max="5" value="`+obj.height+`" class="numeric-input">
+                </tr>
+                <tr>
+                    <td><label for="text">Text:</label>
+                    <td colspan="3"><input type="text" name="text" id="hover-text" value="`+obj.text+`">
+                </tr>
+            </table>
+            `;
+            make_ok_dialog(html, function(hoverpop){
+                const text_input = document.getElementById('hover-text');
+                const text = text_input.value;
+                const before = strip_obj(obj, STRIP_INCLUDE_ID);
+                if(text){
+                    obj.text = text;
+                }
+                const width = +document.getElementById('hover-width').value;
+                const height = +document.getElementById('hover-height').value;
+                if(!width)
+                    width = 1;
+                if(!height)
+                    height = 1;
+                obj.width = width;
+                obj.height = height;
+                const color = document.getElementById('hover-color').value;
+                obj.color = color;
+                const after = strip_obj(obj, STRIP_INCLUDE_ID);
+                publish_obj_updates([after]);
+                request_render();
+            });
+        }return;
+        case IMG_TOKEN:{
+        }return;
+        case DOOR:
+            return;
+    }
+
 }
 
 // State variable so that we don't double render in a single frame.
@@ -1808,11 +1933,14 @@ function render(){
                 }
             }break;
             case EZ_TOKEN:{
+                // TODO: currently we don't consider radius_y
+                const radius_x = obj.width*REFERENCE_WIDTH/2;
+                const radius_y = obj.height*REFERENCE_WIDTH/2;
                 const token_bbox = {
-                    x0: obj.base_x - 32,
-                    x1: obj.base_x + 32,
-                    y0: obj.base_y - 32,
-                    y1: obj.base_y + 32,
+                    x0: obj.base_x,
+                    x1: obj.base_x + 2*radius_x,
+                    y0: obj.base_y,
+                    y1: obj.base_y + 2*radius_y,
                 };
                 if(!bbox_overlaps(token_bbox, canvas_bbox)){
                     break;
@@ -1820,22 +1948,22 @@ function render(){
                 if(is_selected){
                     ctx.beginPath();
                     ctx.fillStyle = SELECTED_COLOR;
-                    ctx.arc(obj.base_x, obj.base_y, 36, 0, 2*Math.PI);
+                    ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x+4, 0, 2*Math.PI);
                     ctx.fill();
                 }
                 ctx.beginPath();
                 ctx.fillStyle = '#000';
-                ctx.arc(obj.base_x, obj.base_y, 32, 0, 2*Math.PI);
+                ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x, 0, 2*Math.PI);
                 ctx.fill();
                 ctx.beginPath();
                 ctx.fillStyle = obj.color;
-                ctx.arc(obj.base_x, obj.base_y, 30, 0, 2*Math.PI);
+                ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x-2, 0, 2*Math.PI);
                 ctx.fill();
                 ctx.font = '18px sans-serif';
                 ctx.textBaseline = 'middle';
                 ctx.textAlign = "center";
                 ctx.fillStyle = '#000';
-                ctx.fillText(obj.text, obj.base_x, obj.base_y);
+                ctx.fillText(obj.text, obj.base_x+radius_x, obj.base_y+radius_y);
             }break;
             case IMAGE:{
                 const rect_bbox = {
@@ -1849,7 +1977,7 @@ function render(){
                 }
                 if(is_selected){
                     ctx.fillStyle = SELECTED_COLOR+'aa';
-                    ctx.fillRect(obj.base_x-2, obj.base_y-2, obj.width+4, obj.height+4);
+                    ctx.fillRect(obj.base_x-4, obj.base_y-4, obj.width+8, obj.height+8);
                 }
                 if(obj.img)
                     ctx.drawImage(obj.img, obj.base_x, obj.base_y, obj.width, obj.height);
@@ -1859,32 +1987,37 @@ function render(){
                 }
             }break;
             case IMG_TOKEN:{
+                // TODO: currently we don't consider radius_y
+                const radius_x = obj.width*REFERENCE_WIDTH/2;
+                const radius_y = obj.height*REFERENCE_WIDTH/2;
                 const token_bbox = {
-                    x0: obj.base_x - 28,
-                    x1: obj.base_x + 28,
-                    y0: obj.base_y - 28,
-                    y1: obj.base_y + 28,
+                    x0: obj.base_x,
+                    x1: obj.base_x + 2*radius_x,
+                    y0: obj.base_y,
+                    y1: obj.base_y + 2*radius_y,
                 };
                 if(!bbox_overlaps(token_bbox, canvas_bbox)){
                     break;
                 }
                 if(is_selected){
                     ctx.beginPath();
-                    ctx.fillStyle = SELECTED_COLOR;
-                    ctx.arc(obj.base_x, obj.base_y, 30, 0, 2*Math.PI);
-                    ctx.fill();
+                    ctx.lineWidth = 4;
+                    ctx.strokeStyle = SELECTED_COLOR;
+                    ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x+2, 0, 2*Math.PI);
+                    ctx.stroke();
                 }
                 ctx.beginPath();
-                ctx.fillStyle = '#000';
-                ctx.arc(obj.base_x, obj.base_y, 28, 0, 2*Math.PI);
-                ctx.fill();
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = '#000';
+                ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x-2, 0, 2*Math.PI);
+                ctx.stroke();
                 if(obj.img){
-                    ctx.drawImage(obj.img, obj.base_x-28, obj.base_y-28, 56, 56);
+                    ctx.drawImage(obj.img, obj.base_x, obj.base_y, radius_x*2, radius_y*2);
                 }
                 else {
                     ctx.beginPath();
                     ctx.fillStyle = '#333333';
-                    ctx.arc(obj.base_x, obj.base_y, 24, 0, 2*Math.PI);
+                    ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x-4, 0, 2*Math.PI);
                     ctx.fill();
                 }
             }break;
@@ -2315,6 +2448,10 @@ document.addEventListener('DOMContentLoaded', function(){
                 camera_y -= 256;
                 request_render();
             }break;
+            case 'Escape':{
+                selected.clear();
+                request_render();
+            }
             case 'Backspace': // fall-through
             case 'Delete':{
                 for(let item of selected){
@@ -2719,8 +2856,16 @@ document.addEventListener('DOMContentLoaded', function(){
                     <h2>Enter Image</h2>
                     <table class="input-container">
                         <tr>
-                            <td><label for="url">URL:</label>
-                            <td><input type="url" name="url" id="hover-url" value="">
+                            <td><label for="width">Width:</label>
+                            <input type="number" name="width" id="hover-width" min="0" class="numeric-input">
+                            <td><label for="height">Height:</label>
+                            <input type="number" name="height" id="hover-height" min="0" class="numeric-input">
+                            <td><label for="hover-checkbox">Round to Grid</label>
+                            <input name="round" type="checkbox" id="hover-checkbox" checked>
+                        </tr>
+                        <tr>
+                            <td colspan="3"><label for="url">URL:</label>
+                            <input type="url" name="url" id="hover-url" value="">
                         </tr>
                     </table>
                 `;
@@ -2729,8 +2874,19 @@ document.addEventListener('DOMContentLoaded', function(){
                     if(!text || !text.trim()){
                         return;
                     }
+                    let width = +document.getElementById('hover-width').value;
+                    let height = +document.getElementById('hover-height').value;
+                    if(!width)
+                        width = 0;
+                    if(!height)
+                        height = 0;
+                    const round = document.getElementById('hover-checkbox').checked;
+                    if(round){
+                        width = snap_to_grid(width);
+                        height = snap_to_grid(height);
+                    }
                     let id = get_new_id();
-                    add_image(id, x0, y0, REFERENCE_WIDTH-2, REFERENCE_WIDTH-2, text);
+                    add_image(id, x0, y0, width, height, text);
                     publish_obj_by_id(id);
                     note_create_by_id_for_undo(id);
                     request_render();
@@ -2747,8 +2903,14 @@ document.addEventListener('DOMContentLoaded', function(){
                             <td><input type="color" id="hover-color" value="`+ez_token_color+`">
                         </tr>
                         <tr>
+                            <td><label for="width">Width (sq):</label>
+                            <td><input type="number" name="width" id="hover-width" min="1" max="5" value="1" class="numeric-input">
+                            <td><label for="height">Height (sq):</label>
+                            <td><input type="number" name="height" id="hover-height" min="1" max="5" value="1" class="numeric-input">
+                        </tr>
+                        <tr>
                             <td><label for="text">Text:</label>
-                            <td><input type="text" name="text" id="hover-text" value="">
+                            <td colspan="3"><input type="text" name="text" id="hover-text" value="">
                         </tr>
                     </table>
                 `;
@@ -2757,9 +2919,15 @@ document.addEventListener('DOMContentLoaded', function(){
                     const text = text_input.value;
                     if(!text || !text.trim())
                         return;
+                    const width = +document.getElementById('hover-width').value;
+                    const height = +document.getElementById('hover-height').value;
+                    if(!width)
+                        width = 1;
+                    if(!height)
+                        height = 1;
                     let id = get_new_id();
                     ez_token_color = document.getElementById('hover-color').value;
-                    add_ez_token(id, x0, y0, text, ez_token_color);
+                    add_ez_token(id, x0, y0, text, ez_token_color, width, height);
                     publish_obj_by_id(id);
                     note_create_by_id_for_undo(id);
                     request_render();
@@ -2836,6 +3004,14 @@ document.addEventListener('DOMContentLoaded', function(){
                 label: 'Gather Party',
                 func: function(){socket.emit('canvas-gather', {x:-x, y:-y}); remove_menu();},
                 disabled: false,
+            },
+            {
+                label: 'Edit',
+                func: function(){
+                    launch_edit_dialog();
+                    remove_menu();
+                },
+                disabled: edit_is_impossible(),
             },
             {
                 label: 'Undo',

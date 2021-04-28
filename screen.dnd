@@ -103,6 +103,7 @@ David20::title @hide
     max-height: 100%;
     display: grid;
     grid-template-rows: auto 100px;
+    border: 1px solid black;
   }
   #chat-history {
     overflow-y: scroll;
@@ -120,7 +121,6 @@ David20::title @hide
     resize: none;
   }
   canvas {
-    border: 1px solid red;
     user-select: none;
   }
   section.menu {
@@ -193,6 +193,9 @@ David20::title @hide
   }
   span.dice-roll-min {
     color: red;
+  }
+  span.chat-error {
+    color: #aa0000;
   }
   /*endcss*/
 ::js @noinline

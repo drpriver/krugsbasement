@@ -6,14 +6,16 @@ class Flags(IntFlag):
     NONE = 0
     DELETED = 1
 def save_canvas_objs(objs:List[dict]) -> List[dict]:
-    # result = [o for o in objs if not o['deleted']]
-    result = [o for o in objs if not (o['flags'] & Flags.DELETED)]
-    return result
+    return get_live_objects()
 OBJS = Persister(OBJS, 'BadDb/canvas.json', save_func=save_canvas_objs).obj
 OBJS_BY_ID = {o['id']:o for o in OBJS} # type: Dict[int, dict]
 
-def get_live_objects() -> List[dict]:
+def get_objects() -> List[dict]:
     return OBJS
+
+def get_live_objects() -> List[dict]:
+    result = [o for o in OBJS if not (o['flags'] & Flags.DELETED)]
+    return result
 
 def handle_create(obj:dict) -> List[dict]:
     OBJS.append(obj)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 import random
-from typing import NamedTuple, List, DefaultDict, Tuple
+from typing import NamedTuple, List, DefaultDict, Tuple, Union
 from collections import defaultdict
 import re
 from io import StringIO
@@ -20,10 +20,18 @@ class Die:
         if self.base == 1:
             return DieRoll(self, [self.count])
         return DieRoll(self, [random.randint(1, self.base) for _ in range(self.count)])
+    def __repr__(self) -> str:
+        return f'Die(base={self.base}, count={self.count}, negative={self.negative})'
 
 class DieRoll(NamedTuple):
     die: Die
     value: List[int]
+    def as_jsonable(self) -> dict:
+        return {
+            'base':self.die.base,
+            'negative':self.die.negative,
+            'values':self.value,
+            }
 
 def format_die_roll_results(results:List[DieRoll]) -> str:
     if not results:
@@ -94,10 +102,9 @@ def dice_tokenizer(dicestring:str) -> List[str]:
             this_tok =''
             continue
         if c == '-':
-            if not this_tok:
-                continue
-            tokens.append(this_tok)
-            this_tok ='-'
+            if this_tok:
+                tokens.append(this_tok)
+            this_tok = '-'
             continue
         this_tok += c
     if not this_tok:
@@ -170,6 +177,14 @@ def roll_and_format_dice_array(dice:List[Die]) -> str:
     rolls = [d.roll() for d in dice]
     return format_die_roll_results(rolls)
 
+def roll_dice_array(dice:List[die]) -> Union[str, List[dict]]:
+    ndice = sum(d.count for d in dice if d.base != 1)
+    if ndice > 64:
+        return  'Too many dice'
+    rolls = [d.roll().as_jsonable() for d in dice]
+    return rolls
+
+
 if __name__ == '__main__':
     from unittest import TestCase, main
     class TestDiceParsing(TestCase):
@@ -184,6 +199,8 @@ if __name__ == '__main__':
                 ('1d6', [Die(6)]),
                 ('1d6-3', [Die(6), Die(1,-3)]),
                 ('3-1d6', [Die(6, 1, True), Die(1,3)]),
+                ('0-1d6', [Die(6,1, True)]),
+                ('-1d6', [Die(6,1, True)]),
                 ('d6-1d6', [Die(6, 1, False), Die(6,1, True)]),
                 ('d4-8+2d6-d20', [Die(20, 1, True), Die(6,2), Die(4), Die(1, -8)]),
                 ('d4'+MINUS+'8+2d6-d20', [Die(20, 1, True), Die(6,2), Die(4), Die(1, -8)]),

@@ -1,6 +1,76 @@
 const MSG_PLAIN = 0;
 const MSG_DICEROLL = 1;
 const MSG_ERROR = 2;
+
+function format_dice_roll(roll_result){
+    // This is pretty janky. I don't know if js has a
+    // stringbuilder or if js strings are always string builders
+    // until something actually demands their contents?
+    if(!roll_result.length)
+        return '<span class="dice-constant">0</span><br> = <span class="dice-total">0</span>';
+    let result = '';
+    let value = 0;
+    const MINUS = '\u2212';
+    const NBSPACE='&nbsp;';
+    function write_die(roll, i){
+        if(roll.base == 1){
+            if(roll.values[0] < 0){
+                result += ' ' + MINUS;
+            }
+            else if(i==0){
+                result += NBSPACE+NBSPACE+NBSPACE;
+            }
+            else {
+                result += ' +';
+            }
+            result += '<span class="dice-constant">' + Math.abs(roll.values[0]) + '</span>';
+            value += roll.values[0];
+            return;
+        }
+        const length = roll.values.length;
+        for(let j = 0; j < length; ++j){
+            const v = roll.values[j];
+            if(roll.negative){
+                result += ' ' + MINUS;
+            }
+            else if(j == 0 && i == 0){
+                result += NBSPACE+NBSPACE+NBSPACE;
+            }
+            else {
+                result += ' +';
+            }
+            result += '[';
+            if(v == roll.base){
+                result += '<span class="dice-roll dice-roll-max">';
+            }
+            else if(v == 1){
+                result += '<span class="dice-roll dice-roll-min">';
+            }
+            else {
+                result += '<span class="dice-roll">';
+            }
+            if(roll.negative){
+                value -= v;
+            }
+            else {
+                value += v;
+            }
+            result += v;
+            result += '</span>';
+            result += ']';
+        }
+    }
+    const length = roll_result.length;
+    for(let i = 0; i < length; ++i){
+        const roll = roll_result[i];
+        write_die(roll, i);
+    }
+    result += '<br> = ';
+    result += '<span class="dice-total">';
+    result += value;
+    result += '</span>';
+    return result;
+}
 function add_chat_msgs(log, msgs){
     for(let i = 0; i < msgs.length; i++){
         const msg = msgs[i];
@@ -12,16 +82,20 @@ function add_chat_msgs(log, msgs){
                     user.appendChild(document.createTextNode(msg.user+': '));
                     entry.appendChild(user);
                 }
-                const text = document.createTextNode(msg.text);
+                const text = document.createTextNode(msg.data);
                 entry.appendChild(text);
             }break;
             case MSG_DICEROLL:{
                 entry.classList.add('dice-roll-msg');
-                entry.innerHTML += msg.text;
+                const formatted = format_dice_roll(msg.data)
+                entry.innerHTML += formatted;
             }break;
             case MSG_ERROR:{
-                const text = document.createTextNode(msg.text);
-                entry.appendChild(text);
+                const error = document.createElement('span');
+                error.classList.add('chat-error');
+                const text = document.createTextNode(msg.data);
+                error.appendChild(text);
+                entry.appendChild(error);
             }break;
         }
         log.appendChild(entry);
@@ -61,7 +135,12 @@ document.addEventListener('DOMContentLoaded', function(){
             const value = ta.value;
             if(value.length){
                 ta.value = "";
-                socket.emit('chat-input', value);
+                if(value.trim() === "/get"){
+                    get();
+                }
+                else {
+                    socket.emit('chat-input', value);
+                }
                 if(!(history.length && value == history[history.length-1])){
                     history.push(value);
                 }

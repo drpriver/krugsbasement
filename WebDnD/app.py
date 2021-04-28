@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, Response
+from flask import Flask, jsonify, request, Response, send_from_directory
 from flask_socketio import SocketIO, emit
 from . import chat
 from . import canvas
@@ -28,7 +28,7 @@ session_id = Persister(0, 'BadDb/app.json', save_func=save_session_id).obj
 @socketio.on('connect')
 def handle_connection() -> None:
     emit('chat-create', chat.get_history())
-    emit('canvas-create', canvas.get_live_objects())
+    emit('canvas-create', canvas.get_objects())
     global session_id
     session_id += 1
     emit('session-id', session_id)
@@ -71,6 +71,9 @@ def index() -> str:
         return ''
     else:
         return html
+@app.route('/imgs/<path:filename>')
+def imgs(filename):
+    return send_from_directory('./imgs', filename)
 
 @app.route('/state', methods=['GET', 'POST'])
 def get_app_state():

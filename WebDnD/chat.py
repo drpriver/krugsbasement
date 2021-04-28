@@ -1,6 +1,6 @@
 from typing import List, Dict
 import random
-from .dice import dice_from_string, roll_and_format_dice_array
+from .dice import dice_from_string, roll_and_format_dice_array, roll_dice_array
 from .persist import Persister
 from flask_socketio import emit
 HISTORY = []  # type: List[dict]
@@ -16,29 +16,24 @@ class Msg(IntEnum):
 def handle_input(data:str, user:str='anon') -> List[dict]:
     result = []
     for line in data.split('\n'):
-    # lines = data.split('\n')
-    # for line in lines:
         if not line.strip():
             continue
-        result.append({'user':user, 'text':line, 'type':Msg.PLAIN})
-        data = line
-        parts = data.split()
+        result.append({'user':user, 'data':line, 'type':Msg.PLAIN})
+
         try:
-            dice = dice_from_string(data)
+            dice = dice_from_string(line)
         except:
             pass
         else:
-            rollstr = roll_and_format_dice_array(dice)
-            result.append({'user':'', 'text':rollstr, 'type':Msg.DICEROLL})
-        if parts[0] in {'/r', '/roll', 'roll', 'r'}:
-            remainder = ''.join(parts[1:])
-            try:
-                dice = dice_from_string(remainder)
-            except Exception as e:
-                pass
+            roll_result = roll_dice_array(dice)
+            if isinstance(roll_result, str):
+                result.append({'user':'', 'data':roll_result, 'type':Msg.ERROR})
             else:
-                rollstr = roll_and_format_dice_array(dice)
-                result.append({'user':'', 'text':rollstr, 'type':Msg.DICEROLL})
+                # rollstr = roll_and_format_dice_array(dice)
+                # result.append({'user':'', 'data':rollstr, 'type':Msg.DICEROLL})
+                result.append({'user':'', 'data':roll_result, 'type':Msg.DICEROLL})
+
+        parts = line.split()
         if parts[0] in {'/gather'} and len(parts) == 3:
             try:
                 x = int(parts[1])
