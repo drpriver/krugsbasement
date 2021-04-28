@@ -1,0 +1,11 @@
+A few door type are missing that are pretty essential.
+
+They are:
+
+* Portcullis
+* Double Door
+* Curtain
+
+Curtain is tough as it is more of a wall decoration and the ui for it is not
+clear (it should be off grid slightly).
+
