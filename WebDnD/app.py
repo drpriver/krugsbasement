@@ -76,7 +76,7 @@ def imgs(filename):
     return send_from_directory('./imgs', filename)
 
 @app.route('/state', methods=['GET', 'POST', 'DELETE'])
-def get_app_state():
+def app_state():
     if request.method == 'GET':
         args = request.args
         state = {'chat':chat.get_history(), 'canvas':canvas.get_live_objects(), 'app':{'session_id':session_id}}
@@ -87,14 +87,37 @@ def get_app_state():
                 return jsonify({})
         return jsonify(state)
     elif request.method == 'DELETE':
+        args = request.args
+        if 'which' in args:
+            which = args['which']
+            if which == 'canvas':
+                socketio.emit('canvas-clear', broadcast=True)
+                canvas.clear()
+                return ''
+            if which == 'chat':
+                socketio.emit('chat-clear', broadcast=True)
+                chat.clear()
+                return ''
         socketio.emit('canvas-clear', broadcast=True)
         socketio.emit('chat-clear', broadcast=True)
         canvas.clear()
         chat.clear()
         return ''
-    else:
+    elif request.method == 'POST':
         newstate = request.get_json()
-        print(f'{newstate=}')
+        args = request.args
+        if 'which' in args:
+            which = args['which']
+            if which == 'canvas':
+                canvas.set_state(newstate)
+                socketio.emit('canvas-clear', broadcast=True)
+                socketio.emit('canvas-create', newstate['canvas'])
+                return ''
+            if which == 'chat':
+                chat.set_state(newstate)
+                socketio.emit('chat-clear', broadcast=True)
+                socketio.emit('chat-create', newstate['chat'])
+                return ''
         chat.set_state(newstate['chat'])
         canvas.set_state(newstate['canvas'])
         socketio.emit('canvas-clear', broadcast=True)
