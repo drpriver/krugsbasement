@@ -1,0 +1,2 @@
+You should be able to set the state of the system by posting to /state. Clients
+should then be reset appropriately.

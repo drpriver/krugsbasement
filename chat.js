@@ -152,12 +152,12 @@ function format_dice_roll(roll_result){
                 result += ' +';
             }
             result += '<span class="dice-constant">' + Math.abs(roll.values[0]) + '</span>';
-            value += roll.values[0];
+            value += roll.values[0] | 0;
             return;
         }
         const length = roll.values.length;
         for(let j = 0; j < length; ++j){
-            const v = roll.values[j];
+            const v = roll.values[j] | 0;
             if(roll.negative){
                 result += ' ' + MINUS;
             }

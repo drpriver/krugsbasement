@@ -271,6 +271,15 @@ socket.on('canvas-gather', function(where){
     request_render();
 });
 let scale = 1;
+const MIN_SCALE = 0.125;
+const MAX_SCALE = 5;
+function clamp_scale(scale){
+    if(scale < MIN_SCALE)
+        scale = MIN_SCALE;
+    if(scale > MAX_SCALE)
+        scale = MAX_SCALE;
+    return scale;
+}
 function reset_zoom(){
     const center_x = canvas.width/2/scale - camera_x;
     const center_y = canvas.height/2/scale - camera_y;
@@ -283,10 +292,7 @@ function zoom_in(){
     const center_x = canvas.width/2/scale - camera_x;
     const center_y = canvas.height/2/scale - camera_y;
     scale *= 1.50;
-    if(scale < 0.25)
-        scale = 0.25;
-    if(scale > 4)
-        scale = 4;
+    scale = clamp_scale(scale);
     camera_x = canvas.width/2/scale - center_x;
     camera_y = canvas.height/2/scale - center_y;
     request_render();
@@ -295,10 +301,7 @@ function zoom_out(){
     const center_x = canvas.width/2/scale - camera_x;
     const center_y = canvas.height/2/scale - camera_y;
     scale /= 1.50;
-    if(scale < 0.25)
-        scale = 0.25;
-    if(scale > 4)
-        scale = 4;
+    scale = clamp_scale(scale);
     camera_x = canvas.width/2/scale - center_x;
     camera_y = canvas.height/2/scale - center_y;
     request_render();
@@ -2571,10 +2574,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if(dy < -dscale)
             dy = -dscale;
         scale *= 1 + (-dy/dscale);
-        if(scale < 0.25)
-            scale = 0.25;
-        if(scale > 4)
-            scale = 4;
+        scale = clamp_scale(scale);
         camera_x -= e.offsetX/oldscale;
         camera_x += e.offsetX/scale;
         camera_y -= e.offsetY/oldscale;
