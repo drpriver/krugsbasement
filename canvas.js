@@ -2816,22 +2816,22 @@ document.addEventListener('DOMContentLoaded', function(){
                 note_delete_by_ids_for_undo(Array.from(selected));
                 end_selecting();
             }break;
-            case 'q':
+            case 'a':
                 change_tool(PAN_TOOL);
                 break;
-            case 'w':
+            case 's':
                 change_tool(SELECT_TOOL);
                 break;
-            case 'e':
+            case 'd':
                 change_tool(MOVE_TOOL);
                 break;
-            case 'a':
+            case 'q':
                 change_tool(WALL_TOOL);
                 break;
-            case 's':
+            case 'w':
                 change_tool(DOOR_TOOL);
                 break;
-            case 'd':
+            case 'e':
                 change_tool(LINE_TOOL);
                 break;
             case 'f':
