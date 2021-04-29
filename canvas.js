@@ -237,8 +237,8 @@ const FLAG_ALL = FLAG_NONE | FLAG_DELETED;
 // ------------
 // door: regular dungeon door (rectangle, white filling)
 const DOOR_DOOR = 0;
-// const DOOR_DOUBLE = 1;
-// const DOOR_PORTCULLIS = 2;
+const DOOR_DOUBLE = 1;
+const DOOR_PORTCULLIS = 2;
 const DOOR_SECRET = 3;
 const DOOR_BRICKED_WALL = 4;
 const DOOR_PORTAL = 5;
@@ -2102,6 +2102,83 @@ function render(){
                     }
                 }
                 switch(obj.doortype){
+                    case DOOR_DOUBLE:{
+                        if(is_selected){
+                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.lineWidth=8;
+                            switch(obj.orientation){
+                                case VERTICAL:
+                                    ctx.strokeRect(obj.base_x-10, obj.base_y-24, 20, 48);
+                                    break;
+                                case HORIZONTAL:
+                                    ctx.strokeRect(obj.base_x-24, obj.base_y-10, 48, 20);
+                                    break;
+                                case TOPLEFT_DOWNRIGHT:
+                                    ctx.lineWidth=22;
+                                    ctx.beginPath();
+                                    ctx.moveTo(obj.base_x-22, obj.base_y-22)
+                                    ctx.lineTo(obj.base_x+22, obj.base_y+22);
+                                    ctx.stroke();
+                                    break;
+                                case TOPRIGHT_DOWNLEFT:
+                                    ctx.lineWidth=22;
+                                    ctx.beginPath();
+                                    ctx.moveTo(obj.base_x+22, obj.base_y-22)
+                                    ctx.lineTo(obj.base_x-22, obj.base_y+22);
+                                    ctx.stroke();
+                                    break;
+                            }
+                        }
+                        ctx.fillStyle = '#fff';
+                        ctx.strokeStyle = obj.color;
+                        ctx.lineWidth=4;
+                        switch(obj.orientation){
+                            case VERTICAL:
+                                ctx.fillRect(obj.base_x-10, obj.base_y-24, 20, 48);
+                                ctx.strokeRect(obj.base_x-10, obj.base_y-24, 20, 48);
+                                ctx.strokeRect(obj.base_x-10, obj.base_y, 20, 1);
+                                break;
+                            case HORIZONTAL:
+                                ctx.fillRect(obj.base_x-24, obj.base_y-10, 48, 20);
+                                ctx.strokeRect(obj.base_x-24, obj.base_y-10, 48, 20);
+                                ctx.strokeRect(obj.base_x, obj.base_y-10, 1, 20);
+                                break;
+                            case TOPLEFT_DOWNRIGHT:
+                                ctx.lineWidth=18;
+                                ctx.beginPath();
+                                ctx.moveTo(obj.base_x-20, obj.base_y-20)
+                                ctx.lineTo(obj.base_x+20, obj.base_y+20);
+                                ctx.stroke();
+                                ctx.strokeStyle = '#fff';
+                                ctx.lineWidth=10;
+                                ctx.beginPath();
+                                ctx.moveTo(obj.base_x-16, obj.base_y-16)
+                                ctx.lineTo(obj.base_x-2, obj.base_y-2);
+                                ctx.stroke();
+                                ctx.beginPath();
+                                ctx.moveTo(obj.base_x+2, obj.base_y+2)
+                                ctx.lineTo(obj.base_x+16, obj.base_y+16);
+                                ctx.stroke();
+                                break;
+                            case TOPRIGHT_DOWNLEFT:
+                                ctx.lineWidth=18;
+                                ctx.beginPath();
+                                ctx.moveTo(obj.base_x+20, obj.base_y-20)
+                                ctx.lineTo(obj.base_x-20, obj.base_y+20);
+                                ctx.stroke();
+                                ctx.strokeStyle = '#fff';
+                                ctx.lineWidth=10;
+                                ctx.beginPath();
+                                ctx.moveTo(obj.base_x+16, obj.base_y-16)
+                                ctx.lineTo(obj.base_x+2, obj.base_y-2);
+                                ctx.stroke();
+                                ctx.beginPath();
+                                ctx.moveTo(obj.base_x-2, obj.base_y+2)
+                                ctx.lineTo(obj.base_x-16, obj.base_y+16);
+                                ctx.stroke();
+                                break;
+                        }
+                    }break;
                     case DOOR_DOOR:{
                         if(is_selected){
                             ctx.strokeStyle = SELECTED_COLOR;
@@ -2168,6 +2245,58 @@ function render(){
                                 ctx.stroke();
                                 break;
                         }
+                    }break;
+                    case DOOR_PORTCULLIS:{
+                        if(is_selected){
+                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.lineWidth=8;
+                            switch(obj.orientation){
+                                case VERTICAL:
+                                    ctx.strokeRect(obj.base_x-10, obj.base_y-16, 20, 32);
+                                    break;
+                                case HORIZONTAL:
+                                    ctx.strokeRect(obj.base_x-16, obj.base_y-10, 32, 20);
+                                    break;
+                                case TOPLEFT_DOWNRIGHT:
+                                    ctx.lineWidth=22;
+                                    ctx.beginPath();
+                                    ctx.moveTo(obj.base_x-22, obj.base_y-22)
+                                    ctx.lineTo(obj.base_x+22, obj.base_y+22);
+                                    ctx.stroke();
+                                    break;
+                                case TOPRIGHT_DOWNLEFT:
+                                    ctx.lineWidth=22;
+                                    ctx.beginPath();
+                                    ctx.moveTo(obj.base_x+22, obj.base_y-22)
+                                    ctx.lineTo(obj.base_x-22, obj.base_y+22);
+                                    ctx.stroke();
+                                    break;
+                            }
+                        }
+                        ctx.strokeStyle = '#fff';
+                        ctx.lineWidth=12;
+                        ctx.setLineDash([6, 4]);
+                        ctx.beginPath();
+                        switch(obj.orientation){
+                            case VERTICAL:
+                                ctx.moveTo(obj.base_x, obj.base_y-20);
+                                ctx.lineTo(obj.base_x, obj.base_y+28);
+                                break;
+                            case HORIZONTAL:
+                                ctx.moveTo(obj.base_x-20, obj.base_y);
+                                ctx.lineTo(obj.base_x+28, obj.base_y);
+                                break;
+                            case TOPLEFT_DOWNRIGHT:
+                                ctx.moveTo(obj.base_x-16, obj.base_y-16)
+                                ctx.lineTo(obj.base_x+16, obj.base_y+16);
+                                break;
+                            case TOPRIGHT_DOWNLEFT:
+                                ctx.moveTo(obj.base_x+16, obj.base_y-16)
+                                ctx.lineTo(obj.base_x-16, obj.base_y+16);
+                                break;
+                        }
+                        ctx.stroke();
+                        ctx.setLineDash([]);
                     }break;
                     case DOOR_PORTAL:{
                         if(is_selected){
@@ -2440,6 +2569,9 @@ document.addEventListener('DOMContentLoaded', function(){
                     case DOOR_DOOR:
                         name.innerText = '';
                         break;
+                    case DOOR_DOUBLE:
+                        name.innerText = '- Double';
+                        break;
                     case DOOR_SECRET:
                         name.innerText = '- Secret';
                         break;
@@ -2448,6 +2580,9 @@ document.addEventListener('DOMContentLoaded', function(){
                         break;
                     case DOOR_PORTAL:
                         name.innerText = '- Portal';
+                        break;
+                    case DOOR_PORTCULLIS:
+                        name.innerText = '- Portcullis';
                         break;
                 }
             }
@@ -2487,6 +2622,8 @@ document.addEventListener('DOMContentLoaded', function(){
                     {doortype:DOOR_SECRET,       text:'Secret Door',  },
                     {doortype:DOOR_BRICKED_WALL, text:'Bricked Wall', },
                     {doortype:DOOR_PORTAL,       text:'Portal', },
+                    {doortype:DOOR_DOUBLE,       text:'Double Door', },
+                    {doortype:DOOR_PORTCULLIS,   text:'Portcullis', },
                 ];
                 for(let i = 0; i < options.length; ++i){
                     const option = options[i];
