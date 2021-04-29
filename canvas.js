@@ -779,7 +779,7 @@ function make_img_token(id, base_x, base_y, url){
         flags: FLAG_NONE,
         url: url,
         img: null,
-        width: 1, 
+        width: 1,
         height: 1,
     };
     const img = new Image(REFERENCE_WIDTH, REFERENCE_WIDTH);
@@ -967,7 +967,7 @@ function do_one_redo(){
             const length = ids.length;
             for(let i = 0; i < length; i++){
                 const obj = canvas_objs.get(ids[i]);
-                obj.flags |= FLAG_DELETED; 
+                obj.flags |= FLAG_DELETED;
             }
             publish_delete_by_ids(undo_event.ids);
         }break;
@@ -2459,6 +2459,20 @@ function change_tool(toolname){
             end_selecting();
             break;
     }
+    switch(toolname){
+        case SELECT_TOOL:{
+            numeric_hot_keys = select_numeric_hot_keys;
+        }break;
+        case WALL_TOOL:{
+            numeric_hot_keys = wall_numeric_hot_keys;
+        }break;
+        case DOOR_TOOL:{
+            numeric_hot_keys = door_numeric_hot_keys;
+        }break;
+        default:
+            numeric_hot_keys = [];
+            break;
+    }
     for(let j = 0; j < tools.length-1; ++j){
         const tool = tools[j];
         tool.classList.remove('selected');
@@ -2467,6 +2481,9 @@ function change_tool(toolname){
         }
     }
 }
+let select_numeric_hot_keys = [];
+let wall_numeric_hot_keys = [];
+let door_numeric_hot_keys = [];
 document.addEventListener('DOMContentLoaded', function(){
     const tools_div = document.getElementById('tools');
     tools = tools_div.children;
@@ -2494,6 +2511,20 @@ document.addEventListener('DOMContentLoaded', function(){
                     name.innerText = 'Token';
                     break;
             }
+            select_numeric_hot_keys = [
+                function(){
+                    name.innerText = 'Any';
+                    change_select_mode(SELECT_ANY);
+                },
+                function(){
+                    name.innerText = 'Map';
+                    change_select_mode(SELECT_MAP);
+                },
+                function(){
+                    name.innerText = 'Token';
+                    change_select_mode(SELECT_TOKEN);
+                },
+            ];
             const triangle = tool.getElementsByTagName('span')[1];
             triangle.addEventListener('click', function(e){
                 e.preventDefault();
@@ -2589,6 +2620,15 @@ document.addEventListener('DOMContentLoaded', function(){
                         break;
                 }
             }
+            door_numeric_hot_keys = [
+                    function(){change_door(DOOR_DOOR)},
+                    function(){change_door(DOOR_SECRET)},
+                    function(){change_door(DOOR_BRICKED_WALL)},
+                    function(){change_door(DOOR_PORTAL)},
+                    function(){change_door(DOOR_DOUBLE)},
+                    function(){change_door(DOOR_PORTCULLIS)},
+            ];
+
             const triangle = tool.getElementsByTagName('span')[1];
             triangle.addEventListener('click', function(e){
                 e.preventDefault();
@@ -2656,6 +2696,8 @@ document.addEventListener('DOMContentLoaded', function(){
                     name.innerText = ''
                 }
             }
+            wall_numeric_hot_keys.push(function(){change_wall(false);});
+            wall_numeric_hot_keys.push(function(){change_wall(true);});
             const triangle = tool.getElementsByTagName('span')[1];
             triangle.addEventListener('click', function(e){
                 e.preventDefault();
@@ -2714,6 +2756,7 @@ function get_session_id_from_obj_id(objid){
     let id = objid >> 20;
     return id;
 }
+let numeric_hot_keys = [];
 document.addEventListener('DOMContentLoaded', function(){
     canvas = document.getElementsByTagName('canvas')[0];
     canvas.addEventListener('wheel', function(e){
@@ -2812,9 +2855,6 @@ document.addEventListener('DOMContentLoaded', function(){
                 if(shortcut){
                     do_one_undo();
                 }
-                else {
-                    change_tool(TEXT_TOOL);
-                }
                 break;
             case 'x':
                 if(shortcut){
@@ -2823,9 +2863,6 @@ document.addEventListener('DOMContentLoaded', function(){
                         cut_selected_objs_to_copy_buffer();
                     }
                 }
-                else {
-                    change_tool(EZ_TOKEN_TOOL);
-                }
                 break;
             case 'c':
                 if(shortcut){
@@ -2833,9 +2870,6 @@ document.addEventListener('DOMContentLoaded', function(){
                         clear_copy_buffer();
                         copy_selected_objs_to_copy_buffer();
                     }
-                }
-                else {
-                    change_tool(IMAGE_TOOL);
                 }
                 break;
             case 'v':
@@ -2847,6 +2881,23 @@ document.addEventListener('DOMContentLoaded', function(){
                     }
                     break;
                 }
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9':
+                if(!ctrl_or_cmd_is_pressed && !other_modifiers){
+                    const i = (+e.key) - 1;
+                    if(i < numeric_hot_keys.length){
+                        numeric_hot_keys[i]();
+                        break;
+                    }
+                }
+                return;
             default:
                 return;
         }

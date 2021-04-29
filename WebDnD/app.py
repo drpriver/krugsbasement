@@ -29,6 +29,7 @@ session_id = Persister(0, 'BadDb/app.json', save_func=save_session_id).obj
 def handle_connection() -> None:
     global session_id
     session_id += 1
+    print(f'Session id: {session_id}')
     emit('session-id', session_id)
     emit('canvas-clear')
     emit('chat-clear')
