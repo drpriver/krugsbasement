@@ -1,2 +1,8 @@
 You should be able to set the state of the system by posting to /state. Clients
 should then be reset appropriately.
+
+
+Update
+------
+
+I implemented this in sort of a hacky way, but it is good enough for a POC.

@@ -75,7 +75,7 @@ def index() -> str:
 def imgs(filename):
     return send_from_directory('./imgs', filename)
 
-@app.route('/state', methods=['GET', 'POST'])
+@app.route('/state', methods=['GET', 'POST', 'DELETE'])
 def get_app_state():
     if request.method == 'GET':
         args = request.args
@@ -86,10 +86,22 @@ def get_app_state():
             except:
                 return jsonify({})
         return jsonify(state)
+    elif request.method == 'DELETE':
+        socketio.emit('canvas-clear', broadcast=True)
+        socketio.emit('chat-clear', broadcast=True)
+        canvas.clear()
+        chat.clear()
+        return ''
     else:
         newstate = request.get_json()
         print(f'{newstate=}')
-        return {}
+        chat.set_state(newstate['chat'])
+        canvas.set_state(newstate['canvas'])
+        socketio.emit('canvas-clear', broadcast=True)
+        socketio.emit('chat-clear', broadcast=True)
+        socketio.emit('canvas-create', newstate['canvas'])
+        socketio.emit('chat-create', newstate['chat'])
+        return ''
 
 if __name__ == '__main__':
     socketio.run(app, host="0.0.0.0")

@@ -44,6 +44,13 @@ socket.on('chat-create', function(msgs){
     add_chat_msgs(log, msgs);
     log.scrollTop = log.scrollHeight;
 });
+function clear_chat(){
+    const log = document.getElementById('chat-history');
+    log.innerHTML = '';
+}
+socket.on('chat-clear', function(){
+    clear_chat();
+});
 
 function resize_chat(){
     const hist = document.getElementById('chat-history');
@@ -118,14 +125,24 @@ function maybe_handle_command(value){
             continue;
         split.push(s);
     }
-    if(split.length && split[0] === "/get-state"){
-        if(split.length > 1){
-            get(split[1]);
+    if(split.length){
+        if(split[0] === "/get-state"){
+            if(split.length > 1){
+                get(split[1]);
+            }
+            else{
+                get('');
+            }
+            return true;
         }
-        else{
-            get('');
+        if(split[0] == '/clear'){
+            clear_chat();
+            return true;
         }
-        return true;
+        if(split[0] == '/upload'){
+            upload();
+            return true;
+        }
     }
     return false;
 }

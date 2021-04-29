@@ -12,7 +12,6 @@ class Msg(IntEnum):
     DICEROLL = 1
     ERROR = 2
 
-
 def handle_input(data:str, user:str='anon') -> List[dict]:
     result = []
     for line in data.split('\n'):
@@ -49,3 +48,9 @@ def handle_input(data:str, user:str='anon') -> List[dict]:
 def get_history() -> List[dict]:
     return HISTORY[-100:]
 
+def clear() -> None:
+    HISTORY.clear()
+
+def set_state(state:List[dict]) -> None:
+    global HISTORY
+    HISTORY = state

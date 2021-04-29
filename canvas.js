@@ -831,6 +831,19 @@ document.addEventListener('DOMContentLoaded', resize_canvas);
 window.addEventListener('resize', resize_canvas);
 const canvas_obj_array = [];
 const canvas_objs = new Map();
+function clear_canvas(){
+    canvas_obj_array.length = 0;
+    canvas_objs.clear();
+    undo_stack.length = 0;
+    undo_position = 0;
+    clear_copy_buffer();
+    selected.clear();
+    request_render();
+}
+socket.on('canvas-clear', function(){
+    clear_canvas();
+});
+
 let undo_stack = [];
 let undo_position = 0;
 const UNDO_EVENT_CREATE = 0;

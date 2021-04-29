@@ -31,3 +31,14 @@ def handle_update(obj_states:List[dict]) -> List[dict]:
     for obj_state in obj_states:
         OBJS_BY_ID[obj_state['id']].update(obj_state)
     return obj_states
+
+def clear() -> None:
+    OBJS_BY_ID.clear()
+    OBJS.clear()
+
+def set_state(state:List[dict]) -> None:
+    global OBJS
+    global OBJS_BY_ID
+    OBJS = state
+    OBJS_BY_ID = {o['id']:o for o in OBJS}
+
