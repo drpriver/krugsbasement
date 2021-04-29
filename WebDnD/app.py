@@ -27,29 +27,31 @@ session_id = Persister(0, 'BadDb/app.json', save_func=save_session_id).obj
 
 @socketio.on('connect')
 def handle_connection() -> None:
-    emit('chat-create', chat.get_history())
-    emit('canvas-create', canvas.get_objects())
     global session_id
     session_id += 1
     emit('session-id', session_id)
+    emit('canvas-clear')
+    emit('chat-clear')
+    emit('chat-create', chat.get_history())
+    emit('canvas-create', canvas.get_objects())
 
 @socketio.on('canvas-create')
 def handle_canvas_create(data:dict) -> None:
     responses = canvas.handle_create(data)
     if responses:
-        emit('canvas-create', responses, broadcast=True)
+        emit('canvas-create', responses, broadcast=True, include_self=False)
 
 @socketio.on('canvas-delete')
 def handle_canvas_delete(data:List[int]) -> None:
     responses = canvas.handle_delete(data)
     if responses:
-        emit('canvas-delete', responses, broadcast=True)
+        emit('canvas-delete', responses, broadcast=True, include_self=False)
 
 @socketio.on('canvas-update')
 def handle_canvas_update(data:List[dict]) -> None:
     responses = canvas.handle_update(data)
     if responses:
-        emit('canvas-update', responses, broadcast=True)
+        emit('canvas-update', responses, broadcast=True, include_self=False)
 
 @socketio.on('canvas-gather')
 def canvas_gather(where:Dict[str, int]) -> None:

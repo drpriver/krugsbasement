@@ -1152,8 +1152,9 @@ socket.on('canvas-create', function(objs){
     for(let i = 0; i < length; ++i){
         const obj = objs[i];
         let origin = get_session_id_from_obj_id(obj.id);
-        if(origin == session_id)
-            continue;
+        // if(origin == session_id){
+            // continue;
+        // }
         switch(obj.type){
             case FREEHAND_LINE:
                 obj.bbox = {x0:0, x1:0, y0:0, y1:0};
@@ -1199,7 +1200,7 @@ socket.on('canvas-create', function(objs){
         }
         const existing_obj = canvas_objs.get(obj.id);
         if(existing_obj){
-            // console.log('object already exists???', obj.id);
+            console.log('object already exists???', obj.id);
         }
         else {
             add_canv_obj(obj);
@@ -1216,7 +1217,7 @@ socket.on('canvas-delete', function(obj_ids){
             obj.flags |= FLAG_DELETED;
         }
         else {
-            // console.log('Deleting unknown object??', id);
+            console.log('Deleting unknown object??', id);
         }
     }
     request_render();
@@ -1233,7 +1234,7 @@ function set_obj_states_from_stripped_objs(obj_states){
         const state = obj_states[i];
         const obj = canvas_objs.get(state.id);
         if(!obj){
-            // console.log('Updating unknown object??', state.id);
+            console.log('Updating unknown object??', state.id);
             continue;
         }
         obj.base_x = state.base_x;
@@ -1798,6 +1799,7 @@ function request_render(){
     // only call this from here to avoid double renders.
     requestAnimationFrame(render);
 }
+// const timings = [];
 function render(){
     // const before = performance.now();
     if(!ctx)
@@ -2423,6 +2425,7 @@ function render(){
         ctx.fillRect(selection_area.x0, selection_area.y0, selection_area.x1-selection_area.x0, selection_area.y1-selection_area.y0);
     }
     // request_render();
+    // timings.push(performance.now()-before);
     // console.log('rendering:', (performance.now()-before).toFixed(4)+'ms');
 }
 document.addEventListener('DOMContentLoaded', render);

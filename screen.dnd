@@ -226,7 +226,6 @@ David20::title @hide
     inp.type = 'file';
     function handlefiles(){
       const files = inp.files;
-      console.log(files);
       if(!files.length)
         return;
       const file = files[0];
