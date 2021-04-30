@@ -284,9 +284,9 @@ function change_map(map_id){
     current_map_id = map_id;
     request_render();
 }
-socket.on('canvas-create-map', map_id){
+socket.on('canvas-create-map', function(map_id){
     get_map(map_id); // Just for its side effect.
-}
+});
 
 //
 // THIS NEEDS TO ALWAYS BE POWER OF 2.
