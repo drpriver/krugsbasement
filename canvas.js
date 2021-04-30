@@ -10,10 +10,10 @@
 // Note, for this function, make sure the bboxes have been adjusted
 // to the same frame of reference.
 function bbox_overlaps(bbox1, bbox2){
-    x0 = Math.max(bbox1.x0, bbox2.x0);
-    y0 = Math.max(bbox1.y0, bbox2.y0);
-    x1 = Math.min(bbox1.x1, bbox2.x1);
-    y1 = Math.min(bbox1.y1, bbox2.y1);
+    const x0 = Math.max(bbox1.x0, bbox2.x0);
+    const y0 = Math.max(bbox1.y0, bbox2.y0);
+    const x1 = Math.min(bbox1.x1, bbox2.x1);
+    const y1 = Math.min(bbox1.y1, bbox2.y1);
     return x0 <= x1 && y0 <= y1;
 }
 //
