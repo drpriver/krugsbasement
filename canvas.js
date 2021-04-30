@@ -254,6 +254,40 @@ const HORIZONTAL = 1;
 const TOPLEFT_DOWNRIGHT = 2;
 const TOPRIGHT_DOWNLEFT = 3;
 
+let current_map_id = 0;
+const MAPS = new Map();
+function get_map(map_id){
+    if(MAPS.has(map_id))
+        return MAPS.get(map_id);
+    const new_map = {
+        map_id: map_id,
+        camera_x: 0,
+        camera_y: 0,
+        scale: 1,
+        canvas_obj_array: [],
+        canvas_objs: new Map(),
+        undo_stack: [],
+        undo_position: 0,
+        selected: new Set(),
+        selection_area: {
+            select_type: SELECT_ANY,
+            is_selecting: false,
+            x0:0, y0:0,
+            x1:0, y1:0,
+        },
+    };
+    socket.emit('canvas-create-map', map_id);
+    MAPS.set(map_id, new_map);
+    return new_map;
+}
+function change_map(map_id){
+    current_map_id = map_id;
+    request_render();
+}
+socket.on('canvas-create-map', map_id){
+    get_map(map_id); // Just for its side effect.
+}
+
 //
 // THIS NEEDS TO ALWAYS BE POWER OF 2.
 // Also if it changes, lots of things will probably break.
@@ -263,15 +297,15 @@ const REFERENCE_WIDTH = 64; // the size of a square at scale = 1.
 // `camera_x`/`camera_y`.
 // TODO: all this camera_N stuff is totally fucked.
 // I should've added camera_x from the start, not subtract.
-let camera_x = 0;
-let camera_y = 0;
+// let camera_x = 0;
+// let camera_y = 0;
 socket.on('canvas-gather', function(where){
-    console.assert(where.map_id === 0);
-    camera_x = where.x;
-    camera_y = where.y;
+    const map = get_map(where.map_id);
+    map.camera_x = where.x;
+    map.camera_y = where.y;
     request_render();
 });
-let scale = 1;
+// let scale = 1;
 const MIN_SCALE = 0.125;
 const MAX_SCALE = 5;
 function clamp_scale(scale){
@@ -281,30 +315,30 @@ function clamp_scale(scale){
         scale = MAX_SCALE;
     return scale;
 }
-function reset_zoom(){
-    const center_x = canvas.width/2/scale - camera_x;
-    const center_y = canvas.height/2/scale - camera_y;
-    scale = 1;
-    camera_x = canvas.width/2/scale - center_x;
-    camera_y = canvas.height/2/scale - center_y;
+function reset_zoom(map){
+    const center_x = canvas.width/2/map.scale - map.camera_x;
+    const center_y = canvas.height/2/map.scale - map.camera_y;
+    map.scale = 1;
+    map.camera_x = canvas.width/2/map.scale - center_x;
+    map.camera_y = canvas.height/2/map.scale - center_y;
     request_render();
 }
 function zoom_in(){
-    const center_x = canvas.width/2/scale - camera_x;
-    const center_y = canvas.height/2/scale - camera_y;
-    scale *= 1.50;
-    scale = clamp_scale(scale);
-    camera_x = canvas.width/2/scale - center_x;
-    camera_y = canvas.height/2/scale - center_y;
+    const center_x = canvas.width/2/map.scale - map.camera_x;
+    const center_y = canvas.height/2/map.scale - map.camera_y;
+    map.scale *= 1.50;
+    map.scale = clamp_scale(map.scale);
+    map.camera_x = canvas.width/2/map.scale - center_x;
+    map.camera_y = canvas.height/2/map.scale - center_y;
     request_render();
 }
 function zoom_out(){
-    const center_x = canvas.width/2/scale - camera_x;
-    const center_y = canvas.height/2/scale - camera_y;
-    scale /= 1.50;
-    scale = clamp_scale(scale);
-    camera_x = canvas.width/2/scale - center_x;
-    camera_y = canvas.height/2/scale - center_y;
+    const center_x = canvas.width/2/map.scale - map.camera_x;
+    const center_y = canvas.height/2/map.scale - map.camera_y;
+    map.scale /= 1.50;
+    map.scale = clamp_scale(map.scale);
+    map.camera_x = canvas.width/2/map.scale - center_x;
+    map.camera_y = canvas.height/2/map.scale - center_y;
     request_render();
 }
 
@@ -340,9 +374,9 @@ function make_freehand_line(id, base_x, base_y, color){
     };
     return obj;
 }
-function add_freehand_line(id, base_x, base_y, color){
+function add_freehand_line(map, id, base_x, base_y, color){
     const obj = make_freehand_line(id, base_x, base_y, color);
-    add_canv_obj(obj);
+    add_canv_obj(map, obj);
 }
 function add_freehand_point(obj, x, y){
     x -= obj.base_x;
@@ -423,8 +457,8 @@ function freehand_recalculate_path(obj){
     }
     obj.path = path;
 }
-function add_freehand_point_by_id(id, x, y){
-    let obj = canvas_objs.get(id);
+function add_freehand_point_by_id(map, id, x, y){
+    let obj = map.canvas_objs.get(id);
     console.assert(obj);
     console.assert(obj.type === FREEHAND_LINE);
     add_freehand_point(obj, x, y);
@@ -477,9 +511,9 @@ function make_gridline(id, base_x, base_y, color){
     };
     return obj;
 }
-function add_gridline(id, base_x, base_y, color){
+function add_gridline(map, id, base_x, base_y, color){
     const obj = make_gridline(id, base_x, base_y, color);
-    add_canv_obj(obj);
+    add_canv_obj(map, obj);
 }
 function add_gridline_point(obj, x, y){
     const points = obj.points;
@@ -577,9 +611,9 @@ function gridline_recalculate_path(obj){
     }
     obj.path = path;
 }
-function add_gridline_point_by_id(id, x, y){
+function add_gridline_point_by_id(map, id, x, y){
     // this is the same as freehand
-    let obj = canvas_objs.get(id);
+    let obj = map.canvas_objs.get(id);
     console.assert(obj);
     console.assert(obj.type === GRID_LINE);
     add_gridline_point(obj, x, y);
@@ -599,9 +633,9 @@ function make_gridrect(id, base_x, base_y, color){
     };
     return obj;
 }
-function add_gridrect(id, base_x, base_y, color){
+function add_gridrect(map, id, base_x, base_y, color){
     const obj = make_gridrect(id, base_x, base_y, color);
-    add_canv_obj(obj);
+    add_canv_obj(map, obj);
 }
 function change_gridrect(obj, x0, y0, x1, y1){
     x0 = snap_to_grid(x0);
@@ -624,8 +658,8 @@ function change_gridrect(obj, x0, y0, x1, y1){
     obj.height = y1 - y0;
     request_render();
 }
-function change_gridrect_by_id(id, x0, y0, x1, y1){
-    let obj = canvas_objs.get(id);
+function change_gridrect_by_id(map, id, x0, y0, x1, y1){
+    let obj = map.canvas_objs.get(id);
     console.assert(obj);
     console.assert(obj.type === GRID_RECT);
     change_gridrect(obj, x0, y0, x1, y1);
@@ -644,9 +678,9 @@ function make_door(id, x, y, doortype, color, orientation){
     };
     return obj;
 }
-function add_door(id, base_x, base_y, doortype, color, orientation){
+function add_door(map, id, base_x, base_y, doortype, color, orientation){
     const obj = make_door(id, base_x, base_y, doortype, color, orientation);
-    add_canv_obj(obj);
+    add_canv_obj(map, obj);
 }
 function make_rect(id, base_x, base_y, color){
     const obj =  {
@@ -661,9 +695,9 @@ function make_rect(id, base_x, base_y, color){
     };
     return obj;
 }
-function add_rect(id, base_x, base_y, color){
+function add_rect(map, id, base_x, base_y, color){
     const obj = make_rect(id, base_x, base_y, color);
-    add_canv_obj(obj);
+    add_canv_obj(map, obj);
 }
 function change_rect(obj, x0, y0, x1, y1){
     if(x1 < x0){
@@ -682,8 +716,8 @@ function change_rect(obj, x0, y0, x1, y1){
     obj.height = y1 - y0;
     request_render();
 }
-function change_rect_by_id(id, x0, y0, x1, y1){
-    let obj = canvas_objs.get(id);
+function change_rect_by_id(map, id, x0, y0, x1, y1){
+    let obj = map.canvas_objs.get(id);
     console.assert(obj);
     console.assert(obj.type === RECT);
     change_rect(obj, x0, y0, x1, y1);
@@ -702,9 +736,9 @@ function make_filled_rect(id, base_x, base_y, color, color2){
     };
     return obj;
 }
-function add_filled_rect(id, base_x, base_y, color, color2){
+function add_filled_rect(map, id, base_x, base_y, color, color2){
     const obj = make_filled_rect(id, base_x, base_y, color, color2);
-    add_canv_obj(obj);
+    add_canv_obj(map, obj);
 }
 function change_filled_rect(obj, x0, y0, x1, y1){
     if(x1 < x0){
@@ -723,8 +757,8 @@ function change_filled_rect(obj, x0, y0, x1, y1){
     obj.height = Math.round(y1 - y0);
     request_render();
 }
-function change_filled_rect_by_id(id, x0, y0, x1, y1){
-    let obj = canvas_objs.get(id);
+function change_filled_rect_by_id(map, id, x0, y0, x1, y1){
+    let obj = map.canvas_objs.get(id);
     console.assert(obj);
     console.assert(obj.type === FILLED_RECT);
     change_rect(obj, x0, y0, x1, y1);
@@ -744,9 +778,9 @@ function make_text(id, base_x, base_y, text, size){
     };
     return obj;
 }
-function add_text(id, base_x, base_y, text, size){
+function add_text(map, id, base_x, base_y, text, size){
     const obj = make_text(id, base_x, base_y, text, size);
-    add_canv_obj(obj);
+    add_canv_obj(map, obj);
 }
 function make_ez_token(id, base_x, base_y, text, color, width, height){
     base_x = base_x - (base_x & (REFERENCE_WIDTH-1));
@@ -764,9 +798,9 @@ function make_ez_token(id, base_x, base_y, text, color, width, height){
     };
     return obj;
 }
-function add_ez_token(id, base_x, base_y, text, color, width, height){
+function add_ez_token(map, id, base_x, base_y, text, color, width, height){
     const obj = make_ez_token(id, base_x, base_y, text, color, width, height);
-    add_canv_obj(obj);
+    add_canv_obj(map, obj);
 }
 function make_img_token(id, base_x, base_y, url){
     base_x = base_x - (base_x & (REFERENCE_WIDTH-1));
@@ -791,9 +825,9 @@ function make_img_token(id, base_x, base_y, url){
     img.src = url;
     return obj;
 }
-function add_img_token(id, base_x, base_y, url){
+function add_img_token(map, id, base_x, base_y, url){
     const obj = make_img_token(id, base_x, base_y, url);
-    add_canv_obj(obj);
+    add_canv_obj(map, obj);
 }
 
 function make_image(id, base_x, base_y, width, height, url){
@@ -824,29 +858,30 @@ function make_image(id, base_x, base_y, width, height, url){
     img.src = url;
     return obj;
 }
-function add_image(id, base_x, base_y, width, height, url){
+function add_image(map, id, base_x, base_y, width, height, url){
     const obj = make_image(id, base_x, base_y, width, height, url);
-    add_canv_obj(obj);
+    add_canv_obj(map, obj);
 }
 document.addEventListener('DOMContentLoaded', resize_canvas);
 window.addEventListener('resize', resize_canvas);
-const canvas_obj_array = [];
-const canvas_objs = new Map();
-function clear_canvas(){
-    canvas_obj_array.length = 0;
-    canvas_objs.clear();
-    undo_stack.length = 0;
-    undo_position = 0;
+// const canvas_obj_array = [];
+// const canvas_objs = new Map();
+function clear_canvas(map){
+    map.canvas_obj_array.length = 0;
+    map.canvas_objs.clear();
+    map.undo_stack.length = 0;
+    map.undo_position = 0;
     clear_copy_buffer();
-    selected.clear();
+    map.selected.clear();
     request_render();
 }
 socket.on('canvas-clear', function(){
-    clear_canvas();
+    for(let m of MAPS.values())
+        clear_canvas(m);
 });
 
-let undo_stack = [];
-let undo_position = 0;
+// let undo_stack = [];
+// let undo_position = 0;
 const UNDO_EVENT_CREATE = 0;
 const UNDO_EVENT_DELETE = 1;
 const UNDO_EVENT_UPDATE = 2;
@@ -870,131 +905,131 @@ const UNDO_EVENT_MASS_CREATE = 3;
 //  before: {stripped...},
 //  after: {stripped...},
 // }
-function push_undo_event(undo_event){
-    undo_stack.length = undo_position;
-    undo_stack.push(undo_event);
+function push_undo_event(map, undo_event){
+    map.undo_stack.length = map.undo_position;
+    map.undo_stack.push(undo_event);
     const MAX_UNDO_STACK = 100;
-    if(undo_stack.length > MAX_UNDO_STACK){
+    if(map.undo_stack.length > MAX_UNDO_STACK){
         const new_stack = [];
         // Is there a better way to slice arrays?
-        for(let i = undo_stack.length-Math.floor(MAX_UNDO_STACK/2); i < undo_stack.length; i++){
-            new_stack.push(undo_stack[i]);
+        for(let i = map.undo_stack.length-Math.floor(MAX_UNDO_STACK/2); i < map.undo_stack.length; i++){
+            new_stack.push(map.undo_stack[i]);
         }
-        undo_stack = new_stack;
+        map.undo_stack = new_stack;
     }
-    undo_position = undo_stack.length;
+    map.undo_position = map.undo_stack.length;
 }
-function note_delete_by_ids_for_undo(deleted){
+function note_delete_by_ids_for_undo(map, deleted){
     const undo_event = {
         type: UNDO_EVENT_DELETE,
         ids: deleted,
     };
-    push_undo_event(undo_event);
+    push_undo_event(map, undo_event);
 }
-function note_create_by_id_for_undo(created_id){
+function note_create_by_id_for_undo(map, created_id){
     const undo_event = {
         type: UNDO_EVENT_CREATE,
         id: created_id,
     };
-    push_undo_event(undo_event);
+    push_undo_event(map, undo_event);
 }
-function note_updates_for_undo(before, after){
+function note_updates_for_undo(map, before, after){
     const undo_event = {
         type: UNDO_EVENT_UPDATE,
         before: before,
         after: after,
     };
-    push_undo_event(undo_event);
+    push_undo_event(map, undo_event);
 }
-function note_mass_create_for_undo(created_ids){
+function note_mass_create_for_undo(map, created_ids){
     const undo_event = {
         type: UNDO_EVENT_MASS_CREATE,
         ids: created_ids,
     };
-    push_undo_event(undo_event);
+    push_undo_event(map, undo_event);
 }
-function do_one_undo(){
-    if(!undo_position)
+function do_one_undo(map){
+    if(!map.undo_position)
         return;
-    undo_position--;
-    const undo_event = undo_stack[undo_position];
+    map.undo_position--;
+    const undo_event = map.undo_stack[map.undo_position];
     switch(undo_event.type){
         case UNDO_EVENT_CREATE:{
-            const obj = canvas_objs.get(undo_event.id);
+            const obj = map.canvas_objs.get(undo_event.id);
             obj.flags |= FLAG_DELETED;
-            publish_delete_by_ids([obj.id]);
+            publish_delete_by_ids(map.map_id, [obj.id]);
         }break;
         case UNDO_EVENT_DELETE:{
             const ids = undo_event.ids;
             const length = ids.length;
-            const stripped = get_stripped_state_by_id(ids);
+            const stripped = get_stripped_state_by_id(map, ids);
             for(let i = 0; i < length; i++){
-                const obj = canvas_objs.get(ids[i]);
+                const obj = map.canvas_objs.get(ids[i]);
                 obj.flags &= ~FLAG_DELETED;
                 stripped[i].flags &= ~FLAG_DELETED;
             }
             // maybe there should be an undelete?
-            publish_obj_updates(stripped);
+            publish_obj_updates(map.map_id, stripped);
         }break;
         case UNDO_EVENT_MASS_CREATE:{
             const ids = undo_event.ids;
             const length = ids.length;
             for(let i = 0; i < length; i++){
-                const obj = canvas_objs.get(ids[i]);
+                const obj = map.canvas_objs.get(ids[i]);
                 obj.flags |= FLAG_DELETED;
             }
-            publish_delete_by_ids([ids]);
+            publish_delete_by_ids(map.map_id, [ids]);
         }break;
         case UNDO_EVENT_UPDATE:{
-            set_obj_states_from_stripped_objs(undo_event.before);
-            publish_obj_updates(undo_event.before);
+            set_obj_states_from_stripped_objs(map, undo_event.before);
+            publish_obj_updates(map.map_id, undo_event.before);
         }break;
     }
     request_render();
 }
-function do_one_redo(){
-    if(undo_position == undo_stack.length)
+function do_one_redo(map){
+    if(map.undo_position == map.undo_stack.length)
         return;
-    const undo_event = undo_stack[undo_position];
+    const undo_event = map.undo_stack[map.undo_position];
     switch(undo_event.type){
         case UNDO_EVENT_CREATE:{
-            const obj = canvas_objs.get(undo_event.id);
+            const obj = map.canvas_objs.get(undo_event.id);
             obj.flags &= ~FLAG_DELETED;
-            const stripped = get_stripped_state_by_id([undo_event.id]);
-            publish_obj_updates(stripped);
+            const stripped = get_stripped_state_by_id(map, [undo_event.id]);
+            publish_obj_updates(map.map_id, stripped);
         }break;
         case UNDO_EVENT_DELETE:{
             const ids = undo_event.ids;
             const length = ids.length;
             for(let i = 0; i < length; i++){
-                const obj = canvas_objs.get(ids[i]);
+                const obj = map.canvas_objs.get(ids[i]);
                 obj.flags |= FLAG_DELETED;
             }
-            publish_delete_by_ids(undo_event.ids);
+            publish_delete_by_ids(map.map_id, undo_event.ids);
         }break;
         case UNDO_EVENT_MASS_CREATE:{
             const ids = undo_event.ids;
             const length = ids.length;
             for(let i = 0; i < length; i++){
-                const obj = canvas_objs.get(ids[i]);
+                const obj = map.canvas_objs.get(ids[i]);
                 obj.flags &= ~ FLAG_DELETED;
             }
-            const stripped = get_stripped_state_by_id(undo_event.ids);
-            publish_obj_updates(stripped);
+            const stripped = get_stripped_state_by_id(map, undo_event.ids);
+            publish_obj_updates(map.map_id, stripped);
         }break;
         case UNDO_EVENT_UPDATE:{
-            set_obj_states_from_stripped_objs(undo_event.after);
-            publish_obj_updates(undo_event.after);
+            set_obj_states_from_stripped_objs(map, undo_event.after);
+            publish_obj_updates(map.map_id, undo_event.after);
         }break;
     }
-    undo_position++;
+    map.undo_position++;
     request_render();
 }
-function undo_is_impossible(){
-    return !undo_position;
+function undo_is_impossible(map){
+    return !map.undo_position;
 }
-function redo_is_impossible(){
-    return undo_position == undo_stack.length;
+function redo_is_impossible(map){
+    return map.undo_position == map.undo_stack.length;
 }
 let localid = 0;
 // Combines the session id with the local id to create a
@@ -1004,13 +1039,14 @@ function get_new_id(){
     let id = (session_id << 20) + localid;
     return id;
 }
+// Needs to be global as it's shared between buffers.
 const copied_objs = [];
 function clear_copy_buffer(){
     copied_objs.length = 0;
 }
-function copy_selected_objs_to_copy_buffer(){
-    for(let obj_id of selected){
-        const obj = canvas_objs.get(obj_id);
+function copy_selected_objs_to_copy_buffer(map){
+    for(let obj_id of map.selected){
+        const obj = map.canvas_objs.get(obj_id);
         if(obj.flags & FLAG_DELETED)
             continue;
         const stripped = strip_obj(obj, STRIP_FLAGS_NONE);
@@ -1018,21 +1054,21 @@ function copy_selected_objs_to_copy_buffer(){
     }
 }
 
-function cut_selected_objs_to_copy_buffer(){
-    for(let obj_id of selected){
-        const obj = canvas_objs.get(obj_id);
+function cut_selected_objs_to_copy_buffer(map){
+    for(let obj_id of map.selected){
+        const obj = map.canvas_objs.get(obj_id);
         if(obj.flags & FLAG_DELETED)
             continue;
         const stripped = strip_obj(obj, STRIP_FLAGS_NONE);
         copied_objs.push(stripped);
         obj.flags |= FLAG_DELETED;
     }
-    publish_delete_by_ids(Array.from(selected));
-    note_delete_by_ids_for_undo(Array.from(selected));
-    selected.clear()
+    publish_delete_by_ids(map.map_id, Array.from(map.selected));
+    note_delete_by_ids_for_undo(map, Array.from(map.selected));
+    map.selected.clear()
     request_render();
 }
-function paste_from_copy_buffer_at(x, y){
+function paste_from_copy_buffer_at(map, x, y){
     x = snap_to_grid(x);
     y = snap_to_grid(y);
     const length = copied_objs.length;
@@ -1141,81 +1177,84 @@ function paste_from_copy_buffer_at(x, y){
                 obj.orientation = stripped.orientation;
             }break;
         }
-        add_canv_obj(obj);
+        add_canv_obj(map, obj);
         new_ids.push(id);
-        publish_obj_by_id(obj.id);
+        publish_obj_by_id(map, obj.id);
     }
-    note_mass_create_for_undo(new_ids);
+    note_mass_create_for_undo(map, new_ids);
     request_render();
 }
 socket.on('canvas-create', function(msgs){
     // FIXME: handle more than one map
-    const msg = msgs[0];
-    const map_id = msg.map_id;
-    const objs = msg.objects;
-    const length = objs.length;
-    for(let i = 0; i < length; ++i){
-        const obj = objs[i];
-        switch(obj.type){
-            case FREEHAND_LINE:
-                obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-                freehand_recalculate_bbox(obj);
-                freehand_recalculate_path(obj);
-                break;
-            case GRID_LINE:
-                obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-                gridline_recalculate_bbox(obj);
-                gridline_recalculate_path(obj);
-                break;
-            case FILLED_RECT:
-                break;
-            case RECT:
-                break;
-            case GRID_RECT:
-                break;
-            case IMAGE:{
-                obj.img = null;
-                const img = new Image(obj.width, obj.height);
-                img.addEventListener('load', function(){
-                    obj.img = img;
-                    request_render();
-                }, {once:true});
-                img.src = obj.url;
-            }break;
-            case TEXT:
-                obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-                break;
-            case EZ_TOKEN:
-                break;
-            case IMG_TOKEN:{
-                obj.img = null;
-                const img = new Image(obj.width, obj.height);
-                img.addEventListener('load', function(){
-                    obj.img = img;
-                    request_render();
-                }, {once:true});
-                img.src = obj.url;
-            }break;
-            case DOOR:{
-            }break;
-        }
-        const existing_obj = canvas_objs.get(obj.id);
-        if(existing_obj){
-            console.log('object already exists???', obj.id);
-        }
-        else {
-            add_canv_obj(obj);
+    for(let msg of msgs){
+        const map_id = msg.map_id;
+        const map = get_map(map_id);
+        const objs = msg.objects;
+        const length = objs.length;
+        for(let i = 0; i < length; ++i){
+            const obj = objs[i];
+            switch(obj.type){
+                case FREEHAND_LINE:
+                    obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+                    freehand_recalculate_bbox(obj);
+                    freehand_recalculate_path(obj);
+                    break;
+                case GRID_LINE:
+                    obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+                    gridline_recalculate_bbox(obj);
+                    gridline_recalculate_path(obj);
+                    break;
+                case FILLED_RECT:
+                    break;
+                case RECT:
+                    break;
+                case GRID_RECT:
+                    break;
+                case IMAGE:{
+                    obj.img = null;
+                    const img = new Image(obj.width, obj.height);
+                    img.addEventListener('load', function(){
+                        obj.img = img;
+                        request_render();
+                    }, {once:true});
+                    img.src = obj.url;
+                }break;
+                case TEXT:
+                    obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+                    break;
+                case EZ_TOKEN:
+                    break;
+                case IMG_TOKEN:{
+                    obj.img = null;
+                    const img = new Image(obj.width, obj.height);
+                    img.addEventListener('load', function(){
+                        obj.img = img;
+                        request_render();
+                    }, {once:true});
+                    img.src = obj.url;
+                }break;
+                case DOOR:{
+                }break;
+            }
+            const existing_obj = map.canvas_objs.get(obj.id);
+            if(existing_obj){
+                console.log('object already exists???', obj.id);
+            }
+            else {
+                add_canv_obj(map,obj);
+            }
         }
     }
     request_render();
 });
 socket.on('canvas-delete', function(msg){
     const map_id = msg.map_id;
+    const map = get_map(map_id);
     const obj_ids = msg.ids;
     const length = obj_ids.length;
     for(let i = 0; i < length; i++){
         const id = obj_ids[i];
-        const obj = canvas_objs.get(id);
+        const obj = map.canvas_objs.get(id);
         if(obj){
             obj.flags |= FLAG_DELETED;
         }
@@ -1229,15 +1268,16 @@ socket.on('canvas-delete', function(msg){
 
 socket.on('canvas-update', function(msg){
     const map_id = msg.map_id;
+    const map = get_map(map_id);
     const obj_states = msg.obj_states;
-    set_obj_states_from_stripped_objs(obj_states);
+    set_obj_states_from_stripped_objs(map, obj_states);
     request_render();
 });
-function set_obj_states_from_stripped_objs(obj_states){
+function set_obj_states_from_stripped_objs(map, obj_states){
     const length = obj_states.length;
     for(let i = 0; i < length; ++i){
         const state = obj_states[i];
-        const obj = canvas_objs.get(state.id);
+        const obj = map.canvas_objs.get(state.id);
         if(!obj){
             console.log('Updating unknown object??', state.id);
             continue;
@@ -1313,20 +1353,20 @@ function set_obj_states_from_stripped_objs(obj_states){
         }
     }
 }
-const selected = new Set();
+// const selected = new Set();
 // These are a bit flags
 // Select background things (walls, lines).
 const SELECT_MAP = 1;
 // can select token types
 const SELECT_TOKEN = 2;
 const SELECT_ANY = SELECT_MAP | SELECT_TOKEN;
-const selection_area = {
-    select_type: SELECT_ANY,
-    is_selecting: false,
-    x0:0, y0:0,
-    x1:0, y1:0,
-};
-function update_selection(x0, y0, x1, y1){
+// const selection_area = {
+    // select_type: SELECT_ANY,
+    // is_selecting: false,
+    // x0:0, y0:0,
+    // x1:0, y1:0,
+// };
+function update_selection(map, x0, y0, x1, y1){
     if(x0 > x1){
         let temp = x0;
         x0 = x1;
@@ -1337,23 +1377,25 @@ function update_selection(x0, y0, x1, y1){
         y0 = y1;
         y1 = temp;
     }
-    selection_area.x0 = x0;
-    selection_area.y0 = y0;
-    selection_area.x1 = x1;
-    selection_area.y1 = y1;
+    map.selection_area.x0 = x0;
+    map.selection_area.y0 = y0;
+    map.selection_area.x1 = x1;
+    map.selection_area.y1 = y1;
 }
 function point_in_rect(x, y, x0, y0, x1, y1){
     return (x >= x0) && (x <= x1) && (y >= y0) && (y <= y1);
 }
-function note_selections(){
+function note_selections(map){
     // const before = performance.now();
+    const canvas_obj_array = map.canvas_obj_array;
     const length = canvas_obj_array.length;
-    const x0 = selection_area.x0;
-    const y0 = selection_area.y0;
-    const x1 = selection_area.x1;
-    const y1 = selection_area.y1;
+    const x0 = map.selection_area.x0;
+    const y0 = map.selection_area.y0;
+    const x1 = map.selection_area.x1;
+    const y1 = map.selection_area.y1;
     const selection_bbox = {x0:x0, y0:y0, x1:x1, y1:y1,};
-    const selection_type = selection_area.select_type;
+    const selection_type = map.selection_area.select_type;
+    const selected = map.selected;
     for(let i = 0; i < length; ++i){
         const obj = canvas_obj_array[i];
         if(obj.flags & FLAG_DELETED)
@@ -1471,29 +1513,29 @@ function note_selections(){
     // const after = performance.now();
     // console.log('note_selections', after-before, 'ms');
 }
-function finalize_selection(){
-    selected.clear();
-    selection_area.is_selecting = false;
-    note_selections();
+function finalize_selection(map){
+    map.selected.clear();
+    map.selection_area.is_selecting = false;
+    note_selections(map);
     request_render();
 }
-function end_selecting(){
-    selected.clear();
-    selection_area.is_selecting = false;
+function end_selecting(map){
+    map.selected.clear();
+    map.selection_area.is_selecting = false;
     request_render();
 }
-function change_select_mode(mode){
-    selected.clear();
-    selection_area.select_type = mode;
-    note_selections();
+function change_select_mode(map, mode){
+    map.selected.clear();
+    map.selection_area.select_type = mode;
+    note_selections(map);
     request_render();
 }
-function move_selected_objects(base_x, base_y, dx, dy){
+function move_selected_objects(map, base_x, base_y, dx, dy){
     const selected_objs = [];
     let result = [base_x+dx, base_y+dy];
     let rigid = false;
-    for(let item of selected){
-        const obj = canvas_objs.get(item);
+    for(let item of map.selected){
+        const obj = map.canvas_objs.get(item);
         if(obj.flags & FLAG_DELETED)
             continue;
         switch(obj.type){
@@ -1591,9 +1633,9 @@ function move_selected_objects(base_x, base_y, dx, dy){
     return result;
 }
 
-function add_canv_obj(obj){
-    canvas_objs.set(obj.id, obj);
-    canvas_obj_array.push(obj);
+function add_canv_obj(map, obj){
+    map.canvas_objs.set(obj.id, obj);
+    map.canvas_obj_array.push(obj);
 }
 const STRIP_FLAGS_NONE = 0;
 const STRIP_INCLUDE_ID = 1;
@@ -1661,24 +1703,24 @@ function strip_obj(obj, include_flags){
     }
     return stripped_obj;
 }
-function publish_delete_by_ids(ids){
-    socket.emit('canvas-delete', {map_id:0, ids:ids})
+function publish_delete_by_ids(map_id, ids){
+    socket.emit('canvas-delete', {map_id:map_id, ids:ids})
 }
-function publish_obj_by_id(id){
-    const obj = canvas_objs.get(id);
+function publish_obj_by_id(map, id){
+    const obj = map.canvas_objs.get(id);
     if(!obj){
         console.log('invalid id given for publishing:', id);
         return;
     }
     const stripped_obj = strip_obj(obj, STRIP_INCLUDE_ID);
-    socket.emit('canvas-create', {map_id:0, object:stripped_obj});
+    socket.emit('canvas-create', {map_id:map.map_id, object:stripped_obj});
 }
-function get_stripped_state_by_id(ids){
+function get_stripped_state_by_id(map, ids){
     const length = ids.length;
     const updates = []
     for(let i = 0; i < length; ++i){
         const id = ids[i];
-        const obj = canvas_objs.get(id);
+        const obj = map.canvas_objs.get(id);
         if(!obj){
             console.log('Invalid id given for publishing update', id);
             continue;
@@ -1688,15 +1730,15 @@ function get_stripped_state_by_id(ids){
     }
     return updates;
 }
-function publish_obj_updates(updates){
-    socket.emit('canvas-update', {map_id:0, obj_states:updates});
+function publish_obj_updates(map_id, updates){
+    socket.emit('canvas-update', {map_id:map_id, obj_states:updates});
 }
 
-function edit_is_impossible(){
-    if(selected.size !== 1)
+function edit_is_impossible(map){
+    if(map.selected.size !== 1)
         return true;
-    const first = selected.values().next().value;
-    const obj = canvas_objs.get(first);
+    const first = map.selected.values().next().value;
+    const obj = map.canvas_objs.get(first);
     switch(obj.type){
         case FREEHAND_LINE:
             return true;
@@ -1722,11 +1764,11 @@ function edit_is_impossible(){
     return false;
 }
 
-function launch_edit_dialog(){
-    if(selected.size !== 1)
+function launch_edit_dialog(map){
+    if(map.selected.size !== 1)
         return;
-    const first = selected.values().next().value;
-    const obj = canvas_objs.get(first);
+    const first = map.selected.values().next().value;
+    const obj = map.canvas_objs.get(first);
     switch(obj.type){
         case FREEHAND_LINE:
             return;
@@ -1780,7 +1822,7 @@ function launch_edit_dialog(){
                 const color = document.getElementById('hover-color').value;
                 obj.color = color;
                 const after = strip_obj(obj, STRIP_INCLUDE_ID);
-                publish_obj_updates([after]);
+                publish_obj_updates(map.map_id, [after]);
                 request_render();
             });
         }return;
@@ -1809,10 +1851,16 @@ function render(){
     // const before = performance.now();
     if(!ctx)
         return;
-    if(selection_area.is_selecting){
-        selected.clear();
-        note_selections();
+    const map = get_map(current_map_id);
+    if(map.selection_area.is_selecting){
+        map.selected.clear();
+        note_selections(map);
     }
+    const canvas_obj_array = map.canvas_obj_array;
+    const selected = map.selected;
+    const camera_x = map.camera_x;
+    const camera_y = map.camera_y;
+    const scale = map.scale;
     animation_requested = false;
     const width = canvas.width;
     const height = canvas.height;
@@ -2425,9 +2473,9 @@ function render(){
             }break;
         }
     }
-    if(selection_area.is_selecting){
+    if(map.selection_area.is_selecting){
         ctx.fillStyle = '#55555555';
-        ctx.fillRect(selection_area.x0, selection_area.y0, selection_area.x1-selection_area.x0, selection_area.y1-selection_area.y0);
+        ctx.fillRect(map.selection_area.x0, map.selection_area.y0, map.selection_area.x1-map.selection_area.x0, map.selection_area.y1-map.selection_area.y0);
     }
     // request_render();
     // timings.push(performance.now()-before);
@@ -2461,7 +2509,7 @@ function change_tool(toolname){
         case MOVE_TOOL:
             break;
         default:
-            end_selecting();
+            end_selecting(get_map(current_map_id)); // Should actually be on all maps.
             break;
     }
     switch(toolname){
@@ -2505,7 +2553,8 @@ document.addEventListener('DOMContentLoaded', function(){
         if(tool.firstChild.textContent.trim() == 'Select'){
             let has_menu = false;
             const name = tool.getElementsByTagName('span')[0];
-            switch(selection_area.select_type){
+            const map = get_map(current_map_id);
+            switch(map.selection_area.select_type){
                 case SELECT_ANY:
                     name.innerText = 'Any';
                     break;
@@ -2518,16 +2567,19 @@ document.addEventListener('DOMContentLoaded', function(){
             }
             select_numeric_hot_keys = [
                 function(){
+                    const map = get_map(current_map_id);
                     name.innerText = 'Any';
-                    change_select_mode(SELECT_ANY);
+                    change_select_mode(map, SELECT_ANY);
                 },
                 function(){
+                    const map = get_map(current_map_id);
                     name.innerText = 'Map';
-                    change_select_mode(SELECT_MAP);
+                    change_select_mode(map, SELECT_MAP);
                 },
                 function(){
+                    const map = get_map(current_map_id);
                     name.innerText = 'Token';
-                    change_select_mode(SELECT_TOKEN);
+                    change_select_mode(map, SELECT_TOKEN);
                 },
             ];
             const triangle = tool.getElementsByTagName('span')[1];
@@ -2558,7 +2610,8 @@ document.addEventListener('DOMContentLoaded', function(){
                             e.preventDefault();
                             name.innerText = 'Any';
                             change_tool(SELECT_TOOL);
-                            change_select_mode(SELECT_ANY);
+                            const map = get_map(current_map_id);
+                            change_select_mode(map, SELECT_ANY);
                             close_select_menu();
                         },
                         text:'Any',
@@ -2569,7 +2622,8 @@ document.addEventListener('DOMContentLoaded', function(){
                             e.preventDefault();
                             change_tool(SELECT_TOOL);
                             name.innerText = 'Map';
-                            change_select_mode(SELECT_MAP);
+                            const map = get_map(current_map_id);
+                            change_select_mode(map, SELECT_MAP);
                             close_select_menu();
                         },
                         text:'Map',
@@ -2580,7 +2634,8 @@ document.addEventListener('DOMContentLoaded', function(){
                             e.preventDefault();
                             change_tool(SELECT_TOOL);
                             name.innerText = 'Token';
-                            change_select_mode(SELECT_TOKEN);
+                            const map = get_map(current_map_id);
+                            change_select_mode(map, SELECT_TOKEN);
                             close_select_menu();
                         },
                         text:'Token',
@@ -2606,7 +2661,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 current_door = doortype;
                 switch(current_door){
                     case DOOR_DOOR:
-                        name.innerText = '';
+                        name.innerText = ' - Door';
                         break;
                     case DOOR_DOUBLE:
                         name.innerText = '- Double';
@@ -2625,6 +2680,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         break;
                 }
             }
+            change_door(DOOR_DOOR);
             door_numeric_hot_keys = [
                     function(){change_door(DOOR_DOOR)},
                     function(){change_door(DOOR_SECRET)},
@@ -2698,9 +2754,10 @@ document.addEventListener('DOMContentLoaded', function(){
                     name.innerText = "- 5'";
                 }
                 else {
-                    name.innerText = ''
+                    name.innerText = "- 10'"
                 }
             }
+            change_wall(false);
             wall_numeric_hot_keys.push(function(){change_wall(false);});
             wall_numeric_hot_keys.push(function(){change_wall(true);});
             const triangle = tool.getElementsByTagName('span')[1];
@@ -2767,21 +2824,22 @@ document.addEventListener('DOMContentLoaded', function(){
     canvas.addEventListener('wheel', function(e){
         e.stopPropagation();
         e.preventDefault();
-        const oldscale = scale;
+        const map = get_map(current_map_id);
+        const oldscale = map.scale;
         let dy = e.deltaY;
         const dscale = 120;
         if(dy > dscale)
             dy = dscale;
         if(dy < -dscale)
             dy = -dscale;
-        scale *= 1 + (-dy/dscale);
-        scale = clamp_scale(scale);
-        camera_x -= e.offsetX/oldscale;
-        camera_x += e.offsetX/scale;
-        camera_y -= e.offsetY/oldscale;
-        camera_y += e.offsetY/scale;
-        camera_x = Math.round(camera_x);
-        camera_y = Math.round(camera_y);
+        map.scale *= 1 + (-dy/dscale);
+        map.scale = clamp_scale(map.scale);
+        map.camera_x -= e.offsetX/oldscale;
+        map.camera_x += e.offsetX/map.scale;
+        map.camera_y -= e.offsetY/oldscale;
+        map.camera_y += e.offsetY/map.scale;
+        map.camera_x = Math.round(map.camera_x);
+        map.camera_y = Math.round(map.camera_y);
         request_render();
     });
     window.addEventListener('keydown', function(e){
@@ -2791,13 +2849,14 @@ document.addEventListener('DOMContentLoaded', function(){
         const other_modifiers = e.altKey || e.shiftKey;
         const shift = e.shiftKey;
         const shortcut = ctrl_or_cmd_is_pressed && !other_modifiers;
+        const map = get_map(current_map_id);
         switch(e.key){
             case 'ArrowLeft':{
-                camera_x += 256;
+                map.camera_x += 256;
                 request_render();
             }break;
             case 'ArrowRight':{
-                camera_x -= 256;
+                map.camera_x -= 256;
                 request_render();
             }break;
             case 'ArrowUp':{
@@ -2809,17 +2868,17 @@ document.addEventListener('DOMContentLoaded', function(){
                 request_render();
             }break;
             case 'Escape':{
-                selected.clear();
+                map.selected.clear();
                 request_render();
             }
             case 'Backspace': // fall-through
             case 'Delete':{
-                for(let item of selected){
-                    canvas_objs.get(item).flags |= FLAG_DELETED;
+                for(let item of map.selected){
+                    map.canvas_objs.get(item).flags |= FLAG_DELETED;
                 }
-                publish_delete_by_ids(Array.from(selected));
-                note_delete_by_ids_for_undo(Array.from(selected));
-                end_selecting();
+                publish_delete_by_ids(map.map_id, Array.from(map.selected));
+                note_delete_by_ids_for_undo(map, Array.from(map.selected));
+                end_selecting(map);
             }break;
             case 'a':
                 change_tool(PAN_TOOL);
@@ -2850,7 +2909,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 break;
             case 'y':
                 if(shortcut){
-                    do_one_redo();
+                    do_one_redo(map);
                 }
                 else {
                     return; // avoid the stop prop stuff
@@ -2858,31 +2917,31 @@ document.addEventListener('DOMContentLoaded', function(){
                 break;
             case 'z':
                 if(shortcut){
-                    do_one_undo();
+                    do_one_undo(map);
                 }
                 break;
             case 'x':
                 if(shortcut){
-                    if(selected.size !== 0){
+                    if(map.selected.size !== 0){
                         clear_copy_buffer();
-                        cut_selected_objs_to_copy_buffer();
+                        cut_selected_objs_to_copy_buffer(map);
                     }
                 }
                 break;
             case 'c':
                 if(shortcut){
-                    if(selected.size !== 0){
+                    if(map.selected.size !== 0){
                         clear_copy_buffer();
-                        copy_selected_objs_to_copy_buffer();
+                        copy_selected_objs_to_copy_buffer(map);
                     }
                 }
                 break;
             case 'v':
                 if(shortcut){
                     if(copied_objs.length){
-                        const x = canvas.width/4/scale - camera_x;
-                        const y = canvas.height/4/scale - camera_y;
-                        paste_from_copy_buffer_at(x, y);
+                        const x = canvas.width/4/map.scale - map.camera_x;
+                        const y = canvas.height/4/map.scale - map.camera_y;
+                        paste_from_copy_buffer_at(map, x, y);
                     }
                     break;
                 }
@@ -2918,6 +2977,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if(e.button !== 0 && e.button !== 1){ //0 is the 'primary' button
             return;
         }
+        let map = get_map(current_map_id);
         if(ctxmenu_is_active !== 0)
             return;
         e.stopPropagation();
@@ -2928,22 +2988,22 @@ document.addEventListener('DOMContentLoaded', function(){
         }
         switch(current_tool){
             case SELECT_TOOL:{
-                let clicked_x = e.offsetX/scale - camera_x;
-                let clicked_y = e.offsetY/scale - camera_y;
-                selection_area.is_selecting = true;
-                update_selection(clicked_x-5/scale, clicked_y-5/scale, clicked_x+5/scale, clicked_y+5/scale);
+                let clicked_x = e.offsetX/map.scale - map.camera_x;
+                let clicked_y = e.offsetY/map.scale - map.camera_y;
+                map.selection_area.is_selecting = true;
+                update_selection(map, clicked_x-5/map.scale, clicked_y-5/map.scale, clicked_x+5/map.scale, clicked_y+5/map.scale);
                 request_render();
                 function select(e){
                     e.stopPropagation();
                     e.preventDefault();
-                    let select_x = e.offsetX/scale - camera_x;
-                    let select_y = e.offsetY/scale - camera_y;
-                    update_selection(clicked_x, clicked_y, select_x, select_y);
+                    let select_x = e.offsetX/map.scale - map.camera_x;
+                    let select_y = e.offsetY/map.scale - map.camera_y;
+                    update_selection(map, clicked_x, clicked_y, select_x, select_y);
                     request_render();
                 }
                 canvas.addEventListener('mousemove', select);
                 function finish_select(){
-                    finalize_selection();
+                    finalize_selection(map);
                     canvas.removeEventListener('mousemove', select);
                     window.removeEventListener('mouseup', finish_select);
                     canvas.removeEventListener('mouseleave', finish_select);
@@ -2952,24 +3012,24 @@ document.addEventListener('DOMContentLoaded', function(){
                 canvas.addEventListener('mouseleave', finish_select);
             }break;
             case MOVE_TOOL:{
-                if(!selected.size)
+                if(!map.selected.size)
                     return;
-                let clicked_x = e.offsetX/scale - camera_x;
-                let clicked_y = e.offsetY/scale - camera_y;
+                let clicked_x = e.offsetX/map.scale - map.camera_x;
+                let clicked_y = e.offsetY/map.scale - map.camera_y;
                 let rawclick_x = e.offsetX;
                 let rawclick_y = e.offsetY;
                 let changed = false;
-                const before_update = get_stripped_state_by_id(Array.from(selected));
+                const before_update = get_stripped_state_by_id(map, Array.from(map.selected));
                 function move(e){
                     e.stopPropagation();
                     e.preventDefault();
                     const diff = Math.abs(e.offsetX - rawclick_x) + Math.abs(e.offsetY - rawclick_y);
                     if(diff < 2)
                         return;
-                    let move_x = e.offsetX/scale - camera_x;
-                    let move_y = e.offsetY/scale - camera_y;
+                    let move_x = e.offsetX/map.scale - map.camera_x;
+                    let move_y = e.offsetY/map.scale - map.camera_y;
                     changed = true;
-                    let new_coords = move_selected_objects(clicked_x, clicked_y, move_x - clicked_x, move_y - clicked_y);
+                    let new_coords = move_selected_objects(map, clicked_x, clicked_y, move_x - clicked_x, move_y - clicked_y);
                     clicked_x = new_coords[0];
                     clicked_y = new_coords[1];;
                 }
@@ -2980,23 +3040,23 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mouseleave', finish_move);
                     if(!changed)
                         return;
-                    const after_update = get_stripped_state_by_id(Array.from(selected));
-                    publish_obj_updates(after_update);
-                    note_updates_for_undo(before_update, after_update);
+                    const after_update = get_stripped_state_by_id(map, Array.from(map.selected));
+                    publish_obj_updates(map.map_id, after_update);
+                    note_updates_for_undo(map, before_update, after_update);
                 }
                 window.addEventListener('mouseup', finish_move);
                 canvas.addEventListener('mouseleave', finish_move);
             }break;
             case PAN_TOOL:{
-                let clicked_x = e.offsetX/scale;
-                let clicked_y = e.offsetY/scale;
+                let clicked_x = e.offsetX/map.scale;
+                let clicked_y = e.offsetY/map.scale;
                 function pan(e){
                     e.stopPropagation();
                     e.preventDefault();
-                    let pan_x = e.offsetX/scale;
-                    let pan_y = e.offsetY/scale;
-                    camera_x -= clicked_x - pan_x;
-                    camera_y -= clicked_y - pan_y;
+                    let pan_x = e.offsetX/map.scale;
+                    let pan_y = e.offsetY/map.scale;
+                    map.camera_x -= clicked_x - pan_x;
+                    map.camera_y -= clicked_y - pan_y;
                     clicked_x = pan_x;
                     clicked_y = pan_y;
                     request_render();
@@ -3016,11 +3076,11 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case LINE_TOOL:{
                 let id = get_new_id();
-                add_freehand_line(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, color_picker.value);
+                add_freehand_line(map, id, e.offsetX/map.scale-map.camera_x, e.offsetY/map.scale-map.camera_y, color_picker.value);
                 function add_point(e){
                     e.stopPropagation();
                     e.preventDefault();
-                    add_freehand_point_by_id(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y);
+                    add_freehand_point_by_id(map, id, e.offsetX/map.scale-map.camera_x, e.offsetY/map.scale-map.camera_y);
                     request_render();
                 }
                 canvas.addEventListener('mousemove', add_point);
@@ -3028,19 +3088,19 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mousemove', add_point);
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
-                    publish_obj_by_id(id);
-                    note_create_by_id_for_undo(id);
+                    publish_obj_by_id(map, id);
+                    note_create_by_id_for_undo(map, id);
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case WALL_TOOL:{
                 let id = get_new_id();
-                add_gridline(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, color_picker.value);
+                add_gridline(map, id, e.offsetX/map.scale-map.camera_x, e.offsetY/map.scale-map.camera_y, color_picker.value);
                 function add_point(e){
                     e.stopPropagation();
                     e.preventDefault();
-                    add_gridline_point_by_id(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y);
+                    add_gridline_point_by_id(map, id, e.offsetX/map.scale-map.camera_x, e.offsetY/map.scale-map.camera_y);
                     request_render();
                 }
                 canvas.addEventListener('mousemove', add_point);
@@ -3048,22 +3108,22 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mousemove', add_point);
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
-                    publish_obj_by_id(id);
-                    note_create_by_id_for_undo(id);
+                    publish_obj_by_id(map, id);
+                    note_create_by_id_for_undo(map, id);
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case DOOR_TOOL:{
-                let x0 = snap_to_grid(e.offsetX/scale-camera_x);
-                let y0 = snap_to_grid(e.offsetY/scale-camera_y);
+                let x0 = snap_to_grid(e.offsetX/map.scale-map.camera_x);
+                let y0 = snap_to_grid(e.offsetY/map.scale-map.camera_y);
                 let x1 = x0;
                 let y1 = y0;
                 function change_point(e){
                     e.stopPropagation();
                     e.preventDefault();
-                    x1 = snap_to_grid(e.offsetX/scale-camera_x);
-                    y1 = snap_to_grid(e.offsetY/scale-camera_y);
+                    x1 = snap_to_grid(e.offsetX/map.scale-map.camera_x);
+                    y1 = snap_to_grid(e.offsetY/map.scale-map.camera_y);
                     if(x1 > x0 + REFERENCE_WIDTH)
                         x1 = x0 + REFERENCE_WIDTH;
                     if(x1 < x0 - REFERENCE_WIDTH)
@@ -3095,9 +3155,9 @@ document.addEventListener('DOMContentLoaded', function(){
                         }
                         let x = ((x0 + x1)/2) | 0;
                         let y = ((y0 + y1)/2) | 0;
-                        add_door(id, x, y, current_door, color_picker.value, orientation);
-                        publish_obj_by_id(id);
-                        note_create_by_id_for_undo(id);
+                        add_door(map, id, x, y, current_door, color_picker.value, orientation);
+                        publish_obj_by_id(map, id);
+                        note_create_by_id_for_undo(map, id);
                         request_render();
                     }
                 }
@@ -3106,13 +3166,13 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case FLOOR_TOOL:{
                 let id = get_new_id();
-                const x0 = e.offsetX/scale-camera_x;
-                const y0 = e.offsetY/scale-camera_y;
-                add_gridrect(id, x0, y0, color_picker.value);
+                const x0 = e.offsetX/map.scale-map.camera_x;
+                const y0 = e.offsetY/map.scale-map.camera_y;
+                add_gridrect(map, id, x0, y0, color_picker.value);
                 function add_point(e){
                     e.stopPropagation();
                     e.preventDefault();
-                    change_gridrect_by_id(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, x0, y0);
+                    change_gridrect_by_id(map, id, e.offsetX/map.scale-map.camera_x, e.offsetY/map.scale-map.camera_y, x0, y0);
                     request_render();
                 }
                 canvas.addEventListener('mousemove', add_point);
@@ -3120,21 +3180,21 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mousemove', add_point);
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
-                    publish_obj_by_id(id);
-                    note_create_by_id_for_undo(id);
+                    publish_obj_by_id(map, id);
+                    note_create_by_id_for_undo(map, id);
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case RECT_TOOL:{
                 let id = get_new_id();
-                const x0 = e.offsetX/scale-camera_x;
-                const y0 = e.offsetY/scale-camera_y;
-                add_rect(id, x0, y0, color_picker.value);
+                const x0 = e.offsetX/map.scale-map.camera_x;
+                const y0 = e.offsetY/map.scale-map.camera_y;
+                add_rect(map, id, x0, y0, color_picker.value);
                 function add_point(e){
                     e.stopPropagation();
                     e.preventDefault();
-                    change_rect_by_id(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, x0, y0);
+                    change_rect_by_id(map, id, e.offsetX/map.scale-map.camera_x, e.offsetY/map.scale-map.camera_y, x0, y0);
                     request_render();
                 }
                 canvas.addEventListener('mousemove', add_point);
@@ -3142,21 +3202,21 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mousemove', add_point);
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
-                    publish_obj_by_id(id);
-                    note_create_by_id_for_undo(id);
+                    publish_obj_by_id(map, id);
+                    note_create_by_id_for_undo(map, id);
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case FILLED_RECT_TOOL:{
                 let id = get_new_id();
-                const x0 = e.offsetX/scale-camera_x;
-                const y0 = e.offsetY/scale-camera_y;
-                add_filled_rect(id, x0, y0, color_picker.value, color_picker2.value);
+                const x0 = e.offsetX/map.scale-map.camera_x;
+                const y0 = e.offsetY/map.scale-map.camera_y;
+                add_filled_rect(map, id, x0, y0, color_picker.value, color_picker2.value);
                 function add_point(e){
                     e.stopPropagation();
                     e.preventDefault();
-                    change_filled_rect_by_id(id, e.offsetX/scale-camera_x, e.offsetY/scale-camera_y, x0, y0);
+                    change_filled_rect_by_id(map, id, e.offsetX/map.scale-map.camera_x, e.offsetY/map.scale-map.camera_y, x0, y0);
                     request_render();
                 }
                 canvas.addEventListener('mousemove', add_point);
@@ -3164,15 +3224,15 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mousemove', add_point);
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
-                    publish_obj_by_id(id);
-                    note_create_by_id_for_undo(id);
+                    publish_obj_by_id(map, id);
+                    note_create_by_id_for_undo(map, id);
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case TEXT_TOOL:{
-                const x0 = e.offsetX/scale-camera_x;
-                const y0 = e.offsetY/scale-camera_y;
+                const x0 = e.offsetX/map.scale-map.camera_x;
+                const y0 = e.offsetY/map.scale-map.camera_y;
                 /*
                     <tr>
                         <td>Alignment:</td>
@@ -3211,15 +3271,15 @@ document.addEventListener('DOMContentLoaded', function(){
                     if(size > 72)
                         return;
                     let id = get_new_id();
-                    add_text(id, x0, y0, text, size);
-                    publish_obj_by_id(id);
-                    note_create_by_id_for_undo(id);
+                    add_text(map, id, x0, y0, text, size);
+                    publish_obj_by_id(map, id);
+                    note_create_by_id_for_undo(map, id);
                     request_render();
                 });
             }break;
             case IMAGE_TOOL:{
-                const x0 = e.offsetX/scale-camera_x;
-                const y0 = e.offsetY/scale-camera_y;
+                const x0 = e.offsetX/map.scale-map.camera_x;
+                const y0 = e.offsetY/map.scale-map.camera_y;
                 const html = `
                     <h2>Enter Image</h2>
                     <table class="input-container">
@@ -3254,15 +3314,15 @@ document.addEventListener('DOMContentLoaded', function(){
                         height = snap_to_grid(height);
                     }
                     let id = get_new_id();
-                    add_image(id, x0, y0, width, height, text);
-                    publish_obj_by_id(id);
-                    note_create_by_id_for_undo(id);
+                    add_image(map, id, x0, y0, width, height, text);
+                    publish_obj_by_id(map, id);
+                    note_create_by_id_for_undo(map, id);
                     request_render();
                 });
             }break;
             case EZ_TOKEN_TOOL:{
-                const x0 = e.offsetX/scale-camera_x;
-                const y0 = e.offsetY/scale-camera_y;
+                const x0 = e.offsetX/map.scale-map.camera_x;
+                const y0 = e.offsetY/map.scale-map.camera_y;
                 const html = `
                     <h2>Enter Token</h2>
                     <table class="input-container">
@@ -3295,15 +3355,15 @@ document.addEventListener('DOMContentLoaded', function(){
                         height = 1;
                     let id = get_new_id();
                     ez_token_color = document.getElementById('hover-color').value;
-                    add_ez_token(id, x0, y0, text, ez_token_color, width, height);
-                    publish_obj_by_id(id);
-                    note_create_by_id_for_undo(id);
+                    add_ez_token(map, id, x0, y0, text, ez_token_color, width, height);
+                    publish_obj_by_id(map, id);
+                    note_create_by_id_for_undo(map, id);
                     request_render();
                 });
             }break;
             case IMG_TOKEN_TOOL:{
-                const x0 = e.offsetX/scale-camera_x;
-                const y0 = e.offsetY/scale-camera_y;
+                const x0 = e.offsetX/map.scale-map.camera_x;
+                const y0 = e.offsetY/map.scale-map.camera_y;
                 const html = `
                     <h2>Enter Image</h2>
                     <table class="input-container">
@@ -3319,9 +3379,9 @@ document.addEventListener('DOMContentLoaded', function(){
                         return;
                     }
                     let id = get_new_id();
-                    add_img_token(id, x0, y0, text);
-                    publish_obj_by_id(id);
-                    note_create_by_id_for_undo(id);
+                    add_img_token(map, id, x0, y0, text);
+                    publish_obj_by_id(map, id);
+                    note_create_by_id_for_undo(map, id);
                     request_render();
                 });
             }break;
@@ -3338,10 +3398,11 @@ document.addEventListener('DOMContentLoaded', function(){
         ctxmenu.classList.add('menu');
         ctxmenu.style.left = e.clientX + 'px';
         ctxmenu.style.top = e.clientY + 'px';
-        const x = e.offsetX/scale - camera_x - canvas.width/2/scale;
-        const y = e.offsetY/scale - camera_y - canvas.height/2/scale;
-        const click_x = e.offsetX/scale - camera_x;
-        const click_y = e.offsetY/scale - camera_y;
+        const map = get_map(current_map_id);
+        const x = e.offsetX/map.scale - map.camera_x - canvas.width/2/map.scale;
+        const y = e.offsetY/map.scale - map.camera_y - canvas.height/2/map.scale;
+        const click_x = e.offsetX/map.scale - map.camera_x;
+        const click_y = e.offsetY/map.scale - map.camera_y;
         function remove_menu(e){
             canvas.removeEventListener('mousedown', remove_menu);
             document.body.removeChild(ctxmenu);
@@ -3355,70 +3416,70 @@ document.addEventListener('DOMContentLoaded', function(){
         const items = [
             {
                 label: 'Zoom In',
-                func: function(){zoom_in();remove_menu();},
+                func: function(){zoom_in(map);remove_menu();},
                 disabled: false,
             },
             {
                 label: 'Zoom Out',
-                func: function(){zoom_out();remove_menu();},
+                func: function(){zoom_out(map);remove_menu();},
                 disabled: false,
             },
             {
                 label: 'Reset Zoom',
-                func: function(){reset_zoom();remove_menu();},
+                func: function(){reset_zoom(map);remove_menu();},
                 disabled: false,
             },
             {
                 label: 'Gather Party',
-                func: function(){socket.emit('canvas-gather', {x:-x, y:-y, map_id:0}); remove_menu();},
+                func: function(){socket.emit('canvas-gather', {x:-x, y:-y, map_id:map.map_id}); remove_menu();},
                 disabled: false,
             },
             {
                 label: 'Edit',
                 func: function(){
-                    launch_edit_dialog();
+                    launch_edit_dialog(map);
                     remove_menu();
                 },
-                disabled: edit_is_impossible(),
+                disabled: edit_is_impossible(map),
             },
             {
                 label: 'Undo',
                 func: function(){
-                    do_one_undo();
+                    do_one_undo(map);
                     remove_menu();
                 },
-                disabled: undo_is_impossible(),
+                disabled: undo_is_impossible(map),
             },
             {
                 label: 'Redo',
                 func: function(){
-                    do_one_redo();
+                    do_one_redo(map);
                     remove_menu();
                 },
-                disabled: redo_is_impossible(),
+                disabled: redo_is_impossible(map),
             },
             {
                 label: 'Cut',
                 func: function(){
                     clear_copy_buffer();
-                    cut_selected_objs_to_copy_buffer();
+                    cut_selected_objs_to_copy_buffer(map);
                     remove_menu();
                 },
-                disabled: selected.size === 0,
+                disabled: map.selected.size === 0,
             },
             {
                 label: 'Copy',
                 func: function(){
                     clear_copy_buffer();
-                    copy_selected_objs_to_copy_buffer();
+                    copy_selected_objs_to_copy_buffer(map);
                     remove_menu();
                 },
-                disabled: selected.size === 0,
+                disabled: map.selected.size === 0,
             },
             {
                 label: 'Paste',
                 func: function(){
-                    paste_from_copy_buffer_at(click_x, click_y);
+                    paste_from_copy_buffer_at(map, click_x, click_y);
                     remove_menu();
                 },
                 disabled: copied_objs.length === 0,

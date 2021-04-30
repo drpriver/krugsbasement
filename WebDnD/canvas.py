@@ -29,6 +29,11 @@ def load_canvas(data) -> Dict[int, Map]:
 MAPS = Persister(MAPS, 'BadDb/canvas.json', save_func=save_canvas, load_func=load_canvas).obj
 MAP_OBJS_BY_ID = {k:{o['id']:o for o in v.objects} for k,v in MAPS.items()} # type: Dict[int, Dict[int, dict]]
 
+def create_map(map_id) -> None:
+    if map_id in MAPS:
+        return
+    MAPS[map_id] = Map(map_id, [])
+    MAP_OBJS_BY_ID[map_id] = {}
 
 def get_map(map_id:int) -> dict:
     m = MAPS[map_id]

@@ -63,6 +63,12 @@ def canvas_gather(where:Dict[str, int]) -> None:
     else:
         emit('canvas-gather', where, broadcast=True)
 
+@socketio.on('canvas-create-map')
+def canvas_create_map(data:int) -> None:
+    canvas.create_map(data)
+    emit('canvas-create-map', data, broadcast=True, include_self=False)
+
+
 def error_reporter(message_type:int, filename:str, line:int, col:int, message:str):
     print(f'{line+1}:{col+1}: {message}')
 
