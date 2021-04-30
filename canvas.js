@@ -261,13 +261,21 @@ function get_map(map_id){
         return MAPS.get(map_id);
     const new_map = {
         map_id: map_id,
+        // These are in REFERENCE_WIDTH space.
+        // To go from screen space to grid space, divide by `scale` and subtract
+        // `camera_x`/`camera_y`.
+        // TODO: all this camera_N stuff is totally fucked.
+        // I should've added camera_x from the start, not subtract.
         camera_x: 0,
         camera_y: 0,
         scale: 1,
+
         canvas_obj_array: [],
         canvas_objs: new Map(),
+
         undo_stack: [],
         undo_position: 0,
+
         selected: new Set(),
         selection_area: {
             select_type: SELECT_ANY,
@@ -277,11 +285,19 @@ function get_map(map_id){
         },
     };
     socket.emit('canvas-create-map', map_id);
+    add_map_tab(map_id);
     MAPS.set(map_id, new_map);
     return new_map;
 }
 function change_map(map_id){
     current_map_id = map_id;
+    const top = document.getElementById('top');
+    for(let tab of top.children){
+        tab.classList.remove('active-map');
+        if(tab.firstChild.textContent.trim() == "" + map_id){
+            tab.classList.add('active-map');
+        }
+    }
     request_render();
 }
 socket.on('canvas-create-map', function(map_id){
@@ -292,20 +308,13 @@ socket.on('canvas-create-map', function(map_id){
 // THIS NEEDS TO ALWAYS BE POWER OF 2.
 // Also if it changes, lots of things will probably break.
 const REFERENCE_WIDTH = 64; // the size of a square at scale = 1.
-// These are in REFERENCE_WIDTH space.
-// To go from screen space to grid space, divide by `scale` and subtract
-// `camera_x`/`camera_y`.
-// TODO: all this camera_N stuff is totally fucked.
-// I should've added camera_x from the start, not subtract.
-// let camera_x = 0;
-// let camera_y = 0;
 socket.on('canvas-gather', function(where){
     const map = get_map(where.map_id);
     map.camera_x = where.x;
     map.camera_y = where.y;
+    change_map(where.map_id);
     request_render();
 });
-// let scale = 1;
 const MIN_SCALE = 0.125;
 const MAX_SCALE = 5;
 function clamp_scale(scale){
@@ -864,8 +873,6 @@ function add_image(map, id, base_x, base_y, width, height, url){
 }
 document.addEventListener('DOMContentLoaded', resize_canvas);
 window.addEventListener('resize', resize_canvas);
-// const canvas_obj_array = [];
-// const canvas_objs = new Map();
 function clear_canvas(map){
     map.canvas_obj_array.length = 0;
     map.canvas_objs.clear();
@@ -878,10 +885,15 @@ function clear_canvas(map){
 socket.on('canvas-clear', function(){
     for(let m of MAPS.values())
         clear_canvas(m);
+    MAPS.clear()
+    const top = document.getElementById('top');
+    for(let tab of Array.from(top.children)){
+        if(tab.id == "new-map")
+            continue;
+        top.removeChild(tab);
+    }
 });
 
-// let undo_stack = [];
-// let undo_position = 0;
 const UNDO_EVENT_CREATE = 0;
 const UNDO_EVENT_DELETE = 1;
 const UNDO_EVENT_UPDATE = 2;
@@ -1185,7 +1197,6 @@ function paste_from_copy_buffer_at(map, x, y){
     request_render();
 }
 socket.on('canvas-create', function(msgs){
-    // FIXME: handle more than one map
     for(let msg of msgs){
         const map_id = msg.map_id;
         const map = get_map(map_id);
@@ -1245,6 +1256,7 @@ socket.on('canvas-create', function(msgs){
             }
         }
     }
+    change_map(0);
     request_render();
 });
 socket.on('canvas-delete', function(msg){
@@ -1353,19 +1365,14 @@ function set_obj_states_from_stripped_objs(map, obj_states){
         }
     }
 }
-// const selected = new Set();
+
 // These are a bit flags
 // Select background things (walls, lines).
 const SELECT_MAP = 1;
 // can select token types
 const SELECT_TOKEN = 2;
 const SELECT_ANY = SELECT_MAP | SELECT_TOKEN;
-// const selection_area = {
-    // select_type: SELECT_ANY,
-    // is_selecting: false,
-    // x0:0, y0:0,
-    // x1:0, y1:0,
-// };
+
 function update_selection(map, x0, y0, x1, y1){
     if(x0 > x1){
         let temp = x0;
@@ -2860,11 +2867,11 @@ document.addEventListener('DOMContentLoaded', function(){
                 request_render();
             }break;
             case 'ArrowUp':{
-                camera_y += 256;
+                map.camera_y += 256;
                 request_render();
             }break;
             case 'ArrowDown':{
-                camera_y -= 256;
+                map.camera_y -= 256;
                 request_render();
             }break;
             case 'Escape':{
@@ -3580,3 +3587,29 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 */
 
+function add_map_tab(map_id){
+    const new_tab = document.createElement('div');
+    new_tab.appendChild(document.createTextNode(""+map_id));
+    const top = document.getElementById('top');
+    const new_map = document.getElementById('new-map');
+    top.insertBefore(new_tab, new_map);
+    new_tab.addEventListener('click', function(e){
+        e.stopPropagation();
+        e.preventDefault();
+        change_map(map_id);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+    const new_map = document.getElementById('new-map');
+    new_map.addEventListener('click', function(e){
+        let max = current_map_id;
+        for(let k of MAPS.keys()){
+            if(k | 0 > max)
+                max = k | 0;
+        }
+        get_map(max+1);
+        e.stopPropagation();
+        e.preventDefault();
+    });
+});

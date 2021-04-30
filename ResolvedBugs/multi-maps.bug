@@ -9,3 +9,15 @@ Update
 
 It was a slog, but now everything references an injected map instead of a global map,
 and I can programmatically create alternate maps.
+
+Update2
+----
+
+This basically works!
+
+You can create multiple maps using the + map button and navigate between them by clicking
+ont their button.
+
+Objects go to the right map and the state is able to be saved.
+
+We can only show 1 map at a time, but splitscreen will be a new issue.
