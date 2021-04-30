@@ -34,30 +34,30 @@ def handle_connection() -> None:
     emit('canvas-clear')
     emit('chat-clear')
     emit('chat-create', chat.get_history())
-    emit('canvas-create', canvas.get_objects())
+    emit('canvas-create', canvas.get_state())
 
 @socketio.on('canvas-create')
 def handle_canvas_create(data:dict) -> None:
-    responses = canvas.handle_create(data)
-    if responses:
-        emit('canvas-create', responses, broadcast=True, include_self=False)
+    response = canvas.handle_create(data)
+    if response:
+        emit('canvas-create', response, broadcast=True, include_self=False)
 
 @socketio.on('canvas-delete')
-def handle_canvas_delete(data:List[int]) -> None:
-    responses = canvas.handle_delete(data)
-    if responses:
-        emit('canvas-delete', responses, broadcast=True, include_self=False)
+def handle_canvas_delete(data:dict) -> None:
+    response = canvas.handle_delete(data)
+    if response:
+        emit('canvas-delete', response, broadcast=True, include_self=False)
 
 @socketio.on('canvas-update')
 def handle_canvas_update(data:List[dict]) -> None:
-    responses = canvas.handle_update(data)
-    if responses:
-        emit('canvas-update', responses, broadcast=True, include_self=False)
+    response = canvas.handle_update(data)
+    if response:
+        emit('canvas-update', response, broadcast=True, include_self=False)
 
 @socketio.on('canvas-gather')
 def canvas_gather(where:Dict[str, int]) -> None:
     try:
-        where = {'x':int(where['x']), 'y':int(where['y'])}
+        where = {'x':int(where['x']), 'y':int(where['y']), 'map_id':where['map_id']}
     except:
         pass
     else:
@@ -82,7 +82,7 @@ def imgs(filename):
 def app_state():
     if request.method == 'GET':
         args = request.args
-        state = {'chat':chat.get_history(), 'canvas':canvas.get_live_objects(), 'app':{'session_id':session_id}}
+        state = {'chat':chat.get_history(), 'canvas':canvas.get_state(), 'app':{'session_id':session_id}}
         if 'which' in args:
             try:
                 state = state[args['which']]

@@ -266,6 +266,7 @@ const REFERENCE_WIDTH = 64; // the size of a square at scale = 1.
 let camera_x = 0;
 let camera_y = 0;
 socket.on('canvas-gather', function(where){
+    console.assert(where.map_id === 0);
     camera_x = where.x;
     camera_y = where.y;
     request_render();
@@ -1147,14 +1148,14 @@ function paste_from_copy_buffer_at(x, y){
     note_mass_create_for_undo(new_ids);
     request_render();
 }
-socket.on('canvas-create', function(objs){
+socket.on('canvas-create', function(msgs){
+    // FIXME: handle more than one map
+    const msg = msgs[0];
+    const map_id = msg.map_id;
+    const objs = msg.objects;
     const length = objs.length;
     for(let i = 0; i < length; ++i){
         const obj = objs[i];
-        let origin = get_session_id_from_obj_id(obj.id);
-        // if(origin == session_id){
-            // continue;
-        // }
         switch(obj.type){
             case FREEHAND_LINE:
                 obj.bbox = {x0:0, x1:0, y0:0, y1:0};
@@ -1208,7 +1209,9 @@ socket.on('canvas-create', function(objs){
     }
     request_render();
 });
-socket.on('canvas-delete', function(obj_ids){
+socket.on('canvas-delete', function(msg){
+    const map_id = msg.map_id;
+    const obj_ids = msg.ids;
     const length = obj_ids.length;
     for(let i = 0; i < length; i++){
         const id = obj_ids[i];
@@ -1224,7 +1227,9 @@ socket.on('canvas-delete', function(obj_ids){
 });
 
 
-socket.on('canvas-update', function(obj_states){
+socket.on('canvas-update', function(msg){
+    const map_id = msg.map_id;
+    const obj_states = msg.obj_states;
     set_obj_states_from_stripped_objs(obj_states);
     request_render();
 });
@@ -1657,7 +1662,7 @@ function strip_obj(obj, include_flags){
     return stripped_obj;
 }
 function publish_delete_by_ids(ids){
-    socket.emit('canvas-delete', ids)
+    socket.emit('canvas-delete', {map_id:0, ids:ids})
 }
 function publish_obj_by_id(id){
     const obj = canvas_objs.get(id);
@@ -1666,7 +1671,7 @@ function publish_obj_by_id(id){
         return;
     }
     const stripped_obj = strip_obj(obj, STRIP_INCLUDE_ID);
-    socket.emit('canvas-create', stripped_obj);
+    socket.emit('canvas-create', {map_id:0, object:stripped_obj});
 }
 function get_stripped_state_by_id(ids){
     const length = ids.length;
@@ -1684,7 +1689,7 @@ function get_stripped_state_by_id(ids){
     return updates;
 }
 function publish_obj_updates(updates){
-    socket.emit('canvas-update', updates);
+    socket.emit('canvas-update', {map_id:0, obj_states:updates});
 }
 
 function edit_is_impossible(){
@@ -3365,7 +3370,7 @@ document.addEventListener('DOMContentLoaded', function(){
             },
             {
                 label: 'Gather Party',
-                func: function(){socket.emit('canvas-gather', {x:-x, y:-y}); remove_menu();},
+                func: function(){socket.emit('canvas-gather', {x:-x, y:-y, map_id:0}); remove_menu();},
                 disabled: false,
             },
             {
