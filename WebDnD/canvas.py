@@ -52,7 +52,7 @@ def handle_create(data:dict) -> dict:
     validate_object(obj)
     MAPS[map_id].objects.append(obj)
     MAP_OBJS_BY_ID[map_id][obj_id] = obj
-    return [{'map_id':data['map_id'], 'objects':[data]}]
+    return [{'map_id':data['map_id'], 'objects':[data['object']]}]
 
 def handle_delete(data:dict) -> dict:
     '''
