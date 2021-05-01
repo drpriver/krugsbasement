@@ -42,20 +42,22 @@ enum CANVASFLAG {
 // Base of all objects and then the rest of the fields are different.
 // Essentially, they are tagged unions.
 //
-interface CanvasObject {
-    type: CANVASTYPE;
-    id: number;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-}
+// This interface is implicit as it is the
+// intersection of all the canvas objects.
+// interface CanvasObject {
+//     type: CANVASTYPE;
+//     id: number;
+//     base_x: number;
+//     base_y: number;
+//     flags: CANVASFLAG;
+// }
 //  freehand-line
 //  -------------
 //  Freehand lines are a bag of sequenced points that are
 //  interpolated together with quadratic curves.
 //  The server can optimize the lines by removing redundant
 //  points.
-interface FreehandLine {
+type FreehandLine = {
     type: CANVASTYPE; // FREEHAND_LINE
     id: number;
     base_x: number;
@@ -75,7 +77,7 @@ interface FreehandLine {
 //  When moving this object, movements need to snap to the closest
 //  grid point. When moving multiple objects, all of them need to snap
 //  this way so that their relative positions are maintained.
-interface GridLine {
+type GridLine = {
     type: CANVASTYPE; // GRID_LINE
     id: number;
     base_x: number;
@@ -91,7 +93,7 @@ interface GridLine {
 //  ---------
 //  An axis-aligned box.
 //  base_x and base_y is the top-left corner of the box.
-interface Rectangle {
+type Rectangle = {
     type: CANVASTYPE; // RECT
     id: number;
     base_x: number;
@@ -105,7 +107,7 @@ interface Rectangle {
 //  ---------
 //  An axis-aligned box, but the center is filled with 'color2'
 //  base_x and base_y is the top-left corner of the box.
-interface FilledRectangle {
+type FilledRectangle = {
     type: CANVASTYPE; // FILLED_RECT
     id: number;
     base_x: number;
@@ -122,7 +124,7 @@ interface FilledRectangle {
 //  Same movement restrictions apply to this as apply to the
 //  grid-line.
 //  base_x and base_y is the top-left corner of the box.
-interface GridRectangle {
+type GridRectangle = {
     type: CANVASTYPE; // GRID_RECT
     id: number;
     base_x: number;
@@ -150,7 +152,7 @@ interface GridRectangle {
 
 //  image
 //  -----
-interface ImageObj {
+type ImageObj = {
     type: CANVASTYPE; // IMAGE
     id: number;
     base_x: number;
@@ -163,7 +165,7 @@ interface ImageObj {
 }
 //  text
 //  ----
-interface TextObj {
+type TextObj = {
     type: CANVASTYPE; // TEXT
     id: number;
     base_x: number;
@@ -176,7 +178,7 @@ interface TextObj {
 //  ez-token
 //  --------
 //  A token that just has a simple text label.
-interface EzToken {
+type EzToken = {
     type: CANVASTYPE; // EZ_TOKEN
     id: number;
     base_x: number;
@@ -191,7 +193,7 @@ interface EzToken {
 //  img-token
 //  --------
 //  A token that has an image as its contents.
-interface ImgToken {
+type ImgToken = {
     type: CANVASTYPE; // IMG_TOKEN
     id: number;
     base_x: number;
@@ -205,7 +207,7 @@ interface ImgToken {
 //  door
 //  --------
 //  A door.
-interface DoorObj {
+type DoorObj = {
     type: CANVASTYPE; // DOOR
     id: number;
     base_x: number;
@@ -216,6 +218,8 @@ interface DoorObj {
     width: number; // in squares (?)
     orientation: ORIENTATION;
 }
+
+type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj;
 
 // Door subtypes
 // ------------
@@ -893,30 +897,25 @@ enum UNDO_EVENT_TYPE {
     UPDATE = 2,
     MASS_CREATE = 3,
 }
-interface UndoEvent {
-    type: UNDO_EVENT_TYPE;
-}
-// const UNDO_EVENT_TYPE.CREATE = 0;
-// const UNDO_EVENT_TYPE.DELETE = 1;
-// const UNDO_EVENT_TYPE.UPDATE = 2;
-// const UNDO_EVENT_TYPE.MASS_CREATE = 3;
-interface UndoCreate {
-    type: UNDO_EVENT_TYPE;
+type UndoCreate = {
+    type: UNDO_EVENT_TYPE; // CREATE
     id: number;
 }
-interface UndoMassCreate {
-    type: UNDO_EVENT_TYPE;
+type UndoMassCreate = {
+    type: UNDO_EVENT_TYPE; // MASS_CREATE
     ids: Array<number>;
 }
-interface UndoDelete {
-    type: UNDO_EVENT_TYPE;
+type UndoDelete = {
+    type: UNDO_EVENT_TYPE; // DELETE
     ids: Array<number>;
 }
-interface UndoUpdate {
-    type: UNDO_EVENT_TYPE;
+type UndoUpdate = {
+    type: UNDO_EVENT_TYPE; // UPDATE
     before: Array<StrippedObjWithId>;
     after: Array<StrippedObjWithId>;
 }
+type UndoEvent = UndoCreate | UndoMassCreate | UndoDelete | UndoUpdate;
+
 function push_undo_event(map:DungeonMap, undo_event:UndoEvent):void{
     map.undo_stack.length = map.undo_position;
     map.undo_stack.push(undo_event);
@@ -932,21 +931,21 @@ function push_undo_event(map:DungeonMap, undo_event:UndoEvent):void{
     map.undo_position = map.undo_stack.length;
 }
 function note_delete_by_ids_for_undo(map:DungeonMap, deleted:Array<number>):void{
-    const undo_event = {
+    const undo_event:UndoDelete = {
         type: UNDO_EVENT_TYPE.DELETE,
         ids: deleted,
     };
     push_undo_event(map, undo_event);
 }
 function note_create_by_id_for_undo(map:DungeonMap, created_id:number):void{
-    const undo_event = {
+    const undo_event:UndoCreate = {
         type: UNDO_EVENT_TYPE.CREATE,
         id: created_id,
     };
     push_undo_event(map, undo_event);
 }
-function note_updates_for_undo(map:DungeonMap, before:Array<StrippedObj>, after:Array<StrippedObj>):void{
-    const undo_event = {
+function note_updates_for_undo(map:DungeonMap, before:Array<StrippedObjWithId>, after:Array<StrippedObjWithId>):void{
+    const undo_event: UndoUpdate = {
         type: UNDO_EVENT_TYPE.UPDATE,
         before: before,
         after: after,
@@ -954,7 +953,7 @@ function note_updates_for_undo(map:DungeonMap, before:Array<StrippedObj>, after:
     push_undo_event(map, undo_event);
 }
 function note_mass_create_for_undo(map:DungeonMap, created_ids:Array<number>){
-    const undo_event = {
+    const undo_event: UndoMassCreate = {
         type: UNDO_EVENT_TYPE.MASS_CREATE,
         ids: created_ids,
     };
