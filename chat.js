@@ -5,7 +5,15 @@ var MSG;
     MSG[MSG["DICEROLL"] = 1] = "DICEROLL";
     MSG[MSG["ERROR"] = 2] = "ERROR";
 })(MSG || (MSG = {}));
-let chatname = "anon";
+let chatname = localStorage.getItem('chatname') ?? "anon";
+function setchatname(name) {
+    if (name)
+        name = name.trim();
+    if (!name)
+        name = 'anon';
+    chatname = name;
+    localStorage.setItem('chatname', name);
+}
 function add_chat_msgs(log, msgs) {
     for (let i = 0; i < msgs.length; i++) {
         const msg = msgs[i];
@@ -64,6 +72,33 @@ function resize_chat() {
     hist.style.height = window.innerHeight - 12 - 100 + 'px';
     hist.scrollTo({ top: hist.scrollHeight });
 }
+const MACROS = new Map(Object.entries(JSON.parse(localStorage.getItem('MACROS') ?? "{}")));
+document.addEventListener('DOMContentLoaded', function () {
+    for (let key of MACROS.keys()) {
+        add_macro_button(key);
+    }
+});
+function set_macro(name, body) {
+    MACROS.set(name, body);
+    localStorage.setItem('MACROS', JSON.stringify(Object.fromEntries(MACROS.entries())));
+}
+function add_macro_button(name) {
+    const macro_button = document.createElement('button');
+    macro_button.innerText = name;
+    macro_button.addEventListener('click', function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+        const text = MACROS.get(name) ?? "(invalid macro): " + name;
+        socket.emit('chat-input', { chatname: chatname, text: text });
+    });
+    const macros = document.getElementById('macros');
+    const add_macro = document.getElementById('add-macro');
+    macros.insertBefore(macro_button, add_macro);
+}
+function add_macro_and_button(name, body) {
+    set_macro(name, body);
+    add_macro_button(name);
+}
 function add_macro_dialog() {
     const html = `
     <h2>Enter Macro</h2>
@@ -85,18 +120,7 @@ function add_macro_dialog() {
             return;
         if (!body_el.value)
             return;
-        console.log(body_el.value);
-        const macro = document.createElement('button');
-        macro.innerText = name_el.value;
-        const body = body_el.value;
-        macro.addEventListener('click', function (e) {
-            e.stopPropagation();
-            e.preventDefault();
-            socket.emit('chat-input', body);
-        });
-        const macros = document.getElementById('macros');
-        const add_macro = document.getElementById('add-macro');
-        macros.insertBefore(macro, add_macro);
+        add_macro_and_button(name_el.value, body_el.value);
     });
 }
 function chat_options_dialog() {
@@ -111,12 +135,7 @@ function chat_options_dialog() {
     `;
     make_ok_dialog(html, function (unused) {
         const chatname_el = document.getElementById('hover-chatname');
-        if (!chatname_el.value) {
-            chatname = "anon";
-        }
-        else {
-            chatname = chatname_el.value;
-        }
+        setchatname(chatname_el.value);
     });
 }
 document.addEventListener('DOMContentLoaded', function () {
