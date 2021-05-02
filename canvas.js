@@ -1524,7 +1524,7 @@ function edit_is_impossible(map) {
         case CANVASTYPE.IMAGE:
             return false;
         case CANVASTYPE.TEXT:
-            return true;
+            return false;
         case CANVASTYPE.EZ_TOKEN:
             return false;
         case CANVASTYPE.IMG_TOKEN:
@@ -1553,6 +1553,36 @@ function launch_edit_dialog(map) {
         case CANVASTYPE.IMAGE:
             return;
         case CANVASTYPE.TEXT:
+            {
+                const text_obj = obj;
+                const html = `
+            <h2>Edit Text</h2>
+            <table class="input-container">
+                <tr>
+                    <td><label for="text-size">Size:</label>
+                    <td><input type="number" id="text-size" name="text-size" min="8" max="72" value="${obj.size}" class="numeric-input">
+                </tr>
+                <tr>
+                    <td><label for="text">Text:</label>
+                    <td><input type="text" name="text" id="hover-text" value="${obj.text}">
+                </tr>
+            </table>
+            `;
+                make_ok_dialog(html, function (hoverpop) {
+                    const number_input = document.getElementById('text-size');
+                    const number = +number_input.value;
+                    const text_input = document.getElementById('hover-text');
+                    const text = text_input.value.trim();
+                    if (!text)
+                        return;
+                    text_obj.size = number;
+                    text_obj.text = text;
+                    text_obj.bbox = { x0: 0, y0: 0, x1: 0, y1: 0 };
+                    const after = strip_obj(text_obj, STRIP_INCLUDE_ID);
+                    publish_obj_updates(map.map_id, [after]);
+                    request_render();
+                });
+            }
             return;
         case CANVASTYPE.EZ_TOKEN:
             {
