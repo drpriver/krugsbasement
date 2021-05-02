@@ -2280,12 +2280,14 @@ var TOOLTYPE;
     TOOLTYPE["EZ_TOKEN"] = "Ez-Token";
     TOOLTYPE["IMAGE"] = "Image";
     TOOLTYPE["IMG_TOKEN"] = "Img-Token";
+    TOOLTYPE["HELP"] = "Help";
 })(TOOLTYPE || (TOOLTYPE = {}));
 let current_tool = TOOLTYPE.PAN;
 let color_picker = null;
 let color_picker2 = null;
 let tools = null;
 function change_tool(toolname) {
+    let prev = current_tool;
     if (!tools)
         return;
     current_tool = toolname;
@@ -2324,6 +2326,77 @@ function change_tool(toolname) {
         if (tool.firstChild.textContent.trim() == toolname) {
             tool.classList.add('selected');
         }
+    }
+    if (toolname == TOOLTYPE.HELP) {
+        if (prev != TOOLTYPE.HELP)
+            change_tool(prev);
+        make_ok_dialog(`
+            <h2>Help</h2>
+            <h3 style="text-align:center;">Tips</h3>
+            <div style="margin:auto;max-width:36em;">
+            <p>You can use <b>q</b> to switch to Wall, <b>w</b> to switch to Door and <b>e</b> to switch to Line.
+            <p>You can use <b>a</b> to switch to Pan, <b>s</b> to switch to Select, <b>d</b> to switch to Move.
+            <p>The <span>☰</span> means there are other options for that tool. If that tool is selected, you can use 1,2,3,etc. to switch between them.
+            <p>Right-clicking on the map shows some more options
+            <p>You can cut, copy, paste things on the map.
+            <h3 style="text-align:center;">Tools</h3>
+            </div>
+            <table id="help-menu">
+                <tr>
+                    <td>Pan
+                    <td>Allows you to click to drag where you are on the map.
+                </tr>
+                <tr>
+                    <td>Select
+                    <td>Select things. Select modes change what you can select.
+                </tr>
+                <tr>
+                    <td>Move
+                    <td>Allows you to click to drag to move things that are selected.
+                </tr>
+                <tr>
+                    <td>Wall
+                    <td>Allows you to draw walls. Click and drag between corners of the grid.
+                </tr>
+                <tr>
+                    <td>Door
+                    <td>Allows you to draw doors. Click and drag between corners of the grid. Do this over walls.
+                </tr>
+                <tr>
+                    <td>Line
+                    <td>A freehand line.
+                </tr>
+                <tr>
+                    <td>Rect
+                    <td>A freehand rectangle, not filled in. Border is primary color.
+                </tr>
+                <tr>
+                    <td>Filled-Rect
+                    <td>A freehand rectangle, filled in. Border is primary color, filling is secondary..
+                </tr>
+                <tr>
+                    <td>Floor
+                    <td>A rectangle that snaps to grid and is semi-transparent. Uses primary color.
+                </tr>
+                <tr>
+                    <td>Text
+                    <td>Allows you to type in some text. Snaps to the center of the square at first, but you can move it to wherever.
+                </tr>
+                <tr>
+                    <td>Ez-Token
+                    <td>Allows you to make a simple token with a label.
+                </tr>
+                <tr>
+                    <td>Img-Token
+                    <td>Allows you to make a token with an image from a url.
+                </tr>
+                <tr>
+                    <td>Image
+                    <td>Allows you to place an image from a url.
+                </tr>
+
+            </table>
+                   `, function (unused) { });
     }
 }
 let select_numeric_hot_keys = [];

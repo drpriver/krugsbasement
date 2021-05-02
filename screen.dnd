@@ -42,6 +42,8 @@ David20::title @hide
     ::div
       Image
     ::div
+      Help
+    ::div
       ::raw
         <input type="color" id="color-picker" value="#000000">
         <input type="color" id="color-picker2" value="#ffffff">
@@ -56,6 +58,14 @@ David20::title @hide
 ::css @inline
   * {
     box-sizing: border-box;
+  }
+  #help-menu tbody tr td:nth-child(1){
+    font-weight: bold;
+    white-space: nowrap;
+  }
+  #help-menu {
+    margin: 1em;
+    max-width: 36em;
   }
   #top {
     position: absolute;
@@ -195,6 +205,8 @@ David20::title @hide
     border: 1px solid black;
     box-shadow: 3px 3px 3px 3px rgba(0,0,0,0.3);
     font-family: sans-serif;
+    overflow-y: scroll;
+    max-height: 90%;
   }
   section.hover input.numeric-input {
     width: 5em;
