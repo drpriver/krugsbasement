@@ -2,6 +2,7 @@ import json
 import atexit
 import os
 from typing import Generic, TypeVar, Callable, Optional, Union, Any
+from . import appconfig
 
 T = TypeVar('T')
 JsType = Union[str, dict, list, int, float]
@@ -28,6 +29,8 @@ class Persister(Generic[T]):
         self.obj = obj
         self.filepath = filepath
         self.save_func = save_func
+        if not appconfig.DEV:
+            return
         try:
             with open(filepath, 'r') as fp:
                 jsobj = json.load(fp)
@@ -39,6 +42,8 @@ class Persister(Generic[T]):
             print(e)
         atexit.register(self.save)
     def save(self) -> None:
+        if not appconfig.DEV:
+            return
         dirname = os.path.dirname(self.filepath)
         if dirname and dirname != '.':
             os.makedirs(dirname, exist_ok=True)

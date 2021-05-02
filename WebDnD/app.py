@@ -3,14 +3,17 @@ from flask_socketio import SocketIO, emit
 from . import chat
 from . import canvas
 from .persist import Persister
+from. import appconfig
 import random
 
-import pydndc
 from typing import List, Dict
 
 app = Flask('WebDnd')
 # app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, logger=True)
+if appconfig.DEV:
+    socketio = SocketIO(app, logger=True)
+else:
+    socketio = SocketIO(app, logger=True, cors_allowed_origins="https://krugsbasement.com")
 
 @socketio.on('chat-input')
 def chat_input(data:str) -> None:
@@ -67,21 +70,21 @@ def canvas_create_map(data:int) -> None:
     canvas.create_map(data)
     emit('canvas-create-map', data, broadcast=True, include_self=False)
 
-
-def error_reporter(message_type:int, filename:str, line:int, col:int, message:str):
-    print(f'{line+1}:{col+1}: {message}')
-
+try:
+    SCREEN = open('screen.html').read()
+except:
+    SCREEN = None
 @app.route('/')
 def index() -> str:
-    try:
-        html, _ = pydndc.htmlgen(open('screen.dnd').read(), error_reporter=error_reporter)
-    except:
-        return ''
+    if appconfig.DEV or SCREEN is None:
+        import pydndc
+        try:
+            html, _ = pydndc.htmlgen(open('screen.dnd').read())
+        except:
+            return ''
     else:
-        return html
-@app.route('/imgs/<path:filename>')
-def imgs(filename):
-    return send_from_directory('./imgs', filename)
+        html = SCREEN
+    return html
 
 @app.route('/state', methods=['GET', 'POST', 'DELETE'])
 def app_state():
@@ -135,4 +138,7 @@ def app_state():
         return ''
 
 if __name__ == '__main__':
-    socketio.run(app, host="0.0.0.0")
+    if appconfig.DEV:
+        socketio.run(app, host="0.0.0.0")
+    else:
+        socketio.run(app)

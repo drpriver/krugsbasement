@@ -1,0 +1,10 @@
+Bought domain name through google.
+Renting droplet from digital ocean.
+Disabled password login over ssh.
+Disabled root login.
+Set up certbot for https, using the snap install. See https://certbot.eff.org/lets-encrypt/ubuntubionic-nginx.
+Using nginx as reverse proxy
+nginx rule at /etc/nginx/conf.d/redirect.confg redirects www to not www
+nginx rule at /etc/nginx/sites-enabled/krugsbasement.com.conf forwards / to my webserver running on :5000
+Server is now running in a tmux sesh. I could use systemd to autoreload, but whatever.
+Probably forgetting some things.

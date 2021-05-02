@@ -14,3 +14,21 @@ all: chat.js canvas.js
 run: all
 	. venv/bin/activate && python3 -m WebDnD.app
 
+screen.html: screen.dnd canvas.js chat.js toplevel.js
+	dndc $< -o $@
+
+.PHONY: dist.zip
+dist.zip: screen.html
+	rm -rf dist dist.zip
+	mkdir -p dist
+	cp screen.html dist
+	mkdir -p dist/WebDnD
+	cp WebDnD/*.py dist/WebDnD
+	cp requirements.txt dist
+	cp setup.py dist
+	echo "DEV=False" > dist/WebDnD/appconfig.py
+	zip -r dist dist
+	rm -rf dist
+ship-it: dist.zip
+	scp dist.zip david@droplet:/home/david
+	ssh david@droplet "rm -rf dist && unzip dist"
