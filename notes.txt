@@ -8,3 +8,5 @@ nginx rule at /etc/nginx/conf.d/redirect.confg redirects www to not www
 nginx rule at /etc/nginx/sites-enabled/krugsbasement.com.conf forwards / to my webserver running on :5000
 Server is now running in a tmux sesh. I could use systemd to autoreload, but whatever.
 Probably forgetting some things.
+I added a rule in /etc/nginx/nginx.conf to block countries that aren't US/UK/CA. Well, actually to set those as allowed country and then in /etc/nginx/sites-enabled/krugsbasement.com.conf to 403 the not allowed countries.
+I enabled ufw and only allowed OpenSSH and 'Nginx Full'
