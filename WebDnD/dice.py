@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from __future__ import annotations
+# from __future__ import annotations
 import random
 from typing import NamedTuple, List, DefaultDict, Tuple, Union
 from collections import defaultdict
@@ -16,7 +16,7 @@ class Die:
         if not isinstance(other, Die):
             return False
         return (self.base, self.count, self.negative) == (other.base, other.count, other.negative)
-    def roll(self) -> DieRoll:
+    def roll(self) -> 'DieRoll':
         if self.base == 1:
             return DieRoll(self, [self.count])
         return DieRoll(self, [random.randint(1, self.base) for _ in range(self.count)])
@@ -33,14 +33,14 @@ class DieRoll(NamedTuple):
             'values':self.value,
             }
 
-def format_die_roll_results(results:List[DieRoll]) -> str:
+def format_die_roll_results(results:List['DieRoll']) -> str:
     if not results:
         return '<span class="dice-constant">0</span><br> = <span class="dice-total">0</span>'
     buff = StringIO()
     
     val = 0
     first = results[0]
-    def write_die(roll:DieRoll):
+    def write_die(roll:'DieRoll'):
         nonlocal val
         if roll.die.base == 1:
             if roll.die.negative:
@@ -125,7 +125,7 @@ def token_normalize(token:str) -> str:
     else:
         return token
 
-def dice_from_token(token:str) -> Die:
+def dice_from_token(token:str) -> 'Die':
     if token[0] == '-':
         negative = True
         token = token[1:]
@@ -147,7 +147,7 @@ def dice_from_token(token:str) -> Die:
     else:
         return Die(base=base, count=count, negative=False)
 
-def simplify_dice_array(dice: List[Die]) -> List[Die]:
+def simplify_dice_array(dice: List['Die']) -> List['Die']:
     counts = defaultdict(int)  # type: DefaultDict[Tuple[int, bool], int]
     for d in dice:
         if not d.count:
@@ -163,21 +163,21 @@ def simplify_dice_array(dice: List[Die]) -> List[Die]:
     result.sort(key = lambda x: (-x.base, x.negative))
     return result
 
-def dice_from_string(dicestring:str) -> List[Die]:
+def dice_from_string(dicestring:str) -> List['Die']:
     # if dicestring.strip() == '0':
         # return [Die(0, 0, negative=False)]
     dice = [dice_from_token(token_normalize(token)) for token in dice_tokenizer(dicestring)]
     dice = simplify_dice_array(dice)
     return dice
 
-def roll_and_format_dice_array(dice:List[Die]) -> str:
+def roll_and_format_dice_array(dice:List['Die']) -> str:
     ndice = sum(d.count for d in dice)
     if ndice > 64:
         return 'Too many dice'
     rolls = [d.roll() for d in dice]
     return format_die_roll_results(rolls)
 
-def roll_dice_array(dice:List[die]) -> Union[str, List[dict]]:
+def roll_dice_array(dice:List['Die']) -> Union[str, List[dict]]:
     ndice = sum(d.count for d in dice if d.base != 1)
     if ndice > 64:
         return  'Too many dice'

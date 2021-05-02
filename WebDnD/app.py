@@ -48,7 +48,7 @@ def handle_canvas_delete(data:dict) -> None:
         emit('canvas-delete', response, broadcast=True, include_self=False)
 
 @socketio.on('canvas-update')
-def handle_canvas_update(data:List[dict]) -> None:
+def handle_canvas_update(data:dict) -> None:
     response = canvas.handle_update(data)
     if response:
         emit('canvas-update', response, broadcast=True, include_self=False)

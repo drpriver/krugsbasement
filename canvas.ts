@@ -29,7 +29,7 @@ enum CANVASTYPE {
     TEXT          = 8,
     EZ_TOKEN      = 9,
     IMG_TOKEN     = 10,
-    DOOR = 11,
+    DOOR          = 11,
 }
 //
 // flags
@@ -1665,6 +1665,7 @@ interface StrippedObjWithId {
     flags: CANVASFLAG;
     id: number;
 };
+
 // obj shoudl be CanvasObject, but I would have to write a million downcasts.
 function strip_obj(obj:any, include_flags:number): StrippedObj{
     let stripped_obj:any = {
@@ -2509,33 +2510,20 @@ function render():void{
 }
 document.addEventListener('DOMContentLoaded', render);
 enum TOOLTYPE {
-    PAN = 'Pan',
-    SELECT = 'Select',
-    MOVE = 'Move',
-    LINE = 'Line',
-    WALL = 'Wall',
-    DOOR = 'Door',
-    RECT = 'Rect',
+    PAN         = 'Pan',
+    SELECT      = 'Select',
+    MOVE        = 'Move',
+    LINE        = 'Line',
+    WALL        = 'Wall',
+    DOOR        = 'Door',
+    RECT        = 'Rect',
     FILLED_RECT = 'Filled-Rect',
-    FLOOR = 'Floor',
-    TEXT = 'Text',
-    EZ_TOKEN = 'Ez-Token',
-    IMAGE = 'Image',
-    IMG_TOKEN = 'Img-Token',
+    FLOOR       = 'Floor',
+    TEXT        = 'Text',
+    EZ_TOKEN    = 'Ez-Token',
+    IMAGE       = 'Image',
+    IMG_TOKEN   = 'Img-Token',
 }
-//const TOOLTYPE.PAN         = 'Pan';
-//const TOOLTYPE.SELECT      = 'Select';
-//const TOOLTYPE.MOVE        = 'Move';
-//const TOOLTYPE.LINE        = 'Line';
-//const TOOLTYPE.WALL        = 'Wall';
-//const TOOLTYPE.DOOR        = 'Door';
-//const TOOLTYPE.RECT        = 'Rect';
-//const TOOLTYPE.FILLED_RECT = 'Filled-Rect';
-//const TOOLTYPE.FLOOR       = 'Floor';
-//const TOOLTYPE.TEXT        = 'Text';
-//const TOOLTYPE.EZ_TOKEN    = 'Ez-Token';
-//const TOOLTYPE.IMAGE       = 'Image';
-//const TOOLTYPE.IMG_TOKEN   = 'Img-Token';
 let current_tool = TOOLTYPE.PAN;
 let color_picker:any = null; // idk what this should be
 let color_picker2:any = null; // idk what this should be
