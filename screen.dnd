@@ -50,8 +50,9 @@ David20::title @hide
 ::div.chat @id(chat)
   ::div.log @id(chat-history)
   ::div @id(macros)
-    ::raw @id(add-macro)
+    ::raw
       <button id="add-macro">+ Add Macro</button>
+      <button id="chat-options">Options</button>
   ::raw
     <textarea id="chatinput" rows="4"></textarea>
     

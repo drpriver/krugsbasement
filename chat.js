@@ -5,6 +5,7 @@ var MSG;
     MSG[MSG["DICEROLL"] = 1] = "DICEROLL";
     MSG[MSG["ERROR"] = 2] = "ERROR";
 })(MSG || (MSG = {}));
+let chatname = "anon";
 function add_chat_msgs(log, msgs) {
     for (let i = 0; i < msgs.length; i++) {
         const msg = msgs[i];
@@ -98,6 +99,26 @@ function add_macro_dialog() {
         macros.insertBefore(macro, add_macro);
     });
 }
+function chat_options_dialog() {
+    const html = `
+    <h2>Options</h2>
+    <table class="input-container">
+        <tr>
+            <td><label for="hover-chatname">Chat Name:</label>
+            <td><input type="text" id="hover-chatname" value="${chatname}">
+        </tr>
+    </table>
+    `;
+    make_ok_dialog(html, function (unused) {
+        const chatname_el = document.getElementById('hover-chatname');
+        if (!chatname_el.value) {
+            chatname = "anon";
+        }
+        else {
+            chatname = chatname_el.value;
+        }
+    });
+}
 document.addEventListener('DOMContentLoaded', function () {
     resize_chat();
     const macro_button = document.getElementById('add-macro');
@@ -105,6 +126,12 @@ document.addEventListener('DOMContentLoaded', function () {
         e.stopPropagation();
         e.preventDefault();
         add_macro_dialog();
+    });
+    const options_button = document.getElementById('chat-options');
+    options_button.addEventListener('click', function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+        chat_options_dialog();
     });
     window.addEventListener('resize', resize_chat);
     const ta = document.getElementById('chatinput');
@@ -123,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (maybe_handle_command(value)) {
                 }
                 else {
-                    socket.emit('chat-input', value);
+                    socket.emit('chat-input', { chatname: chatname, text: value });
                 }
                 if (!(history.length && value == history[history.length - 1])) {
                     history.push(value);

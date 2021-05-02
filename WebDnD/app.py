@@ -16,10 +16,10 @@ else:
     socketio = SocketIO(app, logger=True, cors_allowed_origins="https://krugsbasement.com")
 
 @socketio.on('chat-input')
-def chat_input(data:str) -> None:
+def chat_input(data:Dict[str, str]) -> None:
     if not data:
         return
-    responses = chat.handle_input(data)
+    responses = chat.handle_input(data['text'], data['chatname'])
     if responses:
         emit('chat-msg', responses, broadcast=True)
 
