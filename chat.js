@@ -84,6 +84,7 @@ function set_macro(name, body) {
 }
 function add_macro_button(name) {
     const macro_button = document.createElement('button');
+    macro_button.classList.add('macro-button');
     macro_button.innerText = name;
     macro_button.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -94,6 +95,12 @@ function add_macro_button(name) {
     const macros = document.getElementById('macros');
     const add_macro = document.getElementById('add-macro');
     macros.insertBefore(macro_button, add_macro);
+}
+function clear_macro_buttons() {
+    const macro_buttons = Array.from(document.getElementsByClassName('macro-button'));
+    for (let mb of macro_buttons) {
+        mb.remove();
+    }
 }
 function add_macro_and_button(name, body) {
     set_macro(name, body);
@@ -123,6 +130,72 @@ function add_macro_dialog() {
         add_macro_and_button(name_el.value, body_el.value);
     });
 }
+function export_settings(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    const macros = Object.fromEntries(MACROS.entries());
+    const settings = { macros: macros, chatname: chatname };
+    const s = JSON.stringify(settings);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([s], { type: 'text/plain' }));
+    a.download = "krugsbasementsettings.json";
+    a.click();
+}
+function import_settings(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    function handlefiles() {
+        const files = inp.files;
+        if (!files)
+            return;
+        if (!files.length)
+            return;
+        const file = files[0];
+        const fr = new FileReader();
+        fr.addEventListener('load', function () {
+            try {
+                if (!fr.result)
+                    return;
+                const new_settings = JSON.parse(fr.result);
+                if (new_settings.chatname && typeof new_settings.chatname !== 'string')
+                    return;
+                if (new_settings.macros) {
+                    if (typeof new_settings.macros !== 'object')
+                        return;
+                    for (let [key, value] of Object.entries(new_settings.macros)) {
+                        if (typeof key !== 'string')
+                            return;
+                        if (typeof value !== 'string')
+                            return;
+                    }
+                }
+                if (new_settings.macros) {
+                    clear_macro_buttons();
+                    MACROS.clear();
+                    for (let [key, value] of Object.entries(new_settings.macros)) {
+                        add_macro_and_button(key, value);
+                    }
+                }
+                if (new_settings.chatname) {
+                    setchatname(new_settings.chatname);
+                    const name = document.getElementById('hover-chatname');
+                    if (name) {
+                        name.value = new_settings.chatname;
+                    }
+                }
+            }
+            catch (err) {
+                console.log(err);
+                return;
+            }
+        });
+        fr.readAsText(file);
+    }
+    inp.addEventListener('change', handlefiles, false);
+    inp.click();
+}
 function chat_options_dialog() {
     const html = `
     <h2>Options</h2>
@@ -132,6 +205,10 @@ function chat_options_dialog() {
             <td><input type="text" id="hover-chatname" value="${chatname}">
         </tr>
     </table>
+    <div class="hover-button-container">
+        <button id="export-settings" onclick="export_settings(event)">Export Settings and Macros</button>
+        <button id="import-settings" onclick="import_settings(event)">Import Settings and Macros</button>
+    </div>
     `;
     make_ok_dialog(html, function (unused) {
         const chatname_el = document.getElementById('hover-chatname');
