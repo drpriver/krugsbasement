@@ -47,8 +47,11 @@ David20::title @hide
         <input type="color" id="color-picker2" value="#ffffff">
 ::div.chat @id(chat)
   ::div.log @id(chat-history)
+  ::div @id(macros)
+    ::raw @id(add-macro)
+      <button id="add-macro">+ Add Macro</button>
   ::raw
-    <textarea id="chatinput"></textarea>
+    <textarea id="chatinput" rows="4"></textarea>
     
 ::css @inline
   * {
@@ -133,13 +136,13 @@ David20::title @hide
     grid-row: 1;
     height: 100%;
   }
-  .chat {
+  #chat {
     grid-column: 2;
     grid-row: 1;
     height: 100%;
     max-height: 100%;
-    display: grid;
-    grid-template-rows: auto 100px;
+    display: flex;
+    flex-direction: column;
     border: 1px solid black;
   }
   #chat-history {

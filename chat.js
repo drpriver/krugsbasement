@@ -63,8 +63,49 @@ function resize_chat() {
     hist.style.height = window.innerHeight - 12 - 100 + 'px';
     hist.scrollTo({ top: hist.scrollHeight });
 }
+function add_macro_dialog() {
+    const html = `
+    <h2>Enter Macro</h2>
+    <table class="input-container">
+        <tr>
+            <td><label for="hover-macro-name">Name:</label>
+            <td><input type="text" id="hover-macro-name" >
+        </tr>
+        <tr>
+            <td><label for="hover-macro-body">Body:</label>
+            <td><textarea id="hover-macro-body" cols="30" rows="5"></textarea>
+        </tr>
+    </table>
+    `;
+    make_ok_dialog(html, function (unused) {
+        const body_el = document.getElementById('hover-macro-body');
+        const name_el = document.getElementById('hover-macro-name');
+        if (!name_el.value)
+            return;
+        if (!body_el.value)
+            return;
+        console.log(body_el.value);
+        const macro = document.createElement('button');
+        macro.innerText = name_el.value;
+        const body = body_el.value;
+        macro.addEventListener('click', function (e) {
+            e.stopPropagation();
+            e.preventDefault();
+            socket.emit('chat-input', body);
+        });
+        const macros = document.getElementById('macros');
+        const add_macro = document.getElementById('add-macro');
+        macros.insertBefore(macro, add_macro);
+    });
+}
 document.addEventListener('DOMContentLoaded', function () {
     resize_chat();
+    const macro_button = document.getElementById('add-macro');
+    macro_button.addEventListener('click', function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+        add_macro_dialog();
+    });
     window.addEventListener('resize', resize_chat);
     const ta = document.getElementById('chatinput');
     const history = [];
