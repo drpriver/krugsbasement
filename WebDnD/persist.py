@@ -3,9 +3,17 @@ import atexit
 import os
 from typing import Generic, TypeVar, Callable, Optional, Union, Any
 from . import appconfig
+import threading
+import time
 
 T = TypeVar('T')
 JsType = Union[str, dict, list, int, float]
+
+
+class RepeatTimer(threading.Timer):
+    def run(self):
+        while not self.finished.wait(self.interval):
+            self.function(*self.args, **self.kwargs)
 
 class Persister(Generic[T]):
     '''
@@ -41,16 +49,22 @@ class Persister(Generic[T]):
         except Exception as e:
             print(e)
         atexit.register(self.save)
+        RepeatTimer(600, self.save).start()
     def save(self) -> None:
         if not appconfig.DEV:
             return
+        t0 = time.time()
         dirname = os.path.dirname(self.filepath)
         if dirname and dirname != '.':
             os.makedirs(dirname, exist_ok=True)
         try:
             obj = self.save_func(self.obj) if self.save_func else self.obj
+            print(f'saving to {self.filepath}')
             with open(self.filepath+'_', 'w') as fp:
                 json.dump(obj, fp, separators=(',',':'))
             os.rename(self.filepath+'_', self.filepath)
+            print(f'saved to {self.filepath}')
         except Exception as e:
             print(e)
+        t1 = time.time()
+        print(f'Saving {self.filepath} took {(t1-t0)*1000:.3}ms')
