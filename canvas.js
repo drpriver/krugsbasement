@@ -3451,7 +3451,6 @@ function make_ok_dialog(html, on_ok) {
     });
     const text_inputs = hoverpop.getElementsByTagName('input');
     let did_focus = false;
-    ;
     for (let i = 0; i < text_inputs.length; i++) {
         const text_input = text_inputs[i];
         if (text_input.type == 'text' || text_input.type == 'url') {
