@@ -3,3 +3,8 @@ We need macros.
 I have a really simple implementation, but it is lost when you refresh, etc. It needs to be stored somehow. Attached to user login?
 
 Also, there is not currently a way to edit the macros.
+
+Update
+------
+
+Ok, so we use local storage to persist macros and they can be imported/exported.

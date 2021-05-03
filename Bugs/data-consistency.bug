@@ -3,3 +3,7 @@ There is no checking on either the client or the server as to whether the object
 We should do some validation that ensures both are consistent.
 
 This kind of sucks as we have to do it in two different languages.
+
+Update
+------
+We did some checking on the update, but we dont check the /state api, which is kind of brutal.

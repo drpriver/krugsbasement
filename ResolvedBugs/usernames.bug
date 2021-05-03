@@ -5,3 +5,7 @@ Update
 You can now edit your chatname in the options dialog.
 
 Not marking this is a resolved as it isn't sticky.
+
+Update 2:
+---------
+Use local storage and have import/export.
