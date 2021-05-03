@@ -54,7 +54,7 @@ David20::title @hide
       <button id="chat-options">Options</button>
   ::raw
     <textarea id="chatinput" rows="4"></textarea>
-    
+
 ::css @inline
   * {
     box-sizing: border-box;
@@ -252,6 +252,38 @@ David20::title @hide
   span.chat-error {
     color: #aa0000;
   }
+  @media only screen and (max-width: 450px) {
+    /* Turn the site into a diceroller. */
+    #tools {
+      display: none;
+    }
+    .map {
+      display:none;
+    }
+    #chat {
+      width: 100%;
+    }
+    #chat-history {
+      width: 100%;
+    }
+    #top {
+      display: none;
+    }
+    body > div {
+      display: block;
+    }
+    section.hover {
+      top: 0;
+      left: 0;
+      position: initial;
+      transform: none;
+      min-width: 0px;
+    }
+    .input-container textarea  {
+      width: 200px;
+    }
+  }
+
   /*endcss*/
 ::js @noinline
   https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js
