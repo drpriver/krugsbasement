@@ -185,7 +185,7 @@ function chat_options_dialog(){
             <td><input type="text" id="hover-chatname" value="${chatname}">
         </tr>
     </table>
-    <div style="max-height: 500px; overflow-y:scroll;">
+    <div style="max-height: 500px; overflow-y:scroll; padding: 2em;">
     <table class="input-container" id="hover-macro-table">
     `
     for(let [key, value] of MACROS.entries()){
