@@ -1,1 +1,6 @@
 Selection having piercing sucks. We need a notion of z index maybe? Tokens eat each other as is.
+
+---
+
+Ok, so I just iterate backwards, which isn't exactly right.
+So this is not a fixed bug, but it is not as urgent as it was.

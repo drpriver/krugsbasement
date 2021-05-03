@@ -259,6 +259,7 @@ interface DungeonMap {
     selection_area: {
         select_type: SELECTTYPE;
         is_selecting: boolean;
+        select_one: boolean;
         x0: number;
         x1: number;
         y0: number;
@@ -288,6 +289,7 @@ function get_map(map_id:number): DungeonMap {
         selected: new Set(),
         selection_area: {
             select_type: SELECTTYPE.ANY,
+            select_one: false,
             is_selecting: false,
             x0:0, y0:0,
             x1:0, y1:0,
@@ -1411,6 +1413,136 @@ function note_selections(map:DungeonMap):void{
     const selection_bbox = {x0:x0, y0:y0, x1:x1, y1:y1,};
     const selection_type = map.selection_area.select_type;
     const selected = map.selected;
+    if(map.selection_area.select_one){
+        let stop = false;
+        // FIXME: this is literally cut n paste from below
+        // This doesn't actually solve the problem, as it just takes the one
+        // that was added later, which isn't necessarily the one on top when
+        // things are moved around. It helps with the token annihilation problem
+        // though.
+    for(let i = length-1; i >=0 && !stop; --i){
+        const obj: any = canvas_obj_array[i]; // temporary
+        if(obj.flags & CANVASFLAG.DELETED)
+            continue;
+        switch(obj.type){
+            case CANVASTYPE.GRID_LINE: // fall-through
+            case CANVASTYPE.FREEHAND_LINE:{
+                if(!(selection_type & SELECTTYPE.MAP))
+                    break;
+                const line_bbox = {
+                    x0:obj.bbox.x0 + obj.base_x,
+                    y0:obj.bbox.y0 + obj.base_y,
+                    x1:obj.bbox.x1 + obj.base_x,
+                    y1:obj.bbox.y1 + obj.base_y,
+                };
+                if(!bbox_overlaps(line_bbox, selection_bbox)){
+                    break;
+                }
+                if(point_in_rect(obj.base_x, obj.base_y, x0, y0, x1, y1)){
+                    selected.add(obj.id);
+                    stop = true;
+                    break;
+                }
+                const points = obj.points;
+                const length = points.length;
+                for(let j = 0; j < length; j+=2){
+                    const x = points[j] + obj.base_x;
+                    const y = points[j+1] + obj.base_y;
+                    if(point_in_rect(x, y, x0, y0, x1, y1)){
+                        selected.add(obj.id);
+                        stop = true;
+                        break;
+                    }
+                }
+            }break;
+            case CANVASTYPE.FILLED_RECT:
+            case CANVASTYPE.RECT: // fall-through
+            case CANVASTYPE.IMAGE: // fall-through
+            case CANVASTYPE.GRID_RECT:{
+                if(!(selection_type & SELECTTYPE.MAP))
+                    break;
+                const rect_bbox = {
+                    x0:obj.base_x,
+                    y0:obj.base_y,
+                    x1:obj.base_x+obj.width,
+                    y1:obj.base_y+obj.height,
+                };
+                if(bbox_overlaps(rect_bbox, selection_bbox)){
+                    selected.add(obj.id);
+                    stop = true;
+                    break;
+                }
+            }break;
+            case CANVASTYPE.IMG_TOKEN:// fall-through
+            case CANVASTYPE.EZ_TOKEN:{
+                if(!(selection_type & SELECTTYPE.TOKEN))
+                    break;
+                const radius_x = obj.width*REFERENCE_WIDTH/2;
+                const radius_y = obj.height*REFERENCE_WIDTH/2;
+                const token_bbox = {
+                    x0: obj.base_x,
+                    x1: obj.base_x + 2*radius_x,
+                    y0: obj.base_y,
+                    y1: obj.base_y + 2*radius_y,
+                };
+                if(bbox_overlaps(token_bbox, selection_bbox)){
+                    selected.add(obj.id);
+                    stop = true;
+                    break;
+                }
+            }break;
+            case CANVASTYPE.TEXT:{
+                if(!(selection_type & SELECTTYPE.MAP))
+                    break;
+                const text_bbox = {
+                    x0:obj.bbox.x0 + obj.base_x,
+                    y0:obj.bbox.y0 + obj.base_y,
+                    x1:obj.bbox.x1 + obj.base_x,
+                    y1:obj.bbox.y1 + obj.base_y,
+                };
+                if(bbox_overlaps(text_bbox, selection_bbox)){
+                    selected.add(obj.id);
+                    stop = true;
+                    break;
+                }
+            }break;
+            case CANVASTYPE.DOOR:{
+                if(!(selection_type & SELECTTYPE.MAP))
+                    break;
+                const is_vertical = obj.orientation === ORIENTATION.VERTICAL;
+                if(is_vertical){
+                    // FIXME: I just hardcoded some random values.
+                    const bbox = {
+                        x0 : obj.base_x - 32,
+                        x1 : obj.base_x + 32,
+                        y0 : obj.base_y - 5,
+                        y1 : obj.base_y +5,
+                    };
+                    if(bbox_overlaps(bbox, selection_bbox)){
+                        stop = true;
+                        selected.add(obj.id);
+                        break;
+                    }
+                }
+                else {
+                    // FIXME: I just hardcoded some random values.
+                    const bbox = {
+                        x0 : obj.base_x - 5,
+                        x1 : obj.base_x + 5,
+                        y0 : obj.base_y - 32,
+                        y1 : obj.base_y + 32,
+                    };
+                    if(bbox_overlaps(bbox, selection_bbox)){
+                        stop = true;
+                        selected.add(obj.id);
+                        break;
+                    }
+                }
+            }break;
+        }
+    }
+    }
+    else {
     for(let i = 0; i < length; ++i){
         const obj: any = canvas_obj_array[i]; // temporary
         if(obj.flags & CANVASFLAG.DELETED)
@@ -1524,6 +1656,7 @@ function note_selections(map:DungeonMap):void{
                 }
             }break;
         }
+    }
     }
     // const after = performance.now();
     // console.log('note_selections', after-before, 'ms');
@@ -2613,7 +2746,7 @@ function change_tool(toolname:TOOLTYPE):void{
                 </tr>
                 <tr>
                     <td>Select
-                    <td>Select things. Select modes change what you can select.
+                    <td>Select things. Select modes change what you can select. A single click selects one object; dragging will select anything that overlaps.
                 </tr>
                 <tr>
                     <td>Move
@@ -3121,6 +3254,7 @@ document.addEventListener('DOMContentLoaded', function(){
             case TOOLTYPE.SELECT:{
                 let clicked_x = e.offsetX/map.scale - map.camera_x;
                 let clicked_y = e.offsetY/map.scale - map.camera_y;
+                map.selection_area.select_one = true;
                 map.selection_area.is_selecting = true;
                 update_selection(map, clicked_x-5/map.scale, clicked_y-5/map.scale, clicked_x+5/map.scale, clicked_y+5/map.scale);
                 request_render();
@@ -3129,6 +3263,8 @@ document.addEventListener('DOMContentLoaded', function(){
                     e.preventDefault();
                     let select_x = e.offsetX/map.scale - map.camera_x;
                     let select_y = e.offsetY/map.scale - map.camera_y;
+                    if(select_x != clicked_x || select_y != select_y)
+                        map.selection_area.select_one = false;
                     update_selection(map, clicked_x, clicked_y, select_x, select_y);
                     request_render();
                 }
