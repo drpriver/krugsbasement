@@ -52,5 +52,5 @@ def clear() -> None:
     HISTORY.clear()
 
 def set_state(state:List[dict]) -> None:
-    global HISTORY
-    HISTORY = state
+    clear()
+    HISTORY.extend(state)

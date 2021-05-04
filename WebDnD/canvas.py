@@ -247,7 +247,7 @@ def get_state() -> list:
     return save_canvas(MAPS)
 
 def set_state(state:list) -> None:
-    global MAPS
+    MAPS.clear()
+    MAPS.update(load_canvas(state))
     global MAP_OBJS_BY_ID
-    MAPS = load_canvas(state)
     MAP_OBJS_BY_ID = {k:{o['id']:o for o in v.objects} for k,v in MAPS.items()}
