@@ -1,8 +1,3 @@
-declare let socket: any;
-declare let get: (which:string) => void;
-declare let upload: () => void; 
-declare let make_ok_dialog: (html:string, on_ok:(_:HTMLElement)=>void)=>void;
-declare let hover_is_open: boolean;
 enum MSG {
     PLAIN = 0,
     DICEROLL = 1,

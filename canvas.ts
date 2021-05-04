@@ -1,5 +1,3 @@
-declare let socket: any;
-declare let session_id: number;
 interface Bbox {
     // These are relative to some base_x, base_y.
     x0: number;

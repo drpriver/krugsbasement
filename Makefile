@@ -1,20 +1,16 @@
-%.js: %.ts
-	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && make docker-make SOURCE=$< OUT=$@"
+TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError
 
-TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020
-
-.PHONY: docker-make
-docker-make:
-	tsc $(SOURCE) $(TSCFLAGS) --outfile $(OUT) | cat
+combined.js: toplevel.ts chat.ts canvas.ts
+	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc $^ $(TSCFLAGS) --outFile $@"
 
 .DEFAULT_GOAL:=all
-all: chat.js canvas.js
+all: combined.js
 
 .PHONY: run
 run: all
 	. venv/bin/activate && python3 -m WebDnD.app
 
-screen.html: screen.dnd canvas.js chat.js toplevel.js
+screen.html: screen.dnd combined.js
 	dndc $< -o $@
 
 .PHONY: dist.zip
@@ -29,6 +25,7 @@ dist.zip: screen.html
 	echo "DEV=False" > dist/WebDnD/appconfig.py
 	zip -r dist dist
 	rm -rf dist
+
 ship-it: dist.zip
 	scp dist.zip david@droplet:/home/david
 	ssh david@droplet "rm -rf dist && unzip dist"

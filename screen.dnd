@@ -288,36 +288,4 @@ David20::title @hide
 ::js @noinline
   https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js
 ::js
-  toplevel.js
-  chat.js
-  canvas.js
-
-::js @inline
-  function get(which){
-    const link = document.createElement('a');
-    if(which){
-      link.download = which + '.json';
-      link.href = '/state?which='+which;
-    }
-    else{
-      link.download = 'state.json';
-      link.href = '/state';
-    }
-    link.click();
-  }
-  function upload(){
-    const inp = document.createElement('input');
-    inp.type = 'file';
-    function handlefiles(){
-      const files = inp.files;
-      if(!files.length)
-        return;
-      const file = files[0];
-      fetch('/state', {
-        method: 'POST',
-        body: file,
-      });
-    }
-    inp.addEventListener("change", handlefiles, false);
-    inp.click();
-  }
+  combined.js
