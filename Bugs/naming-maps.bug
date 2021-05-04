@@ -1,0 +1,2 @@
+Right now maps are just numeric ids. They should have names. Probably want to
+have names and their underlying ids to be separate.
