@@ -28,6 +28,7 @@ class CANVASTYPE(IntEnum):
     EZ_TOKEN      = 9
     IMG_TOKEN     = 10
     DOOR          = 11
+    STAIRS        = 12
 
 def save_canvas(maps:Dict[int, Map]) -> List[Dict[str, Any]]:
     return [v.with_live_objs() for v in maps.values()]
@@ -174,6 +175,16 @@ VALIDATE_OBJ[CANVASTYPE.DOOR] = Validator(
         color=str,
         width=(float,int),
         orientation=int,
+).validate
+VALIDATE_OBJ[CANVASTYPE.STAIRS] = Validator(
+        type=int,
+        id=int,
+        base_x=(float, int),
+        base_y=(float, int),
+        flags=int,
+        width=int,
+        height=int,
+        rotation=int,
 ).validate
 
 

@@ -26,6 +26,8 @@ David20::title @hide
         <span></span>
         <span>☰</span>
     ::div
+      Stairs
+    ::div
       Line
     ::div
       Rect

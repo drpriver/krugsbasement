@@ -28,6 +28,7 @@ enum CANVASTYPE {
     EZ_TOKEN      = 9,
     IMG_TOKEN     = 10,
     DOOR          = 11,
+    STAIRS        = 12,
 }
 //
 // flags
@@ -216,8 +217,25 @@ type DoorObj = {
     width: number; // in squares (?)
     orientation: ORIENTATION;
 }
+enum ROTATION {
+    // we might add the diagonals
+    UP    = 0,
+    RIGHT = 2,
+    DOWN  = 4,
+    LEFT  = 6,
+}
+type Stairs = {
+    type: CANVASTYPE; // STAIRS
+    id: number;
+    base_x: number;
+    base_y: number;
+    flags: CANVASFLAG;
+    width: number; // in squares
+    height: number; // in squares
+    rotation: ROTATION;
+}
 
-type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj;
+type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs;
 
 // Door subtypes
 // ------------
@@ -868,6 +886,67 @@ function add_image(map:DungeonMap, id:number, base_x:number, base_y:number, widt
     const obj = make_image(id, base_x, base_y, width, height, url);
     add_canv_obj(map, obj);
 }
+function make_stairs(id:number, base_x:number, base_y:number): Stairs{
+    base_x = snap_to_grid(base_x);
+    base_y = snap_to_grid(base_y);
+    const obj:Stairs = {
+        type: CANVASTYPE.STAIRS,
+        id: id,
+        base_x:base_x,
+        base_y:base_y,
+        flags: CANVASFLAG.NONE,
+        width: 0,
+        height: 0,
+        rotation: ROTATION.UP,
+    };
+    return obj;
+}
+function add_stairs(map:DungeonMap, id:number, base_x:number, base_y:number){
+    const obj = make_stairs(id, base_x, base_y);
+    add_canv_obj(map, obj);
+}
+function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number){
+    const xdiff = x1-x0;
+    const ydiff = y1-y0;
+    x0 = snap_to_grid(x0);
+    y0 = snap_to_grid(y0);
+    x1 = snap_to_grid(x1);
+    y1 = snap_to_grid(y1);
+    if(x1 < x0){
+        let temp = x1;
+        x1 = x0;
+        x0 = temp;
+    }
+    if(y1 < y0){
+        let temp = y1;
+        y1 = y0;
+        y0 = temp;
+    }
+    obj.base_x = x0;
+    obj.base_y = y0;
+    obj.width = (x1 - x0)/REFERENCE_WIDTH;
+    obj.height = (y1 - y0)/REFERENCE_WIDTH;
+    if(Math.abs(xdiff) > Math.abs(ydiff)){
+        if(xdiff > 0){
+            obj.rotation = ROTATION.RIGHT;
+        }
+        else{
+            obj.rotation = ROTATION.LEFT;
+        }
+        if(obj.height > 1)
+            obj.height = 1;
+    }
+    else {
+        if(ydiff > 0){
+            obj.rotation = ROTATION.UP;
+        }
+        else{
+            obj.rotation = ROTATION.DOWN;
+        }
+        if(obj.width > 1)
+            obj.width = 1;
+    }
+}
 document.addEventListener('DOMContentLoaded', resize_canvas);
 window.addEventListener('resize', resize_canvas);
 function clear_canvas(map:DungeonMap):void{
@@ -1195,6 +1274,11 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
                 obj.width = stripped.width;
                 obj.orientation = stripped.orientation;
             }break;
+            case CANVASTYPE.STAIRS:{
+                obj.width = stripped.width;
+                obj.height = stripped.height;
+                obj.rotation = stripped.rotation;
+            }break;
         }
         add_canv_obj(map, obj);
         new_ids.push(id);
@@ -1252,6 +1336,10 @@ socket.on('canvas-create', function(msgs:Array<{map_id:number;objects:Array<Stri
                     img.src = obj.url;
                 }break;
                 case CANVASTYPE.DOOR:{
+                    // all fields are good
+                }break;
+                case CANVASTYPE.STAIRS:{
+                    // all fields are good
                 }break;
             }
             const existing_obj = map.canvas_objs.get(obj.id);
@@ -1368,6 +1456,11 @@ function set_obj_states_from_stripped_objs(map:DungeonMap, obj_states:Array<Stri
                 obj.doortype = state.doortype;
                 obj.width = state.width;
                 obj.orientation = state.orientation;
+                break;
+            case CANVASTYPE.DOOR:
+                obj.width = state.width;
+                obj.height = state.height;
+                obj.rotation = state.rotation;
                 break;
         }
     }
@@ -1537,6 +1630,21 @@ function note_selections(map:DungeonMap):void{
                     }
                 }
             }break;
+            case CANVASTYPE.STAIRS:{
+                const w = obj.width*REFERENCE_WIDTH;
+                const h = obj.height*REFERENCE_WIDTH;
+                const bbox = {
+                        x0 : obj.base_x,
+                        x1 : obj.base_x + w,
+                        y0 : obj.base_y,
+                        y1 : obj.base_y+h
+                };
+                if(bbox_overlaps(bbox, selection_bbox)){
+                    stop = true;
+                    selected.add(obj.id);
+                    break;
+                }
+            }break;
         }
     }
     }
@@ -1653,6 +1761,20 @@ function note_selections(map:DungeonMap):void{
                     }
                 }
             }break;
+            case CANVASTYPE.STAIRS:{
+                const w = obj.width*REFERENCE_WIDTH;
+                const h = obj.height*REFERENCE_WIDTH;
+                const bbox = {
+                        x0 : obj.base_x,
+                        x1 : obj.base_x + w,
+                        y0 : obj.base_y,
+                        y1 : obj.base_y+h
+                };
+                if(bbox_overlaps(bbox, selection_bbox)){
+                    selected.add(obj.id);
+                    break;
+                }
+            }break;
         }
     }
     }
@@ -1691,6 +1813,7 @@ function move_selected_objects(map:DungeonMap, base_x:number, base_y:number, dx:
             case CANVASTYPE.DOOR:
             case CANVASTYPE.EZ_TOKEN:
             case CANVASTYPE.IMG_TOKEN:
+            case CANVASTYPE.STAIRS:
                 rigid = true;
                 break;
             default:
@@ -1733,6 +1856,8 @@ function move_selected_objects(map:DungeonMap, base_x:number, base_y:number, dx:
                         break;
                     case CANVASTYPE.DOOR:
                         break;
+                    case CANVASTYPE.STAIRS:
+                        break;
                     default:
                         console.log('unhandled obj type');
                         break;
@@ -1766,6 +1891,8 @@ function move_selected_objects(map:DungeonMap, base_x:number, base_y:number, dx:
                 case CANVASTYPE.IMG_TOKEN:
                     break;
                 case CANVASTYPE.DOOR:
+                    break;
+                case CANVASTYPE.STAIRS:
                     break;
                 default:
                     console.log('unhandled obj type');
@@ -1859,6 +1986,11 @@ function strip_obj(obj:any, include_flags:number): StrippedObj{
             stripped_obj.doortype = obj.doortype;
             stripped_obj.orientation = obj.orientation;
             break;
+        case CANVASTYPE.STAIRS:
+            stripped_obj.width = obj.width;
+            stripped_obj.height = obj.height;
+            stripped_obj.rotation = obj.rotation;
+            break;
     }
     return stripped_obj;
 }
@@ -1918,6 +2050,8 @@ function edit_is_impossible(map:DungeonMap):boolean{
         case CANVASTYPE.IMG_TOKEN:
             return false;
         case CANVASTYPE.DOOR:
+            return true;
+        case CANVASTYPE.STAIRS:
             return true;
     }
     return false;
@@ -2015,6 +2149,8 @@ function launch_edit_dialog(map:DungeonMap):void{
         case CANVASTYPE.IMG_TOKEN:{
         }return;
         case CANVASTYPE.DOOR:
+            return;
+        case CANVASTYPE.STAIRS:
             return;
     }
 
@@ -2657,6 +2793,82 @@ function render():void{
                     }break;
                 }
             }break;
+            case CANVASTYPE.STAIRS:{
+                const rect_bbox = {
+                    x0:obj.base_x,
+                    y0:obj.base_y,
+                    x1:obj.base_x+obj.width*REFERENCE_WIDTH,
+                    y1:obj.base_y+obj.height*REFERENCE_WIDTH,
+                };
+                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                    break;
+                }
+                if(is_selected){
+                    ctx.lineWidth=4;
+                    ctx.strokeStyle = SELECTED_COLOR;
+                    ctx.strokeRect(obj.base_x, obj.base_y, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH);
+                }
+                ctx.fillStyle = "#000000";
+                let n = 0;
+                let dx = 0;
+                let dy = 0;
+                let w = 0;
+                let h = 0;
+                let dw = 0;
+                let dh = 0;
+                let x = obj.base_x;
+                let y = obj.base_y;
+                switch(obj.rotation){
+                    case ROTATION.UP:{
+                        x += 2;
+                        y += 4;
+                        n = obj.height * 8 - 1;
+                        w = 60;
+                        h = 4;
+                        dw = -w / n;
+                        dx = -dw/2;
+                        dy = 8;
+                    }break;
+                    case ROTATION.DOWN:{
+                        x += 2;
+                        n = obj.height * 8 - 1;
+                        w = 60;
+                        h = 4;
+                        dw = -w / n;
+                        dx = -dw/2;
+                        dy = -8;
+                        y = obj.base_y + obj.height*64 - 8;
+                    }break;
+                    case ROTATION.RIGHT:{
+                        y += 2;
+                        x += 4;
+                        n = obj.width * 8 - 1;
+                        h = 60;
+                        w = 4;
+                        dh = -h / n;
+                        dy = -dh/2;
+                        dx = 8;
+                    }break;
+                    case ROTATION.LEFT:{
+                        y += 2;
+                        n = obj.width * 8 - 1;
+                        h = 60;
+                        w = 4;
+                        dh = -h / n;
+                        dy = -dh/2;
+                        dx = -8;
+                        x = obj.base_x + obj.width*64 - 8;
+                    }break;
+                }
+                for(let q = 0; q < n; ++q){
+                    ctx.fillRect(x, y, w, h);
+                    w += dw;
+                    h += dh;
+                    x += dx;
+                    y += dy;
+                }
+            }break;
+
         }
     }
     if(map.selection_area.is_selecting){
@@ -2683,6 +2895,7 @@ enum TOOLTYPE {
     IMAGE       = 'Image',
     IMG_TOKEN   = 'Img-Token',
     HELP        = 'Help',
+    STAIRS      = 'Stairs',
 }
 let current_tool = TOOLTYPE.PAN;
 let color_picker:any = null; // idk what this should be
@@ -3636,6 +3849,36 @@ document.addEventListener('DOMContentLoaded', function(){
                     note_create_by_id_for_undo(map, id);
                     request_render();
                 });
+            }break;
+            case TOOLTYPE.STAIRS:{
+                let id = get_new_id();
+                const x0 = e.offsetX/map.scale-map.camera_x;
+                const y0 = e.offsetY/map.scale-map.camera_y;
+                add_stairs(map, id, x0, y0);
+                const stairs = map.canvas_objs.get(id)! as Stairs; // lazy
+                function change_stairs_on_move(e:MouseEvent){
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const ex0 = e.offsetX/map.scale-map.camera_x;
+                    const ey0 = e.offsetY/map.scale-map.camera_y;
+                    change_stairs(stairs, x0, y0, ex0, ey0);
+                    request_render();
+                }
+                canvas.addEventListener('mousemove', change_stairs_on_move);
+                function finish_point(){
+                    canvas.removeEventListener('mousemove', change_stairs_on_move);
+                    window.removeEventListener('mouseup', finish_point);
+                    canvas.removeEventListener('mouseleave', finish_point);
+                    if(stairs.width != 0 && stairs.height != 0){
+                        publish_obj_by_id(map, id);
+                        note_create_by_id_for_undo(map, id);
+                    }
+                    else {
+                        stairs.flags |= CANVASFLAG.DELETED;
+                    }
+                }
+                window.addEventListener('mouseup', finish_point);
+                canvas.addEventListener('mouseleave', finish_point);
             }break;
             default:{
                 console.log('unknown tool:', current_tool);

@@ -1,5 +1,5 @@
 declare let io: any;
-let socket = io();
+let socket = io({transports:["websocket"]});
 let session_id = 0;
 socket.on('session-id', function(resp:number){
     session_id = resp;

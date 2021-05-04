@@ -1,13 +1,12 @@
 TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError
 
 combined.js: toplevel.ts chat.ts canvas.ts
-	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc $^ $(TSCFLAGS) --outFile $@"
+	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc $^ $(TSCFLAGS) --outFile $@ | cat"
 
-.DEFAULT_GOAL:=all
-all: combined.js
+.DEFAULT_GOAL:=run
 
 .PHONY: run
-run: all
+run: combined.js
 	. venv/bin/activate && python3 -m WebDnD.app
 
 screen.html: screen.dnd combined.js
