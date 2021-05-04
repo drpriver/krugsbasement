@@ -1650,6 +1650,8 @@ function note_selections(map:DungeonMap):void{
                 }
             }break;
             case CANVASTYPE.STAIRS:{
+                if(!obj.width || !obj.height)
+                    break;
                 const w = obj.width*REFERENCE_WIDTH;
                 const h = obj.height*REFERENCE_WIDTH;
                 const bbox = {
@@ -1781,6 +1783,8 @@ function note_selections(map:DungeonMap):void{
                 }
             }break;
             case CANVASTYPE.STAIRS:{
+                if(!obj.width || !obj.height)
+                    break;
                 const w = obj.width*REFERENCE_WIDTH;
                 const h = obj.height*REFERENCE_WIDTH;
                 const bbox = {
@@ -2813,6 +2817,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
             }break;
             case CANVASTYPE.STAIRS:{
+                if(!obj.width || !obj.height)
+                    break;
                 const rect_bbox = {
                     x0:obj.base_x,
                     y0:obj.base_y,

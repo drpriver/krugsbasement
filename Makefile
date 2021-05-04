@@ -1,3 +1,6 @@
+Depends: ; mkdir -p $@
+DEPFILES:= $(wildcard Depends/*.dep)
+include $(DEPFILES)
 TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError
 
 combined.js: toplevel.ts chat.ts canvas.ts
@@ -9,8 +12,8 @@ combined.js: toplevel.ts chat.ts canvas.ts
 run: combined.js
 	. venv/bin/activate && python3 -m WebDnD.app
 
-screen.html: screen.dnd combined.js
-	dndc $< -o $@
+screen.html: screen.dnd combined.js | Depends
+	dndc $< --output $@ --depends-path Depends/$@.dep
 
 .PHONY: dist.zip
 dist.zip: screen.html

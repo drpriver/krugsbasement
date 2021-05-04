@@ -37,8 +37,6 @@ class Persister(Generic[T]):
         self.obj = obj
         self.filepath = filepath
         self.save_func = save_func
-        if not appconfig.DEV:
-            return
         try:
             with open(filepath, 'r') as fp:
                 jsobj = json.load(fp)
@@ -48,6 +46,8 @@ class Persister(Generic[T]):
                     self.obj = jsobj
         except Exception as e:
             print(e)
+        if not appconfig.DEV:
+            return
         atexit.register(self.save)
         RepeatTimer(600, self.save).start()
     def save(self) -> None:
