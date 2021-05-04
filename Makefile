@@ -3,7 +3,7 @@ TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFall
 combined.js: toplevel.ts chat.ts canvas.ts
 	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc $^ $(TSCFLAGS) --outFile $@ | cat"
 
-.DEFAULT_GOAL:=run
+.DEFAULT_GOAL:=combined.js
 
 .PHONY: run
 run: combined.js

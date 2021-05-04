@@ -1,0 +1,14 @@
+We want some way to indicate somewhere you are talking about.
+
+So, probably some kind of ping or whatever.
+
+Rightclick -> ping?
+
+shift-click?
+alt-click?
+
+Update:
+------
+
+Added a ping action to the context menu. It does about what you would expect -
+creates an animated circle at the location that is broadcast to everyone.

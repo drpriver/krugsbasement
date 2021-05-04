@@ -70,6 +70,10 @@ def canvas_create_map(data:int) -> None:
     canvas.create_map(data)
     emit('canvas-create-map', data, broadcast=True, include_self=False)
 
+@socketio.on('canvas-ping')
+def canvas_ping(data) -> None:
+    emit('canvas-ping', data, broadcast=True, include_self=False)
+
 try:
     SCREEN = open('screen.html').read()
 except:

@@ -281,7 +281,25 @@ interface DungeonMap {
         y0: number;
         y1: number;
     };
+    pings: Array<Ping>;
 }
+type Ping = {
+    t0?: DOMHighResTimeStamp;
+    cx: number;
+    cy: number;
+    color: string;
+};
+function ping_at(map:DungeonMap, x:number, y:number){
+    const ping = {cx:x, cy:y, color:'#ff3300'};
+    map.pings.push(ping);
+    socket.emit('canvas-ping', {ping:ping, map_id:map.map_id});
+    request_render();
+}
+socket.on('canvas-ping', function(data:{ping:Ping, map_id:number}){
+    const map = get_map(data.map_id);
+    map.pings.push(data.ping);
+    request_render();
+});
 function get_map(map_id:number): DungeonMap {
     if(MAPS.has(map_id))
         return MAPS.get(map_id)!;
@@ -310,6 +328,7 @@ function get_map(map_id:number): DungeonMap {
             x0:0, y0:0,
             x1:0, y1:0,
         },
+        pings: [],
     };
     socket.emit('canvas-create-map', map_id);
     add_map_tab(map_id);
@@ -2169,7 +2188,7 @@ function request_render():void{
     requestAnimationFrame(render);
 }
 // const timings = [];
-function render():void{
+function render(timestamp:DOMHighResTimeStamp):void{
     // const before = performance.now();
     if(!ctx)
         return;
@@ -2875,11 +2894,32 @@ function render():void{
         ctx.fillStyle = '#55555555';
         ctx.fillRect(map.selection_area.x0, map.selection_area.y0, map.selection_area.x1-map.selection_area.x0, map.selection_area.y1-map.selection_area.y0);
     }
+    const PING_DURATION = 1000;
+    const PING_RADIUS = 64;
+    if(map.pings.length){
+        const new_pings = [];
+        ctx.lineWidth  = 8;
+        for(let p of map.pings){
+            if(!p.t0){
+                p.t0 = timestamp;
+            }
+            const delta_t = timestamp - p.t0;
+            if(delta_t < PING_DURATION){
+                new_pings.push(p);
+                ctx.beginPath();
+                ctx.strokeStyle = p.color;
+                ctx.arc(p.cx, p.cy, PING_RADIUS*delta_t/PING_DURATION, 0, 2*Math.PI);
+                ctx.stroke();
+            }
+        }
+        map.pings = new_pings;
+        request_render();
+    }
     // request_render();
     // timings.push(performance.now()-before);
     // console.log('rendering:', (performance.now()-before).toFixed(4)+'ms');
 }
-document.addEventListener('DOMContentLoaded', render);
+document.addEventListener('DOMContentLoaded', function(){render(0)});
 enum TOOLTYPE {
     PAN         = 'Pan',
     SELECT      = 'Select',
@@ -3908,7 +3948,17 @@ document.addEventListener('DOMContentLoaded', function(){
             }
         }
         canvas.addEventListener('mousedown', remove_menu);
-        const items = [
+        type itemtype = {
+            label:string;
+            func: () => void;
+            disabled: boolean;
+        };
+        const items: Array<itemtype> = [
+            {
+                label: 'Ping',
+                func: function(){ping_at(map, click_x, click_y);remove_menu();},
+                disabled: false,
+            },
             {
                 label: 'Zoom In',
                 func: function(){zoom_in(map);remove_menu();},
