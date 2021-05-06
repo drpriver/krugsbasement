@@ -50,6 +50,8 @@ enum CANVASFLAG {
 //     base_y: number;
 //     flags: CANVASFLAG;
 // }
+//
+
 //  freehand-line
 //  -------------
 //  Freehand lines are a bag of sequenced points that are
@@ -260,27 +262,14 @@ enum ORIENTATION {
     TOPRIGHT_DOWNLEFT = 3,
 };
 
-let current_map_id = 0;
 const MAPS:Map<number,DungeonMap> = new Map();
-interface DungeonMap {
+type DungeonMap = {
     map_id: number; // integer
-    camera_x: number;
-    camera_y: number;
-    scale: number;
+    map_name: string;
     canvas_obj_array: Array<CanvasObject>;
     canvas_objs: Map<number, CanvasObject>;
     undo_stack: Array<UndoEvent>;
     undo_position: number; // integer
-    selected: Set<number>;
-    selection_area: {
-        select_type: SELECTTYPE;
-        is_selecting: boolean;
-        select_one: boolean;
-        x0: number;
-        x1: number;
-        y0: number;
-        y1: number;
-    };
     pings: Array<Ping>;
 }
 type Ping = {
@@ -300,26 +289,35 @@ socket.on('canvas-ping', function(data:{ping:Ping, map_id:number}){
     map.pings.push(data.ping);
     request_render();
 });
-function get_map(map_id:number): DungeonMap {
-    if(MAPS.has(map_id))
-        return MAPS.get(map_id)!;
-    const new_map:DungeonMap = {
-        map_id: map_id,
-        // These are in REFERENCE_WIDTH space.
-        // To go from screen space to grid space, divide by `scale` and subtract
-        // `camera_x`/`camera_y`.
-        // TODO: all this camera_N stuff is totally fucked.
-        // I should've added camera_x from the start, not subtract.
+type DungeonMapView = {
+    map: DungeonMap;
+    // These are in REFERENCE_WIDTH space.
+    // To go from screen space to grid space, divide by `scale` and subtract
+    // `camera_x`/`camera_y`.
+    // TODO: all this camera_N stuff is totally fucked.
+    // I should've added camera_x from the start, not subtract.
+    camera_x: number;
+    camera_y: number;
+    scale: number;
+    selected: Set<number>;
+    selection_area: {
+        select_type: SELECTTYPE;
+        is_selecting: boolean;
+        select_one: boolean;
+        x0: number;
+        x1: number;
+        y0: number;
+        y1: number;
+    };
+}
+let active_map_view_index = 0;
+let views: Array<DungeonMapView> = [];
+function new_map_view(map_id:number): DungeonMapView{
+    const view: DungeonMapView = {
+        map: get_map(map_id),
         camera_x: 0,
         camera_y: 0,
         scale: 1,
-
-        canvas_obj_array: [],
-        canvas_objs: new Map(),
-
-        undo_stack: [],
-        undo_position: 0,
-
         selected: new Set(),
         selection_area: {
             select_type: SELECTTYPE.ANY,
@@ -328,6 +326,27 @@ function get_map(map_id:number): DungeonMap {
             x0:0, y0:0,
             x1:0, y1:0,
         },
+    };
+    return view;
+}
+function get_active_view(): DungeonMapView{
+    return views[active_map_view_index];
+}
+function get_map(map_id:number): DungeonMap {
+    if(MAPS.has(map_id))
+        return MAPS.get(map_id)!;
+    const new_map:DungeonMap = {
+        map_id: map_id,
+        map_name: "Untitled",
+        // TODO: these shouldn't be on the map itself, this prevents having multiple
+        // views into the same map.
+
+        canvas_obj_array: [],
+        canvas_objs: new Map(),
+
+        undo_stack: [],
+        undo_position: 0,
+
         pings: [],
     };
     socket.emit('canvas-create-map', map_id);
@@ -349,6 +368,10 @@ function change_map(map_id:number){
 }
 socket.on('canvas-create-map', function(map_id:number){
     get_map(map_id); // Just for its side effect.
+});
+socket.on('canvas-name-map', function(data:{map_id:number, name:string}){
+    const map = get_map(data.map_id);
+    map.map_name = data.name;
 });
 
 //
