@@ -301,7 +301,6 @@ type DungeonMapView = {
     scale: number;
     selected: Set<number>;
     selection_area: {
-        select_type: SELECTTYPE;
         is_selecting: boolean;
         select_one: boolean;
         x0: number;
@@ -311,7 +310,7 @@ type DungeonMapView = {
     };
 }
 let active_map_view_index = 0;
-let views: Array<DungeonMapView> = [];
+let dungeon_map_views: Array<DungeonMapView> = [];
 function new_map_view(map_id:number): DungeonMapView{
     const view: DungeonMapView = {
         map: get_map(map_id),
@@ -320,7 +319,6 @@ function new_map_view(map_id:number): DungeonMapView{
         scale: 1,
         selected: new Set(),
         selection_area: {
-            select_type: SELECTTYPE.ANY,
             select_one: false,
             is_selecting: false,
             x0:0, y0:0,
@@ -329,8 +327,19 @@ function new_map_view(map_id:number): DungeonMapView{
     };
     return view;
 }
+function change_active_map_view(idx: number){
+    active_map_view_index = idx;
+    const view = dungeon_map_views[idx];
+    const current_dungeon_name = document.getElementById('current-dungeon-name')!;
+    current_dungeon_name.innerText = view.map.map_name + '▾';
+
+}
 function get_active_view(): DungeonMapView{
-    return views[active_map_view_index];
+    if(!dungeon_map_views.length){
+        dungeon_map_views.push(new_map_view(0));
+        change_active_map_view(0);
+    }
+    return dungeon_map_views[active_map_view_index];
 }
 function get_map(map_id:number): DungeonMap {
     if(MAPS.has(map_id))
@@ -339,7 +348,7 @@ function get_map(map_id:number): DungeonMap {
         map_id: map_id,
         map_name: "Untitled",
         // TODO: these shouldn't be on the map itself, this prevents having multiple
-        // views into the same map.
+        // dungeon_map_views into the same map.
 
         canvas_obj_array: [],
         canvas_objs: new Map(),
@@ -350,12 +359,17 @@ function get_map(map_id:number): DungeonMap {
         pings: [],
     };
     socket.emit('canvas-create-map', map_id);
-    add_map_tab(map_id);
     MAPS.set(map_id, new_map);
     return new_map;
 }
 function change_map(map_id:number){
-    current_map_id = map_id;
+    for(let i = 0; i < dungeon_map_views.length; ++i){
+        const mv = dungeon_map_views[i];
+        if(mv.map.map_id == map_id){
+            change_active_map_view(i);
+            break;
+        }
+    }
     const top = document.getElementById('top');
     if(!top) return;
     for(let tab of top.children){
@@ -367,7 +381,10 @@ function change_map(map_id:number){
     request_render();
 }
 socket.on('canvas-create-map', function(map_id:number){
-    get_map(map_id); // Just for its side effect.
+    if(MAPS.has(map_id))
+        return;
+    dungeon_map_views.push(new_map_view(map_id));
+    change_active_map_view(dungeon_map_views.length-1);
 });
 socket.on('canvas-name-map', function(data:{map_id:number, name:string}){
     const map = get_map(data.map_id);
@@ -382,10 +399,10 @@ const REFERENCE_WIDTH = 64; // the size of a square at scale = 1.
 let canvas:HTMLCanvasElement;
 let ctx:CanvasRenderingContext2D;
 socket.on('canvas-gather', function(where:{map_id:number; x:number; y:number}): void{
-    const map = get_map(where.map_id);
-    map.camera_x = where.x;
-    map.camera_y = where.y;
     change_map(where.map_id);
+    const view = get_active_view();
+    view.camera_x = where.x;
+    view.camera_y = where.y;
     request_render();
 });
 const MIN_SCALE = 0.125;
@@ -397,30 +414,30 @@ function clamp_scale(scale:number): number{
         scale = MAX_SCALE;
     return scale;
 }
-function reset_zoom(map:DungeonMap): void{
-    const center_x = canvas.width/2/map.scale - map.camera_x;
-    const center_y = canvas.height/2/map.scale - map.camera_y;
-    map.scale = 1;
-    map.camera_x = canvas.width/2/map.scale - center_x;
-    map.camera_y = canvas.height/2/map.scale - center_y;
+function reset_zoom(view:DungeonMapView): void{
+    const center_x = canvas.width/2/view.scale - view.camera_x;
+    const center_y = canvas.height/2/view.scale - view.camera_y;
+    view.scale = 1;
+    view.camera_x = canvas.width/2/view.scale - center_x;
+    view.camera_y = canvas.height/2/view.scale - center_y;
     request_render();
 }
-function zoom_in(map:DungeonMap):void{
-    const center_x = canvas.width/2/map.scale - map.camera_x;
-    const center_y = canvas.height/2/map.scale - map.camera_y;
-    map.scale *= 1.50;
-    map.scale = clamp_scale(map.scale);
-    map.camera_x = canvas.width/2/map.scale - center_x;
-    map.camera_y = canvas.height/2/map.scale - center_y;
+function zoom_in(view:DungeonMapView):void{
+    const center_x = canvas.width/2/view.scale - view.camera_x;
+    const center_y = canvas.height/2/view.scale - view.camera_y;
+    view.scale *= 1.50;
+    view.scale = clamp_scale(view.scale);
+    view.camera_x = canvas.width/2/view.scale - center_x;
+    view.camera_y = canvas.height/2/view.scale - center_y;
     request_render();
 }
-function zoom_out(map:DungeonMap):void{
-    const center_x = canvas.width/2/map.scale - map.camera_x;
-    const center_y = canvas.height/2/map.scale - map.camera_y;
-    map.scale /= 1.50;
-    map.scale = clamp_scale(map.scale);
-    map.camera_x = canvas.width/2/map.scale - center_x;
-    map.camera_y = canvas.height/2/map.scale - center_y;
+function zoom_out(view:DungeonMapView):void{
+    const center_x = canvas.width/2/view.scale - view.camera_x;
+    const center_y = canvas.height/2/view.scale - view.camera_y;
+    view.scale /= 1.50;
+    view.scale = clamp_scale(view.scale);
+    view.camera_x = canvas.width/2/view.scale - center_x;
+    view.camera_y = canvas.height/2/view.scale - center_y;
     request_render();
 }
 
@@ -989,6 +1006,9 @@ function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number){
             obj.width = 1;
     }
 }
+// document.addEventListener('DOMContentLoaded', function(){
+    // dungeon_map_views.push(new_map_view(0));
+// });
 document.addEventListener('DOMContentLoaded', resize_canvas);
 window.addEventListener('resize', resize_canvas);
 function clear_canvas(map:DungeonMap):void{
@@ -997,19 +1017,18 @@ function clear_canvas(map:DungeonMap):void{
     map.undo_stack.length = 0;
     map.undo_position = 0;
     clear_copy_buffer();
-    map.selected.clear();
+    for(let view of dungeon_map_views){
+        if(view.map.map_id == map.map_id)
+            view.selected.clear();
+    }
     request_render();
 }
 socket.on('canvas-clear', function():void{
     for(let m of MAPS.values())
         clear_canvas(m);
     MAPS.clear()
-    const top = document.getElementById('top');
-    for(let tab of Array.from(top!.children)){
-        if(tab.id == "new-map")
-            continue;
-        top!.removeChild(tab);
-    }
+    dungeon_map_views.length = 0;
+    active_map_view_index = 0;
 });
 
 enum UNDO_EVENT_TYPE {
@@ -1184,9 +1203,9 @@ const copied_objs: Array<StrippedObj> = [];
 function clear_copy_buffer():void{
     copied_objs.length = 0;
 }
-function copy_selected_objs_to_copy_buffer(map:DungeonMap):void{
-    for(let obj_id of map.selected){
-        const obj = map.canvas_objs.get(obj_id)!;
+function copy_selected_objs_to_copy_buffer(view:DungeonMapView):void{
+    for(let obj_id of view.selected){
+        const obj = view.map.canvas_objs.get(obj_id)!;
         if(obj.flags & CANVASFLAG.DELETED)
             continue;
         const stripped = strip_obj(obj, STRIP_FLAGS_NONE);
@@ -1194,18 +1213,18 @@ function copy_selected_objs_to_copy_buffer(map:DungeonMap):void{
     }
 }
 
-function cut_selected_objs_to_copy_buffer(map:DungeonMap):void{
-    for(let obj_id of map.selected){
-        const obj = map.canvas_objs.get(obj_id)!;
+function cut_selected_objs_to_copy_buffer(view:DungeonMapView):void{
+    for(let obj_id of view.selected){
+        const obj = view.map.canvas_objs.get(obj_id)!;
         if(obj.flags & CANVASFLAG.DELETED)
             continue;
         const stripped = strip_obj(obj, STRIP_FLAGS_NONE);
         copied_objs.push(stripped);
         obj.flags |= CANVASFLAG.DELETED;
     }
-    publish_delete_by_ids(map.map_id, Array.from(map.selected));
-    note_delete_by_ids_for_undo(map, Array.from(map.selected));
-    map.selected.clear()
+    publish_delete_by_ids(view.map.map_id, Array.from(view.selected));
+    note_delete_by_ids_for_undo(view.map, Array.from(view.selected));
+    view.selected.clear()
     request_render();
 }
 function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
@@ -1515,8 +1534,9 @@ enum SELECTTYPE {
     TOKEN = 1 << 1,
     ANY = MAP | TOKEN,
 }
+let select_type: SELECTTYPE = SELECTTYPE.ANY;;
 
-function update_selection(map:DungeonMap, x0:number, y0:number, x1:number, y1:number):void{
+function update_selection(view:DungeonMapView, x0:number, y0:number, x1:number, y1:number):void{
     if(x0 > x1){
         let temp = x0;
         x0 = x1;
@@ -1527,26 +1547,26 @@ function update_selection(map:DungeonMap, x0:number, y0:number, x1:number, y1:nu
         y0 = y1;
         y1 = temp;
     }
-    map.selection_area.x0 = x0;
-    map.selection_area.y0 = y0;
-    map.selection_area.x1 = x1;
-    map.selection_area.y1 = y1;
+    view.selection_area.x0 = x0;
+    view.selection_area.y0 = y0;
+    view.selection_area.x1 = x1;
+    view.selection_area.y1 = y1;
 }
 function point_in_rect(x:number, y:number, x0:number, y0:number, x1:number, y1:number):boolean{
     return (x >= x0) && (x <= x1) && (y >= y0) && (y <= y1);
 }
-function note_selections(map:DungeonMap):void{
+function note_selections(view:DungeonMapView):void{
     // const before = performance.now();
-    const canvas_obj_array = map.canvas_obj_array;
+    const canvas_obj_array = view.map.canvas_obj_array;
     const length = canvas_obj_array.length;
-    const x0 = map.selection_area.x0;
-    const y0 = map.selection_area.y0;
-    const x1 = map.selection_area.x1;
-    const y1 = map.selection_area.y1;
+    const x0 = view.selection_area.x0;
+    const y0 = view.selection_area.y0;
+    const x1 = view.selection_area.x1;
+    const y1 = view.selection_area.y1;
     const selection_bbox = {x0:x0, y0:y0, x1:x1, y1:y1,};
-    const selection_type = map.selection_area.select_type;
-    const selected = map.selected;
-    if(map.selection_area.select_one){
+    const selection_type = select_type;
+    const selected = view.selected;
+    if(view.selection_area.select_one){
         let stop = false;
         // FIXME: this is literally cut n paste from below
         // This doesn't actually solve the problem, as it just takes the one
@@ -1827,29 +1847,31 @@ function note_selections(map:DungeonMap):void{
     // const after = performance.now();
     // console.log('note_selections', after-before, 'ms');
 }
-function finalize_selection(map:DungeonMap):void{
-    map.selected.clear();
-    map.selection_area.is_selecting = false;
-    note_selections(map);
+function finalize_selection(view:DungeonMapView):void{
+    view.selected.clear();
+    view.selection_area.is_selecting = false;
+    note_selections(view);
     request_render();
 }
-function end_selecting(map:DungeonMap):void{
-    map.selected.clear();
-    map.selection_area.is_selecting = false;
+function end_selecting(view:DungeonMapView):void{
+    view.selected.clear();
+    view.selection_area.is_selecting = false;
     request_render();
 }
-function change_select_mode(map:DungeonMap, mode:SELECTTYPE):void{
-    map.selected.clear();
-    map.selection_area.select_type = mode;
-    note_selections(map);
+function change_select_mode(mode:SELECTTYPE):void{
+    select_type = mode;
+    for(let view of dungeon_map_views){
+        view.selected.clear();
+        note_selections(view);
+    }
     request_render();
 }
-function move_selected_objects(map:DungeonMap, base_x:number, base_y:number, dx:number, dy:number):[number, number]{
+function move_selected_objects(view:DungeonMapView, base_x:number, base_y:number, dx:number, dy:number):[number, number]{
     const selected_objs = [];
     let result:[number, number] = [base_x+dx, base_y+dy];
     let rigid = false;
-    for(let item of map.selected){
-        const obj = map.canvas_objs.get(item)!;
+    for(let item of view.selected){
+        const obj = view.map.canvas_objs.get(item)!;
         if(obj.flags & CANVASFLAG.DELETED)
             continue;
         switch(obj.type){
@@ -2071,11 +2093,13 @@ function publish_obj_updates(map_id:number, updates:Array<StrippedObjWithId>){
     socket.emit('canvas-update', {map_id:map_id, obj_states:updates});
 }
 
-function edit_is_impossible(map:DungeonMap):boolean{
-    if(map.selected.size !== 1)
+function edit_is_impossible(view:DungeonMapView):boolean{
+    if(view.selected.size !== 1)
         return true;
-    const first = map.selected.values().next().value;
-    const obj = map.canvas_objs.get(first)!;
+    const first = view.selected.values().next().value;
+    const obj = view.map.canvas_objs.get(first)!;
+    if(obj.flags & CANVASFLAG.DELETED)
+        return true;
     switch(obj.type){
         case CANVASTYPE.FREEHAND_LINE:
             return true;
@@ -2103,11 +2127,13 @@ function edit_is_impossible(map:DungeonMap):boolean{
     return false;
 }
 
-function launch_edit_dialog(map:DungeonMap):void{
-    if(map.selected.size !== 1)
+function launch_edit_dialog(view:DungeonMapView):void{
+    if(view.selected.size !== 1)
         return;
-    const first = map.selected.values().next()!.value;
-    const obj:any = map.canvas_objs.get(first)!;
+    const first = view.selected.values().next()!.value;
+    const obj:any = view.map.canvas_objs.get(first)!;
+    if(obj.flags & CANVASFLAG.DELETED)
+        return;
     switch(obj.type){
         case CANVASTYPE.FREEHAND_LINE:
             return;
@@ -2147,7 +2173,7 @@ function launch_edit_dialog(map:DungeonMap):void{
                 text_obj.text = text;
                 text_obj.bbox = {x0:0, y0:0, x1:0, y1:0};
                 const after = strip_obj(text_obj, STRIP_INCLUDE_ID) as StrippedObjWithId;
-                publish_obj_updates(map.map_id, [after]);
+                publish_obj_updates(view.map.map_id, [after]);
                 request_render();
             });
         }return;
@@ -2188,7 +2214,7 @@ function launch_edit_dialog(map:DungeonMap):void{
                 const color = (document.getElementById('hover-color') as any).value;
                 obj.color = color;
                 const after = strip_obj(obj, STRIP_INCLUDE_ID) as StrippedObjWithId;
-                publish_obj_updates(map.map_id, [after]);
+                publish_obj_updates(view.map.map_id, [after]);
                 request_render();
             });
         }return;
@@ -2219,16 +2245,19 @@ function render(timestamp:DOMHighResTimeStamp):void{
     // const before = performance.now();
     if(!ctx)
         return;
-    const map = get_map(current_map_id);
-    if(map.selection_area.is_selecting){
-        map.selected.clear();
-        note_selections(map);
+    const view = get_active_view();
+    if(!view)
+        return;
+    const map = view.map;
+    if(view.selection_area.is_selecting){
+        view.selected.clear();
+        note_selections(view);
     }
     const canvas_obj_array = map.canvas_obj_array;
-    const selected = map.selected;
-    const camera_x = map.camera_x;
-    const camera_y = map.camera_y;
-    const scale = map.scale;
+    const selected = view.selected;
+    const camera_x = view.camera_x;
+    const camera_y = view.camera_y;
+    const scale = view.scale;
     animation_requested = false;
     const width = canvas.width;
     const height = canvas.height;
@@ -2919,9 +2948,9 @@ function render(timestamp:DOMHighResTimeStamp):void{
 
         }
     }
-    if(map.selection_area.is_selecting){
+    if(view.selection_area.is_selecting){
         ctx.fillStyle = '#55555555';
-        ctx.fillRect(map.selection_area.x0, map.selection_area.y0, map.selection_area.x1-map.selection_area.x0, map.selection_area.y1-map.selection_area.y0);
+        ctx.fillRect(view.selection_area.x0, view.selection_area.y0, view.selection_area.x1-view.selection_area.x0, view.selection_area.y1-view.selection_area.y0);
     }
     const PING_DURATION = 1000;
     const PING_RADIUS = 64;
@@ -2948,7 +2977,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
     // timings.push(performance.now()-before);
     // console.log('rendering:', (performance.now()-before).toFixed(4)+'ms');
 }
-document.addEventListener('DOMContentLoaded', function(){render(0)});
+// document.addEventListener('DOMContentLoaded', function(){render(0)});
 enum TOOLTYPE {
     PAN         = 'Pan',
     SELECT      = 'Select',
@@ -2981,7 +3010,9 @@ function change_tool(toolname:TOOLTYPE):void{
         case TOOLTYPE.MOVE:
             break;
         default:
-            end_selecting(get_map(current_map_id)); // Should actually be on all maps.
+            for(let view of dungeon_map_views){
+                end_selecting(view);
+            }
             break;
     }
     switch(toolname){
@@ -3096,8 +3127,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         if(tool.firstChild.textContent.trim() == 'Select'){
             let has_menu = false;
             const name = tool.getElementsByTagName('span')[0];
-            const map = get_map(current_map_id);
-            switch(map.selection_area.select_type){
+            switch(select_type){
                 case SELECTTYPE.ANY:
                     name.innerText = 'Any';
                     break;
@@ -3110,19 +3140,16 @@ document.addEventListener('DOMContentLoaded', function():void{
             }
             select_numeric_hot_keys = [
                 function(){
-                    const map = get_map(current_map_id);
                     name.innerText = 'Any';
-                    change_select_mode(map, SELECTTYPE.ANY);
+                    change_select_mode(SELECTTYPE.ANY);
                 },
                 function(){
-                    const map = get_map(current_map_id);
                     name.innerText = 'Map';
-                    change_select_mode(map, SELECTTYPE.MAP);
+                    change_select_mode(SELECTTYPE.MAP);
                 },
                 function(){
-                    const map = get_map(current_map_id);
                     name.innerText = 'Token';
-                    change_select_mode(map, SELECTTYPE.TOKEN);
+                    change_select_mode(SELECTTYPE.TOKEN);
                 },
             ];
             const triangle = tool.getElementsByTagName('span')[1];
@@ -3153,8 +3180,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                             e.preventDefault();
                             name.innerText = 'Any';
                             change_tool(TOOLTYPE.SELECT);
-                            const map = get_map(current_map_id);
-                            change_select_mode(map, SELECTTYPE.ANY);
+                            change_select_mode(SELECTTYPE.ANY);
                             close_select_menu();
                         },
                         text:'Any',
@@ -3165,8 +3191,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                             e.preventDefault();
                             change_tool(TOOLTYPE.SELECT);
                             name.innerText = 'Map';
-                            const map = get_map(current_map_id);
-                            change_select_mode(map, SELECTTYPE.MAP);
+                            change_select_mode(SELECTTYPE.MAP);
                             close_select_menu();
                         },
                         text:'Map',
@@ -3177,8 +3202,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                             e.preventDefault();
                             change_tool(TOOLTYPE.SELECT);
                             name.innerText = 'Token';
-                            const map = get_map(current_map_id);
-                            change_select_mode(map, SELECTTYPE.TOKEN);
+                            change_select_mode(SELECTTYPE.TOKEN);
                             close_select_menu();
                         },
                         text:'Token',
@@ -3367,22 +3391,22 @@ document.addEventListener('DOMContentLoaded', function(){
     canvas.addEventListener('wheel', function(e:WheelEvent){
         e.stopPropagation();
         e.preventDefault();
-        const map = get_map(current_map_id);
-        const oldscale = map.scale;
+        const view = get_active_view();
+        const oldscale = view.scale;
         let dy = e.deltaY;
         const dscale = 120;
         if(dy > dscale)
             dy = dscale;
         if(dy < -dscale)
             dy = -dscale;
-        map.scale *= 1 + (-dy/dscale);
-        map.scale = clamp_scale(map.scale);
-        map.camera_x -= e.offsetX/oldscale;
-        map.camera_x += e.offsetX/map.scale;
-        map.camera_y -= e.offsetY/oldscale;
-        map.camera_y += e.offsetY/map.scale;
-        map.camera_x = Math.round(map.camera_x);
-        map.camera_y = Math.round(map.camera_y);
+        view.scale *= 1 + (-dy/dscale);
+        view.scale = clamp_scale(view.scale);
+        view.camera_x -= e.offsetX/oldscale;
+        view.camera_x += e.offsetX/view.scale;
+        view.camera_y -= e.offsetY/oldscale;
+        view.camera_y += e.offsetY/view.scale;
+        view.camera_x = Math.round(view.camera_x);
+        view.camera_y = Math.round(view.camera_y);
         request_render();
     });
     window.addEventListener('keydown', function(e:KeyboardEvent){
@@ -3392,36 +3416,36 @@ document.addEventListener('DOMContentLoaded', function(){
         const other_modifiers = e.altKey || e.shiftKey;
         // const shift = e.shiftKey;
         const shortcut = ctrl_or_cmd_is_pressed && !other_modifiers;
-        const map = get_map(current_map_id);
+        const view = get_active_view();
         switch(e.key){
             case 'ArrowLeft':{
-                map.camera_x += 256;
+                view.camera_x += 256;
                 request_render();
             }break;
             case 'ArrowRight':{
-                map.camera_x -= 256;
+                view.camera_x -= 256;
                 request_render();
             }break;
             case 'ArrowUp':{
-                map.camera_y += 256;
+                view.camera_y += 256;
                 request_render();
             }break;
             case 'ArrowDown':{
-                map.camera_y -= 256;
+                view.camera_y -= 256;
                 request_render();
             }break;
             case 'Escape':{
-                map.selected.clear();
+                view.selected.clear();
                 request_render();
             }break;
             case 'Backspace': // fall-through
             case 'Delete':{
-                for(let item of map.selected){
-                    map.canvas_objs.get(item)!.flags |= CANVASFLAG.DELETED;
+                for(let item of view.selected){
+                    view.map.canvas_objs.get(item)!.flags |= CANVASFLAG.DELETED;
                 }
-                publish_delete_by_ids(map.map_id, Array.from(map.selected));
-                note_delete_by_ids_for_undo(map, Array.from(map.selected));
-                end_selecting(map);
+                publish_delete_by_ids(view.map.map_id, Array.from(view.selected));
+                note_delete_by_ids_for_undo(view.map, Array.from(view.selected));
+                end_selecting(view);
             }break;
             case 'a':
                 change_tool(TOOLTYPE.PAN);
@@ -3452,7 +3476,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 break;
             case 'y':
                 if(shortcut){
-                    do_one_redo(map);
+                    do_one_redo(view.map);
                 }
                 else {
                     return; // avoid the stop prop stuff
@@ -3460,31 +3484,31 @@ document.addEventListener('DOMContentLoaded', function(){
                 break;
             case 'z':
                 if(shortcut){
-                    do_one_undo(map);
+                    do_one_undo(view.map);
                 }
                 break;
             case 'x':
                 if(shortcut){
-                    if(map.selected.size !== 0){
+                    if(view.selected.size !== 0){
                         clear_copy_buffer();
-                        cut_selected_objs_to_copy_buffer(map);
+                        cut_selected_objs_to_copy_buffer(view);
                     }
                 }
                 break;
             case 'c':
                 if(shortcut){
-                    if(map.selected.size !== 0){
+                    if(view.selected.size !== 0){
                         clear_copy_buffer();
-                        copy_selected_objs_to_copy_buffer(map);
+                        copy_selected_objs_to_copy_buffer(view);
                     }
                 }
                 break;
             case 'v':
                 if(shortcut){
                     if(copied_objs.length){
-                        const x = canvas.width/4/map.scale - map.camera_x;
-                        const y = canvas.height/4/map.scale - map.camera_y;
-                        paste_from_copy_buffer_at(map, x, y);
+                        const x = canvas.width/4/view.scale - view.camera_x;
+                        const y = canvas.height/4/view.scale - view.camera_y;
+                        paste_from_copy_buffer_at(view.map, x, y);
                     }
                     break;
                 }
@@ -3521,7 +3545,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if(e.button !== 0 && e.button !== 1){ //0 is the 'primary' button
             return;
         }
-        let map = get_map(current_map_id);
+        let view = get_active_view();
         if(ctxmenu_is_active !== 0)
             return;
         e.stopPropagation();
@@ -3532,25 +3556,25 @@ document.addEventListener('DOMContentLoaded', function(){
         }
         switch(current_tool){
             case TOOLTYPE.SELECT:{
-                let clicked_x = e.offsetX/map.scale - map.camera_x;
-                let clicked_y = e.offsetY/map.scale - map.camera_y;
-                map.selection_area.select_one = true;
-                map.selection_area.is_selecting = true;
-                update_selection(map, clicked_x-5/map.scale, clicked_y-5/map.scale, clicked_x+5/map.scale, clicked_y+5/map.scale);
+                let clicked_x = e.offsetX/view.scale - view.camera_x;
+                let clicked_y = e.offsetY/view.scale - view.camera_y;
+                view.selection_area.select_one = true;
+                view.selection_area.is_selecting = true;
+                update_selection(view, clicked_x-5/view.scale, clicked_y-5/view.scale, clicked_x+5/view.scale, clicked_y+5/view.scale);
                 request_render();
                 function select(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    let select_x = e.offsetX/map.scale - map.camera_x;
-                    let select_y = e.offsetY/map.scale - map.camera_y;
+                    let select_x = e.offsetX/view.scale - view.camera_x;
+                    let select_y = e.offsetY/view.scale - view.camera_y;
                     if(select_x != clicked_x || select_y != select_y)
-                        map.selection_area.select_one = false;
-                    update_selection(map, clicked_x, clicked_y, select_x, select_y);
+                        view.selection_area.select_one = false;
+                    update_selection(view, clicked_x, clicked_y, select_x, select_y);
                     request_render();
                 }
                 canvas.addEventListener('mousemove', select);
                 function finish_select(){
-                    finalize_selection(map);
+                    finalize_selection(view);
                     canvas.removeEventListener('mousemove', select);
                     window.removeEventListener('mouseup', finish_select);
                     canvas.removeEventListener('mouseleave', finish_select);
@@ -3559,24 +3583,24 @@ document.addEventListener('DOMContentLoaded', function(){
                 canvas.addEventListener('mouseleave', finish_select);
             }break;
             case TOOLTYPE.MOVE:{
-                if(!map.selected.size)
+                if(!view.selected.size)
                     return;
-                let clicked_x = e.offsetX/map.scale - map.camera_x;
-                let clicked_y = e.offsetY/map.scale - map.camera_y;
+                let clicked_x = e.offsetX/view.scale - view.camera_x;
+                let clicked_y = e.offsetY/view.scale - view.camera_y;
                 let rawclick_x = e.offsetX;
                 let rawclick_y = e.offsetY;
                 let changed = false;
-                const before_update = get_stripped_state_by_id(map, Array.from(map.selected));
+                const before_update = get_stripped_state_by_id(view.map, Array.from(view.selected));
                 function move(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
                     const diff = Math.abs(e.offsetX - rawclick_x) + Math.abs(e.offsetY - rawclick_y);
                     if(diff < 2)
                         return;
-                    let move_x = e.offsetX/map.scale - map.camera_x;
-                    let move_y = e.offsetY/map.scale - map.camera_y;
+                    let move_x = e.offsetX/view.scale - view.camera_x;
+                    let move_y = e.offsetY/view.scale - view.camera_y;
                     changed = true;
-                    let new_coords = move_selected_objects(map, clicked_x, clicked_y, move_x - clicked_x, move_y - clicked_y);
+                    let new_coords = move_selected_objects(view, clicked_x, clicked_y, move_x - clicked_x, move_y - clicked_y);
                     clicked_x = new_coords[0];
                     clicked_y = new_coords[1];;
                 }
@@ -3587,23 +3611,23 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mouseleave', finish_move);
                     if(!changed)
                         return;
-                    const after_update = get_stripped_state_by_id(map, Array.from(map.selected));
-                    publish_obj_updates(map.map_id, after_update);
-                    note_updates_for_undo(map, before_update, after_update);
+                    const after_update = get_stripped_state_by_id(view.map, Array.from(view.selected));
+                    publish_obj_updates(view.map.map_id, after_update);
+                    note_updates_for_undo(view.map, before_update, after_update);
                 }
                 window.addEventListener('mouseup', finish_move);
                 canvas.addEventListener('mouseleave', finish_move);
             }break;
             case TOOLTYPE.PAN:{
-                let clicked_x = e.offsetX/map.scale;
-                let clicked_y = e.offsetY/map.scale;
+                let clicked_x = e.offsetX/view.scale;
+                let clicked_y = e.offsetY/view.scale;
                 function pan(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    let pan_x = e.offsetX/map.scale;
-                    let pan_y = e.offsetY/map.scale;
-                    map.camera_x -= clicked_x - pan_x;
-                    map.camera_y -= clicked_y - pan_y;
+                    let pan_x = e.offsetX/view.scale;
+                    let pan_y = e.offsetY/view.scale;
+                    view.camera_x -= clicked_x - pan_x;
+                    view.camera_y -= clicked_y - pan_y;
                     clicked_x = pan_x;
                     clicked_y = pan_y;
                     request_render();
@@ -3623,11 +3647,11 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case TOOLTYPE.LINE:{
                 let id = get_new_id();
-                add_freehand_line(map, id, e.offsetX/map.scale-map.camera_x, e.offsetY/map.scale-map.camera_y, color_picker.value);
+                add_freehand_line(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y, color_picker.value);
                 function add_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    add_freehand_point_by_id(map, id, e.offsetX/map.scale-map.camera_x, e.offsetY/map.scale-map.camera_y);
+                    add_freehand_point_by_id(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y);
                     request_render();
                 }
                 canvas.addEventListener('mousemove', add_point);
@@ -3635,19 +3659,19 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mousemove', add_point);
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
-                    publish_obj_by_id(map, id);
-                    note_create_by_id_for_undo(map, id);
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case TOOLTYPE.WALL:{
                 let id = get_new_id();
-                add_gridline(map, id, e.offsetX/map.scale-map.camera_x, e.offsetY/map.scale-map.camera_y, color_picker.value);
+                add_gridline(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y, color_picker.value);
                 function add_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    add_gridline_point_by_id(map, id, e.offsetX/map.scale-map.camera_x, e.offsetY/map.scale-map.camera_y);
+                    add_gridline_point_by_id(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y);
                     request_render();
                 }
                 canvas.addEventListener('mousemove', add_point);
@@ -3655,22 +3679,22 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mousemove', add_point);
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
-                    publish_obj_by_id(map, id);
-                    note_create_by_id_for_undo(map, id);
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case TOOLTYPE.DOOR:{
-                let x0 = snap_to_grid(e.offsetX/map.scale-map.camera_x);
-                let y0 = snap_to_grid(e.offsetY/map.scale-map.camera_y);
+                let x0 = snap_to_grid(e.offsetX/view.scale-view.camera_x);
+                let y0 = snap_to_grid(e.offsetY/view.scale-view.camera_y);
                 let x1 = x0;
                 let y1 = y0;
                 function change_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    x1 = snap_to_grid(e.offsetX/map.scale-map.camera_x);
-                    y1 = snap_to_grid(e.offsetY/map.scale-map.camera_y);
+                    x1 = snap_to_grid(e.offsetX/view.scale-view.camera_x);
+                    y1 = snap_to_grid(e.offsetY/view.scale-view.camera_y);
                     if(x1 > x0 + REFERENCE_WIDTH)
                         x1 = x0 + REFERENCE_WIDTH;
                     if(x1 < x0 - REFERENCE_WIDTH)
@@ -3702,9 +3726,9 @@ document.addEventListener('DOMContentLoaded', function(){
                         }
                         let x = ((x0 + x1)/2) | 0;
                         let y = ((y0 + y1)/2) | 0;
-                        add_door(map, id, x, y, current_door, color_picker.value, orientation);
-                        publish_obj_by_id(map, id);
-                        note_create_by_id_for_undo(map, id);
+                        add_door(view.map, id, x, y, current_door, color_picker.value, orientation);
+                        publish_obj_by_id(view.map, id);
+                        note_create_by_id_for_undo(view.map, id);
                         request_render();
                     }
                 }
@@ -3713,13 +3737,13 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case TOOLTYPE.FLOOR:{
                 let id = get_new_id();
-                const x0 = e.offsetX/map.scale-map.camera_x;
-                const y0 = e.offsetY/map.scale-map.camera_y;
-                add_gridrect(map, id, x0, y0, color_picker.value);
+                const x0 = e.offsetX/view.scale-view.camera_x;
+                const y0 = e.offsetY/view.scale-view.camera_y;
+                add_gridrect(view.map, id, x0, y0, color_picker.value);
                 function add_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    change_gridrect_by_id(map, id, e.offsetX/map.scale-map.camera_x, e.offsetY/map.scale-map.camera_y, x0, y0);
+                    change_gridrect_by_id(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y, x0, y0);
                     request_render();
                 }
                 canvas.addEventListener('mousemove', add_point);
@@ -3727,21 +3751,21 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mousemove', add_point);
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
-                    publish_obj_by_id(map, id);
-                    note_create_by_id_for_undo(map, id);
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case TOOLTYPE.RECT:{
                 let id = get_new_id();
-                const x0 = e.offsetX/map.scale-map.camera_x;
-                const y0 = e.offsetY/map.scale-map.camera_y;
-                add_rect(map, id, x0, y0, color_picker.value);
+                const x0 = e.offsetX/view.scale-view.camera_x;
+                const y0 = e.offsetY/view.scale-view.camera_y;
+                add_rect(view.map, id, x0, y0, color_picker.value);
                 function add_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    change_rect_by_id(map, id, e.offsetX/map.scale-map.camera_x, e.offsetY/map.scale-map.camera_y, x0, y0);
+                    change_rect_by_id(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y, x0, y0);
                     request_render();
                 }
                 canvas.addEventListener('mousemove', add_point);
@@ -3749,21 +3773,21 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mousemove', add_point);
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
-                    publish_obj_by_id(map, id);
-                    note_create_by_id_for_undo(map, id);
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case TOOLTYPE.FILLED_RECT:{
                 let id = get_new_id();
-                const x0 = e.offsetX/map.scale-map.camera_x;
-                const y0 = e.offsetY/map.scale-map.camera_y;
-                add_filled_rect(map, id, x0, y0, color_picker.value, color_picker2.value);
+                const x0 = e.offsetX/view.scale-view.camera_x;
+                const y0 = e.offsetY/view.scale-view.camera_y;
+                add_filled_rect(view.map, id, x0, y0, color_picker.value, color_picker2.value);
                 function add_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    change_filled_rect_by_id(map, id, e.offsetX/map.scale-map.camera_x, e.offsetY/map.scale-map.camera_y, x0, y0);
+                    change_filled_rect_by_id(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y, x0, y0);
                     request_render();
                 }
                 canvas.addEventListener('mousemove', add_point);
@@ -3771,15 +3795,15 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mousemove', add_point);
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
-                    publish_obj_by_id(map, id);
-                    note_create_by_id_for_undo(map, id);
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case TOOLTYPE.TEXT:{
-                const x0 = e.offsetX/map.scale-map.camera_x;
-                const y0 = e.offsetY/map.scale-map.camera_y;
+                const x0 = e.offsetX/view.scale-view.camera_x;
+                const y0 = e.offsetY/view.scale-view.camera_y;
                 const html = `
                 <h2>Enter Text</h2>
                 <table class="input-container">
@@ -3805,15 +3829,15 @@ document.addEventListener('DOMContentLoaded', function(){
                     if(size > 72)
                         return;
                     let id = get_new_id();
-                    add_text(map, id, x0, y0, text, size);
-                    publish_obj_by_id(map, id);
-                    note_create_by_id_for_undo(map, id);
+                    add_text(view.map, id, x0, y0, text, size);
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
                     request_render();
                 });
             }break;
             case TOOLTYPE.IMAGE:{
-                const x0 = e.offsetX/map.scale-map.camera_x;
-                const y0 = e.offsetY/map.scale-map.camera_y;
+                const x0 = e.offsetX/view.scale-view.camera_x;
+                const y0 = e.offsetY/view.scale-view.camera_y;
                 const html = `
                     <h2>Enter Image</h2>
                     <table class="input-container">
@@ -3848,15 +3872,15 @@ document.addEventListener('DOMContentLoaded', function(){
                         height = snap_to_grid(height);
                     }
                     let id = get_new_id();
-                    add_image(map, id, x0, y0, width, height, text);
-                    publish_obj_by_id(map, id);
-                    note_create_by_id_for_undo(map, id);
+                    add_image(view.map, id, x0, y0, width, height, text);
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
                     request_render();
                 });
             }break;
             case TOOLTYPE.EZ_TOKEN:{
-                const x0 = e.offsetX/map.scale-map.camera_x;
-                const y0 = e.offsetY/map.scale-map.camera_y;
+                const x0 = e.offsetX/view.scale-view.camera_x;
+                const y0 = e.offsetY/view.scale-view.camera_y;
                 const html = `
                     <h2>Enter Token</h2>
                     <table class="input-container">
@@ -3889,15 +3913,15 @@ document.addEventListener('DOMContentLoaded', function(){
                         height = 1;
                     let id = get_new_id();
                     ez_token_color = (document.getElementById('hover-color') as any).value;
-                    add_ez_token(map, id, x0, y0, text, ez_token_color, width, height);
-                    publish_obj_by_id(map, id);
-                    note_create_by_id_for_undo(map, id);
+                    add_ez_token(view.map, id, x0, y0, text, ez_token_color, width, height);
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
                     request_render();
                 });
             }break;
             case TOOLTYPE.IMG_TOKEN:{
-                const x0 = e.offsetX/map.scale-map.camera_x;
-                const y0 = e.offsetY/map.scale-map.camera_y;
+                const x0 = e.offsetX/view.scale-view.camera_x;
+                const y0 = e.offsetY/view.scale-view.camera_y;
                 const html = `
                     <h2>Enter Image</h2>
                     <table class="input-container">
@@ -3913,23 +3937,23 @@ document.addEventListener('DOMContentLoaded', function(){
                         return;
                     }
                     let id = get_new_id();
-                    add_img_token(map, id, x0, y0, text);
-                    publish_obj_by_id(map, id);
-                    note_create_by_id_for_undo(map, id);
+                    add_img_token(view.map, id, x0, y0, text);
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
                     request_render();
                 });
             }break;
             case TOOLTYPE.STAIRS:{
                 let id = get_new_id();
-                const x0 = e.offsetX/map.scale-map.camera_x;
-                const y0 = e.offsetY/map.scale-map.camera_y;
-                add_stairs(map, id, x0, y0);
-                const stairs = map.canvas_objs.get(id)! as Stairs; // lazy
+                const x0 = e.offsetX/view.scale-view.camera_x;
+                const y0 = e.offsetY/view.scale-view.camera_y;
+                add_stairs(view.map, id, x0, y0);
+                const stairs = view.map.canvas_objs.get(id)! as Stairs; // lazy
                 function change_stairs_on_move(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    const ex0 = e.offsetX/map.scale-map.camera_x;
-                    const ey0 = e.offsetY/map.scale-map.camera_y;
+                    const ex0 = e.offsetX/view.scale-view.camera_x;
+                    const ey0 = e.offsetY/view.scale-view.camera_y;
                     change_stairs(stairs, x0, y0, ex0, ey0);
                     request_render();
                 }
@@ -3939,8 +3963,8 @@ document.addEventListener('DOMContentLoaded', function(){
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
                     if(stairs.width != 0 && stairs.height != 0){
-                        publish_obj_by_id(map, id);
-                        note_create_by_id_for_undo(map, id);
+                        publish_obj_by_id(view.map, id);
+                        note_create_by_id_for_undo(view.map, id);
                     }
                     else {
                         stairs.flags |= CANVASFLAG.DELETED;
@@ -3962,11 +3986,11 @@ document.addEventListener('DOMContentLoaded', function(){
         ctxmenu.classList.add('menu');
         ctxmenu.style.left = e.clientX + 'px';
         ctxmenu.style.top = e.clientY + 'px';
-        const map = get_map(current_map_id);
-        const x = e.offsetX/map.scale - map.camera_x - canvas.width/2/map.scale;
-        const y = e.offsetY/map.scale - map.camera_y - canvas.height/2/map.scale;
-        const click_x = e.offsetX/map.scale - map.camera_x;
-        const click_y = e.offsetY/map.scale - map.camera_y;
+        const view = get_active_view();
+        const x = e.offsetX/view.scale - view.camera_x - canvas.width/2/view.scale;
+        const y = e.offsetY/view.scale - view.camera_y - canvas.height/2/view.scale;
+        const click_x = e.offsetX/view.scale - view.camera_x;
+        const click_y = e.offsetY/view.scale - view.camera_y;
         function remove_menu(e?:MouseEvent){
             canvas.removeEventListener('mousedown', remove_menu);
             document.body.removeChild(ctxmenu);
@@ -3985,75 +4009,75 @@ document.addEventListener('DOMContentLoaded', function(){
         const items: Array<itemtype> = [
             {
                 label: 'Ping',
-                func: function(){ping_at(map, click_x, click_y);remove_menu();},
+                func: function(){ping_at(view.map, click_x, click_y);remove_menu();},
                 disabled: false,
             },
             {
                 label: 'Zoom In',
-                func: function(){zoom_in(map);remove_menu();},
+                func: function(){zoom_in(view);remove_menu();},
                 disabled: false,
             },
             {
                 label: 'Zoom Out',
-                func: function(){zoom_out(map);remove_menu();},
+                func: function(){zoom_out(view);remove_menu();},
                 disabled: false,
             },
             {
                 label: 'Reset Zoom',
-                func: function(){reset_zoom(map);remove_menu();},
+                func: function(){reset_zoom(view);remove_menu();},
                 disabled: false,
             },
             {
                 label: 'Gather Party',
-                func: function(){socket.emit('canvas-gather', {x:-x, y:-y, map_id:map.map_id}); remove_menu();},
+                func: function(){socket.emit('canvas-gather', {x:-x, y:-y, map_id:view.map.map_id}); remove_menu();},
                 disabled: false,
             },
             {
                 label: 'Edit',
                 func: function(){
-                    launch_edit_dialog(map);
+                    launch_edit_dialog(view);
                     remove_menu();
                 },
-                disabled: edit_is_impossible(map),
+                disabled: edit_is_impossible(view),
             },
             {
                 label: 'Undo',
                 func: function(){
-                    do_one_undo(map);
+                    do_one_undo(view.map);
                     remove_menu();
                 },
-                disabled: undo_is_impossible(map),
+                disabled: undo_is_impossible(view.map),
             },
             {
                 label: 'Redo',
                 func: function(){
-                    do_one_redo(map);
+                    do_one_redo(view.map);
                     remove_menu();
                 },
-                disabled: redo_is_impossible(map),
+                disabled: redo_is_impossible(view.map),
             },
             {
                 label: 'Cut',
                 func: function(){
                     clear_copy_buffer();
-                    cut_selected_objs_to_copy_buffer(map);
+                    cut_selected_objs_to_copy_buffer(view);
                     remove_menu();
                 },
-                disabled: map.selected.size === 0,
+                disabled: view.selected.size === 0,
             },
             {
                 label: 'Copy',
                 func: function(){
                     clear_copy_buffer();
-                    copy_selected_objs_to_copy_buffer(map);
+                    copy_selected_objs_to_copy_buffer(view);
                     remove_menu();
                 },
-                disabled: map.selected.size === 0,
+                disabled: view.selected.size === 0,
             },
             {
                 label: 'Paste',
                 func: function(){
-                    paste_from_copy_buffer_at(map, click_x, click_y);
+                    paste_from_copy_buffer_at(view.map, click_x, click_y);
                     remove_menu();
                 },
                 disabled: copied_objs.length === 0,
@@ -4131,31 +4155,3 @@ function make_ok_dialog(html:string, on_ok:(_:HTMLElement)=>void){
     }
 }
 
-
-function add_map_tab(map_id:number):void{
-    const new_tab = document.createElement('div');
-    new_tab.appendChild(document.createTextNode(""+map_id));
-    const top = document.getElementById('top')!;
-    const new_map = document.getElementById('new-map')!;
-    top.insertBefore(new_tab, new_map);
-    new_tab.addEventListener('click', function(e:MouseEvent){
-        e.stopPropagation();
-        e.preventDefault();
-        change_map(map_id);
-    });
-}
-
-document.addEventListener('DOMContentLoaded', function(){
-    const new_map = document.getElementById('new-map')!;
-    new_map.addEventListener('click', function(e:MouseEvent){
-        let max:number = current_map_id;
-        for(let k of MAPS.keys()){
-            k |= 0;
-            if(k > max)
-                max = k;
-        }
-        get_map(max+1);
-        e.stopPropagation();
-        e.preventDefault();
-    });
-});

@@ -1,7 +1,8 @@
 David20::title @hide
-::div.top @id(top)
+::div @id(tree)
   ::raw
-    <div id="new-map">+</div>
+    <div id="current-dungeon-name">Untitled▾</div>
+    <div id="new-dungeon-button">New Dungeon</div>
 ::div.map
   ::raw
     <canvas id="map"></canvas>
@@ -71,37 +72,6 @@ David20::title @hide
   }
   button {
     user-select: none;
-  }
-  #top {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    background-color: #fff;
-    font-size: 18px;
-    font-family: "Helvetica Neue", "Segoe UI", sans-serif;
-    border: 2px solid black;
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction: column;
-    box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.3);
-    user-select: none;
-    padding: 4px;
-    max-width: 800px;
-  }
-  #top > div {
-    display: inline-block;
-    border: 1px solid gray;
-    padding: 4px;
-    cursor: pointer;
-    background-color: #eee;
-    box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.3);
-    border-radius: 4px;
-    min-width: 1.5em;
-    text-align: center;
-    font-family: "Helvetica Neue", "Segoe UI", sans-serif;
-  }
-  #top > div.active-map {
-    background-color: #aaa;
   }
   #tools{
     position: absolute;
@@ -198,6 +168,18 @@ David20::title @hide
   section.menuitem:hover {
     background-color: #ccc;
   }
+  #tree {
+    position: absolute;
+    top: 1px;
+    left: 50%;
+    transform: translate(-50%, 0%);
+    display: flex;
+    border: 1px solid black;
+    background-color: #fff;
+  }
+  #tree > div {
+    padding: 0em 1em 0em 1em;
+  }
   section.hover {
     position:absolute;
     top: 50%;
@@ -267,9 +249,6 @@ David20::title @hide
     }
     #chat-history {
       width: 100%;
-    }
-    #top {
-      display: none;
     }
     body > div {
       display: block;
