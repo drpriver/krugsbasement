@@ -139,7 +139,7 @@ type GridRectangle = {
 //  -------
 //  base_x and base_y is the center of the ellipse.
 //  We only allow axis-aligned ellipses.
-//  interface Ellipse{
+//  type Ellipse = {
 //    type: CANVASTYPE; // ELLIPSE
 //    id: number;
 //    base_x: number;
@@ -263,6 +263,7 @@ enum ORIENTATION {
 };
 
 const MAPS:Map<number,DungeonMap> = new Map();
+const MapOptionElements: Map<number, HTMLOptionElement> = new Map();
 type DungeonMap = {
     map_id: number; // integer
     map_name: string;
@@ -290,7 +291,7 @@ socket.on('canvas-ping', function(data:{ping:Ping, map_id:number}){
     request_render();
 });
 type DungeonMapView = {
-    map: DungeonMap;
+    map: DungeonMap; // non-owning
     // These are in REFERENCE_WIDTH space.
     // To go from screen space to grid space, divide by `scale` and subtract
     // `camera_x`/`camera_y`.
@@ -329,11 +330,17 @@ function new_map_view(map_id:number): DungeonMapView{
 }
 function change_active_map_view(idx: number){
     active_map_view_index = idx;
-    const view = dungeon_map_views[idx];
-    const current_dungeon_name = document.getElementById('current-dungeon-name')!;
-    current_dungeon_name.innerText = view.map.map_name + '▾';
-
+    request_render();
 }
+document.addEventListener('DOMContentLoaded', function(){
+    const select = document.getElementById('current-map-name') as HTMLSelectElement;
+    select.addEventListener('input', function(e:Event){
+        e.stopPropagation();
+        change_map(+select.value);
+        console.log(select.value);
+
+    });
+});
 function get_active_view(): DungeonMapView{
     if(!dungeon_map_views.length){
         dungeon_map_views.push(new_map_view(0));
@@ -342,11 +349,12 @@ function get_active_view(): DungeonMapView{
     return dungeon_map_views[active_map_view_index];
 }
 function get_map(map_id:number): DungeonMap {
+    console.log(map_id);
     if(MAPS.has(map_id))
         return MAPS.get(map_id)!;
     const new_map:DungeonMap = {
         map_id: map_id,
-        map_name: "Untitled",
+        map_name: 'Untitled',
         // TODO: these shouldn't be on the map itself, this prevents having multiple
         // dungeon_map_views into the same map.
 
@@ -360,6 +368,12 @@ function get_map(map_id:number): DungeonMap {
     };
     socket.emit('canvas-create-map', map_id);
     MAPS.set(map_id, new_map);
+    const option = document.createElement('option');
+    option.innerText = 'Untitled';
+    option.value = ""+map_id;
+    MapOptionElements.set(map_id, option);
+    const select = document.getElementById('current-map-name') as HTMLSelectElement;
+    select.options.add(option);
     return new_map;
 }
 function change_map(map_id:number){
@@ -386,9 +400,14 @@ socket.on('canvas-create-map', function(map_id:number){
     dungeon_map_views.push(new_map_view(map_id));
     change_active_map_view(dungeon_map_views.length-1);
 });
+function rename_map(map:DungeonMap, name:string){
+    map.map_name = name;
+    const opt = MapOptionElements.get(map.map_id)!;
+    opt.innerText = name;
+}
 socket.on('canvas-name-map', function(data:{map_id:number, name:string}){
     const map = get_map(data.map_id);
-    map.map_name = data.name;
+    rename_map(map, data.name);
 });
 
 //
@@ -1006,9 +1025,6 @@ function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number){
             obj.width = 1;
     }
 }
-// document.addEventListener('DOMContentLoaded', function(){
-    // dungeon_map_views.push(new_map_view(0));
-// });
 document.addEventListener('DOMContentLoaded', resize_canvas);
 window.addEventListener('resize', resize_canvas);
 function clear_canvas(map:DungeonMap):void{
@@ -1029,6 +1045,11 @@ socket.on('canvas-clear', function():void{
     MAPS.clear()
     dungeon_map_views.length = 0;
     active_map_view_index = 0;
+    const select = document.getElementById('current-map-name') as HTMLSelectElement;
+    while(select.options.length){
+        select.remove(0);
+    }
+    MapOptionElements.clear();
 });
 
 enum UNDO_EVENT_TYPE {
@@ -1351,7 +1372,10 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
 socket.on('canvas-create', function(msgs:Array<{map_id:number;objects:Array<StrippedObjWithId>}>){
     for(let msg of msgs){
         const map_id = msg.map_id;
-        const map = get_map(map_id);
+        const view = new_map_view(map_id);
+        dungeon_map_views.push(view);
+        const map = view.map;
+        // const map = get_map(map_id);
         const objs = msg.objects;
         const length = objs.length;
         for(let i = 0; i < length; ++i){
