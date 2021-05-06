@@ -61,8 +61,13 @@ POINTS = Sentinel()
 
 class Validator:
     def __init__(self, **types:Union[type, Tuple[type, ...], Sentinel]): 
+        types['type']   = int
+        types['id']     = int
+        types['base_x'] = (float, int)
+        types['base_y'] = (float, int)
+        types['flags']  = int
         self.types = types
-    def validate(self, obj:dict) -> None:
+    def validate(self, obj:dict, POINTS=POINTS) -> None:
         if set(obj) != set(self.types):
             raise TypeError('Keys missing or extra')
         for key, t in self.types.items():
@@ -77,111 +82,56 @@ class Validator:
                 if not isinstance(v, t): # type: ignore
                     raise TypeError('field is wrong type', key, t)
 VALIDATE_OBJ[CANVASTYPE.FREEHAND_LINE] = Validator(
-        type=int,
-        id=int,
-        base_x=(float, int),
-        base_y=(float, int),
-        flags=int,
         color=str,
         points=POINTS
 ).validate
 VALIDATE_OBJ[CANVASTYPE.GRID_LINE] = Validator(
-        type=int,
-        id=int,
-        base_x=(float, int),
-        base_y=(float, int),
-        flags=int,
         color=str,
         points=POINTS
 ).validate
 VALIDATE_OBJ[CANVASTYPE.RECT] = Validator(
-        type=int,
-        id=int,
-        base_x=(float, int),
-        base_y=(float, int),
-        flags=int,
         color=str,
         width=(float, int),
         height=(float, int),
 ).validate
 VALIDATE_OBJ[CANVASTYPE.FILLED_RECT] = Validator(
-        type=int,
-        id=int,
-        base_x=(float, int),
-        base_y=(float, int),
-        flags=int,
         color=str,
         color2=str,
         width=(float, int),
         height=(float, int),
 ).validate
 VALIDATE_OBJ[CANVASTYPE.GRID_RECT] = Validator(
-        type=int,
-        id=int,
-        base_x=(float, int),
-        base_y=(float, int),
-        flags=int,
         color=str,
         width=(float, int),
         height=(float, int),
 ).validate
 VALIDATE_OBJ[CANVASTYPE.IMAGE] = Validator(
-        type=int,
-        id=int,
-        base_x=(float, int),
-        base_y=(float, int),
-        flags=int,
         width=(float, int),
         height=(float, int),
         url=str,
 ).validate
 VALIDATE_OBJ[CANVASTYPE.TEXT] = Validator(
-        type=int,
-        id=int,
-        base_x=(float, int),
-        base_y=(float, int),
-        flags=int,
         text=str,
         size=(float,int),
 ).validate
 VALIDATE_OBJ[CANVASTYPE.EZ_TOKEN] = Validator(
-        type=int,
-        id=int,
-        base_x=(float, int),
-        base_y=(float, int),
-        flags=int,
         text=str,
         color=str,
         width=(float,int),
         height=(float,int),
 ).validate
 VALIDATE_OBJ[CANVASTYPE.IMG_TOKEN] = Validator(
-        type=int,
-        id=int,
-        base_x=(float, int),
-        base_y=(float, int),
-        flags=int,
         url=str,
         width=(float,int),
         height=(float,int),
 ).validate
 VALIDATE_OBJ[CANVASTYPE.DOOR] = Validator(
-        type=int,
-        id=int,
-        base_x=(float, int),
-        base_y=(float, int),
-        flags=int,
         doortype=int,
         color=str,
         width=(float,int),
         orientation=int,
 ).validate
 VALIDATE_OBJ[CANVASTYPE.STAIRS] = Validator(
-        type=int,
-        id=int,
-        base_x=(float, int),
-        base_y=(float, int),
-        flags=int,
         width=int,
         height=int,
         rotation=int,
@@ -223,9 +173,6 @@ def handle_delete(data:dict) -> dict:
     for obj_id in obj_ids:
         OBJS_BY_ID[obj_id]['flags'] |= Flags.DELETED
     return data
-
-def validate_obj_state(obj_state:dict) -> None:
-    pass
 
 def handle_update(data:dict) -> dict:
     '''
