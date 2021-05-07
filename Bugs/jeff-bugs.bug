@@ -1,0 +1,13 @@
+* combine select and move
+* odd when diagonal corner meets non diagonal corner
+* S is still bad
+* in general, doors and floor don't really work with 5' walls (corners)
+* line thickness options
+* rectangle thickness options
+* rectangle snap to grid
+* Wide stairs
+* 5' stairs
+* Diagonal stairs
+* Grid radio-button: whole grid, half grid, free grid.
+
+- May 7, 2021
