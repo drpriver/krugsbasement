@@ -309,6 +309,13 @@ type DungeonMapView = {
         y0: number;
         y1: number;
     };
+    placing_area: {
+        is_placing: boolean;
+        x0: number;
+        x1: number;
+        y0: number;
+        y1: number;
+    };
 }
 let active_map_view_index = 0;
 let dungeon_map_views: Array<DungeonMapView> = [];
@@ -324,6 +331,11 @@ function new_map_view(map_id:number): DungeonMapView{
             is_selecting: false,
             x0:0, y0:0,
             x1:0, y1:0,
+        },
+        placing_area: {
+            is_placing: false,
+            x0: 0, y0: 0,
+            x1: 0, y1: 0,
         },
     };
     return view;
@@ -1009,8 +1021,6 @@ function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number){
         else{
             obj.rotation = ROTATION.LEFT;
         }
-        if(obj.height > 1)
-            obj.height = 1;
     }
     else {
         if(ydiff > 0){
@@ -1019,8 +1029,6 @@ function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number){
         else{
             obj.rotation = ROTATION.DOWN;
         }
-        if(obj.width > 1)
-            obj.width = 1;
     }
 }
 document.addEventListener('DOMContentLoaded', resize_canvas);
@@ -2992,7 +3000,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         x += 2;
                         y += 4;
                         n = obj.height * 8 - 1;
-                        w = 60;
+                        w = REFERENCE_WIDTH*obj.width-4;
                         h = 4;
                         dw = -w / n;
                         dx = -dw/2;
@@ -3001,7 +3009,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     case ROTATION.DOWN:{
                         x += 2;
                         n = obj.height * 8 - 1;
-                        w = 60;
+                        w = REFERENCE_WIDTH*obj.width-4;
                         h = 4;
                         dw = -w / n;
                         dx = -dw/2;
@@ -3012,7 +3020,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         y += 2;
                         x += 4;
                         n = obj.width * 8 - 1;
-                        h = 60;
+                        h = REFERENCE_WIDTH*obj.height-4;
                         w = 4;
                         dh = -h / n;
                         dy = -dh/2;
@@ -3021,7 +3029,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     case ROTATION.LEFT:{
                         y += 2;
                         n = obj.width * 8 - 1;
-                        h = 60;
+                        h = REFERENCE_WIDTH*obj.height-4;
                         w = 4;
                         dh = -h / n;
                         dy = -dh/2;
@@ -3043,6 +3051,15 @@ function render(timestamp:DOMHighResTimeStamp):void{
     if(view.selection_area.is_selecting){
         ctx.fillStyle = '#55555555';
         ctx.fillRect(view.selection_area.x0, view.selection_area.y0, view.selection_area.x1-view.selection_area.x0, view.selection_area.y1-view.selection_area.y0);
+    }
+    if(view.placing_area.is_placing){
+        ctx.strokeStyle = '#33aaaaaa';
+        ctx.lineWidth = 4;
+        const x = view.placing_area.x0;
+        const y = view.placing_area.y0;
+        const w = view.placing_area.x1 - x;
+        const h = view.placing_area.y1 - y;
+        ctx.strokeRect(x-2, y-2, w+4, h+4);
     }
     const PING_DURATION = 1000;
     const PING_RADIUS = 64;
@@ -4036,20 +4053,34 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case TOOLTYPE.STAIRS:{
                 let id = get_new_id();
-                const x0 = e.offsetX/view.scale-view.camera_x;
-                const y0 = e.offsetY/view.scale-view.camera_y;
+                let x0 = e.offsetX/view.scale-view.camera_x;
+                let y0 = e.offsetY/view.scale-view.camera_y;
                 add_stairs(view.map, id, x0, y0);
+                view.placing_area.is_placing = true;
                 const stairs = view.map.canvas_objs.get(id)! as Stairs; // lazy
+                view.placing_area.x0 = stairs.base_x;
+                view.placing_area.y0 = stairs.base_y;
+                view.placing_area.x1 = stairs.base_x;
+                view.placing_area.y1 = stairs.base_y;
+                x0 = stairs.base_x;
+                y0 = stairs.base_y;
+                request_render();
                 function change_stairs_on_move(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
                     const ex0 = e.offsetX/view.scale-view.camera_x;
                     const ey0 = e.offsetY/view.scale-view.camera_y;
                     change_stairs(stairs, x0, y0, ex0, ey0);
+                    view.placing_area.x0 = stairs.base_x;
+                    view.placing_area.y0 = stairs.base_y;
+                    view.placing_area.x1 = stairs.base_x+REFERENCE_WIDTH*stairs.width;
+                    view.placing_area.y1 = stairs.base_y+REFERENCE_WIDTH*stairs.height;
                     request_render();
                 }
                 canvas.addEventListener('mousemove', change_stairs_on_move);
                 function finish_point(){
+                    view.placing_area.is_placing = false;
+                    request_render();
                     canvas.removeEventListener('mousemove', change_stairs_on_move);
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
