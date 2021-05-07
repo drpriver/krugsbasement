@@ -79,6 +79,12 @@ def canvas_ping(data) -> None:
     canvas.name_map(**data)
     emit('canvas-name-map', data, broadcast=True, include_self=False)
 
+@socketio.on('canvas-new-map-request')
+def new_map_request(map_name:str) -> None:
+    new_map_id = canvas.new_map_request(map_name)
+    emit('canvas-create-map', new_map_id, broadcast=True, include_self=True)
+    emit('canvas-name-map', {'map_id':new_map_id, 'map_name':map_name}, broadcast=True, include_self=True)
+
 try:
     SCREEN = open('screen.html').read()
 except:

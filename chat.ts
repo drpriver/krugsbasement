@@ -78,7 +78,6 @@ socket.on('chat-clear', function(){
 
 function resize_chat(){
     const hist = document.getElementById('chat-history')!;
-    // hist.style.height = window.innerHeight-12-100 + 'px';
     hist.scrollTo({top:hist.scrollHeight});
 }
 

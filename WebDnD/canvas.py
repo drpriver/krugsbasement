@@ -49,12 +49,19 @@ MAP_OBJS_BY_ID = {k:{o['id']:o for o in v.objects} for k,v in MAPS.items()} # ty
 def create_map(map_id:int) -> None:
     if map_id in MAPS:
         return
-    MAPS[map_id] = Map(map_id, [])
+    MAPS[map_id] = Map(map_id, [], 'Untitled')
     MAP_OBJS_BY_ID[map_id] = {}
 
 def name_map(map_id: int, map_name:str) -> None:
     m = MAPS[map_id]
     MAPS[map_id] = m._replace(map_name=map_name)
+
+def new_map_request(map_name:str) -> int:
+    new_map_id = max(MAPS.keys()) + 1
+    MAPS[new_map_id] = Map(new_map_id, [], map_name)
+    MAP_OBJS_BY_ID[new_map_id] = {}
+    return new_map_id
+
     
 
 def get_map(map_id:int) -> dict:
