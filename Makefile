@@ -21,7 +21,9 @@ dist.zip: screen.html
 	mkdir -p dist
 	cp screen.html dist
 	mkdir -p dist/WebDnD
+	mkdir -p dist/BadDb
 	cp WebDnD/*.py dist/WebDnD
+	cp DemoDb/*.json dist/BadDb
 	cp requirements.txt dist
 	cp setup.py dist
 	echo "DEV=False" > dist/WebDnD/appconfig.py
