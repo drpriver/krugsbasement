@@ -2,10 +2,16 @@ from typing import List, Dict, Any, NamedTuple, Callable, Tuple, Union
 from .persist import Persister
 from enum import IntFlag, IntEnum
 
+class MapFlag(IntFlag):
+    NONE = 0
+    DELETED = 1
+    CANT_DELETE = 2
+
 class Map(NamedTuple):
     map_id: int
     objects: List[Dict[str, Any]]
     map_name: str
+    flags: MapFlag = MapFlag.NONE
     def with_live_objs(self) -> Dict[str, Any]:
         md = self._asdict()
         md['objects'] = [o for o in md['objects'] if not (o['flags'] & Flags.DELETED)]
@@ -32,7 +38,7 @@ class CANVASTYPE(IntEnum):
     STAIRS        = 12
 
 def save_canvas(maps:Dict[int, Map]) -> List[Dict[str, Any]]:
-    return [v.with_live_objs() for v in maps.values()]
+    return [v.with_live_objs() for v in maps.values() if not (v.flags & MapFlag.DELETED)]
 
 def load_canvas(data) -> Dict[int, Map]:
     result = {}
@@ -62,6 +68,25 @@ def new_map_request(map_name:str) -> int:
     MAP_OBJS_BY_ID[new_map_id] = {}
     return new_map_id
 
+def delete_map(map_id:int) -> bool:
+    m = MAPS[map_id]
+    if m.flags & MapFlag.DELETED:
+        return False
+    if m.flags & MapFlag.CANT_DELETE:
+        return False
+    # Check that we will have at least one map after the deletion.
+    # If we won't then reject the request.
+    for m in MAPS.values():
+        if m.map_id == map_id:
+            continue
+        if m.flags & MapFlag.DELETED:
+            continue
+        break
+    else:
+        return False
+
+    MAPS[map_id] = m._replace(flags=m.flags | MapFlag.DELETED)
+    return True
     
 
 def get_map(map_id:int) -> dict:

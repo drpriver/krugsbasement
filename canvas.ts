@@ -264,9 +264,15 @@ enum ORIENTATION {
 
 const MAPS:Map<number,DungeonMap> = new Map();
 const MapOptionElements: Map<number, HTMLOptionElement> = new Map();
+enum MapFlags {
+    NONE = 0,
+    DELETED = 1 << 0,
+    CANT_DELETE = 1 << 1,
+}
 type DungeonMap = {
     map_id: number; // integer
     map_name: string;
+    flags: MapFlags;
     canvas_obj_array: Array<CanvasObject>;
     canvas_objs: Map<number, CanvasObject>;
     undo_stack: Array<UndoEvent>;
@@ -373,6 +379,7 @@ function get_map(map_id:number): DungeonMap {
     const new_map:DungeonMap = {
         map_id: map_id,
         map_name: 'Untitled',
+        flags: MapFlags.NONE,
         // TODO: these shouldn't be on the map itself, this prevents having multiple
         // dungeon_map_views into the same map.
 
@@ -1376,13 +1383,50 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
     request_render();
 }
 
+socket.on('canvas-delete-map', function(map_id:number){
+    delete_map(map_id);
+});
+
+function delete_map(map_id:number){
+    const map = MAPS.get(map_id);
+    if(!map)
+        return;
+    if(map.flags & MapFlags.CANT_DELETE){
+        console.log('invalid deletion request')
+        return;
+    }
+    map.flags |= MapFlags.DELETED;
+    const select = document.getElementById('current-map-name') as HTMLSelectElement;
+    let prev_idx = select.selectedIndex-1;
+    if(prev_idx < 0)
+        prev_idx = 0;
+    for(let i = 0; i < select.options.length; i++){
+        if(+select.options[i].value == map_id){
+            select.remove(i);
+            break;
+        }
+    }
+    let new_active_map_id = +select.options[prev_idx].value;
+    select.selectedIndex = prev_idx;
+    for(let i = 0; i < dungeon_map_views.length; ++i){
+        if(dungeon_map_views[i].map.map_id == new_active_map_id){
+            change_active_map_view(i, true);
+            break;
+        }
+    }
+}
+
 // cutnpaste from below. TODO: factor these.
-socket.on('canvas-initialize-maps', function(msgs:Array<{map_id:number; map_name:string; objects:Array<StrippedObjWithId>}>){
+socket.on('canvas-initialize-maps', function(msgs:Array<{map_id:number; map_name:string; objects:Array<StrippedObjWithId>; flags:MapFlags}>){
     for(let msg of msgs){
         const map_id = msg.map_id;
+        if(msg.flags & MapFlags.DELETED){
+            console.log('Received deleted map');
+        }
         const view = new_map_view(map_id);
         dungeon_map_views.push(view);
         const map = view.map;
+        map.flags = msg.flags;
         rename_map(map, msg.map_name);
         const objs = msg.objects;
         const length = objs.length;
@@ -4284,26 +4328,35 @@ document.addEventListener('DOMContentLoaded', function(){
         e.stopPropagation();
         e.preventDefault();
         const active_view = get_active_view();
-        const html = `
+        const cant_delete = active_view.map.flags & MapFlags.CANT_DELETE;
+        let html = `
         <h2>Edit Map</h2>
         <table class="input-container">
             <tr>
                 <td><label for="text">Map Name:</label>
                 <td><input type="text" name="text" id="hover-text" value="${active_view.map.map_name}">
             </tr>
+        `;
+        if(!cant_delete){
+            html += `
             <tr>
                 <td><label for="hover-delete">Delete Map</label>
                 <input name="hover-delete" type="checkbox" id="hover-delete">
             </tr>
+            `
+        }
+        html += `
         </table>
         `;
         function on_ok(unused:any){
-            const delete_checkbox = document.getElementById('hover-delete')! as HTMLInputElement;
             const name_input = document.getElementById('hover-text')! as HTMLInputElement;
-            const should_delete = delete_checkbox.checked;
-            if(should_delete){
-                socket.emit('canvas-delete-map-request', active_view.map.map_id);
-                return;
+            if(!cant_delete){
+                const delete_checkbox = document.getElementById('hover-delete')! as HTMLInputElement;
+                const should_delete = delete_checkbox.checked;
+                if(should_delete){
+                    socket.emit('canvas-delete-map-request', active_view.map.map_id);
+                    return;
+                }
             }
             if(!name_input.value)
                 return;

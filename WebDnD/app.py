@@ -85,6 +85,12 @@ def new_map_request(map_name:str) -> None:
     emit('canvas-create-map', new_map_id, broadcast=True, include_self=True)
     emit('canvas-name-map', {'map_id':new_map_id, 'map_name':map_name}, broadcast=True, include_self=True)
 
+@socketio.on('canvas-delete-map-request')
+def delete_map_request(map_id:int) -> None:
+    was_deleted = canvas.delete_map(map_id)
+    if was_deleted:
+        emit('canvas-delete-map', map_id, broadcast=True, include_self=True)
+
 try:
     SCREEN = open('screen.html').read()
 except:

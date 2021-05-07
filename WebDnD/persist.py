@@ -37,6 +37,7 @@ class Persister(Generic[T]):
         self.obj = obj
         self.filepath = filepath
         self.save_func = save_func
+        print(f'loading from {filepath}')
         try:
             with open(filepath, 'r') as fp:
                 jsobj = json.load(fp)
@@ -53,6 +54,7 @@ class Persister(Generic[T]):
     def save(self) -> None:
         if not appconfig.DEV:
             return
+        return
         t0 = time.time()
         dirname = os.path.dirname(self.filepath)
         if dirname and dirname != '.':
