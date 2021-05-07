@@ -337,8 +337,6 @@ document.addEventListener('DOMContentLoaded', function(){
     select.addEventListener('input', function(e:Event){
         e.stopPropagation();
         change_map(+select.value);
-        console.log(select.value);
-
     });
 });
 function get_active_view(): DungeonMapView{
@@ -349,7 +347,6 @@ function get_active_view(): DungeonMapView{
     return dungeon_map_views[active_map_view_index];
 }
 function get_map(map_id:number): DungeonMap {
-    console.log(map_id);
     if(MAPS.has(map_id))
         return MAPS.get(map_id)!;
     const new_map:DungeonMap = {
@@ -405,9 +402,9 @@ function rename_map(map:DungeonMap, name:string){
     const opt = MapOptionElements.get(map.map_id)!;
     opt.innerText = name;
 }
-socket.on('canvas-name-map', function(data:{map_id:number, name:string}){
+socket.on('canvas-name-map', function(data:{map_id:number, map_name:string}){
     const map = get_map(data.map_id);
-    rename_map(map, data.name);
+    rename_map(map, data.map_name);
 });
 
 //
@@ -465,7 +462,7 @@ function resize_canvas():void{
     canvas = document.getElementsByTagName('canvas')[0]!;
     ctx = canvas.getContext('2d')!;
     const chat_rect = document.getElementById('chat')!.getBoundingClientRect();
-    canvas.width = window.innerWidth - chat_rect.width;
+    canvas.width = window.innerWidth - chat_rect.width-4;
     canvas.height = window.innerHeight-6;
     request_render();
 }
@@ -1272,7 +1269,7 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
     for(let i = 0; i < length; ++i){
         const stripped: any = copied_objs[i];  // temporary as this is a pain to type annotate marshalling code
         // This is a lot of very similar code to the below function in
-        // canvas-create, but there is a lot of weirdness over copying
+        // canvas-create-objects, but there is a lot of weirdness over copying
         // objects in JS, so I am just grabbing attributes by hand.
         let id = get_new_id();
         const obj: any = { // temporary as this is a pain to type annotate marshalling code
@@ -1369,13 +1366,15 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
     note_mass_create_for_undo(map, new_ids);
     request_render();
 }
-socket.on('canvas-create', function(msgs:Array<{map_id:number;objects:Array<StrippedObjWithId>}>){
+
+// cutnpaste from below. TODO: factor these.
+socket.on('canvas-initialize-maps', function(msgs:Array<{map_id:number; map_name:string; objects:Array<StrippedObjWithId>}>){
     for(let msg of msgs){
         const map_id = msg.map_id;
         const view = new_map_view(map_id);
         dungeon_map_views.push(view);
         const map = view.map;
-        // const map = get_map(map_id);
+        rename_map(map, msg.map_name);
         const objs = msg.objects;
         const length = objs.length;
         for(let i = 0; i < length; ++i){
@@ -1436,7 +1435,75 @@ socket.on('canvas-create', function(msgs:Array<{map_id:number;objects:Array<Stri
             }
         }
     }
-    change_map(0);
+    request_render();
+});
+socket.on('canvas-create-objects', function(msgs:Array<{map_id:number;objects:Array<StrippedObjWithId>}>){
+    for(let msg of msgs){
+        const map_id = msg.map_id;
+        if(!MAPS.has(map_id)){
+            console.log("creating objects for a map we don't have??", map_id);
+        }
+        const map = get_map(map_id);
+        const objs = msg.objects;
+        const length = objs.length;
+        for(let i = 0; i < length; ++i){
+            const obj: any = objs[i]; // temporary as this is a pain to type annotate
+            switch(obj.type){
+                case CANVASTYPE.FREEHAND_LINE:
+                    obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+                    freehand_recalculate_bbox(obj);
+                    freehand_recalculate_path(obj);
+                    break;
+                case CANVASTYPE.GRID_LINE:
+                    obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+                    gridline_recalculate_bbox(obj);
+                    gridline_recalculate_path(obj);
+                    break;
+                case CANVASTYPE.FILLED_RECT:
+                    break;
+                case CANVASTYPE.RECT:
+                    break;
+                case CANVASTYPE.GRID_RECT:
+                    break;
+                case CANVASTYPE.IMAGE:{
+                    obj.img = null;
+                    const img = new Image(obj.width, obj.height);
+                    img.addEventListener('load', function(){
+                        obj.img = img;
+                        request_render();
+                    }, {once:true});
+                    img.src = obj.url;
+                }break;
+                case CANVASTYPE.TEXT:
+                    obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+                    break;
+                case CANVASTYPE.EZ_TOKEN:
+                    break;
+                case CANVASTYPE.IMG_TOKEN:{
+                    obj.img = null;
+                    const img = new Image(obj.width, obj.height);
+                    img.addEventListener('load', function(){
+                        obj.img = img;
+                        request_render();
+                    }, {once:true});
+                    img.src = obj.url;
+                }break;
+                case CANVASTYPE.DOOR:{
+                    // all fields are good
+                }break;
+                case CANVASTYPE.STAIRS:{
+                    // all fields are good
+                }break;
+            }
+            const existing_obj = map.canvas_objs.get(obj.id);
+            if(existing_obj){
+                console.log('object already exists???', obj.id);
+            }
+            else {
+                add_canv_obj(map,obj);
+            }
+        }
+    }
     request_render();
 });
 socket.on('canvas-delete', function(msg:{map_id:number;ids:Array<number>}){
@@ -2096,7 +2163,7 @@ function publish_obj_by_id(map:DungeonMap, id:number):void{
         return;
     }
     const stripped_obj = strip_obj(obj, STRIP_INCLUDE_ID);
-    socket.emit('canvas-create', {map_id:map.map_id, object:stripped_obj});
+    socket.emit('canvas-create-objects', {map_id:map.map_id, object:stripped_obj});
 }
 function get_stripped_state_by_id(map:DungeonMap, ids:Array<number>):Array<StrippedObjWithId>{
     const length = ids.length;
@@ -3001,7 +3068,6 @@ function render(timestamp:DOMHighResTimeStamp):void{
     // timings.push(performance.now()-before);
     // console.log('rendering:', (performance.now()-before).toFixed(4)+'ms');
 }
-// document.addEventListener('DOMContentLoaded', function(){render(0)});
 enum TOOLTYPE {
     PAN         = 'Pan',
     SELECT      = 'Select',
@@ -4179,3 +4245,65 @@ function make_ok_dialog(html:string, on_ok:(_:HTMLElement)=>void){
     }
 }
 
+document.addEventListener('DOMContentLoaded', function(){
+    const edit_map_button = document.getElementById('edit-map-button')! as HTMLButtonElement;
+    const new_map_button = document.getElementById('new-map-button')! as HTMLButtonElement;
+    edit_map_button.addEventListener('click', function(e:MouseEvent){
+        e.stopPropagation();
+        e.preventDefault();
+        const active_view = get_active_view();
+        const html = `
+        <h2>Edit Map</h2>
+        <table class="input-container">
+            <tr>
+                <td><label for="text">Map Name:</label>
+                <td><input type="text" name="text" id="hover-text" value="${active_view.map.map_name}">
+            </tr>
+            <tr>
+                <td><label for="hover-delete">Delete Map</label>
+                <input name="hover-delete" type="checkbox" id="hover-delete">
+            </tr>
+        </table>
+        `;
+        function on_ok(unused:any){
+            const delete_checkbox = document.getElementById('hover-delete')! as HTMLInputElement;
+            const name_input = document.getElementById('hover-text')! as HTMLInputElement;
+            const should_delete = delete_checkbox.checked;
+            if(should_delete){
+                socket.emit('canvas-delete-map-request', active_view.map.map_id);
+                return;
+            }
+            if(!name_input.value)
+                return;
+            const name = name_input.value.trim();
+            if(!name.length)
+                return;
+            rename_map(active_view.map, name);
+            socket.emit('canvas-name-map', {map_id:active_view.map.map_id, map_name:name});
+        }
+        make_ok_dialog(html, on_ok);
+    });
+    new_map_button.addEventListener('click', function(e:MouseEvent){
+        e.stopPropagation();
+        e.preventDefault();
+        const html = `
+        <h2>New Map</h2>
+        <table class="input-container">
+            <tr>
+                <td><label for="text">Map Name:</label>
+                <td><input type="text" name="text" id="hover-text" value="">
+            </tr>
+        </table>
+        `;
+        function on_ok(unused:any){
+            const text = document.getElementById('hover-text')! as HTMLInputElement;
+            const value = text.value;
+            if(!value)
+                return;
+            if(!value.length)
+                return;
+            socket.emit('canvas-new-map-request', value);
+        }
+        make_ok_dialog(html, on_ok);
+    });
+});

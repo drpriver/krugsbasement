@@ -36,13 +36,13 @@ def handle_connection() -> None:
     emit('canvas-clear')
     emit('chat-clear')
     emit('chat-create', chat.get_history())
-    emit('canvas-create', canvas.get_state())
+    emit('canvas-initialize-maps', canvas.get_state())
 
-@socketio.on('canvas-create')
+@socketio.on('canvas-create-objects')
 def handle_canvas_create(data:dict) -> None:
     response = canvas.handle_create(data)
     if response:
-        emit('canvas-create', response, broadcast=True, include_self=False)
+        emit('canvas-create-objects', response, broadcast=True, include_self=False)
 
 @socketio.on('canvas-delete')
 def handle_canvas_delete(data:dict) -> None:
@@ -76,6 +76,7 @@ def canvas_ping(data) -> None:
 
 @socketio.on('canvas-name-map')
 def canvas_ping(data) -> None:
+    canvas.name_map(**data)
     emit('canvas-name-map', data, broadcast=True, include_self=False)
 
 try:
@@ -130,7 +131,7 @@ def app_state():
             if which == 'canvas':
                 canvas.set_state(newstate)
                 socketio.emit('canvas-clear', broadcast=True)
-                socketio.emit('canvas-create', newstate['canvas'])
+                socketio.emit('canvas-create-objects', newstate['canvas'])
                 return ''
             if which == 'chat':
                 chat.set_state(newstate)
@@ -141,7 +142,7 @@ def app_state():
         canvas.set_state(newstate['canvas'])
         socketio.emit('canvas-clear', broadcast=True)
         socketio.emit('chat-clear', broadcast=True)
-        socketio.emit('canvas-create', newstate['canvas'])
+        socketio.emit('canvas-create-objects', newstate['canvas'])
         socketio.emit('chat-create', newstate['chat'])
         return ''
 

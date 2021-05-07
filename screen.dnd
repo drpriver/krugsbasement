@@ -1,8 +1,4 @@
 David20::title @hide
-::div @id(tree)
-  ::raw
-    <button id="new-map-button">New Map</button>
-    <select name="current-map-name" id="current-map-name">Untitled▾</select>
 ::div.map
   ::raw
     <canvas id="map"></canvas>
@@ -51,6 +47,13 @@ David20::title @hide
         <input type="color" id="color-picker" value="#000000">
         <input type="color" id="color-picker2" value="#ffffff">
 ::div.chat @id(chat)
+  ::div @id(tree)
+    ::div
+      ::raw
+        <button id="edit-map-button">Edit Map</button>
+        <button id="new-map-button">New Map</button>
+    ::raw
+      <select name="current-map-name" id="current-map-name">Untitled▾</select>
   ::div.log @id(chat-history)
   ::div @id(macros)
     ::raw
@@ -74,19 +77,26 @@ David20::title @hide
     user-select: none;
   }
   #tree {
-    position: absolute;
-    top: 0px;
-    left: 0px;
     display: flex;
     flex-direction: column;
     border: 1px solid black;
     background-color: #fff;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
+    height: auto;
+    min-height: 72px;
   }
   #tree > div {
-    display: inline-block;
+    width: 100%;
+    font-size: 24px;
+    text-align: center;
+  }
+  button {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  }
+  #tree > select{
+    width: 100%;
+    margin: 4px 0px 4px 0px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    font-size: 24px;
   }
   #tools{
     position: absolute;
@@ -113,14 +123,17 @@ David20::title @hide
     background-color: #fff;
     box-shadow: inset 1px 1px 1px 1px rgba(0,0,0,0.3);
   }
-  #tools > div:hover , #tree > div:hover{
+  #tools > div:hover{
     background-color: #ccc;
   }
   #tools > div.selected:hover {
     background-color: #f8f8f8;
   }
+  html{
+    width: 100vw;
+    height: 100vh;
+  }
   html, body {
-    height: 100%;
     margin: 0;
     padding: 0;
   }
@@ -139,16 +152,17 @@ David20::title @hide
   #chat {
     grid-column: 2;
     grid-row: 1;
-    height: 100%;
-    max-height: 100%;
+    height: 100vh;
     display: flex;
     flex-direction: column;
-    border: 1px solid black;
+    border-left: 1px solid black;
   }
   #chat-history {
     overflow-y: scroll;
+    /*
     height: 800px;
     width: 17em;
+    */
   }
   #chat-history div {
     border: 1px dotted gray;
@@ -156,8 +170,10 @@ David20::title @hide
     padding: 2px 12px;
     font-family: "Helvetica Neue", "Segoe UI", sans-serif;
   }
+  #macros{
+    margin-top: auto;
+  }
   .chat > textarea {
-    grid-row: 2;
     resize: none;
   }
   canvas {
@@ -184,6 +200,7 @@ David20::title @hide
     background-color: #ccc;
   }
   section.hover {
+    resize: both;
     position:absolute;
     top: 50%;
     left: 50%;
@@ -195,7 +212,7 @@ David20::title @hide
     border: 1px solid black;
     box-shadow: 3px 3px 3px 3px rgba(0,0,0,0.3);
     font-family: sans-serif;
-    overflow-y: scroll;
+    overflow-y: auto;
     max-height: 90%;
   }
   section.hover input.numeric-input {

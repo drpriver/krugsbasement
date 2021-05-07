@@ -13,7 +13,9 @@ type DieRoll = {
     negative: boolean;
     values: Array<number>;
 }
-let chatname = localStorage.getItem('chatname')??"anon";
+let chatname = localStorage.getItem('chatname');
+if(!chatname)
+    chatname = "anon";
 function setchatname(name:string){
     if(name)
         name = name.trim();
@@ -76,11 +78,16 @@ socket.on('chat-clear', function(){
 
 function resize_chat(){
     const hist = document.getElementById('chat-history')!;
-    hist.style.height = window.innerHeight-12-100 + 'px';
+    // hist.style.height = window.innerHeight-12-100 + 'px';
     hist.scrollTo({top:hist.scrollHeight});
 }
 
-const MACROS: Map<string, string> = new Map(Object.entries(JSON.parse(localStorage.getItem('MACROS')??"{}")));
+const MACROS: Map<string, string> = (function(){
+    const macros = localStorage.getItem('MACROS');
+    if(!macros)
+        return new Map();
+    return new Map(Object.entries(JSON.parse(macros)));
+}());
 
 document.addEventListener('DOMContentLoaded', function(){
     for(let key of MACROS.keys()){
@@ -105,7 +112,9 @@ function add_macro_button(name:string){
     macro_button.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
-        const text = MACROS.get(name)??"(invalid macro): " + name;
+        let text = MACROS.get(name);
+        if(!text)
+            text = "(invalid macro): " + name;
         socket.emit('chat-input', {chatname:chatname, text:text});
     });
     const macros = document.getElementById('macros')!;
@@ -180,7 +189,7 @@ function chat_options_dialog(){
             <td><input type="text" id="hover-chatname" value="${chatname}">
         </tr>
     </table>
-    <div style="max-height: 500px; overflow-y:scroll; padding: 2em;">
+    <div style="max-height: 500px; overflow-y:auto; padding: 2em;">
     <table class="input-container" id="hover-macro-table">
     `
     for(let [key, value] of MACROS.entries()){

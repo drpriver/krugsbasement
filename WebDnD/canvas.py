@@ -5,13 +5,14 @@ from enum import IntFlag, IntEnum
 class Map(NamedTuple):
     map_id: int
     objects: List[Dict[str, Any]]
+    map_name: str
     def with_live_objs(self) -> Dict[str, Any]:
         md = self._asdict()
         md['objects'] = [o for o in md['objects'] if not (o['flags'] & Flags.DELETED)]
         return md
 
 
-MAPS = {0:Map(0, [])}
+MAPS = {0:Map(0, [], 'Untitled')}
 class Flags(IntFlag):
     NONE = 0
     DELETED = 1
@@ -36,6 +37,8 @@ def save_canvas(maps:Dict[int, Map]) -> List[Dict[str, Any]]:
 def load_canvas(data) -> Dict[int, Map]:
     result = {}
     for d in data:
+        if 'map_name' not in d:
+            d['map_name'] = 'Untitled'
         m = Map(**d)
         result[m.map_id] = m
     return result
@@ -48,6 +51,11 @@ def create_map(map_id:int) -> None:
         return
     MAPS[map_id] = Map(map_id, [])
     MAP_OBJS_BY_ID[map_id] = {}
+
+def name_map(map_id: int, map_name:str) -> None:
+    m = MAPS[map_id]
+    MAPS[map_id] = m._replace(map_name=map_name)
+    
 
 def get_map(map_id:int) -> dict:
     m = MAPS[map_id]
