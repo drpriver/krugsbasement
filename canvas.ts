@@ -328,21 +328,30 @@ function new_map_view(map_id:number): DungeonMapView{
     };
     return view;
 }
-function change_active_map_view(idx: number){
+function change_active_map_view(idx: number, from_select:boolean){
     active_map_view_index = idx;
     request_render();
+    if(from_select)
+        return;
+    const select = document.getElementById('current-map-name') as HTMLSelectElement;
+    for(let i = 0; i < select.options.length; i++){
+        if(+select.options[i].value == dungeon_map_views[idx].map.map_id){
+            select.selectedIndex = i;
+            break;
+        }
+    }
 }
 document.addEventListener('DOMContentLoaded', function(){
     const select = document.getElementById('current-map-name') as HTMLSelectElement;
     select.addEventListener('input', function(e:Event){
         e.stopPropagation();
-        change_map(+select.value);
+        change_map(+select.value, true);
     });
 });
 function get_active_view(): DungeonMapView{
     if(!dungeon_map_views.length){
         dungeon_map_views.push(new_map_view(0));
-        change_active_map_view(0);
+        change_active_map_view(0, false);
     }
     return dungeon_map_views[active_map_view_index];
 }
@@ -373,20 +382,12 @@ function get_map(map_id:number): DungeonMap {
     select.options.add(option);
     return new_map;
 }
-function change_map(map_id:number){
+function change_map(map_id:number, from_select:boolean){
     for(let i = 0; i < dungeon_map_views.length; ++i){
         const mv = dungeon_map_views[i];
         if(mv.map.map_id == map_id){
-            change_active_map_view(i);
+            change_active_map_view(i, from_select);
             break;
-        }
-    }
-    const top = document.getElementById('top');
-    if(!top) return;
-    for(let tab of top.children){
-        tab.classList.remove('active-map');
-        if(tab.firstChild!.textContent!.trim() == "" + map_id){
-            tab.classList.add('active-map');
         }
     }
     request_render();
@@ -395,7 +396,7 @@ socket.on('canvas-create-map', function(map_id:number){
     if(MAPS.has(map_id))
         return;
     dungeon_map_views.push(new_map_view(map_id));
-    change_active_map_view(dungeon_map_views.length-1);
+    change_active_map_view(dungeon_map_views.length-1, false);
 });
 function rename_map(map:DungeonMap, name:string){
     map.map_name = name;
@@ -415,7 +416,7 @@ const REFERENCE_WIDTH = 64; // the size of a square at scale = 1.
 let canvas:HTMLCanvasElement;
 let ctx:CanvasRenderingContext2D;
 socket.on('canvas-gather', function(where:{map_id:number; x:number; y:number}): void{
-    change_map(where.map_id);
+    change_map(where.map_id, false);
     const view = get_active_view();
     view.camera_x = where.x;
     view.camera_y = where.y;
