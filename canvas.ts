@@ -344,6 +344,7 @@ type DungeonMapView = {
     };
     placing_area: {
         is_placing: boolean;
+        is_line: boolean;
         x0: number;
         x1: number;
         y0: number;
@@ -367,6 +368,7 @@ function new_map_view(map_id:number): DungeonMapView{
         },
         placing_area: {
             is_placing: false,
+            is_line: false,
             x0: 0, y0: 0,
             x1: 0, y1: 0,
         },
@@ -771,8 +773,14 @@ function add_gridline_point_by_id(map:DungeonMap, id:number, x:number, y:number)
     add_gridline_point(obj, x, y);
 }
 function make_gridrect(id:number, base_x:number, base_y:number, color:string):GridRectangle{
-    base_x = snap_to_grid(base_x);
-    base_y = snap_to_grid(base_y);
+    if(snapmode == SNAPMODE.HALF){
+        base_x = snap_to_half_grid(base_x);
+        base_y = snap_to_half_grid(base_y);
+    }
+    else {
+        base_x = snap_to_grid(base_x);
+        base_y = snap_to_grid(base_y);
+    }
     const obj =  {
         type: CANVASTYPE.GRID_RECT,
         id: id,
@@ -790,10 +798,18 @@ function add_gridrect(map:DungeonMap, id:number, base_x:number, base_y:number, c
     add_canv_obj(map, obj);
 }
 function change_gridrect(obj:GridRectangle, x0:number, y0:number, x1:number, y1:number):void{
-    x0 = snap_to_grid(x0);
-    y0 = snap_to_grid(y0);
-    x1 = snap_to_grid(x1);
-    y1 = snap_to_grid(y1);
+    if(snapmode == SNAPMODE.HALF){
+        x0 = snap_to_half_grid(x0);
+        y0 = snap_to_half_grid(y0);
+        x1 = snap_to_half_grid(x1);
+        y1 = snap_to_half_grid(y1);
+    }
+    else {
+        x0 = snap_to_grid(x0);
+        y0 = snap_to_grid(y0);
+        x1 = snap_to_grid(x1);
+        y1 = snap_to_grid(y1);
+    }
     if(x1 < x0){
         let temp = x1;
         x1 = x0;
@@ -1840,7 +1856,7 @@ function note_selections(view:DungeonMapView):void{
                         x0 : obj.base_x - 32,
                         x1 : obj.base_x + 32,
                         y0 : obj.base_y - 5,
-                        y1 : obj.base_y +5,
+                        y1 : obj.base_y + 5,
                     };
                     if(bbox_overlaps(bbox, selection_bbox)){
                         stop = true;
@@ -3130,7 +3146,15 @@ function render(timestamp:DOMHighResTimeStamp):void{
         const y = view.placing_area.y0;
         const w = view.placing_area.x1 - x;
         const h = view.placing_area.y1 - y;
-        ctx.strokeRect(x-2, y-2, w+4, h+4);
+        if(view.placing_area.is_line){
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(view.placing_area.x1, view.placing_area.y1);
+            ctx.stroke();
+        }
+        else {
+            ctx.strokeRect(x-2, y-2, w+4, h+4);
+        }
     }
     const PING_DURATION = 1000;
     const PING_RADIUS = 64;
@@ -3802,15 +3826,23 @@ document.addEventListener('DOMContentLoaded', function(){
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case TOOLTYPE.DOOR:{
-                let x0 = snap_to_grid(e.offsetX/view.scale-view.camera_x);
-                let y0 = snap_to_grid(e.offsetY/view.scale-view.camera_y);
+                let snap_func = snapmode == SNAPMODE.HALF?snap_to_half_grid: snap_to_grid;
+                let x0 = snap_func(e.offsetX/view.scale-view.camera_x);
+                let y0 = snap_func(e.offsetY/view.scale-view.camera_y);
                 let x1 = x0;
                 let y1 = y0;
+                view.placing_area.is_placing = true;
+                view.placing_area.is_line = true;
+                view.placing_area.x0 = x0;
+                view.placing_area.y0 = y0;
+                view.placing_area.x1 = x1;
+                view.placing_area.y1 = y1;
+                request_render();
                 function change_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    x1 = snap_to_grid(e.offsetX/view.scale-view.camera_x);
-                    y1 = snap_to_grid(e.offsetY/view.scale-view.camera_y);
+                    x1 = snap_func(e.offsetX/view.scale-view.camera_x);
+                    y1 = snap_func(e.offsetY/view.scale-view.camera_y);
                     if(x1 > x0 + REFERENCE_WIDTH)
                         x1 = x0 + REFERENCE_WIDTH;
                     if(x1 < x0 - REFERENCE_WIDTH)
@@ -3819,9 +3851,15 @@ document.addEventListener('DOMContentLoaded', function(){
                         y1 = y0 + REFERENCE_WIDTH;
                     if(y1 < y0 - REFERENCE_WIDTH)
                         y1 = y0 - REFERENCE_WIDTH;
+                    view.placing_area.x0 = x0;
+                    view.placing_area.y0 = y0;
+                    view.placing_area.x1 = x1;
+                    view.placing_area.y1 = y1;
+                    request_render();
                 }
                 canvas.addEventListener('mousemove', change_point);
                 function finish_door(){
+                    view.placing_area.is_placing = false;
                     canvas.removeEventListener('mousemove', change_point);
                     window.removeEventListener('mouseup', finish_door);
                     canvas.removeEventListener('mouseleave', finish_door);
@@ -3845,8 +3883,8 @@ document.addEventListener('DOMContentLoaded', function(){
                         add_door(view.map, id, x, y, current_door, color_picker.value, orientation);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
-                        request_render();
                     }
+                    request_render()
                 }
                 window.addEventListener('mouseup', finish_door);
                 canvas.addEventListener('mouseleave', finish_door);
@@ -3856,10 +3894,22 @@ document.addEventListener('DOMContentLoaded', function(){
                 const x0 = e.offsetX/view.scale-view.camera_x;
                 const y0 = e.offsetY/view.scale-view.camera_y;
                 add_gridrect(view.map, id, x0, y0, color_picker.value);
+                const gridrect = view.map.canvas_objs.get(id) as GridRectangle;
+                view.placing_area.is_placing = true;
+                view.placing_area.is_line = false;
+                view.placing_area.x0 = gridrect.base_x;
+                view.placing_area.y0 = gridrect.base_y;
+                view.placing_area.x1 = gridrect.base_x;
+                view.placing_area.y1 = gridrect.base_y;
+                request_render()
                 function add_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
                     change_gridrect_by_id(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y, x0, y0);
+                    view.placing_area.x0 = gridrect.base_x;
+                    view.placing_area.y0 = gridrect.base_y;
+                    view.placing_area.x1 = gridrect.base_x + gridrect.width;
+                    view.placing_area.y1 = gridrect.base_y + gridrect.height;
                     request_render();
                 }
                 canvas.addEventListener('mousemove', add_point);
@@ -3867,6 +3917,8 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('mousemove', add_point);
                     window.removeEventListener('mouseup', finish_point);
                     canvas.removeEventListener('mouseleave', finish_point);
+                    view.placing_area.is_placing = false;
+                    request_render();
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                 }
@@ -4065,6 +4117,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 let y0 = e.offsetY/view.scale-view.camera_y;
                 add_stairs(view.map, id, x0, y0);
                 view.placing_area.is_placing = true;
+                view.placing_area.is_line = false;
                 const stairs = view.map.canvas_objs.get(id)! as Stairs; // lazy
                 view.placing_area.x0 = stairs.base_x;
                 view.placing_area.y0 = stairs.base_y;
