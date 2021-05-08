@@ -49,8 +49,8 @@ class Persister(Generic[T]):
             print(e)
         if not appconfig.DEV:
             return
-        atexit.register(self.save)
-        RepeatTimer(600, self.save).start()
+        # atexit.register(self.save)
+        # RepeatTimer(600, self.save).start()
     def save(self) -> None:
         if not appconfig.DEV:
             return

@@ -830,7 +830,7 @@ function change_gridrect_by_id(map:DungeonMap, id:number, x0:number, y0:number, 
     let obj = map.canvas_objs.get(id) as GridRectangle;
     change_gridrect(obj, x0, y0, x1, y1);
 }
-function make_door(id:number, x:number, y:number, doortype:DOORTYPE, color:string, orientation:ORIENTATION):DoorObj{
+function make_door(id:number, x:number, y:number, doortype:DOORTYPE, color:string, width:number, orientation:ORIENTATION):DoorObj{
     const obj = {
         type: CANVASTYPE.DOOR,
         id: id,
@@ -839,13 +839,13 @@ function make_door(id:number, x:number, y:number, doortype:DOORTYPE, color:strin
         flags: CANVASFLAG.NONE,
         doortype: doortype,
         color: color,
-        width: 1,
+        width: width,
         orientation: orientation,
     };
     return obj;
 }
-function add_door(map:DungeonMap, id:number, base_x:number, base_y:number, doortype:DOORTYPE, color:string, orientation:ORIENTATION):void{
-    const obj = make_door(id, base_x, base_y, doortype, color, orientation);
+function add_door(map:DungeonMap, id:number, base_x:number, base_y:number, doortype:DOORTYPE, color:string, width:number, orientation:ORIENTATION):void{
+    const obj = make_door(id, base_x, base_y, doortype, color, width, orientation);
     add_canv_obj(map, obj);
 }
 function make_rect(id:number, base_x:number, base_y:number, color:string):Rectangle{
@@ -1853,8 +1853,8 @@ function note_selections(view:DungeonMapView):void{
                 if(is_vertical){
                     // FIXME: I just hardcoded some random values.
                     const bbox = {
-                        x0 : obj.base_x - 32,
-                        x1 : obj.base_x + 32,
+                        x0 : obj.base_x - 32 * obj.width,
+                        x1 : obj.base_x + 32 * obj.width,
                         y0 : obj.base_y - 5,
                         y1 : obj.base_y + 5,
                     };
@@ -1869,8 +1869,8 @@ function note_selections(view:DungeonMapView):void{
                     const bbox = {
                         x0 : obj.base_x - 5,
                         x1 : obj.base_x + 5,
-                        y0 : obj.base_y - 32,
-                        y1 : obj.base_y + 32,
+                        y0 : obj.base_y - 32 * obj.width,
+                        y1 : obj.base_y + 32 * obj.width,
                     };
                     if(bbox_overlaps(bbox, selection_bbox)){
                         stop = true;
@@ -2716,11 +2716,12 @@ function render(timestamp:DOMHighResTimeStamp):void{
             }break;
             case CANVASTYPE.DOOR:{
                 const is_vertical = obj.orientation === ORIENTATION.VERTICAL;
+                const w = obj.width;
                 if(!is_vertical){
                     // FIXME: I just hardcoded some random values.
                     const bbox = {
-                        x0 : obj.base_x - 32,
-                        x1 : obj.base_x + 32,
+                        x0 : obj.base_x - 32 * w,
+                        x1 : obj.base_x + 32 * w,
                         y0 : obj.base_y - 5,
                         y1 : obj.base_y +5,
                     };
@@ -2733,8 +2734,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     const bbox = {
                         x0 : obj.base_x - 5,
                         x1 : obj.base_x + 5,
-                        y0 : obj.base_y - 32,
-                        y1 : obj.base_y + 32,
+                        y0 : obj.base_y - 32 * w,
+                        y1 : obj.base_y + 32 * w,
                     };
                     if(!bbox_overlaps(bbox, canvas_bbox)){
                         break;
@@ -2747,23 +2748,23 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    ctx.strokeRect(obj.base_x-10, obj.base_y-24, 20, 48);
+                                    ctx.strokeRect(obj.base_x-10*w, obj.base_y-24*w, 20*w, 48*w);
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    ctx.strokeRect(obj.base_x-24, obj.base_y-10, 48, 20);
+                                    ctx.strokeRect(obj.base_x-24*w, obj.base_y-10*w, 48*w, 20*w);
                                     break;
                                 case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x-22, obj.base_y-22)
-                                    ctx.lineTo(obj.base_x+22, obj.base_y+22);
+                                    ctx.moveTo(obj.base_x-22*w, obj.base_y-22*w)
+                                    ctx.lineTo(obj.base_x+22*w, obj.base_y+22*w);
                                     ctx.stroke();
                                     break;
                                 case ORIENTATION.TOPRIGHT_DOWNLEFT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x+22, obj.base_y-22)
-                                    ctx.lineTo(obj.base_x-22, obj.base_y+22);
+                                    ctx.moveTo(obj.base_x+22*w, obj.base_y-22*w)
+                                    ctx.lineTo(obj.base_x-22*w, obj.base_y+22*w);
                                     ctx.stroke();
                                     break;
                             }
@@ -2773,47 +2774,47 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.lineWidth=4;
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.fillRect(obj.base_x-10, obj.base_y-24, 20, 48);
-                                ctx.strokeRect(obj.base_x-10, obj.base_y-24, 20, 48);
-                                ctx.strokeRect(obj.base_x-10, obj.base_y, 20, 1);
+                                ctx.fillRect(obj.base_x-10*w, obj.base_y-24*w, 20*w, 48*w);
+                                ctx.strokeRect(obj.base_x-10*w, obj.base_y-24*w, 20*w, 48*w);
+                                ctx.strokeRect(obj.base_x-10*w, obj.base_y, 20*w, 1);
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.fillRect(obj.base_x-24, obj.base_y-10, 48, 20);
-                                ctx.strokeRect(obj.base_x-24, obj.base_y-10, 48, 20);
-                                ctx.strokeRect(obj.base_x, obj.base_y-10, 1, 20);
+                                ctx.fillRect(obj.base_x-24*w, obj.base_y-10*w, 48*w, 20*w);
+                                ctx.strokeRect(obj.base_x-24*w, obj.base_y-10*w, 48*w, 20*w);
+                                ctx.strokeRect(obj.base_x, obj.base_y-10*w, 1, 20*w);
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                 ctx.lineWidth=18;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x-20, obj.base_y-20)
-                                ctx.lineTo(obj.base_x+20, obj.base_y+20);
+                                ctx.moveTo(obj.base_x-20*w, obj.base_y-20*w)
+                                ctx.lineTo(obj.base_x+20*w, obj.base_y+20*w);
                                 ctx.stroke();
                                 ctx.strokeStyle = '#fff';
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x-16, obj.base_y-16)
-                                ctx.lineTo(obj.base_x-2, obj.base_y-2);
+                                ctx.moveTo(obj.base_x-16*w, obj.base_y-16*w)
+                                ctx.lineTo(obj.base_x-2*w, obj.base_y-2*w);
                                 ctx.stroke();
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x+2, obj.base_y+2)
-                                ctx.lineTo(obj.base_x+16, obj.base_y+16);
+                                ctx.moveTo(obj.base_x+2*w, obj.base_y+2*w)
+                                ctx.lineTo(obj.base_x+16*w, obj.base_y+16*w);
                                 ctx.stroke();
                                 break;
                             case ORIENTATION.TOPRIGHT_DOWNLEFT:
                                 ctx.lineWidth=18;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x+20, obj.base_y-20)
-                                ctx.lineTo(obj.base_x-20, obj.base_y+20);
+                                ctx.moveTo(obj.base_x+20*w, obj.base_y-20*w)
+                                ctx.lineTo(obj.base_x-20*w, obj.base_y+20*w);
                                 ctx.stroke();
                                 ctx.strokeStyle = '#fff';
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x+16, obj.base_y-16)
-                                ctx.lineTo(obj.base_x+2, obj.base_y-2);
+                                ctx.moveTo(obj.base_x+16*w, obj.base_y-16*w)
+                                ctx.lineTo(obj.base_x+2*w, obj.base_y-2*w);
                                 ctx.stroke();
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x-2, obj.base_y+2)
-                                ctx.lineTo(obj.base_x-16, obj.base_y+16);
+                                ctx.moveTo(obj.base_x-2*w, obj.base_y+2*w)
+                                ctx.lineTo(obj.base_x-16*w, obj.base_y+16*w);
                                 ctx.stroke();
                                 break;
                         }
@@ -2824,23 +2825,23 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    ctx.strokeRect(obj.base_x-10, obj.base_y-24, 20, 48);
+                                    ctx.strokeRect(obj.base_x-10*w, obj.base_y-24*w, 20*w, 48*w);
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    ctx.strokeRect(obj.base_x-24, obj.base_y-10, 48, 20);
+                                    ctx.strokeRect(obj.base_x-24*w, obj.base_y-10*w, 48*w, 20*w);
                                     break;
                                 case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x-22, obj.base_y-22)
-                                    ctx.lineTo(obj.base_x+22, obj.base_y+22);
+                                    ctx.moveTo(obj.base_x-22*w, obj.base_y-22*w)
+                                    ctx.lineTo(obj.base_x+22*w, obj.base_y+22*w);
                                     ctx.stroke();
                                     break;
                                 case ORIENTATION.TOPRIGHT_DOWNLEFT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x+22, obj.base_y-22)
-                                    ctx.lineTo(obj.base_x-22, obj.base_y+22);
+                                    ctx.moveTo(obj.base_x+22*w, obj.base_y-22*w)
+                                    ctx.lineTo(obj.base_x-22*w, obj.base_y+22*w);
                                     ctx.stroke();
                                     break;
                             }
@@ -2850,37 +2851,37 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.lineWidth=4;
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.fillRect(obj.base_x-10, obj.base_y-24, 20, 48);
-                                ctx.strokeRect(obj.base_x-10, obj.base_y-24, 20, 48);
+                                ctx.fillRect(obj.base_x-10*w, obj.base_y-24*w, 20*w, 48*w);
+                                ctx.strokeRect(obj.base_x-10*w, obj.base_y-24*w, 20*w, 48*w);
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.fillRect(obj.base_x-24, obj.base_y-10, 48, 20);
-                                ctx.strokeRect(obj.base_x-24, obj.base_y-10, 48, 20);
+                                ctx.fillRect(obj.base_x-24*w, obj.base_y-10*w, 48*w, 20*w);
+                                ctx.strokeRect(obj.base_x-24*w, obj.base_y-10*w, 48*w, 20*w);
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                 ctx.lineWidth=18;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x-20, obj.base_y-20)
-                                ctx.lineTo(obj.base_x+20, obj.base_y+20);
+                                ctx.moveTo(obj.base_x-20*w, obj.base_y-20*w)
+                                ctx.lineTo(obj.base_x+20*w, obj.base_y+20*w);
                                 ctx.stroke();
                                 ctx.strokeStyle = '#fff';
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x-16, obj.base_y-16)
-                                ctx.lineTo(obj.base_x+16, obj.base_y+16);
+                                ctx.moveTo(obj.base_x-16*w, obj.base_y-16*w)
+                                ctx.lineTo(obj.base_x+16*w, obj.base_y+16*w);
                                 ctx.stroke();
                                 break;
                             case ORIENTATION.TOPRIGHT_DOWNLEFT:
                                 ctx.lineWidth=18;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x+20, obj.base_y-20)
-                                ctx.lineTo(obj.base_x-20, obj.base_y+20);
+                                ctx.moveTo(obj.base_x+20*w, obj.base_y-20*w)
+                                ctx.lineTo(obj.base_x-20*w, obj.base_y+20*w);
                                 ctx.stroke();
                                 ctx.strokeStyle = '#fff';
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x+16, obj.base_y-16)
-                                ctx.lineTo(obj.base_x-16, obj.base_y+16);
+                                ctx.moveTo(obj.base_x+16*w, obj.base_y-16*w)
+                                ctx.lineTo(obj.base_x-16*w, obj.base_y+16*w);
                                 ctx.stroke();
                                 break;
                         }
@@ -2891,23 +2892,23 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    ctx.strokeRect(obj.base_x-10, obj.base_y-16, 20, 32);
+                                    ctx.strokeRect(obj.base_x-10*w, obj.base_y-16*w, 20*w, 32*w);
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    ctx.strokeRect(obj.base_x-16, obj.base_y-10, 32, 20);
+                                    ctx.strokeRect(obj.base_x-16*w, obj.base_y-10*w, 32*w, 20*w);
                                     break;
                                 case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x-22, obj.base_y-22)
-                                    ctx.lineTo(obj.base_x+22, obj.base_y+22);
+                                    ctx.moveTo(obj.base_x-22*w, obj.base_y-22*w)
+                                    ctx.lineTo(obj.base_x+22*w, obj.base_y+22*w);
                                     ctx.stroke();
                                     break;
                                 case ORIENTATION.TOPRIGHT_DOWNLEFT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x+22, obj.base_y-22)
-                                    ctx.lineTo(obj.base_x-22, obj.base_y+22);
+                                    ctx.moveTo(obj.base_x+22*w, obj.base_y-22*w)
+                                    ctx.lineTo(obj.base_x-22*w, obj.base_y+22*w);
                                     ctx.stroke();
                                     break;
                             }
@@ -2918,20 +2919,20 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.beginPath();
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.moveTo(obj.base_x, obj.base_y-20);
-                                ctx.lineTo(obj.base_x, obj.base_y+28);
+                                ctx.moveTo(obj.base_x, obj.base_y-20*w);
+                                ctx.lineTo(obj.base_x, obj.base_y+28*w);
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.moveTo(obj.base_x-20, obj.base_y);
-                                ctx.lineTo(obj.base_x+28, obj.base_y);
+                                ctx.moveTo(obj.base_x-20*w, obj.base_y);
+                                ctx.lineTo(obj.base_x+28*w, obj.base_y);
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
-                                ctx.moveTo(obj.base_x-16, obj.base_y-16)
-                                ctx.lineTo(obj.base_x+16, obj.base_y+16);
+                                ctx.moveTo(obj.base_x-16*w, obj.base_y-16*w)
+                                ctx.lineTo(obj.base_x+16*w, obj.base_y+16*w);
                                 break;
                             case ORIENTATION.TOPRIGHT_DOWNLEFT:
-                                ctx.moveTo(obj.base_x+16, obj.base_y-16)
-                                ctx.lineTo(obj.base_x-16, obj.base_y+16);
+                                ctx.moveTo(obj.base_x+16*w, obj.base_y-16*w)
+                                ctx.lineTo(obj.base_x-16*w, obj.base_y+16*w);
                                 break;
                         }
                         ctx.stroke();
@@ -2943,23 +2944,23 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    ctx.strokeRect(obj.base_x-10, obj.base_y-16, 20, 32);
+                                    ctx.strokeRect(obj.base_x-10*w, obj.base_y-16*w, 20*w, 32*w);
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    ctx.strokeRect(obj.base_x-16, obj.base_y-10, 32, 20);
+                                    ctx.strokeRect(obj.base_x-16*w, obj.base_y-10*w, 32*w, 20*w);
                                     break;
                                 case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x-22, obj.base_y-22)
-                                    ctx.lineTo(obj.base_x+22, obj.base_y+22);
+                                    ctx.moveTo(obj.base_x-22*w, obj.base_y-22*w)
+                                    ctx.lineTo(obj.base_x+22*w, obj.base_y+22*w);
                                     ctx.stroke();
                                     break;
                                 case ORIENTATION.TOPRIGHT_DOWNLEFT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x+22, obj.base_y-22)
-                                    ctx.lineTo(obj.base_x-22, obj.base_y+22);
+                                    ctx.moveTo(obj.base_x+22*w, obj.base_y-22*w)
+                                    ctx.lineTo(obj.base_x-22*w, obj.base_y+22*w);
                                     ctx.stroke();
                                     break;
                             }
@@ -2968,25 +2969,25 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.lineWidth=4;
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.fillRect(obj.base_x-10, obj.base_y-16, 20, 32);
+                                ctx.fillRect(obj.base_x-10*w, obj.base_y-16*w, 20*w, 32*w);
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.fillRect(obj.base_x-16, obj.base_y-10, 32, 20);
+                                ctx.fillRect(obj.base_x-16*w, obj.base_y-10*w, 32*w, 20*w);
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                 ctx.strokeStyle = '#fff';
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x-16, obj.base_y-16)
-                                ctx.lineTo(obj.base_x+16, obj.base_y+16);
+                                ctx.moveTo(obj.base_x-16*w, obj.base_y-16*w)
+                                ctx.lineTo(obj.base_x+16*w, obj.base_y+16*w);
                                 ctx.stroke();
                                 break;
                             case ORIENTATION.TOPRIGHT_DOWNLEFT:
                                 ctx.strokeStyle = '#fff';
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x+16, obj.base_y-16)
-                                ctx.lineTo(obj.base_x-16, obj.base_y+16);
+                                ctx.moveTo(obj.base_x+16*w, obj.base_y-16*w)
+                                ctx.lineTo(obj.base_x-16*w, obj.base_y+16*w);
                                 ctx.stroke();
                                 break;
                         }
@@ -2997,11 +2998,13 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.textAlign = 'center';
                         if(is_selected){
                             ctx.font = '44px sans-serif';
+                            // ctx.font = ''+(44*w) + 'px sans-serif';
                             ctx.fillStyle = SELECTED_COLOR;
                             ctx.fillText('S', obj.base_x, obj.base_y);
                             }
+                        // ctx.font = ''+(36*w) + 'px sans-serif';
                         ctx.font = '36px sans-serif';
-                        ctx.fillStyle = '#000';
+                        ctx.fillStyle = '#00f';
                         ctx.fillText('S', obj.base_x, obj.base_y);
                         ctx.restore();
                     }break;
@@ -3012,20 +3015,20 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.beginPath();
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    ctx.moveTo(obj.base_x, obj.base_y-22)
-                                    ctx.lineTo(obj.base_x, obj.base_y+22);
+                                    ctx.moveTo(obj.base_x, obj.base_y-22*w)
+                                    ctx.lineTo(obj.base_x, obj.base_y+22*w);
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    ctx.moveTo(obj.base_x-22, obj.base_y)
-                                    ctx.lineTo(obj.base_x+22, obj.base_y);
+                                    ctx.moveTo(obj.base_x-22*w, obj.base_y)
+                                    ctx.lineTo(obj.base_x+22*w, obj.base_y);
                                     break;
                                 case ORIENTATION.TOPLEFT_DOWNRIGHT:
-                                    ctx.moveTo(obj.base_x-22, obj.base_y-22)
-                                    ctx.lineTo(obj.base_x+22, obj.base_y+22);
+                                    ctx.moveTo(obj.base_x-22*w, obj.base_y-22*w)
+                                    ctx.lineTo(obj.base_x+22*w, obj.base_y+22*w);
                                     break;
                                 case ORIENTATION.TOPRIGHT_DOWNLEFT:
-                                    ctx.moveTo(obj.base_x+22, obj.base_y-22)
-                                    ctx.lineTo(obj.base_x-22, obj.base_y+22);
+                                    ctx.moveTo(obj.base_x+22*w, obj.base_y-22*w)
+                                    ctx.lineTo(obj.base_x-22*w, obj.base_y+22*w);
                                     break;
                             }
                             ctx.stroke();
@@ -3035,20 +3038,20 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.beginPath();
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.moveTo(obj.base_x, obj.base_y-22)
-                                ctx.lineTo(obj.base_x, obj.base_y+22);
+                                ctx.moveTo(obj.base_x, obj.base_y-22*w)
+                                ctx.lineTo(obj.base_x, obj.base_y+22*w);
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.moveTo(obj.base_x-22, obj.base_y)
-                                ctx.lineTo(obj.base_x+22, obj.base_y);
+                                ctx.moveTo(obj.base_x-22*w, obj.base_y)
+                                ctx.lineTo(obj.base_x+22*w, obj.base_y);
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
-                                ctx.moveTo(obj.base_x-22, obj.base_y-22)
-                                ctx.lineTo(obj.base_x+22, obj.base_y+22);
+                                ctx.moveTo(obj.base_x-22*w, obj.base_y-22*w)
+                                ctx.lineTo(obj.base_x+22*w, obj.base_y+22*w);
                                 break;
                             case ORIENTATION.TOPRIGHT_DOWNLEFT:
-                                ctx.moveTo(obj.base_x+22, obj.base_y-22)
-                                ctx.lineTo(obj.base_x-22, obj.base_y+22);
+                                ctx.moveTo(obj.base_x+22*w, obj.base_y-22*w)
+                                ctx.lineTo(obj.base_x-22*w, obj.base_y+22*w);
                                 break;
                         }
                         ctx.stroke();
@@ -3866,21 +3869,28 @@ document.addEventListener('DOMContentLoaded', function(){
                     if(x0 !== x1 || y0 !== y1){
                         let id = get_new_id();
                         let orientation;
+                        let width;
                         if(y1 === y0){
                             orientation = ORIENTATION.HORIZONTAL;
+                            width = Math.abs(x1-x0)/REFERENCE_WIDTH;
                         }
                         else if(x1 == x0){
                             orientation = ORIENTATION.VERTICAL;
+                            width = Math.abs(y1-y0)/REFERENCE_WIDTH;
                         }
                         else if((x1 < x0 && y1 < y0) || (x1 > x0 && y1 > y0)){
                             orientation = ORIENTATION.TOPLEFT_DOWNRIGHT;
+                            width = Math.max(Math.abs(y1-y0), Math.abs(x1-x0))/REFERENCE_WIDTH;
                         }
                         else {
                             orientation = ORIENTATION.TOPRIGHT_DOWNLEFT;
+                            width = Math.max(Math.abs(y1-y0), Math.abs(x1-x0))/REFERENCE_WIDTH;
                         }
+                        if(width < 0.01)
+                            return;
                         let x = ((x0 + x1)/2) | 0;
                         let y = ((y0 + y1)/2) | 0;
-                        add_door(view.map, id, x, y, current_door, color_picker.value, orientation);
+                        add_door(view.map, id, x, y, current_door, color_picker.value, width, orientation);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                     }
