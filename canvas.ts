@@ -251,8 +251,35 @@ enum DOORTYPE {
 }
 let current_door = DOORTYPE.DOOR;
 
-// wall state flags
-let walls_snap_to_half_grid = false;
+enum SNAPMODE {
+    GRID = "GRID",
+    HALF = "HALF",
+    FREE = "FREE",
+}
+let snapmode: SNAPMODE = SNAPMODE.GRID;
+function change_snapmode(mode:SNAPMODE){
+    snapmode = mode;
+}
+document.addEventListener('DOMContentLoaded', function(){
+    const snap_grid = document.getElementById('grid-snap-grid') as HTMLInputElement;
+    snap_grid.addEventListener('change', function(){
+        change_snapmode(snap_grid.value as SNAPMODE);
+    });
+    if(snap_grid.checked)
+        snapmode = SNAPMODE.GRID;
+    const snap_half = document.getElementById('grid-snap-half') as HTMLInputElement;
+    snap_half.addEventListener('change', function(){
+        change_snapmode(snap_half.value as SNAPMODE);
+    });
+    if(snap_half.checked)
+        snapmode = SNAPMODE.HALF;
+    const snap_free = document.getElementById('grid-snap-free') as HTMLInputElement;
+    snap_free.addEventListener('change', function(){
+        change_snapmode(snap_free.value as SNAPMODE);
+    });
+    if(snap_free.checked)
+        snapmode = SNAPMODE.FREE;
+});
 
 // orientations
 enum ORIENTATION {
@@ -260,7 +287,7 @@ enum ORIENTATION {
     HORIZONTAL = 1,
     TOPLEFT_DOWNRIGHT = 2,
     TOPRIGHT_DOWNLEFT = 3,
-};
+}
 
 const MAPS:Map<number,DungeonMap> = new Map();
 const MapOptionElements: Map<number, HTMLOptionElement> = new Map();
@@ -617,7 +644,7 @@ function snap_to_half_grid(x:number):number{
 }
 
 function make_gridline(id:number, base_x:number, base_y:number, color:string):GridLine{
-    if(walls_snap_to_half_grid){
+    if(snapmode == SNAPMODE.HALF){
         base_x = snap_to_half_grid(base_x);
         base_y = snap_to_half_grid(base_y);
     }
@@ -647,7 +674,7 @@ function add_gridline_point(obj:GridLine, x:number, y:number):void{
     const last_x = points.length? points[points.length-2]+obj.base_x : obj.base_x;
     const last_y = points.length? points[points.length-1]+obj.base_y : obj.base_x;
     const dist = Math.abs(last_x - x) + Math.abs(last_y - y);
-    if(walls_snap_to_half_grid){
+    if(snapmode == SNAPMODE.HALF){
         if(dist < 30)
             return;
         if(dist < 64){
@@ -3458,73 +3485,6 @@ document.addEventListener('DOMContentLoaded', function():void{
                     const text = document.createTextNode(option.text);
                     s.appendChild(text);
                     s.addEventListener('mousedown', make_cb(option.doortype));
-                    trimenu.appendChild(s);
-                }
-                document.body.appendChild(trimenu);
-                canvas.addEventListener('mousedown', close_menu);
-            });
-        }
-        // Lot of copy paste amongst these tools.
-        // Can probably abstract over it maybe?
-        // Meh. The 4th one is where I draw the line.
-        if(tool.firstChild.textContent.trim() == 'Wall'){
-            let has_menu = false;
-            const name = tool.getElementsByTagName('span')[0];
-            function change_wall(on_the_half:boolean){
-                walls_snap_to_half_grid = on_the_half;
-                if(on_the_half){
-                    name.innerText = "- 5' ☰";
-                }
-                else {
-                    name.innerText = "- 10' ☰"
-                }
-            }
-            change_wall(false);
-            wall_numeric_hot_keys.push(function(){change_wall(false);});
-            wall_numeric_hot_keys.push(function(){change_wall(true);});
-            const triangle = tool.getElementsByTagName('span')[0];
-            triangle.addEventListener('click', function(e:MouseEvent){
-                e.preventDefault();
-                e.stopPropagation();
-                if(has_menu)
-                    return;
-                has_menu = true;
-                const trimenu = document.createElement('section');
-                trimenu.classList.add('menu');
-                trimenu.style.left = e.clientX + 'px';
-                const window_height = window.innerHeight;
-                trimenu.style.bottom = (window_height - e.clientY)+'px'
-                // trimenu.style.top = e.clientY+'px'
-                function close_menu(e?:MouseEvent){
-                    if(e){
-                        e.stopPropagation();
-                        e.preventDefault();
-                    }
-                    document.body.removeChild(trimenu);
-                    canvas.removeEventListener('mousedown', close_menu);
-                    has_menu = false;
-                }
-                function make_cb(on_the_half:boolean){
-                    function cb(e:MouseEvent){
-                        e.stopPropagation();
-                        e.preventDefault();
-                        change_tool(TOOLTYPE.WALL);
-                        change_wall(on_the_half);
-                        close_menu();
-                    }
-                    return cb;
-                }
-                const options = [
-                    {on_the_half:false, text: "10' Grid"},
-                    {on_the_half:true,  text: "5' Grid" },
-                ];
-                for(let i = 0; i < options.length; ++i){
-                    const option = options[i];
-                    const s = document.createElement('section');
-                    s.classList.add('menuitem')
-                    const text = document.createTextNode(option.text);
-                    s.appendChild(text);
-                    s.addEventListener('mousedown', make_cb(option.on_the_half));
                     trimenu.appendChild(s);
                 }
                 document.body.appendChild(trimenu);

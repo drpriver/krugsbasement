@@ -5,12 +5,12 @@ David20::title @hide
   ::div @id(tools)
     ::div.snaps
       ::raw
-        <input type="radio" id="male" name="gender" value="male">
-        <label for="male">Grid</label>
-        <input type="radio" id="female" name="gender" value="female">
-        <label for="female">Half</label>
-        <input type="radio" id="other" name="gender" value="other">
-        <label for="other">Free</label>
+        <input type="radio" id="grid-snap-grid" name="snap-to-grid" value="GRID" checked>
+        <label for="grid-snap-grid">Grid</label>
+        <input type="radio" id="grid-snap-half" name="snap-to-grid" value="HALF">
+        <label for="grid-snap-half">Half</label>
+        <input type="radio" id="grid-snap-free" name="snap-to-grid" value="FREE">
+        <label for="grid-snap-free">Free</label>
     ::div.tool @id(pan-tool)
       Pan
     ::div.tool
@@ -21,8 +21,6 @@ David20::title @hide
       Move
     ::div.tool
       Wall
-      ::raw
-        <span>☰</span>
     ::div.tool
       Door
       ::raw
