@@ -200,10 +200,13 @@ function chat_options_dialog(){
         </tr>
         `;
     }
+    const pan_tool = document.getElementById('pan-tool')!;
     html += `
     </table>
     </div>
     <div class="hover-button-container">
+        <label for="hide-pan">Hide Pan Tool</label>
+        <input type="checkbox" name="hide-pan" id="hide-pan" ${pan_tool.style.display == 'none'?"checked":""}>
         <button id="hover-add-macro">+ Add Macro</button>
         <button id="export-settings">Export</button>
         <button id="import-settings">Import</button>
@@ -339,6 +342,13 @@ function chat_options_dialog(){
     function submit(){
         const chatname_el = document.getElementById('hover-chatname')! as HTMLInputElement;
         setchatname(chatname_el.value);
+        const hide_pan = document.getElementById('hide-pan')! as HTMLInputElement;
+        if(hide_pan.checked){
+            pan_tool.style.display = 'none';
+        }
+        else {
+            pan_tool.style.display = 'initial';
+        }
         const trs = hover_macro_table.getElementsByTagName('tr');
         const macros: Array<[string, string]> = [];
         for(let tr of trs){

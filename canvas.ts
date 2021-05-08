@@ -3193,6 +3193,7 @@ function change_tool(toolname:TOOLTYPE):void{
             change_tool(prev);
         make_ok_dialog(`
             <h2>Help</h2>
+            <div style="height:70vh;overflow-y:auto;margin:auto;">
             <h3 style="text-align:center;">Tips</h3>
             <div style="margin:auto;max-width:36em;">
             <p>You can use <b>q</b> to switch to Wall, <b>w</b> to switch to Door and <b>e</b> to switch to Line.
@@ -3257,6 +3258,7 @@ function change_tool(toolname:TOOLTYPE):void{
                 </tr>
 
             </table>
+            </div>
                    `, function(unused){});
     }
 }
@@ -3264,15 +3266,14 @@ let select_numeric_hot_keys: Array<()=>void> = [];
 let wall_numeric_hot_keys: Array<()=>void> = [];
 let door_numeric_hot_keys: Array<()=>void> = [];
 document.addEventListener('DOMContentLoaded', function():void{
-    const tools_div = document.getElementById('tools')!;
-    tools = tools_div.children;
+    tools = Array.from(document.getElementsByClassName('tool'));
     color_picker = document.getElementById('color-picker');
     color_picker2 = document.getElementById('color-picker2');
     for(let i = 0; i < tools.length-1; ++i){
         const tool = tools[i];
         tool.addEventListener('click', function(e:MouseEvent){
-            e.stopPropagation();
-            e.preventDefault();
+            // e.stopPropagation();
+            // e.preventDefault();
             const toolname = tool.firstChild.textContent.trim();
             change_tool(toolname);
         });
@@ -3281,13 +3282,13 @@ document.addEventListener('DOMContentLoaded', function():void{
             const name = tool.getElementsByTagName('span')[0];
             switch(select_type){
                 case SELECTTYPE.ANY:
-                    name.innerText = 'Any';
+                    name.innerText = 'Any ☰';
                     break;
                 case SELECTTYPE.MAP:
-                    name.innerText = 'Map';
+                    name.innerText = 'Map ☰';
                     break;
                 case SELECTTYPE.TOKEN:
-                    name.innerText = 'Token';
+                    name.innerText = 'Token ☰';
                     break;
             }
             select_numeric_hot_keys = [
@@ -3304,7 +3305,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                     change_select_mode(SELECTTYPE.TOKEN);
                 },
             ];
-            const triangle = tool.getElementsByTagName('span')[1];
+            const triangle = tool.getElementsByTagName('span')[0];
             triangle.addEventListener('click', function(e:MouseEvent){
                 e.preventDefault();
                 e.stopPropagation();
@@ -3316,6 +3317,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 trimenu.style.left = e.clientX + 'px';
                 const window_height = window.innerHeight;
                 trimenu.style.bottom = (window_height - e.clientY)+'px'
+                // trimenu.style.top = e.clientY+'px'
                 function close_select_menu(e?:MouseEvent){
                     if(e){
                         e.stopPropagation();
@@ -3330,7 +3332,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                         func: function(e:MouseEvent){
                             e.stopPropagation();
                             e.preventDefault();
-                            name.innerText = 'Any';
+                            name.innerText = 'Any ☰';
                             change_tool(TOOLTYPE.SELECT);
                             change_select_mode(SELECTTYPE.ANY);
                             close_select_menu();
@@ -3342,7 +3344,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                             e.stopPropagation();
                             e.preventDefault();
                             change_tool(TOOLTYPE.SELECT);
-                            name.innerText = 'Map';
+                            name.innerText = 'Map ☰';
                             change_select_mode(SELECTTYPE.MAP);
                             close_select_menu();
                         },
@@ -3353,7 +3355,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                             e.stopPropagation();
                             e.preventDefault();
                             change_tool(TOOLTYPE.SELECT);
-                            name.innerText = 'Token';
+                            name.innerText = 'Token ☰';
                             change_select_mode(SELECTTYPE.TOKEN);
                             close_select_menu();
                         },
@@ -3380,22 +3382,22 @@ document.addEventListener('DOMContentLoaded', function():void{
                 current_door = doortype;
                 switch(current_door){
                     case DOORTYPE.DOOR:
-                        name.innerText = ' - Door';
+                        name.innerText = ' - Door ☰';
                         break;
                     case DOORTYPE.DOUBLE:
-                        name.innerText = '- Double';
+                        name.innerText = '- Double ☰';
                         break;
                     case DOORTYPE.SECRET:
-                        name.innerText = '- Secret';
+                        name.innerText = '- Secret ☰';
                         break;
                     case DOORTYPE.BRICKED_WALL:
-                        name.innerText = '- Bricks';
+                        name.innerText = '- Bricks ☰';
                         break;
                     case DOORTYPE.PORTAL:
-                        name.innerText = '- Portal';
+                        name.innerText = '- Portal ☰';
                         break;
                     case DOORTYPE.PORTCULLIS:
-                        name.innerText = '- Portcullis';
+                        name.innerText = '- Portcullis ☰';
                         break;
                 }
             }
@@ -3409,7 +3411,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                     function(){change_door(DOORTYPE.PORTCULLIS)},
             ];
 
-            const triangle = tool.getElementsByTagName('span')[1];
+            const triangle = tool.getElementsByTagName('span')[0];
             triangle.addEventListener('click', function(e:MouseEvent){
                 e.preventDefault();
                 e.stopPropagation();
@@ -3421,6 +3423,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 trimenu.style.left = e.clientX + 'px';
                 const window_height = window.innerHeight;
                 trimenu.style.bottom = (window_height - e.clientY)+'px'
+                // trimenu.style.top = e.clientY+'px'
                 function close_menu(e?:MouseEvent){
                     if(e){
                         e.stopPropagation();
@@ -3470,16 +3473,16 @@ document.addEventListener('DOMContentLoaded', function():void{
             function change_wall(on_the_half:boolean){
                 walls_snap_to_half_grid = on_the_half;
                 if(on_the_half){
-                    name.innerText = "- 5'";
+                    name.innerText = "- 5' ☰";
                 }
                 else {
-                    name.innerText = "- 10'"
+                    name.innerText = "- 10' ☰"
                 }
             }
             change_wall(false);
             wall_numeric_hot_keys.push(function(){change_wall(false);});
             wall_numeric_hot_keys.push(function(){change_wall(true);});
-            const triangle = tool.getElementsByTagName('span')[1];
+            const triangle = tool.getElementsByTagName('span')[0];
             triangle.addEventListener('click', function(e:MouseEvent){
                 e.preventDefault();
                 e.stopPropagation();
@@ -3491,6 +3494,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 trimenu.style.left = e.clientX + 'px';
                 const window_height = window.innerHeight;
                 trimenu.style.bottom = (window_height - e.clientY)+'px'
+                // trimenu.style.top = e.clientY+'px'
                 function close_menu(e?:MouseEvent){
                     if(e){
                         e.stopPropagation();
