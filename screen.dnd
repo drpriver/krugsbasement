@@ -117,6 +117,10 @@ David20::title @hide
     background-color: #fff;
     -webkit-user-select: none;
     user-select: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-column-gap: 4px;
+    grid-row-gap: 4px;
   }
   #tools > div.tool {
     border: 1px solid gray;
