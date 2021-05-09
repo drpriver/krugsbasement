@@ -7,10 +7,12 @@ David20::title @hide
       ::raw
         <input type="radio" id="grid-snap-grid" name="snap-to-grid" value="GRID" checked>
         <label for="grid-snap-grid">Grid</label>
+      ::raw
         <input type="radio" id="grid-snap-half" name="snap-to-grid" value="HALF">
         <label for="grid-snap-half">Half</label>
+      ::raw
         <input type="radio" id="grid-snap-free" name="snap-to-grid" value="FREE">
-        <label for="grid-snap-free" style="display:none;">Free</label>
+        <label for="grid-snap-free" style">Free</label>
     ::div.tool @id(pan-tool)
       Pan
     ::div.tool
@@ -36,9 +38,9 @@ David20::title @hide
     ::div.tool
       Text
     ::div.tool
-      Ez-Token
-    ::div.tool
-      Img-Token
+      Token
+      ::raw
+        <span>☰</span>
     ::div.tool
       Image
     ::div.tool

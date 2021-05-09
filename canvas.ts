@@ -3129,12 +3129,16 @@ enum TOOLTYPE {
     FILLED_RECT = 'Filled-Rect',
     FLOOR       = 'Floor',
     TEXT        = 'Text',
-    EZ_TOKEN    = 'Ez-Token',
+    TOKEN       = 'Token',
     IMAGE       = 'Image',
-    IMG_TOKEN   = 'Img-Token',
     HELP        = 'Help',
     STAIRS      = 'Stairs',
 }
+enum TOKENTYPE {
+    EZ,
+    IMG
+}
+let current_token_type = TOKENTYPE.EZ;
 let current_tool = TOOLTYPE.PAN;
 let color_picker:any = null; // idk what this should be
 let color_picker2:any = null; // idk what this should be
@@ -3249,6 +3253,49 @@ function change_tool(toolname:TOOLTYPE):void{
                    `, function(unused){});
     }
 }
+let has_tri_menu = false;
+function make_tri_menu(e:MouseEvent, options:Array<{func:()=>void;text:string}>){
+    if(has_tri_menu)
+        return;
+    const trimenu = document.createElement('section');
+    trimenu.classList.add('menu');
+    trimenu.style.left = e.clientX + 'px';
+    const window_height = window.innerHeight;
+    trimenu.style.bottom = (window_height - e.clientY)+'px'
+    function remove_tri_menu(e?:MouseEvent){
+        if(e){
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        document.body.removeChild(trimenu);
+        window.removeEventListener('mousedown', remove_tri_menu);
+        canvas.removeEventListener('mousedown', remove_tri_menu);
+        has_tri_menu = false;
+    }
+    function make_cb(func:()=>void){
+        function cb(e:MouseEvent){
+            e.stopPropagation();
+            e.preventDefault();
+            func()
+            remove_tri_menu();
+        }
+        return cb;
+    }
+    for(let i = 0; i < options.length; ++i){
+        const option = options[i];
+        const s = document.createElement('section');
+        s.classList.add('menuitem')
+        const text = document.createTextNode(option.text);
+        s.appendChild(text);
+        s.addEventListener('mousedown', make_cb(option.func));
+        trimenu.appendChild(s);
+    }
+    document.body.appendChild(trimenu);
+    window.addEventListener('mousedown', remove_tri_menu);
+    canvas.addEventListener('mousedown', remove_tri_menu);
+}
+
+
 let select_numeric_hot_keys: Array<()=>void> = [];
 let wall_numeric_hot_keys: Array<()=>void> = [];
 let door_numeric_hot_keys: Array<()=>void> = [];
@@ -3265,7 +3312,6 @@ document.addEventListener('DOMContentLoaded', function():void{
             change_tool(toolname);
         });
         if(tool.firstChild.textContent.trim() == 'Select'){
-            let has_menu = false;
             const name = tool.getElementsByTagName('span')[0];
             switch(select_type){
                 case SELECTTYPE.ANY:
@@ -3296,74 +3342,38 @@ document.addEventListener('DOMContentLoaded', function():void{
             triangle.addEventListener('click', function(e:MouseEvent){
                 e.preventDefault();
                 e.stopPropagation();
-                if(has_menu)
+                if(has_tri_menu)
                     return;
-                has_menu = true;
-                const trimenu = document.createElement('section');
-                trimenu.classList.add('menu');
-                trimenu.style.left = e.clientX + 'px';
-                const window_height = window.innerHeight;
-                trimenu.style.bottom = (window_height - e.clientY)+'px'
-                // trimenu.style.top = e.clientY+'px'
-                function close_select_menu(e?:MouseEvent){
-                    if(e){
-                        e.stopPropagation();
-                        e.preventDefault();
-                    }
-                    document.body.removeChild(trimenu);
-                    window.removeEventListener('mousedown', close_select_menu);
-                    has_menu = false;
-                }
-                const options = [
+                make_tri_menu(e, [
                     {
-                        func: function(e:MouseEvent){
-                            e.stopPropagation();
-                            e.preventDefault();
+                        func:function(){
+                            change_tool(TOOLTYPE.SELECT);
                             name.innerText = 'Any ☰';
                             change_tool(TOOLTYPE.SELECT);
                             change_select_mode(SELECTTYPE.ANY);
-                            close_select_menu();
                         },
-                        text:'Any',
+                        text: 'Any',
                     },
                     {
-                        func: function(e:MouseEvent){
-                            e.stopPropagation();
-                            e.preventDefault();
+                        func:function(){
                             change_tool(TOOLTYPE.SELECT);
                             name.innerText = 'Map ☰';
                             change_select_mode(SELECTTYPE.MAP);
-                            close_select_menu();
                         },
                         text:'Map',
                     },
                     {
-                        func: function(e:MouseEvent){
-                            e.stopPropagation();
-                            e.preventDefault();
+                        func:function(){
                             change_tool(TOOLTYPE.SELECT);
                             name.innerText = 'Token ☰';
                             change_select_mode(SELECTTYPE.TOKEN);
-                            close_select_menu();
                         },
                         text:'Token',
                     },
-                ];
-                for(let i = 0; i < options.length; ++i){
-                    const option = options[i];
-                    const s = document.createElement('section');
-                    s.classList.add('menuitem')
-                    const text = document.createTextNode(option.text);
-                    s.appendChild(text);
-                    s.addEventListener('mousedown', option.func);
-                    trimenu.appendChild(s);
-                }
-                document.body.appendChild(trimenu);
-                window.addEventListener('mousedown', close_select_menu);
+                ]);
             });
         }
         if(tool.firstChild.textContent.trim() == 'Door'){
-            let has_menu = false;
             const name = tool.getElementsByTagName('span')[0];
             function change_door(doortype:DOORTYPE){
                 current_door = doortype;
@@ -3398,57 +3408,60 @@ document.addEventListener('DOMContentLoaded', function():void{
                     function(){change_door(DOORTYPE.PORTCULLIS)},
             ];
 
+            function make_cb(dt:DOORTYPE){
+                function cb(){
+                    change_tool(TOOLTYPE.DOOR);
+                    change_door(dt);
+                }
+                return cb;
+            }
             const triangle = tool.getElementsByTagName('span')[0];
             triangle.addEventListener('click', function(e:MouseEvent){
                 e.preventDefault();
                 e.stopPropagation();
-                if(has_menu)
+                if(has_tri_menu)
                     return;
-                has_menu = true;
-                const trimenu = document.createElement('section');
-                trimenu.classList.add('menu');
-                trimenu.style.left = e.clientX + 'px';
-                const window_height = window.innerHeight;
-                trimenu.style.bottom = (window_height - e.clientY)+'px'
-                // trimenu.style.top = e.clientY+'px'
-                function close_menu(e?:MouseEvent){
-                    if(e){
-                        e.stopPropagation();
-                        e.preventDefault();
-                    }
-                    document.body.removeChild(trimenu);
-                    window.removeEventListener('mousedown', close_menu);
-                    has_menu = false;
+                make_tri_menu(e, [
+                    {func:make_cb(DOORTYPE.DOOR),         text:'Door'},
+                    {func:make_cb(DOORTYPE.SECRET),       text:'Secret Door'},
+                    {func:make_cb(DOORTYPE.BRICKED_WALL), text:'Bricked Wall'},
+                    {func:make_cb(DOORTYPE.PORTAL),       text:'Portal'},
+                    {func:make_cb(DOORTYPE.DOUBLE),       text:'Double Door'},
+                    {func:make_cb(DOORTYPE.PORTCULLIS),   text:'Portcullis'},
+                ]);
+            });
+        }
+        if(tool.firstChild.textContent.trim() == 'Token'){
+            const name = tool.getElementsByTagName('span')[0];
+            function change_tt(tt:TOKENTYPE){
+                current_token_type = tt;
+                switch(current_token_type){
+                    case TOKENTYPE.EZ:
+                        name.innerText = ' - EZ ☰';
+                        break;
+                    case TOKENTYPE.IMG:
+                        name.innerText = '- Img ☰';
+                        break;
                 }
-                function make_cb(dt:DOORTYPE){
-                    function cb(e:MouseEvent){
-                        e.stopPropagation();
-                        e.preventDefault();
-                        change_tool(TOOLTYPE.DOOR);
-                        change_door(dt);
-                        close_menu();
-                    }
-                    return cb;
+            }
+            change_tt(TOKENTYPE.EZ);
+            function make_cb(tt:TOKENTYPE){
+                function cb(){
+                    change_tool(TOOLTYPE.TOKEN);
+                    change_tt(tt);
                 }
-                const options = [
-                    {doortype:DOORTYPE.DOOR,         text:'Door',         },
-                    {doortype:DOORTYPE.SECRET,       text:'Secret Door',  },
-                    {doortype:DOORTYPE.BRICKED_WALL, text:'Bricked Wall', },
-                    {doortype:DOORTYPE.PORTAL,       text:'Portal', },
-                    {doortype:DOORTYPE.DOUBLE,       text:'Double Door', },
-                    {doortype:DOORTYPE.PORTCULLIS,   text:'Portcullis', },
-                ];
-                for(let i = 0; i < options.length; ++i){
-                    const option = options[i];
-                    const s = document.createElement('section');
-                    s.classList.add('menuitem')
-                    const text = document.createTextNode(option.text);
-                    s.appendChild(text);
-                    s.addEventListener('mousedown', make_cb(option.doortype));
-                    trimenu.appendChild(s);
-                }
-                document.body.appendChild(trimenu);
-                window.addEventListener('mousedown', close_menu);
+                return cb;
+            }
+            const triangle = tool.getElementsByTagName('span')[0];
+            triangle.addEventListener('click', function(e:MouseEvent){
+                e.preventDefault();
+                e.stopPropagation();
+                if(has_tri_menu)
+                    return;
+                make_tri_menu(e, [
+                    {func:make_cb(TOKENTYPE.EZ),  text:'EZ'},
+                    {func:make_cb(TOKENTYPE.IMG), text:'Img'},
+                ]);
             });
         }
     }
@@ -3991,70 +4004,72 @@ document.addEventListener('DOMContentLoaded', function(){
                     request_render();
                 });
             }break;
-            case TOOLTYPE.EZ_TOKEN:{
-                const x0 = e.offsetX/view.scale-view.camera_x;
-                const y0 = e.offsetY/view.scale-view.camera_y;
-                const html = `
-                    <h2>Enter Token</h2>
-                    <table class="input-container">
-                        <tr>
-                            <td><label for="color">Color:</label>
-                            <td><input type="color" id="hover-color" value="`+ez_token_color+`">
-                        </tr>
-                        <tr>
-                            <td><label for="width">Width (sq):</label>
-                            <td><input type="number" name="width" id="hover-width" min="1" max="5" value="1" class="numeric-input">
-                            <td><label for="height">Height (sq):</label>
-                            <td><input type="number" name="height" id="hover-height" min="1" max="5" value="1" class="numeric-input">
-                        </tr>
-                        <tr>
-                            <td><label for="text">Text:</label>
-                            <td colspan="3"><input type="text" name="text" id="hover-text" value="">
-                        </tr>
-                    </table>
-                `;
-                make_ok_dialog(html, function(hoverpop){
-                    const text_input = document.getElementById('hover-text') as any;
-                    const text = text_input.value;
-                    if(!text || !text.trim())
-                        return;
-                    let width = +(document.getElementById('hover-width') as any).value;
-                    let height = +(document.getElementById('hover-height') as any).value;
-                    if(!width)
-                        width = 1;
-                    if(!height)
-                        height = 1;
-                    let id = get_new_id();
-                    ez_token_color = (document.getElementById('hover-color') as any).value;
-                    add_ez_token(view.map, id, x0, y0, text, ez_token_color, width, height);
-                    publish_obj_by_id(view.map, id);
-                    note_create_by_id_for_undo(view.map, id);
-                    request_render();
-                });
-            }break;
-            case TOOLTYPE.IMG_TOKEN:{
-                const x0 = e.offsetX/view.scale-view.camera_x;
-                const y0 = e.offsetY/view.scale-view.camera_y;
-                const html = `
-                    <h2>Enter Image</h2>
-                    <table class="input-container">
-                        <tr>
-                            <td><label for="url">Token Image URL:</label>
-                            <td><input type="url" name="url" id="hover-url" value="">
-                        </tr>
-                    </table>
-                `;
-                make_ok_dialog(html, function(hoverpop){
-                    const text = (document.getElementById('hover-url') as any).value;
-                    if(!text || !text.trim()){
-                        return;
-                    }
-                    let id = get_new_id();
-                    add_img_token(view.map, id, x0, y0, text);
-                    publish_obj_by_id(view.map, id);
-                    note_create_by_id_for_undo(view.map, id);
-                    request_render();
-                });
+            case TOOLTYPE.TOKEN:{
+                if(current_token_type == TOKENTYPE.EZ){
+                    const x0 = e.offsetX/view.scale-view.camera_x;
+                    const y0 = e.offsetY/view.scale-view.camera_y;
+                    const html = `
+                        <h2>Enter Token</h2>
+                        <table class="input-container">
+                            <tr>
+                                <td><label for="color">Color:</label>
+                                <td><input type="color" id="hover-color" value="`+ez_token_color+`">
+                            </tr>
+                            <tr>
+                                <td><label for="width">Width (sq):</label>
+                                <td><input type="number" name="width" id="hover-width" min="1" max="5" value="1" class="numeric-input">
+                                <td><label for="height">Height (sq):</label>
+                                <td><input type="number" name="height" id="hover-height" min="1" max="5" value="1" class="numeric-input">
+                            </tr>
+                            <tr>
+                                <td><label for="text">Text:</label>
+                                <td colspan="3"><input type="text" name="text" id="hover-text" value="">
+                            </tr>
+                        </table>
+                    `;
+                    make_ok_dialog(html, function(hoverpop){
+                        const text_input = document.getElementById('hover-text') as any;
+                        const text = text_input.value;
+                        if(!text || !text.trim())
+                            return;
+                        let width = +(document.getElementById('hover-width') as any).value;
+                        let height = +(document.getElementById('hover-height') as any).value;
+                        if(!width)
+                            width = 1;
+                        if(!height)
+                            height = 1;
+                        let id = get_new_id();
+                        ez_token_color = (document.getElementById('hover-color') as any).value;
+                        add_ez_token(view.map, id, x0, y0, text, ez_token_color, width, height);
+                        publish_obj_by_id(view.map, id);
+                        note_create_by_id_for_undo(view.map, id);
+                        request_render();
+                    });
+                }
+                else {
+                    const x0 = e.offsetX/view.scale-view.camera_x;
+                    const y0 = e.offsetY/view.scale-view.camera_y;
+                    const html = `
+                        <h2>Enter Image</h2>
+                        <table class="input-container">
+                            <tr>
+                                <td><label for="url">Token Image URL:</label>
+                                <td><input type="url" name="url" id="hover-url" value="">
+                            </tr>
+                        </table>
+                    `;
+                    make_ok_dialog(html, function(hoverpop){
+                        const text = (document.getElementById('hover-url') as any).value;
+                        if(!text || !text.trim()){
+                            return;
+                        }
+                        let id = get_new_id();
+                        add_img_token(view.map, id, x0, y0, text);
+                        publish_obj_by_id(view.map, id);
+                        note_create_by_id_for_undo(view.map, id);
+                        request_render();
+                    });
+                }
             }break;
             case TOOLTYPE.STAIRS:{
                 let id = get_new_id();
