@@ -18,8 +18,6 @@ David20::title @hide
       ::raw
         <span>☰</span>
     ::div.tool
-      Move
-    ::div.tool
       Wall
     ::div.tool
       Door

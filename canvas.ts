@@ -14,6 +14,44 @@ function bbox_overlaps(bbox1:Bbox, bbox2:Bbox){
     const y1 = Math.min(bbox1.y1, bbox2.y1);
     return x0 <= x1 && y0 <= y1;
 }
+function point_in_rect(x:number, y:number, x0:number, y0:number, x1:number, y1:number):boolean{
+    return (x >= x0) && (x <= x1) && (y >= y0) && (y <= y1);
+}
+function line_overlaps_bbox(bbox:Bbox, x0:number, y0:number, x1:number, y1:number):boolean{
+    // equation for the segment: F(x y) = (y1-y0)*x + (x0-x1)*y + (x1*y0-x0*y1)
+    // rewrite to Ax+By+C
+    // TODO: test this.
+    {
+        const temp_bbox = {
+            x0: x0, x1: x1, y0: y0, y1:y1,
+        };
+        if(temp_bbox.x0 > temp_bbox.x1){
+            temp_bbox.x0 = x1;
+            temp_bbox.x1 = x0;
+        }
+        if(temp_bbox.y0 > temp_bbox.y1){
+            temp_bbox.y0 = y1;
+            temp_bbox.y1 = y0;
+        }
+        if(!bbox_overlaps(bbox, temp_bbox))
+            return false;
+    }
+    const A = y1-y0;
+    const B = x0-x1;
+    const C = x1*y0-x0*y1;
+    const tl = A*bbox.x0 + B*bbox.y0+C;
+    const tr = A*bbox.x1 + B*bbox.y0+C;
+    const bl = A*bbox.x0 + B*bbox.y1+C;
+    const br = A*bbox.x1 + B*bbox.y1+C;
+    if(!tl || !tr || !bl || !br)
+        return true; // point is on a corner;
+    if(tl < 0 && tr < 0 && bl < 0 && br < 0)
+        return false;
+    if(tl > 0 && tr > 0 && bl > 0 && br > 0)
+        return false;
+    return true;
+}
+
 //
 //  Canvas Obj Types
 //  ================
@@ -30,6 +68,20 @@ enum CANVASTYPE {
     DOOR          = 11,
     STAIRS        = 12,
 }
+const SORTORDER = [
+    9999, // Nothing
+    4, //FREEHAND_LINE
+    2, //GRID_LINE
+    3, //RECT
+    1, //GRID_RECT
+    3, //FILLED_RECT
+    0, //IMAGE
+    4, //TEXT
+    4, //EZ_TOKEN
+    4, //IMG_TOKEN
+    3, //DOOR
+    3, //STAIRS
+];
 //
 // flags
 enum CANVASFLAG {
@@ -302,6 +354,7 @@ type DungeonMap = {
     flags: MapFlags;
     canvas_obj_array: Array<CanvasObject>;
     canvas_objs: Map<number, CanvasObject>;
+    is_sorted: boolean;
     undo_stack: Array<UndoEvent>;
     undo_position: number; // integer
     pings: Array<Ping>;
@@ -414,6 +467,7 @@ function get_map(map_id:number): DungeonMap {
 
         canvas_obj_array: [],
         canvas_objs: new Map(),
+        is_sorted: true,
 
         undo_stack: [],
         undo_position: 0,
@@ -439,6 +493,14 @@ function change_map(map_id:number, from_select:boolean){
         }
     }
     request_render();
+}
+function sort_canv_objs(map:DungeonMap){
+    if(map.is_sorted)
+        return;
+    map.canvas_obj_array.sort(function(first:CanvasObject, second:CanvasObject){
+        return SORTORDER[first.type] - SORTORDER[second.type];
+    });
+    map.is_sorted = true;
 }
 socket.on('canvas-create-map', function(map_id:number){
     if(MAPS.has(map_id))
@@ -1739,11 +1801,125 @@ function update_selection(view:DungeonMapView, x0:number, y0:number, x1:number, 
     view.selection_area.x1 = x1;
     view.selection_area.y1 = y1;
 }
-function point_in_rect(x:number, y:number, x0:number, y0:number, x1:number, y1:number):boolean{
-    return (x >= x0) && (x <= x1) && (y >= y0) && (y <= y1);
+// Pray the JIT inlines this call.
+function obj_in_bbox(obj_:CanvasObject, bbox:Bbox, selection_type:SELECTTYPE):boolean{
+    switch(obj_.type){
+        case CANVASTYPE.FREEHAND_LINE:
+        case CANVASTYPE.GRID_LINE:{
+            if(!(selection_type & SELECTTYPE.MAP))
+                return false;
+            const obj = obj_ as (GridLine|FreehandLine);
+            const outer_bbox: Bbox = {
+                x0:obj.bbox.x0 + obj.base_x,
+                y0:obj.bbox.y0 + obj.base_y,
+                x1:obj.bbox.x1 + obj.base_x,
+                y1:obj.bbox.y1 + obj.base_y,
+            };
+            if(!bbox_overlaps(outer_bbox, bbox))
+                return false;
+            const b_x = obj.base_x;
+            const b_y = obj.base_y;
+            let x0 = b_x;
+            let y0 = b_y;
+            const points = obj.points;
+            const length = points.length;
+            for(let i = 0; i < length; i+= 2){
+                let x1 = points[i]+b_x;
+                let y1 = points[i+1]+b_y;
+                if(line_overlaps_bbox(bbox, x0, y0, x1, y1))
+                    return true;
+                x0 = x1;
+                y0 = y1;
+            }
+            return false;
+        }break;
+        case CANVASTYPE.FILLED_RECT:
+        case CANVASTYPE.RECT: // fall-through
+        case CANVASTYPE.IMAGE: // fall-through
+        case CANVASTYPE.GRID_RECT:{
+            if(!(selection_type & SELECTTYPE.MAP))
+                return false;
+            const obj = obj_ as (FilledRectangle | Rectangle | GridRectangle | ImageObj);
+            const rect_bbox = {
+                x0:obj.base_x,
+                y0:obj.base_y,
+                x1:obj.base_x+obj.width,
+                y1:obj.base_y+obj.height,
+            };
+            return bbox_overlaps(bbox, rect_bbox);
+        }break;
+        case CANVASTYPE.IMG_TOKEN:// fall-through
+        case CANVASTYPE.EZ_TOKEN:{
+            if(!(selection_type & SELECTTYPE.TOKEN))
+                return false;
+            const obj = obj_ as (ImgToken | EzToken);
+            const radius_x = obj.width*REFERENCE_WIDTH/2;
+            const radius_y = obj.height*REFERENCE_WIDTH/2;
+            const token_bbox = {
+                x0: obj.base_x,
+                x1: obj.base_x + 2*radius_x,
+                y0: obj.base_y,
+                y1: obj.base_y + 2*radius_y,
+            };
+            return bbox_overlaps(token_bbox, bbox);
+        }break;
+        case CANVASTYPE.TEXT:{
+            if(!(selection_type & SELECTTYPE.MAP))
+                return false;
+            const obj = obj_ as TextObj;
+            const text_bbox = {
+                x0:obj.bbox.x0 + obj.base_x,
+                y0:obj.bbox.y0 + obj.base_y,
+                x1:obj.bbox.x1 + obj.base_x,
+                y1:obj.bbox.y1 + obj.base_y,
+            };
+            return bbox_overlaps(text_bbox, bbox);
+        }break;
+        case CANVASTYPE.DOOR:{
+            if(!(selection_type & SELECTTYPE.MAP))
+                return false;
+            const obj = obj_ as DoorObj;
+            const is_vertical = obj.orientation === ORIENTATION.VERTICAL;
+            if(is_vertical){
+                // FIXME: I just hardcoded some random values.
+                const door_bbox = {
+                    x0 : obj.base_x - 32 * obj.width,
+                    x1 : obj.base_x + 32 * obj.width,
+                    y0 : obj.base_y - 5,
+                    y1 : obj.base_y + 5,
+                };
+                return bbox_overlaps(bbox, door_bbox);
+            }
+            else {
+                // FIXME: I just hardcoded some random values.
+                const door_bbox = {
+                    x0 : obj.base_x - 5,
+                    x1 : obj.base_x + 5,
+                    y0 : obj.base_y - 32 * obj.width,
+                    y1 : obj.base_y + 32 * obj.width,
+                };
+                return bbox_overlaps(bbox, door_bbox);
+            }
+        }break;
+        case CANVASTYPE.STAIRS:{
+            if(!(selection_type & SELECTTYPE.MAP))
+                return false;
+            const obj = obj_ as Stairs;
+            if(!obj.width || !obj.height)
+                return false;
+            const w = obj.width*REFERENCE_WIDTH;
+            const h = obj.height*REFERENCE_WIDTH;
+            const stairs_bbox = {
+                    x0 : obj.base_x,
+                    x1 : obj.base_x + w,
+                    y0 : obj.base_y,
+                    y1 : obj.base_y+h
+            };
+            return bbox_overlaps(bbox, stairs_bbox);
+        }break;
+    }
 }
 function note_selections(view:DungeonMapView):void{
-    // const before = performance.now();
     const canvas_obj_array = view.map.canvas_obj_array;
     const length = canvas_obj_array.length;
     const x0 = view.selection_area.x0;
@@ -1754,285 +1930,58 @@ function note_selections(view:DungeonMapView):void{
     const selection_type = select_type;
     const selected = view.selected;
     if(view.selection_area.select_one){
-        let stop = false;
-        // FIXME: this is literally cut n paste from below
-        // This doesn't actually solve the problem, as it just takes the one
-        // that was added later, which isn't necessarily the one on top when
-        // things are moved around. It helps with the token annihilation problem
-        // though.
-    for(let i = length-1; i >=0 && !stop; --i){
-        const obj: any = canvas_obj_array[i]; // temporary
-        if(obj.flags & CANVASFLAG.DELETED)
-            continue;
-        switch(obj.type){
-            case CANVASTYPE.GRID_LINE: // fall-through
-            case CANVASTYPE.FREEHAND_LINE:{
-                if(!(selection_type & SELECTTYPE.MAP))
-                    break;
-                const line_bbox = {
-                    x0:obj.bbox.x0 + obj.base_x,
-                    y0:obj.bbox.y0 + obj.base_y,
-                    x1:obj.bbox.x1 + obj.base_x,
-                    y1:obj.bbox.y1 + obj.base_y,
-                };
-                if(!bbox_overlaps(line_bbox, selection_bbox)){
-                    break;
-                }
-                if(point_in_rect(obj.base_x, obj.base_y, x0, y0, x1, y1)){
-                    selected.add(obj.id);
-                    stop = true;
-                    break;
-                }
-                const points = obj.points;
-                const length = points.length;
-                for(let j = 0; j < length; j+=2){
-                    const x = points[j] + obj.base_x;
-                    const y = points[j+1] + obj.base_y;
-                    if(point_in_rect(x, y, x0, y0, x1, y1)){
-                        selected.add(obj.id);
-                        stop = true;
-                        break;
-                    }
-                }
-            }break;
-            case CANVASTYPE.FILLED_RECT:
-            case CANVASTYPE.RECT: // fall-through
-            case CANVASTYPE.IMAGE: // fall-through
-            case CANVASTYPE.GRID_RECT:{
-                if(!(selection_type & SELECTTYPE.MAP))
-                    break;
-                const rect_bbox = {
-                    x0:obj.base_x,
-                    y0:obj.base_y,
-                    x1:obj.base_x+obj.width,
-                    y1:obj.base_y+obj.height,
-                };
-                if(bbox_overlaps(rect_bbox, selection_bbox)){
-                    selected.add(obj.id);
-                    stop = true;
-                    break;
-                }
-            }break;
-            case CANVASTYPE.IMG_TOKEN:// fall-through
-            case CANVASTYPE.EZ_TOKEN:{
-                if(!(selection_type & SELECTTYPE.TOKEN))
-                    break;
-                const radius_x = obj.width*REFERENCE_WIDTH/2;
-                const radius_y = obj.height*REFERENCE_WIDTH/2;
-                const token_bbox = {
-                    x0: obj.base_x,
-                    x1: obj.base_x + 2*radius_x,
-                    y0: obj.base_y,
-                    y1: obj.base_y + 2*radius_y,
-                };
-                if(bbox_overlaps(token_bbox, selection_bbox)){
-                    selected.add(obj.id);
-                    stop = true;
-                    break;
-                }
-            }break;
-            case CANVASTYPE.TEXT:{
-                if(!(selection_type & SELECTTYPE.MAP))
-                    break;
-                const text_bbox = {
-                    x0:obj.bbox.x0 + obj.base_x,
-                    y0:obj.bbox.y0 + obj.base_y,
-                    x1:obj.bbox.x1 + obj.base_x,
-                    y1:obj.bbox.y1 + obj.base_y,
-                };
-                if(bbox_overlaps(text_bbox, selection_bbox)){
-                    selected.add(obj.id);
-                    stop = true;
-                    break;
-                }
-            }break;
-            case CANVASTYPE.DOOR:{
-                if(!(selection_type & SELECTTYPE.MAP))
-                    break;
-                const is_vertical = obj.orientation === ORIENTATION.VERTICAL;
-                if(is_vertical){
-                    // FIXME: I just hardcoded some random values.
-                    const bbox = {
-                        x0 : obj.base_x - 32 * obj.width,
-                        x1 : obj.base_x + 32 * obj.width,
-                        y0 : obj.base_y - 5,
-                        y1 : obj.base_y + 5,
-                    };
-                    if(bbox_overlaps(bbox, selection_bbox)){
-                        stop = true;
-                        selected.add(obj.id);
-                        break;
-                    }
-                }
-                else {
-                    // FIXME: I just hardcoded some random values.
-                    const bbox = {
-                        x0 : obj.base_x - 5,
-                        x1 : obj.base_x + 5,
-                        y0 : obj.base_y - 32 * obj.width,
-                        y1 : obj.base_y + 32 * obj.width,
-                    };
-                    if(bbox_overlaps(bbox, selection_bbox)){
-                        stop = true;
-                        selected.add(obj.id);
-                        break;
-                    }
-                }
-            }break;
-            case CANVASTYPE.STAIRS:{
-                if(!obj.width || !obj.height)
-                    break;
-                const w = obj.width*REFERENCE_WIDTH;
-                const h = obj.height*REFERENCE_WIDTH;
-                const bbox = {
-                        x0 : obj.base_x,
-                        x1 : obj.base_x + w,
-                        y0 : obj.base_y,
-                        y1 : obj.base_y+h
-                };
-                if(bbox_overlaps(bbox, selection_bbox)){
-                    stop = true;
-                    selected.add(obj.id);
-                    break;
-                }
-            }break;
+        for(let i = length-1; i >=0; --i){
+            const obj = canvas_obj_array[i];
+            if(obj.flags & CANVASFLAG.DELETED)
+                continue;
+            if(obj_in_bbox(obj, selection_bbox, selection_type)){
+                selected.add(obj.id);
+                break;
+            }
         }
-    }
     }
     else {
-    for(let i = 0; i < length; ++i){
-        const obj: any = canvas_obj_array[i]; // temporary
+        for(let i = 0; i < length; ++i){
+            const obj = canvas_obj_array[i]; 
+            if(obj.flags & CANVASFLAG.DELETED)
+                continue;
+            if(obj_in_bbox(obj, selection_bbox, selection_type)){
+                selected.add(obj.id);
+            }
+        }
+    }
+}
+function selection_is_rigid(view:DungeonMapView):boolean{
+    for(let id of view.selected){
+        const obj = view.map.canvas_objs.get(id)!;
         if(obj.flags & CANVASFLAG.DELETED)
             continue;
         switch(obj.type){
-            case CANVASTYPE.GRID_LINE: // fall-through
-            case CANVASTYPE.FREEHAND_LINE:{
-                if(!(selection_type & SELECTTYPE.MAP))
-                    break;
-                const line_bbox = {
-                    x0:obj.bbox.x0 + obj.base_x,
-                    y0:obj.bbox.y0 + obj.base_y,
-                    x1:obj.bbox.x1 + obj.base_x,
-                    y1:obj.bbox.y1 + obj.base_y,
-                };
-                if(!bbox_overlaps(line_bbox, selection_bbox)){
-                    break;
-                }
-                if(point_in_rect(obj.base_x, obj.base_y, x0, y0, x1, y1)){
-                    selected.add(obj.id);
-                    break;
-                }
-                const points = obj.points;
-                const length = points.length;
-                for(let j = 0; j < length; j+=2){
-                    const x = points[j] + obj.base_x;
-                    const y = points[j+1] + obj.base_y;
-                    if(point_in_rect(x, y, x0, y0, x1, y1)){
-                        selected.add(obj.id);
-                        break;
-                    }
-                }
-            }break;
-            case CANVASTYPE.FILLED_RECT:
-            case CANVASTYPE.RECT: // fall-through
-            case CANVASTYPE.IMAGE: // fall-through
-            case CANVASTYPE.GRID_RECT:{
-                if(!(selection_type & SELECTTYPE.MAP))
-                    break;
-                const rect_bbox = {
-                    x0:obj.base_x,
-                    y0:obj.base_y,
-                    x1:obj.base_x+obj.width,
-                    y1:obj.base_y+obj.height,
-                };
-                if(bbox_overlaps(rect_bbox, selection_bbox)){
-                    selected.add(obj.id);
-                    break;
-                }
-            }break;
-            case CANVASTYPE.IMG_TOKEN:// fall-through
-            case CANVASTYPE.EZ_TOKEN:{
-                if(!(selection_type & SELECTTYPE.TOKEN))
-                    break;
-                const radius_x = obj.width*REFERENCE_WIDTH/2;
-                const radius_y = obj.height*REFERENCE_WIDTH/2;
-                const token_bbox = {
-                    x0: obj.base_x,
-                    x1: obj.base_x + 2*radius_x,
-                    y0: obj.base_y,
-                    y1: obj.base_y + 2*radius_y,
-                };
-                if(bbox_overlaps(token_bbox, selection_bbox)){
-                    selected.add(obj.id);
-                    break;
-                }
-            }break;
-            case CANVASTYPE.TEXT:{
-                if(!(selection_type & SELECTTYPE.MAP))
-                    break;
-                const text_bbox = {
-                    x0:obj.bbox.x0 + obj.base_x,
-                    y0:obj.bbox.y0 + obj.base_y,
-                    x1:obj.bbox.x1 + obj.base_x,
-                    y1:obj.bbox.y1 + obj.base_y,
-                };
-                if(bbox_overlaps(text_bbox, selection_bbox)){
-                    selected.add(obj.id);
-                    break;
-                }
-            }break;
-            case CANVASTYPE.DOOR:{
-                if(!(selection_type & SELECTTYPE.MAP))
-                    break;
-                const is_vertical = obj.orientation === ORIENTATION.VERTICAL;
-                if(is_vertical){
-                    // FIXME: I just hardcoded some random values.
-                    const bbox = {
-                        x0 : obj.base_x - 32,
-                        x1 : obj.base_x + 32,
-                        y0 : obj.base_y - 5,
-                        y1 : obj.base_y +5,
-                    };
-                    if(bbox_overlaps(bbox, selection_bbox)){
-                        selected.add(obj.id);
-                        break;
-                    }
-                }
-                else {
-                    // FIXME: I just hardcoded some random values.
-                    const bbox = {
-                        x0 : obj.base_x - 5,
-                        x1 : obj.base_x + 5,
-                        y0 : obj.base_y - 32,
-                        y1 : obj.base_y + 32,
-                    };
-                    if(bbox_overlaps(bbox, selection_bbox)){
-                        selected.add(obj.id);
-                        break;
-                    }
-                }
-            }break;
-            case CANVASTYPE.STAIRS:{
-                if(!obj.width || !obj.height)
-                    break;
-                const w = obj.width*REFERENCE_WIDTH;
-                const h = obj.height*REFERENCE_WIDTH;
-                const bbox = {
-                        x0 : obj.base_x,
-                        x1 : obj.base_x + w,
-                        y0 : obj.base_y,
-                        y1 : obj.base_y+h
-                };
-                if(bbox_overlaps(bbox, selection_bbox)){
-                    selected.add(obj.id);
-                    break;
-                }
-            }break;
+            case CANVASTYPE.GRID_RECT:
+            case CANVASTYPE.GRID_LINE:
+            case CANVASTYPE.IMAGE:
+            case CANVASTYPE.DOOR:
+            case CANVASTYPE.EZ_TOKEN:
+            case CANVASTYPE.IMG_TOKEN:
+            case CANVASTYPE.STAIRS:
+                return true;
+            default:
+                break;
         }
     }
+    return false;
+}
+function there_are_selected_objs_at(view:DungeonMapView, x0:number, y0:number, x1:number, y1:number):boolean{
+    const selection_bbox = {x0:x0, y0:y0, x1:x1, y1:y1,};
+    const selection_type = select_type;
+    for(let id of view.selected){
+        const obj = view.map.canvas_objs.get(id) as CanvasObject;
+        if(obj.flags & CANVASFLAG.DELETED)
+            continue;
+        if(obj_in_bbox(obj, selection_bbox, selection_type))
+            return true;
     }
-    // const after = performance.now();
-    // console.log('note_selections', after-before, 'ms');
+    return false;
 }
 function finalize_selection(view:DungeonMapView):void{
     view.selected.clear();
@@ -2053,36 +2002,22 @@ function change_select_mode(mode:SELECTTYPE):void{
     }
     request_render();
 }
-function move_selected_objects(view:DungeonMapView, base_x:number, base_y:number, dx:number, dy:number):[number, number]{
+function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number, base_y:number, dx:number, dy:number){
     const selected_objs = [];
-    let result:[number, number] = [base_x+dx, base_y+dy];
-    let rigid = false;
     for(let item of view.selected){
         const obj = view.map.canvas_objs.get(item)!;
         if(obj.flags & CANVASFLAG.DELETED)
             continue;
-        switch(obj.type){
-            case CANVASTYPE.GRID_RECT:
-            case CANVASTYPE.GRID_LINE:
-            case CANVASTYPE.IMAGE:
-            case CANVASTYPE.DOOR:
-            case CANVASTYPE.EZ_TOKEN:
-            case CANVASTYPE.IMG_TOKEN:
-            case CANVASTYPE.STAIRS:
-                rigid = true;
-                break;
-            default:
-                break;
-        }
         selected_objs.push(obj);
     }
     if(!selected_objs.length)
-        return result;
+        return;
     if(rigid){
-        const aligned_old_x = snap_to_grid(base_x);
-        const aligned_old_y = snap_to_grid(base_y);
-        const aligned_new_x = snap_to_grid(base_x+dx);
-        const aligned_new_y = snap_to_grid(base_y+dy);
+        let snap_func = snapmode == SNAPMODE.HALF?snap_to_half_grid:snap_to_grid;
+        const aligned_old_x = snap_func(base_x);
+        const aligned_old_y = snap_func(base_y);
+        const aligned_new_x = snap_func(base_x+dx);
+        const aligned_new_y = snap_func(base_y+dy);
         dx = aligned_new_x - aligned_old_x;
         dy = aligned_new_y - aligned_old_y;
         if(dx || dy){
@@ -2119,7 +2054,6 @@ function move_selected_objects(view:DungeonMapView, base_x:number, base_y:number
                 }
             }
         }
-        result = [aligned_new_x, aligned_new_y];
     }
     else {
         for(let i = 0; i < selected_objs.length; i++){
@@ -2156,12 +2090,12 @@ function move_selected_objects(view:DungeonMapView, base_x:number, base_y:number
         }
     }
     request_render();
-    return result;
 }
 
 function add_canv_obj(map:DungeonMap, obj:CanvasObject):void{
     map.canvas_objs.set(obj.id, obj);
     map.canvas_obj_array.push(obj);
+    map.is_sorted = false;
 }
 const STRIP_FLAGS_NONE = 0;
 const STRIP_INCLUDE_ID = 1;
@@ -2436,6 +2370,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
     if(!view)
         return;
     const map = view.map;
+    sort_canv_objs(map);
     if(view.selection_area.is_selecting){
         view.selected.clear();
         note_selections(view);
@@ -3187,7 +3122,6 @@ function render(timestamp:DOMHighResTimeStamp):void{
 enum TOOLTYPE {
     PAN         = 'Pan',
     SELECT      = 'Select',
-    MOVE        = 'Move',
     LINE        = 'Line',
     WALL        = 'Wall',
     DOOR        = 'Door',
@@ -3213,7 +3147,6 @@ function change_tool(toolname:TOOLTYPE):void{
     switch(toolname){
         case TOOLTYPE.PAN:
         case TOOLTYPE.SELECT:
-        case TOOLTYPE.MOVE:
             break;
         default:
             for(let view of dungeon_map_views){
@@ -3251,7 +3184,7 @@ function change_tool(toolname:TOOLTYPE):void{
             <h3 style="text-align:center;">Tips</h3>
             <div style="margin:auto;max-width:36em;">
             <p>You can use <b>q</b> to switch to Wall, <b>w</b> to switch to Door and <b>e</b> to switch to Line.
-            <p>You can use <b>a</b> to switch to Pan, <b>s</b> to switch to Select, <b>d</b> to switch to Move.
+            <p>You can use <b>a</b> to switch to Pan, <b>s</b> to switch to Select.
             <p>The <span>☰</span> means there are other options for that tool. If that tool is selected, you can use 1,2,3,etc. to switch between them.
             <p>Right-clicking on the map shows some more options
             <p>You can cut, copy, paste things on the map.
@@ -3596,9 +3529,6 @@ document.addEventListener('DOMContentLoaded', function(){
             case 's':
                 change_tool(TOOLTYPE.SELECT);
                 break;
-            case 'd':
-                change_tool(TOOLTYPE.MOVE);
-                break;
             case 'q':
                 change_tool(TOOLTYPE.WALL);
                 break;
@@ -3701,65 +3631,70 @@ document.addEventListener('DOMContentLoaded', function(){
             case TOOLTYPE.SELECT:{
                 let clicked_x = e.offsetX/view.scale - view.camera_x;
                 let clicked_y = e.offsetY/view.scale - view.camera_y;
-                view.selection_area.select_one = true;
-                view.selection_area.is_selecting = true;
-                update_selection(view, clicked_x-5/view.scale, clicked_y-5/view.scale, clicked_x+5/view.scale, clicked_y+5/view.scale);
-                request_render();
-                function select(e:MouseEvent){
-                    e.stopPropagation();
-                    e.preventDefault();
-                    let select_x = e.offsetX/view.scale - view.camera_x;
-                    let select_y = e.offsetY/view.scale - view.camera_y;
-                    if(select_x != clicked_x || select_y != select_y)
-                        view.selection_area.select_one = false;
-                    update_selection(view, clicked_x, clicked_y, select_x, select_y);
+                const fudged_x0 = clicked_x-10/view.scale;
+                const fudged_x1 = clicked_x+10/view.scale;
+                const fudged_y0 = clicked_y-10/view.scale;
+                const fudged_y1 = clicked_y+10/view.scale;
+                if(view.selected.size && there_are_selected_objs_at(view, fudged_x0, fudged_y0, fudged_x1, fudged_y1)){
+                    // handle movement
+                    let rawclick_x = e.offsetX;
+                    let rawclick_y = e.offsetY;
+                    let changed = false;
+                    const before_update = get_stripped_state_by_id(view.map, Array.from(view.selected));
+                    const is_rigid = selection_is_rigid(view);
+                    function move(e:MouseEvent){
+                        e.stopPropagation();
+                        e.preventDefault();
+                        const diff = Math.abs(e.offsetX - rawclick_x) + Math.abs(e.offsetY - rawclick_y);
+                        if(diff < 1)
+                            return;
+                        let move_x = e.offsetX/view.scale - view.camera_x;
+                        let move_y = e.offsetY/view.scale - view.camera_y;
+                        changed = true;
+                        move_selected_objects(view, is_rigid, clicked_x, clicked_y, move_x - clicked_x, move_y - clicked_y);
+                        clicked_x = move_x;
+                        clicked_y = move_y;
+                    }
+                    canvas.addEventListener('mousemove', move);
+                    function finish_move(){
+                        canvas.removeEventListener('mousemove', move);
+                        window.removeEventListener('mouseup', finish_move);
+                        canvas.removeEventListener('mouseleave', finish_move);
+                        if(!changed)
+                            return;
+                        const after_update = get_stripped_state_by_id(view.map, Array.from(view.selected));
+                        publish_obj_updates(view.map.map_id, after_update);
+                        note_updates_for_undo(view.map, before_update, after_update);
+                    }
+                    window.addEventListener('mouseup', finish_move);
+                    canvas.addEventListener('mouseleave', finish_move);
+                }
+                else {
+                    sort_canv_objs(view.map);
+                    view.selection_area.select_one = true;
+                    view.selection_area.is_selecting = true;
+                    update_selection(view, fudged_x0, fudged_y0, fudged_x1, fudged_y1);
                     request_render();
+                    function select(e:MouseEvent){
+                        e.stopPropagation();
+                        e.preventDefault();
+                        let select_x = e.offsetX/view.scale - view.camera_x;
+                        let select_y = e.offsetY/view.scale - view.camera_y;
+                        if(select_x != clicked_x || select_y != select_y)
+                            view.selection_area.select_one = false;
+                        update_selection(view, clicked_x, clicked_y, select_x, select_y);
+                        request_render();
+                    }
+                    canvas.addEventListener('mousemove', select);
+                    function finish_select(){
+                        finalize_selection(view);
+                        canvas.removeEventListener('mousemove', select);
+                        window.removeEventListener('mouseup', finish_select);
+                        canvas.removeEventListener('mouseleave', finish_select);
+                    }
+                    window.addEventListener('mouseup', finish_select);
+                    canvas.addEventListener('mouseleave', finish_select);
                 }
-                canvas.addEventListener('mousemove', select);
-                function finish_select(){
-                    finalize_selection(view);
-                    canvas.removeEventListener('mousemove', select);
-                    window.removeEventListener('mouseup', finish_select);
-                    canvas.removeEventListener('mouseleave', finish_select);
-                }
-                window.addEventListener('mouseup', finish_select);
-                canvas.addEventListener('mouseleave', finish_select);
-            }break;
-            case TOOLTYPE.MOVE:{
-                if(!view.selected.size)
-                    return;
-                let clicked_x = e.offsetX/view.scale - view.camera_x;
-                let clicked_y = e.offsetY/view.scale - view.camera_y;
-                let rawclick_x = e.offsetX;
-                let rawclick_y = e.offsetY;
-                let changed = false;
-                const before_update = get_stripped_state_by_id(view.map, Array.from(view.selected));
-                function move(e:MouseEvent){
-                    e.stopPropagation();
-                    e.preventDefault();
-                    const diff = Math.abs(e.offsetX - rawclick_x) + Math.abs(e.offsetY - rawclick_y);
-                    if(diff < 2)
-                        return;
-                    let move_x = e.offsetX/view.scale - view.camera_x;
-                    let move_y = e.offsetY/view.scale - view.camera_y;
-                    changed = true;
-                    let new_coords = move_selected_objects(view, clicked_x, clicked_y, move_x - clicked_x, move_y - clicked_y);
-                    clicked_x = new_coords[0];
-                    clicked_y = new_coords[1];;
-                }
-                canvas.addEventListener('mousemove', move);
-                function finish_move(){
-                    canvas.removeEventListener('mousemove', move);
-                    window.removeEventListener('mouseup', finish_move);
-                    canvas.removeEventListener('mouseleave', finish_move);
-                    if(!changed)
-                        return;
-                    const after_update = get_stripped_state_by_id(view.map, Array.from(view.selected));
-                    publish_obj_updates(view.map.map_id, after_update);
-                    note_updates_for_undo(view.map, before_update, after_update);
-                }
-                window.addEventListener('mouseup', finish_move);
-                canvas.addEventListener('mouseleave', finish_move);
             }break;
             case TOOLTYPE.PAN:{
                 let clicked_x = e.offsetX/view.scale;

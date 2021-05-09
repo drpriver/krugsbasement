@@ -4,7 +4,8 @@
     + [x] Doors need to be reworked so they can be half grid.
   - [x] Affect floors
 * [x] in general, doors and floor don't really work with 5' walls (corners)
-* [ ] combine select and move
+* [x] combine select and move
+  - [x] Do proper intersection detection.
 * [ ] odd when diagonal corner meets non diagonal corner
 * [ ] S is still bad
 * [ ] line thickness options
