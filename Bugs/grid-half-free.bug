@@ -1,0 +1,5 @@
+Make everything (within reason) obey the grid/half/free settings.
+
+Rectangle needs to snap to grid or not.
+
+Have free wall be what the current line tool is (remove line tool?)
