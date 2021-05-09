@@ -3312,8 +3312,8 @@ document.addEventListener('DOMContentLoaded', function():void{
         if(tool.firstChild.textContent.trim() == 'Select'){
             const name = tool.getElementsByTagName('span')[0];
             function change_st(st:SELECTTYPE){
-                current_token_type = tt;
-                switch(current_token_type){
+                select_type = st;
+                switch(select_type){
                     case SELECTTYPE.ANY:
                         name.innerText = 'Any ☰';
                         break;
@@ -3326,9 +3326,12 @@ document.addEventListener('DOMContentLoaded', function():void{
                 }
             }
             change_st(SELECTTYPE.ANY);
-            function make_cb(st){
-                change_tool(TOOLTYPE.SELECT);
-                change_select_mode(SELECTTYPE.ANY);
+            function make_cb(st:SELECTTYPE){
+                function cb(){
+                    change_tool(TOOLTYPE.SELECT);
+                    change_select_mode(SELECTTYPE.ANY);
+                }
+                return cb;
             }
             select_numeric_hot_keys = [
                 function(){
