@@ -10,7 +10,7 @@ David20::title @hide
         <input type="radio" id="grid-snap-half" name="snap-to-grid" value="HALF">
         <label for="grid-snap-half">Half</label>
         <input type="radio" id="grid-snap-free" name="snap-to-grid" value="FREE">
-        <label for="grid-snap-free">Free</label>
+        <label for="grid-snap-free" style="display:none;">Free</label>
     ::div.tool @id(pan-tool)
       Pan
     ::div.tool

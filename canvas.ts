@@ -3311,7 +3311,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                         e.preventDefault();
                     }
                     document.body.removeChild(trimenu);
-                    canvas.removeEventListener('mousedown', close_select_menu);
+                    window.removeEventListener('mousedown', close_select_menu);
                     has_menu = false;
                 }
                 const options = [
@@ -3359,7 +3359,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                     trimenu.appendChild(s);
                 }
                 document.body.appendChild(trimenu);
-                canvas.addEventListener('mousedown', close_select_menu);
+                window.addEventListener('mousedown', close_select_menu);
             });
         }
         if(tool.firstChild.textContent.trim() == 'Door'){
@@ -3417,7 +3417,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                         e.preventDefault();
                     }
                     document.body.removeChild(trimenu);
-                    canvas.removeEventListener('mousedown', close_menu);
+                    window.removeEventListener('mousedown', close_menu);
                     has_menu = false;
                 }
                 function make_cb(dt:DOORTYPE){
@@ -3448,7 +3448,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                     trimenu.appendChild(s);
                 }
                 document.body.appendChild(trimenu);
-                canvas.addEventListener('mousedown', close_menu);
+                window.addEventListener('mousedown', close_menu);
             });
         }
     }
