@@ -3306,23 +3306,29 @@ document.addEventListener('DOMContentLoaded', function():void{
     for(let i = 0; i < tools.length-1; ++i){
         const tool = tools[i];
         tool.addEventListener('click', function(e:MouseEvent){
-            // e.stopPropagation();
-            // e.preventDefault();
             const toolname = tool.firstChild.textContent.trim();
             change_tool(toolname);
         });
         if(tool.firstChild.textContent.trim() == 'Select'){
             const name = tool.getElementsByTagName('span')[0];
-            switch(select_type){
-                case SELECTTYPE.ANY:
-                    name.innerText = 'Any ☰';
-                    break;
-                case SELECTTYPE.MAP:
-                    name.innerText = 'Map ☰';
-                    break;
-                case SELECTTYPE.TOKEN:
-                    name.innerText = 'Token ☰';
-                    break;
+            function change_st(st:SELECTTYPE){
+                current_token_type = tt;
+                switch(current_token_type){
+                    case SELECTTYPE.ANY:
+                        name.innerText = 'Any ☰';
+                        break;
+                    case SELECTTYPE.MAP:
+                        name.innerText = 'Map ☰';
+                        break;
+                    case SELECTTYPE.TOKEN:
+                        name.innerText = 'Token ☰';
+                        break;
+                }
+            }
+            change_st(SELECTTYPE.ANY);
+            function make_cb(st){
+                change_tool(TOOLTYPE.SELECT);
+                change_select_mode(SELECTTYPE.ANY);
             }
             select_numeric_hot_keys = [
                 function(){
@@ -3345,31 +3351,9 @@ document.addEventListener('DOMContentLoaded', function():void{
                 if(has_tri_menu)
                     return;
                 make_tri_menu(e, [
-                    {
-                        func:function(){
-                            change_tool(TOOLTYPE.SELECT);
-                            name.innerText = 'Any ☰';
-                            change_tool(TOOLTYPE.SELECT);
-                            change_select_mode(SELECTTYPE.ANY);
-                        },
-                        text: 'Any',
-                    },
-                    {
-                        func:function(){
-                            change_tool(TOOLTYPE.SELECT);
-                            name.innerText = 'Map ☰';
-                            change_select_mode(SELECTTYPE.MAP);
-                        },
-                        text:'Map',
-                    },
-                    {
-                        func:function(){
-                            change_tool(TOOLTYPE.SELECT);
-                            name.innerText = 'Token ☰';
-                            change_select_mode(SELECTTYPE.TOKEN);
-                        },
-                        text:'Token',
-                    },
+                    {func:make_cb(SELECTTYPE.ANY), text:'Any'},
+                    {func:make_cb(SELECTTYPE.MAP), text:'Map'},
+                    {func:make_cb(SELECTTYPE.TOKEN), text:'Token'},
                 ]);
             });
         }
