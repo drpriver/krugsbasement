@@ -343,12 +343,7 @@ function chat_options_dialog(){
         const chatname_el = document.getElementById('hover-chatname')! as HTMLInputElement;
         setchatname(chatname_el.value);
         const hide_pan = document.getElementById('hide-pan')! as HTMLInputElement;
-        if(hide_pan.checked){
-            pan_tool.style.display = 'none';
-        }
-        else {
-            pan_tool.style.display = 'initial';
-        }
+        change_pan_visibility(!hide_pan.checked);
         const trs = hover_macro_table.getElementsByTagName('tr');
         const macros: Array<[string, string]> = [];
         for(let tr of trs){

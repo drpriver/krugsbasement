@@ -1,6 +1,26 @@
 declare let io: any;
 let socket = io({transports:["websocket"]});
 let session_id = 0;
+let show_pan = (function(){
+    const sp = localStorage.getItem('showpan');
+    if(!sp){
+        return false;
+    }
+    return true;
+})();
+document.addEventListener('DOMContentLoaded', function(){
+    const pan_tool = document.getElementById('pan-tool')!;
+    pan_tool.style.display = show_pan? 'initial': 'none';
+});
+function change_pan_visibility(visible:boolean){
+    show_pan = visible;
+    if(visible)
+        localStorage.setItem('showpan', '1')
+    else
+        localStorage.removeItem('showpan')
+    const pan_tool = document.getElementById('pan-tool')!;
+    pan_tool.style.display = visible? 'initial': 'none';
+}
 socket.on('session-id', function(resp:number){
     session_id = resp;
 });
