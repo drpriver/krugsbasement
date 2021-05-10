@@ -1124,8 +1124,9 @@ function add_image(map:DungeonMap, id:number, base_x:number, base_y:number, widt
     add_canv_obj(map, obj);
 }
 function make_stairs(id:number, base_x:number, base_y:number): Stairs{
-    base_x = snap_to_grid(base_x);
-    base_y = snap_to_grid(base_y);
+    const snap = get_snap_func();
+    base_x = snap(base_x);
+    base_y = snap(base_y);
     const obj:Stairs = {
         type: CANVASTYPE.STAIRS,
         id: id,
@@ -1145,10 +1146,11 @@ function add_stairs(map:DungeonMap, id:number, base_x:number, base_y:number){
 function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number){
     const xdiff = x1-x0;
     const ydiff = y1-y0;
-    x0 = snap_to_grid(x0);
-    y0 = snap_to_grid(y0);
-    x1 = snap_to_grid(x1);
-    y1 = snap_to_grid(y1);
+    const snap = get_snap_func();
+    x0 = snap(x0);
+    y0 = snap(y0);
+    x1 = snap(x1);
+    y1 = snap(y1);
     if(x1 < x0){
         let temp = x1;
         x1 = x0;
