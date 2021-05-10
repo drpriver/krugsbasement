@@ -3170,7 +3170,7 @@ function change_tool(toolname:TOOLTYPE):void{
             numeric_hot_keys = [];
             break;
     }
-    for(let j = 0; j < tools.length-1; ++j){
+    for(let j = 0; j < tools.length; ++j){
         const tool = tools[j];
         tool.classList.remove('selected');
         if(tool.firstChild.textContent.trim() == toolname){
@@ -3299,7 +3299,7 @@ document.addEventListener('DOMContentLoaded', function():void{
     tools = Array.from(document.getElementsByClassName('tool'));
     color_picker = document.getElementById('color-picker');
     color_picker2 = document.getElementById('color-picker2');
-    for(let i = 0; i < tools.length-1; ++i){
+    for(let i = 0; i < tools.length; ++i){
         const tool = tools[i];
         tool.addEventListener('click', function(e:MouseEvent){
             const toolname = tool.firstChild.textContent.trim();
@@ -3654,6 +3654,7 @@ document.addEventListener('DOMContentLoaded', function(){
             prev_tool = current_tool;
             current_tool = TOOLTYPE.PAN;
         }
+        let snap = get_snap_func();
         switch(current_tool){
             case TOOLTYPE.SELECT:{
                 let clicked_x = e.offsetX/view.scale - view.camera_x;
@@ -3791,9 +3792,8 @@ document.addEventListener('DOMContentLoaded', function(){
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case TOOLTYPE.DOOR:{
-                let snap_func = snapmode == SNAPMODE.HALF?snap_to_half_grid: snap_to_grid;
-                let x0 = snap_func(e.offsetX/view.scale-view.camera_x);
-                let y0 = snap_func(e.offsetY/view.scale-view.camera_y);
+                let x0 = snap(e.offsetX/view.scale-view.camera_x);
+                let y0 = snap(e.offsetY/view.scale-view.camera_y);
                 let x1 = x0;
                 let y1 = y0;
                 view.placing_area.is_placing = true;
@@ -3806,8 +3806,8 @@ document.addEventListener('DOMContentLoaded', function(){
                 function change_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    x1 = snap_func(e.offsetX/view.scale-view.camera_x);
-                    y1 = snap_func(e.offsetY/view.scale-view.camera_y);
+                    x1 = snap(e.offsetX/view.scale-view.camera_x);
+                    y1 = snap(e.offsetY/view.scale-view.camera_y);
                     if(x1 > x0 + REFERENCE_WIDTH)
                         x1 = x0 + REFERENCE_WIDTH;
                     if(x1 < x0 - REFERENCE_WIDTH)
@@ -3862,7 +3862,6 @@ document.addEventListener('DOMContentLoaded', function(){
                 canvas.addEventListener('mouseleave', finish_door);
             }break;
             case TOOLTYPE.RECT:{
-                let snap = get_snap_func();
                 switch(current_rect_type){
                     case RECTTYPE.HOLLOW:{
                         let id = get_new_id();
