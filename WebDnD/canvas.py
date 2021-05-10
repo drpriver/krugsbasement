@@ -115,13 +115,13 @@ class Validator:
             v = obj[key]
             if t is POINTS:
                 if not isinstance(v, list):
-                    raise TypeError('Points not a list')
+                    raise TypeError('Points not a list', key, type(v))
                 for vv in v:
                     if not isinstance(vv, (int, float)):
-                        raise TypeError('Points wrong type')
+                        raise TypeError('Points element is wrong type', key, type(vv))
             else:
                 if not isinstance(v, t): # type: ignore
-                    raise TypeError('field is wrong type', key, t)
+                    raise TypeError('field is wrong type', key, t, type(v))
 VALIDATE_OBJ[CANVASTYPE.FREEHAND_LINE] = Validator(
         color=str,
         points=POINTS
@@ -178,8 +178,8 @@ VALIDATE_OBJ[CANVASTYPE.DOOR] = Validator(
         orientation=int,
 ).validate
 VALIDATE_OBJ[CANVASTYPE.STAIRS] = Validator(
-        width=int,
-        height=int,
+        width=(float, int),
+        height=(float,int),
         rotation=int,
 ).validate
 

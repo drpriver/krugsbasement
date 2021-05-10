@@ -6,3 +6,7 @@ Update:
 ---
 In thinking about this, this isn't useful for dungeon maps.
 There are situations this is useful, but it's for other use cases, which would need their own optimized interface I believe.
+
+Update:
+------
+I am closing this feature as WONTFIX.
