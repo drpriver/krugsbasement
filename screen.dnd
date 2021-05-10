@@ -34,6 +34,8 @@ David20::title @hide
       ::raw
         <span>☰</span>
     ::div.tool
+      Ellipse
+    ::div.tool
       Text
     ::div.tool
       Token

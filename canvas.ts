@@ -61,6 +61,7 @@ enum CANVASTYPE {
     RECT          = 3,
     GRID_RECT     = 4,
     FILLED_RECT   = 5,
+    ELLIPSE       = 6,
     IMAGE         = 7,
     TEXT          = 8,
     EZ_TOKEN      = 9,
@@ -70,17 +71,18 @@ enum CANVASTYPE {
 }
 const SORTORDER = [
     9999, // Nothing
-    4, //FREEHAND_LINE
-    2, //GRID_LINE
-    3, //RECT
-    1, //GRID_RECT
-    3, //FILLED_RECT
-    0, //IMAGE
-    4, //TEXT
-    4, //EZ_TOKEN
-    4, //IMG_TOKEN
-    3, //DOOR
-    3, //STAIRS
+    4, // FREEHAND_LINE
+    2, // GRID_LINE
+    3, // RECT
+    1, // GRID_RECT
+    3, // FILLED_RECT
+    3, // ELLIPSE
+    0, // IMAGE
+    4, // TEXT
+    4, // EZ_TOKEN
+    4, // IMG_TOKEN
+    3, // DOOR
+    3, // STAIRS
 ];
 //
 // flags
@@ -191,17 +193,16 @@ type GridRectangle = {
 //  -------
 //  base_x and base_y is the center of the ellipse.
 //  We only allow axis-aligned ellipses.
-//  type Ellipse = {
-//    type: CANVASTYPE; // ELLIPSE
-//    id: number;
-//    base_x: number;
-//    base_y: number;
-//    flags: CANVASFLAG;
-//    color: string;
-//    r_x: number;
-//    r_y: number;
-//  }
-
+type Ellipse = {
+    type: CANVASTYPE; // ELLIPSE
+    id: number;
+    base_x: number; // top left of the bounding box
+    base_y: number; // top left of the bounding box
+    flags: CANVASFLAG;
+    color: string;
+    width: number;
+    height: number;
+}
 
 //  image
 //  -----
@@ -996,6 +997,23 @@ function change_filled_rect_by_id(map:DungeonMap, id:number, x0:number, y0:numbe
     let obj = map.canvas_objs.get(id) as FilledRectangle;
     change_filled_rect(obj, x0, y0, x1, y1);
 }
+function make_ellipse(id:number, base_x:number, base_y:number, color:string):Ellipse{
+    const obj:Ellipse = {
+        type: CANVASTYPE.ELLIPSE,
+        id:id,
+        base_x: Math.round(base_x),
+        base_y: Math.round(base_y),
+        flags: CANVASFLAG.NONE,
+        color: color,
+        width: 0,
+        height: 0,
+    };
+    return obj;
+}
+function add_ellipse(map:DungeonMap, id:number, base_x:number, base_y:number, color:string){
+    const obj = make_ellipse(id, base_x, base_y, color);
+    add_canv_obj(map, obj);
+}
 function make_text(id:number, base_x:number, base_y:number, text:string, size:number):TextObj{
     switch(snapmode){
         case SNAPMODE.GRID:
@@ -1447,6 +1465,11 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
                 obj.width = stripped.width;
                 obj.height = stripped.height;
                 break;
+            case CANVASTYPE.ELLIPSE:
+                obj.color = stripped.color;
+                obj.width = stripped.width;
+                obj.height = stripped.height;
+                break;
             case CANVASTYPE.GRID_RECT:
                 obj.color = stripped.color;
                 obj.width = stripped.width;
@@ -1569,6 +1592,8 @@ socket.on('canvas-initialize-maps', function(msgs:Array<{map_id:number; map_name
                     break;
                 case CANVASTYPE.FILLED_RECT:
                     break;
+                case CANVASTYPE.ELLIPSE:
+                    break;
                 case CANVASTYPE.RECT:
                     break;
                 case CANVASTYPE.GRID_RECT:
@@ -1637,6 +1662,8 @@ socket.on('canvas-create-objects', function(msgs:Array<{map_id:number;objects:Ar
                     gridline_recalculate_path(obj);
                     break;
                 case CANVASTYPE.FILLED_RECT:
+                    break;
+                case CANVASTYPE.ELLIPSE:
                     break;
                 case CANVASTYPE.RECT:
                     break;
@@ -1741,6 +1768,11 @@ function set_obj_states_from_stripped_objs(map:DungeonMap, obj_states:Array<Stri
                 obj.height = state.height;
                 obj.color = state.color;
                 obj.color2 = state.color2;
+                break;
+            case CANVASTYPE.ELLIPSE:
+                obj.width = state.width;
+                obj.height = state.height;
+                obj.color = state.color;
                 break;
             case CANVASTYPE.RECT:
                 obj.width = state.width;
@@ -1852,6 +1884,7 @@ function obj_in_bbox(obj_:CanvasObject, bbox:Bbox, selection_type:SELECTTYPE):bo
             }
             return false;
         }break;
+        case CANVASTYPE.ELLIPSE: // this is wrong
         case CANVASTYPE.FILLED_RECT:
         case CANVASTYPE.RECT: // fall-through
         case CANVASTYPE.IMAGE: // fall-through
@@ -2051,6 +2084,7 @@ function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number
                     case CANVASTYPE.GRID_LINE:
                         gridline_recalculate_path(obj as GridLine);
                         break;
+                    case CANVASTYPE.ELLIPSE:
                     case CANVASTYPE.FILLED_RECT:
                     case CANVASTYPE.RECT:
                     case CANVASTYPE.GRID_RECT:
@@ -2086,6 +2120,7 @@ function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number
                 case CANVASTYPE.GRID_LINE:
                     gridline_recalculate_path(obj as GridLine);
                     break;
+                case CANVASTYPE.ELLIPSE:
                 case CANVASTYPE.FILLED_RECT:
                 case CANVASTYPE.RECT:
                 case CANVASTYPE.GRID_RECT:
@@ -2150,6 +2185,11 @@ function strip_obj(obj:any, include_flags:number): StrippedObj{
             break;
         case CANVASTYPE.GRID_LINE:
             stripped_obj.points = obj.points;
+            stripped_obj.color = obj.color;
+            break;
+        case CANVASTYPE.ELLIPSE:
+            stripped_obj.width = obj.width;
+            stripped_obj.height = obj.height;
             stripped_obj.color = obj.color;
             break;
         case CANVASTYPE.FILLED_RECT:
@@ -2249,6 +2289,8 @@ function edit_is_impossible(view:DungeonMapView):boolean{
             return true;
         case CANVASTYPE.GRID_RECT:
             return true;
+        case CANVASTYPE.ELLIPSE:
+            return true;
         case CANVASTYPE.FILLED_RECT:
             return true;
         case CANVASTYPE.IMAGE:
@@ -2282,6 +2324,8 @@ function launch_edit_dialog(view:DungeonMapView):void{
         case CANVASTYPE.RECT:
             return;
         case CANVASTYPE.GRID_RECT:
+            return;
+        case CANVASTYPE.ELLIPSE:
             return;
         case CANVASTYPE.FILLED_RECT:
             return;
@@ -2479,6 +2523,33 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.lineWidth = 6;
                     ctx.strokeStyle = obj.color;
                     ctx.stroke(obj.path);
+                }
+            }break;
+            case CANVASTYPE.ELLIPSE:{
+                const obj = obj_ as Ellipse;
+                const bbox = {
+                    x0:obj.base_x,
+                    y0:obj.base_y,
+                    x1:obj.base_x+obj.width,
+                    y1:obj.base_y+obj.height,
+                };
+                if(!bbox_overlaps(bbox, canvas_bbox))
+                    break;
+                const cx = obj.base_x+obj.width/2;
+                const cy = obj.base_y+obj.height/2;
+                if(obj.width && obj.height){
+                    if(is_selected){
+                        ctx.lineWidth=8;
+                        ctx.strokeStyle = SELECTED_COLOR;
+                        ctx.beginPath();
+                        ctx.ellipse(cx, cy, obj.width/2, obj.height/2, 0, 0, Math.PI*2);
+                        ctx.stroke();
+                    }
+                    ctx.lineWidth=4;
+                    ctx.beginPath();
+                    ctx.strokeStyle = obj.color;
+                    ctx.ellipse(cx, cy, obj.width/2, obj.height/2, 0, 0, Math.PI*2);
+                    ctx.stroke();
                 }
             }break;
             case CANVASTYPE.FILLED_RECT:{
@@ -3155,6 +3226,7 @@ enum TOOLTYPE {
     PAN         = 'Pan',
     SELECT      = 'Select',
     LINE        = 'Line',
+    ELLIPSE     = 'Ellipse',
     WALL        = 'Wall',
     DOOR        = 'Door',
     RECT        = 'Rect',
@@ -3979,6 +4051,53 @@ document.addEventListener('DOMContentLoaded', function(){
                         canvas.addEventListener('mouseleave', finish_point);
                     }break;
                 }
+            }break;
+            case TOOLTYPE.ELLIPSE:{
+                let id = get_new_id();
+                const x0 = snap(e.offsetX/view.scale-view.camera_x);
+                const y0 = snap(e.offsetY/view.scale-view.camera_y);
+                add_ellipse(view.map, id, x0, y0, color_picker.value);
+                const ellipse = view.map.canvas_objs.get(id)! as Ellipse;
+                view.placing_area.is_placing = true;
+                view.placing_area.is_line = false;
+                view.placing_area.x0 = ellipse.base_x;
+                view.placing_area.y0 = ellipse.base_y;
+                view.placing_area.x1 = ellipse.base_x;
+                view.placing_area.y1 = ellipse.base_y;
+                request_render()
+                function add_point(e:MouseEvent){
+                    e.stopPropagation();
+                    e.preventDefault();
+                    let x1 = snap(e.offsetX/view.scale-view.camera_x);
+                    let y1 = snap(e.offsetY/view.scale-view.camera_y);
+                    if(x1 < x0)
+                        ellipse.base_x = x1;
+                    else
+                        ellipse.base_x = x0;
+                    if(y1 < y0)
+                        ellipse.base_y = y1
+                    else
+                        ellipse.base_y = y0;
+                    ellipse.width = Math.abs(x1-x0);
+                    ellipse.height = Math.abs(y1-y0);
+                    view.placing_area.x0 = ellipse.base_x;
+                    view.placing_area.y0 = ellipse.base_y;
+                    view.placing_area.x1 = ellipse.base_x + ellipse.width;
+                    view.placing_area.y1 = ellipse.base_y + ellipse.height;
+                    request_render();
+                }
+                canvas.addEventListener('mousemove', add_point);
+                function finish_point(){
+                    canvas.removeEventListener('mousemove', add_point);
+                    window.removeEventListener('mouseup', finish_point);
+                    canvas.removeEventListener('mouseleave', finish_point);
+                    view.placing_area.is_placing = false;
+                    request_render();
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
+                }
+                window.addEventListener('mouseup', finish_point);
+                canvas.addEventListener('mouseleave', finish_point);
             }break;
             case TOOLTYPE.TEXT:{
                 const x0 = e.offsetX/view.scale-view.camera_x;

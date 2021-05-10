@@ -30,6 +30,7 @@ class CANVASTYPE(IntEnum):
     RECT          = 3
     GRID_RECT     = 4
     FILLED_RECT   = 5
+    ELLIPSE       = 6
     IMAGE         = 7
     TEXT          = 8
     EZ_TOKEN      = 9
@@ -137,6 +138,11 @@ VALIDATE_OBJ[CANVASTYPE.RECT] = Validator(
 VALIDATE_OBJ[CANVASTYPE.FILLED_RECT] = Validator(
         color=str,
         color2=str,
+        width=(float, int),
+        height=(float, int),
+).validate
+VALIDATE_OBJ[CANVASTYPE.ELLIPSE] = Validator(
+        color=str,
         width=(float, int),
         height=(float, int),
 ).validate
