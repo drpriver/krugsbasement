@@ -10,7 +10,7 @@
 * [ ] S is still bad
 * [ ] line thickness options
 * [ ] rectangle thickness options
-* [ ] rectangle snap to grid
+* [x] rectangle snap to grid
 * [ ] Wide stairs
 * [ ] 5' stairs
 * [ ] Diagonal stairs

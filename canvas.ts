@@ -997,8 +997,18 @@ function change_filled_rect_by_id(map:DungeonMap, id:number, x0:number, y0:numbe
     change_filled_rect(obj, x0, y0, x1, y1);
 }
 function make_text(id:number, base_x:number, base_y:number, text:string, size:number):TextObj{
-    base_x = base_x - (base_x & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
-    base_y = base_y - (base_y & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
+    switch(snapmode){
+        case SNAPMODE.GRID:
+            base_x = base_x - (base_x & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
+            base_y = base_y - (base_y & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
+            break;
+        case SNAPMODE.HALF:
+            base_x = base_x - (base_x & (REFERENCE_WIDTH/2-1)) + REFERENCE_WIDTH/4;
+            base_y = base_y - (base_y & (REFERENCE_WIDTH/2-1)) + REFERENCE_WIDTH/4;
+            break;
+        case SNAPMODE.FREE:
+            break;
+    }
     const obj =  {
         type: CANVASTYPE.TEXT,
         id: id,
@@ -3762,23 +3772,45 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case TOOLTYPE.WALL:{
                 let id = get_new_id();
-                add_gridline(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y, color_picker.value);
-                function add_point(e:MouseEvent){
-                    e.stopPropagation();
-                    e.preventDefault();
-                    add_gridline_point_by_id(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y);
-                    request_render();
+                if(snapmode == SNAPMODE.FREE){
+                    // copy paste from LINE above.
+                    add_freehand_line(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y, color_picker.value);
+                    function add_point(e:MouseEvent){
+                        e.stopPropagation();
+                        e.preventDefault();
+                        add_freehand_point_by_id(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y);
+                        request_render();
+                    }
+                    canvas.addEventListener('mousemove', add_point);
+                    function finish_point(){
+                        canvas.removeEventListener('mousemove', add_point);
+                        window.removeEventListener('mouseup', finish_point);
+                        canvas.removeEventListener('mouseleave', finish_point);
+                        publish_obj_by_id(view.map, id);
+                        note_create_by_id_for_undo(view.map, id);
+                    }
+                    window.addEventListener('mouseup', finish_point);
+                    canvas.addEventListener('mouseleave', finish_point);
                 }
-                canvas.addEventListener('mousemove', add_point);
-                function finish_point(){
-                    canvas.removeEventListener('mousemove', add_point);
-                    window.removeEventListener('mouseup', finish_point);
-                    canvas.removeEventListener('mouseleave', finish_point);
-                    publish_obj_by_id(view.map, id);
-                    note_create_by_id_for_undo(view.map, id);
+                else{
+                    add_gridline(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y, color_picker.value);
+                    function add_point(e:MouseEvent){
+                        e.stopPropagation();
+                        e.preventDefault();
+                        add_gridline_point_by_id(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y);
+                        request_render();
+                    }
+                    canvas.addEventListener('mousemove', add_point);
+                    function finish_point(){
+                        canvas.removeEventListener('mousemove', add_point);
+                        window.removeEventListener('mouseup', finish_point);
+                        canvas.removeEventListener('mouseleave', finish_point);
+                        publish_obj_by_id(view.map, id);
+                        note_create_by_id_for_undo(view.map, id);
+                    }
+                    window.addEventListener('mouseup', finish_point);
+                    canvas.addEventListener('mouseleave', finish_point);
                 }
-                window.addEventListener('mouseup', finish_point);
-                canvas.addEventListener('mouseleave', finish_point);
             }break;
             case TOOLTYPE.DOOR:{
                 let x0 = snap(e.offsetX/view.scale-view.camera_x);
@@ -3821,11 +3853,13 @@ document.addEventListener('DOMContentLoaded', function(){
                         let id = get_new_id();
                         let orientation;
                         let width;
-                        if(y1 === y0){
+                        if(Math.abs(y1-y0) < 4){
+                        // if(y1 === y0){
                             orientation = ORIENTATION.HORIZONTAL;
                             width = Math.abs(x1-x0)/REFERENCE_WIDTH;
                         }
-                        else if(x1 == x0){
+                        else if(Math.abs(x1-x0) < 4){
+                        // else if(x1 == x0){
                             orientation = ORIENTATION.VERTICAL;
                             width = Math.abs(y1-y0)/REFERENCE_WIDTH;
                         }
@@ -3837,7 +3871,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             orientation = ORIENTATION.TOPRIGHT_DOWNLEFT;
                             width = Math.max(Math.abs(y1-y0), Math.abs(x1-x0))/REFERENCE_WIDTH;
                         }
-                        if(width < 0.01)
+                        if(width < 0.1)
                             return;
                         let x = ((x0 + x1)/2) | 0;
                         let y = ((y0 + y1)/2) | 0;
@@ -3989,17 +4023,17 @@ document.addEventListener('DOMContentLoaded', function(){
                     </table>
                 `;
                 make_ok_dialog(html, function(hoverpop){
-                    const text = (document.getElementById('hover-url') as any).value;
+                    const text = (document.getElementById('hover-url') as HTMLInputElement).value;
                     if(!text || !text.trim()){
                         return;
                     }
-                    let width = +(document.getElementById('hover-width') as any).value;
-                    let height = +(document.getElementById('hover-height') as any).value;
+                    let width = +(document.getElementById('hover-width') as HTMLInputElement).value;
+                    let height = +(document.getElementById('hover-height') as HTMLInputElement).value;
                     if(!width)
                         width = 0;
                     if(!height)
                         height = 0;
-                    const round = (document.getElementById('hover-checkbox') as any).checked;
+                    const round = (document.getElementById('hover-checkbox') as HTMLInputElement).checked;
                     if(round){
                         width = snap_to_grid(width);
                         height = snap_to_grid(height);
