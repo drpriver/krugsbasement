@@ -4,3 +4,9 @@ Selection having piercing sucks. We need a notion of z index maybe? Tokens eat e
 
 Ok, so I just iterate backwards, which isn't exactly right.
 So this is not a fixed bug, but it is not as urgent as it was.
+
+Update
+------
+
+This was basically fixed. We z-sort based on type and are able to query for
+the topmost one. I'll make a new bug if I want to change this behavior.
