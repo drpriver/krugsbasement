@@ -91,7 +91,7 @@ enum CANVASFLAG {
     DELETED = 1 << 0,
     ALL = NONE | DELETED,
 }
-// 
+//
 // Base of all objects and then the rest of the fields are different.
 // Essentially, they are tagged unions.
 //
@@ -290,7 +290,7 @@ type Stairs = {
     rotation: ROTATION;
 }
 
-type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs;
+type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse;
 
 // Door subtypes
 // ------------
@@ -1035,7 +1035,7 @@ function make_text(id:number, base_x:number, base_y:number, text:string, size:nu
         flags: CANVASFLAG.NONE,
         text: text,
         size: size,
-        bbox: { x0: 0, y0: 0, x1: 0, y1: 0, },
+        bbox: {x0:0, y0:0, x1:0, y1:0},
     };
     return obj;
 }
@@ -1832,9 +1832,10 @@ function set_obj_states_from_stripped_objs(map:DungeonMap, obj_states:Array<Stri
 enum SELECTTYPE {
     MAP = 1 << 0,
     TOKEN = 1 << 1,
+    // BACKGROUND = 1 << 2, // unimplemented
     ANY = MAP | TOKEN,
 }
-let select_type: SELECTTYPE = SELECTTYPE.ANY;;
+let select_type: SELECTTYPE = SELECTTYPE.ANY;
 
 function update_selection(view:DungeonMapView, x0:number, y0:number, x1:number, y1:number):void{
     if(x0 > x1){
@@ -1891,7 +1892,7 @@ function obj_in_bbox(obj_:CanvasObject, bbox:Bbox, selection_type:SELECTTYPE):bo
         case CANVASTYPE.GRID_RECT:{
             if(!(selection_type & SELECTTYPE.MAP))
                 return false;
-            const obj = obj_ as (FilledRectangle | Rectangle | GridRectangle | ImageObj);
+            const obj = obj_ as (Ellipse | FilledRectangle | Rectangle | GridRectangle | ImageObj);
             const rect_bbox = {
                 x0:obj.base_x,
                 y0:obj.base_y,
@@ -1905,13 +1906,15 @@ function obj_in_bbox(obj_:CanvasObject, bbox:Bbox, selection_type:SELECTTYPE):bo
             if(!(selection_type & SELECTTYPE.TOKEN))
                 return false;
             const obj = obj_ as (ImgToken | EzToken);
-            const radius_x = obj.width*REFERENCE_WIDTH/2;
-            const radius_y = obj.height*REFERENCE_WIDTH/2;
+            const w = obj.width * REFERENCE_WIDTH;
+            const h = obj.height * REFERENCE_WIDTH;
+            // const radius_x = obj.width*REFERENCE_WIDTH/2;
+            // const radius_y = obj.height*REFERENCE_WIDTH/2;
             const token_bbox = {
                 x0: obj.base_x,
-                x1: obj.base_x + 2*radius_x,
+                x1: obj.base_x + w,
                 y0: obj.base_y,
-                y1: obj.base_y + 2*radius_y,
+                y1: obj.base_y + h,
             };
             return bbox_overlaps(token_bbox, bbox);
         }break;
@@ -1978,7 +1981,7 @@ function note_selections(view:DungeonMapView):void{
     const y0 = view.selection_area.y0;
     const x1 = view.selection_area.x1;
     const y1 = view.selection_area.y1;
-    const selection_bbox = {x0:x0, y0:y0, x1:x1, y1:y1,};
+    const selection_bbox = {x0:x0, y0:y0, x1:x1, y1:y1};
     const selection_type = select_type;
     const selected = view.selected;
     if(view.selection_area.select_one){
@@ -1994,7 +1997,7 @@ function note_selections(view:DungeonMapView):void{
     }
     else {
         for(let i = 0; i < length; ++i){
-            const obj = canvas_obj_array[i]; 
+            const obj = canvas_obj_array[i];
             if(obj.flags & CANVASFLAG.DELETED)
                 continue;
             if(obj_in_bbox(obj, selection_bbox, selection_type)){
@@ -2065,13 +2068,17 @@ function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number
     if(!selected_objs.length)
         return;
     if(rigid){
-        let snap_func = snapmode == SNAPMODE.HALF?snap_to_half_grid:snap_to_grid;
-        const aligned_old_x = snap_func(base_x);
-        const aligned_old_y = snap_func(base_y);
-        const aligned_new_x = snap_func(base_x+dx);
-        const aligned_new_y = snap_func(base_y+dy);
+        const ox = base_x + dx;
+        const oy = base_y + dy;
+        let m = snapmode == SNAPMODE.HALF? REFERENCE_WIDTH/2-1 : REFERENCE_WIDTH-1;
+        const aligned_old_x = base_x - (base_x & m);
+        const aligned_old_y = base_y - (base_y & m);
+        const aligned_new_x = ox - (ox & m);
+        const aligned_new_y = oy - (oy & m);
         dx = aligned_new_x - aligned_old_x;
         dy = aligned_new_y - aligned_old_y;
+        dx = Math.round(dx/64)*64;
+        dy = Math.round(dy/64)*64;
         if(dx || dy){
             for(let i = 0; i < selected_objs.length; i++){
                 const obj = selected_objs[i];
@@ -2368,17 +2375,17 @@ function launch_edit_dialog(view:DungeonMapView):void{
             <table class="input-container">
                 <tr>
                     <td><label for="color">Color:</label>
-                    <td><input type="color" id="hover-color" value="`+obj.color+`">
+                    <td><input type="color" id="hover-color" value="${obj.color}">
                 </tr>
                 <tr>
                     <td><label for="width">Width (sq):</label>
-                    <td><input type="number" name="width" id="hover-width" min="1" max="5" value="`+obj.width+`" class="numeric-input">
+                    <td><input type="number" name="width" id="hover-width" min="1" max="5" value="${obj.width}" class="numeric-input">
                     <td><label for="height">Height (sq):</label>
-                    <td><input type="number" name="height" id="hover-height" min="1" max="5" value="`+obj.height+`" class="numeric-input">
+                    <td><input type="number" name="height" id="hover-height" min="1" max="5" value="${obj.height}" class="numeric-input">
                 </tr>
                 <tr>
                     <td><label for="text">Text:</label>
-                    <td colspan="3"><input type="text" name="text" id="hover-text" value="`+obj.text+`">
+                    <td colspan="3"><input type="text" name="text" id="hover-text" value="${obj.text}">
                 </tr>
             </table>
             `;
@@ -3099,13 +3106,13 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 const obj = obj_ as Stairs;
                 if(!obj.width || !obj.height)
                     break;
-                const rect_bbox = {
+                const bbox = {
                     x0:obj.base_x,
                     y0:obj.base_y,
                     x1:obj.base_x+obj.width*REFERENCE_WIDTH,
                     y1:obj.base_y+obj.height*REFERENCE_WIDTH,
                 };
-                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                if(!bbox_overlaps(bbox, canvas_bbox)){
                     break;
                 }
                 if(is_selected){
@@ -3178,23 +3185,23 @@ function render(timestamp:DOMHighResTimeStamp):void{
     }
     if(view.selection_area.is_selecting){
         ctx.fillStyle = '#55555555';
-        ctx.fillRect(view.selection_area.x0, view.selection_area.y0, view.selection_area.x1-view.selection_area.x0, view.selection_area.y1-view.selection_area.y0);
+        const a = view.selection_area;
+        ctx.fillRect(a.x0, a.y0, a.x1-a.x0, a.y1-a.y0);
     }
     if(view.placing_area.is_placing){
         ctx.strokeStyle = '#33aaaaaa';
         ctx.lineWidth = 4;
-        const x = view.placing_area.x0;
-        const y = view.placing_area.y0;
-        const w = view.placing_area.x1 - x;
-        const h = view.placing_area.y1 - y;
+        const a = view.selection_area;
+        const w = a.x1 - a.x0;
+        const h = a.y1 - a.y0;
         if(view.placing_area.is_line){
             ctx.beginPath();
-            ctx.moveTo(x, y);
-            ctx.lineTo(view.placing_area.x1, view.placing_area.y1);
+            ctx.moveTo(a.x0, a.y0);
+            ctx.lineTo(a.x1, a.y1);
             ctx.stroke();
         }
         else {
-            ctx.strokeRect(x-2, y-2, w+4, h+4);
+            ctx.strokeRect(a.x0-2, a.y0-2, w+4, h+4);
         }
     }
     const PING_DURATION = 1000;
@@ -3295,13 +3302,16 @@ function change_tool(toolname:TOOLTYPE):void{
             <div style="height:70vh;overflow-y:auto;margin:auto;">
             <h3 style="text-align:center;">Tips</h3>
             <div style="margin:auto;max-width:36em;">
-            <p>The Grid/Half/Free buttons affect what the tools will snap to. You can use <b>q</b> to switch to Grid, <b>w</b> to switch to Half and <b>e</b> to switch to Free.
+            <p>The Grid/Half/Free buttons affect what the tools will snap to.
+               You can use <b>q</b> to switch to Grid, <b>w</b> to switch to Half
+               and <b>e</b> to switch to Free.
             <p>You can use <b>s</b> to switch to Select.
             <p>The <span>☰</span> means there are other options for that tool.
             <p>Right-clicking on the map shows some more options
             <p>You can cut, copy, paste things on the map.
             <p>Click the options button to add macros and change your chat name.
-            <p>Roll a die by typing a dice expression into the chat, like 'd20+4'. Non-dice messages are just sent as text.
+            <p>Roll a die by typing a dice expression into the chat, like 'd20+4'.
+               Non-dice messages are just sent as text.
             <h3 style="text-align:center;">Tools</h3>
             </div>
             <table id="help-menu">
@@ -3311,7 +3321,9 @@ function change_tool(toolname:TOOLTYPE):void{
                 </tr>
                 <tr>
                     <td>Select
-                    <td>Select things. Select modes change what you can select. A single click selects one object; dragging will select anything that overlaps. Clicking on a selected object and dragging will move.
+                    <td>Select things. Select modes change what you can select.
+                        A single click selects one object; dragging will select anything that
+                        overlaps. Clicking on a selected object and dragging will move.
                 </tr>
                 <tr>
                     <td>Wall
@@ -3319,7 +3331,8 @@ function change_tool(toolname:TOOLTYPE):void{
                 </tr>
                 <tr>
                     <td>Door
-                    <td>Allows you to draw doors. Click and drag between corners of the grid. Do this over walls.
+                    <td>Allows you to draw doors. Click and drag between corners of the grid.
+                        Do this over walls.
                 </tr>
                 <tr>
                     <td>Stairs
@@ -3331,15 +3344,19 @@ function change_tool(toolname:TOOLTYPE):void{
                 </tr>
                 <tr>
                     <td>Rect
-                    <td>A rectangle. Border is primary color. A solid rectangle is all the border color, a filled rectangle uses the secondary color for the fill.
+                    <td>A rectangle. Border is primary color.
+                        A solid rectangle is all the border color,
+                        a filled rectangle uses the secondary color for the fill.
                 </tr>
                 <tr>
                     <td>Text
-                    <td>Allows you to type in some text. Snaps to the center of the square at first, but you can move it to wherever.
+                    <td>Allows you to type in some text.
+                        Snaps to the center of the square at first, but you can move it to wherever.
                 </tr>
                 <tr>
                     <td>Token
-                    <td>Ez Token Allows you to make a simple token with a label. Img Token Allows you to make a token with an image from a url.
+                    <td>Ez Token allows you to make a simple token with a label.
+                        Img Token allows you to make a token with an image from a url.
                 </tr>
                 <tr>
                     <td>Image
@@ -3836,11 +3853,15 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case TOOLTYPE.LINE:{
                 let id = get_new_id();
-                add_freehand_line(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y, color_picker.value);
+                const x0 = e.offsetX/view.scale-view.camera_x;
+                const y0 = e.offsetY/view.scale-view.camera_y;
+                add_freehand_line(view.map, id, x0, y0, color_picker.value);
                 function add_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    add_freehand_point_by_id(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y);
+                    const x1 = e.offsetX/view.scale-view.camera_x;
+                    const y1 = e.offsetY/view.scale-view.camera_y;
+                    add_freehand_point_by_id(view.map, id, x1, y1);
                     request_render();
                 }
                 canvas.addEventListener('mousemove', add_point);
@@ -3858,11 +3879,15 @@ document.addEventListener('DOMContentLoaded', function(){
                 let id = get_new_id();
                 if(snapmode == SNAPMODE.FREE){
                     // copy paste from LINE above.
-                    add_freehand_line(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y, color_picker.value);
+                    const x0 = e.offsetX/view.scale-view.camera_x;
+                    const y0 = e.offsetY/view.scale-view.camera_y;
+                    add_freehand_line(view.map, id, x0, y0, color_picker.value);
                     function add_point(e:MouseEvent){
                         e.stopPropagation();
                         e.preventDefault();
-                        add_freehand_point_by_id(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y);
+                        const x1 = e.offsetX/view.scale-view.camera_x;
+                        const y1 = e.offsetY/view.scale-view.camera_y;
+                        add_freehand_point_by_id(view.map, id, x1, y1);
                         request_render();
                     }
                     canvas.addEventListener('mousemove', add_point);
@@ -3877,11 +3902,15 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.addEventListener('mouseleave', finish_point);
                 }
                 else{
-                    add_gridline(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y, color_picker.value);
+                    const x0 = e.offsetX/view.scale-view.camera_x;
+                    const y0 = e.offsetY/view.scale-view.camera_y;
+                    add_gridline(view.map, id, x0, y0, color_picker.value);
                     function add_point(e:MouseEvent){
                         e.stopPropagation();
                         e.preventDefault();
-                        add_gridline_point_by_id(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y);
+                        const x1 = e.offsetX/view.scale-view.camera_x;
+                        const y1 = e.offsetY/view.scale-view.camera_y;
+                        add_gridline_point_by_id(view.map, id, x1, y1);
                         request_render();
                     }
                     canvas.addEventListener('mousemove', add_point);
@@ -3978,7 +4007,9 @@ document.addEventListener('DOMContentLoaded', function(){
                         function add_point(e:MouseEvent){
                             e.stopPropagation();
                             e.preventDefault();
-                            change_rect_by_id(view.map, id, snap(e.offsetX/view.scale-view.camera_x), snap(e.offsetY/view.scale-view.camera_y), x0, y0);
+                            const x1 = snap(e.offsetX/view.scale-view.camera_x);
+                            const y1 = snap(e.offsetY/view.scale-view.camera_y);
+                            change_rect_by_id(view.map, id, x1, y1, x0, y0);
                             request_render();
                         }
                         canvas.addEventListener('mousemove', add_point);
@@ -4000,7 +4031,9 @@ document.addEventListener('DOMContentLoaded', function(){
                         function add_point(e:MouseEvent){
                             e.stopPropagation();
                             e.preventDefault();
-                            change_filled_rect_by_id(view.map, id, snap(e.offsetX/view.scale-view.camera_x), snap(e.offsetY/view.scale-view.camera_y), x0, y0);
+                            const x1 = snap(e.offsetX/view.scale-view.camera_x);
+                            const y1 = snap(e.offsetY/view.scale-view.camera_y);
+                            change_filled_rect_by_id(view.map, id, x1, y1, x0, y0);
                             request_render();
                         }
                         canvas.addEventListener('mousemove', add_point);
@@ -4030,7 +4063,9 @@ document.addEventListener('DOMContentLoaded', function(){
                         function add_point(e:MouseEvent){
                             e.stopPropagation();
                             e.preventDefault();
-                            change_gridrect_by_id(view.map, id, snap(e.offsetX/view.scale-view.camera_x), snap(e.offsetY/view.scale-view.camera_y), x0, y0);
+                            const x1 = snap(e.offsetX/view.scale-view.camera_x);
+                            const y1 = snap(e.offsetY/view.scale-view.camera_y);
+                            change_gridrect_by_id(view.map, id, x1, y1, x0, y0);
                             view.placing_area.x0 = gridrect.base_x;
                             view.placing_area.y0 = gridrect.base_y;
                             view.placing_area.x1 = gridrect.base_x + gridrect.width;
@@ -4344,7 +4379,10 @@ document.addEventListener('DOMContentLoaded', function(){
             },
             {
                 label: 'Gather Party',
-                func: function(){socket.emit('canvas-gather', {x:-x, y:-y, map_id:view.map.map_id}); remove_menu();},
+                func: function(){
+                    socket.emit('canvas-gather', {x:-x, y:-y, map_id:view.map.map_id});
+                    remove_menu();
+                },
                 disabled: false,
             },
             {
