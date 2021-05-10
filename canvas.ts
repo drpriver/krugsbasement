@@ -706,6 +706,19 @@ function snap_to_half_grid(x:number):number{
     }
     return x;
 }
+function snap_identity(x:number):number{
+    return x;
+}
+function get_snap_func():(x:number)=>number{
+    switch(snapmode){
+        case SNAPMODE.GRID:
+            return snap_to_grid;
+        case SNAPMODE.HALF:
+            return snap_to_half_grid;
+        case SNAPMODE.FREE:
+            return snap_identity;
+    }
+}
 
 function make_gridline(id:number, base_x:number, base_y:number, color:string):GridLine{
     if(snapmode == SNAPMODE.HALF){
@@ -835,14 +848,6 @@ function add_gridline_point_by_id(map:DungeonMap, id:number, x:number, y:number)
     add_gridline_point(obj, x, y);
 }
 function make_gridrect(id:number, base_x:number, base_y:number, color:string):GridRectangle{
-    if(snapmode == SNAPMODE.HALF){
-        base_x = snap_to_half_grid(base_x);
-        base_y = snap_to_half_grid(base_y);
-    }
-    else {
-        base_x = snap_to_grid(base_x);
-        base_y = snap_to_grid(base_y);
-    }
     const obj =  {
         type: CANVASTYPE.GRID_RECT,
         id: id,
@@ -860,18 +865,6 @@ function add_gridrect(map:DungeonMap, id:number, base_x:number, base_y:number, c
     add_canv_obj(map, obj);
 }
 function change_gridrect(obj:GridRectangle, x0:number, y0:number, x1:number, y1:number):void{
-    if(snapmode == SNAPMODE.HALF){
-        x0 = snap_to_half_grid(x0);
-        y0 = snap_to_half_grid(y0);
-        x1 = snap_to_half_grid(x1);
-        y1 = snap_to_half_grid(y1);
-    }
-    else {
-        x0 = snap_to_grid(x0);
-        y0 = snap_to_grid(y0);
-        x1 = snap_to_grid(x1);
-        y1 = snap_to_grid(y1);
-    }
     if(x1 < x0){
         let temp = x1;
         x1 = x0;
@@ -985,7 +978,7 @@ function change_filled_rect(obj:FilledRectangle, x0:number, y0:number, x1:number
 }
 function change_filled_rect_by_id(map:DungeonMap, id:number, x0:number, y0:number, x1:number, y1:number):void{
     let obj = map.canvas_objs.get(id) as FilledRectangle;
-    change_rect(obj, x0, y0, x1, y1);
+    change_filled_rect(obj, x0, y0, x1, y1);
 }
 function make_text(id:number, base_x:number, base_y:number, text:string, size:number):TextObj{
     base_x = base_x - (base_x & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
@@ -2450,11 +2443,11 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 // TODO: delete incomplete objects that are canceled.
                 if(obj.path){
                     if(is_selected){
-                        ctx.lineWidth=2*Math.max(3/scale, 6);
+                        ctx.lineWidth=12;
                         ctx.strokeStyle = SELECTED_COLOR;
                         ctx.stroke(obj.path);
                     }
-                    ctx.lineWidth = Math.max(3/scale, 6);
+                    ctx.lineWidth = 6;
                     ctx.strokeStyle = obj.color;
                     ctx.stroke(obj.path);
                 }
@@ -2492,13 +2485,14 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(!bbox_overlaps(rect_bbox, canvas_bbox)){
                     break;
                 }
-                if(obj.width && obj.height){
+                // if(obj.width && obj.height){
+                if(1){
                     if(is_selected){
                         ctx.lineWidth=8;
                         ctx.strokeStyle = SELECTED_COLOR;
                         ctx.strokeRect(obj.base_x-2, obj.base_y-2, obj.width+4, obj.height+4);
                     }
-                    ctx.lineWidth=4;
+                    ctx.lineWidth=6;
                     ctx.strokeStyle = obj.color;
                     ctx.strokeRect(obj.base_x, obj.base_y, obj.width, obj.height);
                 }
@@ -2515,10 +2509,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
                 if(obj.width && obj.height){
                     if(is_selected){
-                        ctx.fillStyle = SELECTED_COLOR+'aa';
+                        ctx.fillStyle = SELECTED_COLOR;
                         ctx.fillRect(obj.base_x-2, obj.base_y-2, obj.width+4, obj.height+4);
                     }
-                    ctx.fillStyle = obj.color + 'aa';
+                    ctx.fillStyle = obj.color;
                     ctx.fillRect(obj.base_x, obj.base_y, obj.width, obj.height);
                 }
             }break;
@@ -3126,8 +3120,6 @@ enum TOOLTYPE {
     WALL        = 'Wall',
     DOOR        = 'Door',
     RECT        = 'Rect',
-    FILLED_RECT = 'Filled-Rect',
-    FLOOR       = 'Floor',
     TEXT        = 'Text',
     TOKEN       = 'Token',
     IMAGE       = 'Image',
@@ -3135,10 +3127,16 @@ enum TOOLTYPE {
     STAIRS      = 'Stairs',
 }
 enum TOKENTYPE {
-    EZ,
-    IMG
+    EZ = 0,
+    IMG = 1,
 }
 let current_token_type = TOKENTYPE.EZ;
+enum RECTTYPE {
+    HOLLOW = 0,
+    SOLID = 1,
+    FILLED = 2,
+}
+let current_rect_type = RECTTYPE.HOLLOW;
 let current_tool = TOOLTYPE.PAN;
 let color_picker:any = null; // idk what this should be
 let color_picker2:any = null; // idk what this should be
@@ -3294,8 +3292,6 @@ function make_tri_menu(e:MouseEvent, options:Array<{func:()=>void;text:string}>)
     window.addEventListener('mousedown', remove_tri_menu);
     canvas.addEventListener('mousedown', remove_tri_menu);
 }
-
-
 let select_numeric_hot_keys: Array<()=>void> = [];
 let wall_numeric_hot_keys: Array<()=>void> = [];
 let door_numeric_hot_keys: Array<()=>void> = [];
@@ -3451,6 +3447,43 @@ document.addEventListener('DOMContentLoaded', function():void{
                 ]);
             });
         }
+        if(tool.firstChild.textContent.trim() == 'Rect'){
+            const name = tool.getElementsByTagName('span')[0];
+            function change_rt(rt:RECTTYPE){
+                current_rect_type = rt;
+                switch(current_rect_type){
+                    case RECTTYPE.HOLLOW:
+                        name.innerText = ' - Hollow ☰';
+                        break;
+                    case RECTTYPE.SOLID:
+                        name.innerText = ' - Solid ☰';
+                        break;
+                    case RECTTYPE.FILLED:
+                        name.innerText = ' - Filled ☰';
+                        break;
+                }
+            }
+            change_rt(RECTTYPE.HOLLOW);
+            function make_cb(rt:RECTTYPE){
+                function cb(){
+                    change_tool(TOOLTYPE.RECT);
+                    change_rt(rt);
+                }
+                return cb;
+            }
+            const triangle = tool.getElementsByTagName('span')[0];
+            triangle.addEventListener('click', function(e:MouseEvent){
+                e.preventDefault();
+                e.stopPropagation();
+                if(has_tri_menu)
+                    return;
+                make_tri_menu(e, [
+                    {func:make_cb(RECTTYPE.HOLLOW),  text:'Hollow'},
+                    {func:make_cb(RECTTYPE.SOLID),  text:'Solid'},
+                    {func:make_cb(RECTTYPE.FILLED),  text:'Filled'},
+                ]);
+            });
+        }
     }
     change_tool(TOOLTYPE.PAN);
 });
@@ -3540,12 +3573,6 @@ document.addEventListener('DOMContentLoaded', function(){
                 break;
             case 'f':
                 change_tool(TOOLTYPE.RECT);
-                break;
-            case 'g':
-                change_tool(TOOLTYPE.FILLED_RECT);
-                break;
-            case 'h':
-                change_tool(TOOLTYPE.FLOOR);
                 break;
             case 'y':
                 if(shortcut){
@@ -3834,85 +3861,90 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('mouseup', finish_door);
                 canvas.addEventListener('mouseleave', finish_door);
             }break;
-            case TOOLTYPE.FLOOR:{
-                let id = get_new_id();
-                const x0 = e.offsetX/view.scale-view.camera_x;
-                const y0 = e.offsetY/view.scale-view.camera_y;
-                add_gridrect(view.map, id, x0, y0, color_picker.value);
-                const gridrect = view.map.canvas_objs.get(id) as GridRectangle;
-                view.placing_area.is_placing = true;
-                view.placing_area.is_line = false;
-                view.placing_area.x0 = gridrect.base_x;
-                view.placing_area.y0 = gridrect.base_y;
-                view.placing_area.x1 = gridrect.base_x;
-                view.placing_area.y1 = gridrect.base_y;
-                request_render()
-                function add_point(e:MouseEvent){
-                    e.stopPropagation();
-                    e.preventDefault();
-                    change_gridrect_by_id(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y, x0, y0);
-                    view.placing_area.x0 = gridrect.base_x;
-                    view.placing_area.y0 = gridrect.base_y;
-                    view.placing_area.x1 = gridrect.base_x + gridrect.width;
-                    view.placing_area.y1 = gridrect.base_y + gridrect.height;
-                    request_render();
-                }
-                canvas.addEventListener('mousemove', add_point);
-                function finish_point(){
-                    canvas.removeEventListener('mousemove', add_point);
-                    window.removeEventListener('mouseup', finish_point);
-                    canvas.removeEventListener('mouseleave', finish_point);
-                    view.placing_area.is_placing = false;
-                    request_render();
-                    publish_obj_by_id(view.map, id);
-                    note_create_by_id_for_undo(view.map, id);
-                }
-                window.addEventListener('mouseup', finish_point);
-                canvas.addEventListener('mouseleave', finish_point);
-            }break;
             case TOOLTYPE.RECT:{
-                let id = get_new_id();
-                const x0 = e.offsetX/view.scale-view.camera_x;
-                const y0 = e.offsetY/view.scale-view.camera_y;
-                add_rect(view.map, id, x0, y0, color_picker.value);
-                function add_point(e:MouseEvent){
-                    e.stopPropagation();
-                    e.preventDefault();
-                    change_rect_by_id(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y, x0, y0);
-                    request_render();
+                let snap = get_snap_func();
+                switch(current_rect_type){
+                    case RECTTYPE.HOLLOW:{
+                        let id = get_new_id();
+                        const x0 = snap(e.offsetX/view.scale-view.camera_x);
+                        const y0 = snap(e.offsetY/view.scale-view.camera_y);
+                        add_rect(view.map, id, x0, y0, color_picker.value);
+                        function add_point(e:MouseEvent){
+                            e.stopPropagation();
+                            e.preventDefault();
+                            change_rect_by_id(view.map, id, snap(e.offsetX/view.scale-view.camera_x), snap(e.offsetY/view.scale-view.camera_y), x0, y0);
+                            request_render();
+                        }
+                        canvas.addEventListener('mousemove', add_point);
+                        function finish_point(){
+                            canvas.removeEventListener('mousemove', add_point);
+                            window.removeEventListener('mouseup', finish_point);
+                            canvas.removeEventListener('mouseleave', finish_point);
+                            publish_obj_by_id(view.map, id);
+                            note_create_by_id_for_undo(view.map, id);
+                        }
+                        window.addEventListener('mouseup', finish_point);
+                        canvas.addEventListener('mouseleave', finish_point);
+                    }break;
+                    case RECTTYPE.FILLED:{
+                        let id = get_new_id();
+                        const x0 = snap(e.offsetX/view.scale-view.camera_x);
+                        const y0 = snap(e.offsetY/view.scale-view.camera_y);
+                        add_filled_rect(view.map, id, x0, y0, color_picker.value, color_picker2.value);
+                        function add_point(e:MouseEvent){
+                            e.stopPropagation();
+                            e.preventDefault();
+                            change_filled_rect_by_id(view.map, id, snap(e.offsetX/view.scale-view.camera_x), snap(e.offsetY/view.scale-view.camera_y), x0, y0);
+                            request_render();
+                        }
+                        canvas.addEventListener('mousemove', add_point);
+                        function finish_point(){
+                            canvas.removeEventListener('mousemove', add_point);
+                            window.removeEventListener('mouseup', finish_point);
+                            canvas.removeEventListener('mouseleave', finish_point);
+                            publish_obj_by_id(view.map, id);
+                            note_create_by_id_for_undo(view.map, id);
+                        }
+                        window.addEventListener('mouseup', finish_point);
+                        canvas.addEventListener('mouseleave', finish_point);
+                    }break;
+                    case RECTTYPE.SOLID:{
+                        let id = get_new_id();
+                        const x0 = snap(e.offsetX/view.scale-view.camera_x);
+                        const y0 = snap(e.offsetY/view.scale-view.camera_y);
+                        add_gridrect(view.map, id, x0, y0, color_picker.value);
+                        const gridrect = view.map.canvas_objs.get(id) as GridRectangle;
+                        view.placing_area.is_placing = true;
+                        view.placing_area.is_line = false;
+                        view.placing_area.x0 = gridrect.base_x;
+                        view.placing_area.y0 = gridrect.base_y;
+                        view.placing_area.x1 = gridrect.base_x;
+                        view.placing_area.y1 = gridrect.base_y;
+                        request_render()
+                        function add_point(e:MouseEvent){
+                            e.stopPropagation();
+                            e.preventDefault();
+                            change_gridrect_by_id(view.map, id, snap(e.offsetX/view.scale-view.camera_x), snap(e.offsetY/view.scale-view.camera_y), x0, y0);
+                            view.placing_area.x0 = gridrect.base_x;
+                            view.placing_area.y0 = gridrect.base_y;
+                            view.placing_area.x1 = gridrect.base_x + gridrect.width;
+                            view.placing_area.y1 = gridrect.base_y + gridrect.height;
+                            request_render();
+                        }
+                        canvas.addEventListener('mousemove', add_point);
+                        function finish_point(){
+                            canvas.removeEventListener('mousemove', add_point);
+                            window.removeEventListener('mouseup', finish_point);
+                            canvas.removeEventListener('mouseleave', finish_point);
+                            view.placing_area.is_placing = false;
+                            request_render();
+                            publish_obj_by_id(view.map, id);
+                            note_create_by_id_for_undo(view.map, id);
+                        }
+                        window.addEventListener('mouseup', finish_point);
+                        canvas.addEventListener('mouseleave', finish_point);
+                    }break;
                 }
-                canvas.addEventListener('mousemove', add_point);
-                function finish_point(){
-                    canvas.removeEventListener('mousemove', add_point);
-                    window.removeEventListener('mouseup', finish_point);
-                    canvas.removeEventListener('mouseleave', finish_point);
-                    publish_obj_by_id(view.map, id);
-                    note_create_by_id_for_undo(view.map, id);
-                }
-                window.addEventListener('mouseup', finish_point);
-                canvas.addEventListener('mouseleave', finish_point);
-            }break;
-            case TOOLTYPE.FILLED_RECT:{
-                let id = get_new_id();
-                const x0 = e.offsetX/view.scale-view.camera_x;
-                const y0 = e.offsetY/view.scale-view.camera_y;
-                add_filled_rect(view.map, id, x0, y0, color_picker.value, color_picker2.value);
-                function add_point(e:MouseEvent){
-                    e.stopPropagation();
-                    e.preventDefault();
-                    change_filled_rect_by_id(view.map, id, e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y, x0, y0);
-                    request_render();
-                }
-                canvas.addEventListener('mousemove', add_point);
-                function finish_point(){
-                    canvas.removeEventListener('mousemove', add_point);
-                    window.removeEventListener('mouseup', finish_point);
-                    canvas.removeEventListener('mouseleave', finish_point);
-                    publish_obj_by_id(view.map, id);
-                    note_create_by_id_for_undo(view.map, id);
-                }
-                window.addEventListener('mouseup', finish_point);
-                canvas.addEventListener('mouseleave', finish_point);
             }break;
             case TOOLTYPE.TEXT:{
                 const x0 = e.offsetX/view.scale-view.camera_x;

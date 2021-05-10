@@ -31,10 +31,8 @@ David20::title @hide
       Line
     ::div.tool
       Rect
-    ::div.tool
-      Filled-Rect
-    ::div.tool
-      Floor
+      ::raw
+        <span>☰</span>
     ::div.tool
       Text
     ::div.tool
