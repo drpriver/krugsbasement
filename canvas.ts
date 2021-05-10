@@ -2271,10 +2271,10 @@ function launch_edit_dialog(view:DungeonMapView):void{
     if(view.selected.size !== 1)
         return;
     const first = view.selected.values().next()!.value;
-    const obj:any = view.map.canvas_objs.get(first)!;
-    if(obj.flags & CANVASFLAG.DELETED)
+    const obj_:CanvasObject = view.map.canvas_objs.get(first)!;
+    if(obj_.flags & CANVASFLAG.DELETED)
         return;
-    switch(obj.type){
+    switch(obj_.type){
         case CANVASTYPE.FREEHAND_LINE:
             return;
         case CANVASTYPE.GRID_LINE:
@@ -2288,7 +2288,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
         case CANVASTYPE.IMAGE:
             return;
         case CANVASTYPE.TEXT:{
-            const text_obj = obj as TextObj;
+            const obj = obj_ as TextObj;
             const html = `
             <h2>Edit Text</h2>
             <table class="input-container">
@@ -2309,15 +2309,16 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 const text = text_input.value.trim();
                 if(!text)
                     return;
-                text_obj.size = number;
-                text_obj.text = text;
-                text_obj.bbox = {x0:0, y0:0, x1:0, y1:0};
-                const after = strip_obj(text_obj, STRIP_INCLUDE_ID) as StrippedObjWithId;
+                obj.size = number;
+                obj.text = text;
+                obj.bbox = {x0:0, y0:0, x1:0, y1:0};
+                const after = strip_obj(obj, STRIP_INCLUDE_ID) as StrippedObjWithId;
                 publish_obj_updates(view.map.map_id, [after]);
                 request_render();
             });
         }return;
         case CANVASTYPE.EZ_TOKEN:{
+            const obj = obj_ as EzToken;
             const html = `
             <h2>Edit Token</h2>
             <table class="input-container">
@@ -2338,20 +2339,20 @@ function launch_edit_dialog(view:DungeonMapView):void{
             </table>
             `;
             make_ok_dialog(html, function(hoverpop){
-                const text_input:any = document.getElementById('hover-text')!;
+                const text_input = document.getElementById('hover-text')! as HTMLInputElement;
                 const text = text_input.value;
                 if(text){
                     obj.text = text;
                 }
-                let width = +((document.getElementById('hover-width') as any).value);
-                let height = +((document.getElementById('hover-height') as any).value);
+                let width = +((document.getElementById('hover-width') as HTMLInputElement).value);
+                let height = +((document.getElementById('hover-height') as HTMLInputElement).value);
                 if(!width)
                     width = 1;
                 if(!height)
                     height = 1;
                 obj.width = width;
                 obj.height = height;
-                const color = (document.getElementById('hover-color') as any).value;
+                const color = (document.getElementById('hover-color') as HTMLInputElement).value;
                 obj.color = color;
                 const after = strip_obj(obj, STRIP_INCLUDE_ID) as StrippedObjWithId;
                 publish_obj_updates(view.map.map_id, [after]);
@@ -2428,12 +2429,13 @@ function render(timestamp:DOMHighResTimeStamp):void{
         y1:-camera_y+height/scale,
     };
     for(let i = 0; i < length; ++i){
-        let obj:any = canvas_obj_array[i]; // todo: downcast
-        if(obj.flags & CANVASFLAG.DELETED)
+        let obj_ = canvas_obj_array[i]!; // todo: downcast
+        if(obj_.flags & CANVASFLAG.DELETED)
             continue;
-        const is_selected = selected.has(obj.id);
-        switch(obj.type){
+        const is_selected = selected.has(obj_.id);
+        switch(obj_.type){
             case CANVASTYPE.FREEHAND_LINE:{
+                const obj = obj_ as FreehandLine;
                 // This works well enough for now.
                 // If things get hairy, I could build a quadtree or whatever.
                 const line_bbox = {
@@ -2457,6 +2459,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
             }break;
             case CANVASTYPE.GRID_LINE:{
+                const obj = obj_ as GridLine;
                 const line_bbox = {
                     x0:obj.bbox.x0 + obj.base_x,
                     y0:obj.bbox.y0 + obj.base_y,
@@ -2479,6 +2482,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
             }break;
             case CANVASTYPE.FILLED_RECT:{
+                const obj = obj_ as FilledRectangle;
                 const rect_bbox = {
                     x0:obj.base_x,
                     y0:obj.base_y,
@@ -2502,6 +2506,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
             }break;
             case CANVASTYPE.RECT:{
+                const obj = obj_ as Rectangle;
                 const rect_bbox = {
                     x0:obj.base_x,
                     y0:obj.base_y,
@@ -2524,6 +2529,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
             }break;
             case CANVASTYPE.GRID_RECT:{
+                const obj = obj_ as GridRectangle;
                 const rect_bbox = {
                     x0:obj.base_x,
                     y0:obj.base_y,
@@ -2543,6 +2549,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
             }break;
             case CANVASTYPE.TEXT:{
+                const obj = obj_ as TextObj;
                 if(obj.text){
                     ctx.font = obj.size + 'px sans-serif';
                     ctx.textBaseline = 'middle';
@@ -2581,6 +2588,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
             }break;
             case CANVASTYPE.EZ_TOKEN:{
+                const obj = obj_ as EzToken;
                 // TODO: currently we don't consider radius_y
                 const radius_x = obj.width*REFERENCE_WIDTH/2;
                 const radius_y = obj.height*REFERENCE_WIDTH/2;
@@ -2614,6 +2622,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 ctx.fillText(obj.text, obj.base_x+radius_x, obj.base_y+radius_y);
             }break;
             case CANVASTYPE.IMAGE:{
+                const obj = obj_ as ImageObj;
                 const rect_bbox = {
                     x0:obj.base_x,
                     y0:obj.base_y,
@@ -2635,6 +2644,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
             }break;
             case CANVASTYPE.IMG_TOKEN:{
+                const obj = obj_ as ImgToken;
                 // TODO: currently we don't consider radius_y
                 const radius_x = obj.width*REFERENCE_WIDTH/2;
                 const radius_y = obj.height*REFERENCE_WIDTH/2;
@@ -2670,6 +2680,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
             }break;
             case CANVASTYPE.DOOR:{
+                const obj = obj_ as DoorObj;
                 const is_vertical = obj.orientation === ORIENTATION.VERTICAL;
                 const w = obj.width;
                 if(!is_vertical){
@@ -3014,6 +3025,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
             }break;
             case CANVASTYPE.STAIRS:{
+                const obj = obj_ as Stairs;
                 if(!obj.width || !obj.height)
                     break;
                 const rect_bbox = {
@@ -3985,11 +3997,11 @@ document.addEventListener('DOMContentLoaded', function(){
                 </table>
                 `;
                 make_ok_dialog(html, function(hoverpop){
-                    const text_input = document.getElementById('hover-text')! as any;
+                    const text_input = document.getElementById('hover-text')! as HTMLInputElement;
                     const text = text_input.value;
                     if(!text || !text.trim())
                         return;
-                    const size_el = document.getElementById('text-size')! as any;
+                    const size_el = document.getElementById('text-size')! as HTMLInputElement;
                     const size = (+size_el.value) | 0;
                     if(size < 8)
                         return;
