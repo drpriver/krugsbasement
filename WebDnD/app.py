@@ -119,6 +119,7 @@ def app_state():
                 return jsonify({})
         return jsonify(state)
     elif request.method == 'DELETE':
+        return '' # disable this functionality for now
         args = request.args
         if 'which' in args:
             which = args['which']
@@ -136,6 +137,7 @@ def app_state():
         chat.clear()
         return ''
     elif request.method == 'POST':
+        return '' # disable this functionality for now
         newstate = request.get_json()
         args = request.args
         if 'which' in args:

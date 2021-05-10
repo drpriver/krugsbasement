@@ -9,3 +9,9 @@ Update
 ------
 We did some checking on the update, but we dont check the /state api, which is kind of brutal.
 
+I should disable post and just upload the files by hand.
+
+Update
+-----
+I disabled the POST and DELETE apis of /state. There is now only GET, which is
+obviously fine. Other APIS are ok.
