@@ -312,6 +312,22 @@ let snapmode: SNAPMODE = SNAPMODE.GRID;
 function change_snapmode(mode:SNAPMODE){
     snapmode = mode;
 }
+function visually_set_snapmode(mode:SNAPMODE){
+    const snap_grid = document.getElementById('grid-snap-grid') as HTMLInputElement;
+    const snap_half = document.getElementById('grid-snap-half') as HTMLInputElement;
+    const snap_free = document.getElementById('grid-snap-free') as HTMLInputElement;
+    switch(mode){
+        case SNAPMODE.GRID:
+            snap_grid.click();
+            break;
+        case SNAPMODE.HALF:
+            snap_half.click();
+            break;
+        case SNAPMODE.FREE:
+            snap_free.click();
+            break;
+    }
+}
 document.addEventListener('DOMContentLoaded', function(){
     const snap_grid = document.getElementById('grid-snap-grid') as HTMLInputElement;
     snap_grid.addEventListener('change', function(){
@@ -3185,11 +3201,13 @@ function change_tool(toolname:TOOLTYPE):void{
             <div style="height:70vh;overflow-y:auto;margin:auto;">
             <h3 style="text-align:center;">Tips</h3>
             <div style="margin:auto;max-width:36em;">
-            <p>You can use <b>q</b> to switch to Wall, <b>w</b> to switch to Door and <b>e</b> to switch to Line.
-            <p>You can use <b>a</b> to switch to Pan, <b>s</b> to switch to Select.
-            <p>The <span>☰</span> means there are other options for that tool. If that tool is selected, you can use 1,2,3,etc. to switch between them.
+            <p>The Grid/Half/Free buttons affect what the tools will snap to. You can use <b>q</b> to switch to Grid, <b>w</b> to switch to Half and <b>e</b> to switch to Free.
+            <p>You can use <b>s</b> to switch to Select.
+            <p>The <span>☰</span> means there are other options for that tool.
             <p>Right-clicking on the map shows some more options
             <p>You can cut, copy, paste things on the map.
+            <p>Click the options button to add macros and change your chat name.
+            <p>Roll a die by typing a dice expression into the chat, like 'd20+4'. Non-dice messages are just sent as text.
             <h3 style="text-align:center;">Tools</h3>
             </div>
             <table id="help-menu">
@@ -3199,11 +3217,7 @@ function change_tool(toolname:TOOLTYPE):void{
                 </tr>
                 <tr>
                     <td>Select
-                    <td>Select things. Select modes change what you can select. A single click selects one object; dragging will select anything that overlaps.
-                </tr>
-                <tr>
-                    <td>Move
-                    <td>Allows you to click to drag to move things that are selected.
+                    <td>Select things. Select modes change what you can select. A single click selects one object; dragging will select anything that overlaps. Clicking on a selected object and dragging will move.
                 </tr>
                 <tr>
                     <td>Wall
@@ -3214,32 +3228,24 @@ function change_tool(toolname:TOOLTYPE):void{
                     <td>Allows you to draw doors. Click and drag between corners of the grid. Do this over walls.
                 </tr>
                 <tr>
+                    <td>Stairs
+                    <td>Allows you to draw stairs.
+                </tr>
+                <tr>
                     <td>Line
                     <td>A freehand line.
                 </tr>
                 <tr>
                     <td>Rect
-                    <td>A freehand rectangle, not filled in. Border is primary color.
-                </tr>
-                <tr>
-                    <td>Filled-Rect
-                    <td>A freehand rectangle, filled in. Border is primary color, filling is secondary..
-                </tr>
-                <tr>
-                    <td>Floor
-                    <td>A rectangle that snaps to grid and is semi-transparent. Uses primary color.
+                    <td>A rectangle. Border is primary color. A solid rectangle is all the border color, a filled rectangle uses the secondary color for the fill.
                 </tr>
                 <tr>
                     <td>Text
                     <td>Allows you to type in some text. Snaps to the center of the square at first, but you can move it to wherever.
                 </tr>
                 <tr>
-                    <td>Ez-Token
-                    <td>Allows you to make a simple token with a label.
-                </tr>
-                <tr>
-                    <td>Img-Token
-                    <td>Allows you to make a token with an image from a url.
+                    <td>Token
+                    <td>Ez Token Allows you to make a simple token with a label. Img Token Allows you to make a token with an image from a url.
                 </tr>
                 <tr>
                     <td>Image
@@ -3556,20 +3562,20 @@ document.addEventListener('DOMContentLoaded', function(){
                 note_delete_by_ids_for_undo(view.map, Array.from(view.selected));
                 end_selecting(view);
             }break;
-            case 'a':
-                change_tool(TOOLTYPE.PAN);
+            case 'q':
+                visually_set_snapmode(SNAPMODE.GRID);
+                break;
+            case 'w':
+                visually_set_snapmode(SNAPMODE.HALF);
+                break;
+            case 'e':
+                visually_set_snapmode(SNAPMODE.FREE);
                 break;
             case 's':
                 change_tool(TOOLTYPE.SELECT);
                 break;
-            case 'q':
+            case 'd':
                 change_tool(TOOLTYPE.WALL);
-                break;
-            case 'w':
-                change_tool(TOOLTYPE.DOOR);
-                break;
-            case 'e':
-                change_tool(TOOLTYPE.LINE);
                 break;
             case 'f':
                 change_tool(TOOLTYPE.RECT);
@@ -3612,24 +3618,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     }
                     break;
                 }
-        break;
-            case '1':
-            case '2':
-            case '3':
-            case '4':
-            case '5':
-            case '6':
-            case '7':
-            case '8':
-            case '9':
-                if(!ctrl_or_cmd_is_pressed && !other_modifiers){
-                    const i = (+e.key) - 1;
-                    if(i < numeric_hot_keys.length){
-                        numeric_hot_keys[i]();
-                        break;
-                    }
-                }
-                return;
+                break;
             default:
                 return;
         }

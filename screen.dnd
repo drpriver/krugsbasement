@@ -69,10 +69,18 @@ David20::title @hide
   #help-menu tbody tr td:nth-child(1){
     font-weight: bold;
     white-space: nowrap;
+    border-right: 1px dotted #aaa;
+  }
+  #help-menu td{
+    padding: 8px;
   }
   #help-menu {
     margin: 1em;
     max-width: 36em;
+    border-collapse: collapse;
+  }
+  #help-menu tr {
+    border-bottom: 1px solid black;
   }
   label {
     -webkit-user-select: none;
