@@ -3191,7 +3191,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
     if(view.placing_area.is_placing){
         ctx.strokeStyle = '#33aaaaaa';
         ctx.lineWidth = 4;
-        const a = view.selection_area;
+        const a = view.placing_area;
         const w = a.x1 - a.x0;
         const h = a.y1 - a.y0;
         if(view.placing_area.is_line){
