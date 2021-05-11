@@ -2599,6 +2599,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     break;
                 }
                 // TODO: delete incomplete objects that are canceled.
+                const oldcap = ctx.lineCap;
+                const oldjoin = ctx.lineJoin;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
                 if(obj.path){
                     if(is_selected){
                         ctx.lineWidth=12;
@@ -2609,6 +2613,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.strokeStyle = obj.color;
                     ctx.stroke(obj.path);
                 }
+                ctx.lineCap = oldcap;
+                ctx.lineJoin = oldjoin;
             }break;
             case CANVASTYPE.ELLIPSE:{
                 const obj = obj_ as Ellipse;

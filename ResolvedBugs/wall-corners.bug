@@ -4,3 +4,8 @@ This is a visual bug. Drawing a path with a corner leads to a sharp corner, but 
 
 Also, drawing a bunch of separate walls looks different than drawing a long wall
 when a corner is involved.
+
+Update:
+----
+
+Using rounded corners and joins, this problem goes away. Thinks look a bit more kindergarten though. Idk, could revisit this.
