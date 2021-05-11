@@ -2572,6 +2572,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
                 if(obj.path){
                     const oldcap = ctx.lineCap;
+                    const oldjoin = ctx.lineJoin;
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
                     if(is_selected){
@@ -2583,6 +2584,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.strokeStyle = obj.color;
                     ctx.stroke(obj.path);
                     ctx.lineCap = oldcap;
+                    ctx.lineJoin = oldjoin;
                 }
             }break;
             case CANVASTYPE.GRID_LINE:{
