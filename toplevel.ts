@@ -1,5 +1,6 @@
 declare let io: any;
 let socket = io({transports:["websocket"]});
+socket.emit('join', window.location.pathname)
 let session_id = 0;
 let show_pan = (function(){
     const sp = localStorage.getItem('showpan');

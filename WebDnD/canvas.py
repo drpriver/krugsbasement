@@ -18,7 +18,7 @@ class Map(NamedTuple):
         return md
 
 
-MAPS = {0:Map(0, [], 'Untitled')}
+MAPS = {'/':{0:Map(0, [], 'Untitled')}}
 class Flags(IntFlag):
     NONE = 0
     DELETED = 1
@@ -50,34 +50,40 @@ def load_canvas(data) -> Dict[int, Map]:
         result[m.map_id] = m
     return result
 
-MAPS = Persister(MAPS, 'BadDb/canvas.json', save_func=save_canvas, load_func=load_canvas).obj
-MAP_OBJS_BY_ID = {k:{o['id']:o for o in v.objects} for k,v in MAPS.items()} # type: Dict[int, Dict[int, dict]]
+MAPS['/'] = Persister(MAPS['/'], 'BadDb/canvas.json', save_func=save_canvas, load_func=load_canvas).obj
+MAP_OBJS_BY_ID = {'/':{k:{o['id']:o for o in v.objects} for k,v in MAPS['/'].items()}} # type: Dict[str,Dict[int, Dict[int, dict]]]
 
-def create_map(map_id:int) -> None:
-    if map_id in MAPS:
+def create_maps(room:str) -> None:
+    if room in MAPS:
         return
-    MAPS[map_id] = Map(map_id, [], 'Untitled')
-    MAP_OBJS_BY_ID[map_id] = {}
+    MAPS[room] = {0:Map(0, [], 'Untitled')}
+    MAP_OBJS_BY_ID[room] = {0:{}}
 
-def name_map(map_id: int, map_name:str) -> None:
-    m = MAPS[map_id]
-    MAPS[map_id] = m._replace(map_name=map_name)
+def create_map(room:str, map_id:int) -> None:
+    if room in MAPS and map_id in MAPS[room]:
+        return
+    MAPS[room][map_id] = Map(map_id, [], 'Untitled')
+    MAP_OBJS_BY_ID[room][map_id] = {}
 
-def new_map_request(map_name:str) -> int:
-    new_map_id = max(MAPS.keys()) + 1
-    MAPS[new_map_id] = Map(new_map_id, [], map_name)
-    MAP_OBJS_BY_ID[new_map_id] = {}
+def name_map(room:str, map_id: int, map_name:str) -> None:
+    m = MAPS[room][map_id]
+    MAPS[room][map_id] = m._replace(map_name=map_name)
+
+def new_map_request(room:str, map_name:str) -> int:
+    new_map_id = max(MAPS[room].keys()) + 1
+    MAPS[room][new_map_id] = Map(new_map_id, [], map_name)
+    MAP_OBJS_BY_ID[room][new_map_id] = {}
     return new_map_id
 
-def delete_map(map_id:int) -> bool:
-    m = MAPS[map_id]
+def delete_map(room:str, map_id:int) -> bool:
+    m = MAPS[room][map_id]
     if m.flags & MapFlag.DELETED:
         return False
     if m.flags & MapFlag.CANT_DELETE:
         return False
     # Check that we will have at least one map after the deletion.
     # If we won't then reject the request.
-    for m in MAPS.values():
+    for m in MAPS[room].values():
         if m.map_id == map_id:
             continue
         if m.flags & MapFlag.DELETED:
@@ -86,13 +92,8 @@ def delete_map(map_id:int) -> bool:
     else:
         return False
 
-    MAPS[map_id] = m._replace(flags=m.flags | MapFlag.DELETED)
+    MAPS[room][map_id] = m._replace(flags=m.flags | MapFlag.DELETED)
     return True
-    
-
-def get_map(map_id:int) -> dict:
-    m = MAPS[map_id]
-    return m._asdict()
 
 VALIDATE_OBJ = {} # type: Dict[int, Callable[[dict], None]]
 vfunc = Callable[[dict], None]
@@ -122,66 +123,24 @@ class Validator:
             else:
                 if not isinstance(v, t): # type: ignore
                     raise TypeError('field is wrong type', key, t, type(v))
-VALIDATE_OBJ[CANVASTYPE.FREEHAND_LINE] = Validator(
-        color=str,
-        points=POINTS
-).validate
-VALIDATE_OBJ[CANVASTYPE.GRID_LINE] = Validator(
-        color=str,
-        points=POINTS
-).validate
-VALIDATE_OBJ[CANVASTYPE.RECT] = Validator(
-        color=str,
-        width=(float, int),
-        height=(float, int),
-).validate
-VALIDATE_OBJ[CANVASTYPE.FILLED_RECT] = Validator(
-        color=str,
-        color2=str,
-        width=(float, int),
-        height=(float, int),
-).validate
-VALIDATE_OBJ[CANVASTYPE.ELLIPSE] = Validator(
-        color=str,
-        width=(float, int),
-        height=(float, int),
-).validate
-VALIDATE_OBJ[CANVASTYPE.GRID_RECT] = Validator(
-        color=str,
-        width=(float, int),
-        height=(float, int),
-).validate
-VALIDATE_OBJ[CANVASTYPE.IMAGE] = Validator(
-        width=(float, int),
-        height=(float, int),
-        url=str,
-).validate
-VALIDATE_OBJ[CANVASTYPE.TEXT] = Validator(
-        text=str,
-        size=(float,int),
-).validate
-VALIDATE_OBJ[CANVASTYPE.EZ_TOKEN] = Validator(
-        text=str,
-        color=str,
-        width=(float,int),
-        height=(float,int),
-).validate
-VALIDATE_OBJ[CANVASTYPE.IMG_TOKEN] = Validator(
-        url=str,
-        width=(float,int),
-        height=(float,int),
-).validate
-VALIDATE_OBJ[CANVASTYPE.DOOR] = Validator(
-        doortype=int,
-        color=str,
-        width=(float,int),
-        orientation=int,
-).validate
-VALIDATE_OBJ[CANVASTYPE.STAIRS] = Validator(
-        width=(float, int),
-        height=(float,int),
-        rotation=int,
-).validate
+
+def validate(ct:CANVASTYPE, **kwargs:Union[type, Tuple[type, ...], Sentinel]) -> None:
+    VALIDATE_OBJ[ct] = Validator(**kwargs).validate
+
+NUMBER = (float, int)
+CT = CANVASTYPE
+validate(CT.FREEHAND_LINE, color=str, points=POINTS)
+validate(CT.GRID_LINE, color=str, points=POINTS)
+validate(CT.RECT, color=str, width=NUMBER, height=NUMBER)
+validate(CT.FILLED_RECT, color=str, color2=str, width=NUMBER, height=NUMBER)
+validate(CT.ELLIPSE, color=str, width=NUMBER, height=NUMBER)
+validate(CT.GRID_RECT, color=str, width=NUMBER, height=NUMBER)
+validate(CT.IMAGE, width=NUMBER, height=NUMBER, url=str)
+validate(CT.TEXT, text=str, size=NUMBER)
+validate(CT.EZ_TOKEN, text=str, color=str, width=NUMBER, height=NUMBER)
+validate(CT.IMG_TOKEN, url=str, width=NUMBER, height=NUMBER)
+validate(CT.DOOR, doortype=int, color=str, width=NUMBER, orientation=int)
+validate(CT.STAIRS, width=NUMBER, height=NUMBER, rotation=int)
 
 
 
@@ -197,7 +156,7 @@ def validate_object(obj:dict) -> None:
         raise TypeError('Unknown obj type', obj_type)
     VALIDATE_OBJ[obj_type](obj)
 
-def handle_create(data:dict) -> list:
+def handle_create(room:str, data:dict) -> list:
     '''
     { map_id: 0, object:{...}, }
     '''
@@ -205,42 +164,42 @@ def handle_create(data:dict) -> list:
     obj_id = data['object']['id']
     obj = data['object']
     validate_object(obj)
-    MAPS[map_id].objects.append(obj)
-    MAP_OBJS_BY_ID[map_id][obj_id] = obj
+    MAPS[room][map_id].objects.append(obj)
+    MAP_OBJS_BY_ID[room][map_id][obj_id] = obj
     return [{'map_id':data['map_id'], 'objects':[data['object']]}]
 
-def handle_delete(data:dict) -> dict:
+def handle_delete(room:str, data:dict) -> dict:
     '''
     {map_id: 0, ids:[1,23]}
     '''
     map_id = data['map_id']
-    OBJS_BY_ID = MAP_OBJS_BY_ID[map_id]
+    OBJS_BY_ID = MAP_OBJS_BY_ID[room][map_id]
     obj_ids = data['ids']
     for obj_id in obj_ids:
         OBJS_BY_ID[obj_id]['flags'] |= Flags.DELETED
     return data
 
-def handle_update(data:dict) -> dict:
+def handle_update(room:str, data:dict) -> dict:
     '''
     {map_id:0, obj_states: {...}}
     '''
     map_id = data['map_id']
-    OBJS_BY_ID = MAP_OBJS_BY_ID[map_id]
+    OBJS_BY_ID = MAP_OBJS_BY_ID[room][map_id]
     obj_states = data['obj_states']
     for obj_state in obj_states:
         validate_object(obj_state)
         OBJS_BY_ID[obj_state['id']].update(obj_state)
     return data
 
-def clear() -> None:
-    MAPS.clear()
-    MAP_OBJS_BY_ID.clear()
+def clear(room:str) -> None:
+    MAPS[room].clear()
+    MAP_OBJS_BY_ID[room].clear()
 
-def get_state() -> list:
-    return save_canvas(MAPS)
+def get_state(room:str) -> list:
+    return save_canvas(MAPS[room])
 
-def set_state(state:list) -> None:
-    MAPS.clear()
-    MAPS.update(load_canvas(state))
+def set_state(room:str, state:list) -> None:
+    MAPS[room].clear()
+    MAPS[room].update(load_canvas(state))
     global MAP_OBJS_BY_ID
-    MAP_OBJS_BY_ID = {k:{o['id']:o for o in v.objects} for k,v in MAPS.items()}
+    MAP_OBJS_BY_ID[room] = {k:{o['id']:o for o in v.objects} for k,v in MAPS[room].items()}

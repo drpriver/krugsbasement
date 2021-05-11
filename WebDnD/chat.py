@@ -3,8 +3,8 @@ import random
 from .dice import dice_from_string, roll_and_format_dice_array, roll_dice_array
 from .persist import Persister
 from flask_socketio import emit
-HISTORY = []  # type: List[dict]
-HISTORY = Persister(HISTORY, 'BadDb/chat.json').obj
+HISTORY = {'/':[]}  # type: Dict[str, List[dict]]
+HISTORY['/'] = Persister(HISTORY['/'], 'BadDb/chat.json').obj
 
 from enum import IntEnum
 class Msg(IntEnum):
@@ -12,7 +12,12 @@ class Msg(IntEnum):
     DICEROLL = 1
     ERROR = 2
 
-def handle_input(data:str, user:str='anon') -> List[dict]:
+def create_chat(room:str) -> None:
+    if room in HISTORY:
+        return
+    HISTORY[room] = []
+
+def handle_input(room:str, data:str, user:str='anon') -> List[dict]:
     result = []
     for line in data.split('\n'):
         if not line.strip():
@@ -42,15 +47,15 @@ def handle_input(data:str, user:str='anon') -> List[dict]:
             else:
                 emit('canvas-gather', {'x':x, 'y':y}, broadcast=True)
 
-    HISTORY.extend(result)
+    HISTORY[room].extend(result)
     return result
 
-def get_history() -> List[dict]:
-    return HISTORY[-100:]
+def get_history(room:str) -> List[dict]:
+    return HISTORY[room][-100:]
 
-def clear() -> None:
-    HISTORY.clear()
+def clear(room:str) -> None:
+    HISTORY[room].clear()
 
-def set_state(state:List[dict]) -> None:
-    clear()
-    HISTORY.extend(state)
+def set_state(room:str, state:List[dict]) -> None:
+    clear(room)
+    HISTORY[room].extend(state)
