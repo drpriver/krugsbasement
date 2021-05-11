@@ -2415,7 +2415,6 @@ function launch_edit_dialog(view:DungeonMapView):void{
         case CANVASTYPE.STAIRS:
             return;
     }
-
 }
 
 // State variable so that we don't double render in a single frame.
@@ -2621,7 +2620,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.fillRect(obj.base_x-2, obj.base_y-2, obj.width+4, obj.height+4);
                     }
                     ctx.fillStyle = obj.color;
-                    ctx.fillRect(obj.base_x, obj.base_y, obj.width, obj.height);
+                    ctx.fillRect(obj.base_x-0.5, obj.base_y-0.5, obj.width+1, obj.height+1);
                 }
             }break;
             case CANVASTYPE.TEXT:{

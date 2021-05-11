@@ -8,3 +8,7 @@ Well, I got rid of floors sort of, so maybe this doesn't matter?
 Update:
 -----
 You still see this. Maybe I should overdraw?
+
+Update:
+
+Since I don't do transparency anymore I just overdraw by 1 pixel.
