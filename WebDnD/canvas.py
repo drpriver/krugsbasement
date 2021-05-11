@@ -37,6 +37,7 @@ class CANVASTYPE(IntEnum):
     IMG_TOKEN     = 10
     DOOR          = 11
     STAIRS        = 12
+    MEASURE       = 13
 
 def save_canvas(maps:Dict[int, Map]) -> List[Dict[str, Any]]:
     return [v.with_live_objs() for v in maps.values() if not (v.flags & MapFlag.DELETED)]
@@ -141,6 +142,7 @@ validate(CT.EZ_TOKEN, text=str, color=str, width=NUMBER, height=NUMBER)
 validate(CT.IMG_TOKEN, url=str, width=NUMBER, height=NUMBER)
 validate(CT.DOOR, doortype=int, color=str, width=NUMBER, orientation=int)
 validate(CT.STAIRS, width=NUMBER, height=NUMBER, rotation=int)
+validate(CT.MEASURE, x1=NUMBER, y1=NUMBER, color=str)
 
 
 

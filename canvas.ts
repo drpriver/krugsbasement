@@ -68,6 +68,7 @@ enum CANVASTYPE {
     IMG_TOKEN     = 10,
     DOOR          = 11,
     STAIRS        = 12,
+    MEASURE       = 13,
 }
 const SORTORDER = [
     9999, // Nothing
@@ -83,6 +84,7 @@ const SORTORDER = [
     4, // IMG_TOKEN
     3, // DOOR
     3, // STAIRS
+    100, // MEASURE
 ];
 //
 // flags
@@ -259,7 +261,7 @@ type ImgToken = {
     height: number; // in squares (?)
 }
 //  door
-//  --------
+//  ----
 //  A door.
 type DoorObj = {
     type: CANVASTYPE; // DOOR
@@ -289,8 +291,21 @@ type Stairs = {
     height: number; // in squares
     rotation: ROTATION;
 }
+// Measure
+// -------
+// This is a weird object, but it is the measurement tool.
+type MeasureObj = {
+    type: CANVASTYPE; // MEASURE
+    id: number;
+    base_x: number;
+    base_y: number;
+    flags: CANVASFLAG;
+    color: string;
+    x1: number;
+    y1: number;
+}
 
-type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse;
+type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj;
 
 // Door subtypes
 // ------------
@@ -735,6 +750,28 @@ function get_snap_func():(x:number)=>number{
     }
 }
 
+function snap_to_grid_center(x:number):number{
+    x = Math.round(x);
+    x = x - (x & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
+    return x;
+}
+function snap_to_half_grid_center(x:number):number{
+    x = Math.round(x);
+    x = x - (x & (REFERENCE_WIDTH/2-1)) + REFERENCE_WIDTH/4;
+    return x;
+}
+
+function get_snap_center_func():(_:number)=>number{
+    switch(snapmode){
+        case SNAPMODE.GRID:
+            return snap_to_grid_center;
+        case SNAPMODE.HALF:
+            return snap_to_half_grid_center;
+        case SNAPMODE.FREE:
+            return snap_identity;
+    }
+}
+
 function make_gridline(id:number, base_x:number, base_y:number, color:string):GridLine{
     if(snapmode == SNAPMODE.HALF){
         base_x = snap_to_half_grid(base_x);
@@ -1011,18 +1048,9 @@ function add_ellipse(map:DungeonMap, id:number, base_x:number, base_y:number, co
     add_canv_obj(map, obj);
 }
 function make_text(id:number, base_x:number, base_y:number, text:string, size:number):TextObj{
-    switch(snapmode){
-        case SNAPMODE.GRID:
-            base_x = base_x - (base_x & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
-            base_y = base_y - (base_y & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
-            break;
-        case SNAPMODE.HALF:
-            base_x = base_x - (base_x & (REFERENCE_WIDTH/2-1)) + REFERENCE_WIDTH/4;
-            base_y = base_y - (base_y & (REFERENCE_WIDTH/2-1)) + REFERENCE_WIDTH/4;
-            break;
-        case SNAPMODE.FREE:
-            break;
-    }
+    let snap = get_snap_center_func();
+    base_x = snap(base_x);
+    base_y = snap(base_y);
     const obj =  {
         type: CANVASTYPE.TEXT,
         id: id,
@@ -1178,6 +1206,20 @@ function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number){
         }
     }
 }
+function make_measure(id:number, x:number, y:number, color:string):MeasureObj{
+    const obj:MeasureObj = {
+        type: CANVASTYPE.MEASURE,
+        id: id,
+        base_x:x,
+        base_y:y,
+        flags: CANVASFLAG.NONE,
+        color:color,
+        x1:x, 
+        y1:y,
+    };
+    return obj;
+}
+
 document.addEventListener('DOMContentLoaded', resize_canvas);
 window.addEventListener('resize', resize_canvas);
 function clear_canvas(map:DungeonMap):void{
@@ -1519,6 +1561,11 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
                 obj.height = stripped.height;
                 obj.rotation = stripped.rotation;
             }break;
+            case CANVASTYPE.MEASURE:{
+                obj.color = stripped.color;
+                obj.x1 = stripped.x1;
+                obj.y1 = stripped.y1;
+            }break;
         }
         add_canv_obj(map, obj);
         new_ids.push(id);
@@ -1625,6 +1672,9 @@ socket.on('canvas-initialize-maps', function(msgs:Array<{map_id:number; map_name
                 case CANVASTYPE.STAIRS:{
                     // all fields are good
                 }break;
+                case CANVASTYPE.MEASURE:{
+                    // all fields are good
+                }break;
             }
             const existing_obj = map.canvas_objs.get(obj.id);
             if(existing_obj){
@@ -1694,6 +1744,9 @@ socket.on('canvas-create-objects', function(msgs:Array<{map_id:number;objects:Ar
                     // all fields are good
                 }break;
                 case CANVASTYPE.STAIRS:{
+                    // all fields are good
+                }break;
+                case CANVASTYPE.MEASURE:{
                     // all fields are good
                 }break;
             }
@@ -1816,10 +1869,15 @@ function set_obj_states_from_stripped_objs(map:DungeonMap, obj_states:Array<Stri
                 obj.width = state.width;
                 obj.orientation = state.orientation;
                 break;
-            case CANVASTYPE.DOOR:
+            case CANVASTYPE.STAIRS:
                 obj.width = state.width;
                 obj.height = state.height;
                 obj.rotation = state.rotation;
+                break;
+            case CANVASTYPE.MEASURE:
+                obj.x1 = state.x1;
+                obj.y1 = state.y1;
+                obj.color = state.color;
                 break;
         }
     }
@@ -1970,6 +2028,8 @@ function obj_in_bbox(obj_:CanvasObject, bbox:Bbox, selection_type:SELECTTYPE):bo
             };
             return bbox_overlaps(bbox, stairs_bbox);
         }break;
+        case CANVASTYPE.MEASURE:
+            return false;
     }
 }
 function note_selections(view:DungeonMapView):void{
@@ -2106,6 +2166,9 @@ function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number
                         break;
                     case CANVASTYPE.STAIRS:
                         break;
+                    case CANVASTYPE.MEASURE:
+                        // should be unreachable;
+                        break;
                     default:
                         console.log('unhandled obj type');
                         break;
@@ -2141,6 +2204,9 @@ function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number
                 case CANVASTYPE.DOOR:
                     break;
                 case CANVASTYPE.STAIRS:
+                    break;
+                case CANVASTYPE.MEASURE:
+                    // should be unreachable;
                     break;
                 default:
                     console.log('unhandled obj type');
@@ -2244,6 +2310,11 @@ function strip_obj(obj:any, include_flags:number): StrippedObj{
             stripped_obj.height = obj.height;
             stripped_obj.rotation = obj.rotation;
             break;
+        case CANVASTYPE.MEASURE:
+            stripped_obj.color = obj.color;
+            stripped_obj.x1 = obj.x1;
+            stripped_obj.y1 = obj.y1;
+            break;
     }
     return stripped_obj;
 }
@@ -2310,6 +2381,8 @@ function edit_is_impossible(view:DungeonMapView):boolean{
             return true;
         case CANVASTYPE.STAIRS:
             return true;
+        case CANVASTYPE.MEASURE:
+            return true; // should be unreachable
     }
     return false;
 }
@@ -2413,6 +2486,8 @@ function launch_edit_dialog(view:DungeonMapView):void{
         case CANVASTYPE.DOOR:
             return;
         case CANVASTYPE.STAIRS:
+            return;
+        case CANVASTYPE.MEASURE:
             return;
     }
 }
@@ -3189,7 +3264,46 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     y += dy;
                 }
             }break;
-
+            case CANVASTYPE.MEASURE:{
+                const obj = obj_ as MeasureObj;
+                const bbox = {
+                    x0: obj.base_x < obj.x1?obj.base_x : obj.x1,
+                    x1: obj.base_x > obj.x1?obj.base_x : obj.x1,
+                    y0: obj.base_y < obj.y1?obj.base_y : obj.y1,
+                    y1: obj.base_y > obj.y1?obj.base_y : obj.y1,
+                };
+                if(!bbox_overlaps(bbox, canvas_bbox))
+                    break;
+                if(bbox.x0 == bbox.x1 && bbox.y0 == bbox.y1)
+                    break;
+                ctx.strokeStyle = obj.color;
+                ctx.lineWidth = 4/scale;
+                ctx.lineJoin = 'miter';
+                ctx.beginPath();
+                ctx.moveTo(obj.base_x, obj.base_y);
+                const head_length = 20/scale;
+                const dx = obj.x1 - obj.base_x;
+                const dy = obj.y1 - obj.base_y;
+                const angle = Math.atan2(dy, dx);
+                ctx.lineTo(obj.x1, obj.y1);
+                ctx.stroke();
+                ctx.beginPath();
+                let x_off = head_length * Math.cos(angle - Math.PI/6);
+                let y_off = head_length * Math.sin(angle - Math.PI/6);
+                ctx.lineTo(obj.x1 - x_off, obj.y1 - y_off);
+                ctx.lineTo(obj.x1, obj.y1);
+                x_off = head_length * Math.cos(angle + Math.PI/6);
+                y_off = head_length * Math.sin(angle + Math.PI/6);
+                ctx.lineTo(obj.x1 - x_off, obj.y1 - y_off);
+                ctx.stroke();
+                const fontsize = 24/scale | 0;
+                ctx.font = fontsize+'px sans-serif';
+                ctx.textBaseline = 'middle';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#000000';
+                const length = (Math.sqrt(Math.pow(obj.base_x - obj.x1, 2)+ Math.pow(obj.base_y - obj.y1, 2))*10/REFERENCE_WIDTH).toFixed(0);
+                ctx.fillText(length + "'", (obj.base_x+obj.x1)/2-fontsize, (obj.base_y+obj.y1)/2-fontsize);
+            }break;
         }
     }
     if(view.selection_area.is_selecting){
@@ -3251,6 +3365,7 @@ enum TOOLTYPE {
     IMAGE       = 'Image',
     HELP        = 'Help',
     STAIRS      = 'Stairs',
+    MEASURE     = 'Measure',
 }
 enum TOKENTYPE {
     EZ = 0,
@@ -4331,6 +4446,41 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
                 window.addEventListener('mouseup', finish_point);
                 canvas.addEventListener('mouseleave', finish_point);
+            }break;
+            case TOOLTYPE.MEASURE:{
+                let id = get_new_id();
+                let snap_center = get_snap_center_func();
+                const x0 = snap_center(e.offsetX/view.scale-view.camera_x);
+                const y0 = snap_center(e.offsetY/view.scale-view.camera_y);
+                let measure = make_measure(id, x0, y0, '#aa0033');
+                add_canv_obj(view.map, measure);
+                publish_obj_by_id(view.map, id); // don't note create for undo
+                request_render();
+                function move(e:MouseEvent){
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const x = snap_center(e.offsetX/view.scale-view.camera_x);
+                    const y = snap_center(e.offsetY/view.scale-view.camera_y);
+                    if(x == measure.x1 && y == measure.y1)
+                        return;
+                    measure.x1 = x;
+                    measure.y1 = y;
+                    const stripped = strip_obj(measure, STRIP_INCLUDE_ID) as StrippedObjWithId;
+                    publish_obj_updates(view.map.map_id, [stripped]);
+                    request_render();
+                }
+                canvas.addEventListener('mousemove', move);
+                function finish(){
+                    publish_delete_by_ids(view.map.map_id, [id]);
+                    measure.flags |= CANVASFLAG.DELETED;
+                    request_render();
+                    canvas.removeEventListener('mousemove', move);
+                    window.removeEventListener('mouseup', finish);
+                    canvas.removeEventListener('mouseleave', finish);
+                }
+                window.addEventListener('mouseup', finish);
+                canvas.addEventListener('mouseleave', finish);
+
             }break;
             default:{
                 console.log('unknown tool:', current_tool);
