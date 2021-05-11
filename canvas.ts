@@ -2571,6 +2571,9 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     break;
                 }
                 if(obj.path){
+                    const oldcap = ctx.lineCap;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
                     if(is_selected){
                         ctx.lineWidth=8;
                         ctx.strokeStyle = SELECTED_COLOR;
@@ -2579,6 +2582,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.lineWidth = 4;
                     ctx.strokeStyle = obj.color;
                     ctx.stroke(obj.path);
+                    ctx.lineCap = oldcap;
                 }
             }break;
             case CANVASTYPE.GRID_LINE:{
@@ -2703,7 +2707,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(obj.text){
                     ctx.font = obj.size + 'px sans-serif';
                     ctx.textBaseline = 'middle';
-                    ctx.textAlign = "center";
+                    ctx.textAlign = 'center';
                     if(obj.bbox.x0 == obj.bbox.x1){
                         let metric = ctx.measureText(obj.text);
                         // Metric object varies between browser, but I believe
