@@ -17,9 +17,10 @@ else:
 
 @socketio.on('chat-input')
 def chat_input(data:Dict[str, str]) -> None:
+    room = sid_to_room[request.sid] # type: ignore
     if not data:
         return
-    responses = chat.handle_input(data['text'], data['chatname'])
+    responses = chat.handle_input(room, data['text'], data['chatname'])
     if responses:
         emit('chat-msg', responses, broadcast=True)
 
@@ -138,7 +139,7 @@ def get_campaign(campaign:str) -> str:
 def app_state():
     if request.method == 'GET':
         args = request.args
-        state = {'chat':chat.get_history(), 'canvas':canvas.get_state('/'), 'app':{'session_id':session_id}}
+        state = {'chat':chat.get_history('/'), 'canvas':canvas.get_state('/'), 'app':{'session_id':session_id}}
         if 'which' in args:
             try:
                 state = state[args['which']]
