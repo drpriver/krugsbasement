@@ -4,7 +4,7 @@ from . import chat
 from . import canvas
 from .persist import Persister
 from. import appconfig
-import random
+import os
 
 from typing import List, Dict, Optional, Set
 
@@ -42,6 +42,8 @@ def handle_connection() -> None:
 def join(room:str) -> None:
     sid_to_room[request.sid] = room  # type: ignore
     join_room(room)
+    path = 'BadDb' + room
+    os.makedirs(path, exist_ok=True)
     chat.create_chat(room)
     canvas.create_maps(room)
     emit('canvas-clear')

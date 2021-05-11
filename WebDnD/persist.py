@@ -25,7 +25,7 @@ class Persister(Generic[T]):
     So, it doesn't work on like ints and shit, but works with
     dicts and lists.
     '''
-    def __init__(self, obj:T, filepath:str, save_func:Optional[Callable[[T], JsType]]=None, load_func:Optional[Callable[[JsType], T]]=None) -> None:
+    def __init__(self, obj:T, filepath:str, save_func:Optional[Callable[[T], JsType]]=None, load_func:Optional[Callable[[JsType], T]]=None, dont_persist=False) -> None:
         '''
         obj: the obj to be persisted.
         filepath: where to save/load the object.
@@ -33,6 +33,7 @@ class Persister(Generic[T]):
                    that can be json serialized.
         load_func: if given, a function that converts the json object into the
                    real object.
+        dont_persist: don't save
         '''
         self.obj = obj
         self.filepath = filepath
@@ -47,25 +48,20 @@ class Persister(Generic[T]):
                     self.obj = jsobj
         except Exception as e:
             print(e)
-        if not appconfig.DEV:
+        if dont_persist:
             return
-        # atexit.register(self.save)
-        # RepeatTimer(600, self.save).start()
+        atexit.register(self.save)
+        RepeatTimer(600, self.save).start()
     def save(self) -> None:
-        if not appconfig.DEV:
-            return
-        return
         t0 = time.time()
         dirname = os.path.dirname(self.filepath)
         if dirname and dirname != '.':
             os.makedirs(dirname, exist_ok=True)
         try:
             obj = self.save_func(self.obj) if self.save_func else self.obj
-            print(f'saving to {self.filepath}')
             with open(self.filepath+'_', 'w') as fp:
                 fp.write(json.dumps(obj, separators=(',',':')))
             os.rename(self.filepath+'_', self.filepath)
-            print(f'saved to {self.filepath}')
         except Exception as e:
             print(e)
         t1 = time.time()

@@ -50,14 +50,14 @@ def load_canvas(data) -> Dict[int, Map]:
         result[m.map_id] = m
     return result
 
-MAPS['/'] = Persister(MAPS['/'], 'BadDb/canvas.json', save_func=save_canvas, load_func=load_canvas).obj
+MAPS['/'] = Persister(MAPS['/'], 'BadDb/canvas.json', save_func=save_canvas, load_func=load_canvas, dont_persist=True).obj
 MAP_OBJS_BY_ID = {'/':{k:{o['id']:o for o in v.objects} for k,v in MAPS['/'].items()}} # type: Dict[str,Dict[int, Dict[int, dict]]]
 
 def create_maps(room:str) -> None:
     if room in MAPS:
         return
-    MAPS[room] = {0:Map(0, [], 'Untitled')}
-    MAP_OBJS_BY_ID[room] = {0:{}}
+    MAPS[room] = Persister({0:Map(0, [], 'Untitled')}, 'BadDb'+room+'/canvas.json', save_func=save_canvas, load_func=load_canvas).obj
+    MAP_OBJS_BY_ID[room] = {k:{o['id']:o for o in v.objects} for k,v in MAPS[room].items()}
 
 def create_map(room:str, map_id:int) -> None:
     if room in MAPS and map_id in MAPS[room]:

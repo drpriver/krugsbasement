@@ -4,7 +4,7 @@ from .dice import dice_from_string, roll_and_format_dice_array, roll_dice_array
 from .persist import Persister
 from flask_socketio import emit
 HISTORY = {'/':[]}  # type: Dict[str, List[dict]]
-HISTORY['/'] = Persister(HISTORY['/'], 'BadDb/chat.json').obj
+HISTORY['/'] = Persister(HISTORY['/'], 'BadDb/chat.json', dont_persist=True).obj
 
 from enum import IntEnum
 class Msg(IntEnum):
@@ -15,7 +15,7 @@ class Msg(IntEnum):
 def create_chat(room:str) -> None:
     if room in HISTORY:
         return
-    HISTORY[room] = []
+    HISTORY[room] = Persister([], 'BadDb'+room+'/chat.json').obj
 
 def handle_input(room:str, data:str, user:str='anon') -> List[dict]:
     result = []
