@@ -127,6 +127,7 @@ David20::title @hide
     grid-template-columns: 1fr 1fr 1fr;
     grid-column-gap: 4px;
     grid-row-gap: 4px;
+    font-size: 12px;
   }
   #tools > div.tool {
     border: 1px solid gray;

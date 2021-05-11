@@ -73,10 +73,10 @@ const SORTORDER = [
     9999, // Nothing
     4, // FREEHAND_LINE
     2, // GRID_LINE
-    3, // RECT
+    2, // RECT
     1, // GRID_RECT
     3, // FILLED_RECT
-    3, // ELLIPSE
+    2, // ELLIPSE
     0, // IMAGE
     4, // TEXT
     4, // EZ_TOKEN
@@ -3038,16 +3038,28 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.save();
                         ctx.textBaseline = 'middle';
                         ctx.textAlign = 'center';
+                        ctx.translate(obj.base_x, obj.base_y);
+                        switch(obj.orientation){
+                            case ORIENTATION.VERTICAL:
+                                break;
+                            case ORIENTATION.HORIZONTAL:
+                                ctx.rotate(Math.PI/2);
+                                break;
+                            case ORIENTATION.TOPLEFT_DOWNRIGHT:
+                                ctx.rotate(3*Math.PI/4);
+                                break;
+                            case ORIENTATION.TOPRIGHT_DOWNLEFT:
+                                ctx.rotate(Math.PI/4);
+                                break;
+                        }
                         if(is_selected){
-                            ctx.font = '44px sans-serif';
-                            // ctx.font = ''+(44*w) + 'px sans-serif';
+                            ctx.font = '56px sans-serif';
                             ctx.fillStyle = SELECTED_COLOR;
-                            ctx.fillText('S', obj.base_x, obj.base_y);
+                            ctx.fillText('S', 0, 0);
                             }
-                        // ctx.font = ''+(36*w) + 'px sans-serif';
-                        ctx.font = '36px sans-serif';
-                        ctx.fillStyle = '#00f';
-                        ctx.fillText('S', obj.base_x, obj.base_y);
+                        ctx.font = '48px sans-serif';
+                        ctx.fillStyle = '#444';
+                        ctx.fillText('S', 0, 0);
                         ctx.restore();
                     }break;
                     case DOORTYPE.BRICKED_WALL:{
