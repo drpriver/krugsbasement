@@ -648,12 +648,10 @@ function add_freehand_point(obj:FreehandLine, x:number, y:number):void{
 function freehand_recalculate_bbox(obj:FreehandLine):void{
     const points = obj.points;
     const length = points.length;
-    if(length > 1){
-        obj.bbox.x0 = points[0];
-        obj.bbox.y0 = points[1];
-        obj.bbox.x1 = points[0];
-        obj.bbox.y1 = points[1];
-    }
+    obj.bbox.x0 = 0;
+    obj.bbox.y0 = 0;
+    obj.bbox.x1 = 0;
+    obj.bbox.y1 = 0;
     for(let i = 0; i < length; i+=2){
         let x = points[i];
         let y = points[i+1];
@@ -821,12 +819,10 @@ function gridline_recalculate_bbox(obj:GridLine):void{
     // this is the same as freehand??
     const points = obj.points;
     const length = points.length;
-    if(length > 1){
-        obj.bbox.x0 = points[0];
-        obj.bbox.y0 = points[1];
-        obj.bbox.x1 = points[0];
-        obj.bbox.y1 = points[1];
-    }
+    obj.bbox.x0 = 0;
+    obj.bbox.y0 = 0;
+    obj.bbox.x1 = 0;
+    obj.bbox.y1 = 0;
     for(let i = 0; i < length; i+=2){
         let x = points[i];
         let y = points[i+1];
