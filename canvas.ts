@@ -317,6 +317,7 @@ enum DOORTYPE {
     SECRET = 3,
     BRICKED_WALL = 4,
     PORTAL = 5,
+    CURTAINS = 6,
 }
 let current_door = DOORTYPE.DOOR;
 
@@ -3125,6 +3126,80 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 break;
                         }
                     }break;
+                    case DOORTYPE.CURTAINS:{
+                        if(is_selected){
+                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.lineWidth=4;
+                            const r = 8;
+                            switch(obj.orientation){
+                                case ORIENTATION.VERTICAL:
+                                    for(let y = obj.base_y-REFERENCE_WIDTH*w/2+r, i=0; y < obj.base_y+REFERENCE_WIDTH*w/2+r; y+= 2*r, i++){
+                                        ctx.beginPath();
+                                        ctx.arc(obj.base_x, y, r, Math.PI/2, 3*Math.PI/2, !!(i & 1));
+                                        ctx.stroke();
+                                    }
+                                    break;
+                                case ORIENTATION.HORIZONTAL:
+                                    for(let x = obj.base_x-REFERENCE_WIDTH*w/2+r, i=0; x < obj.base_x+REFERENCE_WIDTH*w/2+r; x+= 2*r, i++){
+                                        ctx.beginPath();
+                                        ctx.arc(x, obj.base_y, r, 0, Math.PI, !!(i & 1));
+                                        ctx.stroke();
+                                    }
+                                    break;
+                                case ORIENTATION.TOPLEFT_DOWNRIGHT:{
+                                    let r = 64*1.4159/12;
+                                    for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
+                                        ctx.beginPath();
+                                        ctx.arc(obj.base_x-REFERENCE_WIDTH/2+d+r/1.41519, obj.base_y-REFERENCE_WIDTH/2+d+r/1.41519, r, Math.PI/4, 5*Math.PI/4, !!(i & 1));
+                                        ctx.stroke();
+                                    }
+                                }break;
+                                case ORIENTATION.TOPRIGHT_DOWNLEFT:{
+                                    let r = 64*1.4159/12;
+                                    for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
+                                        ctx.beginPath();
+                                        ctx.arc(obj.base_x-REFERENCE_WIDTH/2+d+r/1.41519, obj.base_y+REFERENCE_WIDTH/2-d-r/1.41519, r, 3*Math.PI/4, 7*Math.PI/4, !!(i & 1));
+                                        ctx.stroke();
+                                    }
+                                }break;
+                            }
+                        }
+                        ctx.strokeStyle = '#444';
+                        ctx.lineWidth=2;
+                        const r = 8;
+                        switch(obj.orientation){
+                            case ORIENTATION.VERTICAL:
+                                for(let y = obj.base_y-REFERENCE_WIDTH*w/2+r, i=0; y < obj.base_y+REFERENCE_WIDTH*w/2+r; y+= 2*r, i++){
+                                    ctx.beginPath();
+                                    ctx.arc(obj.base_x, y, r, Math.PI/2, 3*Math.PI/2, !!(i & 1));
+                                    ctx.stroke();
+                                }
+                                break;
+                            case ORIENTATION.HORIZONTAL:
+                                for(let x = obj.base_x-REFERENCE_WIDTH*w/2+r, i=0; x < obj.base_x+REFERENCE_WIDTH*w/2+r; x+= 2*r, i++){
+                                    ctx.beginPath();
+                                    ctx.arc(x, obj.base_y, r, 0, Math.PI, !!(i & 1));
+                                    ctx.stroke();
+                                }
+                                break;
+                            case ORIENTATION.TOPLEFT_DOWNRIGHT:{
+                                let r = 64*1.4159/12;
+                                for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
+                                    ctx.beginPath();
+                                    ctx.arc(obj.base_x-REFERENCE_WIDTH/2+d+r/1.41519, obj.base_y-REFERENCE_WIDTH/2+d+r/1.41519, r, Math.PI/4, 5*Math.PI/4, !!(i & 1));
+                                    ctx.stroke();
+                                }
+                            }break;
+                            case ORIENTATION.TOPRIGHT_DOWNLEFT:{
+                                let r = 64*1.4159/12;
+                                for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
+                                    ctx.beginPath();
+                                    ctx.arc(obj.base_x-REFERENCE_WIDTH/2+d+r/1.41519, obj.base_y+REFERENCE_WIDTH/2-d-r/1.41519, r, 3*Math.PI/4, 7*Math.PI/4, !!(i & 1));
+                                    ctx.stroke();
+                                }
+                            }break;
+                        }
+                    }break;
                     case DOORTYPE.SECRET:{
                         ctx.save();
                         ctx.textBaseline = 'middle';
@@ -3637,6 +3712,9 @@ document.addEventListener('DOMContentLoaded', function():void{
                     case DOORTYPE.PORTCULLIS:
                         name.innerText = '- Portcullis ☰';
                         break;
+                    case DOORTYPE.CURTAINS:
+                        name.innerText = '- Curtains ☰';
+                        break;
                 }
             }
             change_door(DOORTYPE.DOOR);
@@ -3647,6 +3725,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                     function(){change_door(DOORTYPE.PORTAL)},
                     function(){change_door(DOORTYPE.DOUBLE)},
                     function(){change_door(DOORTYPE.PORTCULLIS)},
+                    function(){change_door(DOORTYPE.CURTAINS)},
             ];
 
             function make_cb(dt:DOORTYPE){
@@ -3669,6 +3748,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                     {func:make_cb(DOORTYPE.PORTAL),       text:'Portal'},
                     {func:make_cb(DOORTYPE.DOUBLE),       text:'Double Door'},
                     {func:make_cb(DOORTYPE.PORTCULLIS),   text:'Portcullis'},
+                    {func:make_cb(DOORTYPE.CURTAINS),     text:'Curtains'},
                 ]);
             });
         }
