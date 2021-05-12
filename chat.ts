@@ -190,6 +190,11 @@ function chat_options_dialog(){
     </table>
     <div style="max-height: 500px; overflow-y:auto; padding: 2em;">
     <table class="input-container" id="hover-macro-table">
+    <thead><tr>
+        <th>Macro Name
+        <th>Macro
+        <th>
+    </tr></thead>
     `
     for(let [key, value] of MACROS.entries()){
         html += `
@@ -200,6 +205,14 @@ function chat_options_dialog(){
         </tr>
         `;
     }
+    // have an extra blank one ready.
+    html += `
+    <tr>
+        <td><input type="text" value="">
+        <td><textarea rows="3" cols="40"></textarea>
+        <td><button class="delete-macro-button">Delete</button>
+    </tr>
+    `;
     const pan_tool = document.getElementById('pan-tool')!;
     html += `
     </table>
@@ -346,7 +359,8 @@ function chat_options_dialog(){
         change_pan_visibility(!hide_pan.checked);
         const trs = hover_macro_table.getElementsByTagName('tr');
         const macros: Array<[string, string]> = [];
-        for(let tr of trs){
+        for(let i = 1; i < trs.length; i++){
+            let tr = trs[i];
             const name = (tr.children[0].children[0] as HTMLInputElement).value;
             const body = (tr.children[1].children[0] as HTMLTextAreaElement).value;
             if(!name || !body)
