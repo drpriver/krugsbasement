@@ -31,7 +31,7 @@ session_id = Persister(0, 'BadDb/app.json', save_func=save_session_id).obj
 
 sid_to_room = {}
 ALLOWED_CAMPAIGNS:Set[str] = set()
-ALLOWED_CAMPAIGNS = Persister(ALLOWED_CAMPAIGNS, 'BadDB/campaigns.json', save_func=list, load_func=set).obj # type: ignore
+ALLOWED_CAMPAIGNS = Persister(ALLOWED_CAMPAIGNS, 'BadDb/campaigns.json', save_func=list, load_func=set).obj # type: ignore
 @socketio.on('connect')
 def handle_connection() -> None:
     global session_id
