@@ -130,7 +130,7 @@ def validate(ct:CANVASTYPE, **kwargs:Union[type, Tuple[type, ...], Sentinel]) ->
 
 NUMBER = (float, int)
 CT = CANVASTYPE
-validate(CT.FREEHAND_LINE, color=str, points=POINTS)
+validate(CT.FREEHAND_LINE, color=str, points=POINTS, thickness=int)
 validate(CT.GRID_LINE, color=str, points=POINTS)
 validate(CT.RECT, color=str, width=NUMBER, height=NUMBER)
 validate(CT.FILLED_RECT, color=str, color2=str, width=NUMBER, height=NUMBER)

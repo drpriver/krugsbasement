@@ -125,6 +125,7 @@ type FreehandLine = {
     points: Array<number>;
     path?: Path2D;
     bbox: Bbox;
+    thickness: number;
 }
 //  grid-line
 //  ---------
@@ -612,7 +613,7 @@ function resize_canvas():void{
 
 //
 // freehand-line stuff.
-function make_freehand_line(id:number, base_x:number, base_y:number, color:string):FreehandLine{
+function make_freehand_line(id:number, base_x:number, base_y:number, color:string, thickness:number):FreehandLine{
     base_x = Math.round(base_x);
     base_y = Math.round(base_y);
     const obj =  {
@@ -625,11 +626,12 @@ function make_freehand_line(id:number, base_x:number, base_y:number, color:strin
         color: color,
         path: undefined,
         bbox: { x0: 0, y0: 0, x1: 0, y1: 0, },
+        thickness: thickness,
     };
     return obj;
 }
-function add_freehand_line(map:DungeonMap, id:number, base_x:number, base_y:number, color:string):void{
-    const obj = make_freehand_line(id, base_x, base_y, color);
+function add_freehand_line(map:DungeonMap, id:number, base_x:number, base_y:number, color:string, thickness:number):void{
+    const obj = make_freehand_line(id, base_x, base_y, color, thickness);
     add_canv_obj(map, obj);
 }
 function add_freehand_point(obj:FreehandLine, x:number, y:number):void{
@@ -1483,6 +1485,7 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
                 obj.points = Array.from(stripped.points);
                 obj.path = null;
                 obj.bbox = {x0:0, y0:0, x1:0, y1:0};
+                obj.thickness = stripped.thickness;
                 freehand_recalculate_bbox(obj);
                 freehand_recalculate_path(obj);
                 break;
@@ -1804,6 +1807,7 @@ function set_obj_states_from_stripped_objs(map:DungeonMap, obj_states:Array<Stri
                 obj.bbox = {x0:0, x1:0, y0:0, y1:0};
                 obj.points = state.points;
                 obj.color = state.color;
+                obj.thickness = state.thickness;
                 freehand_recalculate_bbox(obj);
                 freehand_recalculate_path(obj);
                 break;
@@ -2251,6 +2255,7 @@ function strip_obj(obj:any, include_flags:number): StrippedObj{
     }
     switch(obj.type){
         case CANVASTYPE.FREEHAND_LINE:
+            stripped_obj.thickness = obj.thickness;
             stripped_obj.points = obj.points;
             stripped_obj.color = obj.color;
             break;
@@ -2576,11 +2581,11 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
                     if(is_selected){
-                        ctx.lineWidth=8;
+                        ctx.lineWidth=obj.thickness+4;
                         ctx.strokeStyle = SELECTED_COLOR;
                         ctx.stroke(obj.path);
                     }
-                    ctx.lineWidth = 4;
+                    ctx.lineWidth = obj.thickness;
                     ctx.strokeStyle = obj.color;
                     ctx.stroke(obj.path);
                     ctx.lineCap = oldcap;
@@ -3991,7 +3996,9 @@ document.addEventListener('DOMContentLoaded', function(){
                 let id = get_new_id();
                 const x0 = e.offsetX/view.scale-view.camera_x;
                 const y0 = e.offsetY/view.scale-view.camera_y;
-                add_freehand_line(view.map, id, x0, y0, color_picker.value);
+                const thickness_input = document.getElementById('line-thickness') as HTMLInputElement;
+                const thickness = +thickness_input.value || 4;
+                add_freehand_line(view.map, id, x0, y0, color_picker.value, thickness);
                 function add_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
@@ -4017,7 +4024,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     // copy paste from LINE above.
                     const x0 = e.offsetX/view.scale-view.camera_x;
                     const y0 = e.offsetY/view.scale-view.camera_y;
-                    add_freehand_line(view.map, id, x0, y0, color_picker.value);
+                    add_freehand_line(view.map, id, x0, y0, color_picker.value, 4);
                     function add_point(e:MouseEvent){
                         e.stopPropagation();
                         e.preventDefault();

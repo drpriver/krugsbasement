@@ -2,3 +2,10 @@
 * [ ] rectangle thickness options
 
 Especially for lines, it can be useful to vary the thickness for drawing purposes.
+
+Update:
+-------
+
+I implemented this for lines.
+
+I don't think I am going to do this for rectangles and just have them default to wall thickness.
