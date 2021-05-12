@@ -1,0 +1,9 @@
+We need isolation between campaigns.
+
+I've implemented this in a very basic way, with rooms and a way to check if a campaign is valid.
+
+
+Update:
+------
+
+This is actually kind of good enough? We have persistence and separate rooms. We could add a lot more, but those should be different bugs.
