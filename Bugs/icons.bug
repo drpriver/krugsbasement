@@ -1,11 +1,11 @@
 We need a new icon tool with a few built in icons:
 
-* Rubble
-* Statue
-* Stairs
-* Pit
+[ ] Rubble
+[ ] Statue
+[x] Stairs
+[ ] Pit
 
 Update
 ------
 There is a dedicated stairs tool now.
-I could generalize it to be icons?
+I could generalize it to be decorations?
