@@ -137,6 +137,12 @@ def get_campaign(campaign:str) -> str:
         abort(404)
     return get_html()
 
+if appconfig.DEV:
+    @app.route('/imgs/<img>')
+    def get_img(img:str):
+        print(f'img: {img}')
+        return send_from_directory('imgs', img)
+
 @app.route('/state', methods=['GET', 'POST', 'DELETE'])
 def app_state():
     if request.method == 'GET':

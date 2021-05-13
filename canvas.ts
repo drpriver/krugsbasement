@@ -311,6 +311,7 @@ enum FIXTURETYPE {
     STATUE = 0,
     STAIRS = 1,
     PIT    = 2,
+    RUBBLE = 3,
 }
 
 // Fixture
@@ -2585,6 +2586,12 @@ function request_render():void{
     // only call this from here to avoid double renders.
     requestAnimationFrame(render);
 }
+let RUBBLEIMAGE: HTMLImageElement | null = new Image();
+RUBBLEIMAGE.addEventListener('error', function(){
+    RUBBLEIMAGE = null;
+});
+if(RUBBLEIMAGE)
+    RUBBLEIMAGE.src = 'imgs/rubble.png';
 // const timings = [];
 function render(timestamp:DOMHighResTimeStamp):void{
     // const before = performance.now();
@@ -3549,6 +3556,16 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.lineTo(x+thick, y+thick);
                         ctx.stroke();
                     }break;
+                    case FIXTURETYPE.RUBBLE:{
+                        if(is_selected){
+                            ctx.lineWidth = 4;
+                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.strokeRect(obj.base_x, obj.base_y, obj.width, obj.height);
+                        }
+                        if(RUBBLEIMAGE){
+                            ctx.drawImage(RUBBLEIMAGE, obj.base_x, obj.base_y, obj.width, obj.height);
+                        }
+                    }break;
                 }
             }break;
         }
@@ -3992,6 +4009,9 @@ document.addEventListener('DOMContentLoaded', function():void{
                     case FIXTURETYPE.PIT:
                         name.innerText = ' - Pit ☰';
                         break;
+                    case FIXTURETYPE.RUBBLE:
+                        name.innerText = ' - Rubble ☰';
+                        break;
                 }
             }
             change_t(FIXTURETYPE.STAIRS);
@@ -4009,7 +4029,8 @@ document.addEventListener('DOMContentLoaded', function():void{
                 if(has_tri_menu)
                     return;
                 make_tri_menu(e, [
-                    {func:make_cb(FIXTURETYPE.PIT),  text:'Pit'},
+                    {func:make_cb(FIXTURETYPE.RUBBLE),  text:'Rubble'},
+                    {func:make_cb(FIXTURETYPE.PIT),     text:'Pit'},
                     {func:make_cb(FIXTURETYPE.STATUE),  text:'Statue'},
                     {func:make_cb(FIXTURETYPE.STAIRS),  text:'Stairs'},
                 ]);
