@@ -16,7 +16,7 @@ run: combined.js
 	. venv/bin/activate && python3 -m WebDnD.app
 
 screen.html: screen.dnd combined.js | Depends
-	dndc $< --output $@ --depends-path Depends/$@.dep
+	dndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
 
 .PHONY: dist.zip
 dist.zip: screen.html

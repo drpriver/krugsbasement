@@ -26,7 +26,9 @@ David20::title @hide
       ::raw
         <span>☰</span>
     ::div.tool
-      Stairs
+      Fixture
+      ::raw
+        <span>☰</span>
     ::div.tool
       Line
     ::div.tool

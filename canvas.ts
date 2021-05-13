@@ -56,35 +56,37 @@ function line_overlaps_bbox(bbox:Bbox, x0:number, y0:number, x1:number, y1:numbe
 //  Canvas Obj Types
 //  ================
 enum CANVASTYPE {
-    FREEHAND_LINE = 1,
-    GRID_LINE     = 2,
-    RECT          = 3,
-    GRID_RECT     = 4,
-    FILLED_RECT   = 5,
-    ELLIPSE       = 6,
-    IMAGE         = 7,
-    TEXT          = 8,
-    EZ_TOKEN      = 9,
+    FREEHAND_LINE =  1,
+    GRID_LINE     =  2,
+    RECT          =  3,
+    GRID_RECT     =  4,
+    FILLED_RECT   =  5,
+    ELLIPSE       =  6,
+    IMAGE         =  7,
+    TEXT          =  8,
+    EZ_TOKEN      =  9,
     IMG_TOKEN     = 10,
     DOOR          = 11,
     STAIRS        = 12,
     MEASURE       = 13,
+    FIXTURE       = 14,
 }
 const SORTORDER = [
     9999, // Nothing
-    4, // FREEHAND_LINE
-    2, // GRID_LINE
-    2, // RECT
-    1, // GRID_RECT
-    3, // FILLED_RECT
-    2, // ELLIPSE
-    0, // IMAGE
-    4, // TEXT
-    4, // EZ_TOKEN
-    4, // IMG_TOKEN
-    3, // DOOR
-    3, // STAIRS
-    100, // MEASURE
+       4, // FREEHAND_LINE
+       2, // GRID_LINE
+       2, // RECT
+       1, // GRID_RECT
+       3, // FILLED_RECT
+       2, // ELLIPSE
+       0, // IMAGE
+       4, // TEXT
+       4, // EZ_TOKEN
+       4, // IMG_TOKEN
+       3, // DOOR
+       3, // STAIRS
+     100, // MEASURE
+       3, // FIXTURE
 ];
 //
 // flags
@@ -305,8 +307,26 @@ type MeasureObj = {
     x1: number;
     y1: number;
 }
+enum FIXTURETYPE {
+    STATUE = 0,
+    STAIRS = 1,
+}
 
-type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj;
+// Fixture
+// ----------
+// For dungeon fixtures, like rubble or pits.
+type FixtureObj = {
+    type: CANVASTYPE; // FIXTURE
+    id: number;
+    base_x: number;
+    base_y: number;
+    flags: CANVASFLAG;
+    width: number;
+    height: number;
+    ftype: FIXTURETYPE;
+}
+
+type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj;
 
 // Door subtypes
 // ------------
@@ -1217,8 +1237,21 @@ function make_measure(id:number, x:number, y:number, color:string):MeasureObj{
         base_y:y,
         flags: CANVASFLAG.NONE,
         color:color,
-        x1:x, 
+        x1:x,
         y1:y,
+    };
+    return obj;
+}
+function make_fixture(id:number, x:number, y:number, ftype:FIXTURETYPE):FixtureObj{
+    const obj:FixtureObj = {
+        type: CANVASTYPE.FIXTURE,
+        id: id,
+        base_x:x,
+        base_y:y,
+        flags: CANVASFLAG.NONE,
+        width:0,
+        height:0,
+        ftype:ftype,
     };
     return obj;
 }
@@ -1570,6 +1603,11 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
                 obj.x1 = stripped.x1;
                 obj.y1 = stripped.y1;
             }break;
+            case CANVASTYPE.FIXTURE:{
+                obj.width = stripped.width;
+                obj.height = stripped.height;
+                obj.ftype = stripped.ftype;
+            }break;
         }
         add_canv_obj(map, obj);
         new_ids.push(id);
@@ -1679,6 +1717,8 @@ socket.on('canvas-initialize-maps', function(msgs:Array<{map_id:number; map_name
                 case CANVASTYPE.MEASURE:{
                     // all fields are good
                 }break;
+                case CANVASTYPE.FIXTURE:{
+                }break;
             }
             const existing_obj = map.canvas_objs.get(obj.id);
             if(existing_obj){
@@ -1752,6 +1792,8 @@ socket.on('canvas-create-objects', function(msgs:Array<{map_id:number;objects:Ar
                 }break;
                 case CANVASTYPE.MEASURE:{
                     // all fields are good
+                }break;
+                case CANVASTYPE.FIXTURE:{
                 }break;
             }
             const existing_obj = map.canvas_objs.get(obj.id);
@@ -1883,6 +1925,11 @@ function set_obj_states_from_stripped_objs(map:DungeonMap, obj_states:Array<Stri
                 obj.x1 = state.x1;
                 obj.y1 = state.y1;
                 obj.color = state.color;
+                break;
+            case CANVASTYPE.FIXTURE:
+                obj.width = state.width;
+                obj.height = state.height;
+                obj.ftype = state.ftype;
                 break;
         }
     }
@@ -2035,6 +2082,20 @@ function obj_in_bbox(obj_:CanvasObject, bbox:Bbox, selection_type:SELECTTYPE):bo
         }break;
         case CANVASTYPE.MEASURE:
             return false;
+        case CANVASTYPE.FIXTURE:{
+            if(!(selection_type & SELECTTYPE.MAP))
+                return false;
+            const obj = obj_ as FixtureObj;
+            if(!obj.width || !obj.height)
+                return false;
+            const f_bbox = {
+                    x0 : obj.base_x,
+                    x1 : obj.base_x + obj.width,
+                    y0 : obj.base_y,
+                    y1 : obj.base_y + obj.height
+            };
+            return bbox_overlaps(bbox, f_bbox);
+        }
     }
 }
 function note_selections(view:DungeonMapView):void{
@@ -2174,6 +2235,8 @@ function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number
                     case CANVASTYPE.MEASURE:
                         // should be unreachable;
                         break;
+                    case CANVASTYPE.FIXTURE:
+                        break;
                     default:
                         console.log('unhandled obj type');
                         break;
@@ -2209,6 +2272,8 @@ function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number
                 case CANVASTYPE.DOOR:
                     break;
                 case CANVASTYPE.STAIRS:
+                    break;
+                case CANVASTYPE.FIXTURE:
                     break;
                 case CANVASTYPE.MEASURE:
                     // should be unreachable;
@@ -2321,6 +2386,11 @@ function strip_obj(obj:any, include_flags:number): StrippedObj{
             stripped_obj.x1 = obj.x1;
             stripped_obj.y1 = obj.y1;
             break;
+        case CANVASTYPE.FIXTURE:
+            stripped_obj.width = obj.width;
+            stripped_obj.height = obj.height;
+            stripped_obj.ftype = obj.ftype;
+            break;
     }
     return stripped_obj;
 }
@@ -2389,6 +2459,8 @@ function edit_is_impossible(view:DungeonMapView):boolean{
             return true;
         case CANVASTYPE.MEASURE:
             return true; // should be unreachable
+        case CANVASTYPE.FIXTURE:
+            return true;
     }
     return false;
 }
@@ -2494,6 +2566,8 @@ function launch_edit_dialog(view:DungeonMapView):void{
         case CANVASTYPE.STAIRS:
             return;
         case CANVASTYPE.MEASURE:
+            return;
+        case CANVASTYPE.FIXTURE:
             return;
     }
 }
@@ -3396,6 +3470,53 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 const length = (Math.sqrt(Math.pow(obj.base_x - obj.x1, 2)+ Math.pow(obj.base_y - obj.y1, 2))*10/REFERENCE_WIDTH).toFixed(0);
                 ctx.fillText(length + "'", (obj.base_x+obj.x1)/2-fontsize, (obj.base_y+obj.y1)/2-fontsize);
             }break;
+            case CANVASTYPE.FIXTURE:{
+                const obj = obj_ as FixtureObj;
+                if(!obj.width || !obj.height)
+                    break;
+                const bbox = {
+                    x0:obj.base_x,
+                    y0:obj.base_y,
+                    x1:obj.base_x+obj.width,
+                    y1:obj.base_y+obj.height,
+                };
+                if(!bbox_overlaps(bbox, canvas_bbox)){
+                    break;
+                }
+                switch(obj.ftype){
+                    case FIXTURETYPE.STAIRS:
+                        break; // should be unreachable
+                    case FIXTURETYPE.STATUE:{
+                        const cx = (bbox.x0+bbox.x1)/2;
+                        const cy = (bbox.y0+bbox.y1)/2;
+                        if(is_selected){
+                            ctx.lineWidth=4;
+                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.beginPath();
+                            ctx.ellipse(cx, cy, obj.width/2, obj.height/2, 0, 0, Math.PI*2);
+                            ctx.stroke();
+                        }
+                        ctx.strokeStyle = '#000000';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.ellipse(cx, cy, obj.width/2, obj.height/2, 0, 0, Math.PI*2);
+                        const r = Math.min(obj.width/2, obj.height/2)-1;
+                        const ir = r/2; // inner radius
+                        ctx.stroke();
+                        ctx.beginPath();
+                        let angle = 3*Math.PI/10;
+                        ctx.moveTo(cx+r*Math.cos(angle), cy+r*Math.sin(angle));
+                        for(let i = 0; i < 5; i++){
+                            angle += Math.PI/5;
+                            ctx.lineTo(cx+ir*Math.cos(angle), cy+ir*Math.sin(angle));
+                            angle += Math.PI/5;
+                            ctx.lineTo(cx+r*Math.cos(angle), cy+r*Math.sin(angle));
+                        }
+                        ctx.closePath();
+                        ctx.stroke();
+                    }break;
+                }
+            }break;
         }
     }
     if(view.selection_area.is_selecting){
@@ -3456,9 +3577,10 @@ enum TOOLTYPE {
     TOKEN       = 'Token',
     IMAGE       = 'Image',
     HELP        = 'Help',
-    STAIRS      = 'Stairs',
     MEASURE     = 'Measure',
+    FIXTURE     = 'Fixture',
 }
+let current_fixture_type = FIXTURETYPE.STAIRS;
 enum TOKENTYPE {
     EZ = 0,
     IMG = 1,
@@ -3819,6 +3941,39 @@ document.addEventListener('DOMContentLoaded', function():void{
                     {func:make_cb(RECTTYPE.HOLLOW),  text:'Hollow'},
                     {func:make_cb(RECTTYPE.SOLID),  text:'Solid'},
                     {func:make_cb(RECTTYPE.FILLED),  text:'Filled'},
+                ]);
+            });
+        }
+        if(tool.firstChild.textContent.trim() == 'Fixture'){
+            const name = tool.getElementsByTagName('span')[0];
+            function change_t(t:FIXTURETYPE){
+                current_fixture_type = t;
+                switch(current_fixture_type){
+                    case FIXTURETYPE.STAIRS:
+                        name.innerText = ' - Stairs ☰';
+                        break;
+                    case FIXTURETYPE.STATUE:
+                        name.innerText = ' - Statue ☰';
+                        break;
+                }
+            }
+            change_t(FIXTURETYPE.STAIRS);
+            function make_cb(t:FIXTURETYPE){
+                function cb(){
+                    change_tool(TOOLTYPE.FIXTURE);
+                    change_t(t);
+                }
+                return cb;
+            }
+            const triangle = tool.getElementsByTagName('span')[0];
+            triangle.addEventListener('click', function(e:MouseEvent){
+                e.preventDefault();
+                e.stopPropagation();
+                if(has_tri_menu)
+                    return;
+                make_tri_menu(e, [
+                    {func:make_cb(FIXTURETYPE.STATUE),  text:'Statue'},
+                    {func:make_cb(FIXTURETYPE.STAIRS),  text:'Stairs'},
                 ]);
             });
         }
@@ -4501,50 +4656,109 @@ document.addEventListener('DOMContentLoaded', function(){
                     });
                 }
             }break;
-            case TOOLTYPE.STAIRS:{
-                let id = get_new_id();
-                let x0 = e.offsetX/view.scale-view.camera_x;
-                let y0 = e.offsetY/view.scale-view.camera_y;
-                add_stairs(view.map, id, x0, y0);
-                view.placing_area.is_placing = true;
-                view.placing_area.is_line = false;
-                const stairs = view.map.canvas_objs.get(id)! as Stairs; // lazy
-                view.placing_area.x0 = stairs.base_x;
-                view.placing_area.y0 = stairs.base_y;
-                view.placing_area.x1 = stairs.base_x;
-                view.placing_area.y1 = stairs.base_y;
-                x0 = stairs.base_x;
-                y0 = stairs.base_y;
-                request_render();
-                function change_stairs_on_move(e:MouseEvent){
-                    e.stopPropagation();
-                    e.preventDefault();
-                    const ex0 = e.offsetX/view.scale-view.camera_x;
-                    const ey0 = e.offsetY/view.scale-view.camera_y;
-                    change_stairs(stairs, x0, y0, ex0, ey0);
-                    view.placing_area.x0 = stairs.base_x;
-                    view.placing_area.y0 = stairs.base_y;
-                    view.placing_area.x1 = stairs.base_x+REFERENCE_WIDTH*stairs.width;
-                    view.placing_area.y1 = stairs.base_y+REFERENCE_WIDTH*stairs.height;
-                    request_render();
+            case TOOLTYPE.FIXTURE:{
+                switch(current_fixture_type){
+                    // Legacy: is its own impl
+                    case FIXTURETYPE.STAIRS:{
+                        let id = get_new_id();
+                        let x0 = e.offsetX/view.scale-view.camera_x;
+                        let y0 = e.offsetY/view.scale-view.camera_y;
+                        add_stairs(view.map, id, x0, y0);
+                        view.placing_area.is_placing = true;
+                        view.placing_area.is_line = false;
+                        const stairs = view.map.canvas_objs.get(id)! as Stairs; // lazy
+                        view.placing_area.x0 = stairs.base_x;
+                        view.placing_area.y0 = stairs.base_y;
+                        view.placing_area.x1 = stairs.base_x;
+                        view.placing_area.y1 = stairs.base_y;
+                        x0 = stairs.base_x;
+                        y0 = stairs.base_y;
+                        request_render();
+                        function change_stairs_on_move(e:MouseEvent){
+                            e.stopPropagation();
+                            e.preventDefault();
+                            const ex0 = e.offsetX/view.scale-view.camera_x;
+                            const ey0 = e.offsetY/view.scale-view.camera_y;
+                            change_stairs(stairs, x0, y0, ex0, ey0);
+                            view.placing_area.x0 = stairs.base_x;
+                            view.placing_area.y0 = stairs.base_y;
+                            view.placing_area.x1 = stairs.base_x+REFERENCE_WIDTH*stairs.width;
+                            view.placing_area.y1 = stairs.base_y+REFERENCE_WIDTH*stairs.height;
+                            request_render();
+                        }
+                        canvas.addEventListener('mousemove', change_stairs_on_move);
+                        function finish_point(){
+                            view.placing_area.is_placing = false;
+                            request_render();
+                            canvas.removeEventListener('mousemove', change_stairs_on_move);
+                            window.removeEventListener('mouseup', finish_point);
+                            canvas.removeEventListener('mouseleave', finish_point);
+                            if(stairs.width != 0 && stairs.height != 0){
+                                publish_obj_by_id(view.map, id);
+                                note_create_by_id_for_undo(view.map, id);
+                            }
+                            else {
+                                stairs.flags |= CANVASFLAG.DELETED;
+                            }
+                        }
+                        window.addEventListener('mouseup', finish_point);
+                        canvas.addEventListener('mouseleave', finish_point);
+                    }break;
+                    default:{
+                        let id = get_new_id();
+                        const x = snap(e.offsetX/view.scale-view.camera_x);
+                        const y = snap(e.offsetY/view.scale-view.camera_y);
+                        const fixture = make_fixture(id, x, y, current_fixture_type);
+                        add_canv_obj(view.map, fixture);
+                        view.placing_area.is_placing = true;
+                        view.placing_area.is_line = false;
+                        view.placing_area.x0 = fixture.base_x;
+                        view.placing_area.y0 = fixture.base_y;
+                        view.placing_area.x1 = fixture.base_x;
+                        view.placing_area.y1 = fixture.base_y;
+                        request_render();
+                        function move(e:MouseEvent){
+                            e.stopPropagation();
+                            e.preventDefault();
+                            let x0 = x;
+                            let y0 = y;
+                            let x1 = snap(e.offsetX/view.scale-view.camera_x);
+                            let y1 = snap(e.offsetY/view.scale-view.camera_y);
+                            if(x1 < x0){
+                                let temp = x1; x1 = x0; x0 = temp;
+                            }
+                            if(y1 < y0){
+                                let temp = y1; y1 = y0; y0 = temp;
+                            }
+                            fixture.base_x = x0;
+                            fixture.base_y = y0;
+                            fixture.width = x1 - x0;
+                            fixture.height = y1 - y0;
+                            view.placing_area.x0 = x0;
+                            view.placing_area.y0 = y0;
+                            view.placing_area.x1 = x1;
+                            view.placing_area.y1 = y1;
+                            request_render();
+                        }
+                        canvas.addEventListener('mousemove', move);
+                        function finish(){
+                            view.placing_area.is_placing = false;
+                            request_render();
+                            canvas.removeEventListener('mousemove', move);
+                            window.removeEventListener('mouseup', finish);
+                            canvas.removeEventListener('mouseleave', finish);
+                            if(fixture.width != 0 && fixture.height != 0){
+                                publish_obj_by_id(view.map, id);
+                                note_create_by_id_for_undo(view.map, id);
+                            }
+                            else {
+                                fixture.flags |= CANVASFLAG.DELETED;
+                            }
+                        }
+                        window.addEventListener('mouseup', finish);
+                        canvas.addEventListener('mouseleave', finish);
+                    }break;
                 }
-                canvas.addEventListener('mousemove', change_stairs_on_move);
-                function finish_point(){
-                    view.placing_area.is_placing = false;
-                    request_render();
-                    canvas.removeEventListener('mousemove', change_stairs_on_move);
-                    window.removeEventListener('mouseup', finish_point);
-                    canvas.removeEventListener('mouseleave', finish_point);
-                    if(stairs.width != 0 && stairs.height != 0){
-                        publish_obj_by_id(view.map, id);
-                        note_create_by_id_for_undo(view.map, id);
-                    }
-                    else {
-                        stairs.flags |= CANVASFLAG.DELETED;
-                    }
-                }
-                window.addEventListener('mouseup', finish_point);
-                canvas.addEventListener('mouseleave', finish_point);
             }break;
             case TOOLTYPE.MEASURE:{
                 let id = get_new_id();
