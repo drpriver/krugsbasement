@@ -3,7 +3,7 @@ We need a new icon tool with a few built in icons:
 [ ] Rubble
 [x] Statue
 [x] Stairs
-[ ] Pit
+[x] Pit
 
 Update
 ------
@@ -14,3 +14,5 @@ Update
 ------
 Changed stairs to fixtures tool
 Added statue.
+
+Added pit.

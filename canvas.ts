@@ -310,6 +310,7 @@ type MeasureObj = {
 enum FIXTURETYPE {
     STATUE = 0,
     STAIRS = 1,
+    PIT    = 2,
 }
 
 // Fixture
@@ -3515,6 +3516,39 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.closePath();
                         ctx.stroke();
                     }break;
+                    case FIXTURETYPE.PIT:{
+                        let w = obj.width - 8;
+                        let h = obj.height - 8;
+                        let x = obj.base_x + 4;
+                        let y = obj.base_y + 4;
+                        if(is_selected){
+                            ctx.lineWidth = 4;
+                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.strokeRect(x-2,y-2,w+4,h+4);
+                        }
+                        ctx.lineWidth = 2;
+                        ctx.strokeStyle = '#000000';
+                        ctx.fillStyle = '#00000011';
+                        ctx.fillRect(x,y, w, h);
+                        ctx.fillStyle = '#00000033';
+                        const thick = Math.min(10, Math.min(obj.height/6, obj.width/6));
+                        ctx.fillRect(x+thick,y+thick, w-2*thick, h-2*thick);
+                        ctx.strokeRect(x,y,w,h);
+                        ctx.beginPath();
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(x+thick, y+thick);
+                        ctx.lineTo(x+thick, y+h-thick);
+                        ctx.lineTo(x, y+h);
+                        ctx.lineTo(x+thick, y+h-thick);
+                        ctx.lineTo(x+w-thick, y+h-thick);
+                        ctx.lineTo(x+w, y+h);
+                        ctx.lineTo(x+w-thick, y+h-thick);
+                        ctx.lineTo(x+w-thick, y+thick);
+                        ctx.lineTo(x+w, y);
+                        ctx.lineTo(x+w-thick, y+thick);
+                        ctx.lineTo(x+thick, y+thick);
+                        ctx.stroke();
+                    }break;
                 }
             }break;
         }
@@ -3955,6 +3989,9 @@ document.addEventListener('DOMContentLoaded', function():void{
                     case FIXTURETYPE.STATUE:
                         name.innerText = ' - Statue ☰';
                         break;
+                    case FIXTURETYPE.PIT:
+                        name.innerText = ' - Pit ☰';
+                        break;
                 }
             }
             change_t(FIXTURETYPE.STAIRS);
@@ -3972,6 +4009,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 if(has_tri_menu)
                     return;
                 make_tri_menu(e, [
+                    {func:make_cb(FIXTURETYPE.PIT),  text:'Pit'},
                     {func:make_cb(FIXTURETYPE.STATUE),  text:'Statue'},
                     {func:make_cb(FIXTURETYPE.STAIRS),  text:'Stairs'},
                 ]);
