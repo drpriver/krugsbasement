@@ -49,11 +49,11 @@ David20::title @hide
       Measure
     ::div.tool
       Help
-    ::div
+    ::div @id(colors)
       ::raw
         <input type="color" id="color-picker" value="#000000">
         <input type="color" id="color-picker2" value="#ffffff">
-        <input type="number" id="line-thickness" value="4" max="20" min="1">
+        <input type="number" class="numeric-input" id="line-thickness" value="4" max="20" min="1">
 ::div.chat @id(chat)
   ::div @id(tree)
     ::div
@@ -133,6 +133,16 @@ David20::title @hide
     grid-column-gap: 4px;
     grid-row-gap: 4px;
     font-size: 12px;
+  }
+  #colors {
+    display: flex;
+    gap: 5px;
+    align-content:center;
+    justify-content: center;
+  }
+  #tools input {
+    padding: 0px;
+    max-width: 3em;
   }
   #tools > div.tool {
     border: 1px solid gray;
