@@ -35,4 +35,4 @@ dist.zip: screen.html
 
 ship-it: dist.zip
 	scp dist.zip david@droplet:/home/david
-	ssh david@droplet "rm -rf dist && unzip dist"
+	ssh david@droplet "make backup && rm -rf dist && unzip dist && make restore"
