@@ -100,11 +100,23 @@ def canvas_name_map(data) -> None:
     emit('canvas-name-map', data, broadcast=True, include_self=False, to=room)
 
 @socketio.on('canvas-new-map-request')
-def new_map_request(map_name:str) -> None:
+def new_map_request(data) -> None:
+    map_name:str = data['name']
+    grid_type: int = data['grid_type']
     room = sid_to_room[request.sid]  # type: ignore
-    new_map_id = canvas.new_map_request(room, map_name)
+    new_map_id = canvas.new_map_request(room, map_name, grid_type)
     emit('canvas-create-map', new_map_id, broadcast=True, include_self=True, to=room)
     emit('canvas-name-map', {'map_id':new_map_id, 'map_name':map_name}, broadcast=True, include_self=True, to=room)
+    emit('canvas-grid-type', {'map_id':new_map_id, 'grid_type':grid_type}, broadcast=True, include_self=True, to=room)
+
+@socketio.on('canvas-grid-type')
+def change_grid_type(data) -> None:
+    map_id = data['map_id']
+    gt = data['grid_type']
+    room = sid_to_room[request.sid]  # type: ignore
+    canvas.change_grid_type(room, map_id, gt)
+    emit('canvas-grid-type', {'map_id':map_id, 'grid_type':gt}, broadcast=True, include_self=True, to=room)
+
 
 @socketio.on('canvas-delete-map-request')
 def delete_map_request(map_id:int) -> None:

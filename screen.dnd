@@ -1,7 +1,7 @@
 David20::title @hide
 ::div.map
   ::raw
-    <canvas id="map"></canvas>
+    <canvas id="map" style="background-color:#fff;"></canvas>
   ::div @id(tools)
     ::div.snaps
       ::raw

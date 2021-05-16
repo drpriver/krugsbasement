@@ -404,8 +404,14 @@ enum MapFlags {
     DELETED = 1 << 0,
     CANT_DELETE = 1 << 1,
 }
+enum GRIDTYPE {
+    SQUARE = 0,
+    HEX = 1,
+    NOGRID = 2,
+}
 type DungeonMap = {
     map_id: number; // integer
+    grid_type: GRIDTYPE;
     map_name: string;
     flags: MapFlags;
     canvas_obj_array: Array<CanvasObject>;
@@ -517,6 +523,7 @@ function get_map(map_id:number): DungeonMap {
     const new_map:DungeonMap = {
         map_id: map_id,
         map_name: 'Untitled',
+        grid_type: GRIDTYPE.SQUARE,
         flags: MapFlags.NONE,
         // TODO: these shouldn't be on the map itself, this prevents having multiple
         // dungeon_map_views into the same map.
@@ -572,6 +579,11 @@ function rename_map(map:DungeonMap, name:string){
 socket.on('canvas-name-map', function(data:{map_id:number, map_name:string}){
     const map = get_map(data.map_id);
     rename_map(map, data.map_name);
+});
+socket.on('canvas-grid-type', function(data:{map_id:number, grid_type:GRIDTYPE}){
+    const map = get_map(data.map_id);
+    map.grid_type = data.grid_type;
+    request_render();
 });
 
 //
@@ -1653,7 +1665,7 @@ function delete_map(map_id:number){
 }
 
 // cutnpaste from below. TODO: factor these.
-socket.on('canvas-initialize-maps', function(msgs:Array<{map_id:number; map_name:string; objects:Array<StrippedObjWithId>; flags:MapFlags}>){
+socket.on('canvas-initialize-maps', function(msgs:Array<{map_id:number; map_name:string; objects:Array<StrippedObjWithId>; flags:MapFlags; grid_type:GRIDTYPE}>){
     for(let msg of msgs){
         const map_id = msg.map_id;
         if(msg.flags & MapFlags.DELETED){
@@ -1663,6 +1675,7 @@ socket.on('canvas-initialize-maps', function(msgs:Array<{map_id:number; map_name
         dungeon_map_views.push(view);
         const map = view.map;
         map.flags = msg.flags;
+        map.grid_type = msg.grid_type;
         rename_map(map, msg.map_name);
         const objs = msg.objects;
         const length = objs.length;
@@ -1844,50 +1857,36 @@ function set_obj_states_from_stripped_objs(map:DungeonMap, obj_states:Array<Stri
             console.log('Updating unknown object??', state.id);
             continue;
         }
-        obj.base_x = state.base_x;
-        obj.base_y = state.base_y;
-        obj.flags = state.flags;
         switch(obj.type){
             case CANVASTYPE.FREEHAND_LINE:
+                Object.assign(obj, state);
                 obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-                obj.points = state.points;
-                obj.color = state.color;
-                obj.thickness = state.thickness;
+                obj.points = Array.from(state.points);
                 freehand_recalculate_bbox(obj);
                 freehand_recalculate_path(obj);
                 break;
             case CANVASTYPE.GRID_LINE:
+                Object.assign(obj, state);
                 obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-                obj.points = state.points;
-                obj.color = state.color;
+                obj.points = Array.from(state.points);
                 gridline_recalculate_bbox(obj);
                 gridline_recalculate_path(obj);
                 break;
             case CANVASTYPE.FILLED_RECT:
-                obj.width = state.width;
-                obj.height = state.height;
-                obj.color = state.color;
-                obj.color2 = state.color2;
+                Object.assign(obj, state);
                 break;
             case CANVASTYPE.ELLIPSE:
-                obj.width = state.width;
-                obj.height = state.height;
-                obj.color = state.color;
+                Object.assign(obj, state);
                 break;
             case CANVASTYPE.RECT:
-                obj.width = state.width;
-                obj.height = state.height;
-                obj.color = state.color;
+                Object.assign(obj, state);
                 break;
             case CANVASTYPE.GRID_RECT:
-                obj.width = state.width;
-                obj.height = state.height;
-                obj.color = state.color;
+                Object.assign(obj, state);
                 break;
             case CANVASTYPE.IMAGE:{
                 const needs_new_image = (obj.width !== state.width) || (obj.height !== state.height) || (obj.url !== state.url);
-                obj.width = state.width;
-                obj.height = state.height;
+                Object.assign(obj, state);
                 if(needs_new_image){
                     const img = new Image(obj.width, obj.height);
                     img.addEventListener('load', function(){
@@ -1898,40 +1897,26 @@ function set_obj_states_from_stripped_objs(map:DungeonMap, obj_states:Array<Stri
                 }
             }break;
             case CANVASTYPE.TEXT:
+                Object.assign(obj, state);
                 obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-                obj.text = state.text;
                 break;
             case CANVASTYPE.EZ_TOKEN:
-                obj.color = state.color;
-                obj.text = state.text;
-                obj.width = state.width;
-                obj.height = state.height;
+                Object.assign(obj, state);
                 break;
-            case CANVASTYPE.IMG_TOKEN:{
-                obj.width = state.width;
-                obj.height = state.height;
-                // idk
-            }break;
+            case CANVASTYPE.IMG_TOKEN:
+                Object.assign(obj, state);
+                break;
             case CANVASTYPE.DOOR:
-                obj.color = state.color;
-                obj.doortype = state.doortype;
-                obj.width = state.width;
-                obj.orientation = state.orientation;
+                Object.assign(obj, state);
                 break;
             case CANVASTYPE.STAIRS:
-                obj.width = state.width;
-                obj.height = state.height;
-                obj.rotation = state.rotation;
+                Object.assign(obj, state);
                 break;
             case CANVASTYPE.MEASURE:
-                obj.x1 = state.x1;
-                obj.y1 = state.y1;
-                obj.color = state.color;
+                Object.assign(obj, state);
                 break;
             case CANVASTYPE.FIXTURE:
-                obj.width = state.width;
-                obj.height = state.height;
-                obj.ftype = state.ftype;
+                Object.assign(obj, state);
                 break;
         }
     }
@@ -2608,8 +2593,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
     }
     const canvas_obj_array = map.canvas_obj_array;
     const selected = view.selected;
-    const camera_x = view.camera_x;
-    const camera_y = view.camera_y;
+    const camera_x = Math.round(view.camera_x);
+    const camera_y = Math.round(view.camera_y);
     const scale = view.scale;
     animation_requested = false;
     const width = canvas.width;
@@ -2619,19 +2604,64 @@ function render(timestamp:DOMHighResTimeStamp):void{
     let SCALE = scale;
     ctx.scale(SCALE, SCALE);
     ctx.fillStyle = 'rgb(150, 150, 150)';
-    let grid_base_x = camera_x & (REFERENCE_WIDTH-1);
-    let grid_base_y = camera_y & (REFERENCE_WIDTH-1);
-    let grid_max_x = width/SCALE;
-    let grid_max_y = height/SCALE;
-    for(let x = grid_base_x; x < grid_max_x; x+= REFERENCE_WIDTH){
-        ctx.fillRect(x, 0, 1/SCALE, height/SCALE);
-    }
-    for(let y = grid_base_y; y < grid_max_y; y+= REFERENCE_WIDTH){
-        ctx.fillRect(0, y, width/SCALE, 1/SCALE);
+    switch(map.grid_type){
+        case GRIDTYPE.SQUARE:{
+            let grid_base_x = camera_x & (REFERENCE_WIDTH-1);
+            let grid_base_y = camera_y & (REFERENCE_WIDTH-1);
+            let grid_max_x = width/SCALE;
+            let grid_max_y = height/SCALE;
+            for(let x = grid_base_x; x < grid_max_x; x+= REFERENCE_WIDTH){
+                ctx.fillRect(x, 0, 1/SCALE, height/SCALE);
+            }
+            for(let y = grid_base_y; y < grid_max_y; y+= REFERENCE_WIDTH){
+                ctx.fillRect(0, y, width/SCALE, 1/SCALE);
+            }
+        }break;
+        case GRIDTYPE.HEX:{
+            function draw_hex_grid(){
+                let top_left_hex_x = Math.ceil(camera_x / REFERENCE_WIDTH);
+                if(((camera_x) & (REFERENCE_WIDTH-1)) == 0){
+                    top_left_hex_x++;
+                }
+                let grid_base_x = camera_x & (REFERENCE_WIDTH-1);
+                let grid_base_y = camera_y & (REFERENCE_WIDTH-1);
+                ctx.lineWidth = 1;
+                // ctx.strokeStyle = '#000000';
+                ctx.strokeStyle = '#888888';
+                grid_base_x -= REFERENCE_WIDTH;
+                const half = REFERENCE_WIDTH/2;
+                const full = REFERENCE_WIDTH;
+                const p = new Path2D();
+                p.moveTo(-9, -half);
+                let n_y = Math.ceil(height/SCALE/REFERENCE_WIDTH)+3;
+                for(let i = 0; i < n_y; i++){
+                    p.lineTo(-9, i*full-half);
+                    p.lineTo(+9, i*full);
+                    p.lineTo(-9+full, i*full);
+                    p.lineTo(+9, i*full);
+                }
+                ctx.save();
+                if(top_left_hex_x & 1)
+                    ctx.translate(grid_base_x-full, grid_base_y-full);
+                else
+                    ctx.translate(grid_base_x-full, grid_base_y-half);
+                let n_x = Math.ceil(width/SCALE/REFERENCE_WIDTH)+3;
+                for(let i = 0; i < n_x; i++){
+                    ctx.translate(full, -half);
+                    ctx.stroke(p);
+                    ctx.translate(full, +half);
+                    ctx.stroke(p);
+                }
+                ctx.restore();
+            }
+        draw_hex_grid();
+        }break;
+        case GRIDTYPE.NOGRID:
+            // draw no grid... duh!
+            break;
     }
     ctx.translate(camera_x, camera_y);
     let length = canvas_obj_array.length;
-    // const SELECTED_COLOR = '#f012df';
     const SELECTED_COLOR = '#33ffdd';
     const canvas_bbox = {
         x0:-camera_x,
@@ -5054,6 +5084,19 @@ document.addEventListener('DOMContentLoaded', function(){
                 <td><label for="text">Map Name:</label>
                 <td><input type="text" name="text" id="hover-text" value="${active_view.map.map_name}">
             </tr>
+            <tr>
+                <td><label for="hover-hex-grid">Hex Grid</label>
+                <td><input name="hover-hex-grid" type="checkbox" id="hover-hex-grid" ${(function(){
+                     switch(active_view.map.grid_type){
+                         case GRIDTYPE.SQUARE:
+                             return "";
+                         case GRIDTYPE.HEX:
+                             return "checked";
+                         case GRIDTYPE.NOGRID:
+                             return "";
+                     }
+                })()}>
+            </tr>
         `;
         if(!cant_delete){
             html += `
@@ -5083,6 +5126,10 @@ document.addEventListener('DOMContentLoaded', function(){
                 return;
             rename_map(active_view.map, name);
             socket.emit('canvas-name-map', {map_id:active_view.map.map_id, map_name:name});
+            const hg = document.getElementById('hover-hex-grid')! as HTMLInputElement;
+            const gt = hg.checked? GRIDTYPE.HEX : GRIDTYPE.SQUARE;
+            if(active_view.map.grid_type != gt)
+                socket.emit('canvas-grid-type', {map_id:active_view.map.map_id, grid_type:gt});
         }
         make_ok_dialog(html, on_ok);
     });
@@ -5096,6 +5143,10 @@ document.addEventListener('DOMContentLoaded', function(){
                 <td><label for="text">Map Name:</label>
                 <td><input type="text" name="text" id="hover-text" value="">
             </tr>
+            <tr>
+                <td><label for="hover-hex-grid">Hex Grid</label>
+                <td><input name="hover-hex-grid" type="checkbox" id="hover-hex-grid">
+            </tr>
         </table>
         `;
         function on_ok(unused:any){
@@ -5105,7 +5156,9 @@ document.addEventListener('DOMContentLoaded', function(){
                 return;
             if(!value.length)
                 return;
-            socket.emit('canvas-new-map-request', value);
+            const hg = document.getElementById('hover-hex-grid')! as HTMLInputElement;
+            const gt = hg.checked? GRIDTYPE.HEX : GRIDTYPE.SQUARE;
+            socket.emit('canvas-new-map-request', {name:value, grid_type:gt});
         }
         make_ok_dialog(html, on_ok);
     });

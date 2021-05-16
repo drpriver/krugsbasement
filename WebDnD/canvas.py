@@ -7,11 +7,17 @@ class MapFlag(IntFlag):
     DELETED = 1
     CANT_DELETE = 2
 
+class GridType(IntEnum):
+    SQUARE = 0
+    HEX = 1
+    NOGRID = 2
+
 class Map(NamedTuple):
     map_id: int
     objects: List[Dict[str, Any]]
     map_name: str
     flags: MapFlag = MapFlag.NONE
+    grid_type: GridType = GridType.SQUARE
     def with_live_objs(self) -> Dict[str, Any]:
         md = self._asdict()
         md['objects'] = [o for o in md['objects'] if not (o['flags'] & Flags.DELETED)]
@@ -71,9 +77,13 @@ def name_map(room:str, map_id: int, map_name:str) -> None:
     m = MAPS[room][map_id]
     MAPS[room][map_id] = m._replace(map_name=map_name)
 
-def new_map_request(room:str, map_name:str) -> int:
+def change_grid_type(room:str, map_id:int, grid_type:GridType) -> None:
+    m = MAPS[room][map_id]
+    MAPS[room][map_id] = m._replace(grid_type=grid_type)
+
+def new_map_request(room:str, map_name:str, grid_type:int) -> int:
     new_map_id = max(MAPS[room].keys()) + 1
-    MAPS[room][new_map_id] = Map(new_map_id, [], map_name)
+    MAPS[room][new_map_id] = Map(new_map_id, [], map_name, grid_type=grid_type)
     MAP_OBJS_BY_ID[room][new_map_id] = {}
     return new_map_id
 
