@@ -22,7 +22,7 @@ def chat_input(data:Dict[str, str]) -> None:
         return
     responses = chat.handle_input(room, data['text'], data['chatname'])
     if responses:
-        emit('chat-msg', responses, broadcast=True)
+        emit('chat-msg', responses, broadcast=True, to=room)
 
 def save_session_id(unused) -> int:
     return session_id
