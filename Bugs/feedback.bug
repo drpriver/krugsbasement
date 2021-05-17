@@ -4,7 +4,6 @@
 * [ ] Dark mode
 * [ ] Filled ellipse
 * [ ] Windows color input is fucked (always appears top left), have to click it, doesn't rember easily.
-* [ ] Dark Mode???
 * [ ] More Hot Keys
-* [ ] You can lose connection, messages get queued and then when you reconnect
+* [x] You can lose connection, messages get queued and then when you reconnect
       they get sent before you can emit a join event.

@@ -1,6 +1,36 @@
 declare let io: any;
 let socket = io({transports:["websocket"]});
-socket.emit('join', window.location.pathname)
+socket.on("connect", () => {
+    clear_disconnected();
+    socket.emit('join', window.location.pathname)
+    socket.emitBuffered();
+    // Flush the buffer here so that the post-join gives us
+    // our own objects.
+    socket.emit('post-join')
+});
+function clear_disconnected(){
+    const d = document.getElementById('disconnect')!;
+    d.style.display = 'none';
+}
+function set_disconnected(){
+    const d = document.getElementById('disconnect')!;
+    d.style.display = 'initial';
+}
+socket.on('disconnect', function(reason:string){
+    switch(reason){
+        case 'io server disconnect':
+        case 'io client disconnect':
+            // I want to set a different message
+            // in the future.
+            set_disconnected();
+            break;
+        case 'ping timeout':
+        case 'transport close':
+        case 'transport error':
+            set_disconnected();
+            break;
+    }
+});
 let session_id = 0;
 let show_pan = (function(){
     const sp = localStorage.getItem('showpan');

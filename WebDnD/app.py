@@ -46,6 +46,10 @@ def join(room:str) -> None:
     os.makedirs(path, exist_ok=True)
     chat.create_chat(room)
     canvas.create_maps(room)
+
+@socketio.on('post-join')
+def post_join():
+    room = sid_to_room[request.sid]  # type: ignore
     emit('canvas-clear')
     emit('chat-clear')
     emit('chat-create', chat.get_history(room))

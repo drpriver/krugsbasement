@@ -1,4 +1,9 @@
 David20::title @hide
+::raw
+  <div id="disconnect" style="display:none;">
+  You are currently not connected. Inputs will be buffered and sent upon
+  reconnect.
+  </div>
 ::div.map
   ::raw
     <canvas id="map" style="background-color:#fff;"></canvas>
@@ -72,6 +77,14 @@ David20::title @hide
 ::css @inline
   * {
     box-sizing: border-box;
+  }
+  #disconnect {
+    background-color: red;
+    font-size: 4em;
+    position: absolute;
+    top: 0px;
+    left: 20%;
+    max-width: 60%;
   }
   #help-menu tbody tr td:nth-child(1){
     font-weight: bold;
