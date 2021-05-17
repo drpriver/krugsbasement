@@ -340,6 +340,7 @@ enum DOORTYPE {
     BRICKED_WALL = 4,
     PORTAL = 5,
     CURTAINS = 6,
+    HALLWAY = 7,
 }
 let current_door = DOORTYPE.DOOR;
 
@@ -2578,6 +2579,7 @@ RUBBLEIMAGE.addEventListener('error', function(){
 if(RUBBLEIMAGE)
     RUBBLEIMAGE.src = '/imgs/rubble.png';
 // const timings = [];
+let background = '#fff';
 function render(timestamp:DOMHighResTimeStamp):void{
     // const before = performance.now();
     if(!ctx)
@@ -2602,6 +2604,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, width, height);
     let SCALE = scale;
+    const BACKGROUND = background;
     ctx.scale(SCALE, SCALE);
     ctx.fillStyle = 'rgb(150, 150, 150)';
     switch(map.grid_type){
@@ -3015,7 +3018,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                     break;
                             }
                         }
-                        ctx.fillStyle = '#fff';
+                        ctx.fillStyle = BACKGROUND;
                         ctx.strokeStyle = obj.color;
                         ctx.lineWidth=4;
                         switch(obj.orientation){
@@ -3035,7 +3038,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 ctx.moveTo(obj.base_x-20*w, obj.base_y-20*w)
                                 ctx.lineTo(obj.base_x+20*w, obj.base_y+20*w);
                                 ctx.stroke();
-                                ctx.strokeStyle = '#fff';
+                                ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
                                 ctx.moveTo(obj.base_x-16*w, obj.base_y-16*w)
@@ -3052,7 +3055,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 ctx.moveTo(obj.base_x+20*w, obj.base_y-20*w)
                                 ctx.lineTo(obj.base_x-20*w, obj.base_y+20*w);
                                 ctx.stroke();
-                                ctx.strokeStyle = '#fff';
+                                ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
                                 ctx.moveTo(obj.base_x+16*w, obj.base_y-16*w)
@@ -3092,7 +3095,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                     break;
                             }
                         }
-                        ctx.fillStyle = '#fff';
+                        ctx.fillStyle = BACKGROUND;
                         ctx.strokeStyle = obj.color;
                         ctx.lineWidth=4;
                         switch(obj.orientation){
@@ -3110,7 +3113,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 ctx.moveTo(obj.base_x-20*w, obj.base_y-20*w)
                                 ctx.lineTo(obj.base_x+20*w, obj.base_y+20*w);
                                 ctx.stroke();
-                                ctx.strokeStyle = '#fff';
+                                ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
                                 ctx.moveTo(obj.base_x-16*w, obj.base_y-16*w)
@@ -3123,7 +3126,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 ctx.moveTo(obj.base_x+20*w, obj.base_y-20*w)
                                 ctx.lineTo(obj.base_x-20*w, obj.base_y+20*w);
                                 ctx.stroke();
-                                ctx.strokeStyle = '#fff';
+                                ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
                                 ctx.moveTo(obj.base_x+16*w, obj.base_y-16*w)
@@ -3159,7 +3162,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                     break;
                             }
                         }
-                        ctx.strokeStyle = '#fff';
+                        ctx.strokeStyle = BACKGROUND;
                         ctx.lineWidth=12;
                         ctx.setLineDash([6, 4]);
                         ctx.beginPath();
@@ -3211,17 +3214,25 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                     break;
                             }
                         }
-                        ctx.fillStyle = '#fff';
+                        ctx.fillStyle = BACKGROUND;
                         ctx.lineWidth=4;
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.fillRect(obj.base_x-10*w, obj.base_y-16*w, 20*w, 32*w);
+                                ctx.fillRect(obj.base_x-5, obj.base_y-16*w, 10, 32*w);
+                                if((obj.base_x & (REFERENCE_WIDTH-1)) == 0){
+                                    ctx.fillStyle = 'rgb(150, 150, 150)';
+                                    ctx.fillRect(obj.base_x, obj.base_y-16*w, 1/SCALE, 32*w);
+                                }
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.fillRect(obj.base_x-16*w, obj.base_y-10*w, 32*w, 20*w);
+                                ctx.fillRect(obj.base_x-16*w, obj.base_y-5, 32*w, 10);
+                                if((obj.base_y & (REFERENCE_WIDTH-1)) == 0){
+                                    ctx.fillStyle = 'rgb(150, 150, 150)';
+                                    ctx.fillRect(obj.base_x-16*w, obj.base_y, 32*w, 1/SCALE);
+                                }
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
-                                ctx.strokeStyle = '#fff';
+                                ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
                                 ctx.moveTo(obj.base_x-16*w, obj.base_y-16*w)
@@ -3229,11 +3240,73 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 ctx.stroke();
                                 break;
                             case ORIENTATION.TOPRIGHT_DOWNLEFT:
-                                ctx.strokeStyle = '#fff';
+                                ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
                                 ctx.moveTo(obj.base_x+16*w, obj.base_y-16*w)
                                 ctx.lineTo(obj.base_x-16*w, obj.base_y+16*w);
+                                ctx.stroke();
+                                break;
+                        }
+                    }break;
+                    case DOORTYPE.HALLWAY:{
+                        if(is_selected){
+                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.lineWidth=8;
+                            switch(obj.orientation){
+                                case ORIENTATION.VERTICAL:
+                                    ctx.strokeRect(obj.base_x-10*w, obj.base_y-32*w, 20*w, 64*w);
+                                    break;
+                                case ORIENTATION.HORIZONTAL:
+                                    ctx.strokeRect(obj.base_x-32*w, obj.base_y-10*w, 64*w, 20*w);
+                                    break;
+                                case ORIENTATION.TOPLEFT_DOWNRIGHT:
+                                    ctx.lineWidth=22;
+                                    ctx.beginPath();
+                                    ctx.moveTo(obj.base_x-32*w, obj.base_y-32*w)
+                                    ctx.lineTo(obj.base_x+32*w, obj.base_y+32*w);
+                                    ctx.stroke();
+                                    break;
+                                case ORIENTATION.TOPRIGHT_DOWNLEFT:
+                                    ctx.lineWidth=22;
+                                    ctx.beginPath();
+                                    ctx.moveTo(obj.base_x+32*w, obj.base_y-32*w)
+                                    ctx.lineTo(obj.base_x-32*w, obj.base_y+32*w);
+                                    ctx.stroke();
+                                    break;
+                            }
+                        }
+                        ctx.fillStyle = BACKGROUND;
+                        ctx.lineWidth=4;
+                        switch(obj.orientation){
+                            case ORIENTATION.VERTICAL:
+                                ctx.fillRect(obj.base_x-5, obj.base_y-32*w+3, 10, 64*w-6);
+                                if((obj.base_x & (REFERENCE_WIDTH-1)) == 0){
+                                    ctx.fillStyle = 'rgb(150, 150, 150)';
+                                    ctx.fillRect(obj.base_x, obj.base_y-32*w+3, 1/SCALE, 64*w-6);
+                                }
+                                break;
+                            case ORIENTATION.HORIZONTAL:
+                                ctx.fillRect(obj.base_x-32*w+3, obj.base_y-5, 64*w-6, 10);
+                                if((obj.base_y & (REFERENCE_WIDTH-1)) == 0){
+                                    ctx.fillStyle = 'rgb(150, 150, 150)';
+                                    ctx.fillRect(obj.base_x-32*w+3, obj.base_y, 64*w-6, 1/SCALE);
+                                }
+                                break;
+                            case ORIENTATION.TOPLEFT_DOWNRIGHT:
+                                ctx.strokeStyle = BACKGROUND;
+                                ctx.lineWidth=10;
+                                ctx.beginPath();
+                                ctx.moveTo(obj.base_x-28*w, obj.base_y-28*w)
+                                ctx.lineTo(obj.base_x+28*w, obj.base_y+28*w);
+                                ctx.stroke();
+                                break;
+                            case ORIENTATION.TOPRIGHT_DOWNLEFT:
+                                ctx.strokeStyle = BACKGROUND;
+                                ctx.lineWidth=10;
+                                ctx.beginPath();
+                                ctx.moveTo(obj.base_x+28*w, obj.base_y-28*w)
+                                ctx.lineTo(obj.base_x-28*w, obj.base_y+28*w);
                                 ctx.stroke();
                                 break;
                         }
@@ -3912,6 +3985,9 @@ document.addEventListener('DOMContentLoaded', function():void{
                     case DOORTYPE.PORTAL:
                         name.innerText = '- Portal ☰';
                         break;
+                    case DOORTYPE.HALLWAY:
+                        name.innerText = '- Hallway ☰';
+                        break;
                     case DOORTYPE.PORTCULLIS:
                         name.innerText = '- Portcullis ☰';
                         break;
@@ -3926,6 +4002,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                     function(){change_door(DOORTYPE.SECRET)},
                     function(){change_door(DOORTYPE.BRICKED_WALL)},
                     function(){change_door(DOORTYPE.PORTAL)},
+                    function(){change_door(DOORTYPE.HALLWAY)},
                     function(){change_door(DOORTYPE.DOUBLE)},
                     function(){change_door(DOORTYPE.PORTCULLIS)},
                     function(){change_door(DOORTYPE.CURTAINS)},
@@ -3949,6 +4026,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                     {func:make_cb(DOORTYPE.SECRET),       text:'Secret Door'},
                     {func:make_cb(DOORTYPE.BRICKED_WALL), text:'Bricked Wall'},
                     {func:make_cb(DOORTYPE.PORTAL),       text:'Portal'},
+                    {func:make_cb(DOORTYPE.HALLWAY),      text:'Hallway'},
                     {func:make_cb(DOORTYPE.DOUBLE),       text:'Double Door'},
                     {func:make_cb(DOORTYPE.PORTCULLIS),   text:'Portcullis'},
                     {func:make_cb(DOORTYPE.CURTAINS),     text:'Curtains'},
