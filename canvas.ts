@@ -2576,7 +2576,7 @@ RUBBLEIMAGE.addEventListener('error', function(){
     RUBBLEIMAGE = null;
 });
 if(RUBBLEIMAGE)
-    RUBBLEIMAGE.src = 'imgs/rubble.png';
+    RUBBLEIMAGE.src = '/imgs/rubble.png';
 // const timings = [];
 function render(timestamp:DOMHighResTimeStamp):void{
     // const before = performance.now();
