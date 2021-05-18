@@ -2868,7 +2868,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         const height = obj.bbox.y1-obj.bbox.y0;
                         ctx.fillRect(x, y, width, height);
                     }
-                    ctx.fillStyle = '#000';
+                    if(DARKMODE)
+                        ctx.fillStyle = '#fff';
+                    else
+                        ctx.fillStyle = '#000';
                     ctx.fillText(obj.text, obj.base_x, obj.base_y);
                 }
             }break;
