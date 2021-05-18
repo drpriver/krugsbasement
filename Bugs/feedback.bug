@@ -1,7 +1,7 @@
 * [x] Hallway Door
 * [ ] Multiline text
-* [ ] Better Portals (not just white squares)
-* [ ] Dark mode
+* [x] Better Portals (not just white squares)
+* [x] Dark mode
 * [ ] Filled ellipse
 * [ ] Windows color input is fucked (always appears top left), have to click it, doesn't rember easily.
 * [ ] More Hot Keys
