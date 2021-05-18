@@ -23,12 +23,10 @@ class Map(NamedTuple):
         md['objects'] = [o for o in md['objects'] if not (o['flags'] & Flags.DELETED)]
         return md
 
-
 MAPS = {'/':{0:Map(0, [], 'Untitled')}}
 class Flags(IntFlag):
     NONE = 0
     DELETED = 1
-
 
 class CANVASTYPE(IntEnum):
     FREEHAND_LINE = 1
@@ -55,11 +53,11 @@ def load_canvas(data) -> Dict[int, Map]:
         if 'map_name' not in d:
             d['map_name'] = 'Untitled'
         m = Map(**d)
+        for o in m.objects:
+            repair(o)
         result[m.map_id] = m
     return result
 
-MAPS['/'] = Persister(MAPS['/'], 'BadDb/canvas.json', save_func=save_canvas, load_func=load_canvas, dont_persist=True).obj
-MAP_OBJS_BY_ID = {'/':{k:{o['id']:o for o in v.objects} for k,v in MAPS['/'].items()}} # type: Dict[str,Dict[int, Dict[int, dict]]]
 
 def create_maps(room:str) -> None:
     if room in MAPS:
@@ -83,7 +81,7 @@ def change_grid_type(room:str, map_id:int, grid_type:GridType) -> None:
 
 def new_map_request(room:str, map_name:str, grid_type:int) -> int:
     new_map_id = max(MAPS[room].keys()) + 1
-    MAPS[room][new_map_id] = Map(new_map_id, [], map_name, grid_type=grid_type)
+    MAPS[room][new_map_id] = Map(new_map_id, [], map_name, grid_type=grid_type) # type: ignore
     MAP_OBJS_BY_ID[room][new_map_id] = {}
     return new_map_id
 
@@ -107,8 +105,7 @@ def delete_map(room:str, map_id:int) -> bool:
     MAPS[room][map_id] = m._replace(flags=m.flags | MapFlag.DELETED)
     return True
 
-VALIDATE_OBJ = {} # type: Dict[int, Callable[[dict], None]]
-vfunc = Callable[[dict], None]
+VALIDATE_OBJ = {} # type: Dict[int, Validator]
 
 class Sentinel: pass
 POINTS = Sentinel()
@@ -135,9 +132,44 @@ class Validator:
             else:
                 if not isinstance(v, t): # type: ignore
                     raise TypeError('field is wrong type', key, t, type(v))
+    def repair_and_validate(self, obj, POINTS=POINTS) -> None:
+        for key, t in self.types.items():
+            if key not in obj:
+                if t is POINTS:
+                    obj[key] = []
+                elif t == NUMBER:
+                    obj[key] = 0
+                else:
+                    obj[key] = t() # type: ignore
+            v = obj[key]
+            if t is POINTS:
+                if not isinstance(v, list):
+                    raise TypeError('Points not a list', key, type(v))
+                for vv in v:
+                    if not isinstance(vv, (int, float)):
+                        raise TypeError('Points element is wrong type', key, type(vv))
+            else:
+                if not isinstance(v, t): # type: ignore
+                    raise TypeError('field is wrong type', key, t, type(v))
+
+        if set(obj) != set(self.types):
+            raise TypeError('Keys missing or extra')
 
 def validate(ct:CANVASTYPE, **kwargs:Union[type, Tuple[type, ...], Sentinel]) -> None:
-    VALIDATE_OBJ[ct] = Validator(**kwargs).validate
+    VALIDATE_OBJ[ct] = Validator(**kwargs)
+
+def repair(obj:dict) -> None:
+    if not isinstance(obj, dict):
+        raise TypeError('Obj is not a dict')
+    if 'type' not in obj:
+        raise TypeError('Obj has no type.')
+    if not isinstance(obj['type'], int):
+        raise TypeError('Obj has non-int type field')
+    obj_type = obj['type']
+    if obj_type not in VALIDATE_OBJ:
+        raise TypeError('Unknown obj type', obj_type)
+    VALIDATE_OBJ[obj_type].repair_and_validate(obj)
+
 
 NUMBER = (float, int)
 CT = CANVASTYPE
@@ -145,7 +177,7 @@ validate(CT.FREEHAND_LINE, color=str, points=POINTS, thickness=int)
 validate(CT.GRID_LINE, color=str, points=POINTS)
 validate(CT.RECT, color=str, width=NUMBER, height=NUMBER)
 validate(CT.FILLED_RECT, color=str, color2=str, width=NUMBER, height=NUMBER)
-validate(CT.ELLIPSE, color=str, width=NUMBER, height=NUMBER)
+validate(CT.ELLIPSE, color=str, color2=str, width=NUMBER, height=NUMBER, variant=int)
 validate(CT.GRID_RECT, color=str, width=NUMBER, height=NUMBER)
 validate(CT.IMAGE, width=NUMBER, height=NUMBER, url=str)
 validate(CT.TEXT, text=str, size=NUMBER)
@@ -168,7 +200,7 @@ def validate_object(obj:dict) -> None:
     obj_type = obj['type']
     if obj_type not in VALIDATE_OBJ:
         raise TypeError('Unknown obj type', obj_type)
-    VALIDATE_OBJ[obj_type](obj)
+    VALIDATE_OBJ[obj_type].validate(obj)
 
 def handle_create(room:str, data:dict) -> list:
     '''
@@ -217,3 +249,6 @@ def set_state(room:str, state:list) -> None:
     MAPS[room].update(load_canvas(state))
     global MAP_OBJS_BY_ID
     MAP_OBJS_BY_ID[room] = {k:{o['id']:o for o in v.objects} for k,v in MAPS[room].items()}
+
+MAPS['/'] = Persister(MAPS['/'], 'BadDb/canvas.json', save_func=save_canvas, load_func=load_canvas, dont_persist=True).obj
+MAP_OBJS_BY_ID = {'/':{k:{o['id']:o for o in v.objects} for k,v in MAPS['/'].items()}} # type: Dict[str,Dict[int, Dict[int, dict]]]

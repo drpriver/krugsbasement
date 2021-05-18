@@ -42,6 +42,8 @@ David20::title @hide
         <span>☰</span>
     ::div.tool
       Ellipse
+      ::raw
+        <span>☰</span>
     ::div.tool
       Text
     ::div.tool

@@ -1,9 +1,9 @@
 * [x] Hallway Door
-* [ ] Multiline text
+* [o] Multiline text -> Moved to own bug.
 * [x] Better Portals (not just white squares)
 * [x] Dark mode
-* [ ] Filled ellipse
-* [ ] Windows color input is fucked (always appears top left), have to click it, doesn't rember easily.
+* [x] Filled ellipse
+* [o] Windows color input is fucked (always appears top left), have to click it, doesn't rember easily. -> moved to own bug.
 * [ ] More Hot Keys
 * [x] You can lose connection, messages get queued and then when you reconnect
       they get sent before you can emit a join event.

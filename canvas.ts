@@ -194,6 +194,13 @@ type GridRectangle = {
     width: number;
     height: number;
 }
+
+enum ELLIPSETYPE {
+    HOLLOW = 0,
+    SOLID = 1,
+    FILLED = 2,
+}
+let current_ellipse = ELLIPSETYPE.HOLLOW;
 //  ellipse - doesn't exist yet
 //  -------
 //  base_x and base_y is the center of the ellipse.
@@ -205,8 +212,10 @@ type Ellipse = {
     base_y: number; // top left of the bounding box
     flags: CANVASFLAG;
     color: string;
+    color2: string;
     width: number;
     height: number;
+    variant: ELLIPSETYPE;
 }
 
 //  image
@@ -1068,7 +1077,7 @@ function change_filled_rect_by_id(map:DungeonMap, id:number, x0:number, y0:numbe
     let obj = map.canvas_objs.get(id) as FilledRectangle;
     change_filled_rect(obj, x0, y0, x1, y1);
 }
-function make_ellipse(id:number, base_x:number, base_y:number, color:string):Ellipse{
+function make_ellipse(id:number, base_x:number, base_y:number, color:string, color2:string, variant:ELLIPSETYPE):Ellipse{
     const obj:Ellipse = {
         type: CANVASTYPE.ELLIPSE,
         id:id,
@@ -1076,13 +1085,15 @@ function make_ellipse(id:number, base_x:number, base_y:number, color:string):Ell
         base_y: Math.round(base_y),
         flags: CANVASFLAG.NONE,
         color: color,
+        color2: color2,
         width: 0,
         height: 0,
+        variant: variant,
     };
     return obj;
 }
-function add_ellipse(map:DungeonMap, id:number, base_x:number, base_y:number, color:string){
-    const obj = make_ellipse(id, base_x, base_y, color);
+function add_ellipse(map:DungeonMap, id:number, base_x:number, base_y:number, color:string, color2:string, variant:ELLIPSETYPE){
+    const obj = make_ellipse(id, base_x, base_y, color, color2, variant);
     add_canv_obj(map, obj);
 }
 function make_text(id:number, base_x:number, base_y:number, text:string, size:number):TextObj{
@@ -2321,6 +2332,8 @@ function strip_obj(obj:any, include_flags:number): StrippedObj{
             stripped_obj.width = obj.width;
             stripped_obj.height = obj.height;
             stripped_obj.color = obj.color;
+            stripped_obj.color2 = obj.color2;
+            stripped_obj.variant = obj.variant;
             break;
         case CANVASTYPE.FILLED_RECT:
             stripped_obj.width = obj.width;
@@ -2764,6 +2777,18 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.strokeStyle = obj.color;
                     ctx.ellipse(cx, cy, obj.width/2, obj.height/2, 0, 0, Math.PI*2);
                     ctx.stroke();
+                    switch(obj.variant){
+                        case ELLIPSETYPE.HOLLOW:
+                            break;
+                        case ELLIPSETYPE.SOLID:
+                            ctx.fillStyle = obj.color;
+                            ctx.fill();
+                            break;
+                        case ELLIPSETYPE.FILLED:
+                            ctx.fillStyle = obj.color2;
+                            ctx.fill();
+                            break;
+                    }
                 }
             }break;
             case CANVASTYPE.FILLED_RECT:{
@@ -4111,6 +4136,43 @@ document.addEventListener('DOMContentLoaded', function():void{
                 ]);
             });
         }
+        if(tool.firstChild.textContent.trim() == 'Ellipse'){
+            const name = tool.getElementsByTagName('span')[0];
+            function change_rt(rt:ELLIPSETYPE){
+                current_ellipse = rt;
+                switch(current_ellipse){
+                    case ELLIPSETYPE.HOLLOW:
+                        name.innerText = ' - Hollow ☰';
+                        break;
+                    case ELLIPSETYPE.SOLID:
+                        name.innerText = ' - Solid ☰';
+                        break;
+                    case ELLIPSETYPE.FILLED:
+                        name.innerText = ' - Filled ☰';
+                        break;
+                }
+            }
+            change_rt(ELLIPSETYPE.HOLLOW);
+            function make_cb(rt:ELLIPSETYPE){
+                function cb(){
+                    change_tool(TOOLTYPE.ELLIPSE);
+                    change_rt(rt);
+                }
+                return cb;
+            }
+            const triangle = tool.getElementsByTagName('span')[0];
+            triangle.addEventListener('click', function(e:MouseEvent){
+                e.preventDefault();
+                e.stopPropagation();
+                if(has_tri_menu)
+                    return;
+                make_tri_menu(e, [
+                    {func:make_cb(ELLIPSETYPE.HOLLOW),  text:'Hollow'},
+                    {func:make_cb(ELLIPSETYPE.SOLID),  text:'Solid'},
+                    {func:make_cb(ELLIPSETYPE.FILLED),  text:'Filled'},
+                ]);
+            });
+        }
         if(tool.firstChild.textContent.trim() == 'Fixture'){
             const name = tool.getElementsByTagName('span')[0];
             function change_t(t:FIXTURETYPE){
@@ -4644,7 +4706,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 let id = get_new_id();
                 const x0 = snap(e.offsetX/view.scale-view.camera_x);
                 const y0 = snap(e.offsetY/view.scale-view.camera_y);
-                add_ellipse(view.map, id, x0, y0, color_picker.value);
+                add_ellipse(view.map, id, x0, y0, color_picker.value, color_picker2.value, current_ellipse);
                 const ellipse = view.map.canvas_objs.get(id)! as Ellipse;
                 view.placing_area.is_placing = true;
                 view.placing_area.is_line = false;
