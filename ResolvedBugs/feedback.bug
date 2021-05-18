@@ -4,6 +4,6 @@
 * [x] Dark mode
 * [x] Filled ellipse
 * [o] Windows color input is fucked (always appears top left), have to click it, doesn't rember easily. -> moved to own bug.
-* [ ] More Hot Keys
+* [o] More Hot Keys -> moved to own bug.
 * [x] You can lose connection, messages get queued and then when you reconnect
       they get sent before you can emit a join event.
