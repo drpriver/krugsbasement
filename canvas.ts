@@ -2579,7 +2579,6 @@ RUBBLEIMAGE.addEventListener('error', function(){
 if(RUBBLEIMAGE)
     RUBBLEIMAGE.src = '/imgs/rubble.png';
 // const timings = [];
-let background = '#fff';
 function render(timestamp:DOMHighResTimeStamp):void{
     // const before = performance.now();
     if(!ctx)
@@ -2593,6 +2592,9 @@ function render(timestamp:DOMHighResTimeStamp):void{
         view.selected.clear();
         note_selections(view);
     }
+    let background = '#fff';
+    if(DARKMODE)
+        background = '#333';
     const canvas_obj_array = map.canvas_obj_array;
     const selected = view.selected;
     const camera_x = Math.round(view.camera_x);
@@ -3409,7 +3411,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.fillText('S', 0, 0);
                             }
                         ctx.font = '48px sans-serif';
-                        ctx.fillStyle = '#444';
+                        if(DARKMODE)
+                            ctx.fillStyle = '#888';
+                        else
+                            ctx.fillStyle = '#444';
                         ctx.fillText('S', 0, 0);
                         ctx.restore();
                     }break;

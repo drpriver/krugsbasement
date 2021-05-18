@@ -219,7 +219,18 @@ function chat_options_dialog(){
     </div>
     <div class="hover-button-container">
         <label for="hide-pan">Hide Pan Tool</label>
-        <input type="checkbox" name="hide-pan" id="hide-pan" ${pan_tool.style.display == 'none'?"checked":""}>
+        <input type="checkbox" name="hide-pan" id="hide-pan" ${pan_tool.style.display == 'none'?'checked':''}>
+        <br>
+        <span style="font-weight:bold">Dark Mode:</span>
+        <input type="radio" id="dark-mode-auto" name="dark-mode" value="auto" ${current_dark_mode == DarkMode.SYSTEM?'checked':''}>
+        <label for="dark-mode-auto">System</label>
+        <input type="radio" id="dark-mode-dark" name="dark-mode" value="dark"${current_dark_mode==DarkMode.DARK?'checked':''}>
+        <label for="dark-mode-dark">Dark</label>
+        <input type="radio" id="dark-mode-light" name="dark-mode" value="light"${current_dark_mode==DarkMode.LIGHT?'checked':''}>
+        <label for="dark-mode-light">Light</label>
+        <br>
+        <span>(might need reload)</span>
+        <br>
         <button id="hover-add-macro">+ Add Macro</button>
         <button id="export-settings">Export</button>
         <button id="import-settings">Import</button>
@@ -232,10 +243,19 @@ function chat_options_dialog(){
     hoverpop.innerHTML = html;
 
 
+
     for(let button of hoverpop.getElementsByClassName('delete-macro-button')){
         (button as HTMLElement).addEventListener('click', delete_macro);
     }
     document.body.appendChild(hoverpop);
+    {
+    const dark_auto = document.getElementById('dark-mode-auto') as HTMLInputElement;
+    dark_auto.addEventListener('change', function(){change_dark_mode(DarkMode.SYSTEM);});
+    const dark_light = document.getElementById('dark-mode-light') as HTMLInputElement;
+    dark_light.addEventListener('change', function(){change_dark_mode(DarkMode.LIGHT);});
+    const dark_dark = document.getElementById('dark-mode-dark') as HTMLInputElement;
+    dark_dark.addEventListener('change', function(){change_dark_mode(DarkMode.DARK);});
+    }
     function delete_macro(e:MouseEvent){
         e.preventDefault();
         e.stopPropagation();

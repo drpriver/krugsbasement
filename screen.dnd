@@ -6,7 +6,7 @@ David20::title @hide
   </div>
 ::div.map
   ::raw
-    <canvas id="map" style="background-color:#fff;"></canvas>
+    <canvas id="map"></canvas>
   ::div @id(tools)
     ::div.snaps
       ::raw
@@ -75,8 +75,14 @@ David20::title @hide
     <textarea id="chatinput" rows="4"></textarea>
 
 ::css @inline
+  :root {
+    color-scheme: light dark; /* both supported */
+  }
   * {
     box-sizing: border-box;
+  }
+  #map {
+    background-color: #fff;
   }
   #disconnect {
     background-color: red;
@@ -114,7 +120,6 @@ David20::title @hide
     display: flex;
     flex-direction: column;
     border: 1px solid black;
-    background-color: #fff;
     height: auto;
     min-height: 72px;
   }
@@ -130,7 +135,7 @@ David20::title @hide
     width: 100%;
     margin: 4px 0px 4px 0px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-    font-size: 24px;
+    /*font-size: 24px;*/
   }
   #tools{
     position: absolute;
@@ -325,6 +330,58 @@ David20::title @hide
   span.chat-error {
     color: #aa0000;
   }
+  body {
+    background-color: #fff;
+  }
+  /*@media (prefers-color-scheme: dark) {*/
+    body.dark-mode #map {
+      background-color: #333;
+    }
+    body.dark-mode #tools {
+      background-color: #333;
+      color: #000;
+    }
+    body.dark-mode {
+      background-color: #333;
+    }
+    body.dark-mode #tools > div.tool {
+      background-color: #888;
+    }
+    body.dark-mode #tools > div.tool.selected {
+      background-color: #eee;
+    }
+    body.dark-mode #tools > div.tool:hover{
+      background-color: #aaa;
+    }
+    body.dark-mode #tools > div.tool.selected:hover {
+      background-color: #ccc;
+    }
+    body.dark-mode #tools input[type="radio"]:checked+label {
+      background-color: #eee;
+    }
+    body.dark-mode #tools input[type="radio"]:checked+label {
+      background-color: #ccc;
+    }
+    body.dark-mode #tools input[type="radio"]+label {
+      background-color: #888;
+    }
+    body.dark-mode #tools input[type="radio"]+label:hover {
+      background-color: #aaa;
+    }
+    body.dark-mode section.menu {
+      background-color: #333;
+      color: #aaa;
+    }
+    body.dark-mode section.menuitem:hover {
+      background-color: #666;
+    }
+    body.dark-mode section.hover {
+      background-color: #333;
+    }
+    body.dark-mode #chat{
+      color: #aaa;
+    }
+  /*}*/
   @media only screen and (max-width: 450px) {
     /* Turn the site into a diceroller. */
     #tools {

@@ -1,4 +1,60 @@
 declare let io: any;
+enum DarkMode {
+    SYSTEM = 0,
+    DARK = 1,
+    LIGHT = 2,
+}
+function system_prefers_darkmode():boolean{
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+}
+let current_dark_mode:DarkMode = DarkMode.SYSTEM;
+let DARKMODE = false;
+function change_dark_mode(mode:DarkMode){
+    switch(mode){
+        case DarkMode.DARK:
+            DARKMODE = true;
+            (document.documentElement.style as any).colorScheme = 'dark';
+            break;
+        case DarkMode.LIGHT:
+            DARKMODE = false;
+            (document.documentElement.style as any).colorScheme = 'light';
+            break;
+        case DarkMode.SYSTEM:
+        default:
+            DARKMODE = system_prefers_darkmode();
+            if(DARKMODE)
+                (document.documentElement.style as any).colorScheme = 'dark';
+            else
+                (document.documentElement.style as any).colorScheme = 'light';
+            break;
+    }
+    current_dark_mode = mode;
+    localStorage.setItem('darkmode', ""+mode);
+    if(document.readyState === "complete"){
+        request_render();
+        if(DARKMODE)
+            document.body.classList.add('dark-mode');
+        else
+            document.body.classList.remove('dark-mode');
+    }
+    else {
+        document.addEventListener('DOMContentLoaded',function(){
+            if(DARKMODE)
+                document.body.classList.add('dark-mode');
+            else
+                document.body.classList.remove('dark-mode');
+        });
+    }
+
+}
+(function(){
+    let mode = +(localStorage.getItem('darkmode') || 0);
+    mode |= 0;
+    if(mode < 0 || mode > 2)
+        mode = 0;
+    change_dark_mode(mode);
+}());
+
 let socket = io({transports:["websocket"]});
 socket.on("connect", () => {
     clear_disconnected();
