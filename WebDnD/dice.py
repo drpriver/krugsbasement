@@ -119,6 +119,16 @@ def simplify_dice_array(dice: List['Die']) -> List['Die']:
     return result
 
 def dice_from_string(dicestring:str) -> List['Die']:
+    if dicestring.startswith('/roll'):
+        dicestring = dicestring[5:]
+    elif dicestring.startswith('roll'):
+        dicestring = dicestring[4:]
+    elif dicestring.startswith('/r'):
+        dicestring = dicestring[2:]
+    elif dicestring.startswith('r'):
+        dicestring = dicestring[1:]
+    elif dicestring.startswith('/'):
+        dicestring = dicestring[1:]
     dice = [dice_from_token(token_normalize(token)) for token in dice_tokenizer(dicestring)]
     dice = simplify_dice_array(dice)
     return dice
@@ -136,6 +146,14 @@ if __name__ == '__main__':
     class TestDiceParsing(TestCase):
         def test_dice_parses(self) -> None:
             cases = [
+                ('roll d6', [Die(6)]),
+                ('rolld6', [Die(6)]),
+                ('r d6', [Die(6)]),
+                ('rd6', [Die(6)]),
+                ('/roll d6', [Die(6)]),
+                ('/rolld6', [Die(6)]),
+                ('/r d6', [Die(6)]),
+                ('/rd6', [Die(6)]),
                 ('d6', [Die(6)]),
                 ('1', [Die(1, 1)]),
                 ('1+4', [Die(1, 5)]),
