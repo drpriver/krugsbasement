@@ -248,6 +248,7 @@ David20::title @hide
     margin-top: auto;
   }
   .chat > textarea {
+    min-height: 4em;
     resize: none;
   }
   canvas {
