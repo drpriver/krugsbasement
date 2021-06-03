@@ -3,16 +3,32 @@ enum MSG {
     DICEROLL = 1,
     ERROR = 2,
 }
-type ChatMsg = {
-    type: MSG;
-    user: string;
-    data: string | Array<DieRoll>;
+enum ROLLTYPE {
+    DICE = 0,
+    PRODUCT = 1,
+    SUM = 2,
 }
 type DieRoll = {
+    type: ROLLTYPE; // always .DICE
     base: number;
     negative: boolean;
     values: Array<number>;
 }
+type GroupRoll = {
+    type: ROLLTYPE; // either .PRODUCT or 
+    values: Array<DieRoll | GroupRoll>
+}
+type Roll = GroupRoll | DieRoll;
+type RollMsg = {
+    roll: Roll;
+    total: number;
+};
+type ChatMsg = {
+    type: MSG;
+    user: string;
+    data: string | RollMsg;
+}
+
 let chatname = localStorage.getItem('chatname');
 if(!chatname)
     chatname = "anon";
@@ -41,7 +57,8 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>){
             }break;
             case MSG.DICEROLL:{
                 entry.classList.add('dice-roll-msg');
-                const formatted = format_dice_roll(msg.data as Array<DieRoll>)
+                const r = msg.data as RollMsg;
+                const formatted = format_die_roll_result(r);
                 entry.innerHTML += formatted;
             }break;
             case MSG.ERROR:{
@@ -291,7 +308,6 @@ function chat_options_dialog(){
         const inp = document.createElement('input');
         inp.type = 'file';
         function show_err(err:any){
-            console.log(err);
             err_dialog(
                 `
                 <div style="max-width:600px; margin:auto; padding:2em;">
@@ -512,29 +528,79 @@ function maybe_handle_command(value:string):boolean{
     return false;
 }
 
-function format_dice_roll(roll_result:Array<DieRoll>){
-    // This is pretty janky. I don't know if js has a
-    // stringbuilder or if js strings are always string builders
-    // until something actually demands their contents?
-    if(!roll_result.length)
-        return '<span class="dice-constant">0</span><br> = <span class="dice-total">0</span>';
+function format_die_roll_result(roll_result:RollMsg):string{
+    return format_roll(roll_result.roll) +  ` <br> = <span class="dice-total">${roll_result.total}</span>`;
+}
+function format_roll(roll: Roll):string{
     let result = '';
-    let value = 0;
+    switch(roll.type){
+        case ROLLTYPE.DICE:{
+            const r = roll as DieRoll;
+            result += format_dice_roll(r);
+        }break;
+        case ROLLTYPE.PRODUCT:{
+            const r = roll as GroupRoll;
+            const values = r.values;
+            const length = values.length;
+            for(let i = 0; i < length; i++){
+                if(i != 0)
+                    result += ' * ';
+                const v = values[i];
+                switch(v.type){
+                    case ROLLTYPE.DICE:{
+                        const d = v as DieRoll;
+                        if(d.values.length > 1){
+                            result += '('+format_roll(v) + ')';
+                        }
+                        else {
+                            result += format_roll(v);
+                        }
+                    }break;
+                    case ROLLTYPE.SUM:{
+                        result += '('+format_roll(v)+')';
+                    }break;
+                    case ROLLTYPE.PRODUCT:{
+                        // no parens
+                        result += format_roll(v);
+                    }break;
+                }
+            }
+        }break;
+        case ROLLTYPE.SUM:{
+            const r = roll as GroupRoll;
+            const values = r.values;
+            const length = values.length;
+            for(let i = 0; i < length; i++){
+                const v = values[i];
+                if(i != 0){
+                    switch(v.type){
+                        case ROLLTYPE.DICE:{
+                            const d = v as DieRoll;
+                            if(!d.negative){
+                                result += ' + ';
+                            }
+                        }break;
+                        default:{
+                            result += ' + ';
+                        }
+                    }
+                }
+                result += format_roll(values[i]);
+            }
+        }break;
+    }
+    return result;
+}
+
+function format_dice_roll(roll:DieRoll){
+    let result = '';
     const MINUS = '\u2212';
-    const NBSPACE='&nbsp;';
-    function write_die(roll:DieRoll, i:number){
+    function write_die(roll:DieRoll){
         if(roll.base == 1){
             if(roll.values[0] < 0){
                 result += ' ' + MINUS;
             }
-            else if(i==0){
-                result += NBSPACE+NBSPACE+NBSPACE;
-            }
-            else {
-                result += ' +';
-            }
             result += '<span class="dice-constant">' + Math.abs(roll.values[0]) + '</span>';
-            value += roll.values[0] | 0;
             return;
         }
         const length = roll.values.length;
@@ -543,8 +609,7 @@ function format_dice_roll(roll_result:Array<DieRoll>){
             if(roll.negative){
                 result += ' ' + MINUS;
             }
-            else if(j == 0 && i == 0){
-                result += NBSPACE+NBSPACE+NBSPACE;
+            else if(j == 0){
             }
             else {
                 result += ' +';
@@ -559,30 +624,15 @@ function format_dice_roll(roll_result:Array<DieRoll>){
             else {
                 result += '<span class="dice-roll">';
             }
-            if(roll.negative){
-                value -= v;
-            }
-            else {
-                value += v;
-            }
             result += v;
             result += '</span>';
             result += ']';
         }
     }
-    const length = roll_result.length;
-    for(let i = 0; i < length; ++i){
-        const roll = roll_result[i];
-        write_die(roll, i);
-    }
-    result += '<br> = ';
-    result += '<span class="dice-total">';
-    result += value;
-    result += '</span>';
+    write_die(roll);
     return result;
 }
 function err_dialog(html:string){
-    console.log(html);
     const errpop = document.createElement('section');
     errpop.classList.add('hover');
     html += `
@@ -601,5 +651,4 @@ function err_dialog(html:string){
             remove_errpop();
         });
     }
-    console.log(oks);
 }

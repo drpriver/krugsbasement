@@ -1,6 +1,6 @@
 from typing import List, Dict
 import random
-from .dice import dice_from_string, roll_dice_array
+from .dice import dice_from_string, roll_dice
 from .persist import Persister
 from flask_socketio import emit
 HISTORY = {'/':[]}  # type: Dict[str, List[dict]]
@@ -29,12 +29,10 @@ def handle_input(room:str, data:str, user:str='anon') -> List[dict]:
         except:
             pass
         else:
-            roll_result = roll_dice_array(dice)
+            roll_result = roll_dice(dice)
             if isinstance(roll_result, str):
                 result.append({'user':'', 'data':roll_result, 'type':Msg.ERROR})
             else:
-                # rollstr = roll_and_format_dice_array(dice)
-                # result.append({'user':'', 'data':rollstr, 'type':Msg.DICEROLL})
                 result.append({'user':'', 'data':roll_result, 'type':Msg.DICEROLL})
 
         parts = line.split()
