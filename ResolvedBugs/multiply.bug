@@ -1,1 +1,5 @@
 More than one person has wanted to have multiplication in the dice expressions.
+
+Update
+------
+We now have mutliply and parens in the dice parser
