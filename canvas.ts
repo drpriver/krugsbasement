@@ -1557,10 +1557,12 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
                 gridline_recalculate_bbox(obj);
                 gridline_recalculate_path(obj);
                 break;
-            case CANVASTYPE.RECT:
+            case CANVASTYPE.ELLIPSE:
                 obj.color = stripped.color;
                 obj.width = stripped.width;
                 obj.height = stripped.height;
+                obj.color2 = stripped.color2;
+                obj.variant = stripped.variant;
                 break;
             case CANVASTYPE.FILLED_RECT:
                 obj.color = stripped.color;
@@ -1568,7 +1570,7 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
                 obj.width = stripped.width;
                 obj.height = stripped.height;
                 break;
-            case CANVASTYPE.ELLIPSE:
+            case CANVASTYPE.RECT:
                 obj.color = stripped.color;
                 obj.width = stripped.width;
                 obj.height = stripped.height;

@@ -120,7 +120,12 @@ class Validator:
         self.types = types
     def validate(self, obj:dict, POINTS=POINTS) -> None:
         if set(obj) != set(self.types):
-            raise TypeError('Keys missing or extra')
+            extra = set(obj) - set(self.types)
+            if extra:
+                raise TypeError(f'extra keys {extra}')
+            else:
+                missing = set(self.types) - set(obj)
+                raise TypeError(f'missing keys {missing}')
         for key, t in self.types.items():
             v = obj[key]
             if t is POINTS:
