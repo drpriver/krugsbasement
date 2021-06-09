@@ -1528,113 +1528,222 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
     const new_ids = [];
     for(let i = 0; i < length; ++i){
         const stripped: any = copied_objs[i];  // temporary as this is a pain to type annotate marshalling code
+        // The safer way of doing this is to have a stripped
+        // version of every object type and then downcast.
+
         // This is a lot of very similar code to the below function in
         // canvas-create-objects, but there is a lot of weirdness over copying
         // objects in JS, so I am just grabbing attributes by hand.
         let id = get_new_id();
-        const obj: any = { // temporary as this is a pain to type annotate marshalling code
-            type: stripped.type,
-            id: id,
-            base_x: stripped.base_x + dx,
-            base_y: stripped.base_y + dy,
-            flags: CANVASFLAG.NONE,
-        };
-        switch(obj.type){
-            case CANVASTYPE.FREEHAND_LINE:
-                obj.color = stripped.color;
-                obj.points = Array.from(stripped.points);
-                obj.path = null;
-                obj.bbox = {x0:0, y0:0, x1:0, y1:0};
-                obj.thickness = stripped.thickness;
-                freehand_recalculate_bbox(obj);
-                freehand_recalculate_path(obj);
-                break;
-            case CANVASTYPE.GRID_LINE:
-                obj.color = stripped.color;
-                obj.points = Array.from(stripped.points);
-                obj.path = null;
-                obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-                gridline_recalculate_bbox(obj);
-                gridline_recalculate_path(obj);
-                break;
-            case CANVASTYPE.ELLIPSE:
-                obj.color = stripped.color;
-                obj.width = stripped.width;
-                obj.height = stripped.height;
-                obj.color2 = stripped.color2;
-                obj.variant = stripped.variant;
-                break;
-            case CANVASTYPE.FILLED_RECT:
-                obj.color = stripped.color;
-                obj.color2 = stripped.color2;
-                obj.width = stripped.width;
-                obj.height = stripped.height;
-                break;
-            case CANVASTYPE.RECT:
-                obj.color = stripped.color;
-                obj.width = stripped.width;
-                obj.height = stripped.height;
-                break;
-            case CANVASTYPE.GRID_RECT:
-                obj.color = stripped.color;
-                obj.width = stripped.width;
-                obj.height = stripped.height;
-                break;
+        let obj: CanvasObject;
+        switch(stripped.type as CANVASTYPE){
+            case CANVASTYPE.FREEHAND_LINE:{
+                let obj_: FreehandLine = {
+                    type: stripped.type,
+                    id: id,
+                    base_x: stripped.base_x + dx,
+                    base_y: stripped.base_y + dy,
+                    flags: CANVASFLAG.NONE,
+                    color: stripped.color,
+                    points: Array.from(stripped.points),
+                    path: undefined,
+                    bbox: {x0:0, y0:0, x1:0, y1:0},
+                    thickness: stripped.thickness,
+                };
+                freehand_recalculate_bbox(obj_);
+                freehand_recalculate_path(obj_);
+                obj = obj_;
+            }break;
+            case CANVASTYPE.GRID_LINE:{
+                let obj_: GridLine = {
+                    type: stripped.type,
+                    id: id,
+                    base_x: stripped.base_x + dx,
+                    base_y: stripped.base_y + dy,
+                    flags: CANVASFLAG.NONE,
+                    color: stripped.color,
+                    points: Array.from(stripped.points),
+                    path: undefined,
+                    bbox: {x0:0, y0:0, x1:0, y1:0},
+                };
+                gridline_recalculate_bbox(obj_);
+                gridline_recalculate_path(obj_);
+                obj = obj_;
+            }break;
+            case CANVASTYPE.ELLIPSE:{
+                let obj_: Ellipse = {
+                    type: stripped.type,
+                    id: id,
+                    base_x: stripped.base_x + dx,
+                    base_y: stripped.base_y + dy,
+                    flags: CANVASFLAG.NONE,
+                    color: stripped.color,
+                    width: stripped.width,
+                    height: stripped.height,
+                    color2: stripped.color2,
+                    variant: stripped.variant,
+                };
+                obj = obj_;
+            }break;
+            case CANVASTYPE.FILLED_RECT:{
+                let obj_: FilledRectangle = {
+                    type: stripped.type,
+                    id: id,
+                    base_x: stripped.base_x + dx,
+                    base_y: stripped.base_y + dy,
+                    flags: CANVASFLAG.NONE,
+                    color: stripped.color,
+                    color2: stripped.color2,
+                    width: stripped.width,
+                    height: stripped.height,
+                };
+                obj = obj_;
+            }break;
+            case CANVASTYPE.RECT:{
+                let obj_: Rectangle = {
+                    type: stripped.type,
+                    id: id,
+                    base_x: stripped.base_x + dx,
+                    base_y: stripped.base_y + dy,
+                    flags: CANVASFLAG.NONE,
+                    color: stripped.color,
+                    width: stripped.width,
+                    height: stripped.height,
+                };
+                obj = obj_;
+            }break;
+            case CANVASTYPE.GRID_RECT:{
+                let obj_: GridRectangle = {
+                    type: stripped.type,
+                    id: id,
+                    base_x: stripped.base_x + dx,
+                    base_y: stripped.base_y + dy,
+                    flags: CANVASFLAG.NONE,
+                    color: stripped.color,
+                    width: stripped.width,
+                    height: stripped.height,
+                };
+                obj = obj_;
+            }break;
             case CANVASTYPE.IMAGE:{
-                obj.width = stripped.width;
-                obj.height = stripped.height;
-                obj.url = stripped.url;
-                obj.img = null;
+                let obj_: ImageObj = {
+                    type: stripped.type,
+                    id: id,
+                    base_x: stripped.base_x + dx,
+                    base_y: stripped.base_y + dy,
+                    flags: CANVASFLAG.NONE,
+                    width: stripped.width,
+                    height: stripped.height,
+                    url: stripped.url,
+                    img: undefined,
+                };
+                obj = obj_;
                 const img = new Image(obj.width, obj.height);
                 img.addEventListener('load', function(){
-                    obj.img = img;
+                    (obj as ImageObj).img = img;
                     request_render();
                 }, {once:true});
                 img.src = obj.url;
             }break;
-            case CANVASTYPE.TEXT:
-                obj.text = stripped.text;
-                obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-                obj.size = stripped.size;
-                break;
-            case CANVASTYPE.EZ_TOKEN:
-                obj.text = stripped.text;
-                obj.color = stripped.color;
-                obj.width = stripped.width;
-                obj.height = stripped.height;
-                break;
+            case CANVASTYPE.TEXT:{
+                let obj_: TextObj = {
+                    type: stripped.type,
+                    id: id,
+                    base_x: stripped.base_x + dx,
+                    base_y: stripped.base_y + dy,
+                    flags: CANVASFLAG.NONE,
+                    text: stripped.text,
+                    bbox: {x0:0, x1:0, y0:0, y1:0},
+                    size: stripped.size,
+                };
+                obj = obj_;
+            }break;
+            case CANVASTYPE.EZ_TOKEN:{
+                let obj_: EzToken = {
+                    type: stripped.type,
+                    id: id,
+                    base_x: stripped.base_x + dx,
+                    base_y: stripped.base_y + dy,
+                    flags: CANVASFLAG.NONE,
+                    text: stripped.text,
+                    width: stripped.width,
+                    height: stripped.height,
+                    color: stripped.color,
+                };
+                obj = obj_;
+            }break;
             case CANVASTYPE.IMG_TOKEN:{
-                obj.url = stripped.url;
-                obj.img = null;
-                obj.width = stripped.width;
-                obj.height = stripped.height;
+                let obj_: ImgToken = {
+                    type: stripped.type,
+                    id: id,
+                    base_x: stripped.base_x + dx,
+                    base_y: stripped.base_y + dy,
+                    flags: CANVASFLAG.NONE,
+                    width: stripped.width,
+                    height: stripped.height,
+                    url: stripped.url,
+                    img: undefined,
+                };
+                obj = obj_;
                 const img = new Image(obj.width, obj.height);
                 img.addEventListener('load', function(){
-                    obj.img = img;
+                    (obj as ImgToken).img = img;
                     request_render();
                 }, {once:true});
                 img.src = obj.url;
             }break;
             case CANVASTYPE.DOOR:{
-                obj.doortype = stripped.doortype;
-                obj.color = stripped.color;
-                obj.width = stripped.width;
-                obj.orientation = stripped.orientation;
+                let obj_: DoorObj = {
+                    type: stripped.type,
+                    id: id,
+                    base_x: stripped.base_x + dx,
+                    base_y: stripped.base_y + dy,
+                    flags: CANVASFLAG.NONE,
+                    width: stripped.width,
+                    doortype: stripped.doortype,
+                    color: stripped.color,
+                    orientation: stripped.orientation,
+                };
+                obj = obj_;
             }break;
             case CANVASTYPE.STAIRS:{
-                obj.width = stripped.width;
-                obj.height = stripped.height;
-                obj.rotation = stripped.rotation;
+                let obj_: Stairs = {
+                    type: stripped.type,
+                    id: id,
+                    base_x: stripped.base_x + dx,
+                    base_y: stripped.base_y + dy,
+                    flags: CANVASFLAG.NONE,
+                    width: stripped.width,
+                    height: stripped.height,
+                    rotation: stripped.rotation,
+                };
+                obj = obj_;
             }break;
             case CANVASTYPE.MEASURE:{
-                obj.color = stripped.color;
-                obj.x1 = stripped.x1;
-                obj.y1 = stripped.y1;
+                let obj_: MeasureObj = {
+                    type: stripped.type,
+                    id: id,
+                    base_x: stripped.base_x + dx,
+                    base_y: stripped.base_y + dy,
+                    flags: CANVASFLAG.NONE,
+                    color: stripped.color,
+                    x1: stripped.x1,
+                    y1: stripped.y1,
+                };
+                obj = obj_;
             }break;
             case CANVASTYPE.FIXTURE:{
-                obj.width = stripped.width;
-                obj.height = stripped.height;
-                obj.ftype = stripped.ftype;
+                let obj_: FixtureObj = {
+                    type: stripped.type,
+                    id: id,
+                    base_x: stripped.base_x + dx,
+                    base_y: stripped.base_y + dy,
+                    flags: CANVASFLAG.NONE,
+                    width: stripped.width,
+                    height: stripped.height,
+                    ftype: stripped.ftype,
+                };
+                obj = obj_;
             }break;
         }
         add_canv_obj(map, obj);
