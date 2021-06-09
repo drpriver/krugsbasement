@@ -4349,7 +4349,10 @@ document.addEventListener('DOMContentLoaded', function(){
             dy = dscale;
         if(dy < -dscale)
             dy = -dscale;
-        view.scale *= 1 + (-dy/dscale);
+        let factor = 1 + Math.abs(dy/dscale);
+        if(dy > 0)
+            factor = 1 / factor;
+        view.scale *= factor;
         view.scale = clamp_scale(view.scale);
         view.camera_x -= e.offsetX/oldscale;
         view.camera_x += e.offsetX/view.scale;
