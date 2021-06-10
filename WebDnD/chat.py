@@ -4,6 +4,13 @@ from .dice import dice_from_string, roll_dice
 from .persist import Persister
 from flask_socketio import emit
 
+from enum import IntEnum
+class Msg(IntEnum):
+    PLAIN = 0
+    DICEROLL = 1
+    ERROR = 2
+
+
 def load_chat(data:Union[str, dict, list, int, float]) -> List[dict]:
     assert isinstance(data, list)
     result = [] # type: List[dict]
@@ -40,12 +47,6 @@ def load_chat(data:Union[str, dict, list, int, float]) -> List[dict]:
 
 HISTORY = {'/':[]}  # type: Dict[str, List[dict]]
 HISTORY['/'] = Persister(HISTORY['/'], 'BadDb/chat.json', dont_persist=True, load_func=load_chat).obj
-
-from enum import IntEnum
-class Msg(IntEnum):
-    PLAIN = 0
-    DICEROLL = 1
-    ERROR = 2
 
 def create_chat(room:str) -> None:
     if room in HISTORY:
