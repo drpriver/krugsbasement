@@ -3016,6 +3016,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 // TODO: currently we don't consider radius_y
                 const radius_x = obj.width*REFERENCE_WIDTH/2;
                 const radius_y = obj.height*REFERENCE_WIDTH/2;
+                if(!radius_x || !radius_y)
+                    continue;
                 const token_bbox = {
                     x0: obj.base_x,
                     x1: obj.base_x + 2*radius_x,

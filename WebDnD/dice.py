@@ -132,7 +132,7 @@ class GroupRoll(NamedTuple):
             return val
         raise AssertionError
 
-def roll_dice(group:Value) -> Dict[str, Any]:
+def roll_dice(group:DiceExpression) -> Dict[str, Any]:
     roll = group.roll()
     total = roll.total()
     return {'total':total, 'roll':roll.as_jsonable()}
@@ -323,7 +323,7 @@ def _group(tokens:List[Union[str, Value, List[Any]]]) -> Value:
         if isinstance(tok, list):
             return _group(tok)
         assert not isinstance(tok, str)
-        return tok 
+        return tok
     op = None
     outer = Group('+')
     current:Optional[Group] = None

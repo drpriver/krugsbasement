@@ -12,7 +12,7 @@ watcher:
 .DEFAULT_GOAL:=combined.js
 
 .PHONY: run
-run: combined.js
+run: combined.js token-list
 	. venv/bin/activate && python3 -m WebDnD.app
 
 screen.html: screen.dnd combined.js | Depends

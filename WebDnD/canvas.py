@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, NamedTuple, Callable, Tuple, Union
+from typing import List, Dict, Any, NamedTuple, Callable, Tuple, Union, Mapping
 from .persist import Persister
 from enum import IntFlag, IntEnum
 
@@ -111,13 +111,14 @@ class Sentinel: pass
 POINTS = Sentinel()
 
 class Validator:
-    def __init__(self, **types:Union[type, Tuple[type, ...], Sentinel]): 
+    def __init__(self, defaults:Dict[str, Any]={}, **types:Union[type, Tuple[type, ...], Sentinel]) -> None:
         types['type']   = int
         types['id']     = int
         types['base_x'] = (float, int)
         types['base_y'] = (float, int)
         types['flags']  = int
         self.types = types
+        self.defaults = defaults
     def validate(self, obj:dict, POINTS=POINTS) -> None:
         if set(obj) != set(self.types):
             extra = set(obj) - set(self.types)
@@ -140,7 +141,9 @@ class Validator:
     def repair_and_validate(self, obj, POINTS=POINTS) -> None:
         for key, t in self.types.items():
             if key not in obj:
-                if t is POINTS:
+                if key in self.defaults:
+                    obj[key] = self.defaults[key]
+                elif t is POINTS:
                     obj[key] = []
                 elif t == NUMBER:
                     obj[key] = 0
@@ -160,8 +163,8 @@ class Validator:
         if set(obj) != set(self.types):
             raise TypeError('Keys missing or extra')
 
-def validate(ct:CANVASTYPE, **kwargs:Union[type, Tuple[type, ...], Sentinel]) -> None:
-    VALIDATE_OBJ[ct] = Validator(**kwargs)
+def validate(ct:CANVASTYPE, defaults:Dict[str, Any]={}, **kwargs:Union[type, Tuple[type, ...], Sentinel]) -> None:
+    VALIDATE_OBJ[ct] = Validator(defaults=defaults, **kwargs)
 
 def repair(obj:dict) -> None:
     if not isinstance(obj, dict):
@@ -178,20 +181,20 @@ def repair(obj:dict) -> None:
 
 NUMBER = (float, int)
 CT = CANVASTYPE
-validate(CT.FREEHAND_LINE, color=str, points=POINTS, thickness=int)
-validate(CT.GRID_LINE, color=str, points=POINTS)
-validate(CT.RECT, color=str, width=NUMBER, height=NUMBER)
-validate(CT.FILLED_RECT, color=str, color2=str, width=NUMBER, height=NUMBER)
-validate(CT.ELLIPSE, color=str, color2=str, width=NUMBER, height=NUMBER, variant=int)
-validate(CT.GRID_RECT, color=str, width=NUMBER, height=NUMBER)
-validate(CT.IMAGE, width=NUMBER, height=NUMBER, url=str)
-validate(CT.TEXT, text=str, size=NUMBER)
-validate(CT.EZ_TOKEN, text=str, color=str, width=NUMBER, height=NUMBER)
-validate(CT.IMG_TOKEN, url=str, width=NUMBER, height=NUMBER)
-validate(CT.DOOR, doortype=int, color=str, width=NUMBER, orientation=int)
-validate(CT.STAIRS, width=NUMBER, height=NUMBER, rotation=int)
+validate(CT.FREEHAND_LINE, color=str, points=POINTS, thickness=int, defaults=dict(color='#000000', thickness=4))
+validate(CT.GRID_LINE, color=str, points=POINTS, defaults=dict(color='#000000'))
+validate(CT.RECT, color=str, width=NUMBER, height=NUMBER, defaults=dict(color='#000000', width=64, height=64))
+validate(CT.FILLED_RECT, color=str, color2=str, width=NUMBER, height=NUMBER, defaults=dict(color='#000000', color2='#ff0000', width=64, height=64))
+validate(CT.ELLIPSE, color=str, color2=str, width=NUMBER, height=NUMBER, variant=int, defaults=dict(color = '#000000', color2='#000000', width=64, height=64, variant=0))
+validate(CT.GRID_RECT, color=str, width=NUMBER, height=NUMBER, defaults=dict(width=64, height=64))
+validate(CT.IMAGE, width=NUMBER, height=NUMBER, url=str, defaults=dict(width=64, height=64))
+validate(CT.TEXT, text=str, size=NUMBER, defaults=dict(size=18))
+validate(CT.EZ_TOKEN, text=str, color=str, width=NUMBER, height=NUMBER, defaults=dict(width=1, height=1, color='#ff00ff'))
+validate(CT.IMG_TOKEN, url=str, width=NUMBER, height=NUMBER, defaults=dict(url='/tokens/gb.png', width=1, height=1))
+validate(CT.DOOR, doortype=int, color=str, width=NUMBER, orientation=int, defaults=dict(width=64, color='#000000'))
+validate(CT.STAIRS, width=NUMBER, height=NUMBER, rotation=int, defaults=dict(width=64, height=64))
 validate(CT.MEASURE, x1=NUMBER, y1=NUMBER, color=str)
-validate(CT.FIXTURE, width=NUMBER, height=NUMBER, ftype=int)
+validate(CT.FIXTURE, width=NUMBER, height=NUMBER, ftype=int, defaults=dict(width=64, height=64))
 
 
 
