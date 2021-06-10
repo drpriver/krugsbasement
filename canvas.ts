@@ -4336,6 +4336,10 @@ function get_session_id_from_obj_id(objid:number):number{
     return id;
 }
 let numeric_hot_keys:Array<()=>void> = [];
+let token_paths: Array<string> = [];
+socket.on('token-paths', function(paths:Array<string>){
+    token_paths = paths;
+});
 document.addEventListener('DOMContentLoaded', function(){
     canvas = document.getElementsByTagName('canvas')[0]!;
     canvas.addEventListener('wheel', function(e:WheelEvent){
@@ -4985,8 +4989,10 @@ document.addEventListener('DOMContentLoaded', function(){
                 else {
                     const x0 = e.offsetX/view.scale-view.camera_x;
                     const y0 = e.offsetY/view.scale-view.camera_y;
-                    const html = `
+                    let html = `
                         <h2>Enter Image</h2>
+                        <div id="token-img-gallery">
+                        </div>
                         <table class="input-container">
                             <tr>
                                 <td><label for="url">Token Image URL:</label>
@@ -4994,7 +5000,25 @@ document.addEventListener('DOMContentLoaded', function(){
                             </tr>
                         </table>
                     `;
-                    make_ok_dialog(html, function(hoverpop){
+                    function add_img_buttons(){
+                        const gallery = document.getElementById('token-img-gallery')! as HTMLDivElement;
+                        const url_input = document.getElementById('hover-url')! as HTMLInputElement;
+                        for(let path of token_paths){
+                            const button = document.createElement('button');
+                            const img = document.createElement('img');
+                            const url = `/tokens/${path}`;
+                            img.src = url;
+                            img.width = 64;
+                            img.height = 64;
+                            button.appendChild(img);
+                            gallery.appendChild(button);
+                            button.addEventListener('click', function(){
+                                url_input.value = url;
+                            });
+                        }
+
+                    }
+                    make_ok_dialog2(html, add_img_buttons, function(hoverpop:HTMLElement){
                         const text = (document.getElementById('hover-url') as any).value;
                         if(!text || !text.trim()){
                             return;
@@ -5281,6 +5305,9 @@ document.addEventListener('DOMContentLoaded', function(){
 
 let hover_is_open = false;
 function make_ok_dialog(html:string, on_ok:(_:HTMLElement)=>void){
+    make_ok_dialog2(html, function(){}, on_ok);
+}
+function make_ok_dialog2(html:string, after_append:()=>void, on_ok:(_:HTMLElement)=>void){
     if(hover_is_open)
         return;
     hover_is_open = true;
@@ -5294,6 +5321,7 @@ function make_ok_dialog(html:string, on_ok:(_:HTMLElement)=>void){
         `;
     hoverpop.innerHTML = html;
     document.body.appendChild(hoverpop);
+    after_append();
     function remove_hoverpop(){
         document.body.removeChild(hoverpop);
         hover_is_open = false;

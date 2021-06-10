@@ -114,9 +114,15 @@ David20::title @hide
     -webkit-user-select: none;
     user-select: none;
   }
-  button {
+  button, button img {
     -webkit-user-select: none;
     user-select: none;
+  }
+  #token-img-gallery{
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    max-height: 512px;
+    overflow-y: auto;
   }
   #tree {
     display: flex;

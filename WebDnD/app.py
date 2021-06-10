@@ -32,11 +32,20 @@ session_id = Persister(0, 'BadDb/app.json', save_func=save_session_id).obj
 sid_to_room = {}
 ALLOWED_CAMPAIGNS:Set[str] = set()
 ALLOWED_CAMPAIGNS = Persister(ALLOWED_CAMPAIGNS, 'BadDb/campaigns.json', save_func=list, load_func=set).obj # type: ignore
+
+def get_token_paths():
+    with open('token-list.txt', 'r') as fp:
+        tokens = [l.strip() for l in fp if l.strip()]
+    return tokens
+
+TOKEN_PATH_LIST = get_token_paths()
+
 @socketio.on('connect')
 def handle_connection() -> None:
     global session_id
     session_id += 1
     emit('session-id', session_id)
+    emit('token-paths', TOKEN_PATH_LIST)
 
 @socketio.on('join')
 def join(room:str) -> None:
@@ -156,8 +165,10 @@ def get_campaign(campaign:str) -> str:
 if appconfig.DEV:
     @app.route('/imgs/<img>')
     def get_img(img:str):
-        print(f'img: {img}')
         return send_from_directory('imgs', img)
+    @app.route('/tokens/<token>')
+    def get_token(token:str):
+        return send_from_directory('tokens', token)
 
 @app.route('/state', methods=['GET', 'POST', 'DELETE'])
 def app_state():

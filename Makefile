@@ -32,7 +32,13 @@ dist.zip: screen.html
 	echo "DEV=False" > dist/WebDnD/appconfig.py
 	zip -r dist dist
 	rm -rf dist
+.PHONY: token-list
+token-list:
+	ls tokens > token-list.txt
+.PHONY: shrink-tokens
+shrink-tokens:
+	python3 shrink_tokens.py
 
 ship-it: dist.zip
 	scp dist.zip david@droplet:/home/david
-	ssh david@droplet "make backup && rm -rf dist && unzip dist && make restore"
+	ssh david@droplet "make backup && rm -rf dist && unzip dist && make restore && make token-list"
