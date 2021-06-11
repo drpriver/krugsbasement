@@ -32,6 +32,7 @@ dist.zip: screen.html
 	echo "DEV=False" > dist/WebDnD/appconfig.py
 	zip -r dist dist
 	rm -rf dist
+
 .PHONY: token-list
 token-list:
 	ls tokens > token-list.txt
