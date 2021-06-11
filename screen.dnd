@@ -155,10 +155,10 @@ David20::title @hide
     -webkit-user-select: none;
     user-select: none;
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     grid-column-gap: 4px;
     grid-row-gap: 4px;
-    font-size: 12px;
+    font-size: 10px;
   }
   #colors {
     display: flex;
