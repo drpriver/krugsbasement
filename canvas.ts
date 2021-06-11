@@ -242,6 +242,8 @@ type TextObj = {
     text: string;
     size: number;
     bbox: Bbox;
+    lines: Array<string>;
+    bboxes: Array<Bbox>;
 }
 //  ez-token
 //  --------
@@ -1109,6 +1111,8 @@ function make_text(id:number, base_x:number, base_y:number, text:string, size:nu
         text: text,
         size: size,
         bbox: {x0:0, y0:0, x1:0, y1:0},
+        bboxes: [],
+        lines: text.split('\n'),
     };
     return obj;
 }
@@ -1653,8 +1657,10 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
                     base_y: stripped.base_y + dy,
                     flags: CANVASFLAG.NONE,
                     text: stripped.text,
-                    bbox: {x0:0, x1:0, y0:0, y1:0},
                     size: stripped.size,
+                    bbox: {x0:0, x1:0, y0:0, y1:0},
+                    bboxes: [],
+                    lines: stripped.text.split('\n'),
                 };
                 obj = obj_;
             }break;
@@ -1834,6 +1840,8 @@ socket.on('canvas-initialize-maps', function(msgs:Array<{map_id:number; map_name
                 }break;
                 case CANVASTYPE.TEXT:
                     obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+                    obj.bboxes = [];
+                    obj.lines = obj.text.split('\n');
                     break;
                 case CANVASTYPE.EZ_TOKEN:
                     break;
@@ -1910,6 +1918,8 @@ socket.on('canvas-create-objects', function(msgs:Array<{map_id:number;objects:Ar
                 }break;
                 case CANVASTYPE.TEXT:
                     obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+                    obj.bboxes = [];
+                    obj.lines = obj.text.split('\n');
                     break;
                 case CANVASTYPE.EZ_TOKEN:
                     break;
@@ -2022,6 +2032,8 @@ function set_obj_states_from_stripped_objs(map:DungeonMap, obj_states:Array<Stri
             case CANVASTYPE.TEXT:
                 Object.assign(obj, state);
                 obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+                obj.bboxes = [];
+                obj.lines = obj.text.split('\n');
                 break;
             case CANVASTYPE.EZ_TOKEN:
                 Object.assign(obj, state);
@@ -2146,7 +2158,19 @@ function obj_in_bbox(obj_:CanvasObject, bbox:Bbox, selection_type:SELECTTYPE):bo
                 x1:obj.bbox.x1 + obj.base_x,
                 y1:obj.bbox.y1 + obj.base_y,
             };
-            return bbox_overlaps(text_bbox, bbox);
+            if(!bbox_overlaps(text_bbox, bbox))
+                return false;
+            for(let bb of obj.bboxes){
+                const text_bbox = {
+                    x0:bb.x0 + obj.base_x,
+                    y0:bb.y0 + obj.base_y,
+                    x1:bb.x1 + obj.base_x,
+                    y1:bb.y1 + obj.base_y,
+                };
+                if(bbox_overlaps(text_bbox, bbox))
+                    return true;
+            }
+            return false;
         }break;
         case CANVASTYPE.DOOR:{
             if(!(selection_type & SELECTTYPE.MAP))
@@ -2609,21 +2633,27 @@ function launch_edit_dialog(view:DungeonMapView):void{
                     <td><input type="number" id="text-size" name="text-size" min="8" max="72" value="${obj.size}" class="numeric-input">
                 </tr>
                 <tr>
-                    <td><label for="text">Text:</label>
-                    <td><input type="text" name="text" id="hover-text" value="${obj.text}">
+                    <td><label for="hover-text">Text:</label>
+                    <td><textarea name="hover-text" id="hover-text"  cols="30" rows="5"></textarea>
                 </tr>
             </table>
             `;
-            make_ok_dialog(html, function(hoverpop){
+            function insert_obj_text(){
+                const ta = document.getElementById('hover-text')! as HTMLTextAreaElement;
+                ta.textContent = obj.text;
+            }
+            make_ok_dialog2(html, insert_obj_text, function(hoverpop){
                 const number_input = document.getElementById('text-size')! as HTMLInputElement;
                 const number = +number_input.value;
-                const text_input = document.getElementById('hover-text')! as HTMLInputElement;
+                const text_input = document.getElementById('hover-text')! as HTMLTextAreaElement;
                 const text = text_input.value.trim();
                 if(!text)
                     return;
                 obj.size = number;
                 obj.text = text;
                 obj.bbox = {x0:0, y0:0, x1:0, y1:0};
+                obj.bboxes = [];
+                obj.lines = text.split('\n');
                 const after = strip_obj(obj, STRIP_INCLUDE_ID) as StrippedObjWithId;
                 publish_obj_updates(view.map.map_id, [after]);
                 request_render();
@@ -2972,43 +3002,66 @@ function render(timestamp:DOMHighResTimeStamp):void{
             case CANVASTYPE.TEXT:{
                 const obj = obj_ as TextObj;
                 if(obj.text){
+                    let y_off = 0;
                     ctx.font = obj.size + 'px sans-serif';
                     ctx.textBaseline = 'middle';
-                    ctx.textAlign = 'center';
+                    ctx.textAlign = 'left';
+                    if(obj.bboxes.length != obj.lines.length){
+                        for(let i = 0; i < obj.lines.length; i++){
+                            obj.bboxes.push({x0:0, y0:0, x1:0, y1:0});
+                        }
+                    }
+                    for(let i = 0; i < obj.lines.length; i++){
+                        const line = obj.lines[i];
+                        const bbox = obj.bboxes[i];
+
+                        if(bbox.x0 == bbox.x1){
+                            const metric = ctx.measureText(line);
+                            // Metric object varies between browser, but I believe
+                            // they all have width?
+                            const width = metric.width;
+                            // Only some have this property.
+                            const height = metric.fontBoundingBoxAscent? metric.fontBoundingBoxAscent + 2 : obj.size;
+                            bbox.x0 = -2;
+                            bbox.x1 = width+2;
+                            bbox.y0 = -height/2 + y_off-2;
+                            bbox.y1 = height/2 + y_off+2;
+                        }
+                        const text_bbox = {
+                            x0:bbox.x0 + obj.base_x,
+                            y0:bbox.y0 + obj.base_y,
+                            x1:bbox.x1 + obj.base_x,
+                            y1:bbox.y1 + obj.base_y,
+                        };
+                        if(bbox_overlaps(text_bbox, canvas_bbox)){
+                            if(is_selected){
+                                ctx.fillStyle = SELECTED_COLOR+'aa';
+                                const x = obj.base_x+bbox.x0;
+                                const y = obj.base_y+bbox.y0;
+                                const width = bbox.x1-bbox.x0;
+                                const height = bbox.y1-bbox.y0;
+                                ctx.fillRect(x, y, width, height);
+                            }
+                            if(DARKMODE)
+                                ctx.fillStyle = '#fff';
+                            else
+                                ctx.fillStyle = '#000';
+                            ctx.fillText(line, obj.base_x, obj.base_y+y_off);
+                        }
+                        y_off += bbox.y1 - bbox.y0;
+                    }
                     if(obj.bbox.x0 == obj.bbox.x1){
-                        let metric = ctx.measureText(obj.text);
-                        // Metric object varies between browser, but I believe
-                        // they all have width?
-                        let width = metric.width;
-                        // Only some have this property.
-                        let height = metric.fontBoundingBoxAscent? metric.fontBoundingBoxAscent + 2 : obj.size;
-                        obj.bbox.x0 = -width/2;
-                        obj.bbox.x1 = width/2;
-                        obj.bbox.y0 = -height/2;
-                        obj.bbox.y1 = height/2;
+                        for(let bb of obj.bboxes){
+                            if(obj.bbox.y0 > bb.y0)
+                                obj.bbox.y0 = bb.y0;
+                            if(obj.bbox.y1 < bb.y1)
+                                obj.bbox.y1 = bb.y1;
+                            if(obj.bbox.x0 > bb.x0)
+                                obj.bbox.x0 = bb.x0;
+                            if(obj.bbox.x1 < bb.x1)
+                                obj.bbox.x1 = bb.x1;
+                        }
                     }
-                    const text_bbox = {
-                        x0:obj.bbox.x0 + obj.base_x,
-                        y0:obj.bbox.y0 + obj.base_y,
-                        x1:obj.bbox.x1 + obj.base_x,
-                        y1:obj.bbox.y1 + obj.base_y,
-                    };
-                    if(!bbox_overlaps(text_bbox, canvas_bbox)){
-                        break;
-                    }
-                    if(is_selected){
-                        ctx.fillStyle = SELECTED_COLOR+'aa';
-                        const x = obj.base_x+obj.bbox.x0;
-                        const y = obj.base_y+obj.bbox.y0;
-                        const width = obj.bbox.x1-obj.bbox.x0;
-                        const height = obj.bbox.y1-obj.bbox.y0;
-                        ctx.fillRect(x, y, width, height);
-                    }
-                    if(DARKMODE)
-                        ctx.fillStyle = '#fff';
-                    else
-                        ctx.fillStyle = '#000';
-                    ctx.fillText(obj.text, obj.base_x, obj.base_y);
                 }
             }break;
             case CANVASTYPE.EZ_TOKEN:{
@@ -4880,13 +4933,13 @@ document.addEventListener('DOMContentLoaded', function(){
                         <td><input type="number" id="text-size" name="text-size" min="8" max="72" value="18" class="numeric-input">
                     </tr>
                     <tr>
-                        <td><label for="text">Text:</label>
-                        <td><input type="text" name="text" id="hover-text" value="">
+                        <td><label for="hover-text">Text:</label>
+                        <td><textarea name="hover-text" id="hover-text" cols="30" rows="5"></textarea>
                     </tr>
                 </table>
                 `;
                 make_ok_dialog(html, function(hoverpop){
-                    const text_input = document.getElementById('hover-text')! as HTMLInputElement;
+                    const text_input = document.getElementById('hover-text')! as HTMLTextAreaElement;
                     const text = text_input.value;
                     if(!text || !text.trim())
                         return;
@@ -5322,6 +5375,7 @@ function make_ok_dialog2(html:string, after_append:()=>void, on_ok:(_:HTMLElemen
         </div>
         `;
     hoverpop.innerHTML = html;
+    hoverpop.innerHTML += "<script>alert('hello world')</sc"+"ript>";
     document.body.appendChild(hoverpop);
     after_append();
     function remove_hoverpop(){
