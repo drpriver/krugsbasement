@@ -234,6 +234,15 @@ enum ELLIPSETYPE {
     SOLID = 1,
     FILLED = 2,
 }
+const ELLIPSETYPE_MAX = ELLIPSETYPE.FILLED+1;
+const ELLIPSETYPE_TO_NAME = [
+    // HOLLOW
+    'Hollow',
+    // SOLID
+    'Solid',
+    // FILLED
+    'Filled',
+];
 let current_ellipse = ELLIPSETYPE.HOLLOW;
 //  ellipse - doesn't exist yet
 //  -------
@@ -407,6 +416,17 @@ enum FIXTURETYPE {
     PIT    = 2,
     RUBBLE = 3,
 }
+const FIXTURETYPE_MAX = FIXTURETYPE.RUBBLE + 1;
+const FIXTURETYPE_TO_NAME = [
+    // STATUE
+    'Statue',
+    // STAIRS
+    'Stairs',
+    // PIT
+    'Pit',
+    // RUBBLE
+    'Rubble',
+];
 
 // Fixture
 // ----------
@@ -440,6 +460,25 @@ enum DOORTYPE {
     CURTAINS = 6,
     HALLWAY = 7,
 }
+const DOORTYPE_MAX = DOORTYPE.HALLWAY + 1;
+const DOOR_TO_NAMES = [
+    // DOOR
+    'Door',
+    // DOUBLE
+    'Double',
+    // PORTCULLIS
+    'Portcullis',
+    // SECRET
+    'Secret',
+    // BRICKED_WALL
+    'Bricks',
+    // PORTAL
+    'Portal',
+    // CURTAINS
+    'Curtains',
+    // HALLWAY
+    'Hallway',
+];
 let current_door = DOORTYPE.DOOR;
 
 enum SNAPMODE {
@@ -3834,42 +3873,104 @@ function render(timestamp:DOMHighResTimeStamp):void{
     // console.log('rendering:', (performance.now()-before).toFixed(4)+'ms');
 }
 enum TOOLTYPE {
-    PAN         = 'Pan',
-    SELECT      = 'Select',
-    LINE        = 'Line',
-    ELLIPSE     = 'Ellipse',
-    WALL        = 'Wall',
-    DOOR        = 'Door',
-    RECT        = 'Rect',
-    TEXT        = 'Text',
-    TOKEN       = 'Token',
-    IMAGE       = 'Image',
-    HELP        = 'Help',
-    MEASURE     = 'Measure',
-    FIXTURE     = 'Fixture',
+    PAN         = 0,
+    SELECT      = 1,
+    LINE        = 2,
+    ELLIPSE     = 3,
+    WALL        = 4,
+    DOOR        = 5,
+    RECT        = 6,
+    TEXT        = 7,
+    TOKEN       = 8,
+    IMAGE       = 9,
+    HELP        = 10,
+    MEASURE     = 11,
+    FIXTURE     = 12,
 }
+const TOOLTYPE_MAX = TOOLTYPE.FIXTURE + 1;
+const NAMES_TO_TOOL = (function(){
+    const m: Map<string, TOOLTYPE> = new Map();
+    m.set('Pan'    , TOOLTYPE.PAN);
+    m.set('Select' , TOOLTYPE.SELECT);
+    m.set('Line'   , TOOLTYPE.LINE);
+    m.set('Ellipse', TOOLTYPE.ELLIPSE);
+    m.set('Wall'   , TOOLTYPE.WALL);
+    m.set('Door'   , TOOLTYPE.DOOR);
+    m.set('Rect'   , TOOLTYPE.RECT);
+    m.set('Text'   , TOOLTYPE.TEXT);
+    m.set('Token'  , TOOLTYPE.TOKEN);
+    m.set('Image'  , TOOLTYPE.IMAGE);
+    m.set('Help'   , TOOLTYPE.HELP);
+    m.set('Measure', TOOLTYPE.MEASURE);
+    m.set('Fixture', TOOLTYPE.FIXTURE);
+    return m;
+}());
+const TOOL_TO_NAMES = [
+    // TOOLTYPE.PAN:
+    'Pan',
+    // TOOLTYPE.SELECT:
+    'Select',
+    // TOOLTYPE.LINE:
+    'Line',
+    // TOOLTYPE.ELLIPSE:
+    'Ellipse',
+    // TOOLTYPE.WALL:
+    'Wall',
+    // TOOLTYPE.DOOR:
+    'Door',
+    // TOOLTYPE.RECT:
+    'Rect',
+    // TOOLTYPE.TEXT:
+    'Text',
+    // TOOLTYPE.TOKEN:
+    'Token',
+    // TOOLTYPE.IMAGE:
+    'Image',
+    // TOOLTYPE.HELP:
+    'Help',
+    // TOOLTYPE.MEASURE:
+    'Measure',
+    // TOOLTYPE.FIXTURE:
+    'Fixture',
+];
 let current_fixture_type = FIXTURETYPE.STAIRS;
 enum TOKENTYPE {
     EZ = 0,
     IMG = 1,
 }
+const TOKEN_TO_NAME = [
+    // EZ
+    'EZ',
+    // IMG
+    'Img',
+];
+const TOKENTYPE_MAX = TOKENTYPE.IMG + 1;
 let current_token_type = TOKENTYPE.EZ;
 enum RECTTYPE {
     HOLLOW = 0,
     SOLID = 1,
     FILLED = 2,
 }
+const RECTTYPE_MAX = RECTTYPE.FILLED+1;
+const RECTTYPE_TO_NAME = [
+    // HOLLOW
+    'Hollow',
+    // SOLID
+    'Solid',
+    // FILLED
+    'Filled',
+];
 let current_rect_type = RECTTYPE.HOLLOW;
 let current_tool = TOOLTYPE.PAN;
 let color_picker:any = null; // idk what this should be
 let color_picker2:any = null; // idk what this should be
 let tools:any = null; // idk what this should be
-function change_tool(toolname:TOOLTYPE):void{
+function change_tool(tool:TOOLTYPE):void{
     let prev = current_tool;
     if(!tools)
         return;
-    current_tool = toolname;
-    switch(toolname){
+    current_tool = tool;
+    switch(tool){
         case TOOLTYPE.PAN:
         case TOOLTYPE.SELECT:
             break;
@@ -3879,28 +3980,16 @@ function change_tool(toolname:TOOLTYPE):void{
             }
             break;
     }
-    switch(toolname){
-        case TOOLTYPE.SELECT:{
-            numeric_hot_keys = select_numeric_hot_keys;
-        }break;
-        case TOOLTYPE.WALL:{
-            numeric_hot_keys = wall_numeric_hot_keys;
-        }break;
-        case TOOLTYPE.DOOR:{
-            numeric_hot_keys = door_numeric_hot_keys;
-        }break;
-        default:
-            numeric_hot_keys = [];
-            break;
-    }
+    numeric_hot_key = numeric_hot_keys.get(tool) || DEFAULT_NUMERIC_HOT_KEY;
     for(let j = 0; j < tools.length; ++j){
-        const tool = tools[j];
-        tool.classList.remove('selected');
-        if(tool.firstChild.textContent.trim() == toolname){
-            tool.classList.add('selected');
+        const toolel = tools[j];
+        const toolname = TOOL_TO_NAMES[tool];
+        toolel.classList.remove('selected');
+        if(toolel.firstChild.textContent.trim() == toolname){
+            toolel.classList.add('selected');
         }
     }
-    if(toolname == TOOLTYPE.HELP){
+    if(tool == TOOLTYPE.HELP){
         if(prev != TOOLTYPE.HELP)
             change_tool(prev);
         make_ok_dialog(`
@@ -4015,21 +4104,22 @@ function make_tri_menu(e:MouseEvent, options:Array<{func:()=>void;text:string}>)
     window.addEventListener('mousedown', remove_tri_menu);
     canvas.addEventListener('mousedown', remove_tri_menu);
 }
-let select_numeric_hot_keys: Array<()=>void> = [];
-let wall_numeric_hot_keys: Array<()=>void> = [];
-let door_numeric_hot_keys: Array<()=>void> = [];
 document.addEventListener('DOMContentLoaded', function():void{
     tools = Array.from(document.getElementsByClassName('tool'));
     color_picker = document.getElementById('color-picker');
     color_picker2 = document.getElementById('color-picker2');
     for(let i = 0; i < tools.length; ++i){
-        const tool = tools[i];
-        tool.addEventListener('click', function(e:MouseEvent){
-            const toolname = tool.firstChild.textContent.trim();
-            change_tool(toolname);
+        const toolel = tools[i];
+        toolel.addEventListener('click', function(e:MouseEvent){
+            const toolname = toolel.firstChild.textContent.trim() as string;
+            const tool = NAMES_TO_TOOL.get(toolname);
+            if(tool !== undefined)
+                change_tool(tool);
         });
-        if(tool.firstChild.textContent.trim() == 'Select'){
-            const name = tool.getElementsByTagName('span')[0];
+        // Selecttype is bit flags, so it has to be its own special snowflake.
+        // I guess it should actually be like checkboxes?
+        if(toolel.firstChild.textContent.trim() == 'Select'){
+            const name = toolel.getElementsByTagName('span')[0];
             function change_st(st:SELECTTYPE){
                 select_type = st;
                 switch(select_type){
@@ -4052,21 +4142,26 @@ document.addEventListener('DOMContentLoaded', function():void{
                 }
                 return cb;
             }
-            select_numeric_hot_keys = [
-                function(){
-                    name.innerText = 'Any';
-                    change_select_mode(SELECTTYPE.ANY);
+            numeric_hot_keys.set(TOOLTYPE.SELECT, {
+                func: function(index:number){
+                    switch(index){
+                        case 0:
+                            change_select_mode(SELECTTYPE.ANY);
+                            change_st(SELECTTYPE.ANY);
+                            break;
+                        case 1:
+                            change_select_mode(SELECTTYPE.MAP);
+                            change_st(SELECTTYPE.MAP);
+                            break;
+                        case 2:
+                            change_select_mode(SELECTTYPE.TOKEN);
+                            change_st(SELECTTYPE.TOKEN);
+                            break;
+                    }
                 },
-                function(){
-                    name.innerText = 'Map';
-                    change_select_mode(SELECTTYPE.MAP);
-                },
-                function(){
-                    name.innerText = 'Token';
-                    change_select_mode(SELECTTYPE.TOKEN);
-                },
-            ];
-            const triangle = tool.getElementsByTagName('span')[0];
+                max_index: 3,
+            });
+            const triangle = toolel.getElementsByTagName('span')[0];
             triangle.addEventListener('click', function(e:MouseEvent){
                 e.preventDefault();
                 e.stopPropagation();
@@ -4079,221 +4174,59 @@ document.addEventListener('DOMContentLoaded', function():void{
                 ]);
             });
         }
-        if(tool.firstChild.textContent.trim() == 'Door'){
-            const name = tool.getElementsByTagName('span')[0];
-            function change_door(doortype:DOORTYPE){
-                current_door = doortype;
-                switch(current_door){
-                    case DOORTYPE.DOOR:
-                        name.innerText = ' - Door ☰';
-                        break;
-                    case DOORTYPE.DOUBLE:
-                        name.innerText = '- Double ☰';
-                        break;
-                    case DOORTYPE.SECRET:
-                        name.innerText = '- Secret ☰';
-                        break;
-                    case DOORTYPE.BRICKED_WALL:
-                        name.innerText = '- Bricks ☰';
-                        break;
-                    case DOORTYPE.PORTAL:
-                        name.innerText = '- Portal ☰';
-                        break;
-                    case DOORTYPE.HALLWAY:
-                        name.innerText = '- Hallway ☰';
-                        break;
-                    case DOORTYPE.PORTCULLIS:
-                        name.innerText = '- Portcullis ☰';
-                        break;
-                    case DOORTYPE.CURTAINS:
-                        name.innerText = '- Curtains ☰';
-                        break;
-                }
+        function setup_multi_option(toolel:HTMLElement, t_type:TOOLTYPE, set_current:(_:number)=>void, t_to_name:Array<string>, t_max:number){
+            const name = toolel.getElementsByTagName('span')[0];
+            function change_t(t:number){
+                set_current(t);
+                const tname = t_to_name[t];
+                name.innerText = ` - ${tname} ☰`;
             }
-            change_door(DOORTYPE.DOOR);
-            door_numeric_hot_keys = [
-                    function(){change_door(DOORTYPE.DOOR)},
-                    function(){change_door(DOORTYPE.SECRET)},
-                    function(){change_door(DOORTYPE.BRICKED_WALL)},
-                    function(){change_door(DOORTYPE.PORTAL)},
-                    function(){change_door(DOORTYPE.HALLWAY)},
-                    function(){change_door(DOORTYPE.DOUBLE)},
-                    function(){change_door(DOORTYPE.PORTCULLIS)},
-                    function(){change_door(DOORTYPE.CURTAINS)},
-            ];
-
-            function make_cb(dt:DOORTYPE){
-                function cb(){
-                    change_tool(TOOLTYPE.DOOR);
-                    change_door(dt);
-                }
-                return cb;
-            }
-            const triangle = tool.getElementsByTagName('span')[0];
-            triangle.addEventListener('click', function(e:MouseEvent){
-                e.preventDefault();
-                e.stopPropagation();
-                if(has_tri_menu)
-                    return;
-                make_tri_menu(e, [
-                    {func:make_cb(DOORTYPE.DOOR),         text:'Door'},
-                    {func:make_cb(DOORTYPE.SECRET),       text:'Secret Door'},
-                    {func:make_cb(DOORTYPE.BRICKED_WALL), text:'Bricked Wall'},
-                    {func:make_cb(DOORTYPE.PORTAL),       text:'Portal'},
-                    {func:make_cb(DOORTYPE.HALLWAY),      text:'Hallway'},
-                    {func:make_cb(DOORTYPE.DOUBLE),       text:'Double Door'},
-                    {func:make_cb(DOORTYPE.PORTCULLIS),   text:'Portcullis'},
-                    {func:make_cb(DOORTYPE.CURTAINS),     text:'Curtains'},
-                ]);
+            numeric_hot_keys.set(t_type, {
+                func: change_t,
+                max_index: t_max,
             });
-        }
-        if(tool.firstChild.textContent.trim() == 'Token'){
-            const name = tool.getElementsByTagName('span')[0];
-            function change_tt(tt:TOKENTYPE){
-                current_token_type = tt;
-                switch(current_token_type){
-                    case TOKENTYPE.EZ:
-                        name.innerText = ' - EZ ☰';
-                        break;
-                    case TOKENTYPE.IMG:
-                        name.innerText = '- Img ☰';
-                        break;
-                }
-            }
-            change_tt(TOKENTYPE.EZ);
-            function make_cb(tt:TOKENTYPE){
+            change_t(0);
+            function make_cb(t:number){
                 function cb(){
-                    change_tool(TOOLTYPE.TOKEN);
-                    change_tt(tt);
-                }
-                return cb;
-            }
-            const triangle = tool.getElementsByTagName('span')[0];
-            triangle.addEventListener('click', function(e:MouseEvent){
-                e.preventDefault();
-                e.stopPropagation();
-                if(has_tri_menu)
-                    return;
-                make_tri_menu(e, [
-                    {func:make_cb(TOKENTYPE.EZ),  text:'EZ'},
-                    {func:make_cb(TOKENTYPE.IMG), text:'Img'},
-                ]);
-            });
-        }
-        if(tool.firstChild.textContent.trim() == 'Rect'){
-            const name = tool.getElementsByTagName('span')[0];
-            function change_rt(rt:RECTTYPE){
-                current_rect_type = rt;
-                switch(current_rect_type){
-                    case RECTTYPE.HOLLOW:
-                        name.innerText = ' - Hollow ☰';
-                        break;
-                    case RECTTYPE.SOLID:
-                        name.innerText = ' - Solid ☰';
-                        break;
-                    case RECTTYPE.FILLED:
-                        name.innerText = ' - Filled ☰';
-                        break;
-                }
-            }
-            change_rt(RECTTYPE.HOLLOW);
-            function make_cb(rt:RECTTYPE){
-                function cb(){
-                    change_tool(TOOLTYPE.RECT);
-                    change_rt(rt);
-                }
-                return cb;
-            }
-            const triangle = tool.getElementsByTagName('span')[0];
-            triangle.addEventListener('click', function(e:MouseEvent){
-                e.preventDefault();
-                e.stopPropagation();
-                if(has_tri_menu)
-                    return;
-                make_tri_menu(e, [
-                    {func:make_cb(RECTTYPE.HOLLOW),  text:'Hollow'},
-                    {func:make_cb(RECTTYPE.SOLID),  text:'Solid'},
-                    {func:make_cb(RECTTYPE.FILLED),  text:'Filled'},
-                ]);
-            });
-        }
-        if(tool.firstChild.textContent.trim() == 'Ellipse'){
-            const name = tool.getElementsByTagName('span')[0];
-            function change_rt(rt:ELLIPSETYPE){
-                current_ellipse = rt;
-                switch(current_ellipse){
-                    case ELLIPSETYPE.HOLLOW:
-                        name.innerText = ' - Hollow ☰';
-                        break;
-                    case ELLIPSETYPE.SOLID:
-                        name.innerText = ' - Solid ☰';
-                        break;
-                    case ELLIPSETYPE.FILLED:
-                        name.innerText = ' - Filled ☰';
-                        break;
-                }
-            }
-            change_rt(ELLIPSETYPE.HOLLOW);
-            function make_cb(rt:ELLIPSETYPE){
-                function cb(){
-                    change_tool(TOOLTYPE.ELLIPSE);
-                    change_rt(rt);
-                }
-                return cb;
-            }
-            const triangle = tool.getElementsByTagName('span')[0];
-            triangle.addEventListener('click', function(e:MouseEvent){
-                e.preventDefault();
-                e.stopPropagation();
-                if(has_tri_menu)
-                    return;
-                make_tri_menu(e, [
-                    {func:make_cb(ELLIPSETYPE.HOLLOW),  text:'Hollow'},
-                    {func:make_cb(ELLIPSETYPE.SOLID),  text:'Solid'},
-                    {func:make_cb(ELLIPSETYPE.FILLED),  text:'Filled'},
-                ]);
-            });
-        }
-        if(tool.firstChild.textContent.trim() == 'Fixture'){
-            const name = tool.getElementsByTagName('span')[0];
-            function change_t(t:FIXTURETYPE){
-                current_fixture_type = t;
-                switch(current_fixture_type){
-                    case FIXTURETYPE.STAIRS:
-                        name.innerText = ' - Stairs ☰';
-                        break;
-                    case FIXTURETYPE.STATUE:
-                        name.innerText = ' - Statue ☰';
-                        break;
-                    case FIXTURETYPE.PIT:
-                        name.innerText = ' - Pit ☰';
-                        break;
-                    case FIXTURETYPE.RUBBLE:
-                        name.innerText = ' - Rubble ☰';
-                        break;
-                }
-            }
-            change_t(FIXTURETYPE.STAIRS);
-            function make_cb(t:FIXTURETYPE){
-                function cb(){
-                    change_tool(TOOLTYPE.FIXTURE);
+                    change_tool(t_type);
                     change_t(t);
-                }
+                };
                 return cb;
             }
-            const triangle = tool.getElementsByTagName('span')[0];
+            const triangle = toolel.getElementsByTagName('span')[0];
             triangle.addEventListener('click', function(e:MouseEvent){
                 e.preventDefault();
                 e.stopPropagation();
                 if(has_tri_menu)
                     return;
-                make_tri_menu(e, [
-                    {func:make_cb(FIXTURETYPE.RUBBLE),  text:'Rubble'},
-                    {func:make_cb(FIXTURETYPE.PIT),     text:'Pit'},
-                    {func:make_cb(FIXTURETYPE.STATUE),  text:'Statue'},
-                    {func:make_cb(FIXTURETYPE.STAIRS),  text:'Stairs'},
-                ]);
+                make_tri_menu(e, (function(){
+                    const a = [];
+                    for(let i = 0; i < t_max; i++){
+                        a.push({func:make_cb(i), text:t_to_name[i]});
+                    }
+                    return a;
+                }()));
             });
+        }
+        const tcontent = toolel.firstChild.textContent.trim();
+        switch(NAMES_TO_TOOL.get(tcontent)){
+            case TOOLTYPE.DOOR:
+                setup_multi_option(toolel, TOOLTYPE.DOOR, function(i:number){current_door=i}, DOOR_TO_NAMES, DOORTYPE_MAX);
+            break;
+            case TOOLTYPE.TOKEN:
+                setup_multi_option(toolel, TOOLTYPE.TOKEN, function(i:number){current_token_type=i}, TOKEN_TO_NAME, TOKENTYPE_MAX);
+            break;
+            case TOOLTYPE.RECT:
+                setup_multi_option(toolel, TOOLTYPE.RECT, function(i:number){current_rect_type=i}, RECTTYPE_TO_NAME, RECTTYPE_MAX);
+            break;
+            case TOOLTYPE.ELLIPSE:
+                setup_multi_option(toolel, TOOLTYPE.ELLIPSE, function(i:number){current_ellipse=i}, ELLIPSETYPE_TO_NAME, ELLIPSETYPE_MAX);
+            break;
+            case TOOLTYPE.FIXTURE:
+                setup_multi_option(toolel, TOOLTYPE.FIXTURE, function(i:number){current_fixture_type=i}, FIXTURETYPE_TO_NAME, FIXTURETYPE_MAX);
+            break;
+            default:
+            break;
         }
     }
     change_tool(TOOLTYPE.PAN);
@@ -4305,7 +4238,16 @@ function get_session_id_from_obj_id(objid:number):number{
     let id = objid >> 20;
     return id;
 }
-let numeric_hot_keys:Array<()=>void> = [];
+type NumericHotKey = {
+    func: (_:number)=>void;
+    max_index: number;
+}
+const DEFAULT_NUMERIC_HOT_KEY = {
+    func: function(_:number){},
+    max_index: 0,
+};
+let numeric_hot_key = DEFAULT_NUMERIC_HOT_KEY;
+let numeric_hot_keys:Map<TOOLTYPE, NumericHotKey> = new Map();
 let token_paths: Array<string> = [];
 socket.on('token-paths', function(paths:Array<string>){
     token_paths = paths;
@@ -4431,6 +4373,11 @@ document.addEventListener('DOMContentLoaded', function(){
                     break;
                 }
                 break;
+            case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':{
+                const index = (+e.key) - 1;
+                if(index < numeric_hot_key.max_index)
+                    numeric_hot_key.func(index);
+            }break;
             default:
                 return;
         }
