@@ -4006,7 +4006,7 @@ function change_tool(tool:TOOLTYPE):void{
             <h2>Help</h2>
             <div style="height:70vh;overflow-y:auto;margin:auto;">
             <h3 style="text-align:center;">Tips</h3>
-            <div style="margin:auto;max-width:60em;">
+            <div style="margin:auto;max-width:60em;padding:1em;">
             <p>The Grid/Half/Free buttons affect what the tools will snap to.
                You can use <b>q</b> to switch to Grid, <b>w</b> to switch to Half
                and <b>e</b> to switch to Free.
