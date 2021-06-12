@@ -1,4 +1,10 @@
 declare let io: any;
+//
+// Misc notes
+// ----------
+// For some enums, we maintain a separate reversing mapping of enum value to string
+// as we want the ability to change the strings without changing the code.
+
 enum DarkMode {
     SYSTEM = 0,
     DARK = 1,
