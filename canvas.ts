@@ -109,6 +109,13 @@ enum CANVASFLAG {
 //     flags: CANVASFLAG;
 // }
 //
+//  Additionally, each object also has a "stripped" representation, which is
+//  the minimal amount of information for that object. For several types
+//  this is the same as the regular one, but for others the unstripped
+//  representation would include things like an HTMLImageElement.
+//  Furthermore, the "stripped" representation can be converted to and from json,
+//  so it can be shipped to and from the server.
+//
 
 //  freehand-line
 //  -------------
@@ -127,6 +134,17 @@ type FreehandLine = {
     points: Array<number>;
     path?: Path2D;
     bbox: Bbox;
+    thickness: number;
+}
+type StrippedFreehandLine = {
+    type: CANVASTYPE; // FREEHAND_LINE
+    id: number;
+    base_x: number;
+    base_y: number;
+    flags: CANVASFLAG;
+    color: string;
+    // points are just raw x,y pairs in a flat array.
+    points: Array<number>;
     thickness: number;
 }
 //  grid-line
@@ -149,6 +167,16 @@ type GridLine = {
     path?: Path2D;
     bbox: Bbox;
 }
+type StrippedGridLine = {
+    type: CANVASTYPE; // GRID_LINE
+    id: number;
+    base_x: number;
+    base_y: number;
+    flags: CANVASFLAG;
+    color: string;
+    // points are just raw x,y pairs in a flat array.
+    points: Array<number>;
+}
 //  rectangle
 //  ---------
 //  An axis-aligned box.
@@ -163,6 +191,9 @@ type Rectangle = {
     width: number;
     height: number;
 }
+// Stripped rectangles are the same as regular Rectangle.
+type StrippedRectangle = Rectangle;
+
 //  filled-rectangle
 //  ---------
 //  An axis-aligned box, but the center is filled with 'color2'
@@ -178,6 +209,7 @@ type FilledRectangle = {
     width: number;
     height: number;
 }
+type StrippedFilledRectangle = FilledRectangle;
 //  grid-rectangle
 //  ---------
 //  An axis-aligned box, whose corners snap to the grid.
@@ -194,6 +226,8 @@ type GridRectangle = {
     width: number;
     height: number;
 }
+// Stripped Grid Rectangles are the same as regular rectangles.
+type StrippedGridRectangle = GridRectangle;
 
 enum ELLIPSETYPE {
     HOLLOW = 0,
@@ -217,6 +251,8 @@ type Ellipse = {
     height: number;
     variant: ELLIPSETYPE;
 }
+// Stripped Ellipses are the same as regular rectangles.
+type StrippedEllipse = Ellipse;
 
 //  image
 //  -----
@@ -231,6 +267,17 @@ type ImageObj = {
     url: string;
     img?: HTMLImageElement;
 }
+
+type StrippedImageObj = {
+    type: CANVASTYPE; // IMAGE
+    id: number;
+    base_x: number;
+    base_y: number;
+    flags: CANVASFLAG;
+    width: number;
+    height: number;
+    url: string;
+}
 //  text
 //  ----
 type TextObj = {
@@ -244,6 +291,15 @@ type TextObj = {
     bbox: Bbox;
     lines: Array<string>;
     bboxes: Array<Bbox>;
+}
+type StrippedTextObj = {
+    type: CANVASTYPE; // TEXT
+    id: number;
+    base_x: number;
+    base_y: number;
+    flags: CANVASFLAG;
+    text: string;
+    size: number;
 }
 //  ez-token
 //  --------
@@ -260,6 +316,9 @@ type EzToken = {
     height: number; // in squares (?)
 }
 
+// stripped EzToken is the same as a regular EzToken
+type StrippedEzToken = EzToken;
+
 //  img-token
 //  --------
 //  A token that has an image as its contents.
@@ -271,6 +330,16 @@ type ImgToken = {
     flags: CANVASFLAG;
     url: string;
     img?: HTMLImageElement,
+    width: number; // in squares (?)
+    height: number; // in squares (?)
+}
+type StrippedImgToken = {
+    type: CANVASTYPE; // IMG_TOKEN
+    id: number;
+    base_x: number;
+    base_y: number;
+    flags: CANVASFLAG;
+    url: string;
     width: number; // in squares (?)
     height: number; // in squares (?)
 }
@@ -288,6 +357,8 @@ type DoorObj = {
     width: number; // in squares (?)
     orientation: ORIENTATION;
 }
+// stripped doors are the same as regular doors.
+type StrippedDoorObj = DoorObj;
 enum ROTATION {
     // we might add the diagonals
     UP    = 0,
@@ -305,6 +376,9 @@ type Stairs = {
     height: number; // in squares
     rotation: ROTATION;
 }
+// stripped stairs are the same as regular stairs.
+type StrippedStairs = Stairs;
+
 // Measure
 // -------
 // This is a weird object, but it is the measurement tool.
@@ -318,6 +392,8 @@ type MeasureObj = {
     x1: number;
     y1: number;
 }
+// stripped measure is the same as regular measure.
+type StrippedMeasureObj = MeasureObj;
 enum FIXTURETYPE {
     STATUE = 0,
     STAIRS = 1,
@@ -339,7 +415,11 @@ type FixtureObj = {
     ftype: FIXTURETYPE;
 }
 
+// stripped fixture obj is the same as regular fixtures.
+type StrippedFixtureObj = FixtureObj;
+
 type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj;
+type StrippedObj = StrippedFreehandLine | StrippedGridLine | StrippedRectangle | StrippedFilledRectangle | StrippedGridRectangle | StrippedEllipse | StrippedImageObj | StrippedTextObj | StrippedEzToken | StrippedImgToken | StrippedDoorObj | StrippedStairs | StrippedMeasureObj | StrippedFixtureObj;
 
 // Door subtypes
 // ------------
@@ -1333,8 +1413,8 @@ type UndoDelete = {
 }
 type UndoUpdate = {
     type: UNDO_EVENT_TYPE; // UPDATE
-    before: Array<StrippedObjWithId>;
-    after: Array<StrippedObjWithId>;
+    before: Array<StrippedObj>;
+    after: Array<StrippedObj>;
 }
 type UndoEvent = UndoCreate | UndoMassCreate | UndoDelete | UndoUpdate;
 
@@ -1366,7 +1446,7 @@ function note_create_by_id_for_undo(map:DungeonMap, created_id:number):void{
     };
     push_undo_event(map, undo_event);
 }
-function note_updates_for_undo(map:DungeonMap, before:Array<StrippedObjWithId>, after:Array<StrippedObjWithId>):void{
+function note_updates_for_undo(map:DungeonMap, before:Array<StrippedObj>, after:Array<StrippedObj>):void{
     const undo_event: UndoUpdate = {
         type: UNDO_EVENT_TYPE.UPDATE,
         before: before,
@@ -1490,7 +1570,7 @@ function copy_selected_objs_to_copy_buffer(view:DungeonMapView):void{
         const obj = view.map.canvas_objs.get(obj_id)!;
         if(obj.flags & CANVASFLAG.DELETED)
             continue;
-        const stripped = strip_obj(obj, STRIP_FLAGS_NONE);
+        const stripped = strip_obj(obj);
         copied_objs.push(stripped);
     }
 }
@@ -1500,7 +1580,7 @@ function cut_selected_objs_to_copy_buffer(view:DungeonMapView):void{
         const obj = view.map.canvas_objs.get(obj_id)!;
         if(obj.flags & CANVASFLAG.DELETED)
             continue;
-        const stripped = strip_obj(obj, STRIP_FLAGS_NONE);
+        const stripped = strip_obj(obj);
         copied_objs.push(stripped);
         obj.flags |= CANVASFLAG.DELETED;
     }
@@ -1508,6 +1588,22 @@ function cut_selected_objs_to_copy_buffer(view:DungeonMapView):void{
     note_delete_by_ids_for_undo(view.map, Array.from(view.selected));
     view.selected.clear()
     request_render();
+}
+function translate_object(obj: CanvasObject, dx: number, dy: number){
+    obj.base_x += dx;
+    obj.base_y += dy;
+    switch(obj.type){
+        case CANVASTYPE.FREEHAND_LINE:{
+            freehand_recalculate_bbox(obj as FreehandLine);
+            freehand_recalculate_path(obj as FreehandLine);
+        }break;
+        case CANVASTYPE.GRID_LINE:{
+            gridline_recalculate_bbox(obj as GridLine);
+            gridline_recalculate_path(obj as GridLine);
+        }break;
+        default:
+            break;
+    }
 }
 function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
     x = snap_to_grid(x);
@@ -1531,227 +1627,10 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
     const dy = y - y0;
     const new_ids = [];
     for(let i = 0; i < length; ++i){
-        const stripped: any = copied_objs[i];  // temporary as this is a pain to type annotate marshalling code
-        // The safer way of doing this is to have a stripped
-        // version of every object type and then downcast.
-
-        // This is a lot of very similar code to the below function in
-        // canvas-create-objects, but there is a lot of weirdness over copying
-        // objects in JS, so I am just grabbing attributes by hand.
+        const obj = unstrip_obj(copied_objs[i]);
         let id = get_new_id();
-        let obj: CanvasObject;
-        switch(stripped.type as CANVASTYPE){
-            case CANVASTYPE.FREEHAND_LINE:{
-                let obj_: FreehandLine = {
-                    type: stripped.type,
-                    id: id,
-                    base_x: stripped.base_x + dx,
-                    base_y: stripped.base_y + dy,
-                    flags: CANVASFLAG.NONE,
-                    color: stripped.color,
-                    points: Array.from(stripped.points),
-                    path: undefined,
-                    bbox: {x0:0, y0:0, x1:0, y1:0},
-                    thickness: stripped.thickness,
-                };
-                freehand_recalculate_bbox(obj_);
-                freehand_recalculate_path(obj_);
-                obj = obj_;
-            }break;
-            case CANVASTYPE.GRID_LINE:{
-                let obj_: GridLine = {
-                    type: stripped.type,
-                    id: id,
-                    base_x: stripped.base_x + dx,
-                    base_y: stripped.base_y + dy,
-                    flags: CANVASFLAG.NONE,
-                    color: stripped.color,
-                    points: Array.from(stripped.points),
-                    path: undefined,
-                    bbox: {x0:0, y0:0, x1:0, y1:0},
-                };
-                gridline_recalculate_bbox(obj_);
-                gridline_recalculate_path(obj_);
-                obj = obj_;
-            }break;
-            case CANVASTYPE.ELLIPSE:{
-                let obj_: Ellipse = {
-                    type: stripped.type,
-                    id: id,
-                    base_x: stripped.base_x + dx,
-                    base_y: stripped.base_y + dy,
-                    flags: CANVASFLAG.NONE,
-                    color: stripped.color,
-                    width: stripped.width,
-                    height: stripped.height,
-                    color2: stripped.color2,
-                    variant: stripped.variant,
-                };
-                obj = obj_;
-            }break;
-            case CANVASTYPE.FILLED_RECT:{
-                let obj_: FilledRectangle = {
-                    type: stripped.type,
-                    id: id,
-                    base_x: stripped.base_x + dx,
-                    base_y: stripped.base_y + dy,
-                    flags: CANVASFLAG.NONE,
-                    color: stripped.color,
-                    color2: stripped.color2,
-                    width: stripped.width,
-                    height: stripped.height,
-                };
-                obj = obj_;
-            }break;
-            case CANVASTYPE.RECT:{
-                let obj_: Rectangle = {
-                    type: stripped.type,
-                    id: id,
-                    base_x: stripped.base_x + dx,
-                    base_y: stripped.base_y + dy,
-                    flags: CANVASFLAG.NONE,
-                    color: stripped.color,
-                    width: stripped.width,
-                    height: stripped.height,
-                };
-                obj = obj_;
-            }break;
-            case CANVASTYPE.GRID_RECT:{
-                let obj_: GridRectangle = {
-                    type: stripped.type,
-                    id: id,
-                    base_x: stripped.base_x + dx,
-                    base_y: stripped.base_y + dy,
-                    flags: CANVASFLAG.NONE,
-                    color: stripped.color,
-                    width: stripped.width,
-                    height: stripped.height,
-                };
-                obj = obj_;
-            }break;
-            case CANVASTYPE.IMAGE:{
-                let obj_: ImageObj = {
-                    type: stripped.type,
-                    id: id,
-                    base_x: stripped.base_x + dx,
-                    base_y: stripped.base_y + dy,
-                    flags: CANVASFLAG.NONE,
-                    width: stripped.width,
-                    height: stripped.height,
-                    url: stripped.url,
-                    img: undefined,
-                };
-                obj = obj_;
-                const img = new Image(obj.width, obj.height);
-                img.addEventListener('load', function(){
-                    (obj as ImageObj).img = img;
-                    request_render();
-                }, {once:true});
-                img.src = obj.url;
-            }break;
-            case CANVASTYPE.TEXT:{
-                let obj_: TextObj = {
-                    type: stripped.type,
-                    id: id,
-                    base_x: stripped.base_x + dx,
-                    base_y: stripped.base_y + dy,
-                    flags: CANVASFLAG.NONE,
-                    text: stripped.text,
-                    size: stripped.size,
-                    bbox: {x0:0, x1:0, y0:0, y1:0},
-                    bboxes: [],
-                    lines: stripped.text.split('\n'),
-                };
-                obj = obj_;
-            }break;
-            case CANVASTYPE.EZ_TOKEN:{
-                let obj_: EzToken = {
-                    type: stripped.type,
-                    id: id,
-                    base_x: stripped.base_x + dx,
-                    base_y: stripped.base_y + dy,
-                    flags: CANVASFLAG.NONE,
-                    text: stripped.text,
-                    width: stripped.width,
-                    height: stripped.height,
-                    color: stripped.color,
-                };
-                obj = obj_;
-            }break;
-            case CANVASTYPE.IMG_TOKEN:{
-                let obj_: ImgToken = {
-                    type: stripped.type,
-                    id: id,
-                    base_x: stripped.base_x + dx,
-                    base_y: stripped.base_y + dy,
-                    flags: CANVASFLAG.NONE,
-                    width: stripped.width,
-                    height: stripped.height,
-                    url: stripped.url,
-                    img: undefined,
-                };
-                obj = obj_;
-                const img = new Image(obj.width, obj.height);
-                img.addEventListener('load', function(){
-                    (obj as ImgToken).img = img;
-                    request_render();
-                }, {once:true});
-                img.src = obj.url;
-            }break;
-            case CANVASTYPE.DOOR:{
-                let obj_: DoorObj = {
-                    type: stripped.type,
-                    id: id,
-                    base_x: stripped.base_x + dx,
-                    base_y: stripped.base_y + dy,
-                    flags: CANVASFLAG.NONE,
-                    width: stripped.width,
-                    doortype: stripped.doortype,
-                    color: stripped.color,
-                    orientation: stripped.orientation,
-                };
-                obj = obj_;
-            }break;
-            case CANVASTYPE.STAIRS:{
-                let obj_: Stairs = {
-                    type: stripped.type,
-                    id: id,
-                    base_x: stripped.base_x + dx,
-                    base_y: stripped.base_y + dy,
-                    flags: CANVASFLAG.NONE,
-                    width: stripped.width,
-                    height: stripped.height,
-                    rotation: stripped.rotation,
-                };
-                obj = obj_;
-            }break;
-            case CANVASTYPE.MEASURE:{
-                let obj_: MeasureObj = {
-                    type: stripped.type,
-                    id: id,
-                    base_x: stripped.base_x + dx,
-                    base_y: stripped.base_y + dy,
-                    flags: CANVASFLAG.NONE,
-                    color: stripped.color,
-                    x1: stripped.x1,
-                    y1: stripped.y1,
-                };
-                obj = obj_;
-            }break;
-            case CANVASTYPE.FIXTURE:{
-                let obj_: FixtureObj = {
-                    type: stripped.type,
-                    id: id,
-                    base_x: stripped.base_x + dx,
-                    base_y: stripped.base_y + dy,
-                    flags: CANVASFLAG.NONE,
-                    width: stripped.width,
-                    height: stripped.height,
-                    ftype: stripped.ftype,
-                };
-                obj = obj_;
-            }break;
-        }
+        obj.id = id;
+        translate_object(obj, dx, dy);
         add_canv_obj(map, obj);
         new_ids.push(id);
         publish_obj_by_id(map, obj.id);
@@ -1794,7 +1673,8 @@ function delete_map(map_id:number){
 }
 
 // cutnpaste from below. TODO: factor these.
-socket.on('canvas-initialize-maps', function(msgs:Array<{map_id:number; map_name:string; objects:Array<StrippedObjWithId>; flags:MapFlags; grid_type:GRIDTYPE}>){
+
+socket.on('canvas-initialize-maps', function(msgs:Array<{map_id:number; map_name:string; objects:Array<StrippedObj>; flags:MapFlags; grid_type:GRIDTYPE}>){
     for(let msg of msgs){
         const map_id = msg.map_id;
         if(msg.flags & MapFlags.DELETED){
@@ -1809,75 +1689,19 @@ socket.on('canvas-initialize-maps', function(msgs:Array<{map_id:number; map_name
         const objs = msg.objects;
         const length = objs.length;
         for(let i = 0; i < length; ++i){
-            const obj: any = objs[i]; // temporary as this is a pain to type annotate
-            switch(obj.type){
-                case CANVASTYPE.FREEHAND_LINE:
-                    obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-                    freehand_recalculate_bbox(obj);
-                    freehand_recalculate_path(obj);
-                    break;
-                case CANVASTYPE.GRID_LINE:
-                    obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-                    gridline_recalculate_bbox(obj);
-                    gridline_recalculate_path(obj);
-                    break;
-                case CANVASTYPE.FILLED_RECT:
-                    break;
-                case CANVASTYPE.ELLIPSE:
-                    break;
-                case CANVASTYPE.RECT:
-                    break;
-                case CANVASTYPE.GRID_RECT:
-                    break;
-                case CANVASTYPE.IMAGE:{
-                    obj.img = null;
-                    const img = new Image(obj.width, obj.height);
-                    img.addEventListener('load', function(){
-                        obj.img = img;
-                        request_render();
-                    }, {once:true});
-                    img.src = obj.url;
-                }break;
-                case CANVASTYPE.TEXT:
-                    obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-                    obj.bboxes = [];
-                    obj.lines = obj.text.split('\n');
-                    break;
-                case CANVASTYPE.EZ_TOKEN:
-                    break;
-                case CANVASTYPE.IMG_TOKEN:{
-                    obj.img = null;
-                    const img = new Image(obj.width, obj.height);
-                    img.addEventListener('load', function(){
-                        obj.img = img;
-                        request_render();
-                    }, {once:true});
-                    img.src = obj.url;
-                }break;
-                case CANVASTYPE.DOOR:{
-                    // all fields are good
-                }break;
-                case CANVASTYPE.STAIRS:{
-                    // all fields are good
-                }break;
-                case CANVASTYPE.MEASURE:{
-                    // all fields are good
-                }break;
-                case CANVASTYPE.FIXTURE:{
-                }break;
-            }
+            const obj = unstrip_obj(objs[i]);
             const existing_obj = map.canvas_objs.get(obj.id);
             if(existing_obj){
                 console.log('object already exists???', obj.id);
             }
             else {
-                add_canv_obj(map,obj);
+                add_canv_obj(map, obj);
             }
         }
     }
     request_render();
 });
-socket.on('canvas-create-objects', function(msgs:Array<{map_id:number;objects:Array<StrippedObjWithId>}>){
+socket.on('canvas-create-objects', function(msgs:Array<{map_id:number;objects:Array<StrippedObj>}>){
     for(let msg of msgs){
         const map_id = msg.map_id;
         if(!MAPS.has(map_id)){
@@ -1887,63 +1711,7 @@ socket.on('canvas-create-objects', function(msgs:Array<{map_id:number;objects:Ar
         const objs = msg.objects;
         const length = objs.length;
         for(let i = 0; i < length; ++i){
-            const obj: any = objs[i]; // temporary as this is a pain to type annotate
-            switch(obj.type){
-                case CANVASTYPE.FREEHAND_LINE:
-                    obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-                    freehand_recalculate_bbox(obj);
-                    freehand_recalculate_path(obj);
-                    break;
-                case CANVASTYPE.GRID_LINE:
-                    obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-                    gridline_recalculate_bbox(obj);
-                    gridline_recalculate_path(obj);
-                    break;
-                case CANVASTYPE.FILLED_RECT:
-                    break;
-                case CANVASTYPE.ELLIPSE:
-                    break;
-                case CANVASTYPE.RECT:
-                    break;
-                case CANVASTYPE.GRID_RECT:
-                    break;
-                case CANVASTYPE.IMAGE:{
-                    obj.img = null;
-                    const img = new Image(obj.width, obj.height);
-                    img.addEventListener('load', function(){
-                        obj.img = img;
-                        request_render();
-                    }, {once:true});
-                    img.src = obj.url;
-                }break;
-                case CANVASTYPE.TEXT:
-                    obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-                    obj.bboxes = [];
-                    obj.lines = obj.text.split('\n');
-                    break;
-                case CANVASTYPE.EZ_TOKEN:
-                    break;
-                case CANVASTYPE.IMG_TOKEN:{
-                    obj.img = null;
-                    const img = new Image(obj.width, obj.height);
-                    img.addEventListener('load', function(){
-                        obj.img = img;
-                        request_render();
-                    }, {once:true});
-                    img.src = obj.url;
-                }break;
-                case CANVASTYPE.DOOR:{
-                    // all fields are good
-                }break;
-                case CANVASTYPE.STAIRS:{
-                    // all fields are good
-                }break;
-                case CANVASTYPE.MEASURE:{
-                    // all fields are good
-                }break;
-                case CANVASTYPE.FIXTURE:{
-                }break;
-            }
+            const obj = unstrip_obj(objs[i]);
             const existing_obj = map.canvas_objs.get(obj.id);
             if(existing_obj){
                 console.log('object already exists???', obj.id);
@@ -1974,86 +1742,23 @@ socket.on('canvas-delete', function(msg:{map_id:number;ids:Array<number>}){
 });
 
 
-socket.on('canvas-update', function(msg:{map_id:number;obj_states:Array<StrippedObjWithId>}){
+socket.on('canvas-update', function(msg:{map_id:number;obj_states:Array<StrippedObj>}){
     const map_id = msg.map_id;
     const map = get_map(map_id);
     const obj_states = msg.obj_states;
     set_obj_states_from_stripped_objs(map, obj_states);
     request_render();
 });
-function set_obj_states_from_stripped_objs(map:DungeonMap, obj_states:Array<StrippedObjWithId>):void{
+function set_obj_states_from_stripped_objs(map:DungeonMap, obj_states:Array<StrippedObj>):void{
     const length = obj_states.length;
     for(let i = 0; i < length; ++i){
-        const state: any = obj_states[i];
-        const obj: any = map.canvas_objs.get(state.id)!; // temporary, pain to type marshalling code
+        const state = obj_states[i];
+        const obj: CanvasObject = map.canvas_objs.get(state.id)!;
         if(!obj){
             console.log('Updating unknown object??', state.id);
             continue;
         }
-        switch(obj.type){
-            case CANVASTYPE.FREEHAND_LINE:
-                Object.assign(obj, state);
-                obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-                obj.points = Array.from(state.points);
-                freehand_recalculate_bbox(obj);
-                freehand_recalculate_path(obj);
-                break;
-            case CANVASTYPE.GRID_LINE:
-                Object.assign(obj, state);
-                obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-                obj.points = Array.from(state.points);
-                gridline_recalculate_bbox(obj);
-                gridline_recalculate_path(obj);
-                break;
-            case CANVASTYPE.FILLED_RECT:
-                Object.assign(obj, state);
-                break;
-            case CANVASTYPE.ELLIPSE:
-                Object.assign(obj, state);
-                break;
-            case CANVASTYPE.RECT:
-                Object.assign(obj, state);
-                break;
-            case CANVASTYPE.GRID_RECT:
-                Object.assign(obj, state);
-                break;
-            case CANVASTYPE.IMAGE:{
-                const needs_new_image = (obj.width !== state.width) || (obj.height !== state.height) || (obj.url !== state.url);
-                Object.assign(obj, state);
-                if(needs_new_image){
-                    const img = new Image(obj.width, obj.height);
-                    img.addEventListener('load', function(){
-                        obj.img = img;
-                        request_render();
-                    }, {once:true});
-                    img.src = obj.url;
-                }
-            }break;
-            case CANVASTYPE.TEXT:
-                Object.assign(obj, state);
-                obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-                obj.bboxes = [];
-                obj.lines = obj.text.split('\n');
-                break;
-            case CANVASTYPE.EZ_TOKEN:
-                Object.assign(obj, state);
-                break;
-            case CANVASTYPE.IMG_TOKEN:
-                Object.assign(obj, state);
-                break;
-            case CANVASTYPE.DOOR:
-                Object.assign(obj, state);
-                break;
-            case CANVASTYPE.STAIRS:
-                Object.assign(obj, state);
-                break;
-            case CANVASTYPE.MEASURE:
-                Object.assign(obj, state);
-                break;
-            case CANVASTYPE.FIXTURE:
-                Object.assign(obj, state);
-                break;
-        }
+        set_obj_from_stripped(obj, state);
     }
 }
 
@@ -2340,82 +2045,14 @@ function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number
         if(dx || dy){
             for(let i = 0; i < selected_objs.length; i++){
                 const obj = selected_objs[i];
-                obj.base_x += dx;
-                obj.base_y += dy;
-                switch(obj.type){
-                    case CANVASTYPE.FREEHAND_LINE:
-                        freehand_recalculate_path(obj as FreehandLine);
-                        break;
-                    case CANVASTYPE.GRID_LINE:
-                        gridline_recalculate_path(obj as GridLine);
-                        break;
-                    case CANVASTYPE.ELLIPSE:
-                    case CANVASTYPE.FILLED_RECT:
-                    case CANVASTYPE.RECT:
-                    case CANVASTYPE.GRID_RECT:
-                        break;
-                    case CANVASTYPE.IMAGE:
-                        break;
-                    case CANVASTYPE.TEXT:
-                        break;
-                    case CANVASTYPE.EZ_TOKEN:
-                        break;
-                    case CANVASTYPE.IMG_TOKEN:
-                        break;
-                    case CANVASTYPE.DOOR:
-                        break;
-                    case CANVASTYPE.STAIRS:
-                        break;
-                    case CANVASTYPE.MEASURE:
-                        // should be unreachable;
-                        break;
-                    case CANVASTYPE.FIXTURE:
-                        break;
-                    default:
-                        console.log('unhandled obj type');
-                        break;
-                }
+                translate_object(obj, dx, dy);
             }
         }
     }
     else {
         for(let i = 0; i < selected_objs.length; i++){
             const obj = selected_objs[i];
-            obj.base_x += dx;
-            obj.base_y += dy;
-            switch(obj.type){
-                case CANVASTYPE.FREEHAND_LINE:
-                    freehand_recalculate_path(obj as FreehandLine);
-                    break;
-                case CANVASTYPE.GRID_LINE:
-                    gridline_recalculate_path(obj as GridLine);
-                    break;
-                case CANVASTYPE.ELLIPSE:
-                case CANVASTYPE.FILLED_RECT:
-                case CANVASTYPE.RECT:
-                case CANVASTYPE.GRID_RECT:
-                    break;
-                case CANVASTYPE.IMAGE:
-                    break;
-                case CANVASTYPE.TEXT:
-                    break;
-                case CANVASTYPE.EZ_TOKEN:
-                    break;
-                case CANVASTYPE.IMG_TOKEN:
-                    break;
-                case CANVASTYPE.DOOR:
-                    break;
-                case CANVASTYPE.STAIRS:
-                    break;
-                case CANVASTYPE.FIXTURE:
-                    break;
-                case CANVASTYPE.MEASURE:
-                    // should be unreachable;
-                    break;
-                default:
-                    console.log('unhandled obj type');
-                    break;
-            }
+            translate_object(obj, dx, dy);
         }
     }
     request_render();
@@ -2426,109 +2063,339 @@ function add_canv_obj(map:DungeonMap, obj:CanvasObject):void{
     map.canvas_obj_array.push(obj);
     map.is_sorted = false;
 }
-const STRIP_FLAGS_NONE = 0;
-const STRIP_INCLUDE_ID = 1;
-interface StrippedObj {
-    type: CANVASTYPE;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-};
-interface StrippedObjWithId {
-    type: CANVASTYPE;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-    id: number;
-};
 
-// obj shoudl be CanvasObject, but I would have to write a million downcasts.
-function strip_obj(obj:any, include_flags:number): StrippedObj{
-    let stripped_obj:any = {
-        type: obj.type,
-        base_x: obj.base_x,
-        base_y: obj.base_y,
-        flags: obj.flags,
-    };
-    if(include_flags & STRIP_INCLUDE_ID){
-        stripped_obj.id = obj.id;
+//
+// Returns a brand new object that is the stripped version of the given object.
+// Things like arrays are created fresh to avoid sharing state.
+//
+function strip_obj(obj_:CanvasObject): StrippedObj{
+    switch(obj_.type){
+        case CANVASTYPE.FREEHAND_LINE:{
+            const obj = obj_ as FreehandLine;
+            const stripped_obj: StrippedFreehandLine = {
+                type: obj.type, id: obj.id, flags: obj.flags,
+                base_x: obj.base_x, base_y: obj.base_y,
+                thickness: obj.thickness,
+                points: Array.from(obj.points),
+                color: obj.color,
+            };
+            return stripped_obj;
+        }break;
+        case CANVASTYPE.GRID_LINE:{
+            const obj = obj_ as GridLine;
+            const stripped_obj: StrippedGridLine = {
+                type: obj.type, id: obj.id, flags: obj.flags,
+                base_x: obj.base_x, base_y: obj.base_y,
+                points: Array.from(obj.points),
+                color: obj.color,
+            };
+            return stripped_obj;
+        }break;
+        case CANVASTYPE.ELLIPSE:{
+            const obj = obj_ as Ellipse;
+            const stripped_obj: StrippedEllipse = {
+                type: obj.type, id: obj.id, flags: obj.flags,
+                base_x: obj.base_x, base_y: obj.base_y,
+                width: obj.width, height:obj.height,
+                color: obj.color, color2: obj.color2,
+                variant: obj.variant,
+            };
+            return stripped_obj;
+        }break;
+        case CANVASTYPE.FILLED_RECT:{
+            const obj = obj_ as FilledRectangle;
+            const stripped_obj: StrippedFilledRectangle = {
+                type: obj.type, id: obj.id, flags: obj.flags,
+                base_x: obj.base_x, base_y: obj.base_y,
+                width: obj.width, height:obj.height,
+                color: obj.color, color2: obj.color2,
+            };
+            return stripped_obj;
+        }break;
+        case CANVASTYPE.RECT:{
+            const obj = obj_ as Rectangle;
+            const stripped_obj: StrippedRectangle = {
+                type: obj.type, id: obj.id, flags: obj.flags,
+                base_x: obj.base_x, base_y: obj.base_y,
+                width: obj.width, height:obj.height,
+                color: obj.color,
+            };
+            return stripped_obj;
+        }break;
+        case CANVASTYPE.GRID_RECT:{
+            const obj = obj_ as GridRectangle;
+            const stripped_obj: StrippedRectangle = {
+                type: obj.type, id: obj.id, flags: obj.flags,
+                base_x: obj.base_x, base_y: obj.base_y,
+                width: obj.width, height:obj.height,
+                color: obj.color,
+            };
+            return stripped_obj;
+        }break;
+        case CANVASTYPE.IMAGE:{
+            const obj = obj_ as ImageObj;
+            const stripped_obj: StrippedImageObj = {
+                type: obj.type, id: obj.id, flags: obj.flags,
+                base_x: obj.base_x, base_y: obj.base_y,
+                width: obj.width, height:obj.height,
+                url: obj.url,
+            };
+            return stripped_obj;
+        }break;
+        case CANVASTYPE.TEXT:{
+            const obj = obj_ as TextObj;
+            const stripped_obj: StrippedTextObj = {
+                type: obj.type, id: obj.id, flags: obj.flags,
+                base_x: obj.base_x, base_y: obj.base_y,
+                text: obj.text, size: obj.size,
+            };
+            return stripped_obj;
+        }break;
+        case CANVASTYPE.EZ_TOKEN:{
+            const obj = obj_ as EzToken;
+            const stripped_obj: StrippedEzToken = {
+                type: obj.type, id: obj.id, flags: obj.flags,
+                base_x: obj.base_x, base_y: obj.base_y,
+                width: obj.width, height:obj.height,
+                color: obj.color, text: obj.text,
+            };
+            return stripped_obj;
+        }break;
+        case CANVASTYPE.IMG_TOKEN:{
+            const obj = obj_ as ImgToken;
+            const stripped_obj: StrippedImgToken = {
+                type: obj.type, id: obj.id, flags: obj.flags,
+                base_x: obj.base_x, base_y: obj.base_y,
+                width: obj.width, height:obj.height,
+                url: obj.url,
+            };
+            return stripped_obj;
+        }break;
+        case CANVASTYPE.DOOR:{
+            const obj = obj_ as DoorObj;
+            const stripped_obj: StrippedDoorObj = {
+                type: obj.type, id: obj.id, flags: obj.flags,
+                base_x: obj.base_x, base_y: obj.base_y,
+                width: obj.width,
+                color: obj.color,
+                doortype: obj.doortype,
+                orientation: obj.orientation,
+            };
+            return stripped_obj;
+        }break;
+        case CANVASTYPE.STAIRS:{
+            const obj = obj_ as Stairs;
+            const stripped_obj: StrippedStairs = {
+                type: obj.type, id: obj.id, flags: obj.flags,
+                base_x: obj.base_x, base_y: obj.base_y,
+                width: obj.width, height:obj.height,
+                rotation: obj.rotation,
+            };
+            return stripped_obj;
+        }break;
+        case CANVASTYPE.MEASURE:{
+            const obj = obj_ as MeasureObj;
+            const stripped_obj: StrippedMeasureObj = {
+                type: obj.type, id: obj.id, flags: obj.flags,
+                base_x: obj.base_x, base_y: obj.base_y,
+                x1: obj.x1, y1: obj.y1,
+                color: obj.color,
+            };
+            return stripped_obj;
+        }break;
+        case CANVASTYPE.FIXTURE:{
+            const obj = obj_ as FixtureObj;
+            const stripped_obj: StrippedFixtureObj = {
+                type: obj.type, id: obj.id, flags: obj.flags,
+                base_x: obj.base_x, base_y: obj.base_y,
+                width: obj.width, height: obj.height,
+                ftype: obj.ftype,
+            };
+            return stripped_obj;
+        }break;
     }
-    switch(obj.type){
-        case CANVASTYPE.FREEHAND_LINE:
-            stripped_obj.thickness = obj.thickness;
-            stripped_obj.points = obj.points;
-            stripped_obj.color = obj.color;
-            break;
-        case CANVASTYPE.GRID_LINE:
-            stripped_obj.points = obj.points;
-            stripped_obj.color = obj.color;
+}
+//
+// Returns a brand new object that is the unstripped version of the given object.
+// Things like arrays are created fresh to avoid sharing state.
+//
+function unstrip_obj(obj_: StrippedObj):CanvasObject{
+    switch(obj_.type){
+        case CANVASTYPE.FREEHAND_LINE:{
+            const obj:FreehandLine = {
+                ...(obj_ as StrippedFreehandLine),
+                bbox:{x0:0, x1:0, y0:0, y1:0}
+            };
+            obj.points = Array.from(obj.points),
+            freehand_recalculate_bbox(obj);
+            freehand_recalculate_path(obj);
+            return obj;
+            }break;
+        case CANVASTYPE.GRID_LINE:{
+            const obj:GridLine = {
+                ...(obj_ as StrippedGridLine),
+                bbox:{x0:0, x1:0, y0:0, y1:0},
+            };
+            obj.points = Array.from(obj.points),
+            gridline_recalculate_bbox(obj);
+            gridline_recalculate_path(obj);
+            return obj;
+        }break;
+        case CANVASTYPE.FILLED_RECT:{
+            const obj:FilledRectangle = {...(obj_ as StrippedFilledRectangle)};
+            return obj;
+        }break;
+        case CANVASTYPE.ELLIPSE:{
+            const obj:Ellipse = {...(obj_ as StrippedEllipse)};
+            return obj;
+        }break;
+        case CANVASTYPE.RECT:{
+            const obj:Rectangle = {...(obj_ as StrippedRectangle)};
+            return obj;
+        }break;
+        case CANVASTYPE.GRID_RECT:{
+            const obj: GridRectangle = {...(obj_ as StrippedGridRectangle)};
+            return obj;
+        }break;
+        case CANVASTYPE.IMAGE:{
+            const obj: ImageObj = {...(obj_ as StrippedImageObj)};
+            const img = new Image(obj.width, obj.height);
+            img.addEventListener('load', function(){
+                obj.img = img;
+                request_render();
+            }, {once:true});
+            img.src = obj.url;
+            return obj;
+        }break;
+        case CANVASTYPE.TEXT:{
+            const obj: TextObj = {
+                ...(obj_ as StrippedTextObj),
+                bbox:{x0:0, x1:0, y0:0, y1:0},
+                lines: (obj_ as StrippedTextObj).text.split('\n'),
+                bboxes: [],
+            };
+            return obj;
+        }break;
+        case CANVASTYPE.EZ_TOKEN:{
+            const obj: EzToken = {
+                ...(obj_ as StrippedEzToken),
+            };
+            return obj;
+        }break;
+        case CANVASTYPE.IMG_TOKEN:{
+            const obj: ImgToken = {
+                ...(obj_ as StrippedImgToken),
+            };
+            const img = new Image(obj.width, obj.height);
+            img.addEventListener('load', function(){
+                obj.img = img;
+                request_render();
+            }, {once:true});
+            img.src = obj.url;
+            return obj;
+        }break;
+        case CANVASTYPE.DOOR:{
+            const obj:DoorObj = {
+                ...(obj_ as StrippedDoorObj),
+            };
+            return obj;
+        }break;
+        case CANVASTYPE.STAIRS:{
+            const obj: Stairs = {
+                ...(obj_ as StrippedStairs),
+            };
+            return obj;
+        }break;
+        case CANVASTYPE.MEASURE:{
+            const obj: MeasureObj = {
+                ...(obj_ as StrippedMeasureObj),
+            };
+            return obj;
+            // all fields are good
+        }break;
+        case CANVASTYPE.FIXTURE:{
+            const obj: FixtureObj = {
+                ...(obj_ as StrippedFixtureObj),
+            };
+            return obj;
+        }break;
+    }
+}
+
+//
+// Updates the fields of the first given to be the same as the second.
+// Arrays and such are made fresh to avoid sharing state.
+//
+function set_obj_from_stripped(obj_: CanvasObject, state:StrippedObj){
+    switch(obj_.type){
+        case CANVASTYPE.FREEHAND_LINE:{
+            const obj = obj_ as FreehandLine;
+            Object.assign(obj, state);
+            obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+            obj.points = Array.from((state as StrippedFreehandLine).points);
+            freehand_recalculate_bbox(obj);
+            freehand_recalculate_path(obj);
+        }break;
+        case CANVASTYPE.GRID_LINE:{
+            const obj = obj_ as GridLine;
+            Object.assign(obj, state);
+            obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+            obj.points = Array.from((state as StrippedGridLine).points);
+            gridline_recalculate_bbox(obj);
+            gridline_recalculate_path(obj);
+        }break;
+        case CANVASTYPE.FILLED_RECT:
             break;
         case CANVASTYPE.ELLIPSE:
-            stripped_obj.width = obj.width;
-            stripped_obj.height = obj.height;
-            stripped_obj.color = obj.color;
-            stripped_obj.color2 = obj.color2;
-            stripped_obj.variant = obj.variant;
-            break;
-        case CANVASTYPE.FILLED_RECT:
-            stripped_obj.width = obj.width;
-            stripped_obj.height = obj.height;
-            stripped_obj.color = obj.color;
-            stripped_obj.color2 = obj.color2;
+            Object.assign(obj_, state);
             break;
         case CANVASTYPE.RECT:
-            stripped_obj.width = obj.width;
-            stripped_obj.height = obj.height;
-            stripped_obj.color = obj.color;
+            Object.assign(obj_, state);
             break;
         case CANVASTYPE.GRID_RECT:
-            stripped_obj.width = obj.width;
-            stripped_obj.height = obj.height;
-            stripped_obj.color = obj.color;
+            Object.assign(obj_, state);
             break;
-        case CANVASTYPE.IMAGE:
-            stripped_obj.width = obj.width;
-            stripped_obj.height = obj.height;
-            stripped_obj.url = obj.url;
-            break;
-        case CANVASTYPE.TEXT:
-            stripped_obj.text = obj.text;
-            stripped_obj.size = obj.size;
-            break;
+        case CANVASTYPE.IMAGE:{
+            const obj = obj_ as ImageObj;
+            const state_ = state as StrippedImageObj;
+            const needs_new_image = (obj.width !== state_.width) || (obj.height !== state_.height) || (obj.url !== state_.url);
+            Object.assign(obj, state);
+            if(needs_new_image){
+                const img = new Image(obj.width, obj.height);
+                img.addEventListener('load', function(){
+                    obj.img = img;
+                    request_render();
+                }, {once:true});
+                img.src = obj.url;
+            }
+        }break;
+        case CANVASTYPE.TEXT:{
+            const obj = obj_ as TextObj;
+            Object.assign(obj, state);
+            obj.bbox = {x0:0, x1:0, y0:0, y1:0};
+            obj.bboxes = [];
+            obj.lines = obj.text.split('\n');
+        }break;
         case CANVASTYPE.EZ_TOKEN:
-            stripped_obj.color = obj.color;
-            stripped_obj.text = obj.text;
-            stripped_obj.width = obj.width;
-            stripped_obj.height = obj.height;
+            Object.assign(obj_, state);
             break;
         case CANVASTYPE.IMG_TOKEN:
-            stripped_obj.url = obj.url;
-            stripped_obj.width = obj.width;
-            stripped_obj.height = obj.height;
+            Object.assign(obj_, state);
             break;
         case CANVASTYPE.DOOR:
-            stripped_obj.color = obj.color;
-            stripped_obj.width = obj.width;
-            stripped_obj.doortype = obj.doortype;
-            stripped_obj.orientation = obj.orientation;
+            Object.assign(obj_, state);
             break;
         case CANVASTYPE.STAIRS:
-            stripped_obj.width = obj.width;
-            stripped_obj.height = obj.height;
-            stripped_obj.rotation = obj.rotation;
+            Object.assign(obj_, state);
             break;
         case CANVASTYPE.MEASURE:
-            stripped_obj.color = obj.color;
-            stripped_obj.x1 = obj.x1;
-            stripped_obj.y1 = obj.y1;
+            Object.assign(obj_, state);
             break;
         case CANVASTYPE.FIXTURE:
-            stripped_obj.width = obj.width;
-            stripped_obj.height = obj.height;
-            stripped_obj.ftype = obj.ftype;
+            Object.assign(obj_, state);
             break;
     }
-    return stripped_obj;
+
 }
 function publish_delete_by_ids(map_id:number, ids:Array<number>):void{
     socket.emit('canvas-delete', {map_id:map_id, ids:ids})
@@ -2539,10 +2406,10 @@ function publish_obj_by_id(map:DungeonMap, id:number):void{
         console.log('invalid id given for publishing:', id);
         return;
     }
-    const stripped_obj = strip_obj(obj, STRIP_INCLUDE_ID);
+    const stripped_obj = strip_obj(obj);
     socket.emit('canvas-create-objects', {map_id:map.map_id, object:stripped_obj});
 }
-function get_stripped_state_by_id(map:DungeonMap, ids:Array<number>):Array<StrippedObjWithId>{
+function get_stripped_state_by_id(map:DungeonMap, ids:Array<number>):Array<StrippedObj>{
     const length = ids.length;
     const updates = []
     for(let i = 0; i < length; ++i){
@@ -2552,12 +2419,12 @@ function get_stripped_state_by_id(map:DungeonMap, ids:Array<number>):Array<Strip
             console.log('Invalid id given for publishing update', id);
             continue;
         }
-        const stripped = strip_obj(obj, STRIP_INCLUDE_ID) as StrippedObjWithId;
+        const stripped = strip_obj(obj);
         updates.push(stripped);
     }
     return updates;
 }
-function publish_obj_updates(map_id:number, updates:Array<StrippedObjWithId>){
+function publish_obj_updates(map_id:number, updates:Array<StrippedObj>){
     socket.emit('canvas-update', {map_id:map_id, obj_states:updates});
 }
 
@@ -2654,7 +2521,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 obj.bbox = {x0:0, y0:0, x1:0, y1:0};
                 obj.bboxes = [];
                 obj.lines = text.split('\n');
-                const after = strip_obj(obj, STRIP_INCLUDE_ID) as StrippedObjWithId;
+                const after = strip_obj(obj);
                 publish_obj_updates(view.map.map_id, [after]);
                 request_render();
             });
@@ -2696,7 +2563,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 obj.height = height;
                 const color = (document.getElementById('hover-color') as HTMLInputElement).value;
                 obj.color = color;
-                const after = strip_obj(obj, STRIP_INCLUDE_ID) as StrippedObjWithId;
+                const after = strip_obj(obj);
                 publish_obj_updates(view.map.map_id, [after]);
                 request_render();
             });
@@ -5023,18 +4890,18 @@ document.addEventListener('DOMContentLoaded', function(){
                         </table>
                     `;
                     make_ok_dialog(html, function(hoverpop){
-                        const text_input = document.getElementById('hover-text') as any;
+                        const text_input = document.getElementById('hover-text') as HTMLInputElement;
                         const text = text_input.value;
                         if(!text || !text.trim())
                             return;
-                        let width = +(document.getElementById('hover-width') as any).value;
-                        let height = +(document.getElementById('hover-height') as any).value;
+                        let width = +(document.getElementById('hover-width') as HTMLInputElement).value;
+                        let height = +(document.getElementById('hover-height') as HTMLInputElement).value;
                         if(!width)
                             width = 1;
                         if(!height)
                             height = 1;
                         let id = get_new_id();
-                        ez_token_color = (document.getElementById('hover-color') as any).value;
+                        ez_token_color = (document.getElementById('hover-color') as HTMLInputElement).value;
                         add_ez_token(view.map, id, x0, y0, text, ez_token_color, width, height);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
@@ -5074,7 +4941,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
                     }
                     make_ok_dialog2(html, add_img_buttons, function(hoverpop:HTMLElement){
-                        const text = (document.getElementById('hover-url') as any).value;
+                        const text = (document.getElementById('hover-url') as HTMLInputElement).value;
                         if(!text || !text.trim()){
                             return;
                         }
@@ -5208,7 +5075,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         return;
                     measure.x1 = x;
                     measure.y1 = y;
-                    const stripped = strip_obj(measure, STRIP_INCLUDE_ID) as StrippedObjWithId;
+                    const stripped = strip_obj(measure);
                     publish_obj_updates(view.map.map_id, [stripped]);
                     request_render();
                 }
