@@ -2508,13 +2508,14 @@ function launch_edit_dialog(view:DungeonMapView):void{
                     <td><input type="number" id="text-size" name="text-size" min="8" max="72" value="${obj.size}" class="numeric-input">
                 </tr>
                 <tr>
-                    <span style="font-weight:bold">Alignment:</span>
-                    <input type="radio" id="text-align-left" name="text-align" value="auto"  ${obj.alignment == TEXTALIGNMENT.LEFT?'checked':''}>
+                    <td><span>Alignment:</span>
+                    <td><input type="radio" id="text-align-left" name="text-align" value="auto"  ${obj.alignment == TEXTALIGNMENT.LEFT?'checked':''}>
                     <label for="text-align-left">Left</label>
                     <input type="radio" id="text-align-center" name="text-align" value="auto" ${obj.alignment == TEXTALIGNMENT.CENTER?'checked':''}>
                     <label for="text-align-center">Center</label>
                     <input type="radio" id="text-align-right" name="text-align" value="auto" ${obj.alignment == TEXTALIGNMENT.RIGHT?'checked':''}>
                     <label for="text-align-right">Right</label>
+                    </td>
                 </tr>
                 <tr>
                     <td><label for="hover-text">Text:</label>
@@ -4847,13 +4848,14 @@ document.addEventListener('DOMContentLoaded', function(){
                         <td><input type="number" id="text-size" name="text-size" min="8" max="72" value="18" class="numeric-input">
                     </tr>
                     <tr>
-                        <span style="font-weight:bold">Alignment:</span>
-                        <input type="radio" id="text-align-left" name="text-align" value="auto" checked>
+                        <td><span>Alignment:</span>
+                        <td><input type="radio" id="text-align-left" name="text-align" value="auto" checked>
                         <label for="text-align-left">Left</label>
                         <input type="radio" id="text-align-center" name="text-align" value="auto">
                         <label for="text-align-center">Center</label>
                         <input type="radio" id="text-align-right" name="text-align" value="auto">
                         <label for="text-align-right">Right</label>
+                        </td>
                     </tr>
                     <tr>
                         <td><label for="hover-text">Text:</label>
@@ -5186,11 +5188,11 @@ document.addEventListener('DOMContentLoaded', function(){
             }
         }
         enum CONTEXTMENUWHENFLAGS {
-            ALWAYS = 1,
-            MULTIPLE_SELECTED = 2, // > 1
-            NO_SELECTION = 4,      // == 0
-            ONE_SELECTED = 8,      // == 1
-            ANY_SELECTED = 16,     // >= 1
+            ALWAYS            = 1 << 0,
+            MULTIPLE_SELECTED = 1 << 1, // > 1
+            NO_SELECTION      = 1 << 2, // == 0
+            ONE_SELECTED      = 1 << 3, // == 1
+            ANY_SELECTED      = 1 << 4, // >= 1
         };
         let whenflags = CONTEXTMENUWHENFLAGS.ALWAYS;
         if(view.selected.size == 0){
@@ -5257,24 +5259,6 @@ document.addEventListener('DOMContentLoaded', function(){
                 whenflags: CONTEXTMENUWHENFLAGS.ONE_SELECTED,
             },
             {
-                label: 'Undo',
-                func: function(){
-                    do_one_undo(view.map);
-                    remove_menu();
-                },
-                disabled: undo_is_impossible(view.map),
-                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
-            },
-            {
-                label: 'Redo',
-                func: function(){
-                    do_one_redo(view.map);
-                    remove_menu();
-                },
-                disabled: redo_is_impossible(view.map),
-                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
-            },
-            {
                 label: 'Cut',
                 func: function(){
                     clear_copy_buffer();
@@ -5301,6 +5285,24 @@ document.addEventListener('DOMContentLoaded', function(){
                     remove_menu();
                 },
                 disabled: copied_objs.length === 0,
+                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
+            },
+            {
+                label: 'Undo',
+                func: function(){
+                    do_one_undo(view.map);
+                    remove_menu();
+                },
+                disabled: undo_is_impossible(view.map),
+                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
+            },
+            {
+                label: 'Redo',
+                func: function(){
+                    do_one_redo(view.map);
+                    remove_menu();
+                },
+                disabled: redo_is_impossible(view.map),
                 whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
             },
             {
@@ -5424,7 +5426,7 @@ document.addEventListener('DOMContentLoaded', function(){
             html += `
             <tr>
                 <td><label for="hover-delete">Delete Map</label>
-                <input name="hover-delete" type="checkbox" id="hover-delete">
+                <td><input name="hover-delete" type="checkbox" id="hover-delete">
             </tr>
             `
         }
