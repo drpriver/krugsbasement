@@ -99,12 +99,18 @@ David20::title @hide
     white-space: nowrap;
     border-right: 1px dotted #aaa;
   }
+  #help-menu tbody tr td:nth-child(2){
+    white-space: nowrap;
+    border-right: 1px dotted #aaa;
+    font-family: mono;
+    text-align: center;
+  }
   #help-menu td{
     padding: 8px;
   }
   #help-menu {
     margin: 1em;
-    max-width: 36em;
+    max-width: 60em;
     border-collapse: collapse;
   }
   #help-menu tr {

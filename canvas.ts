@@ -3961,11 +3961,21 @@ const RECTTYPE_TO_NAME = [
     'Filled',
 ];
 let current_rect_type = RECTTYPE.HOLLOW;
-let current_tool = TOOLTYPE.PAN;
+let current_tool:TOOLTYPE = (function(){
+    const t = localStorage.getItem('current_tool');
+    if(t){
+        const result =  NAMES_TO_TOOL.get(t);
+        if(result !== undefined){
+            return result;
+        }
+    }
+    return show_pan?TOOLTYPE.PAN:TOOLTYPE.SELECT;
+    }());
 let color_picker:any = null; // idk what this should be
 let color_picker2:any = null; // idk what this should be
 let tools:any = null; // idk what this should be
 function change_tool(tool:TOOLTYPE):void{
+    localStorage.setItem('current_tool', TOOL_TO_NAMES[tool]);
     let prev = current_tool;
     if(!tools)
         return;
@@ -3996,7 +4006,7 @@ function change_tool(tool:TOOLTYPE):void{
             <h2>Help</h2>
             <div style="height:70vh;overflow-y:auto;margin:auto;">
             <h3 style="text-align:center;">Tips</h3>
-            <div style="margin:auto;max-width:36em;">
+            <div style="margin:auto;max-width:60em;">
             <p>The Grid/Half/Free buttons affect what the tools will snap to.
                You can use <b>q</b> to switch to Grid, <b>w</b> to switch to Half
                and <b>e</b> to switch to Free.
@@ -4010,54 +4020,81 @@ function change_tool(tool:TOOLTYPE):void{
             <h3 style="text-align:center;">Tools</h3>
             </div>
             <table id="help-menu">
+                <thead>
+                    <tr><th>Tool</th><th>Hotkey</th><th>Description</th></tr>
+                </thead>
+                <tbody>
                 <tr>
                     <td>Pan
+                    <td>n
                     <td>Allows you to click to drag where you are on the map.
                 </tr>
                 <tr>
                     <td>Select
+                    <td>s
                     <td>Select things. Select modes change what you can select.
                         A single click selects one object; dragging will select anything that
                         overlaps. Clicking on a selected object and dragging will move.
                 </tr>
                 <tr>
                     <td>Wall
+                    <td>a
                     <td>Allows you to draw walls. Click and drag between corners of the grid.
                 </tr>
                 <tr>
                     <td>Door
+                    <td>d
                     <td>Allows you to draw doors. Click and drag between corners of the grid.
                         Do this over walls.
                 </tr>
                 <tr>
-                    <td>Stairs
-                    <td>Allows you to draw stairs.
+                    <td>Fixture
+                    <td>f
+                    <td>Allows you to draw various fixtures, such as stairs.
                 </tr>
                 <tr>
                     <td>Line
+                    <td>l
                     <td>A freehand line.
                 </tr>
                 <tr>
                     <td>Rect
+                    <td>r
                     <td>A rectangle. Border is primary color.
                         A solid rectangle is all the border color,
                         a filled rectangle uses the secondary color for the fill.
                 </tr>
                 <tr>
+                    <td>Ellipse
+                    <td>p
+                    <td>An ellipse. Border is primary color.
+                        A solid ellipse is all the border color,
+                        a filled ellipse uses the secondary color for the fill.
+                </tr>
+                <tr>
                     <td>Text
+                    <td>t
                     <td>Allows you to type in some text.
                         Snaps to the center of the square at first, but you can move it to wherever.
                 </tr>
                 <tr>
                     <td>Token
+                    <td>o
                     <td>Ez Token allows you to make a simple token with a label.
                         Img Token allows you to make a token with an image from a url.
                 </tr>
                 <tr>
                     <td>Image
+                    <td>i
                     <td>Allows you to place an image from a url.
                 </tr>
-
+                <tr>
+                    <td>Measure
+                    <td>m
+                    <td>A tool for measuring distances. Snaps to the center of the square.
+                        In half-grid, snaps to center of the half grid.
+                        With free, can be anywhere.
+                </tbody>
             </table>
             </div>
                    `, function(unused){});
@@ -4229,7 +4266,7 @@ document.addEventListener('DOMContentLoaded', function():void{
             break;
         }
     }
-    change_tool(TOOLTYPE.PAN);
+    change_tool(current_tool);
 });
 
 // Extracts the session id from an object's id so that we can ignore objects we
@@ -4328,11 +4365,38 @@ document.addEventListener('DOMContentLoaded', function(){
             case 's':
                 change_tool(TOOLTYPE.SELECT);
                 break;
-            case 'd':
-                change_tool(TOOLTYPE.WALL);
+            case 'p':
+                change_tool(TOOLTYPE.ELLIPSE);
+                break;
+            case 'n':
+                if(show_pan) change_tool(TOOLTYPE.PAN);
+                break;
+            case 'l':
+                change_tool(TOOLTYPE.LINE);
+                break;
+            case 'r':
+                change_tool(TOOLTYPE.RECT);
+                break;
+            case 'i':
+                change_tool(TOOLTYPE.IMAGE);
                 break;
             case 'f':
-                change_tool(TOOLTYPE.RECT);
+                change_tool(TOOLTYPE.FIXTURE);
+                break;
+            case 'd':
+                change_tool(TOOLTYPE.DOOR);
+                break;
+            case 'm':
+                change_tool(TOOLTYPE.MEASURE);
+                break;
+            case 'a':
+                change_tool(TOOLTYPE.WALL);
+                break;
+            case 't':
+                change_tool(TOOLTYPE.TEXT);
+                break;
+            case 'o':
+                change_tool(TOOLTYPE.TOKEN);
                 break;
             case 'y':
                 if(shortcut){
