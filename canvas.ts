@@ -236,11 +236,11 @@ enum ELLIPSETYPE {
 }
 const ELLIPSETYPE_MAX = ELLIPSETYPE.FILLED+1;
 const ELLIPSETYPE_TO_NAME = [
-    // HOLLOW
+    // ELLIPSETYPE.HOLLOW
     'Hollow',
-    // SOLID
+    // ELLIPSETYPE.SOLID
     'Solid',
-    // FILLED
+    // ELLIPSETYPE.FILLED
     'Filled',
 ];
 let current_ellipse = ELLIPSETYPE.HOLLOW;
@@ -418,13 +418,13 @@ enum FIXTURETYPE {
 }
 const FIXTURETYPE_MAX = FIXTURETYPE.RUBBLE + 1;
 const FIXTURETYPE_TO_NAME = [
-    // STATUE
+    // FIXTURETYPE.STATUE
     'Statue',
-    // STAIRS
+    // FIXTURETYPE.STAIRS
     'Stairs',
-    // PIT
+    // FIXTURETYPE.PIT
     'Pit',
-    // RUBBLE
+    // FIXTURETYPE.RUBBLE
     'Rubble',
 ];
 
@@ -462,21 +462,21 @@ enum DOORTYPE {
 }
 const DOORTYPE_MAX = DOORTYPE.HALLWAY + 1;
 const DOOR_TO_NAMES = [
-    // DOOR
+    // DOORTYPE.DOOR
     'Door',
-    // DOUBLE
+    // DOORTYPE.DOUBLE
     'Double',
-    // PORTCULLIS
+    // DOORTYPE.PORTCULLIS
     'Portcullis',
-    // SECRET
+    // DOORTYPE.SECRET
     'Secret',
-    // BRICKED_WALL
+    // DOORTYPE.BRICKED_WALL
     'Bricks',
-    // PORTAL
+    // DOORTYPE.PORTAL
     'Portal',
-    // CURTAINS
+    // DOORTYPE.CURTAINS
     'Curtains',
-    // HALLWAY
+    // DOORTYPE.HALLWAY
     'Hallway',
 ];
 let current_door = DOORTYPE.DOOR;
@@ -3939,9 +3939,9 @@ enum TOKENTYPE {
     IMG = 1,
 }
 const TOKEN_TO_NAME = [
-    // EZ
+    // TOKENTYPE.EZ
     'EZ',
-    // IMG
+    // TOKENTYPE.IMG
     'Img',
 ];
 const TOKENTYPE_MAX = TOKENTYPE.IMG + 1;
@@ -3953,11 +3953,11 @@ enum RECTTYPE {
 }
 const RECTTYPE_MAX = RECTTYPE.FILLED+1;
 const RECTTYPE_TO_NAME = [
-    // HOLLOW
+    // RECTTYPE.HOLLOW
     'Hollow',
-    // SOLID
+    // RECTTYPE.SOLID
     'Solid',
-    // FILLED
+    // RECTTYPE.FILLED
     'Filled',
 ];
 let current_rect_type = RECTTYPE.HOLLOW;
