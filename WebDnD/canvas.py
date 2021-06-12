@@ -194,7 +194,7 @@ validate(CT.FILLED_RECT, color=str, color2=str, width=NUMBER, height=NUMBER, def
 validate(CT.ELLIPSE, color=str, color2=str, width=NUMBER, height=NUMBER, variant=int, defaults=dict(color = '#000000', color2='#000000', width=64, height=64, variant=0))
 validate(CT.GRID_RECT, color=str, width=NUMBER, height=NUMBER, defaults=dict(width=64, height=64))
 validate(CT.IMAGE, width=NUMBER, height=NUMBER, url=str, defaults=dict(width=64, height=64))
-validate(CT.TEXT, text=str, size=NUMBER, alignment=int, defaults=dict(size=18, alignment=0))
+validate(CT.TEXT, text=str, size=NUMBER, alignment=int, defaults=dict(size=18, alignment=1))
 validate(CT.EZ_TOKEN, text=str, color=str, width=NUMBER, height=NUMBER, defaults=dict(width=1, height=1, color='#ff00ff'))
 validate(CT.IMG_TOKEN, url=str, width=NUMBER, height=NUMBER, defaults=dict(url='/tokens/gb.png', width=1, height=1))
 validate(CT.DOOR, doortype=int, color=str, width=NUMBER, orientation=int, defaults=dict(width=64, color='#000000'))

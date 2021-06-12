@@ -4004,7 +4004,7 @@ function change_tool(tool:TOOLTYPE):void{
             change_tool(prev);
         make_ok_dialog(`
             <h2>Help</h2>
-            <div style="height:70vh;overflow-y:auto;margin:auto;">
+            <div style="height:80vh;overflow-y:auto;margin:auto;">
             <h3 style="text-align:center;">Tips</h3>
             <div style="margin:auto;max-width:60em;padding:1em;">
             <p>The Grid/Half/Free buttons affect what the tools will snap to.
