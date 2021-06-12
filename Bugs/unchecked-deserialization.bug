@@ -1,3 +1,0 @@
-Some of the functions that turn js blobs into canvas objects are typed as
-'any', which means that if I update an object's definition it is very easy to
-introduce a bug.  I should add a more strictly typed version of this.

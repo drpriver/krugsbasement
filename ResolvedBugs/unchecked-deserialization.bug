@@ -1,0 +1,12 @@
+Some of the functions that turn js blobs into canvas objects are typed as
+'any', which means that if I update an object's definition it is very easy to
+introduce a bug.  I should add a more strictly typed version of this.
+
+
+Update:
+------
+Gone are the anys and I also refactor all the unstripping code to use a single
+function.  There's slightly more copies now, but I think there was some
+undetected bugs around sharing state that I wasn't detecting. Although maybe
+not, it was about sharing points arrays, but that only matters if it can be edited?
+idk. I can easily add a flag to use the less-safe behavior or whatever.
