@@ -5185,32 +5185,58 @@ document.addEventListener('DOMContentLoaded', function(){
                 e.preventDefault();
             }
         }
+        enum CONTEXTMENUWHENFLAGS {
+            ALWAYS = 1,
+            MULTIPLE_SELECTED = 2, // > 1
+            NO_SELECTION = 4,      // == 0
+            ONE_SELECTED = 8,      // == 1
+            ANY_SELECTED = 16,     // >= 1
+        };
+        let whenflags = CONTEXTMENUWHENFLAGS.ALWAYS;
+        if(view.selected.size == 0){
+            whenflags |= CONTEXTMENUWHENFLAGS.NO_SELECTION;
+        }
+        else {
+            whenflags |= CONTEXTMENUWHENFLAGS.ANY_SELECTED;
+        }
+        if(view.selected.size > 1){
+            whenflags |= CONTEXTMENUWHENFLAGS.MULTIPLE_SELECTED;
+        }
+        if(view.selected.size == 1){
+            whenflags |= CONTEXTMENUWHENFLAGS.ONE_SELECTED;
+        }
+
         canvas.addEventListener('mousedown', remove_menu);
         type itemtype = {
             label:string;
             func: () => void;
             disabled: boolean;
+            whenflags: CONTEXTMENUWHENFLAGS;
         };
         const items: Array<itemtype> = [
             {
                 label: 'Ping',
                 func: function(){ping_at(view.map, click_x, click_y);remove_menu();},
                 disabled: false,
+                whenflags: CONTEXTMENUWHENFLAGS.NO_SELECTION,
             },
             {
                 label: 'Zoom In',
                 func: function(){zoom_in(view);remove_menu();},
                 disabled: false,
+                whenflags: CONTEXTMENUWHENFLAGS.NO_SELECTION,
             },
             {
                 label: 'Zoom Out',
                 func: function(){zoom_out(view);remove_menu();},
                 disabled: false,
+                whenflags: CONTEXTMENUWHENFLAGS.NO_SELECTION,
             },
             {
                 label: 'Reset Zoom',
                 func: function(){reset_zoom(view);remove_menu();},
                 disabled: false,
+                whenflags: CONTEXTMENUWHENFLAGS.NO_SELECTION,
             },
             {
                 label: 'Gather Party',
@@ -5219,6 +5245,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     remove_menu();
                 },
                 disabled: false,
+                whenflags: CONTEXTMENUWHENFLAGS.NO_SELECTION,
             },
             {
                 label: 'Edit',
@@ -5227,6 +5254,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     remove_menu();
                 },
                 disabled: edit_is_impossible(view),
+                whenflags: CONTEXTMENUWHENFLAGS.ONE_SELECTED,
             },
             {
                 label: 'Undo',
@@ -5235,6 +5263,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     remove_menu();
                 },
                 disabled: undo_is_impossible(view.map),
+                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
             },
             {
                 label: 'Redo',
@@ -5243,6 +5272,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     remove_menu();
                 },
                 disabled: redo_is_impossible(view.map),
+                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
             },
             {
                 label: 'Cut',
@@ -5252,6 +5282,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     remove_menu();
                 },
                 disabled: view.selected.size === 0,
+                whenflags: CONTEXTMENUWHENFLAGS.ANY_SELECTED,
             },
             {
                 label: 'Copy',
@@ -5261,6 +5292,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     remove_menu();
                 },
                 disabled: view.selected.size === 0,
+                whenflags: CONTEXTMENUWHENFLAGS.ANY_SELECTED,
             },
             {
                 label: 'Paste',
@@ -5269,15 +5301,19 @@ document.addEventListener('DOMContentLoaded', function(){
                     remove_menu();
                 },
                 disabled: copied_objs.length === 0,
+                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
             },
             {
                 label: 'Cancel',
                 func: function(){remove_menu();},
                 disabled: false,
+                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
             },
         ];
         for(let i = 0; i < items.length; i++){
             const item = items[i];
+            if(!(item.whenflags & whenflags))
+                continue;
             const menuitem = document.createElement('section');
             menuitem.classList.add('menuitem');
             if(item.disabled){
