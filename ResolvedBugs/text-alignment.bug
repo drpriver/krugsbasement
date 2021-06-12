@@ -1,3 +1,7 @@
 Currently you can't specify the alignment of the text.
 
 You might want to specify center-aligned or whatever.
+
+Update:
+-------
+This has been implemented. You can specify the alignment of the text now.

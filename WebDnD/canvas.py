@@ -111,7 +111,8 @@ class Sentinel: pass
 POINTS = Sentinel()
 
 class Validator:
-    def __init__(self, defaults:Dict[str, Any]={}, **types:Union[type, Tuple[type, ...], Sentinel]) -> None:
+    def __init__(self, type:CANVASTYPE, defaults:Dict[str, Any]={}, **types:Union[type, Tuple[type, ...], Sentinel]) -> None:
+        self.ct = type
         types['type']   = int
         types['id']     = int
         types['base_x'] = (float, int)
@@ -123,10 +124,10 @@ class Validator:
         if set(obj) != set(self.types):
             extra = set(obj) - set(self.types)
             if extra:
-                raise TypeError(f'extra keys {extra}')
+                raise TypeError(f'extra keys {extra} for {self.ct.name}')
             else:
                 missing = set(self.types) - set(obj)
-                raise TypeError(f'missing keys {missing}')
+                raise TypeError(f'missing keys {missing} for {self.ct.name}')
         for key, t in self.types.items():
             v = obj[key]
             if t is POINTS:
@@ -161,10 +162,15 @@ class Validator:
                     raise TypeError('field is wrong type', key, t, type(v))
 
         if set(obj) != set(self.types):
-            raise TypeError('Keys missing or extra')
+            extra = set(obj) - set(self.types)
+            if extra:
+                raise TypeError(f'extra keys {extra} for {self.ct.name}')
+            else:
+                missing = set(self.types) - set(obj)
+                raise TypeError(f'missing keys {missing} for {self.ct.name}')
 
 def validate(ct:CANVASTYPE, defaults:Dict[str, Any]={}, **kwargs:Union[type, Tuple[type, ...], Sentinel]) -> None:
-    VALIDATE_OBJ[ct] = Validator(defaults=defaults, **kwargs)
+    VALIDATE_OBJ[ct] = Validator(defaults=defaults, **kwargs, type=ct)
 
 def repair(obj:dict) -> None:
     if not isinstance(obj, dict):
@@ -188,7 +194,7 @@ validate(CT.FILLED_RECT, color=str, color2=str, width=NUMBER, height=NUMBER, def
 validate(CT.ELLIPSE, color=str, color2=str, width=NUMBER, height=NUMBER, variant=int, defaults=dict(color = '#000000', color2='#000000', width=64, height=64, variant=0))
 validate(CT.GRID_RECT, color=str, width=NUMBER, height=NUMBER, defaults=dict(width=64, height=64))
 validate(CT.IMAGE, width=NUMBER, height=NUMBER, url=str, defaults=dict(width=64, height=64))
-validate(CT.TEXT, text=str, size=NUMBER, defaults=dict(size=18))
+validate(CT.TEXT, text=str, size=NUMBER, alignment=int, defaults=dict(size=18, alignment=0))
 validate(CT.EZ_TOKEN, text=str, color=str, width=NUMBER, height=NUMBER, defaults=dict(width=1, height=1, color='#ff00ff'))
 validate(CT.IMG_TOKEN, url=str, width=NUMBER, height=NUMBER, defaults=dict(url='/tokens/gb.png', width=1, height=1))
 validate(CT.DOOR, doortype=int, color=str, width=NUMBER, orientation=int, defaults=dict(width=64, color='#000000'))

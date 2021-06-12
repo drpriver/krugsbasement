@@ -280,6 +280,11 @@ type StrippedImageObj = {
 }
 //  text
 //  ----
+enum TEXTALIGNMENT {
+    LEFT = 0,
+    CENTER = 1,
+    RIGHT = 2,
+}
 type TextObj = {
     type: CANVASTYPE; // TEXT
     id: number;
@@ -291,6 +296,7 @@ type TextObj = {
     bbox: Bbox;
     lines: Array<string>;
     bboxes: Array<Bbox>;
+    alignment: TEXTALIGNMENT;
 }
 type StrippedTextObj = {
     type: CANVASTYPE; // TEXT
@@ -300,6 +306,7 @@ type StrippedTextObj = {
     flags: CANVASFLAG;
     text: string;
     size: number;
+    alignment: TEXTALIGNMENT;
 }
 //  ez-token
 //  --------
@@ -1178,7 +1185,7 @@ function add_ellipse(map:DungeonMap, id:number, base_x:number, base_y:number, co
     const obj = make_ellipse(id, base_x, base_y, color, color2, variant);
     add_canv_obj(map, obj);
 }
-function make_text(id:number, base_x:number, base_y:number, text:string, size:number):TextObj{
+function make_text(id:number, base_x:number, base_y:number, text:string, size:number, alignment: TEXTALIGNMENT):TextObj{
     let snap = get_snap_center_func();
     base_x = snap(base_x);
     base_y = snap(base_y);
@@ -1193,11 +1200,12 @@ function make_text(id:number, base_x:number, base_y:number, text:string, size:nu
         bbox: {x0:0, y0:0, x1:0, y1:0},
         bboxes: [],
         lines: text.split('\n'),
+        alignment: alignment,
     };
     return obj;
 }
-function add_text(map:DungeonMap, id:number, base_x:number, base_y:number, text:string, size:number):void{
-    const obj = make_text(id, base_x, base_y, text, size);
+function add_text(map:DungeonMap, id:number, base_x:number, base_y:number, text:string, size:number, alignment:TEXTALIGNMENT):void{
+    const obj = make_text(id, base_x, base_y, text, size, alignment);
     add_canv_obj(map, obj);
 }
 function make_ez_token(id:number, base_x:number, base_y:number, text:string, color:string, width:number, height:number):EzToken{
@@ -2147,7 +2155,7 @@ function strip_obj(obj_:CanvasObject): StrippedObj{
             const stripped_obj: StrippedTextObj = {
                 type: obj.type, id: obj.id, flags: obj.flags,
                 base_x: obj.base_x, base_y: obj.base_y,
-                text: obj.text, size: obj.size,
+                text: obj.text, size: obj.size, alignment:obj.alignment,
             };
             return stripped_obj;
         }break;
@@ -2500,6 +2508,15 @@ function launch_edit_dialog(view:DungeonMapView):void{
                     <td><input type="number" id="text-size" name="text-size" min="8" max="72" value="${obj.size}" class="numeric-input">
                 </tr>
                 <tr>
+                    <span style="font-weight:bold">Alignment:</span>
+                    <input type="radio" id="text-align-left" name="text-align" value="auto"  ${obj.alignment == TEXTALIGNMENT.LEFT?'checked':''}>
+                    <label for="text-align-left">Left</label>
+                    <input type="radio" id="text-align-center" name="text-align" value="auto" ${obj.alignment == TEXTALIGNMENT.CENTER?'checked':''}>
+                    <label for="text-align-center">Center</label>
+                    <input type="radio" id="text-align-right" name="text-align" value="auto" ${obj.alignment == TEXTALIGNMENT.RIGHT?'checked':''}>
+                    <label for="text-align-right">Right</label>
+                </tr>
+                <tr>
                     <td><label for="hover-text">Text:</label>
                     <td><textarea name="hover-text" id="hover-text"  cols="30" rows="5"></textarea>
                 </tr>
@@ -2516,6 +2533,14 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 const text = text_input.value.trim();
                 if(!text)
                     return;
+                const tac = document.getElementById('text-align-center')! as HTMLInputElement;
+                const tar = document.getElementById('text-align-right')! as HTMLInputElement;
+                if(tac.checked)
+                    obj.alignment = TEXTALIGNMENT.CENTER;
+                else if(tar.checked)
+                    obj.alignment = TEXTALIGNMENT.RIGHT;
+                else
+                    obj.alignment = TEXTALIGNMENT.LEFT;
                 obj.size = number;
                 obj.text = text;
                 obj.bbox = {x0:0, y0:0, x1:0, y1:0};
@@ -2872,7 +2897,17 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     let y_off = 0;
                     ctx.font = obj.size + 'px sans-serif';
                     ctx.textBaseline = 'middle';
-                    ctx.textAlign = 'left';
+                    switch(obj.alignment){
+                        case TEXTALIGNMENT.LEFT:
+                            ctx.textAlign = 'left';
+                            break;
+                        case TEXTALIGNMENT.CENTER:
+                            ctx.textAlign = 'center';
+                            break;
+                        case TEXTALIGNMENT.RIGHT:
+                            ctx.textAlign = 'right';
+                            break;
+                    }
                     if(obj.bboxes.length != obj.lines.length){
                         for(let i = 0; i < obj.lines.length; i++){
                             obj.bboxes.push({x0:0, y0:0, x1:0, y1:0});
@@ -2889,8 +2924,20 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             const width = metric.width;
                             // Only some have this property.
                             const height = metric.fontBoundingBoxAscent? metric.fontBoundingBoxAscent + 2 : obj.size;
-                            bbox.x0 = -2;
-                            bbox.x1 = width+2;
+                            switch(obj.alignment){
+                                case TEXTALIGNMENT.LEFT:
+                                    bbox.x0 = -2;
+                                    bbox.x1 = width+2;
+                                    break;
+                                case TEXTALIGNMENT.CENTER:
+                                    bbox.x0 = -width/2-2;
+                                    bbox.x1 = width/2+2;
+                                    break;
+                                case TEXTALIGNMENT.RIGHT:
+                                    bbox.x0 = -width-2;
+                                    bbox.x1 = 2;
+                                    break;
+                            }
                             bbox.y0 = -height/2 + y_off-2;
                             bbox.y1 = height/2 + y_off+2;
                         }
@@ -4800,6 +4847,15 @@ document.addEventListener('DOMContentLoaded', function(){
                         <td><input type="number" id="text-size" name="text-size" min="8" max="72" value="18" class="numeric-input">
                     </tr>
                     <tr>
+                        <span style="font-weight:bold">Alignment:</span>
+                        <input type="radio" id="text-align-left" name="text-align" value="auto" checked>
+                        <label for="text-align-left">Left</label>
+                        <input type="radio" id="text-align-center" name="text-align" value="auto">
+                        <label for="text-align-center">Center</label>
+                        <input type="radio" id="text-align-right" name="text-align" value="auto">
+                        <label for="text-align-right">Right</label>
+                    </tr>
+                    <tr>
                         <td><label for="hover-text">Text:</label>
                         <td><textarea name="hover-text" id="hover-text" cols="30" rows="5"></textarea>
                     </tr>
@@ -4810,6 +4866,16 @@ document.addEventListener('DOMContentLoaded', function(){
                     const text = text_input.value;
                     if(!text || !text.trim())
                         return;
+                    // const tal = document.getElementById('text-align-left')! as HTMLInputElement;
+                    const tac = document.getElementById('text-align-center')! as HTMLInputElement;
+                    const tar = document.getElementById('text-align-right')! as HTMLInputElement;
+                    let alignment = TEXTALIGNMENT.LEFT;
+                    if(tac.checked)
+                        alignment = TEXTALIGNMENT.CENTER;
+                    else if(tar.checked)
+                        alignment = TEXTALIGNMENT.RIGHT;
+
+
                     const size_el = document.getElementById('text-size')! as HTMLInputElement;
                     const size = (+size_el.value) | 0;
                     if(size < 8)
@@ -4817,7 +4883,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     if(size > 72)
                         return;
                     let id = get_new_id();
-                    add_text(view.map, id, x0, y0, text, size);
+                    add_text(view.map, id, x0, y0, text, size, alignment);
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                     request_render();
@@ -5278,6 +5344,13 @@ function make_ok_dialog2(html:string, after_append:()=>void, on_ok:(_:HTMLElemen
                     ok.click();
                 }
             });
+        }
+    }
+    const text_areas = hoverpop.getElementsByTagName('textarea');
+    for(let ta of text_areas){
+        if(!did_focus){
+            ta.focus();
+            did_focus = true;
         }
     }
 }
