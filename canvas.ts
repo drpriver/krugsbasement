@@ -554,9 +554,10 @@ enum ORIENTATION {
 const MAPS:Map<number,DungeonMap> = new Map();
 const MapOptionElements: Map<number, HTMLOptionElement> = new Map();
 enum MapFlags {
-    NONE = 0,
-    DELETED = 1 << 0,
+    NONE        = 0,
+    DELETED     = 1 << 0,
     CANT_DELETE = 1 << 1,
+    NUMBERED    = 1 << 2,
 }
 enum GRIDTYPE {
     SQUARE = 0,
@@ -737,6 +738,14 @@ socket.on('canvas-name-map', function(data:{map_id:number, map_name:string}){
 socket.on('canvas-grid-type', function(data:{map_id:number, grid_type:GRIDTYPE}){
     const map = get_map(data.map_id);
     map.grid_type = data.grid_type;
+    request_render();
+});
+socket.on('canvas-grid-numbered', function(data:{map_id:number, numbered:number}){
+    const map = get_map(data.map_id);
+    if(data.numbered)
+        map.flags |= MapFlags.NUMBERED
+    else
+        map.flags &= ~(MapFlags.NUMBERED);
     request_render();
 });
 
@@ -2701,7 +2710,7 @@ RUBBLEIMAGE.addEventListener('error', function(){
 });
 if(RUBBLEIMAGE)
     RUBBLEIMAGE.src = '/imgs/rubble.png';
-// const timings = [];
+// const timings: Array<number> = [];
 function render(timestamp:DOMHighResTimeStamp):void{
     // const before = performance.now();
     if(!ctx)
@@ -2750,6 +2759,9 @@ function render(timestamp:DOMHighResTimeStamp):void{
         }
         ctx.scale(SCALE, SCALE);
         ctx.translate(camera_x, camera_y);
+        ctx.font = 12 + 'px sans-serif';
+        ctx.textBaseline = 'bottom';
+        ctx.textAlign = 'center';
         switch(map.grid_type){
             case GRIDTYPE.SQUARE:{
                 for(let obj of bgtiles){
@@ -2799,6 +2811,13 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.fillStyle = obj.color;
                     ctx.translate(obj.base_x, obj.base_y);
                     ctx.fill(p);
+                    if(map.flags & MapFlags.NUMBERED){
+                        if(obj.color == '#000000')
+                            ctx.fillStyle = '#ffffff';
+                        else
+                            ctx.fillStyle = '#000000';
+                        ctx.fillText(`${obj.base_x>>6},${obj.base_y>>6}`, 32, 63);
+                    }
                     ctx.restore();
                 }
             }break;
@@ -3977,9 +3996,24 @@ function render(timestamp:DOMHighResTimeStamp):void{
         map.pings = new_pings;
         request_render();
     }
-    // request_render();
-    // timings.push(performance.now()-before);
-    // console.log('rendering:', (performance.now()-before).toFixed(4)+'ms');
+    /*
+    if(1){
+        request_render();
+        timings.push(performance.now()-before);
+        while(timings.length > 100){
+            timings.splice(0, 1);
+        }
+        let total = 0;
+        for(let t of timings)
+            total += t;
+        const avg = (total / timings.length).toFixed(4)+'ms';
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(width/2-100, height/2-50, 200, 100);
+        ctx.fillStyle = '#000000';
+        ctx.fillText(avg, width/2, height/2);
+    }
+    */
 }
 enum TOOLTYPE {
     PAN         = 0,
@@ -5689,6 +5723,10 @@ document.addEventListener('DOMContentLoaded', function(){
                      }
                 })()}>
             </tr>
+            <tr>
+                <td><label for="hover-numbered">Numbered</label>
+                <td><input name="hover-numbered" type="checkbox" id="hover-numbered" ${(active_view.map.flags & MapFlags.NUMBERED)?"checked":""}>
+            </tr>
         `;
         if(!cant_delete){
             html += `
@@ -5722,6 +5760,9 @@ document.addEventListener('DOMContentLoaded', function(){
             const gt = hg.checked? GRIDTYPE.HEX : GRIDTYPE.SQUARE;
             if(active_view.map.grid_type != gt)
                 socket.emit('canvas-grid-type', {map_id:active_view.map.map_id, grid_type:gt});
+            const numbered = (document.getElementById('hover-numbered')! as HTMLInputElement).checked? MapFlags.NUMBERED : 0;
+            if((active_view.map.flags & numbered) != numbered)
+                socket.emit('canvas-grid-numbered', {map_id:active_view.map.map_id, numbered:numbered});
         }
         make_ok_dialog(html, on_ok);
     });

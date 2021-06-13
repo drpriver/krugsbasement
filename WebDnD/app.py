@@ -130,6 +130,14 @@ def change_grid_type(data) -> None:
     canvas.change_grid_type(room, map_id, gt)
     emit('canvas-grid-type', {'map_id':map_id, 'grid_type':gt}, broadcast=True, include_self=True, to=room)
 
+@socketio.on('canvas-grid-numbered')
+def change_grid_numbered(data) -> None:
+    map_id = data['map_id']
+    numbered = data['numbered']
+    room = sid_to_room[request.sid]  # type: ignore
+    canvas.set_numbered(room, map_id, numbered)
+    emit('canvas-grid-numbered', {'map_id':map_id, 'numbered':numbered}, broadcast=True, include_self=True, to=room)
+
 
 @socketio.on('canvas-delete-map-request')
 def delete_map_request(map_id:int) -> None:

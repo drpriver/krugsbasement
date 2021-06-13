@@ -3,9 +3,10 @@ from .persist import Persister
 from enum import IntFlag, IntEnum
 
 class MapFlag(IntFlag):
-    NONE = 0
-    DELETED = 1
-    CANT_DELETE = 2
+    NONE        = 0x0
+    DELETED     = 0x1
+    CANT_DELETE = 0x2
+    NUMBERED    = 0x4
 
 class GridType(IntEnum):
     SQUARE = 0
@@ -79,6 +80,14 @@ def name_map(room:str, map_id: int, map_name:str) -> None:
 def change_grid_type(room:str, map_id:int, grid_type:GridType) -> None:
     m = MAPS[room][map_id]
     MAPS[room][map_id] = m._replace(grid_type=grid_type)
+
+def set_numbered(room:str, map_id:int, numbered:int) -> None:
+    m = MAPS[room][map_id]
+    if numbered:
+        flags = m.flags | MapFlag.NUMBERED
+    else:
+        flags = m.flags & ~(MapFlag.NUMBERED)
+    MAPS[room][map_id] = m._replace(flags=flags)
 
 def new_map_request(room:str, map_name:str, grid_type:int) -> int:
     new_map_id = max(MAPS[room].keys()) + 1
