@@ -4086,28 +4086,21 @@ let current_tool:TOOLTYPE = (function(){
     }());
 let color_picker_:HTMLInputElement;
 let color_picker2_:HTMLInputElement;
-const primary_colors: Array<string> = (function(){
-    const primary_js = localStorage.getItem('primary_colors');
-    if(!primary_js)
-        return ['#000000', '#ff2222', '#22ff22', '#2222ff'];
-    else{
-        return JSON.parse(primary_js);
-    }
-}());
-const secondary_colors: Array<string> = (function(){
-    const secondary_js = localStorage.getItem('secondary_colors');
-    if(!secondary_js)
-        return ['#ffffff', '#cccccc', '#999999', '#666666', '#333333', '#000000'];
-    else{
-        return JSON.parse(secondary_js);
-    }
-}());
+function retrieve_colors(storage_key:string): Array<string>{
+    const js = localStorage.getItem(storage_key);
+    if(!js)
+        return ['#ff2600', '#ff9300', '#fffb00', '#00f900', '#00fdff', '#0433ff', '#ff40ff', '#942192', '#aa7942', '#ffffff', '#919191', '#000000'];
+    else
+        return JSON.parse(js);
+}
+const primary_colors: Array<string> = retrieve_colors('primary_colors');
+const secondary_colors: Array<string> = retrieve_colors('secondary_colors');
 function add_recent_color(color:string, colors:Array<string>, storage_key:string){
     const index = colors.findIndex(function(e:string){return e==color;});
     if(index != -1){
         colors.splice(index, 1);
     }
-    if(colors.unshift(color) > 8){
+    if(colors.unshift(color) > 20){
         colors.pop();
     }
     if(index == -1){
