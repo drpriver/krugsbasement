@@ -4217,6 +4217,7 @@ let has_tri_menu = false;
 function make_tri_menu(e:MouseEvent, options:Array<{func:()=>void;text:string}>){
     if(has_tri_menu)
         return;
+    has_tri_menu = true;
     const trimenu = document.createElement('section');
     trimenu.classList.add('menu');
     trimenu.style.left = e.clientX + 'px';
