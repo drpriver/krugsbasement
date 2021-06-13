@@ -4087,7 +4087,6 @@ let current_tool:TOOLTYPE = (function(){
 let color_picker_:HTMLInputElement;
 let color_picker2_:HTMLInputElement;
 const primary_colors: Array<string> = (function(){
-    localStorage.setItem('showpan', '1')
     const primary_js = localStorage.getItem('primary_colors');
     if(!primary_js)
         return ['#000000', '#ff2222', '#22ff22', '#2222ff'];
