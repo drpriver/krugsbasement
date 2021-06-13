@@ -1,3 +1,9 @@
 Hexmaps often need to be numbered in order to communicate reasonably.
 
+Update:
+------
+Have a basic version of this working. Currently only painted on filled tiles.
+
+It should print on all tiles though.
+
 
