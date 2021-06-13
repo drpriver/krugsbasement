@@ -2794,7 +2794,6 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 p.lineTo(+9, 0);
                 p.closePath();
                 for(let obj of bgtiles){
-                    ctx.save();
                     const rect_bbox = {
                         x0:obj.base_x,
                         y0:obj.base_y,
@@ -2804,6 +2803,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     if(!bbox_overlaps(rect_bbox, canvas_bbox)){
                         continue;
                     }
+                    ctx.save();
                     const is_selected = selected.has(obj.id);
                     if(is_selected)
                         ctx.fillStyle = SELECTED_COLOR;
