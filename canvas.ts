@@ -4084,8 +4084,106 @@ let current_tool:TOOLTYPE = (function(){
     }
     return show_pan?TOOLTYPE.PAN:TOOLTYPE.SELECT;
     }());
-let color_picker:HTMLInputElement;
-let color_picker2:HTMLInputElement;
+let color_picker_:HTMLInputElement;
+let color_picker2_:HTMLInputElement;
+const primary_colors: Array<string> = (function(){
+    localStorage.setItem('showpan', '1')
+    const primary_js = localStorage.getItem('primary_colors');
+    if(!primary_js)
+        return ['#000000', '#ff2222', '#22ff22', '#2222ff'];
+    else{
+        return JSON.parse(primary_js);
+    }
+}());
+const secondary_colors: Array<string> = (function(){
+    const secondary_js = localStorage.getItem('secondary_colors');
+    if(!secondary_js)
+        return ['#ffffff', '#cccccc', '#999999', '#666666', '#333333', '#000000'];
+    else{
+        return JSON.parse(secondary_js);
+    }
+}());
+function add_recent_color(color:string, colors:Array<string>, storage_key:string){
+    const index = colors.findIndex(function(e:string){return e==color;});
+    if(index != -1){
+        colors.splice(index, 1);
+    }
+    if(colors.unshift(color) > 8){
+        colors.pop();
+    }
+    if(index == -1){
+        localStorage.setItem(storage_key, JSON.stringify(colors));
+    }
+}
+function get_primary_color():string{
+    const color = color_picker_.value;
+    add_recent_color(color, primary_colors, 'primary_colors');
+    return color;
+}
+function get_secondary_color():string{
+    const color = color_picker2_.value;
+    add_recent_color(color, secondary_colors, 'secondary_colors');
+    return color;
+}
+function make_color_menu(e:MouseEvent, colorpicker: HTMLInputElement, colors:Array<string>){
+    // Piggy back on tri_menu stuff.
+    if(has_tri_menu)
+        return;
+    has_tri_menu = true;
+    const trimenu = document.createElement('section');
+    trimenu.classList.add('menu');
+    trimenu.style.left = e.clientX + 'px';
+    const window_height = window.innerHeight;
+    trimenu.style.bottom = (window_height - e.clientY)+'px'
+    function remove_tri_menu(e?:MouseEvent){
+        if(e){
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        document.body.removeChild(trimenu);
+        window.removeEventListener('mousedown', remove_tri_menu);
+        canvas.removeEventListener('mousedown', remove_tri_menu);
+        has_tri_menu = false;
+    }
+    function make_cb(color: string){
+        function cb(e:MouseEvent){
+            e.stopPropagation();
+            e.preventDefault();
+            colorpicker.value = color;
+            remove_tri_menu();
+        }
+        return cb;
+    }
+    for(let i = colors.length; i-- > 0;){
+        const color = colors[i];
+        const s = document.createElement('section');
+        s.classList.add('color-menuitem')
+        s.style.backgroundColor = color;
+        s.style.height = '2em';
+        s.style.width = '3em'
+        s.style.border = '2px solid ' + color;
+        s.addEventListener('mousedown', make_cb(color));
+        trimenu.appendChild(s);
+    }
+    document.body.appendChild(trimenu);
+    window.addEventListener('mousedown', remove_tri_menu);
+    canvas.addEventListener('mousedown', remove_tri_menu);
+}
+document.addEventListener('DOMContentLoaded', function(){
+    const cpt1 = document.getElementById('color-picker-dropdown')! as HTMLElement;
+    const cpt2 = document.getElementById('color-picker2-dropdown')! as HTMLElement;
+    cpt1.addEventListener('click', function(e:MouseEvent){
+        e.stopPropagation();
+        e.preventDefault();
+        make_color_menu(e, color_picker_, primary_colors);
+    });
+    cpt2.addEventListener('click', function(e:MouseEvent){
+        e.stopPropagation();
+        e.preventDefault();
+        make_color_menu(e, color_picker2_, secondary_colors);
+    });
+
+});
 let tools: Array<HTMLElement> = [];
 function change_tool(tool:TOOLTYPE):void{
     localStorage.setItem('current_tool', TOOL_TO_NAMES[tool]);
@@ -4257,8 +4355,8 @@ function make_tri_menu(e:MouseEvent, options:Array<{func:()=>void;text:string}>)
 }
 document.addEventListener('DOMContentLoaded', function():void{
     tools = Array.from(document.getElementsByClassName('tool')) as Array<HTMLElement>;
-    color_picker = document.getElementById('color-picker')! as HTMLInputElement;
-    color_picker2 = document.getElementById('color-picker2')! as HTMLInputElement;
+    color_picker_ = document.getElementById('color-picker')! as HTMLInputElement;
+    color_picker2_ = document.getElementById('color-picker2')! as HTMLInputElement;
     for(let i = 0; i < tools.length; ++i){
         const toolel = tools[i];
         toolel.addEventListener('click', function(e:MouseEvent){
@@ -4291,7 +4389,9 @@ document.addEventListener('DOMContentLoaded', function():void{
                         break;
                 }
             }
-            change_st(SELECTTYPE.ANY);
+            change_st(SELECTTYPE.NONBACKGROUND);
+            change_select_mode(SELECTTYPE.NONBACKGROUND);
+
             function make_cb(st:SELECTTYPE){
                 function cb():void{
                     change_tool(TOOLTYPE.SELECT);
@@ -4593,6 +4693,8 @@ document.addEventListener('DOMContentLoaded', function(){
         let view = get_active_view();
         if(ctxmenu_is_active !== 0)
             return;
+        if(has_tri_menu)
+            return;
         e.stopPropagation();
         e.preventDefault();
         if(e.button === 1){
@@ -4702,7 +4804,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 const y0 = e.offsetY/view.scale-view.camera_y;
                 const thickness_input = document.getElementById('line-thickness') as HTMLInputElement;
                 const thickness = +thickness_input.value || 4;
-                add_freehand_line(view.map, id, x0, y0, color_picker.value, thickness);
+                add_freehand_line(view.map, id, x0, y0, get_primary_color(), thickness);
                 function add_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
@@ -4728,7 +4830,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     // copy paste from LINE above.
                     const x0 = e.offsetX/view.scale-view.camera_x;
                     const y0 = e.offsetY/view.scale-view.camera_y;
-                    add_freehand_line(view.map, id, x0, y0, color_picker.value, 4);
+                    add_freehand_line(view.map, id, x0, y0, get_primary_color(), 4);
                     function add_point(e:MouseEvent){
                         e.stopPropagation();
                         e.preventDefault();
@@ -4751,7 +4853,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 else{
                     const x0 = e.offsetX/view.scale-view.camera_x;
                     const y0 = e.offsetY/view.scale-view.camera_y;
-                    add_gridline(view.map, id, x0, y0, color_picker.value);
+                    add_gridline(view.map, id, x0, y0, get_primary_color());
                     function add_point(e:MouseEvent){
                         e.stopPropagation();
                         e.preventDefault();
@@ -4835,7 +4937,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             return;
                         let x = ((x0 + x1)/2) | 0;
                         let y = ((y0 + y1)/2) | 0;
-                        add_door(view.map, id, x, y, current_door, color_picker.value, width, orientation);
+                        add_door(view.map, id, x, y, current_door, get_primary_color(), width, orientation);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                     }
@@ -4850,7 +4952,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         let id = get_new_id();
                         const x0 = snap(e.offsetX/view.scale-view.camera_x);
                         const y0 = snap(e.offsetY/view.scale-view.camera_y);
-                        add_rect(view.map, id, x0, y0, color_picker.value);
+                        add_rect(view.map, id, x0, y0, get_primary_color());
                         function add_point(e:MouseEvent){
                             e.stopPropagation();
                             e.preventDefault();
@@ -4874,7 +4976,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         let id = get_new_id();
                         const x0 = snap(e.offsetX/view.scale-view.camera_x);
                         const y0 = snap(e.offsetY/view.scale-view.camera_y);
-                        add_filled_rect(view.map, id, x0, y0, color_picker.value, color_picker2.value);
+                        add_filled_rect(view.map, id, x0, y0, get_primary_color(), get_secondary_color());
                         function add_point(e:MouseEvent){
                             e.stopPropagation();
                             e.preventDefault();
@@ -4898,7 +5000,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         let id = get_new_id();
                         const x0 = snap(e.offsetX/view.scale-view.camera_x);
                         const y0 = snap(e.offsetY/view.scale-view.camera_y);
-                        add_gridrect(view.map, id, x0, y0, color_picker.value);
+                        add_gridrect(view.map, id, x0, y0, get_primary_color());
                         const gridrect = view.map.canvas_objs.get(id) as GridRectangle;
                         view.placing_area.is_placing = true;
                         view.placing_area.is_line = false;
@@ -4938,7 +5040,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 let id = get_new_id();
                 const x0 = snap(e.offsetX/view.scale-view.camera_x);
                 const y0 = snap(e.offsetY/view.scale-view.camera_y);
-                add_ellipse(view.map, id, x0, y0, color_picker.value, color_picker2.value, current_ellipse);
+                add_ellipse(view.map, id, x0, y0, get_primary_color(), get_secondary_color(), current_ellipse);
                 const ellipse = view.map.canvas_objs.get(id)! as Ellipse;
                 view.placing_area.is_placing = true;
                 view.placing_area.is_line = false;
@@ -5321,7 +5423,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     base_x: x,
                     base_y: y,
                     flags: CANVASFLAG.NONE,
-                    color: color_picker.value,
+                    color: get_primary_color(),
                 };
                 add_canv_obj(view.map, filled);
                 publish_obj_by_id(view.map, id);

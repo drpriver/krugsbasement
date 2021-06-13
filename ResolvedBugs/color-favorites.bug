@@ -1,0 +1,8 @@
+For convenience, there should be a way to set favorite colors, recently used colors, etc.
+It should persist across sessions.
+
+Update:
+-------
+
+There is now a dropdown with most recently used colors.
+It is persisted in localStorage, but dude firefox is being buggy in regards to that.
