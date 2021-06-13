@@ -5427,6 +5427,12 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
         }
     });
+    canvas.addEventListener('dblclick', function(e:MouseEvent){
+        let view = get_active_view();
+        if(current_tool != TOOLTYPE.SELECT)
+            return;
+        launch_edit_dialog(view);
+    });
     canvas.addEventListener('contextmenu', function(e:MouseEvent){
         e.preventDefault();
         e.stopPropagation();
