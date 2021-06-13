@@ -70,23 +70,26 @@ enum CANVASTYPE {
     STAIRS        = 12,
     MEASURE       = 13,
     FIXTURE       = 14,
+    FILLED_TILE   = 15,
 }
+// High numbers go on top.
 const SORTORDER = [
     9999, // Nothing
-       4, // FREEHAND_LINE
-       2, // GRID_LINE
-       2, // RECT
-       1, // GRID_RECT
-       3, // FILLED_RECT
-       2, // ELLIPSE
-       0, // IMAGE
-       4, // TEXT
-       4, // EZ_TOKEN
-       4, // IMG_TOKEN
-       3, // DOOR
-       3, // STAIRS
+       5, // FREEHAND_LINE
+       3, // GRID_LINE
+       3, // RECT
+       2, // GRID_RECT
+       4, // FILLED_RECT
+       3, // ELLIPSE
+       1, // IMAGE
+       5, // TEXT
+       5, // EZ_TOKEN
+       5, // IMG_TOKEN
+       4, // DOOR
+       4, // STAIRS
      100, // MEASURE
-       3, // FIXTURE
+       4, // FIXTURE
+       1, // FILLED_TILE
 ];
 //
 // flags
@@ -445,8 +448,21 @@ type FixtureObj = {
 // stripped fixture obj is the same as regular fixtures.
 type StrippedFixtureObj = FixtureObj;
 
-type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj;
-type StrippedObj = StrippedFreehandLine | StrippedGridLine | StrippedRectangle | StrippedFilledRectangle | StrippedGridRectangle | StrippedEllipse | StrippedImageObj | StrippedTextObj | StrippedEzToken | StrippedImgToken | StrippedDoorObj | StrippedStairs | StrippedMeasureObj | StrippedFixtureObj;
+// FilledTile
+// ----------
+type FilledTile = {
+    type: CANVASTYPE; // FILLED_TILE
+    id: number;
+    base_x: number;
+    base_y: number;
+    flags: CANVASFLAG;
+    color: string;
+};
+
+type StrippedFilledTile = FilledTile;
+
+type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj | FilledTile;
+type StrippedObj = StrippedFreehandLine | StrippedGridLine | StrippedRectangle | StrippedFilledRectangle | StrippedGridRectangle | StrippedEllipse | StrippedImageObj | StrippedTextObj | StrippedEzToken | StrippedImgToken | StrippedDoorObj | StrippedStairs | StrippedMeasureObj | StrippedFixtureObj | StrippedFilledTile;
 
 // Door subtypes
 // ------------
@@ -887,6 +903,24 @@ function add_freehand_point_by_id(map:DungeonMap, id:number, x:number, y:number)
     add_freehand_point(obj, x, y);
 }
 
+function snap_down_to_grid(x: number):number{
+    x = Math.round(x);
+    x -= x & (REFERENCE_WIDTH-1);
+    return x;
+}
+function snap_down_to_hex_grid(x: number, y:number):[number, number]{
+    x = snap_down_to_grid(x);
+    // If the hex is in an odd column, we need to offset y.
+    if((x >> 6) & 1){
+        y += 32;
+        y = snap_down_to_grid(y);
+        y -= 32;
+    }
+    else {
+        y = snap_down_to_grid(y);
+    }
+    return [x, y];
+}
 // Rounds a single dimension to the grid.
 function snap_to_grid(x:number):number{
     x = Math.round(x);
@@ -1468,7 +1502,7 @@ type UndoEvent = UndoCreate | UndoMassCreate | UndoDelete | UndoUpdate;
 function push_undo_event(map:DungeonMap, undo_event:UndoEvent):void{
     map.undo_stack.length = map.undo_position;
     map.undo_stack.push(undo_event);
-    const MAX_UNDO_STACK = 100;
+    const MAX_UNDO_STACK = 10000;
     if(map.undo_stack.length > MAX_UNDO_STACK){
         const new_stack = [];
         // Is there a better way to slice arrays?
@@ -1814,10 +1848,11 @@ function set_obj_states_from_stripped_objs(map:DungeonMap, obj_states:Array<Stri
 enum SELECTTYPE {
     MAP = 1 << 0,
     TOKEN = 1 << 1,
-    // BACKGROUND = 1 << 2, // unimplemented
-    ANY = MAP | TOKEN,
+    BACKGROUND = 1 << 2,
+    NONBACKGROUND = TOKEN | MAP,
+    ANY = MAP | TOKEN | BACKGROUND,
 }
-let select_type: SELECTTYPE = SELECTTYPE.ANY;
+let select_type: SELECTTYPE = SELECTTYPE.NONBACKGROUND;
 
 function update_selection(view:DungeonMapView, x0:number, y0:number, x1:number, y1:number):void{
     if(x0 > x1){
@@ -1981,6 +2016,19 @@ function obj_in_bbox(obj_:CanvasObject, bbox:Bbox, selection_type:SELECTTYPE):bo
                     y1 : obj.base_y + obj.height
             };
             return bbox_overlaps(bbox, f_bbox);
+        }
+        case CANVASTYPE.FILLED_TILE:{
+            if(!(selection_type & SELECTTYPE.BACKGROUND))
+                return false;
+            // const obj = obj_ as FilledTile;
+            // kind of cheesy.
+            const ftbbox = {
+                x0: obj_.base_x,
+                x1: obj_.base_x + REFERENCE_WIDTH,
+                y0: obj_.base_y,
+                y1: obj_.base_y + REFERENCE_WIDTH,
+            };
+            return bbox_overlaps(bbox, ftbbox);
         }
     }
 }
@@ -2260,6 +2308,15 @@ function strip_obj(obj_:CanvasObject): StrippedObj{
             };
             return stripped_obj;
         }break;
+        case CANVASTYPE.FILLED_TILE:{
+            const obj = obj_ as FilledTile;
+            const stripped_obj: StrippedFilledTile = {
+                type: obj.type, id: obj.id, flags: obj.flags,
+                base_x: obj.base_x, base_y: obj.base_y,
+                color: obj.color,
+            };
+            return stripped_obj;
+        }break;
     }
 }
 //
@@ -2366,6 +2423,12 @@ function unstrip_obj(obj_: StrippedObj):CanvasObject{
             };
             return obj;
         }break;
+        case CANVASTYPE.FILLED_TILE:{
+            const obj: FilledTile = {
+                ...(obj_ as StrippedFilledTile),
+            };
+            return obj;
+        }break;
     }
 }
 
@@ -2391,17 +2454,6 @@ function set_obj_from_stripped(obj_: CanvasObject, state:StrippedObj){
             gridline_recalculate_bbox(obj);
             gridline_recalculate_path(obj);
         }break;
-        case CANVASTYPE.FILLED_RECT:
-            break;
-        case CANVASTYPE.ELLIPSE:
-            Object.assign(obj_, state);
-            break;
-        case CANVASTYPE.RECT:
-            Object.assign(obj_, state);
-            break;
-        case CANVASTYPE.GRID_RECT:
-            Object.assign(obj_, state);
-            break;
         case CANVASTYPE.IMAGE:{
             const obj = obj_ as ImageObj;
             const state_ = state as StrippedImageObj;
@@ -2423,22 +2475,7 @@ function set_obj_from_stripped(obj_: CanvasObject, state:StrippedObj){
             obj.bboxes = [];
             obj.lines = obj.text.split('\n');
         }break;
-        case CANVASTYPE.EZ_TOKEN:
-            Object.assign(obj_, state);
-            break;
-        case CANVASTYPE.IMG_TOKEN:
-            Object.assign(obj_, state);
-            break;
-        case CANVASTYPE.DOOR:
-            Object.assign(obj_, state);
-            break;
-        case CANVASTYPE.STAIRS:
-            Object.assign(obj_, state);
-            break;
-        case CANVASTYPE.MEASURE:
-            Object.assign(obj_, state);
-            break;
-        case CANVASTYPE.FIXTURE:
+        default:
             Object.assign(obj_, state);
             break;
     }
@@ -2681,6 +2718,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
     let background = '#fff';
     if(DARKMODE)
         background = '#333';
+    const SELECTED_COLOR = '#33ffdd';
     const canvas_obj_array = map.canvas_obj_array;
     const selected = view.selected;
     const camera_x = Math.round(view.camera_x);
@@ -2693,6 +2731,82 @@ function render(timestamp:DOMHighResTimeStamp):void{
     ctx.clearRect(0, 0, width, height);
     let SCALE = scale;
     const BACKGROUND = background;
+    const canvas_bbox = {
+        x0:-camera_x,
+        y0:-camera_y,
+        x1:-camera_x+width/scale,
+        y1:-camera_y+height/scale,
+    };
+    {
+        const bgtiles: Array<FilledTile> = [];
+        const length = canvas_obj_array.length;
+        for(let i = 0; i < length; ++i){
+            const obj_ = canvas_obj_array[i];
+            if(obj_.flags & CANVASFLAG.DELETED)
+                continue;
+            if(obj_.type != CANVASTYPE.FILLED_TILE)
+                continue;
+            bgtiles.push(obj_ as FilledTile);
+        }
+        ctx.scale(SCALE, SCALE);
+        ctx.translate(camera_x, camera_y);
+        switch(map.grid_type){
+            case GRIDTYPE.SQUARE:{
+                for(let obj of bgtiles){
+                    const rect_bbox = {
+                        x0:obj.base_x,
+                        y0:obj.base_y,
+                        x1:obj.base_x+REFERENCE_WIDTH,
+                        y1:obj.base_y+REFERENCE_WIDTH,
+                    };
+                    if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                        continue;
+                    }
+                    const is_selected = selected.has(obj.id);
+                    if(is_selected)
+                        ctx.fillStyle = SELECTED_COLOR;
+                    else
+                        ctx.fillStyle = obj.color;
+                    ctx.fillRect(obj.base_x, obj.base_y, REFERENCE_WIDTH, REFERENCE_WIDTH);
+                }
+            }break;
+            case GRIDTYPE.HEX:{
+                const half = REFERENCE_WIDTH/2;
+                const full = REFERENCE_WIDTH;
+                const p = new Path2D();
+                p.moveTo(-9, half);
+                p.lineTo(+9, full);
+                p.lineTo(REFERENCE_WIDTH-9, full);
+                p.lineTo(REFERENCE_WIDTH+9, half);
+                p.lineTo(REFERENCE_WIDTH-9, 0);
+                p.lineTo(+9, 0);
+                p.closePath();
+                for(let obj of bgtiles){
+                    ctx.save();
+                    const rect_bbox = {
+                        x0:obj.base_x,
+                        y0:obj.base_y,
+                        x1:obj.base_x+REFERENCE_WIDTH,
+                        y1:obj.base_y+REFERENCE_WIDTH,
+                    };
+                    if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                        continue;
+                    }
+                    const is_selected = selected.has(obj.id);
+                    if(is_selected)
+                        ctx.fillStyle = SELECTED_COLOR;
+                    else
+                        ctx.fillStyle = obj.color;
+                    ctx.translate(obj.base_x, obj.base_y);
+                    ctx.fill(p);
+                    ctx.restore();
+                }
+            }break;
+            case GRIDTYPE.NOGRID:{
+            }break;
+        }
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
     ctx.scale(SCALE, SCALE);
     ctx.fillStyle = 'rgb(150, 150, 150)';
     switch(map.grid_type){
@@ -2753,15 +2867,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
     }
     ctx.translate(camera_x, camera_y);
     let length = canvas_obj_array.length;
-    const SELECTED_COLOR = '#33ffdd';
-    const canvas_bbox = {
-        x0:-camera_x,
-        y0:-camera_y,
-        x1:-camera_x+width/scale,
-        y1:-camera_y+height/scale,
-    };
     for(let i = 0; i < length; ++i){
-        let obj_ = canvas_obj_array[i]!; // todo: downcast
+        let obj_ = canvas_obj_array[i];
         if(obj_.flags & CANVASFLAG.DELETED)
             continue;
         const is_selected = selected.has(obj_.id);
@@ -3824,6 +3931,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     }break;
                 }
             }break;
+            case CANVASTYPE.FILLED_TILE:{
+            }break;
         }
     }
     if(view.selection_area.is_selecting){
@@ -3886,23 +3995,25 @@ enum TOOLTYPE {
     HELP        = 10,
     MEASURE     = 11,
     FIXTURE     = 12,
+    FILLED_TILE = 13,
 }
 const TOOLTYPE_MAX = TOOLTYPE.FIXTURE + 1;
 const NAMES_TO_TOOL = (function(){
     const m: Map<string, TOOLTYPE> = new Map();
-    m.set('Pan'    , TOOLTYPE.PAN);
-    m.set('Select' , TOOLTYPE.SELECT);
-    m.set('Line'   , TOOLTYPE.LINE);
-    m.set('Ellipse', TOOLTYPE.ELLIPSE);
-    m.set('Wall'   , TOOLTYPE.WALL);
-    m.set('Door'   , TOOLTYPE.DOOR);
-    m.set('Rect'   , TOOLTYPE.RECT);
-    m.set('Text'   , TOOLTYPE.TEXT);
-    m.set('Token'  , TOOLTYPE.TOKEN);
-    m.set('Image'  , TOOLTYPE.IMAGE);
-    m.set('Help'   , TOOLTYPE.HELP);
-    m.set('Measure', TOOLTYPE.MEASURE);
-    m.set('Fixture', TOOLTYPE.FIXTURE);
+    m.set('Pan',         TOOLTYPE.PAN);
+    m.set('Select',      TOOLTYPE.SELECT);
+    m.set('Line',        TOOLTYPE.LINE);
+    m.set('Ellipse',     TOOLTYPE.ELLIPSE);
+    m.set('Wall',        TOOLTYPE.WALL);
+    m.set('Door',        TOOLTYPE.DOOR);
+    m.set('Rect',        TOOLTYPE.RECT);
+    m.set('Text',        TOOLTYPE.TEXT);
+    m.set('Token',       TOOLTYPE.TOKEN);
+    m.set('Image',       TOOLTYPE.IMAGE);
+    m.set('Help',        TOOLTYPE.HELP);
+    m.set('Measure',     TOOLTYPE.MEASURE);
+    m.set('Fixture',     TOOLTYPE.FIXTURE);
+    m.set('Tile - Filled', TOOLTYPE.FILLED_TILE);
     return m;
 }());
 const TOOL_TO_NAMES = [
@@ -3932,6 +4043,8 @@ const TOOL_TO_NAMES = [
     'Measure',
     // TOOLTYPE.FIXTURE:
     'Fixture',
+    // TOOLTYPE.FILL:
+    'Tile - Filled'
 ];
 let current_fixture_type = FIXTURETYPE.STAIRS;
 enum TOKENTYPE {
@@ -4160,22 +4273,29 @@ document.addEventListener('DOMContentLoaded', function():void{
             function change_st(st:SELECTTYPE){
                 select_type = st;
                 switch(select_type){
-                    case SELECTTYPE.ANY:
-                        name.innerText = 'Any ☰';
+                    case SELECTTYPE.NONBACKGROUND:
+                        name.innerText = '- Nonbackground ☰';
                         break;
                     case SELECTTYPE.MAP:
-                        name.innerText = 'Map ☰';
+                        name.innerText = '- Map ☰';
                         break;
                     case SELECTTYPE.TOKEN:
-                        name.innerText = 'Token ☰';
+                        name.innerText = '- Token ☰';
+                        break;
+                    case SELECTTYPE.BACKGROUND:
+                        name.innerText = '- Background ☰';
+                        break;
+                    case SELECTTYPE.ANY:
+                        name.innerText = '- Any ☰';
                         break;
                 }
             }
             change_st(SELECTTYPE.ANY);
             function make_cb(st:SELECTTYPE){
-                function cb(){
+                function cb():void{
                     change_tool(TOOLTYPE.SELECT);
-                    change_select_mode(SELECTTYPE.ANY);
+                    change_st(st);
+                    change_select_mode(st);
                 }
                 return cb;
             }
@@ -4183,8 +4303,8 @@ document.addEventListener('DOMContentLoaded', function():void{
                 func: function(index:number){
                     switch(index){
                         case 0:
-                            change_select_mode(SELECTTYPE.ANY);
-                            change_st(SELECTTYPE.ANY);
+                            change_select_mode(SELECTTYPE.NONBACKGROUND);
+                            change_st(SELECTTYPE.NONBACKGROUND);
                             break;
                         case 1:
                             change_select_mode(SELECTTYPE.MAP);
@@ -4194,9 +4314,17 @@ document.addEventListener('DOMContentLoaded', function():void{
                             change_select_mode(SELECTTYPE.TOKEN);
                             change_st(SELECTTYPE.TOKEN);
                             break;
+                        case 3:
+                            change_select_mode(SELECTTYPE.BACKGROUND);
+                            change_st(SELECTTYPE.BACKGROUND);
+                            break;
+                        case 4:
+                            change_select_mode(SELECTTYPE.ANY);
+                            change_st(SELECTTYPE.ANY);
+                            break;
                     }
                 },
-                max_index: 3,
+                max_index: 5,
             });
             const triangle = toolel.getElementsByTagName('span')[0];
             triangle.addEventListener('click', function(e:MouseEvent){
@@ -4205,9 +4333,11 @@ document.addEventListener('DOMContentLoaded', function():void{
                 if(has_tri_menu)
                     return;
                 make_tri_menu(e, [
-                    {func:make_cb(SELECTTYPE.ANY), text:'Any'},
+                    {func:make_cb(SELECTTYPE.NONBACKGROUND), text:'Nonbackground'},
                     {func:make_cb(SELECTTYPE.MAP), text:'Map'},
                     {func:make_cb(SELECTTYPE.TOKEN), text:'Token'},
+                    {func:make_cb(SELECTTYPE.BACKGROUND), text:'Background'},
+                    {func:make_cb(SELECTTYPE.ANY), text:'Any'},
                 ]);
             });
         }
@@ -4346,6 +4476,8 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case 'Backspace': // fall-through
             case 'Delete':{
+                if(!view.selected.size)
+                    break;
                 for(let item of view.selected){
                     view.map.canvas_objs.get(item)!.flags |= CANVASFLAG.DELETED;
                 }
@@ -5170,6 +5302,30 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('mouseup', finish);
                 canvas.addEventListener('mouseleave', finish);
 
+            }break;
+            case TOOLTYPE.FILLED_TILE:{
+                let x:number;
+                let y:number;
+                if(view.map.grid_type == GRIDTYPE.HEX){
+                    [x, y] = snap_down_to_hex_grid(e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y);
+                }
+                else {
+                    x = snap_down_to_grid(e.offsetX/view.scale-view.camera_x);
+                    y = snap_down_to_grid(e.offsetY/view.scale-view.camera_y);
+                }
+                let id = get_new_id();
+                let filled: FilledTile = {
+                    type: CANVASTYPE.FILLED_TILE,
+                    id: id,
+                    base_x: x,
+                    base_y: y,
+                    flags: CANVASFLAG.NONE,
+                    color: color_picker.value,
+                };
+                add_canv_obj(view.map, filled);
+                publish_obj_by_id(view.map, id);
+                note_create_by_id_for_undo(view.map, id);
+                request_render();
             }break;
             default:{
                 console.log('unknown tool:', current_tool);

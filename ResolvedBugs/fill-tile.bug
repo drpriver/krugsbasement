@@ -1,1 +1,5 @@
 Implement a fill-tile tool where you click on tiles and it fills that one in.
+
+Update:
+-------
+Implemented this for both square and hex grids.

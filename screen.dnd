@@ -53,6 +53,8 @@ David20::title @hide
     ::div.tool
       Image
     ::div.tool
+      Tile - Filled
+    ::div.tool
       Measure
     ::div.tool
       Help
