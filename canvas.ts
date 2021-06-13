@@ -4084,9 +4084,9 @@ let current_tool:TOOLTYPE = (function(){
     }
     return show_pan?TOOLTYPE.PAN:TOOLTYPE.SELECT;
     }());
-let color_picker:any = null; // idk what this should be
-let color_picker2:any = null; // idk what this should be
-let tools:any = null; // idk what this should be
+let color_picker:HTMLInputElement;
+let color_picker2:HTMLInputElement;
+let tools: Array<HTMLElement> = [];
 function change_tool(tool:TOOLTYPE):void{
     localStorage.setItem('current_tool', TOOL_TO_NAMES[tool]);
     let prev = current_tool;
@@ -4108,7 +4108,7 @@ function change_tool(tool:TOOLTYPE):void{
         const toolel = tools[j];
         const toolname = TOOL_TO_NAMES[tool];
         toolel.classList.remove('selected');
-        if(toolel.firstChild.textContent.trim() == toolname){
+        if(toolel.firstChild!.textContent!.trim() == toolname){
             toolel.classList.add('selected');
         }
     }
@@ -4255,20 +4255,20 @@ function make_tri_menu(e:MouseEvent, options:Array<{func:()=>void;text:string}>)
     canvas.addEventListener('mousedown', remove_tri_menu);
 }
 document.addEventListener('DOMContentLoaded', function():void{
-    tools = Array.from(document.getElementsByClassName('tool'));
-    color_picker = document.getElementById('color-picker');
-    color_picker2 = document.getElementById('color-picker2');
+    tools = Array.from(document.getElementsByClassName('tool')) as Array<HTMLElement>;
+    color_picker = document.getElementById('color-picker')! as HTMLInputElement;
+    color_picker2 = document.getElementById('color-picker2')! as HTMLInputElement;
     for(let i = 0; i < tools.length; ++i){
         const toolel = tools[i];
         toolel.addEventListener('click', function(e:MouseEvent){
-            const toolname = toolel.firstChild.textContent.trim() as string;
+            const toolname = toolel.firstChild!.textContent!.trim() as string;
             const tool = NAMES_TO_TOOL.get(toolname);
             if(tool !== undefined)
                 change_tool(tool);
         });
         // Selecttype is bit flags, so it has to be its own special snowflake.
         // I guess it should actually be like checkboxes?
-        if(toolel.firstChild.textContent.trim() == 'Select'){
+        if(toolel.firstChild!.textContent!.trim() == 'Select'){
             const name = toolel.getElementsByTagName('span')[0];
             function change_st(st:SELECTTYPE){
                 select_type = st;
@@ -4375,7 +4375,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 }()));
             });
         }
-        const tcontent = toolel.firstChild.textContent.trim();
+        const tcontent = toolel.firstChild!.textContent!.trim();
         switch(NAMES_TO_TOOL.get(tcontent)){
             case TOOLTYPE.DOOR:
                 setup_multi_option(toolel, TOOLTYPE.DOOR, function(i:number){current_door=i}, DOOR_TO_NAMES, DOORTYPE_MAX);
