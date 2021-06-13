@@ -2074,6 +2074,9 @@ function note_selections(view:DungeonMapView):void{
     }
 }
 function selection_is_rigid(view:DungeonMapView):boolean{
+    // hack
+    if(view.map.grid_type == GRIDTYPE.HEX)
+        return false;
     for(let id of view.selected){
         const obj = view.map.canvas_objs.get(id)!;
         if(obj.flags & CANVASFLAG.DELETED)
