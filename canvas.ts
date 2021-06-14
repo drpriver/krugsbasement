@@ -320,6 +320,58 @@ type StrippedTextObj = {
     size: number;
     alignment: TEXTALIGNMENT;
 }
+
+// status flags for conditions and status effects
+// Bit flags
+enum TOKENSTATUSFLAGS {
+    NONE = 0,
+    ASLEEP     = 1 << 0,
+    BLESS      = 1 << 1,
+    BLIND      = 1 << 2,
+    CHARMED    = 1 << 3,
+    CONFUSED   = 1 << 4,
+    DEAF       = 1 << 5,
+    FEAR       = 1 << 6,
+    GRAPPLING  = 1 << 7,
+    HASTED     = 1 << 8,
+    INVISIBLE  = 1 << 9,
+    ONFIRE     = 1 << 10,
+    PARALYZED  = 1 << 11,
+    POISONED   = 1 << 12,
+    PRONE      = 1 << 13,
+    RESTRAINED = 1 << 14,
+    STUNNED    = 1 << 15,
+}
+const STATUSFLAG_NAMES = [
+    'Asleep',
+    'Bless',
+    'Blinded',
+    'Charmed',
+    'Confused',
+    'Deafened',
+    'Fear',
+    'Grappling',
+    'Haste',
+    'Invisible',
+    'OnFire',
+    'Paralyzed',
+    'Poisoned',
+    'Prone',
+    'Restrained',
+    'Stunned',
+];
+const STATUSICONSIZE = 16;
+const STATUSICONS = (function(){
+    const result = [];
+    for(let i = 0; i < STATUSFLAG_NAMES.length; i++){
+        const url = `/icons/${STATUSFLAG_NAMES[i]}.png`;
+        const img = new Image(STATUSICONSIZE, STATUSICONSIZE);
+        img.src = url;
+        result.push(img);
+    }
+    return result;
+}());
+
 //  ez-token
 //  --------
 //  A token that just has a simple text label.
@@ -333,6 +385,7 @@ type EzToken = {
     color: string;
     width: number; // in squares (?)
     height: number; // in squares (?)
+    statusflags: TOKENSTATUSFLAGS;
 }
 
 // stripped EzToken is the same as a regular EzToken
@@ -351,6 +404,7 @@ type ImgToken = {
     img?: HTMLImageElement,
     width: number; // in squares (?)
     height: number; // in squares (?)
+    statusflags: TOKENSTATUSFLAGS;
 }
 type StrippedImgToken = {
     type: CANVASTYPE; // IMG_TOKEN
@@ -361,6 +415,7 @@ type StrippedImgToken = {
     url: string;
     width: number; // in squares (?)
     height: number; // in squares (?)
+    statusflags: TOKENSTATUSFLAGS;
 }
 //  door
 //  ----
@@ -1303,6 +1358,7 @@ function make_ez_token(id:number, base_x:number, base_y:number, text:string, col
         color:color,
         width: width,
         height: height,
+        statusflags: 0,
     };
     return obj;
 }
@@ -1324,6 +1380,7 @@ function make_img_token(id:number, base_x:number, base_y:number, url:string):Img
         img: undefined,
         width: 1,
         height: 1,
+        statusflags: 0,
     };
     const img = new Image(REFERENCE_WIDTH, REFERENCE_WIDTH);
     img.addEventListener('load', function(){
@@ -2265,6 +2322,7 @@ function strip_obj(obj_:CanvasObject): StrippedObj{
                 base_x: obj.base_x, base_y: obj.base_y,
                 width: obj.width, height:obj.height,
                 color: obj.color, text: obj.text,
+                statusflags: obj.statusflags,
             };
             return stripped_obj;
         }break;
@@ -2275,6 +2333,7 @@ function strip_obj(obj_:CanvasObject): StrippedObj{
                 base_x: obj.base_x, base_y: obj.base_y,
                 width: obj.width, height:obj.height,
                 url: obj.url,
+                statusflags: obj.statusflags,
             };
             return stripped_obj;
         }break;
@@ -2560,8 +2619,9 @@ function edit_is_impossible(view:DungeonMapView):boolean{
             return true; // should be unreachable
         case CANVASTYPE.FIXTURE:
             return true;
+        case CANVASTYPE.FILLED_TILE:
+            return true;
     }
-    return false;
 }
 
 function launch_edit_dialog(view:DungeonMapView):void{
@@ -2660,8 +2720,45 @@ function launch_edit_dialog(view:DungeonMapView):void{
                     <td colspan="3"><input type="text" name="text" id="hover-text" value="${obj.text}">
                 </tr>
             </table>
+            <div id="hover-conditions">
+            </div>
             `;
-            make_ok_dialog(html, function(hoverpop){
+            const flags_before = obj.statusflags;
+            let flags_after = flags_before;
+            function inject_checkboxes(){
+                const hover_conditions = document.getElementById('hover-conditions')! as HTMLDivElement;
+                function make_handler(el: HTMLInputElement, flag:TOKENSTATUSFLAGS){
+                    function onchange(){
+                        if(el.checked)
+                            flags_after |= flag;
+                        else
+                            flags_after &= ~flag;
+                    }
+                    return onchange;
+                }
+                for(let i = 0; i < STATUSFLAG_NAMES.length; i++){
+                    const flag = 1 << i;
+                    const name = STATUSFLAG_NAMES[i];
+                    const d = document.createElement('div');
+                    const inp = document.createElement('input');
+                    inp.type = 'checkbox';
+                    const fullname = `hover-status-${name}`;
+                    inp.name = fullname;
+                    inp.id = fullname;
+                    if(flags_before & flag)
+                        inp.checked = true;
+                    const label = document.createElement('label');
+                    label.appendChild(STATUSICONS[i]);
+                    label.appendChild(document.createTextNode(name));
+                    label.htmlFor = fullname;
+                    inp.addEventListener('change', make_handler(inp, flag));
+                    d.appendChild(inp);
+                    d.appendChild(label);
+                    hover_conditions.appendChild(d);
+                }
+
+            }
+            make_ok_dialog2(html, inject_checkboxes, function(hoverpop){
                 const text_input = document.getElementById('hover-text')! as HTMLInputElement;
                 const text = text_input.value;
                 if(text){
@@ -2677,12 +2774,77 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 obj.height = height;
                 const color = (document.getElementById('hover-color') as HTMLInputElement).value;
                 obj.color = color;
+                obj.statusflags = flags_after;
                 const after = strip_obj(obj);
                 publish_obj_updates(view.map.map_id, [after]);
                 request_render();
             });
         }return;
         case CANVASTYPE.IMG_TOKEN:{
+            // copy-paste from above
+            const obj = obj_ as ImgToken;
+            const html = `
+            <h2>Edit Token</h2>
+            <table class="input-container">
+                <tr>
+                    <td><label for="width">Width (sq):</label>
+                    <td><input type="number" name="width" id="hover-width" min="1" max="5" value="${obj.width}" class="numeric-input">
+                    <td><label for="height">Height (sq):</label>
+                    <td><input type="number" name="height" id="hover-height" min="1" max="5" value="${obj.height}" class="numeric-input">
+                </tr>
+            </table>
+            <div id="hover-conditions">
+            </div>
+            `;
+            const flags_before = obj.statusflags;
+            let flags_after = flags_before;
+            function inject_checkboxes(){
+                const hover_conditions = document.getElementById('hover-conditions')! as HTMLDivElement;
+                function make_handler(el: HTMLInputElement, flag:TOKENSTATUSFLAGS){
+                    function onchange(){
+                        if(el.checked)
+                            flags_after |= flag;
+                        else
+                            flags_after &= ~flag;
+                    }
+                    return onchange;
+                }
+                for(let i = 0; i < STATUSFLAG_NAMES.length; i++){
+                    const flag = 1 << i;
+                    const name = STATUSFLAG_NAMES[i];
+                    const d = document.createElement('div');
+                    const inp = document.createElement('input');
+                    inp.type = 'checkbox';
+                    const fullname = `hover-status-${name}`;
+                    inp.name = fullname;
+                    inp.id = fullname;
+                    if(flags_before & flag)
+                        inp.checked = true;
+                    const label = document.createElement('label');
+                    label.appendChild(STATUSICONS[i]);
+                    label.appendChild(document.createTextNode(name));
+                    label.htmlFor = fullname;
+                    inp.addEventListener('change', make_handler(inp, flag));
+                    d.appendChild(inp);
+                    d.appendChild(label);
+                    hover_conditions.appendChild(d);
+                }
+
+            }
+            make_ok_dialog2(html, inject_checkboxes, function(hoverpop){
+                let width = +((document.getElementById('hover-width') as HTMLInputElement).value);
+                let height = +((document.getElementById('hover-height') as HTMLInputElement).value);
+                if(!width)
+                    width = 1;
+                if(!height)
+                    height = 1;
+                obj.width = width;
+                obj.height = height;
+                obj.statusflags = flags_after;
+                const after = strip_obj(obj);
+                publish_obj_updates(view.map.map_id, [after]);
+                request_render();
+            });
         }return;
         case CANVASTYPE.DOOR:
             return;
@@ -2889,6 +3051,22 @@ function render(timestamp:DOMHighResTimeStamp):void{
     }
     ctx.translate(camera_x, camera_y);
     let length = canvas_obj_array.length;
+    function draw_status_icons(token_bbox: Bbox, statusflags: TOKENSTATUSFLAGS, scale:number){
+        let sx = token_bbox.x0;
+        let sy = token_bbox.y1-STATUSICONSIZE*scale;
+        for(let i = 0; i < STATUSFLAG_NAMES.length; i++){
+            const flag = 1 << i;
+            if(!(statusflags & flag))
+                continue;
+            const img = STATUSICONS[i];
+            ctx.drawImage(img, sx, sy, STATUSICONSIZE*scale, STATUSICONSIZE*scale);
+            sx += STATUSICONSIZE*scale;
+            if(sx >= token_bbox.x1){
+                sx = token_bbox.x0;
+                sy -= STATUSICONSIZE*scale;
+            }
+        }
+    }
     for(let i = 0; i < length; ++i){
         let obj_ = canvas_obj_array[i];
         if(obj_.flags & CANVASFLAG.DELETED)
@@ -3182,6 +3360,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 ctx.textAlign = "center";
                 ctx.fillStyle = '#000';
                 ctx.fillText(obj.text, obj.base_x+radius_x, obj.base_y+radius_y);
+                draw_status_icons(token_bbox, obj.statusflags, obj.width);
             }break;
             case CANVASTYPE.IMAGE:{
                 const obj = obj_ as ImageObj;
@@ -3240,6 +3419,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x-4, 0, 2*Math.PI);
                     ctx.fill();
                 }
+                draw_status_icons(token_bbox, obj.statusflags, obj.width);
             }break;
             case CANVASTYPE.DOOR:{
                 const obj = obj_ as DoorObj;
@@ -4395,7 +4575,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         });
         // Selecttype is bit flags, so it has to be its own special snowflake.
         // I guess it should actually be like checkboxes?
-        if(toolel.firstChild!.textContent!.trim() == 'Select'){
+        if(toolel.id == 'select-tool'){
             const name = toolel.getElementsByTagName('span')[0];
             function change_st(st:SELECTTYPE){
                 select_type = st;

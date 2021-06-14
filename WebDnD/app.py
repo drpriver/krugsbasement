@@ -177,6 +177,9 @@ if appconfig.DEV:
     @app.route('/tokens/<token>')
     def get_token(token:str):
         return send_from_directory('tokens', token)
+    @app.route('/icons/<icon>')
+    def get_icon(icon:str):
+        return send_from_directory('icons', icon)
 
 @app.route('/state', methods=['GET', 'POST', 'DELETE'])
 def app_state():
