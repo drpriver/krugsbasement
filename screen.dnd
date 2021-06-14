@@ -20,43 +20,43 @@ David20::title @hide
         <label for="grid-snap-free">Free</label>
     ::div.tool @id(pan-tool)
       Pan
-    ::div.tool
+    ::div.tool @id(select-tool)
       Select
       ::raw
         <span>☰</span>
-    ::div.tool
+    ::div.tool @id(wall-tool)
       Wall
-    ::div.tool
+    ::div.tool @id(door-tool)
       Door
       ::raw
         <span>☰</span>
-    ::div.tool
+    ::div.tool @id(fixture-tool)
       Fixture
       ::raw
         <span>☰</span>
-    ::div.tool
+    ::div.tool @id(line-tool)
       Line
-    ::div.tool
+    ::div.tool @id(rect-tool)
       Rect
       ::raw
         <span>☰</span>
-    ::div.tool
+    ::div.tool @id(ellipse-tool)
       Ellipse
       ::raw
         <span>☰</span>
-    ::div.tool
+    ::div.tool @id(text-tool)
       Text
-    ::div.tool
+    ::div.tool @id(token-tool)
       Token
       ::raw
         <span>☰</span>
-    ::div.tool
+    ::div.tool @id(image-tool)
       Image
-    ::div.tool
+    ::div.tool @id(tile-tool)
       Tile - Filled
-    ::div.tool
+    ::div.tool @id(measure-tool)
       Measure
-    ::div.tool
+    ::div.tool @id(help-tool)
       Help
     ::div @id(colors)
       ::raw

@@ -4035,53 +4035,53 @@ enum TOOLTYPE {
     FILLED_TILE = 13,
 }
 const TOOLTYPE_MAX = TOOLTYPE.FIXTURE + 1;
-const NAMES_TO_TOOL = (function(){
+const TOOL_IDS_TO_TOOL = (function(){
     const m: Map<string, TOOLTYPE> = new Map();
-    m.set('Pan',         TOOLTYPE.PAN);
-    m.set('Select',      TOOLTYPE.SELECT);
-    m.set('Line',        TOOLTYPE.LINE);
-    m.set('Ellipse',     TOOLTYPE.ELLIPSE);
-    m.set('Wall',        TOOLTYPE.WALL);
-    m.set('Door',        TOOLTYPE.DOOR);
-    m.set('Rect',        TOOLTYPE.RECT);
-    m.set('Text',        TOOLTYPE.TEXT);
-    m.set('Token',       TOOLTYPE.TOKEN);
-    m.set('Image',       TOOLTYPE.IMAGE);
-    m.set('Help',        TOOLTYPE.HELP);
-    m.set('Measure',     TOOLTYPE.MEASURE);
-    m.set('Fixture',     TOOLTYPE.FIXTURE);
-    m.set('Tile - Filled', TOOLTYPE.FILLED_TILE);
+    m.set('pan-tool',     TOOLTYPE.PAN);
+    m.set('select-tool',  TOOLTYPE.SELECT);
+    m.set('line-tool',    TOOLTYPE.LINE);
+    m.set('ellipse-tool', TOOLTYPE.ELLIPSE);
+    m.set('wall-tool',    TOOLTYPE.WALL);
+    m.set('door-tool',    TOOLTYPE.DOOR);
+    m.set('rect-tool',    TOOLTYPE.RECT);
+    m.set('text-tool',    TOOLTYPE.TEXT);
+    m.set('token-tool',   TOOLTYPE.TOKEN);
+    m.set('image-tool',   TOOLTYPE.IMAGE);
+    m.set('help-tool',    TOOLTYPE.HELP);
+    m.set('measure-tool', TOOLTYPE.MEASURE);
+    m.set('fixture-tool', TOOLTYPE.FIXTURE);
+    m.set('tile-tool',    TOOLTYPE.FILLED_TILE);
     return m;
 }());
-const TOOL_TO_NAMES = [
+const TOOL_TO_TOOL_ID = [
     // TOOLTYPE.PAN:
-    'Pan',
+    'pan-tool',
     // TOOLTYPE.SELECT:
-    'Select',
+    'select-tool',
     // TOOLTYPE.LINE:
-    'Line',
+    'line-tool',
     // TOOLTYPE.ELLIPSE:
-    'Ellipse',
+    'ellipse-tool',
     // TOOLTYPE.WALL:
-    'Wall',
+    'wall-tool',
     // TOOLTYPE.DOOR:
-    'Door',
+    'door-tool',
     // TOOLTYPE.RECT:
-    'Rect',
+    'rect-tool',
     // TOOLTYPE.TEXT:
-    'Text',
+    'text-tool',
     // TOOLTYPE.TOKEN:
-    'Token',
+    'token-tool',
     // TOOLTYPE.IMAGE:
-    'Image',
+    'image-tool',
     // TOOLTYPE.HELP:
-    'Help',
+    'help-tool',
     // TOOLTYPE.MEASURE:
-    'Measure',
+    'measure-tool',
     // TOOLTYPE.FIXTURE:
-    'Fixture',
+    'fixture-tool',
     // TOOLTYPE.FILL:
-    'Tile - Filled'
+    'tile-tool',
 ];
 let current_fixture_type = FIXTURETYPE.STAIRS;
 enum TOKENTYPE {
@@ -4114,7 +4114,7 @@ let current_rect_type = RECTTYPE.HOLLOW;
 let current_tool:TOOLTYPE = (function(){
     const t = localStorage.getItem('current_tool');
     if(t){
-        const result =  NAMES_TO_TOOL.get(t);
+        const result =  TOOL_IDS_TO_TOOL.get(t);
         if(result !== undefined){
             return result;
         }
@@ -4215,7 +4215,7 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 let tools: Array<HTMLElement> = [];
 function change_tool(tool:TOOLTYPE):void{
-    localStorage.setItem('current_tool', TOOL_TO_NAMES[tool]);
+    localStorage.setItem('current_tool', TOOL_TO_TOOL_ID[tool]);
     let prev = current_tool;
     if(!tools)
         return;
@@ -4233,9 +4233,9 @@ function change_tool(tool:TOOLTYPE):void{
     numeric_hot_key = numeric_hot_keys.get(tool) || DEFAULT_NUMERIC_HOT_KEY;
     for(let j = 0; j < tools.length; ++j){
         const toolel = tools[j];
-        const toolname = TOOL_TO_NAMES[tool];
+        const tool_id = TOOL_TO_TOOL_ID[tool];
         toolel.classList.remove('selected');
-        if(toolel.firstChild!.textContent!.trim() == toolname){
+        if(toolel.id == tool_id){
             toolel.classList.add('selected');
         }
     }
@@ -4389,8 +4389,7 @@ document.addEventListener('DOMContentLoaded', function():void{
     for(let i = 0; i < tools.length; ++i){
         const toolel = tools[i];
         toolel.addEventListener('click', function(e:MouseEvent){
-            const toolname = toolel.firstChild!.textContent!.trim() as string;
-            const tool = NAMES_TO_TOOL.get(toolname);
+            const tool = TOOL_IDS_TO_TOOL.get(toolel.id);
             if(tool !== undefined)
                 change_tool(tool);
         });
@@ -4505,8 +4504,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 }()));
             });
         }
-        const tcontent = toolel.firstChild!.textContent!.trim();
-        switch(NAMES_TO_TOOL.get(tcontent)){
+        switch(TOOL_IDS_TO_TOOL.get(toolel.id)){
             case TOOLTYPE.DOOR:
                 setup_multi_option(toolel, TOOLTYPE.DOOR, function(i:number){current_door=i}, DOOR_TO_NAMES, DOORTYPE_MAX);
             break;
