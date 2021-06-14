@@ -19,43 +19,43 @@ David20::title @hide
         <input type="radio" id="grid-snap-free" name="snap-to-grid" value="FREE">
         <label for="grid-snap-free">Free</label>
     ::div.tool @id(pan-tool)
-      Pan
+      Pa<b>n</b>
     ::div.tool @id(select-tool)
-      Select
+      <b>S</b>elect
       ::raw
         <span>☰</span>
     ::div.tool @id(wall-tool)
-      Wall
+      W<b>a</b>ll
     ::div.tool @id(door-tool)
-      Door
+      <b>D</b>oor
       ::raw
         <span>☰</span>
     ::div.tool @id(fixture-tool)
-      Fixture
+      <b>F</b>ixture
       ::raw
         <span>☰</span>
     ::div.tool @id(line-tool)
-      Line
+      <b>L</b>ine
     ::div.tool @id(rect-tool)
-      Rect
+      <b>R</b>ect
       ::raw
         <span>☰</span>
     ::div.tool @id(ellipse-tool)
-      Ellipse
+      Elli<b>p</b>se
       ::raw
         <span>☰</span>
     ::div.tool @id(text-tool)
-      Text
+      <b>T</b>ext
     ::div.tool @id(token-tool)
-      Token
+      T<b>o</b>ken
       ::raw
         <span>☰</span>
     ::div.tool @id(image-tool)
-      Image
+      <b>I</b>mage
     ::div.tool @id(tile-tool)
       Tile - Filled
     ::div.tool @id(measure-tool)
-      Measure
+      <b>M</b>easure
     ::div.tool @id(help-tool)
       Help
     ::div @id(colors)
@@ -84,6 +84,11 @@ David20::title @hide
   }
   * {
     box-sizing: border-box;
+  }
+  .tool b {
+    /* wow this is a total hackjob */
+    text-decoration: underline;
+    font-weight: initial;
   }
   #map {
     background-color: #fff;
