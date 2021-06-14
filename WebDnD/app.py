@@ -180,6 +180,9 @@ if appconfig.DEV:
     @app.route('/icons/<icon>')
     def get_icon(icon:str):
         return send_from_directory('icons', icon)
+    @app.route('/tiles/<tile>')
+    def get_tile(tile:str):
+        return send_from_directory('tiles', tile)
 
 @app.route('/state', methods=['GET', 'POST', 'DELETE'])
 def app_state():

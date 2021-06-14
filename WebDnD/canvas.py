@@ -45,6 +45,7 @@ class CANVASTYPE(IntEnum):
     MEASURE       = 13
     FIXTURE       = 14
     FILLED_TILE   = 15
+    TERRAIN_TILE  = 16
 
 def save_canvas(maps:Dict[int, Map]) -> List[Dict[str, Any]]:
     return [v.with_live_objs() for v in maps.values() if not (v.flags & MapFlag.DELETED)]
@@ -212,6 +213,7 @@ validate(CT.STAIRS, width=NUMBER, height=NUMBER, rotation=int, defaults=dict(wid
 validate(CT.MEASURE, x1=NUMBER, y1=NUMBER, color=str)
 validate(CT.FIXTURE, width=NUMBER, height=NUMBER, ftype=int, defaults=dict(width=64, height=64))
 validate(CT.FILLED_TILE, color=str, defaults=dict(color='#555555'))
+validate(CT.TERRAIN_TILE, terrain_id=int, defaults=dict(terrain_id=0))
 
 
 

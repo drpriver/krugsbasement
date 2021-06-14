@@ -53,7 +53,9 @@ David20::title @hide
     ::div.tool @id(image-tool)
       <b>I</b>mage
     ::div.tool @id(tile-tool)
-      Tile - Filled
+      Tile
+      ::raw
+        <span>☰</span>
     ::div.tool @id(measure-tool)
       <b>M</b>easure
     ::div.tool @id(help-tool)
@@ -63,6 +65,7 @@ David20::title @hide
         <input type="color" id="color-picker" value="#000000"><span id="color-picker-dropdown" style="cursor:pointer;width:2em;text-align:center;">▼</span>
         <input type="color" id="color-picker2" value="#ffffff"><span id="color-picker2-dropdown" style="cursor:pointer;width:2em;text-align:center;">▼</span>
         <input type="number" class="numeric-input" id="line-thickness" value="4" max="20" min="1">
+  ::div @id(palette)
 ::div.chat @id(chat)
   ::div @id(tree)
     ::div
@@ -162,6 +165,48 @@ David20::title @hide
     margin: 4px 0px 4px 0px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
     /*font-size: 24px;*/
+  }
+  #palette{
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    min-height: 200px;
+    min-width: 200px;
+    overflow-y: auto;
+    border: 2px solid black;
+    padding: 4px;
+    background-color: #fff;
+    -webkit-user-select: none;
+    user-select: none;
+    display: grid;
+    grid-template-columns: repeat(6, auto);
+    grid-column-gap: 4px;
+    grid-row-gap: 4px;
+  }
+  #palette img {
+    width: 25px;
+    height: 25px;
+  }
+  #palette label {
+    width: 40px;
+    height: 40px;
+  }
+
+  #palette input[type="radio"]:checked+label {
+    box-shadow: inset 2px 2px 2px 2px rgba(0,0,0,0.3);
+    border: 2px solid red;
+  }
+  #palette input[type="radio"]+label {
+    box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.3);
+    border: 1px solid gray;
+    cursor: pointer;
+    padding: 4px;
+    width: 40px;
+    height: 40px;
+  }
+  #palette input[type="radio"] {
+    display: none;
+    height: 40px;
   }
   #tools{
     position: absolute;

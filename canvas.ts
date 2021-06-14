@@ -71,6 +71,7 @@ enum CANVASTYPE {
     MEASURE       = 13,
     FIXTURE       = 14,
     FILLED_TILE   = 15,
+    TERRAIN_TILE  = 16,
 }
 // High numbers go on top.
 const SORTORDER = [
@@ -503,6 +504,21 @@ type FixtureObj = {
 // stripped fixture obj is the same as regular fixtures.
 type StrippedFixtureObj = FixtureObj;
 
+// Tile stuff
+enum TILETYPE {
+    FILLED = 0,
+    TERRAIN = 1,
+}
+let current_tile_type = TILETYPE.FILLED;
+let current_terrain_id: number = 0;
+const TILETYPE_MAX = TILETYPE.TERRAIN+1;
+const TILETYPE_TO_NAME = [
+    // TILETYPE.FILLED
+    'Filled',
+    // TILETYPE.TERRAIN
+    'Terrain',
+];
+
 // FilledTile
 // ----------
 type FilledTile = {
@@ -516,8 +532,384 @@ type FilledTile = {
 
 type StrippedFilledTile = FilledTile;
 
-type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj | FilledTile;
-type StrippedObj = StrippedFreehandLine | StrippedGridLine | StrippedRectangle | StrippedFilledRectangle | StrippedGridRectangle | StrippedEllipse | StrippedImageObj | StrippedTextObj | StrippedEzToken | StrippedImgToken | StrippedDoorObj | StrippedStairs | StrippedMeasureObj | StrippedFixtureObj | StrippedFilledTile;
+// TerrainTile
+// -----------
+type TerrainTile = {
+    type: CANVASTYPE; // TERRAIN_TILE
+    id: number;
+    base_x: number;
+    base_y: number;
+    flags: CANVASFLAG;
+    terrain_id: number;
+}
+
+type StrippedTerrainTile = {
+    type: CANVASTYPE; // TERRAIN_TILE
+    id: number;
+    base_x: number;
+    base_y: number;
+    flags: CANVASFLAG;
+    terrain_id: number;
+}
+
+type TerrainInfo = {
+    img?: HTMLImageElement;
+    color: string;
+    name: string;
+}
+// TODO: something more elegant than this.
+const TERRAINS = [
+    {
+        name: "No Terrain",
+        id: 0,
+        bg_color: "#ccccccff"
+    },
+    {
+        name: "Sea",
+        id: 1,
+        bg_color: "#99ccffff"
+    },
+    {
+        name: "Beach",
+        id: 2,
+        path: "beach.png",
+        bg_color: "#fff899ff"
+    },
+    {
+        name: "Dead Forest Hills",
+        id: 3,
+        path: "deadforesthills.png",
+        bg_color: "#a0a0a0ff"
+    },
+    {
+        name: "Dead Forest Mountain",
+        id: 4,
+        path: "deadforestmountain.png",
+        bg_color: "#909090ff"
+    },
+    {
+        name: "Dead Forest Mountains",
+        id: 5,
+        path: "deadforestmountains.png",
+        bg_color: "#808080ff"
+    },
+    {
+        name: "Dead Forest",
+        id: 6,
+        path: "deadforest.png",
+        bg_color: "#b0b0b0ff"
+    },
+    {
+        name: "Dead Forest Wetlands",
+        id: 7,
+        path: "deadforestwetlands.png",
+        bg_color: "#808080ff"
+    },
+    {
+        name: "Dunes",
+        id: 8,
+        path: "dunes.png",
+        bg_color: "#ffff99ff"
+    },
+    {
+        name: "Evergreen Hills",
+        id: 9,
+        path: "evergreenhills.png",
+        bg_color: "#488a21ff"
+    },
+    {
+        name: "Evergreen Mountain",
+        id: 10,
+        path: "evergreenmountain.png",
+        bg_color: "#577621ff"
+    },
+    {
+        name: "Evergreen Mountains",
+        id: 11,
+        path: "evergreenmountains.png",
+        bg_color: "#667621ff"
+    },
+    {
+        name: "Evergreen",
+        id: 12,
+        path: "evergreen.png",
+        bg_color: "#39912dff"
+    },
+    {
+        name: "Evergreen Wetlands",
+        id: 13,
+        path: "evergreenwetlands.png",
+        bg_color: "#488a40ff"
+    },
+    {
+        name: "Forested Hills",
+        id: 14,
+        path: "forestedhills.png",
+        bg_color: "#8ebd52ff"
+    },
+    {
+        name: "Forested Mountain",
+        id: 15,
+        path: "forestedmountain.png",
+        bg_color: "#86a233ff"
+    },
+    {
+        name: "Forested Mountains",
+        id: 16,
+        path: "forestedmountains.png",
+        bg_color: "#879233ff"
+    },
+    {
+        name: "Forest Wetlands",
+        id: 18,
+        path: "forestwetlands.png",
+        bg_color: "#879253ff"
+    },
+    {
+        name: "Glacier",
+        id: 21,
+        path: "glacier.png",
+        bg_color: "#e6ffffff"
+    },
+    {
+        name: "Grassland Hills",
+        id: 22,
+        path: "grasslandhills.png",
+        bg_color: "#d7f796ff"
+    },
+    {
+        name: "Grassland",
+        id: 23,
+        path: "grassland.png",
+        bg_color: "#e7f79cff"
+    },
+    {
+        name: "Grassy Hills",
+        id: 25,
+        path: "grassyhills.png",
+        bg_color: "#c3d263ff"
+    },
+    {
+        name: "Heavy Cactus",
+        id: 26,
+        path: "heavycactus.png",
+        bg_color: "#b2b200ff"
+    },
+    {
+        name: "Heavy Evergreen",
+        id: 27,
+        path: "heavyevergreen.png",
+        bg_color: "#2f7621ff"
+    },
+    {
+        name: "Heavy Forest",
+        id: 29,
+        path: "heavyforest.png",
+        bg_color: "#7aad43ff"
+    },
+    {
+        name: "Hills",
+        id: 30,
+        path: "hills.png",
+        bg_color: "#e7ce5aff"
+    },
+    {
+        name: "Iceflow",
+        id: 31,
+        path: "iceflow.png",
+        bg_color: "#cbffffff"
+    },
+    {
+        name: "Jungle Hills",
+        id: 32,
+        path: "junglehills.png",
+        bg_color: "#468552ff"
+    },
+    {
+        name: "Light Jungle",
+        id: 33,
+        path: "junglelight.png",
+        bg_color: "#559e64ff"
+    },
+    {
+        name: "Jungle Mountain",
+        id: 34,
+        path: "junglemountain.png",
+        bg_color: "#3f7b4aff"
+    },
+    {
+        name: "Jungle Mountains",
+        id: 35,
+        path: "junglemountains.png",
+        bg_color: "#367142ff"
+    },
+    {
+        name: "Jungle",
+        id: 36,
+        path: "jungle.png",
+        bg_color: "#4d8f5aff"
+    },
+    {
+        name: "Jungle Wetlands",
+        id: 37,
+        path: "junglewetlands.png",
+        bg_color: "#46855cff"
+    },
+    {
+        name: "Heavy Kelp Forest",
+        id: 38,
+        path: "kelpforestheavy.png",
+        bg_color: "#99f0ffff"
+    },
+    {
+        name: "Kelp Forest",
+        id: 39,
+        path: "kelpforest.png",
+        bg_color: "#99e0ffff"
+    },
+    {
+        name: "Lava",
+        id: 40,
+        path: "lava.png",
+        bg_color: "#ff9900ff"
+    },
+    {
+        name: "Light Forest",
+        id: 41,
+        path: "lightforest.png",
+        bg_color: "#95c663ff"
+    },
+    {
+        name: "Marsh",
+        id: 42,
+        path: "marsh.png",
+        bg_color: "#84ce94ff"
+    },
+    {
+        name: "Heavy Mixed Forest",
+        id: 43,
+        path: "mixedforestheavy.png",
+        bg_color: "#4f8a3bff"
+    },
+    {
+        name: "Mixed Forest Hills",
+        id: 44,
+        path: "mixedforesthills.png",
+        bg_color: "#74a33aff"
+    },
+    {
+        name: "Mixed Forest Mountain",
+        id: 45,
+        path: "mixedforestmountain.png",
+        bg_color: "#69872bff"
+    },
+    {
+        name: "Mixed Forest Mountains",
+        id: 46,
+        path: "mixedforestmountains.png",
+        bg_color: "#74852bff"
+    },
+    {
+        name: "Mixed Forest",
+        id: 47,
+        path: "mixedforest.png",
+        bg_color: "#4f9e45ff"
+    },
+    {
+        name: "Moor",
+        id: 48,
+        path: "moor.png",
+        bg_color: "#a0d79dff"
+    },
+    {
+        name: "Mountain",
+        id: 49,
+        path: "mountain.png",
+        bg_color: "#c68f00ff"
+    },
+    {
+        name: "Mountains",
+        id: 50,
+        path: "mountains.png",
+        bg_color: "#b28000ff"
+    },
+    {
+        name: "Reefs",
+        id: 51,
+        path: "reefs.png",
+        bg_color: "#99ccffff"
+    },
+    {
+        name: "Rocky Desert",
+        id: 52,
+        path: "rockydesert.png",
+        bg_color: "#f0e171ff"
+    },
+    {
+        name: "Sand Desert",
+        id: 53,
+        path: "sandydesert.png",
+        bg_color: "#f8f085ff"
+    },
+    {
+        name: "Savanna",
+        id: 54,
+        path: "savanna.png",
+        bg_color: "#d2f896ff"
+    },
+    {
+        name: "Shrubland Hills",
+        id: 55,
+        path: "shrublandhills.png",
+        bg_color: "#dadc71ff"
+    },
+    {
+        name: "Shrubland",
+        id: 56,
+        path: "shrubland.png",
+        bg_color: "#dadc80ff"
+    },
+    {
+        name: "Snowcapped Mountain",
+        id: 57,
+        path: "snowcappedmountain.png",
+        bg_color: "#c68f00ff"
+    },
+    {
+        name: "Snowcapped Mountains",
+        id: 58,
+        path: "snowcappedmountains.png",
+        bg_color: "#b28000ff"
+    },
+    {
+        name: "Snowfields",
+        id: 59,
+        path: "snowfields.png",
+        bg_color: "#ffffffff"
+    },
+    {
+        name: "Swamp",
+        id: 60,
+        path: "swamp.png",
+        bg_color: "#addea5ff"
+    }
+]
+const TERRAIN_INFOS: Map<number, TerrainInfo> = (function(){
+    const m: Map<number, TerrainInfo> = new Map();
+    for(let t of TERRAINS){
+        const info: TerrainInfo = {color:t.bg_color, name:t.name};
+        if(t.path){
+            const img = new Image();
+            img.src = `/tiles/${t.path}`;
+            info.img = img;
+        }
+        m.set(t.id, info);
+    }
+    return m;
+}());
+
+type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj | FilledTile | TerrainTile;
+type StrippedObj = StrippedFreehandLine | StrippedGridLine | StrippedRectangle | StrippedFilledRectangle | StrippedGridRectangle | StrippedEllipse | StrippedImageObj | StrippedTextObj | StrippedEzToken | StrippedImgToken | StrippedDoorObj | StrippedStairs | StrippedMeasureObj | StrippedFixtureObj | StrippedFilledTile | StrippedTerrainTile;
 
 // Door subtypes
 // ------------
@@ -2083,6 +2475,7 @@ function obj_in_bbox(obj_:CanvasObject, bbox:Bbox, selection_type:SELECTTYPE):bo
             };
             return bbox_overlaps(bbox, f_bbox);
         }
+        case CANVASTYPE.TERRAIN_TILE: // fall-through
         case CANVASTYPE.FILLED_TILE:{
             if(!(selection_type & SELECTTYPE.BACKGROUND))
                 return false;
@@ -2388,6 +2781,15 @@ function strip_obj(obj_:CanvasObject): StrippedObj{
             };
             return stripped_obj;
         }break;
+        case CANVASTYPE.TERRAIN_TILE:{
+            const obj = obj_ as TerrainTile;
+            const stripped_obj: StrippedTerrainTile = {
+                type: obj.type, id: obj.id, flags: obj.flags,
+                base_x: obj.base_x, base_y: obj.base_y,
+                terrain_id: obj.terrain_id,
+            };
+            return stripped_obj;
+        }break;
     }
 }
 //
@@ -2497,6 +2899,13 @@ function unstrip_obj(obj_: StrippedObj):CanvasObject{
         case CANVASTYPE.FILLED_TILE:{
             const obj: FilledTile = {
                 ...(obj_ as StrippedFilledTile),
+            };
+            return obj;
+        }break;
+        case CANVASTYPE.TERRAIN_TILE:{
+            const o = obj_ as StrippedTerrainTile;
+            const obj: TerrainTile = {
+                ...o,
             };
             return obj;
         }break;
@@ -2620,6 +3029,8 @@ function edit_is_impossible(view:DungeonMapView):boolean{
         case CANVASTYPE.FIXTURE:
             return true;
         case CANVASTYPE.FILLED_TILE:
+            return true;
+        case CANVASTYPE.TERRAIN_TILE:
             return true;
     }
 }
@@ -2880,6 +3291,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
     // const before = performance.now();
     if(!ctx)
         return;
+    ctx.imageSmoothingQuality = 'medium';
     const view = get_active_view();
     if(!view)
         return;
@@ -2913,14 +3325,20 @@ function render(timestamp:DOMHighResTimeStamp):void{
     };
     {
         const bgtiles: Array<FilledTile> = [];
+        const terraintiles: Array<TerrainTile> = [];
         const length = canvas_obj_array.length;
         for(let i = 0; i < length; ++i){
             const obj_ = canvas_obj_array[i];
             if(obj_.flags & CANVASFLAG.DELETED)
                 continue;
-            if(obj_.type != CANVASTYPE.FILLED_TILE)
+            if(obj_.type == CANVASTYPE.FILLED_TILE){
+                bgtiles.push(obj_ as FilledTile);
                 continue;
-            bgtiles.push(obj_ as FilledTile);
+            }
+            if(obj_.type == CANVASTYPE.TERRAIN_TILE){
+                terraintiles.push(obj_ as TerrainTile);
+                continue;
+            }
         }
         ctx.scale(SCALE, SCALE);
         ctx.translate(camera_x, camera_y);
@@ -2945,6 +3363,27 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     else
                         ctx.fillStyle = obj.color;
                     ctx.fillRect(obj.base_x, obj.base_y, REFERENCE_WIDTH, REFERENCE_WIDTH);
+                }
+                for(let obj of terraintiles){
+                    const rect_bbox = {
+                        x0:obj.base_x,
+                        y0:obj.base_y,
+                        x1:obj.base_x+REFERENCE_WIDTH,
+                        y1:obj.base_y+REFERENCE_WIDTH,
+                    };
+                    if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                        continue;
+                    }
+                    const is_selected = selected.has(obj.id);
+                    const info = TERRAIN_INFOS.get(obj.terrain_id) || TERRAIN_INFOS.get(0)!;
+                    if(is_selected)
+                        ctx.fillStyle = SELECTED_COLOR;
+                    else
+                        ctx.fillStyle = info.color;
+                    ctx.fillRect(obj.base_x, obj.base_y, REFERENCE_WIDTH, REFERENCE_WIDTH);
+                    if(info.img){
+                        ctx.drawImage(info.img, obj.base_x, obj.base_y, 64, 64);
+                    }
                 }
             }break;
             case GRIDTYPE.HEX:{
@@ -2982,6 +3421,39 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         else
                             ctx.fillStyle = '#000000';
                         ctx.fillText(`${obj.base_x>>6},${obj.base_y>>6}`, 32, 63);
+                    }
+                    ctx.restore();
+                }
+                for(let obj of terraintiles){
+                    const rect_bbox = {
+                        x0:obj.base_x,
+                        y0:obj.base_y,
+                        x1:obj.base_x+REFERENCE_WIDTH,
+                        y1:obj.base_y+REFERENCE_WIDTH,
+                    };
+                    if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                        continue;
+                    }
+                    ctx.save();
+                    const is_selected = selected.has(obj.id);
+                    const info = TERRAIN_INFOS.get(obj.terrain_id) || TERRAIN_INFOS.get(0)!;
+                    if(is_selected)
+                        ctx.fillStyle = SELECTED_COLOR;
+                    else
+                        ctx.fillStyle = info.color;
+                    ctx.translate(obj.base_x, obj.base_y);
+                    ctx.fill(p);
+                    if(map.flags & MapFlags.NUMBERED){
+                        if(info.color == '#000000')
+                            ctx.fillStyle = '#ffffff';
+                        else
+                            ctx.fillStyle = '#000000';
+                        ctx.fillText(`${obj.base_x>>6},${obj.base_y>>6}`, 32, 63);
+                    }
+                    if(info.img){
+                        ctx.translate(8, 8);
+                        ctx.scale(48/250, 48/250);
+                        ctx.drawImage(info.img, 0, 0);
                     }
                     ctx.restore();
                 }
@@ -4134,6 +4606,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
             }break;
             case CANVASTYPE.FILLED_TILE:{
+                // drawn already
+            }break;
+            case CANVASTYPE.TERRAIN_TILE:{
+                // drawn already
             }break;
         }
     }
@@ -4199,20 +4675,20 @@ function render(timestamp:DOMHighResTimeStamp):void{
     */
 }
 enum TOOLTYPE {
-    PAN         = 0,
-    SELECT      = 1,
-    LINE        = 2,
-    ELLIPSE     = 3,
-    WALL        = 4,
-    DOOR        = 5,
-    RECT        = 6,
-    TEXT        = 7,
-    TOKEN       = 8,
-    IMAGE       = 9,
-    HELP        = 10,
-    MEASURE     = 11,
-    FIXTURE     = 12,
-    FILLED_TILE = 13,
+    PAN     = 0,
+    SELECT  = 1,
+    LINE    = 2,
+    ELLIPSE = 3,
+    WALL    = 4,
+    DOOR    = 5,
+    RECT    = 6,
+    TEXT    = 7,
+    TOKEN   = 8,
+    IMAGE   = 9,
+    HELP    = 10,
+    MEASURE = 11,
+    FIXTURE = 12,
+    TILE    = 13,
 }
 const TOOLTYPE_MAX = TOOLTYPE.FIXTURE + 1;
 const TOOL_IDS_TO_TOOL = (function(){
@@ -4230,7 +4706,7 @@ const TOOL_IDS_TO_TOOL = (function(){
     m.set('help-tool',    TOOLTYPE.HELP);
     m.set('measure-tool', TOOLTYPE.MEASURE);
     m.set('fixture-tool', TOOLTYPE.FIXTURE);
-    m.set('tile-tool',    TOOLTYPE.FILLED_TILE);
+    m.set('tile-tool',    TOOLTYPE.TILE);
     return m;
 }());
 const TOOL_TO_TOOL_ID = [
@@ -4393,6 +4869,41 @@ document.addEventListener('DOMContentLoaded', function(){
     });
 
 });
+function hide_palette(){
+    const palette = document.getElementById('palette')!;
+    palette.style.display = 'none';
+}
+function make_terrain_palette(){
+    const palette = document.getElementById('palette')! as HTMLDivElement;
+    while (palette.firstChild) {
+        palette.removeChild(palette.lastChild!);
+    }
+    function make_cb(id:number){
+        function cb(){
+            current_terrain_id = id;
+        }
+        return cb;
+    }
+    palette.style.display = 'grid';
+    for(const [id, ti] of TERRAIN_INFOS.entries()){
+        const inp = document.createElement('input');
+        inp.type = 'radio';
+        inp.name = 'terrain';
+        inp.id = `terrain-${ti.name}`;
+        const label = document.createElement('label');
+        label.htmlFor = inp.id;
+        label.style.backgroundColor = ti.color;
+        if(ti.img)
+            label.appendChild(ti.img);
+        palette.appendChild(inp);
+        palette.appendChild(label);
+        label.addEventListener('mousedown', make_cb(id));
+        if(id == current_terrain_id){
+            label.click();
+            label.scrollIntoView();
+        }
+    }
+}
 let tools: Array<HTMLElement> = [];
 function change_tool(tool:TOOLTYPE):void{
     localStorage.setItem('current_tool', TOOL_TO_TOOL_ID[tool]);
@@ -4409,6 +4920,21 @@ function change_tool(tool:TOOLTYPE):void{
                 end_selecting(view);
             }
             break;
+    }
+    switch(tool){
+        case TOOLTYPE.TILE:{
+            switch(current_tile_type){
+                case TILETYPE.FILLED:
+                    hide_palette();
+                    break;
+                case TILETYPE.TERRAIN:
+                    make_terrain_palette();
+                    break;
+            }
+        }break;
+        default:
+            hide_palette();
+        break;
     }
     numeric_hot_key = numeric_hot_keys.get(tool) || DEFAULT_NUMERIC_HOT_KEY;
     for(let j = 0; j < tools.length; ++j){
@@ -4699,6 +5225,19 @@ document.addEventListener('DOMContentLoaded', function():void{
             break;
             case TOOLTYPE.FIXTURE:
                 setup_multi_option(toolel, TOOLTYPE.FIXTURE, function(i:number){current_fixture_type=i}, FIXTURETYPE_TO_NAME, FIXTURETYPE_MAX);
+            break;
+            case TOOLTYPE.TILE:
+                setup_multi_option(toolel, TOOLTYPE.TILE, function(i:number){
+                    current_tile_type=i;
+                    switch(current_tile_type){
+                        case TILETYPE.FILLED:
+                            hide_palette();
+                            break;
+                        case TILETYPE.TERRAIN:
+                            make_terrain_palette();
+                            break;
+                    }
+                }, TILETYPE_TO_NAME, TILETYPE_MAX);
             break;
             default:
             break;
@@ -5613,7 +6152,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 canvas.addEventListener('mouseleave', finish);
 
             }break;
-            case TOOLTYPE.FILLED_TILE:{
+            case TOOLTYPE.TILE:{
                 let x:number;
                 let y:number;
                 if(view.map.grid_type == GRIDTYPE.HEX){
@@ -5624,15 +6163,32 @@ document.addEventListener('DOMContentLoaded', function(){
                     y = snap_down_to_grid(e.offsetY/view.scale-view.camera_y);
                 }
                 let id = get_new_id();
-                let filled: FilledTile = {
-                    type: CANVASTYPE.FILLED_TILE,
-                    id: id,
-                    base_x: x,
-                    base_y: y,
-                    flags: CANVASFLAG.NONE,
-                    color: get_primary_color(),
-                };
-                add_canv_obj(view.map, filled);
+                switch(current_tile_type){
+                    case TILETYPE.FILLED:{
+                        let filled: FilledTile = {
+                            type: CANVASTYPE.FILLED_TILE,
+                            id: id,
+                            base_x: x,
+                            base_y: y,
+                            flags: CANVASFLAG.NONE,
+                            color: get_primary_color(),
+                        };
+                        add_canv_obj(view.map, filled);
+                    }break;
+                    case TILETYPE.TERRAIN: {
+                        let terrain: TerrainTile = {
+                            type: CANVASTYPE.TERRAIN_TILE,
+                            id: id,
+                            base_x: x,
+                            base_y: y,
+                            flags: CANVASFLAG.NONE,
+                            terrain_id: current_terrain_id,
+                        };
+                        add_canv_obj(view.map, terrain);
+                    }break;
+                    default:
+                        console.assert(false);
+                }
                 publish_obj_by_id(view.map, id);
                 note_create_by_id_for_undo(view.map, id);
                 request_render();
