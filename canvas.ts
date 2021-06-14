@@ -4875,9 +4875,7 @@ function hide_palette(){
 }
 function make_terrain_palette(){
     const palette = document.getElementById('palette')! as HTMLDivElement;
-    while (palette.firstChild) {
-        palette.removeChild(palette.lastChild!);
-    }
+    (palette as any).replaceChildren();
     function make_cb(id:number){
         function cb(){
             current_terrain_id = id;
