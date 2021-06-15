@@ -4779,15 +4779,24 @@ function render(timestamp:DOMHighResTimeStamp):void{
         while(timings.length > 100){
             timings.splice(0, 1);
         }
+        let min = 100;
+        let max = 0;
         let total = 0;
-        for(let t of timings)
+        for(let t of timings){
+            if(t < min)
+                min = t;
+            if(t > max)
+                max = t;
             total += t;
+        }
         const avg = (total / timings.length).toFixed(4)+'ms';
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(width/2-100, height/2-50, 200, 100);
         ctx.fillStyle = '#000000';
-        ctx.fillText(avg, width/2, height/2);
+        ctx.fillText('avg '+ avg, width/2, height/2);
+        ctx.fillText('min '+ min.toFixed(4)+'ms', width/2, height/2-20);
+        ctx.fillText('max '+ max.toFixed(4)+'ms', width/2, height/2+20);
     }
     */
 }
