@@ -70,8 +70,9 @@ David20::title @hide
   ::div @id(tree)
     ::div
       ::raw
-        <button id="edit-map-button">Edit Map</button>
         <button id="new-map-button">New Map</button>
+        <button id="edit-map-button">Edit Map</button>
+        <button id="delete-map-button">Delete Map</button>
     ::raw
       <select name="current-map-name" id="current-map-name">Untitled▾</select>
   ::div.log @id(chat-history)

@@ -6604,11 +6604,11 @@ function make_ok_dialog2(html:string, after_append:()=>void, on_ok:(_:HTMLElemen
 document.addEventListener('DOMContentLoaded', function(){
     const edit_map_button = document.getElementById('edit-map-button')! as HTMLButtonElement;
     const new_map_button = document.getElementById('new-map-button')! as HTMLButtonElement;
+    const delete_map_button = document.getElementById('delete-map-button')! as HTMLButtonElement;
     edit_map_button.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
         const active_view = get_active_view();
-        const cant_delete = active_view.map.flags & MapFlags.CANT_DELETE;
         let html = `
         <h2>Edit Map</h2>
         <table class="input-container">
@@ -6634,27 +6634,11 @@ document.addEventListener('DOMContentLoaded', function(){
                 <td><input name="hover-numbered" type="checkbox" id="hover-numbered" ${(active_view.map.flags & MapFlags.NUMBERED)?"checked":""}>
             </tr>
         `;
-        if(!cant_delete){
-            html += `
-            <tr>
-                <td><label for="hover-delete">Delete Map</label>
-                <td><input name="hover-delete" type="checkbox" id="hover-delete">
-            </tr>
-            `
-        }
         html += `
         </table>
         `;
         function on_ok(unused:any){
             const name_input = document.getElementById('hover-text')! as HTMLInputElement;
-            if(!cant_delete){
-                const delete_checkbox = document.getElementById('hover-delete')! as HTMLInputElement;
-                const should_delete = delete_checkbox.checked;
-                if(should_delete){
-                    socket.emit('canvas-delete-map-request', active_view.map.map_id);
-                    return;
-                }
-            }
             if(!name_input.value)
                 return;
             const name = name_input.value.trim();
@@ -6669,6 +6653,38 @@ document.addEventListener('DOMContentLoaded', function(){
             const numbered = (document.getElementById('hover-numbered')! as HTMLInputElement).checked? MapFlags.NUMBERED : 0;
             if((active_view.map.flags & MapFlags.NUMBERED) != numbered)
                 socket.emit('canvas-grid-numbered', {map_id:active_view.map.map_id, numbered:numbered});
+        }
+        make_ok_dialog(html, on_ok);
+    });
+    delete_map_button.addEventListener('click', function(e:MouseEvent){
+        e.stopPropagation();
+        e.preventDefault();
+        const active_view = get_active_view();
+        const cant_delete = active_view.map.flags & MapFlags.CANT_DELETE;
+        let html = `
+        <h2>Delete Map</h2>
+        <table class="input-container">
+        `;
+        if(!cant_delete){
+            html += `
+            <tr>
+                <td><label for="hover-delete">Delete Map</label>
+                <td><input name="hover-delete" type="checkbox" id="hover-delete">
+            </tr>
+            `
+        }
+        html += `
+        </table>
+        `;
+        function on_ok(unused:any){
+            if(!cant_delete){
+                const delete_checkbox = document.getElementById('hover-delete')! as HTMLInputElement;
+                const should_delete = delete_checkbox.checked;
+                if(should_delete){
+                    socket.emit('canvas-delete-map-request', active_view.map.map_id);
+                    return;
+                }
+            }
         }
         make_ok_dialog(html, on_ok);
     });
