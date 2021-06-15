@@ -2601,21 +2601,22 @@ function note_selections(view:DungeonMapView):void{
     }
 }
 function selection_is_rigid(view:DungeonMapView):boolean{
-    // hack
-    if(view.map.grid_type == GRIDTYPE.HEX)
-        return false;
     for(let id of view.selected){
         const obj = view.map.canvas_objs.get(id)!;
         if(obj.flags & CANVASFLAG.DELETED)
             continue;
         switch(obj.type){
+            case CANVASTYPE.EZ_TOKEN:
+            case CANVASTYPE.IMG_TOKEN:
+                return snapmode != SNAPMODE.FREE;
             case CANVASTYPE.GRID_RECT:
             case CANVASTYPE.GRID_LINE:
             case CANVASTYPE.IMAGE:
             case CANVASTYPE.DOOR:
-            case CANVASTYPE.EZ_TOKEN:
-            case CANVASTYPE.IMG_TOKEN:
             case CANVASTYPE.STAIRS:
+            case CANVASTYPE.ICON_TILE:
+            case CANVASTYPE.FILLED_TILE:
+            case CANVASTYPE.TERRAIN_TILE:
                 return true;
             default:
                 break;
@@ -2667,15 +2668,16 @@ function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number
     if(rigid){
         const ox = base_x + dx;
         const oy = base_y + dy;
-        let m = snapmode == SNAPMODE.HALF? REFERENCE_WIDTH/2-1 : REFERENCE_WIDTH-1;
+        let m = (snapmode == SNAPMODE.HALF)? REFERENCE_WIDTH/2-1 : REFERENCE_WIDTH-1;
+        const m1 = m + 1;
         const aligned_old_x = base_x - (base_x & m);
         const aligned_old_y = base_y - (base_y & m);
         const aligned_new_x = ox - (ox & m);
         const aligned_new_y = oy - (oy & m);
         dx = aligned_new_x - aligned_old_x;
         dy = aligned_new_y - aligned_old_y;
-        dx = Math.round(dx/64)*64;
-        dy = Math.round(dy/64)*64;
+        dx = Math.round(dx/m1)*m1;
+        dy = Math.round(dy/m1)*m1;
         if(dx || dy){
             for(let i = 0; i < selected_objs.length; i++){
                 const obj = selected_objs[i];
