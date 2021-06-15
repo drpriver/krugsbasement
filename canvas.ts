@@ -1174,6 +1174,7 @@ document.addEventListener('DOMContentLoaded', function(){
     select.addEventListener('input', function(e:Event){
         e.stopPropagation();
         change_map(+select.value, true);
+        select.blur();
     });
 });
 function get_active_view(): DungeonMapView{
