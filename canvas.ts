@@ -91,6 +91,8 @@ const SORTORDER = [
      100, // MEASURE
        4, // FIXTURE
        1, // FILLED_TILE
+       1, // TERRAIN_TILE
+       1, // TERRAIN_ICON
 ];
 //
 // flags
