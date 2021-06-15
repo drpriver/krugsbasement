@@ -6646,7 +6646,7 @@ document.addEventListener('DOMContentLoaded', function(){
             if(active_view.map.grid_type != gt)
                 socket.emit('canvas-grid-type', {map_id:active_view.map.map_id, grid_type:gt});
             const numbered = (document.getElementById('hover-numbered')! as HTMLInputElement).checked? MapFlags.NUMBERED : 0;
-            if((active_view.map.flags & numbered) != numbered)
+            if((active_view.map.flags & MapFlags.NUMBERED) != numbered)
                 socket.emit('canvas-grid-numbered', {map_id:active_view.map.map_id, numbered:numbered});
         }
         make_ok_dialog(html, on_ok);
