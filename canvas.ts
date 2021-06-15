@@ -2669,7 +2669,7 @@ function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number
     if(rigid){
         const ox = base_x + dx;
         const oy = base_y + dy;
-        let m = (snapmode == SNAPMODE.HALF)? REFERENCE_WIDTH/2-1 : REFERENCE_WIDTH-1;
+        let m = (snapmode == SNAPMODE.HALF || view.map.grid_type == GRIDTYPE.HEX)? REFERENCE_WIDTH/2-1 : REFERENCE_WIDTH-1;
         const m1 = m + 1;
         const aligned_old_x = base_x - (base_x & m);
         const aligned_old_y = base_y - (base_y & m);
