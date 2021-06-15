@@ -183,6 +183,9 @@ if appconfig.DEV:
     @app.route('/tiles/<tile>')
     def get_tile(tile:str):
         return send_from_directory('tiles', tile)
+    @app.route('/favicon.ico')
+    def get_favicon():
+        return send_from_directory('.', 'favicon.ico')
 
 @app.route('/state', methods=['GET', 'POST', 'DELETE'])
 def app_state():
