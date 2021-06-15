@@ -72,6 +72,7 @@ enum CANVASTYPE {
     FIXTURE       = 14,
     FILLED_TILE   = 15,
     TERRAIN_TILE  = 16,
+    ICON_TILE     = 17,
 }
 // High numbers go on top.
 const SORTORDER = [
@@ -93,6 +94,7 @@ const SORTORDER = [
        1, // FILLED_TILE
        1, // TERRAIN_TILE
        1, // TERRAIN_ICON
+       1, // ICON_TILE
 ];
 //
 // flags
@@ -510,15 +512,18 @@ type StrippedFixtureObj = FixtureObj;
 enum TILETYPE {
     FILLED = 0,
     TERRAIN = 1,
+    ICON = 2,
 }
 let current_tile_type = TILETYPE.FILLED;
 let current_terrain_id: number = 0;
-const TILETYPE_MAX = TILETYPE.TERRAIN+1;
+const TILETYPE_MAX = TILETYPE.ICON+1;
 const TILETYPE_TO_NAME = [
     // TILETYPE.FILLED
     'Filled',
     // TILETYPE.TERRAIN
     'Terrain',
+    // TILETYPE.ICON
+    'Icon',
 ];
 
 // FilledTile
@@ -559,6 +564,28 @@ type TerrainInfo = {
     color: string;
     name: string;
 }
+
+let current_terrain_icon_id: number = 0;
+// IconTile
+// --------
+type IconTile = {
+    type: CANVASTYPE; // ICON_TILE
+    id: number;
+    base_x: number;
+    base_y: number;
+    flags: CANVASFLAG;
+    terrainicon_id: number;
+}
+
+type StrippedIconTile = {
+    type: CANVASTYPE; // ICON_TILE
+    id: number;
+    base_x: number;
+    base_y: number;
+    flags: CANVASFLAG;
+    terrainicon_id: number;
+}
+
 // TODO: something more elegant than this.
 const TERRAINS = [
     {
@@ -910,8 +937,43 @@ const TERRAIN_INFOS: Map<number, TerrainInfo> = (function(){
     return m;
 }());
 
-type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj | FilledTile | TerrainTile;
-type StrippedObj = StrippedFreehandLine | StrippedGridLine | StrippedRectangle | StrippedFilledRectangle | StrippedGridRectangle | StrippedEllipse | StrippedImageObj | StrippedTextObj | StrippedEzToken | StrippedImgToken | StrippedDoorObj | StrippedStairs | StrippedMeasureObj | StrippedFixtureObj | StrippedFilledTile | StrippedTerrainTile;
+const TERRAIN_ICONS_ = [
+    {id: 0, path:"town.png"},
+    {id: 1, path:"temple.png"},
+    {id: 2, path:"tower.png"},
+    {id: 3, path:"village.png"},
+    {id: 4, path:"cave.png"},
+    {id: 5, path:"castle.png"},
+    {id: 6, path:"ruins.png"},
+    {id: 7, path:"ruinedcity.png"},
+    {id: 8, path:"shrine.png"},
+    {id: 9, path:"totem.png"},
+    {id: 10, path:"fort.png"},
+    {id: 11, path:"pyramid.png"},
+    {id: 12, path:"port.png"},
+    {id: 13, path:"landmark.png"},
+    {id: 14, path:"city.png"},
+    {id: 15, path:"clanmoot.png"},
+    {id: 16, path:"palace.png"},
+    {id: 17, path:"statue.png"},
+    {id: 18, path:"cathedral.png"},
+    {id: 19, path:"camp.png"},
+    {id: 20, path:"church.png"},
+    {id: 21, path:"crossbones.png"},
+    {id: 22, path:"dungeon.png"},
+];
+const TERRAIN_ICONS: Map<number, HTMLImageElement> = (function(){
+    const m = new Map();
+    for(let ti of TERRAIN_ICONS_){
+        const img = new Image();
+        img.src = `/tiles/${ti.path}`;
+        m.set(ti.id, img);
+    }
+    return m;
+}());
+
+type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj | FilledTile | TerrainTile | IconTile;
+type StrippedObj = StrippedFreehandLine | StrippedGridLine | StrippedRectangle | StrippedFilledRectangle | StrippedGridRectangle | StrippedEllipse | StrippedImageObj | StrippedTextObj | StrippedEzToken | StrippedImgToken | StrippedDoorObj | StrippedStairs | StrippedMeasureObj | StrippedFixtureObj | StrippedFilledTile | StrippedTerrainTile | StrippedIconTile;
 
 // Door subtypes
 // ------------
@@ -2477,6 +2539,19 @@ function obj_in_bbox(obj_:CanvasObject, bbox:Bbox, selection_type:SELECTTYPE):bo
             };
             return bbox_overlaps(bbox, f_bbox);
         }
+        case CANVASTYPE.ICON_TILE:{
+            if(!(selection_type & SELECTTYPE.MAP))
+                return false;
+            // const obj = obj_ as FilledTile;
+            // kind of cheesy.
+            const ftbbox = {
+                x0: obj_.base_x,
+                x1: obj_.base_x + REFERENCE_WIDTH,
+                y0: obj_.base_y,
+                y1: obj_.base_y + REFERENCE_WIDTH,
+            };
+            return bbox_overlaps(bbox, ftbbox);
+        }
         case CANVASTYPE.TERRAIN_TILE: // fall-through
         case CANVASTYPE.FILLED_TILE:{
             if(!(selection_type & SELECTTYPE.BACKGROUND))
@@ -2792,6 +2867,15 @@ function strip_obj(obj_:CanvasObject): StrippedObj{
             };
             return stripped_obj;
         }break;
+        case CANVASTYPE.ICON_TILE:{
+            const obj = obj_ as IconTile;
+            const stripped_obj: StrippedIconTile = {
+                type: obj.type, id: obj.id, flags: obj.flags,
+                base_x: obj.base_x, base_y: obj.base_y,
+                terrainicon_id: obj.terrainicon_id,
+            };
+            return stripped_obj;
+        }break;
     }
 }
 //
@@ -2907,6 +2991,13 @@ function unstrip_obj(obj_: StrippedObj):CanvasObject{
         case CANVASTYPE.TERRAIN_TILE:{
             const o = obj_ as StrippedTerrainTile;
             const obj: TerrainTile = {
+                ...o,
+            };
+            return obj;
+        }break;
+        case CANVASTYPE.ICON_TILE:{
+            const o = obj_ as StrippedIconTile;
+            const obj: IconTile = {
                 ...o,
             };
             return obj;
@@ -3033,6 +3124,8 @@ function edit_is_impossible(view:DungeonMapView):boolean{
         case CANVASTYPE.FILLED_TILE:
             return true;
         case CANVASTYPE.TERRAIN_TILE:
+            return true;
+        case CANVASTYPE.ICON_TILE:
             return true;
     }
 }
@@ -3453,8 +3546,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.fillText(`${obj.base_x>>6},${obj.base_y>>6}`, 32, 63);
                     }
                     if(info.img){
-                        ctx.translate(8, 8);
-                        ctx.scale(48/250, 48/250);
+                        ctx.translate(4, 4);
+                        ctx.scale(56/250, 56/250);
                         ctx.drawImage(info.img, 0, 0);
                     }
                     ctx.restore();
@@ -4613,6 +4706,16 @@ function render(timestamp:DOMHighResTimeStamp):void{
             case CANVASTYPE.TERRAIN_TILE:{
                 // drawn already
             }break;
+            case CANVASTYPE.ICON_TILE:{
+                const obj = obj_ as IconTile;
+                const icon = TERRAIN_ICONS.get(obj.terrainicon_id);
+                if(is_selected){
+                    ctx.fillStyle = SELECTED_COLOR+'aa';
+                    ctx.fillRect(obj.base_x+4, obj.base_y+4, 56, 56);
+                }
+                if(icon)
+                    ctx.drawImage(icon, obj.base_x+4, obj.base_y+4, 56, 56);
+            }break;
         }
     }
     if(view.selection_area.is_selecting){
@@ -4904,6 +5007,34 @@ function make_terrain_palette(){
         }
     }
 }
+function make_terrain_icon_palette(){
+    const palette = document.getElementById('palette')! as HTMLDivElement;
+    (palette as any).replaceChildren();
+    function make_cb(id:number){
+        function cb(){
+            current_terrain_icon_id = id;
+        }
+        return cb;
+    }
+    palette.style.display = 'grid';
+    for(const [id, img] of TERRAIN_ICONS.entries()){
+        const inp = document.createElement('input');
+        inp.type = 'radio';
+        inp.name = 'terrain';
+        inp.id = `terrain-icon-${id}`;
+        const label = document.createElement('label');
+        label.htmlFor = inp.id;
+        label.style.backgroundColor = '#e7f79c';
+        label.appendChild(img);
+        palette.appendChild(inp);
+        palette.appendChild(label);
+        label.addEventListener('mousedown', make_cb(id));
+        if(id == current_terrain_icon_id){
+            label.click();
+            label.scrollIntoView();
+        }
+    }
+}
 let tools: Array<HTMLElement> = [];
 function change_tool(tool:TOOLTYPE):void{
     localStorage.setItem('current_tool', TOOL_TO_TOOL_ID[tool]);
@@ -4929,6 +5060,9 @@ function change_tool(tool:TOOLTYPE):void{
                     break;
                 case TILETYPE.TERRAIN:
                     make_terrain_palette();
+                    break;
+                case TILETYPE.ICON:
+                    make_terrain_icon_palette();
                     break;
             }
         }break;
@@ -5235,6 +5369,9 @@ document.addEventListener('DOMContentLoaded', function():void{
                             break;
                         case TILETYPE.TERRAIN:
                             make_terrain_palette();
+                            break;
+                        case TILETYPE.ICON:
+                            make_terrain_icon_palette();
                             break;
                     }
                 }, TILETYPE_TO_NAME, TILETYPE_MAX);
@@ -6185,6 +6322,17 @@ document.addEventListener('DOMContentLoaded', function(){
                             terrain_id: current_terrain_id,
                         };
                         add_canv_obj(view.map, terrain);
+                    }break;
+                    case TILETYPE.ICON: {
+                        let icon: IconTile = {
+                            type: CANVASTYPE.ICON_TILE,
+                            id: id,
+                            base_x: x,
+                            base_y: y,
+                            flags: CANVASFLAG.NONE,
+                            terrainicon_id: current_terrain_icon_id,
+                        };
+                        add_canv_obj(view.map, icon);
                     }break;
                     default:
                         console.assert(false);
