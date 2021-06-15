@@ -3482,6 +3482,13 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     if(info.img){
                         ctx.drawImage(info.img, obj.base_x, obj.base_y, 64, 64);
                     }
+                    if(map.flags & MapFlags.NUMBERED){
+                        if(info.color == '#000000')
+                            ctx.fillStyle = '#ffffff';
+                        else
+                            ctx.fillStyle = '#000000';
+                        ctx.fillText(`${obj.base_x>>6},${obj.base_y>>6}`, obj.base_x+32, obj.base_y+64);
+                    }
                 }
             }break;
             case GRIDTYPE.HEX:{
@@ -3541,17 +3548,19 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.fillStyle = info.color;
                     ctx.translate(obj.base_x, obj.base_y);
                     ctx.fill(p);
+                    if(info.img){
+                        ctx.save();
+                        ctx.translate(4, 4);
+                        ctx.scale(56/250, 56/250);
+                        ctx.drawImage(info.img, 0, 0);
+                        ctx.restore();
+                    }
                     if(map.flags & MapFlags.NUMBERED){
                         if(info.color == '#000000')
                             ctx.fillStyle = '#ffffff';
                         else
                             ctx.fillStyle = '#000000';
                         ctx.fillText(`${obj.base_x>>6},${obj.base_y>>6}`, 32, 63);
-                    }
-                    if(info.img){
-                        ctx.translate(4, 4);
-                        ctx.scale(56/250, 56/250);
-                        ctx.drawImage(info.img, 0, 0);
                     }
                     ctx.restore();
                 }
