@@ -509,10 +509,10 @@ function maybe_handle_command(value:string):boolean{
     if(split.length){
         if(split[0] === "/get-state"){
             if(split.length > 1){
-                get(split[1]);
+                get_state(split[1]);
             }
             else{
-                get('');
+                get_state('');
             }
             return true;
         }

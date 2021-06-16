@@ -118,7 +118,7 @@ socket.on('session-id', function(resp:number){
     session_id = resp;
 });
 
-function get(which:string):void{
+function get_state(which:string):void{
     const link = document.createElement('a');
     if(which){
         link.download = which + '.json';

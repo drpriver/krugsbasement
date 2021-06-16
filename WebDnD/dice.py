@@ -484,10 +484,15 @@ def dice_from_string(dicestring:str) -> DiceExpression:
         raise Exception('string too long')
     while dicestring.startswith('/'):
         dicestring = dicestring[1:]
-    if dicestring.startswith('roll'):
-        dicestring = dicestring[4:]
-    elif dicestring.startswith('r'):
-        dicestring = dicestring[1:]
+    dicestring = dicestring.lower()
+    while dicestring.startswith('roll'):
+        dicestring = dicestring[4:].strip()
+    while dicestring.startswith('rol'):
+        dicestring = dicestring[3:].strip()
+    while dicestring.startswith('ro'):
+        dicestring = dicestring[2:].strip()
+    while dicestring.startswith('r'):
+        dicestring = dicestring[1:].strip()
     dicestring = dicestring.replace(MINUS, '-')
     return transform(dicestring)
 
