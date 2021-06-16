@@ -5,6 +5,8 @@ from typing import Generic, TypeVar, Callable, Optional, Union, Any
 from . import appconfig
 import threading
 import time
+import logging
+logging.basicConfig(level=logging.INFO,format='[%(asctime)s][%(levelname)s] - %(funcName)s: %(message)s')
 
 T = TypeVar('T')
 JsType = Union[str, dict, list, int, float]
@@ -38,7 +40,7 @@ class Persister(Generic[T]):
         self.obj = obj
         self.filepath = filepath
         self.save_func = save_func
-        print(f'loading from {filepath}')
+        logging.info(f'loading from {filepath}')
         try:
             with open(filepath, 'r') as fp:
                 jsobj = json.load(fp)
@@ -47,11 +49,11 @@ class Persister(Generic[T]):
                 else:
                     self.obj = jsobj
         except Exception as e:
-            print(e)
+            logging.exception(e)
         if dont_persist:
             return
         atexit.register(self.save)
-        RepeatTimer(600, self.save).start()
+        RepeatTimer(6000, self.save).start()
     def save(self) -> None:
         t0 = time.time()
         dirname = os.path.dirname(self.filepath)
@@ -63,6 +65,6 @@ class Persister(Generic[T]):
                 fp.write(json.dumps(obj, separators=(',',':')))
             os.rename(self.filepath+'_', self.filepath)
         except Exception as e:
-            print(e)
+            logging.exception(e)
         t1 = time.time()
-        print(f'Saving {self.filepath} took {(t1-t0)*1000:.3}ms')
+        logging.info(f'Saving {self.filepath} took {(t1-t0)*1000:.3}ms')

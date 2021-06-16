@@ -5,15 +5,17 @@ from . import canvas
 from .persist import Persister
 from. import appconfig
 import os
+import logging
+logging.basicConfig(level=logging.INFO,format='[%(asctime)s][%(levelname)s] - %(funcName)s: %(message)s')
 
 from typing import List, Dict, Optional, Set, Union
 
 app = Flask('WebDnd')
 # app.config['SECRET_KEY'] = 'secret!'
 if appconfig.DEV:
-    socketio = SocketIO(app, logger=True)
+    socketio = SocketIO(app, logger=logging)
 else:
-    socketio = SocketIO(app, logger=True, cors_allowed_origins="https://krugsbasement.com")
+    socketio = SocketIO(app, logger=logging, cors_allowed_origins="https://krugsbasement.com")
 
 @socketio.on('chat-input')
 def chat_input(data:Dict[str, str]) -> None:
@@ -189,9 +191,9 @@ if appconfig.DEV:
 
 @app.route('/campaigns/<campaign>/state', methods=['GET', 'POST', 'DELETE'])
 def app_state(campaign:str) -> str:
-    app.logger.info('request: %s', request)
-    app.logger.info('request.method: %s', request.method)
-    app.logger.info('campaign: %s', campaign)
+    print('request:', request)
+    print('request.method:', request.method)
+    print('campaign:',  campaign)
     if request.method == 'GET':
         args = request.args
         state = {
