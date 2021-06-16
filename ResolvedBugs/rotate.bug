@@ -1,0 +1,13 @@
+Players can get turned around in the dungeon and need
+to rotate their map.
+
+Update:
+-------
+
+Added a context menu action to rotate everything 90 degrees.  It doesn't really
+work with hexagons, but you can't expect rotation by 90 to work on hexagons.
+The more proper things would be to rotate by 60, but many object types assume
+axis aligned.
+
+Another alternative would actually be to apply a transform on the context, but
+then text would be the wrong way. No silver bullet.

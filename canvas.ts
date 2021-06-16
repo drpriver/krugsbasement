@@ -2209,6 +2209,222 @@ function translate_object(obj: CanvasObject, dx: number, dy: number){
             break;
     }
 }
+
+function rotate_pair(x:number, y:number):[number, number]{
+    return [y, -x];
+}
+function rotate_base(obj: CanvasObject){
+    let [x,y] = rotate_pair(obj.base_x, obj.base_y);
+    obj.base_y = y;
+    obj.base_x = x;
+}
+
+interface Rectangleish {
+    base_x: number;
+    base_y: number;
+    width: number;
+    height: number;
+}
+function rotate_rectangleish(obj:Rectangleish){
+    let x1 = obj.base_x + obj.width;
+    let y1 = obj.base_y + obj.height;
+    [x1, y1] = rotate_pair(x1, y1);
+    let [x0, y0] = rotate_pair(obj.base_x, obj.base_y);
+    if (x0 > x1){
+        const temp = x0;
+        x0 = x1;
+        x1 = temp;
+    }
+    if (y0 > y1){
+        const temp = y0;
+        y0 = y1;
+        y1 = temp;
+    }
+    obj.base_x = x0;
+    obj.base_y = y0;
+    obj.width = x1 - x0;
+    obj.height = y1 - y0;
+}
+
+// Normally I would do these in two steps, but to get exhaustiveness
+// checking I need to return a value.
+function rotate_and_then_strip_obj(obj_: CanvasObject):StrippedObj{
+    switch(obj_.type){
+        case CANVASTYPE.FREEHAND_LINE:{
+            const obj = obj_ as FreehandLine;
+            rotate_base(obj);
+            const length = obj.points.length;
+            for(let i = 0; i < length; i+=2){
+                let [x, y] = rotate_pair(obj.points[i], obj.points[i+1]);
+                obj.points[i] = x;
+                obj.points[i+1] = y;
+            }
+            freehand_recalculate_bbox(obj);
+            freehand_recalculate_path(obj);
+            return strip_obj(obj);
+        }
+        case CANVASTYPE.GRID_LINE:{
+            const obj = obj_ as GridLine;
+            rotate_base(obj);
+            const length = obj.points.length;
+            for(let i = 0; i < length; i+=2){
+                let [x, y] = rotate_pair(obj.points[i], obj.points[i+1]);
+                obj.points[i] = x;
+                obj.points[i+1] = y;
+            }
+            gridline_recalculate_bbox(obj);
+            gridline_recalculate_path(obj);
+            return strip_obj(obj);
+        }
+        case CANVASTYPE.RECT:{
+            const obj = obj_ as Rectangle;
+            rotate_rectangleish(obj);
+            return strip_obj(obj);
+        }
+        case CANVASTYPE.FILLED_RECT:{
+            const obj = obj_ as FilledRectangle;
+            rotate_rectangleish(obj);
+            return strip_obj(obj);
+        }
+        case CANVASTYPE.GRID_RECT:{
+            const obj = obj_ as GridRectangle;
+            rotate_rectangleish(obj);
+            return strip_obj(obj);
+        }
+        case CANVASTYPE.ELLIPSE:{
+            const obj = obj_ as Ellipse;
+            rotate_rectangleish(obj);
+            return strip_obj(obj);
+        }
+        case CANVASTYPE.IMAGE:{
+            // This is kind of weird. Not sure how images are
+            // supposed to behave when the world gets rotated.
+            const obj = obj_ as ImageObj;
+            rotate_rectangleish(obj);
+            return strip_obj(obj);
+        }
+        case CANVASTYPE.TEXT:{
+            const obj = obj_ as TextObj;
+            rotate_base(obj);
+            obj.bbox = {x0:0, y0:0, x1:0, y1:0};
+            obj.bboxes = [];
+            return strip_obj(obj);
+        }
+        case CANVASTYPE.EZ_TOKEN:{
+            const obj = obj_ as EzToken;
+            const r = {
+                base_x: obj.base_x, base_y:obj.base_y,
+                width:obj.width*REFERENCE_WIDTH, height:obj.height*REFERENCE_WIDTH,
+            };
+            rotate_rectangleish(r);
+            obj.base_x = r.base_x;
+            obj.base_y = r.base_y;
+            const temp = obj.width;
+            obj.width = obj.height;
+            obj.height = temp;
+            return strip_obj(obj);
+        }
+        case CANVASTYPE.IMG_TOKEN:{
+            const obj = obj_ as ImgToken;
+            const r = {
+                base_x: obj.base_x, base_y:obj.base_y,
+                width:obj.width*REFERENCE_WIDTH, height:obj.height*REFERENCE_WIDTH,
+            };
+            rotate_rectangleish(r);
+            obj.base_x = r.base_x;
+            obj.base_y = r.base_y;
+            const temp = obj.width;
+            obj.width = obj.height;
+            obj.height = temp;
+            return strip_obj(obj);
+        }
+        case CANVASTYPE.DOOR:{
+            const obj = obj_ as DoorObj;
+            rotate_base(obj);
+            switch(obj.orientation){
+                case ORIENTATION.VERTICAL:
+                    obj.orientation = ORIENTATION.HORIZONTAL;
+                    break;
+                case ORIENTATION.HORIZONTAL:
+                    obj.orientation = ORIENTATION.VERTICAL;
+                    break;
+                case ORIENTATION.TOPLEFT_DOWNRIGHT:
+                    obj.orientation = ORIENTATION.TOPRIGHT_DOWNLEFT;
+                    break;
+                case ORIENTATION.TOPRIGHT_DOWNLEFT:
+                    obj.orientation = ORIENTATION.TOPLEFT_DOWNRIGHT;
+                    break;
+            }
+            return strip_obj(obj);
+        }
+        case CANVASTYPE.STAIRS:{
+            const obj = obj_ as Stairs;
+            rotate_rectangleish(obj);
+            obj.rotation += 2;
+            if(obj.rotation > 7){
+                obj.rotation -= 8;
+            }
+            return strip_obj(obj);
+        }
+        case CANVASTYPE.MEASURE:{
+            // meh
+            rotate_base(obj_);
+            return strip_obj(obj_);
+        }
+        case CANVASTYPE.FIXTURE:{
+            const obj = obj_ as FixtureObj;
+            rotate_rectangleish(obj);
+            return strip_obj(obj);
+        }
+        // The tile rotations are kind of janky, as you can't rotate a hexagon
+        // 90 degrees and expect anything reasonable to happen.
+        // We'll do our best.
+        case CANVASTYPE.FILLED_TILE:{
+            const r = {
+                base_x: obj_.base_x, base_y:obj_.base_y,
+                width:REFERENCE_WIDTH, height:REFERENCE_WIDTH,
+            };
+            rotate_rectangleish(r);
+            obj_.base_x = r.base_x;
+            obj_.base_y = r.base_y;
+            return strip_obj(obj_);
+        }
+        case CANVASTYPE.TERRAIN_TILE:{
+            const r = {
+                base_x: obj_.base_x, base_y:obj_.base_y,
+                width:REFERENCE_WIDTH, height:REFERENCE_WIDTH,
+            };
+            rotate_rectangleish(r);
+            obj_.base_x = r.base_x;
+            obj_.base_y = r.base_y;
+            return strip_obj(obj_);
+        }
+        case CANVASTYPE.ICON_TILE:{
+            const r = {
+                base_x: obj_.base_x, base_y:obj_.base_y,
+                width:REFERENCE_WIDTH, height:REFERENCE_WIDTH,
+            };
+            rotate_rectangleish(r);
+            obj_.base_x = r.base_x;
+            obj_.base_y = r.base_y;
+            return strip_obj(obj_);
+        }
+    }
+}
+function rotate_everything_90(view:DungeonMapView){
+    const before_rotate = [];
+    const after_rotate = []
+    for(let obj of view.map.canvas_obj_array){
+        if(obj.flags & CANVASFLAG.DELETED)
+            continue;
+        before_rotate.push(strip_obj(obj));
+        const after = rotate_and_then_strip_obj(obj);
+        after_rotate.push(after)
+    }
+    note_updates_for_undo(view.map, before_rotate, after_rotate);
+    publish_obj_updates(view.map.map_id, after_rotate);
+    request_render();
+}
 function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
     x = snap_to_grid(x);
     y = snap_to_grid(y);
@@ -6456,6 +6672,12 @@ document.addEventListener('DOMContentLoaded', function(){
                 },
                 disabled: false,
                 whenflags: CONTEXTMENUWHENFLAGS.NO_SELECTION,
+            },
+            {
+                label: 'Rotate Everything',
+                func: function(){rotate_everything_90(view);remove_menu();},
+                disabled: false,
+                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
             },
             {
                 label: 'Edit',
