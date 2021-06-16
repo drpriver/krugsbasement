@@ -5478,7 +5478,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 select_type = st;
                 switch(select_type){
                     case SELECTTYPE.NONBACKGROUND:
-                        name.innerText = '- Nonbackground ☰';
+                        name.innerText = '- Map & Token ☰';
                         break;
                     case SELECTTYPE.MAP:
                         name.innerText = '- Map ☰';
@@ -5539,7 +5539,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 if(has_tri_menu)
                     return;
                 make_tri_menu(e, [
-                    {func:make_cb(SELECTTYPE.NONBACKGROUND), text:'Nonbackground'},
+                    {func:make_cb(SELECTTYPE.NONBACKGROUND), text:'Map & Token'},
                     {func:make_cb(SELECTTYPE.MAP), text:'Map'},
                     {func:make_cb(SELECTTYPE.TOKEN), text:'Token'},
                     {func:make_cb(SELECTTYPE.BACKGROUND), text:'Background'},

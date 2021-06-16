@@ -18,6 +18,12 @@ David20::title @hide
       ::raw
         <input type="radio" id="grid-snap-free" name="snap-to-grid" value="FREE">
         <label for="grid-snap-free">Free</label>
+    ::div @id(colors)
+      ::raw
+        <input type="color" id="color-picker" value="#000000"><span id="color-picker-dropdown" style="cursor:pointer;width:2em;text-align:center;">▼</span>
+        <input type="color" id="color-picker2" value="#ffffff"><span id="color-picker2-dropdown" style="cursor:pointer;width:2em;text-align:center;">▼</span>
+    ::raw
+      <input type="number" class="numeric-input" id="line-thickness" value="4" max="20" min="1">
     ::div.tool @id(pan-tool)
       Pa<b>n</b>
     ::div.tool @id(select-tool)
@@ -60,11 +66,6 @@ David20::title @hide
       <b>M</b>easure
     ::div.tool @id(help-tool)
       Help
-    ::div @id(colors)
-      ::raw
-        <input type="color" id="color-picker" value="#000000"><span id="color-picker-dropdown" style="cursor:pointer;width:2em;text-align:center;">▼</span>
-        <input type="color" id="color-picker2" value="#ffffff"><span id="color-picker2-dropdown" style="cursor:pointer;width:2em;text-align:center;">▼</span>
-        <input type="number" class="numeric-input" id="line-thickness" value="4" max="20" min="1">
   ::div @id(palette)
 ::div.chat @id(chat)
   ::div @id(tree)

@@ -191,9 +191,9 @@ if appconfig.DEV:
 
 @app.route('/campaigns/<campaign>/state', methods=['GET', 'POST', 'DELETE'])
 def app_state(campaign:str) -> str:
-    print('request:', request)
-    print('request.method:', request.method)
-    print('campaign:',  campaign)
+    logger.info('request: %s', request)
+    logger.info('request.method: %s', request.method)
+    logger.info('campaign: %s',  campaign)
     if request.method == 'GET':
         args = request.args
         state = {
