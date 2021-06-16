@@ -182,7 +182,7 @@ class Validator:
                 raise TypeError(f'missing keys {missing} for {self.ct.name}')
 
 def validate(ct:CANVASTYPE, defaults:Dict[str, Any]={}, **kwargs:Union[type, Tuple[type, ...], Sentinel]) -> None:
-    VALIDATE_OBJ[ct] = Validator(defaults=defaults, **kwargs, type=ct)
+    VALIDATE_OBJ[ct] = Validator(defaults=defaults, **kwargs, type=ct) # type: ignore
 
 def repair(obj:dict) -> None:
     if not isinstance(obj, dict):

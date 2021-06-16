@@ -122,11 +122,11 @@ function get(which:string):void{
     const link = document.createElement('a');
     if(which){
         link.download = which + '.json';
-        link.href = '/state?which='+which;
+        link.href = `${window.location.pathname}/state?which=${which}`;
     }
     else{
         link.download = 'state.json';
-        link.href = '/state';
+        link.href = `${window.location.pathname}/state`;
     }
     link.click();
 }

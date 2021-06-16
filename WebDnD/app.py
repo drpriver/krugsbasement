@@ -6,7 +6,7 @@ from .persist import Persister
 from. import appconfig
 import os
 
-from typing import List, Dict, Optional, Set
+from typing import List, Dict, Optional, Set, Union
 
 app = Flask('WebDnd')
 # app.config['SECRET_KEY'] = 'secret!'
@@ -187,14 +187,22 @@ if appconfig.DEV:
     def get_favicon():
         return send_from_directory('.', 'favicon.ico')
 
-@app.route('/state', methods=['GET', 'POST', 'DELETE'])
-def app_state():
+@app.route('/campaigns/<campaign>/state', methods=['GET', 'POST', 'DELETE'])
+def app_state(campaign:str) -> str:
+    app.logger.info('request: %s', request)
+    app.logger.info('request.method: %s', request.method)
+    app.logger.info('campaign: %s', campaign)
     if request.method == 'GET':
         args = request.args
-        state = {'chat':chat.get_history('/'), 'canvas':canvas.get_state('/'), 'app':{'session_id':session_id}}
+        state = {
+            'chat':chat.get_history(f'/campaigns/{campaign}'),
+            'canvas': canvas.get_state(f'/campaigns/{campaign}'),
+            'app':{'session_id':session_id},
+            }
         if 'which' in args:
             try:
-                state = state[args['which']]
+                substate = state[args['which']]
+                return jsonify(substate)
             except:
                 return jsonify({})
         return jsonify(state)
