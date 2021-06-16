@@ -2359,7 +2359,16 @@ function rotate_and_then_strip_obj(obj_: CanvasObject):StrippedObj{
         }
         case CANVASTYPE.STAIRS:{
             const obj = obj_ as Stairs;
-            rotate_rectangleish(obj);
+            const r = {
+                base_x: obj_.base_x, base_y:obj_.base_y,
+                width:obj.width*REFERENCE_WIDTH, height:obj.height*REFERENCE_WIDTH,
+            };
+            rotate_rectangleish(r);
+            obj.base_x = r.base_x;
+            obj.base_y = r.base_y;
+            const temp = obj.width;
+            obj.width = obj.height;
+            obj.height = temp;
             obj.rotation += 2;
             if(obj.rotation > 7){
                 obj.rotation -= 8;
