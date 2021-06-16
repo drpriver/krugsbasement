@@ -49,7 +49,7 @@ class Persister(Generic[T]):
                 else:
                     self.obj = jsobj
         except Exception as e:
-            logging.exception(e)
+            logging.error(e)
         if dont_persist:
             return
         atexit.register(self.save)
@@ -65,6 +65,6 @@ class Persister(Generic[T]):
                 fp.write(json.dumps(obj, separators=(',',':')))
             os.rename(self.filepath+'_', self.filepath)
         except Exception as e:
-            logging.exception(e)
+            logging.error(e)
         t1 = time.time()
         logging.info(f'Saving {self.filepath} took {(t1-t0)*1000:.3}ms')
