@@ -695,6 +695,17 @@ const TERRAINS = [
         bg_color: "#879253ff"
     },
     {
+        name: "Farmland",
+        id: 19,
+        bg_color: "#a0d867",
+    },
+    {
+        name: "Rich Grassland",
+        id: 20,
+        path: "grassland.png",
+        bg_color: "#a0d867",
+    },
+    {
         name: "Glacier",
         id: 21,
         path: "glacier.png",
