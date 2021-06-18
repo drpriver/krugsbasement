@@ -1,0 +1,3 @@
+The measure tool does not work right on the hexmap.
+
+Update: this is fixed. Partial distances don't make sense, so we force snap to center.

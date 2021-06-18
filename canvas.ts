@@ -1072,6 +1072,7 @@ enum MapFlags {
 }
 enum GRIDTYPE {
     SQUARE = 0,
+    // Hexes are drawn "odd-q" vertical layout
     HEX    = 1 << 0,
     NOGRID = 1 << 1,
 }
@@ -1499,6 +1500,62 @@ function get_snap_center_func():(_:number)=>number{
             return snap_to_half_grid_center;
         case SNAPMODE.FREE:
             return snap_identity;
+    }
+}
+
+function point_to_hex_coord(x0:number, y0:number):[number, number]{
+        let hex_x0 = Math.floor(x0/REFERENCE_WIDTH);
+        let hex_y0;
+        if(hex_x0 & 1)
+            hex_y0 = Math.floor((y0-32)/REFERENCE_WIDTH);
+        else
+            hex_y0 = Math.floor(y0/REFERENCE_WIDTH);
+        return [hex_x0|0, hex_y0|0];
+}
+function snap_to_hex_center(x0:number, y0:number):[number, number]{
+    const [hx, hy] = point_to_hex_coord(x0, y0);
+    if(hx & 1){
+        return [hx*REFERENCE_WIDTH+REFERENCE_WIDTH/2, (hy+0.5)*REFERENCE_WIDTH+REFERENCE_WIDTH/2];
+    }
+    else {
+        return [hx*REFERENCE_WIDTH+REFERENCE_WIDTH/2, hy*REFERENCE_WIDTH+REFERENCE_WIDTH/2];
+    }
+}
+function cube_to_oddq(x:number, y:number, z:number):[number, number]{
+    let col = x;
+    let row = (z + (x-(x&1)) >> 1);
+    return [col|0, row|0];
+}
+
+function oddq_to_cube(col:number, row:number):[number, number, number]{
+    let cu_x = col;
+    let cu_z = row - ((col - (col&1)) >> 1);
+    let cu_y = -cu_x -cu_z;
+    const result:[number, number, number] = [cu_x|0, cu_y|0, cu_z|0];
+    return result;
+}
+function cube_distance(a:[number, number, number], b:[number, number, number]):number{
+    const x = Math.abs(a[0]-b[0]);
+    const y = Math.abs(a[1]-b[1]);
+    const z = Math.abs(a[2]-b[2]);
+    const d = Math.max(x, y, z);
+    return d;
+}
+
+function calc_measure_length(map:DungeonMap, x0:number, y0:number, x1:number, y1:number):string{
+    if(map.grid_type & GRIDTYPE.HEX){
+        let [hex_x0, hex_y0] = point_to_hex_coord(x0, y0);
+        let [hex_x1, hex_y1] = point_to_hex_coord(x1, y1);
+        const dist = cube_distance(oddq_to_cube(hex_x0, hex_y0), oddq_to_cube(hex_x1, hex_y1));
+        if(dist == 1)
+            return "1 hex";
+        return dist + " hexes";
+    }
+    else{
+        const h2 = Math.pow(x0-x1,2) + Math.pow(y0-y1,2);
+        const h = Math.sqrt(h2);
+        const length = h * 10 / REFERENCE_WIDTH;
+        return length.toFixed(0) + "'";
     }
 }
 
@@ -4839,8 +4896,9 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 ctx.textBaseline = 'middle';
                 ctx.textAlign = 'center';
                 ctx.fillStyle = '#000000';
-                const length = (Math.sqrt(Math.pow(obj.base_x - obj.x1, 2)+ Math.pow(obj.base_y - obj.y1, 2))*10/REFERENCE_WIDTH).toFixed(0);
-                ctx.fillText(length + "'", (obj.base_x+obj.x1)/2-fontsize, (obj.base_y+obj.y1)/2-fontsize);
+                const measure_length = calc_measure_length(map, obj.base_x, obj.base_y, obj.x1, obj.y1);
+
+                ctx.fillText(measure_length, (obj.base_x+obj.x1)/2-fontsize, (obj.base_y+obj.y1)/2-fontsize);
             }break;
             case CANVASTYPE.FIXTURE:{
                 const obj = obj_ as FixtureObj;
@@ -6497,9 +6555,23 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case TOOLTYPE.MEASURE:{
                 let id = get_new_id();
-                let snap_center = get_snap_center_func();
-                const x0 = snap_center(e.offsetX/view.scale-view.camera_x);
-                const y0 = snap_center(e.offsetY/view.scale-view.camera_y);
+                let snap:(x:number, y:number)=>[number, number];
+                if(view.map.grid_type & GRIDTYPE.HEX){
+                    snap = function(x:number, y:number):[number, number]{
+                        return snap_to_hex_center(x, y);
+                    };
+                }
+                else {
+                    let snap_center = get_snap_center_func();
+                    snap = function(x:number, y:number):[number, number]{
+                        const x0 = snap_center(x);
+                        const y0 = snap_center(y);
+                        return [x0, y0];
+                    };
+                }
+                const unsnapped_x = e.offsetX/view.scale-view.camera_x;
+                const unsnapped_y = e.offsetY/view.scale-view.camera_y;
+                const [x0, y0] = snap(unsnapped_x, unsnapped_y);
                 let measure = make_measure(id, x0, y0, '#aa0033');
                 add_canv_obj(view.map, measure);
                 publish_obj_by_id(view.map, id); // don't note create for undo
@@ -6507,8 +6579,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 function move(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    const x = snap_center(e.offsetX/view.scale-view.camera_x);
-                    const y = snap_center(e.offsetY/view.scale-view.camera_y);
+                    const [x, y] = snap(e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y);
                     if(x == measure.x1 && y == measure.y1)
                         return;
                     measure.x1 = x;
