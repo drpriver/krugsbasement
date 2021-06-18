@@ -8,10 +8,10 @@ class MapFlag(IntFlag):
     CANT_DELETE = 0x2
     NUMBERED    = 0x4
 
-class GridType(IntEnum):
-    SQUARE = 0
-    HEX = 1
-    NOGRID = 2
+class GridType(IntFlag):
+    SQUARE = 0x0
+    HEX    = 0x1
+    NOGRID = 0x2
 
 class Map(NamedTuple):
     map_id: int

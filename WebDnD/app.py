@@ -189,16 +189,18 @@ if appconfig.DEV:
     def get_favicon():
         return send_from_directory('.', 'favicon.ico')
 
+@app.route('/state', methods=['GET'])
 @app.route('/campaigns/<campaign>/state', methods=['GET', 'POST', 'DELETE'])
-def app_state(campaign:str) -> str:
-    logger.info('request: %s', request)
-    logger.info('request.method: %s', request.method)
-    logger.info('campaign: %s',  campaign)
+def app_state(campaign:str='/') -> str:
+    logging.info('request: %s', request)
+    logging.info('request.method: %s', request.method)
+    logging.info('campaign: %s',  campaign)
+    query = f'/campaigns/{campaign}' if campaign != '/' else '/'
     if request.method == 'GET':
         args = request.args
         state = {
-            'chat':chat.get_history(f'/campaigns/{campaign}'),
-            'canvas': canvas.get_state(f'/campaigns/{campaign}'),
+            'chat':chat.get_history(query),
+            'canvas': canvas.get_state(query),
             'app':{'session_id':session_id},
             }
         if 'which' in args:

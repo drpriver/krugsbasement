@@ -1072,8 +1072,8 @@ enum MapFlags {
 }
 enum GRIDTYPE {
     SQUARE = 0,
-    HEX = 1,
-    NOGRID = 2,
+    HEX    = 1 << 0,
+    NOGRID = 1 << 1,
 }
 type DungeonMap = {
     map_id: number; // integer
@@ -2894,7 +2894,7 @@ function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number
     if(rigid){
         const ox = base_x + dx;
         const oy = base_y + dy;
-        let m = (snapmode == SNAPMODE.HALF || view.map.grid_type == GRIDTYPE.HEX)? REFERENCE_WIDTH/2-1 : REFERENCE_WIDTH-1;
+        let m = (snapmode == SNAPMODE.HALF || (view.map.grid_type & GRIDTYPE.HEX))? REFERENCE_WIDTH/2-1 : REFERENCE_WIDTH-1;
         const m1 = m + 1;
         const aligned_old_x = base_x - (base_x & m);
         const aligned_old_y = base_y - (base_y & m);
@@ -3668,149 +3668,135 @@ function render(timestamp:DOMHighResTimeStamp):void{
         ctx.font = 12 + 'px sans-serif';
         ctx.textBaseline = 'bottom';
         ctx.textAlign = 'center';
-        switch(map.grid_type){
-            case GRIDTYPE.SQUARE:{
-                for(let obj of bgtiles){
-                    const rect_bbox = {
-                        x0:obj.base_x,
-                        y0:obj.base_y,
-                        x1:obj.base_x+REFERENCE_WIDTH,
-                        y1:obj.base_y+REFERENCE_WIDTH,
-                    };
-                    if(!bbox_overlaps(rect_bbox, canvas_bbox)){
-                        continue;
-                    }
-                    const is_selected = selected.has(obj.id);
-                    if(is_selected)
-                        ctx.fillStyle = SELECTED_COLOR;
-                    else
-                        ctx.fillStyle = obj.color;
-                    ctx.fillRect(obj.base_x, obj.base_y, REFERENCE_WIDTH, REFERENCE_WIDTH);
+        if(map.grid_type & GRIDTYPE.HEX){
+            const half = REFERENCE_WIDTH/2;
+            const full = REFERENCE_WIDTH;
+            const p = new Path2D();
+            p.moveTo(-9, half);
+            p.lineTo(+9, full);
+            p.lineTo(REFERENCE_WIDTH-9, full);
+            p.lineTo(REFERENCE_WIDTH+9, half);
+            p.lineTo(REFERENCE_WIDTH-9, 0);
+            p.lineTo(+9, 0);
+            p.closePath();
+            for(let obj of bgtiles){
+                const rect_bbox = {
+                    x0:obj.base_x,
+                    y0:obj.base_y,
+                    x1:obj.base_x+REFERENCE_WIDTH,
+                    y1:obj.base_y+REFERENCE_WIDTH,
+                };
+                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                    continue;
                 }
-                for(let obj of terraintiles){
-                    const rect_bbox = {
-                        x0:obj.base_x,
-                        y0:obj.base_y,
-                        x1:obj.base_x+REFERENCE_WIDTH,
-                        y1:obj.base_y+REFERENCE_WIDTH,
-                    };
-                    if(!bbox_overlaps(rect_bbox, canvas_bbox)){
-                        continue;
-                    }
-                    const is_selected = selected.has(obj.id);
-                    const info = TERRAIN_INFOS.get(obj.terrain_id) || TERRAIN_INFOS.get(0)!;
-                    if(is_selected)
-                        ctx.fillStyle = SELECTED_COLOR;
+                ctx.save();
+                const is_selected = selected.has(obj.id);
+                if(is_selected)
+                    ctx.fillStyle = SELECTED_COLOR;
+                else
+                    ctx.fillStyle = obj.color;
+                ctx.translate(obj.base_x, obj.base_y);
+                ctx.fill(p);
+                if(map.flags & MapFlags.NUMBERED){
+                    if(obj.color == '#000000')
+                        ctx.fillStyle = '#ffffff';
                     else
-                        ctx.fillStyle = info.color;
-                    ctx.fillRect(obj.base_x, obj.base_y, REFERENCE_WIDTH, REFERENCE_WIDTH);
-                    if(info.img){
-                        ctx.drawImage(info.img, obj.base_x, obj.base_y, 64, 64);
-                    }
-                    if(map.flags & MapFlags.NUMBERED){
-                        if(info.color == '#000000')
-                            ctx.fillStyle = '#ffffff';
-                        else
-                            ctx.fillStyle = '#000000';
-                        ctx.fillText(`${obj.base_x>>6},${obj.base_y>>6}`, obj.base_x+32, obj.base_y+64);
-                    }
+                        ctx.fillStyle = '#000000';
+                    ctx.fillText(`${obj.base_x>>6},${obj.base_y>>6}`, 32, 63);
                 }
-            }break;
-            case GRIDTYPE.HEX:{
-                const half = REFERENCE_WIDTH/2;
-                const full = REFERENCE_WIDTH;
-                const p = new Path2D();
-                p.moveTo(-9, half);
-                p.lineTo(+9, full);
-                p.lineTo(REFERENCE_WIDTH-9, full);
-                p.lineTo(REFERENCE_WIDTH+9, half);
-                p.lineTo(REFERENCE_WIDTH-9, 0);
-                p.lineTo(+9, 0);
-                p.closePath();
-                for(let obj of bgtiles){
-                    const rect_bbox = {
-                        x0:obj.base_x,
-                        y0:obj.base_y,
-                        x1:obj.base_x+REFERENCE_WIDTH,
-                        y1:obj.base_y+REFERENCE_WIDTH,
-                    };
-                    if(!bbox_overlaps(rect_bbox, canvas_bbox)){
-                        continue;
-                    }
+                ctx.restore();
+            }
+            for(let obj of terraintiles){
+                const rect_bbox = {
+                    x0:obj.base_x,
+                    y0:obj.base_y,
+                    x1:obj.base_x+REFERENCE_WIDTH,
+                    y1:obj.base_y+REFERENCE_WIDTH,
+                };
+                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                    continue;
+                }
+                ctx.save();
+                const is_selected = selected.has(obj.id);
+                const info = TERRAIN_INFOS.get(obj.terrain_id) || TERRAIN_INFOS.get(0)!;
+                if(is_selected)
+                    ctx.fillStyle = SELECTED_COLOR;
+                else
+                    ctx.fillStyle = info.color;
+                ctx.translate(obj.base_x, obj.base_y);
+                ctx.fill(p);
+                if(info.img){
                     ctx.save();
-                    const is_selected = selected.has(obj.id);
-                    if(is_selected)
-                        ctx.fillStyle = SELECTED_COLOR;
-                    else
-                        ctx.fillStyle = obj.color;
-                    ctx.translate(obj.base_x, obj.base_y);
-                    ctx.fill(p);
-                    if(map.flags & MapFlags.NUMBERED){
-                        if(obj.color == '#000000')
-                            ctx.fillStyle = '#ffffff';
-                        else
-                            ctx.fillStyle = '#000000';
-                        ctx.fillText(`${obj.base_x>>6},${obj.base_y>>6}`, 32, 63);
-                    }
+                    ctx.translate(4, 4);
+                    ctx.scale(56/250, 56/250);
+                    ctx.drawImage(info.img, 0, 0);
                     ctx.restore();
                 }
-                for(let obj of terraintiles){
-                    const rect_bbox = {
-                        x0:obj.base_x,
-                        y0:obj.base_y,
-                        x1:obj.base_x+REFERENCE_WIDTH,
-                        y1:obj.base_y+REFERENCE_WIDTH,
-                    };
-                    if(!bbox_overlaps(rect_bbox, canvas_bbox)){
-                        continue;
-                    }
-                    ctx.save();
-                    const is_selected = selected.has(obj.id);
-                    const info = TERRAIN_INFOS.get(obj.terrain_id) || TERRAIN_INFOS.get(0)!;
-                    if(is_selected)
-                        ctx.fillStyle = SELECTED_COLOR;
+                if(map.flags & MapFlags.NUMBERED){
+                    if(info.color == '#000000')
+                        ctx.fillStyle = '#ffffff';
                     else
-                        ctx.fillStyle = info.color;
-                    ctx.translate(obj.base_x, obj.base_y);
-                    ctx.fill(p);
-                    if(info.img){
-                        ctx.save();
-                        ctx.translate(4, 4);
-                        ctx.scale(56/250, 56/250);
-                        ctx.drawImage(info.img, 0, 0);
-                        ctx.restore();
-                    }
-                    if(map.flags & MapFlags.NUMBERED){
-                        if(info.color == '#000000')
-                            ctx.fillStyle = '#ffffff';
-                        else
-                            ctx.fillStyle = '#000000';
-                        ctx.fillText(`${obj.base_x>>6},${obj.base_y>>6}`, 32, 63);
-                    }
-                    ctx.restore();
+                        ctx.fillStyle = '#000000';
+                    ctx.fillText(`${obj.base_x>>6},${obj.base_y>>6}`, 32, 63);
                 }
-            }break;
-            case GRIDTYPE.NOGRID:{
-            }break;
+                ctx.restore();
+            }
+        }
+        else {
+            for(let obj of bgtiles){
+                const rect_bbox = {
+                    x0:obj.base_x,
+                    y0:obj.base_y,
+                    x1:obj.base_x+REFERENCE_WIDTH,
+                    y1:obj.base_y+REFERENCE_WIDTH,
+                };
+                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                    continue;
+                }
+                const is_selected = selected.has(obj.id);
+                if(is_selected)
+                    ctx.fillStyle = SELECTED_COLOR;
+                else
+                    ctx.fillStyle = obj.color;
+                ctx.fillRect(obj.base_x, obj.base_y, REFERENCE_WIDTH, REFERENCE_WIDTH);
+            }
+            for(let obj of terraintiles){
+                const rect_bbox = {
+                    x0:obj.base_x,
+                    y0:obj.base_y,
+                    x1:obj.base_x+REFERENCE_WIDTH,
+                    y1:obj.base_y+REFERENCE_WIDTH,
+                };
+                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                    continue;
+                }
+                const is_selected = selected.has(obj.id);
+                const info = TERRAIN_INFOS.get(obj.terrain_id) || TERRAIN_INFOS.get(0)!;
+                if(is_selected)
+                    ctx.fillStyle = SELECTED_COLOR;
+                else
+                    ctx.fillStyle = info.color;
+                ctx.fillRect(obj.base_x, obj.base_y, REFERENCE_WIDTH, REFERENCE_WIDTH);
+                if(info.img){
+                    ctx.drawImage(info.img, obj.base_x, obj.base_y, 64, 64);
+                }
+                if(map.flags & MapFlags.NUMBERED){
+                    if(info.color == '#000000')
+                        ctx.fillStyle = '#ffffff';
+                    else
+                        ctx.fillStyle = '#000000';
+                    ctx.fillText(`${obj.base_x>>6},${obj.base_y>>6}`, obj.base_x+32, obj.base_y+64);
+                }
+            }
         }
         ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
     ctx.scale(SCALE, SCALE);
     ctx.fillStyle = 'rgb(150, 150, 150)';
-    switch(map.grid_type){
-        case GRIDTYPE.SQUARE:{
-            let grid_base_x = camera_x & (REFERENCE_WIDTH-1);
-            let grid_base_y = camera_y & (REFERENCE_WIDTH-1);
-            let grid_max_x = width/SCALE;
-            let grid_max_y = height/SCALE;
-            for(let x = grid_base_x; x < grid_max_x; x+= REFERENCE_WIDTH){
-                ctx.fillRect(x, 0, 1/SCALE, height/SCALE);
-            }
-            for(let y = grid_base_y; y < grid_max_y; y+= REFERENCE_WIDTH){
-                ctx.fillRect(0, y, width/SCALE, 1/SCALE);
-            }
-        }break;
-        case GRIDTYPE.HEX:{
+    if(map.grid_type & GRIDTYPE.NOGRID){
+    }
+    else {
+        if(map.grid_type & GRIDTYPE.HEX){
             function draw_hex_grid(){
                 let top_left_hex_x = Math.ceil(camera_x / REFERENCE_WIDTH);
                 if(((camera_x) & (REFERENCE_WIDTH-1)) == 0){
@@ -3847,11 +3833,20 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
                 ctx.restore();
             }
-        draw_hex_grid();
-        }break;
-        case GRIDTYPE.NOGRID:
-            // draw no grid... duh!
-            break;
+            draw_hex_grid();
+        }
+        else{
+            let grid_base_x = camera_x & (REFERENCE_WIDTH-1);
+            let grid_base_y = camera_y & (REFERENCE_WIDTH-1);
+            let grid_max_x = width/SCALE;
+            let grid_max_y = height/SCALE;
+            for(let x = grid_base_x; x < grid_max_x; x+= REFERENCE_WIDTH){
+                ctx.fillRect(x, 0, 1/SCALE, height/SCALE);
+            }
+            for(let y = grid_base_y; y < grid_max_y; y+= REFERENCE_WIDTH){
+                ctx.fillRect(0, y, width/SCALE, 1/SCALE);
+            }
+        }
     }
     ctx.translate(camera_x, camera_y);
     let length = canvas_obj_array.length;
@@ -6538,7 +6533,7 @@ document.addEventListener('DOMContentLoaded', function(){
             case TOOLTYPE.TILE:{
                 let x:number;
                 let y:number;
-                if(view.map.grid_type == GRIDTYPE.HEX){
+                if(view.map.grid_type & GRIDTYPE.HEX){
                     [x, y] = snap_down_to_hex_grid(e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y);
                 }
                 else {
@@ -6850,15 +6845,20 @@ document.addEventListener('DOMContentLoaded', function(){
             <tr>
                 <td><label for="hover-hex-grid">Hex Grid</label>
                 <td><input name="hover-hex-grid" type="checkbox" id="hover-hex-grid" ${(function(){
-                     switch(active_view.map.grid_type){
-                         case GRIDTYPE.SQUARE:
-                             return "";
-                         case GRIDTYPE.HEX:
-                             return "checked";
-                         case GRIDTYPE.NOGRID:
-                             return "";
-                     }
-                })()}>
+                    if(active_view.map.grid_type & GRIDTYPE.HEX)
+                        return "checked";
+                    return "";
+                }())}>
+            </tr>
+            <tr>
+                <td><label for="hover-no-grid">No Grid</label>
+                <td><input name="hover-no-grid" type="checkbox" id="hover-no-grid"${
+                    (function(){
+                    if(active_view.map.grid_type & GRIDTYPE.NOGRID)
+                        return "checked";
+                    return "";
+                    }())
+                }>
             </tr>
             <tr>
                 <td><label for="hover-numbered">Numbered</label>
@@ -6878,7 +6878,10 @@ document.addEventListener('DOMContentLoaded', function(){
             rename_map(active_view.map, name);
             socket.emit('canvas-name-map', {map_id:active_view.map.map_id, map_name:name});
             const hg = document.getElementById('hover-hex-grid')! as HTMLInputElement;
-            const gt = hg.checked? GRIDTYPE.HEX : GRIDTYPE.SQUARE;
+            const ng = document.getElementById('hover-no-grid')! as HTMLInputElement;
+            let gt = hg.checked? GRIDTYPE.HEX : GRIDTYPE.SQUARE;
+            if(ng.checked)
+                gt |= GRIDTYPE.NOGRID;
             if(active_view.map.grid_type != gt)
                 socket.emit('canvas-grid-type', {map_id:active_view.map.map_id, grid_type:gt});
             const numbered = (document.getElementById('hover-numbered')! as HTMLInputElement).checked? MapFlags.NUMBERED : 0;
@@ -6933,6 +6936,10 @@ document.addEventListener('DOMContentLoaded', function(){
                 <td><label for="hover-hex-grid">Hex Grid</label>
                 <td><input name="hover-hex-grid" type="checkbox" id="hover-hex-grid">
             </tr>
+            <tr>
+                <td><label for="hover-no-grid">No Grid</label>
+                <td><input name="hover-no-grid" type="checkbox" id="hover-no-grid">
+            </tr>
         </table>
         `;
         function on_ok(unused:any){
@@ -6943,7 +6950,10 @@ document.addEventListener('DOMContentLoaded', function(){
             if(!value.length)
                 return;
             const hg = document.getElementById('hover-hex-grid')! as HTMLInputElement;
-            const gt = hg.checked? GRIDTYPE.HEX : GRIDTYPE.SQUARE;
+            const ng = document.getElementById('hover-no-grid')! as HTMLInputElement;
+            let gt = hg.checked? GRIDTYPE.HEX : GRIDTYPE.SQUARE;
+            if(ng.checked)
+                gt |= GRIDTYPE.NOGRID;
             socket.emit('canvas-new-map-request', {name:value, grid_type:gt});
         }
         make_ok_dialog(html, on_ok);
