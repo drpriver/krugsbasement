@@ -193,7 +193,6 @@ if appconfig.DEV:
 @app.route('/campaigns/<campaign>/state', methods=['GET', 'POST', 'DELETE'])
 def app_state(campaign:str='/') -> str:
     logging.info('request: %s', request)
-    logging.info('request.method: %s', request.method)
     logging.info('campaign: %s',  campaign)
     query = f'/campaigns/{campaign}' if campaign != '/' else '/'
     if request.method == 'GET':
@@ -208,10 +207,13 @@ def app_state(campaign:str='/') -> str:
                 substate = state[args['which']]
                 return jsonify(substate)
             except:
-                return jsonify({})
+                abort(404)
         return jsonify(state)
+    elif request.method == 'POST':
+        abort(404)
+        # data should be in request.json?
     else:
-        return ''
+        abort(404)
 
 if __name__ == '__main__':
     if appconfig.DEV:
