@@ -1328,8 +1328,9 @@ function resize_canvas():void{
     canvas = document.getElementsByTagName('canvas')[0]!;
     ctx = canvas.getContext('2d')!;
     const chat_rect = document.getElementById('chat')!.getBoundingClientRect();
+    const top_bar_rect = document.getElementById('tree')!.getBoundingClientRect();
     canvas.width = window.innerWidth - chat_rect.width-4;
-    canvas.height = window.innerHeight-6;
+    canvas.height = window.innerHeight-6-top_bar_rect.height;
     request_render();
 }
 

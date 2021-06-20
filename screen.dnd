@@ -4,7 +4,13 @@ David20::title @hide
   You are currently not connected. Inputs will be buffered and sent upon
   reconnect.
   </div>
-::div.map
+::div.views
+  ::div @id(tree)
+    ::raw
+      <select name="current-map-name" id="current-map-name">Untitled▾</select>
+      <button id="new-map-button">New Map</button>
+      <button id="edit-map-button">Edit Map</button>
+      <button id="delete-map-button">Delete Map</button>
   ::raw
     <canvas id="map"></canvas>
   ::div @id(tools)
@@ -68,14 +74,6 @@ David20::title @hide
       Help
   ::div @id(palette)
 ::div.chat @id(chat)
-  ::div @id(tree)
-    ::div
-      ::raw
-        <button id="new-map-button">New Map</button>
-        <button id="edit-map-button">Edit Map</button>
-        <button id="delete-map-button">Delete Map</button>
-    ::raw
-      <select name="current-map-name" id="current-map-name">Untitled▾</select>
   ::div.log @id(chat-history)
   ::div @id(macros)
     ::raw
@@ -149,15 +147,14 @@ David20::title @hide
   }
   #tree {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     border: 1px solid black;
     height: auto;
-    min-height: 72px;
-  }
-  #tree > div {
-    width: 100%;
     font-size: 24px;
     text-align: center;
+  }
+  #tree *{
+    max-width: 20em
   }
   button {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
@@ -291,7 +288,7 @@ David20::title @hide
     height: 100%;
     margin: 0;
   }
-  .map {
+  .views {
     grid-column: 1;
     grid-row: 1;
     height: 100%;
@@ -464,7 +461,7 @@ David20::title @hide
     #tools {
       display: none;
     }
-    .map {
+    .views {
       display:none;
     }
     #chat {
