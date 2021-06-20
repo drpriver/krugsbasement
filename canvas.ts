@@ -3677,9 +3677,9 @@ RUBBLEIMAGE.addEventListener('error', function(){
 });
 if(RUBBLEIMAGE)
     RUBBLEIMAGE.src = '/imgs/rubble.png';
-// const timings: Array<number> = [];
+const timings: Array<number> = [];
 function render(timestamp:DOMHighResTimeStamp):void{
-    // const before = performance.now();
+    const before = SHOW_FPS?performance.now():0;
     if(!ctx)
         return;
     ctx.imageSmoothingQuality = 'medium';
@@ -5061,11 +5061,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
         map.pings = new_pings;
         request_render();
     }
-    /*
-    if(1){
+    if(SHOW_FPS){
         request_render();
         timings.push(performance.now()-before);
-        while(timings.length > 100){
+        while(timings.length > 30){
             timings.splice(0, 1);
         }
         let min = 100;
@@ -5079,15 +5078,16 @@ function render(timestamp:DOMHighResTimeStamp):void{
             total += t;
         }
         const avg = (total / timings.length).toFixed(4)+'ms';
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'left';
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(width/2-100, height/2-50, 200, 100);
+        ctx.fillRect(0, 0, 200, 100);
         ctx.fillStyle = '#000000';
-        ctx.fillText('avg '+ avg, width/2, height/2);
-        ctx.fillText('min '+ min.toFixed(4)+'ms', width/2, height/2-20);
-        ctx.fillText('max '+ max.toFixed(4)+'ms', width/2, height/2+20);
+        ctx.fillText('avg '+ avg, 10, 10);
+        ctx.fillText('min '+ min.toFixed(4)+'ms', 10, 30);
+        ctx.fillText('max '+ max.toFixed(4)+'ms', 10, 50);
     }
-    */
 }
 enum TOOLTYPE {
     PAN     = 0,

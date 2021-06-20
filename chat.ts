@@ -197,6 +197,7 @@ function chat_options_dialog(){
     hover_is_open = true;
     const hoverpop = document.createElement('section');
     hoverpop.classList.add('hover');
+    const is_dev = chatname == 'dev';
     let html = `
     <h2>Options</h2>
     <table class="input-container">
@@ -257,6 +258,16 @@ function chat_options_dialog(){
         <button type="button" id="hoverpop-cancel">Cancel</button>
     </div>
     `;
+    if(is_dev){
+        html += `
+        <table>
+            <tr>
+                <td><input type="checkbox" name="show-fps" id="show-fps" ${SHOW_FPS?'checked':''}>
+                <label for="show-fps">Show FPS</label>
+            </tr>
+        </table>
+        `;
+    }
     hoverpop.innerHTML = html;
 
 
@@ -389,6 +400,11 @@ function chat_options_dialog(){
     }
     const ok = document.getElementById('hoverpop-ok')!;
     function submit(){
+        if(is_dev){
+            const show_fps = document.getElementById('show-fps')! as HTMLInputElement;
+            SHOW_FPS = show_fps.checked;
+            request_render();
+        }
         const chatname_el = document.getElementById('hover-chatname')! as HTMLInputElement;
         setchatname(chatname_el.value);
         const hide_pan = document.getElementById('hide-pan')! as HTMLInputElement;

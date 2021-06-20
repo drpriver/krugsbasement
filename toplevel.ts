@@ -1,4 +1,5 @@
 declare let io: any;
+let SHOW_FPS = false;
 //
 // Misc notes
 // ----------
