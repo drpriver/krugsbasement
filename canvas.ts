@@ -1907,12 +1907,7 @@ function make_img_token(id:number, base_x:number, base_y:number, url:string):Img
         height: 1,
         statusflags: 0,
     };
-    const img = new Image(REFERENCE_WIDTH, REFERENCE_WIDTH);
-    img.addEventListener('load', function(){
-        obj.img = img;
-        request_render();
-    }, {once:true});
-    img.src = url;
+    delay_load_obj_image(obj, REFERENCE_WIDTH, REFERENCE_WIDTH, 1, 1);
     return obj;
 }
 function add_img_token(map:DungeonMap, id:number, base_x:number, base_y:number, url:string):void{
@@ -1920,6 +1915,18 @@ function add_img_token(map:DungeonMap, id:number, base_x:number, base_y:number, 
     add_canv_obj(map, obj);
 }
 
+function delay_load_obj_image(obj:ImageObj|ImgToken, width:number, height:number, error_width:number, error_height:number){
+    const img = width && height? new Image(width, height): new Image();
+    img.addEventListener('load', function(){
+        obj.img = img;
+        request_render();
+    }, {once:true});
+    img.addEventListener('error', function(){
+        obj.width = error_width;
+        obj.height = error_height;
+    }, {once:true});
+    img.src = obj.url;
+}
 function make_image(id:number, base_x:number, base_y:number, width:number, height:number, url:string):ImageObj{
     base_x = Math.round(base_x);
     base_y = Math.round(base_y);
@@ -1936,16 +1943,7 @@ function make_image(id:number, base_x:number, base_y:number, width:number, heigh
         url: url,
         img: undefined,
     };
-    const img = width && height? new Image(width, height) : new Image();
-    img.addEventListener('load', function(){
-        obj.img = img;
-        if(!width || !height){
-            obj.width = img.width;
-            obj.height = img.height;
-        }
-        request_render();
-    }, {once:true});
-    img.src = url;
+    delay_load_obj_image(obj, width, height, width, height);
     return obj;
 }
 function add_image(map:DungeonMap, id:number, base_x:number, base_y:number, width:number, height:number, url:string):void{
@@ -3218,12 +3216,7 @@ function unstrip_obj(obj_: StrippedObj):CanvasObject{
         }break;
         case CANVASTYPE.IMAGE:{
             const obj: ImageObj = {...(obj_ as StrippedImageObj)};
-            const img = new Image(obj.width, obj.height);
-            img.addEventListener('load', function(){
-                obj.img = img;
-                request_render();
-            }, {once:true});
-            img.src = obj.url;
+            delay_load_obj_image(obj, obj.width, obj.height, obj.width?obj.width:64, obj.height?obj.height:64);
             return obj;
         }break;
         case CANVASTYPE.TEXT:{
@@ -3245,12 +3238,7 @@ function unstrip_obj(obj_: StrippedObj):CanvasObject{
             const obj: ImgToken = {
                 ...(obj_ as StrippedImgToken),
             };
-            const img = new Image(obj.width, obj.height);
-            img.addEventListener('load', function(){
-                obj.img = img;
-                request_render();
-            }, {once:true});
-            img.src = obj.url;
+            delay_load_obj_image(obj, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH, obj.width, obj.width);
             return obj;
         }break;
         case CANVASTYPE.DOOR:{
@@ -3329,12 +3317,16 @@ function set_obj_from_stripped(obj_: CanvasObject, state:StrippedObj){
             const needs_new_image = (obj.width !== state_.width) || (obj.height !== state_.height) || (obj.url !== state_.url);
             Object.assign(obj, state);
             if(needs_new_image){
-                const img = new Image(obj.width, obj.height);
-                img.addEventListener('load', function(){
-                    obj.img = img;
-                    request_render();
-                }, {once:true});
-                img.src = obj.url;
+                delay_load_obj_image(obj, obj.width, obj.height, obj.width?obj.width:64, obj.height?obj.height:64);
+            }
+        }break;
+        case CANVASTYPE.IMG_TOKEN:{
+            const obj = obj_ as ImgToken;
+            const state_ = state as StrippedImgToken;
+            const needs_new_image = (obj.width !== state_.width) || (obj.height !== state_.height) || (obj.url !== state_.url);
+            Object.assign(obj, state);
+            if(needs_new_image){
+                delay_load_obj_image(obj, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH, obj.width, obj.height);
             }
         }break;
         case CANVASTYPE.TEXT:{
@@ -4247,8 +4239,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(obj.img)
                     ctx.drawImage(obj.img, obj.base_x, obj.base_y, obj.width, obj.height);
                 else {
-                    ctx.fillStyle = '#337733aa';
+                    ctx.fillStyle = '#ff0000';
                     ctx.fillRect(obj.base_x, obj.base_y, obj.width, obj.height);
+                    ctx.fillStyle = '#000000';
+                    ctx.fillText(`broken image url: ${obj.url}`, obj.base_x+32, obj.base_y+32);
                 }
             }break;
             case CANVASTYPE.IMG_TOKEN:{
