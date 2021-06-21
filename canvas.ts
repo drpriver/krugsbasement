@@ -5716,6 +5716,25 @@ let token_paths: Array<string> = [];
 socket.on('token-paths', function(paths:Array<string>){
     token_paths = paths;
 });
+function maybe_move_selection_one_unit(view:DungeonMapView, dx:number, dy:number):boolean{
+    if(view.selected.size !== 1)
+        return false;
+    const s = view.selected.values().next().value;
+    const obj = view.map.canvas_objs.get(s);
+    if(!obj)
+        return false;
+    if(obj.flags & CANVASFLAG.DELETED)
+        return false;
+    if(obj.type != CANVASTYPE.EZ_TOKEN && obj.type != CANVASTYPE.IMG_TOKEN)
+        return false;
+    const before = strip_obj(obj);
+    obj.base_x += dx;
+    obj.base_y += dy;
+    const after = strip_obj(obj);
+    publish_obj_updates(view.map.map_id, [after]);
+    note_updates_for_undo(view.map, [before], [after]);
+    return true;
+}
 document.addEventListener('DOMContentLoaded', function(){
     canvas = document.getElementsByTagName('canvas')[0]!;
     canvas.addEventListener('wheel', function(e:WheelEvent){
@@ -5752,19 +5771,35 @@ document.addEventListener('DOMContentLoaded', function(){
         const view = get_active_view();
         switch(e.key){
             case 'ArrowLeft':{
-                view.camera_x += 256;
+                if(maybe_move_selection_one_unit(view, -64, 0)){
+                }
+                else {
+                    view.camera_x += 256;
+                }
                 request_render();
             }break;
             case 'ArrowRight':{
-                view.camera_x -= 256;
+                if(maybe_move_selection_one_unit(view, +64, 0)){
+                }
+                else {
+                    view.camera_x -= 256;
+                }
                 request_render();
             }break;
             case 'ArrowUp':{
-                view.camera_y += 256;
+                if(maybe_move_selection_one_unit(view, 0, -64)){
+                }
+                else {
+                    view.camera_y += 256;
+                }
                 request_render();
             }break;
             case 'ArrowDown':{
-                view.camera_y -= 256;
+                if(maybe_move_selection_one_unit(view, 0, +64)){
+                }
+                else {
+                    view.camera_y -= 256;
+                }
                 request_render();
             }break;
             case 'Escape':{

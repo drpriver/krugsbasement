@@ -122,7 +122,7 @@ David20::title @hide
   #help-menu tbody tr td:nth-child(2){
     white-space: nowrap;
     border-right: 1px dotted #aaa;
-    font-family: mono;
+    font-family: monospace;
     text-align: center;
   }
   #help-menu td{
