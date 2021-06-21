@@ -1329,8 +1329,16 @@ function resize_canvas():void{
     ctx = canvas.getContext('2d')!;
     const chat_rect = document.getElementById('chat')!.getBoundingClientRect();
     const top_bar_rect = document.getElementById('tree')!.getBoundingClientRect();
-    canvas.width = window.innerWidth - chat_rect.width-4;
-    canvas.height = window.innerHeight-6-top_bar_rect.height;
+    const right_rect = document.getElementById('right-split')!.getBoundingClientRect();
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    width -= 4;
+    width -= chat_rect.width;
+    width -= right_rect.width;
+    height -= 6;
+    height -= top_bar_rect.height;
+    canvas.width = width;
+    canvas.height = height;
     request_render();
 }
 
@@ -2037,7 +2045,7 @@ function make_fixture(id:number, x:number, y:number, ftype:FIXTURETYPE):FixtureO
     return obj;
 }
 
-document.addEventListener('DOMContentLoaded', resize_canvas);
+document.addEventListener('DOMContentLoaded', function(){resize_canvas();resize_canvas();});
 window.addEventListener('resize', resize_canvas);
 function clear_canvas(map:DungeonMap):void{
     map.canvas_obj_array.length = 0;

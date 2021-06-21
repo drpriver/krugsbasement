@@ -4,75 +4,85 @@ David20::title @hide
   You are currently not connected. Inputs will be buffered and sent upon
   reconnect.
   </div>
-::div.views
+::div @id(editorcontainer)
   ::div @id(tree)
+    ::div @id(map-buttons)
+      ::raw
+        <select name="current-map-name" id="current-map-name"></select>
+        <button id="new-map-button">New Map</button>
+        <button id="edit-map-button">Edit Map</button>
+        <button id="delete-map-button">Delete Map</button>
+    ::div @id(note-buttons)
+      ::raw
+        <select name="current-note-name" id="current-note-name"><option>No Note</option></select>
+        <button id="new-note-button">New Note</button>
+        <button id="edit-note-button">Edit Note</button>
+        <button id="delete-note-button">Delete Note</button>
+  ::div @id(views)
     ::raw
-      <select name="current-map-name" id="current-map-name">Untitled▾</select>
-      <button id="new-map-button">New Map</button>
-      <button id="edit-map-button">Edit Map</button>
-      <button id="delete-map-button">Delete Map</button>
+      <canvas id="map"></canvas>
+      <div id="right-split" style="display:none;"></div>
+
+::div @id(tools)
+  ::div.snaps
+    ::raw
+      <input type="radio" id="grid-snap-grid" name="snap-to-grid" value="GRID" checked>
+      <label for="grid-snap-grid">Grid</label>
+    ::raw
+      <input type="radio" id="grid-snap-half" name="snap-to-grid" value="HALF">
+      <label for="grid-snap-half">Half</label>
+    ::raw
+      <input type="radio" id="grid-snap-free" name="snap-to-grid" value="FREE">
+      <label for="grid-snap-free">Free</label>
+  ::div @id(colors)
+    ::raw
+      <input type="color" id="color-picker" value="#000000"><span id="color-picker-dropdown" style="cursor:pointer;width:2em;text-align:center;">▼</span>
+      <input type="color" id="color-picker2" value="#ffffff"><span id="color-picker2-dropdown" style="cursor:pointer;width:2em;text-align:center;">▼</span>
   ::raw
-    <canvas id="map"></canvas>
-  ::div @id(tools)
-    ::div.snaps
-      ::raw
-        <input type="radio" id="grid-snap-grid" name="snap-to-grid" value="GRID" checked>
-        <label for="grid-snap-grid">Grid</label>
-      ::raw
-        <input type="radio" id="grid-snap-half" name="snap-to-grid" value="HALF">
-        <label for="grid-snap-half">Half</label>
-      ::raw
-        <input type="radio" id="grid-snap-free" name="snap-to-grid" value="FREE">
-        <label for="grid-snap-free">Free</label>
-    ::div @id(colors)
-      ::raw
-        <input type="color" id="color-picker" value="#000000"><span id="color-picker-dropdown" style="cursor:pointer;width:2em;text-align:center;">▼</span>
-        <input type="color" id="color-picker2" value="#ffffff"><span id="color-picker2-dropdown" style="cursor:pointer;width:2em;text-align:center;">▼</span>
+    <input type="number" class="numeric-input" id="line-thickness" value="4" max="20" min="1">
+  ::div.tool @id(pan-tool)
+    Pa<b>n</b>
+  ::div.tool @id(select-tool)
+    <b>S</b>elect
     ::raw
-      <input type="number" class="numeric-input" id="line-thickness" value="4" max="20" min="1">
-    ::div.tool @id(pan-tool)
-      Pa<b>n</b>
-    ::div.tool @id(select-tool)
-      <b>S</b>elect
-      ::raw
-        <span>☰</span>
-    ::div.tool @id(wall-tool)
-      W<b>a</b>ll
-    ::div.tool @id(door-tool)
-      <b>D</b>oor
-      ::raw
-        <span>☰</span>
-    ::div.tool @id(fixture-tool)
-      <b>F</b>ixture
-      ::raw
-        <span>☰</span>
-    ::div.tool @id(line-tool)
-      <b>L</b>ine
-    ::div.tool @id(rect-tool)
-      <b>R</b>ect
-      ::raw
-        <span>☰</span>
-    ::div.tool @id(ellipse-tool)
-      Elli<b>p</b>se
-      ::raw
-        <span>☰</span>
-    ::div.tool @id(text-tool)
-      <b>T</b>ext
-    ::div.tool @id(token-tool)
-      T<b>o</b>ken
-      ::raw
-        <span>☰</span>
-    ::div.tool @id(image-tool)
-      <b>I</b>mage
-    ::div.tool @id(tile-tool)
-      Tile
-      ::raw
-        <span>☰</span>
-    ::div.tool @id(measure-tool)
-      <b>M</b>easure
-    ::div.tool @id(help-tool)
-      Help
-  ::div @id(palette)
+      <span>☰</span>
+  ::div.tool @id(wall-tool)
+    W<b>a</b>ll
+  ::div.tool @id(door-tool)
+    <b>D</b>oor
+    ::raw
+      <span>☰</span>
+  ::div.tool @id(fixture-tool)
+    <b>F</b>ixture
+    ::raw
+      <span>☰</span>
+  ::div.tool @id(line-tool)
+    <b>L</b>ine
+  ::div.tool @id(rect-tool)
+    <b>R</b>ect
+    ::raw
+      <span>☰</span>
+  ::div.tool @id(ellipse-tool)
+    Elli<b>p</b>se
+    ::raw
+      <span>☰</span>
+  ::div.tool @id(text-tool)
+    <b>T</b>ext
+  ::div.tool @id(token-tool)
+    T<b>o</b>ken
+    ::raw
+      <span>☰</span>
+  ::div.tool @id(image-tool)
+    <b>I</b>mage
+  ::div.tool @id(tile-tool)
+    Tile
+    ::raw
+      <span>☰</span>
+  ::div.tool @id(measure-tool)
+    <b>M</b>easure
+  ::div.tool @id(help-tool)
+    Help
+::div @id(palette)
 ::div.chat @id(chat)
   ::div.log @id(chat-history)
   ::div @id(macros)
@@ -147,23 +157,68 @@ David20::title @hide
   }
   #tree {
     display: flex;
-    flex-direction: row;
     border: 1px solid black;
-    height: auto;
-    font-size: 24px;
-    text-align: center;
+    height: 32px;
+    font-size: 1rem;
+    justify-content: space-between;
+    align-items: center;
   }
-  #tree *{
-    max-width: 20em
+  #tree div *{
+    max-width: 20em;
   }
-  button {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+
+  #tree button {
+    height: 24px;
   }
-  #tree > select{
-    width: 100%;
+  #tree select{
+    height: 24px;
+    min-width: 12em;
     margin: 4px 0px 4px 0px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
     /*font-size: 24px;*/
+  }
+  #map-buttons, #note-buttons{
+    display: flex;
+    flex-direction: row;
+    width: 20em;
+    white-space: nowrap;
+    align-items: center;
+    padding: 1em;
+  }
+  #map-buttons *, #note-buttons *{
+    margin: 0.5em;
+  }
+  #map-buttons{
+    justify-content: flex-start;
+  }
+  #note-buttons{
+    justify-content: flex-end;
+  }
+  #right-split{
+    border: 1px solid black;
+  }
+  input.note-input{
+    font-family: mono;
+    font-size: 12px;
+    resize: none;
+    padding: .5em;
+    margin: 0;
+    width: 100%;
+  }
+  .note {
+    height: 97%;
+    overflow-y: auto;
+    padding: .5em;
+    margin: 0;
+    font-family: mono;
+    font-size: 12px;
+    resize: none;
+  }
+  #map{
+    grid-column: 1
+  }
+  button {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   }
   #palette{
     position: absolute;
@@ -284,14 +339,18 @@ David20::title @hide
   body > div {
     display: grid;
     grid-template-columns: auto 17em;
-    grid-template-rows: 1fr;
     height: 100%;
     margin: 0;
   }
-  .views {
+  #editorcontainer {
     grid-column: 1;
     grid-row: 1;
     height: 100%;
+    display: grid;
+  }
+  #views {
+    display: flex;
+    flex-direction: row;
   }
   #chat {
     grid-column: 2;
@@ -461,7 +520,7 @@ David20::title @hide
     #tools {
       display: none;
     }
-    .views {
+    #editorcontainer {
       display:none;
     }
     #chat {

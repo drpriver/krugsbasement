@@ -2,13 +2,13 @@ Depends: ; mkdir -p $@
 DEPFILES:= $(wildcard Depends/*.dep)
 include $(DEPFILES)
 TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError
-
-combined.js: toplevel.ts chat.ts canvas.ts
+TSFILES:= toplevel.ts chat.ts canvas.ts notes.ts
+combined.js: $(TSFILES)
 	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc $^ $(TSCFLAGS) --outFile $@ | cat"
 
 .PHONY: watcher
 watcher:
-	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc -w toplevel.ts chat.ts canvas.ts $(TSCFLAGS) --outFile combined.js"
+	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc -w $(TSFILES) $(TSCFLAGS) --outFile combined.js"
 .DEFAULT_GOAL:=combined.js
 
 .PHONY: run
