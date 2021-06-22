@@ -20,7 +20,7 @@ else:
 
 @socketio.on('chat-input')
 def chat_input(data:Dict[str, str]) -> None:
-    room = sid_to_room[request.sid] # type: ignore
+    room = get_room(request)
     if not data:
         return
     responses = chat.handle_input(room, data['text'], data['chatname'])
@@ -32,7 +32,11 @@ def save_session_id(unused) -> int:
 
 session_id = Persister(0, 'BadDb/app.json', save_func=save_session_id).obj
 
-sid_to_room = {}
+sid_to_room = {} # type: Dict[str, str]
+def get_room(req) -> str:
+    return sid_to_room[req.sid]
+def record_room(req, room:str) -> None:
+    sid_to_room[req.sid] = room
 ALLOWED_CAMPAIGNS:Set[str] = set()
 ALLOWED_CAMPAIGNS = Persister(ALLOWED_CAMPAIGNS, 'BadDb/campaigns.json', save_func=list, load_func=set).obj # type: ignore
 
@@ -52,7 +56,8 @@ def handle_connection() -> None:
 
 @socketio.on('join')
 def join(room:str) -> None:
-    sid_to_room[request.sid] = room  # type: ignore
+    record_room(request, room)
+    logging.info("Someone joining room: '%s'", room);
     join_room(room)
     path = 'BadDb' + room
     os.makedirs(path, exist_ok=True)
@@ -62,7 +67,7 @@ def join(room:str) -> None:
 
 @socketio.on('post-join')
 def post_join():
-    room = sid_to_room[request.sid]  # type: ignore
+    room = get_room(request)
     emit('canvas-clear')
     emit('chat-clear')
     emit('chat-create', chat.get_history(room))
@@ -71,28 +76,28 @@ def post_join():
 
 @socketio.on('canvas-create-objects')
 def handle_canvas_create(data:dict) -> None:
-    room = sid_to_room[request.sid]  # type: ignore
+    room = get_room(request)
     response = canvas.handle_create(room, data)
     if response:
         emit('canvas-create-objects', response, broadcast=True, include_self=False, to=room)
 
 @socketio.on('canvas-delete')
 def handle_canvas_delete(data:dict) -> None:
-    room = sid_to_room[request.sid]  # type: ignore
+    room = get_room(request)
     response = canvas.handle_delete(room, data)
     if response:
         emit('canvas-delete', response, broadcast=True, include_self=False, to=room)
 
 @socketio.on('canvas-update')
 def handle_canvas_update(data:dict) -> None:
-    room = sid_to_room[request.sid]  # type: ignore
+    room = get_room(request)
     response = canvas.handle_update(room, data)
     if response:
         emit('canvas-update', response, broadcast=True, include_self=False, to=room)
 
 @socketio.on('canvas-gather')
 def canvas_gather(where:Dict[str, int]) -> None:
-    room = sid_to_room[request.sid]  # type: ignore
+    room = get_room(request)
     try:
         where = {'x':int(where['x']), 'y':int(where['y']), 'map_id':where['map_id']}
     except:
@@ -102,18 +107,18 @@ def canvas_gather(where:Dict[str, int]) -> None:
 
 @socketio.on('canvas-create-map')
 def canvas_create_map(data:int) -> None:
-    room = sid_to_room[request.sid]  # type: ignore
+    room = get_room(request)
     canvas.create_map(room, data)
     emit('canvas-create-map', data, broadcast=True, include_self=False, to=room)
 
 @socketio.on('canvas-ping')
 def canvas_ping(data) -> None:
-    room = sid_to_room[request.sid]  # type: ignore
+    room = get_room(request)
     emit('canvas-ping', data, broadcast=True, include_self=False, to=room)
 
 @socketio.on('canvas-name-map')
 def canvas_name_map(data) -> None:
-    room = sid_to_room[request.sid]  # type: ignore
+    room = get_room(request)
     canvas.name_map(room, **data)
     emit('canvas-name-map', data, broadcast=True, include_self=False, to=room)
 
@@ -121,7 +126,7 @@ def canvas_name_map(data) -> None:
 def new_map_request(data) -> None:
     map_name:str = data['name']
     grid_type: int = data['grid_type']
-    room = sid_to_room[request.sid]  # type: ignore
+    room = get_room(request)
     new_map_id = canvas.new_map_request(room, map_name, grid_type)
     emit('canvas-create-map', new_map_id, broadcast=True, include_self=True, to=room)
     emit('canvas-name-map', {'map_id':new_map_id, 'map_name':map_name}, broadcast=True, include_self=True, to=room)
@@ -131,7 +136,7 @@ def new_map_request(data) -> None:
 def change_grid_type(data) -> None:
     map_id = data['map_id']
     gt = data['grid_type']
-    room = sid_to_room[request.sid]  # type: ignore
+    room = get_room(request)
     canvas.change_grid_type(room, map_id, gt)
     emit('canvas-grid-type', {'map_id':map_id, 'grid_type':gt}, broadcast=True, include_self=True, to=room)
 
@@ -139,21 +144,21 @@ def change_grid_type(data) -> None:
 def change_grid_numbered(data) -> None:
     map_id = data['map_id']
     numbered = data['numbered']
-    room = sid_to_room[request.sid]  # type: ignore
+    room = get_room(request)
     canvas.set_numbered(room, map_id, numbered)
     emit('canvas-grid-numbered', {'map_id':map_id, 'numbered':numbered}, broadcast=True, include_self=True, to=room)
 
 
 @socketio.on('canvas-delete-map-request')
 def delete_map_request(map_id:int) -> None:
-    room = sid_to_room[request.sid]  # type: ignore
+    room = get_room(request)
     was_deleted = canvas.delete_map(room, map_id)
     if was_deleted:
         emit('canvas-delete-map', map_id, broadcast=True, include_self=True, to=room)
 
 @socketio.on('new-note-request')
 def new_note_request() -> int:
-    room = sid_to_room[request.sid]  # type: ignore
+    room = get_room(request)
     note_id = notes.new_note_request(room)
     logging.info('new note: %d', note_id)
     emit('new-note', note_id, broadcast=True, include_self=False, to=room)
@@ -161,19 +166,19 @@ def new_note_request() -> int:
 
 @socketio.on('note-update-title')
 def note_update_title(data) -> None:
-    room = sid_to_room[request.sid]  # type: ignore
+    room = get_room(request)
     notes.note_update_title(room, data['note_id'], data['title'])
     emit('note-update-title', data, broadcast=True, include_self=False, to=room)
 
 @socketio.on('note-update-body')
 def note_update_body(data) -> None:
-    room = sid_to_room[request.sid]  # type: ignore
+    room = get_room(request)
     notes.note_update_body(room, data['note_id'], data['body'])
     emit('note-update-body', data, broadcast=True, include_self=False, to=room)
 
 @socketio.on('delete-note-request')
 def not_delete(note_id:int) -> None:
-    room = sid_to_room[request.sid]  # type: ignore
+    room = get_room(request)
     notes.note_delete(room, note_id)
     emit('note-delete', note_id, broadcast=True, include_self=True, to=room)
 try:
