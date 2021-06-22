@@ -59,6 +59,7 @@ def join(room:str) -> None:
     os.makedirs(path, exist_ok=True)
     chat.create_chat(room)
     canvas.create_maps(room)
+    notes.create_notes_for_room(room)
 
 @socketio.on('post-join')
 def post_join():
@@ -67,6 +68,7 @@ def post_join():
     emit('chat-clear')
     emit('chat-create', chat.get_history(room))
     emit('canvas-initialize-maps', canvas.get_state(room))
+    emit('notes-initialize', notes.get_notes_for_room(room))
 
 @socketio.on('canvas-create-objects')
 def handle_canvas_create(data:dict) -> None:
@@ -150,6 +152,31 @@ def delete_map_request(map_id:int) -> None:
     if was_deleted:
         emit('canvas-delete-map', map_id, broadcast=True, include_self=True, to=room)
 
+@socketio.on('new-note-request')
+def new_note_request() -> int:
+    room = sid_to_room[request.sid]  # type: ignore
+    note_id = notes.new_note_request(room)
+    logging.info('new note: %d', note_id)
+    emit('new-note', note_id, broadcast=True, include_self=False, to=room)
+    return note_id
+
+@socketio.on('note-update-title')
+def note_update_title(data) -> None:
+    room = sid_to_room[request.sid]  # type: ignore
+    notes.note_update_title(room, data['note_id'], data['title'])
+    emit('note-update-title', data, broadcast=True, include_self=False, to=room)
+
+@socketio.on('note-update-body')
+def note_update_body(data) -> None:
+    room = sid_to_room[request.sid]  # type: ignore
+    notes.note_update_body(room, data['note_id'], data['body'])
+    emit('note-update-body', data, broadcast=True, include_self=False, to=room)
+
+@socketio.on('delete-note-request')
+def not_delete(note_id:int) -> None:
+    room = sid_to_room[request.sid]  # type: ignore
+    notes.note_delete(room, note_id)
+    emit('note-delete', note_id, broadcast=True, include_self=True, to=room)
 try:
     SCREEN: Optional[str] = open('screen.html').read()
 except:

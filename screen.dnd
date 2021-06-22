@@ -16,6 +16,7 @@ David20::title @hide
       ::raw
         <select name="current-note-name" id="current-note-name"><option>No Note</option></select>
         <button id="new-note-button">New Note</button>
+        <button id="hide-notes-button">Hide Notes</button>
         <button id="edit-note-button">Edit Note</button>
         <button id="delete-note-button">Delete Note</button>
   ::div @id(views)
@@ -198,8 +199,7 @@ David20::title @hide
     justify-content: flex-start;
     align-items: center;
   }
-  input.note-input{
-    font-family: mono;
+  #note-input{
     font-size: 12px;
     font-weight: 800;
     resize: none;
