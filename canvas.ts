@@ -5863,6 +5863,9 @@ document.addEventListener('DOMContentLoaded', function(){
             case 'o':
                 change_tool(TOOLTYPE.TOKEN);
                 break;
+            case 'k':
+                change_tool(TOOLTYPE.TILE);
+                break;
             case 'y':
                 if(shortcut){
                     do_one_redo(view.map);

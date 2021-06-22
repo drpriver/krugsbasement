@@ -75,7 +75,7 @@ David20::title @hide
   ::div.tool @id(image-tool)
     <b>I</b>mage
   ::div.tool @id(tile-tool)
-    Tile
+    Tile (<b>k</b>)
     ::raw
       <span>☰</span>
   ::div.tool @id(measure-tool)
