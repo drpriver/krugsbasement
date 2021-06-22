@@ -152,7 +152,7 @@ socket.on('notes-initialize', function(notes:Array<{id:number, flags:NOTEFLAGS, 
         const n = {flags:note.flags, title:note.title, body:note.body};
         NOTES.set(note.id, n);
     }
-    if(document.readyState == 'complete'){
+    if(document.readyState == 'complete' || document.readyState == 'interactive'){
         set_existing_notes();
     }
 });
