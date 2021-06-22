@@ -5925,6 +5925,8 @@ document.addEventListener('DOMContentLoaded', function(){
         if(e.button !== 0 && e.button !== 1){ //0 is the 'primary' button
             return;
         }
+        if(document.activeElement)
+            (document.activeElement as any).blur();
         let view = get_active_view();
         if(ctxmenu_is_active !== 0)
             return;
