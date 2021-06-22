@@ -21,9 +21,9 @@ def load_notes(data:JsType) -> Dict[int, Dict[str, Any]]:
             d['body'] = ''
         if not isinstance(d.get('id'), int):
             continue
+        id = d.pop('id')
         for extra in set(d) - {'flags', 'title', 'body'}:
             del d[extra]
-        id = d.pop('id')
         result[id] = d
     return result
 
@@ -65,11 +65,11 @@ def get_notes_for_room(room:str) -> Dict[int, Dict[str, Any]]:
 
 def get_note(room:str, note_id:int) -> Optional[dict]:
     if room not in NOTES:
-        logging.error("Update a note for a room that doesn't exist: %s", room)
+        logging.error("Updating a note for a room that doesn't exist: %s", room)
         return None
     notes = NOTES[room]
     if note_id not in notes:
-        logging.error("Update a note that doesn't exist: %s (room: %s)", not_id, room)
+        logging.error("Updating a note that doesn't exist: %s (room: %s)", note_id, room)
         return None
     note = notes[note_id]
     return note
