@@ -166,7 +166,7 @@ function set_existing_notes(){
         add_note_option(notes_selection, note.title, id);
     }
 }
-let INITIAL_EDIT_NOTE_BUTTON_TEXT = "Edit Note";
+let INITIAL_EDIT_NOTE_BUTTON_TEXT = "Edit";
 document.addEventListener('DOMContentLoaded', function(){
     const new_note_button = document.getElementById('new-note-button')! as HTMLButtonElement;
     const edit_note_button = document.getElementById('edit-note-button')! as HTMLButtonElement;
@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function(){
         title.readOnly = note.readOnly;
         if(!note.readOnly){
             note.focus();
-            edit_note_button.innerText = 'Stop Editing Note';
+            edit_note_button.innerText = 'Stop Edit';
         }
         else
             edit_note_button_reset_name();
