@@ -3,6 +3,7 @@ import random
 from .dice import dice_from_string, roll_dice
 from .persist import Persister
 from flask_socketio import emit
+from .logs import logging
 
 from enum import IntEnum
 class Msg(IntEnum):

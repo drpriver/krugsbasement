@@ -1,21 +1,22 @@
 from flask import Flask, jsonify, request, Response, send_from_directory, session, abort
 from flask_socketio import SocketIO, emit, join_room
+from .logs import logging
 from . import chat
 from . import canvas
+from . import notes
 from .persist import Persister
 from. import appconfig
 import os
 import logging
-logging.basicConfig(level=logging.INFO,format='[%(asctime)s][%(levelname)s] - %(funcName)s: %(message)s')
 
 from typing import List, Dict, Optional, Set, Union
 
 app = Flask('WebDnd')
 # app.config['SECRET_KEY'] = 'secret!'
 if appconfig.DEV:
-    socketio = SocketIO(app, logger=logging)
+    socketio = SocketIO(app, logger=False)
 else:
-    socketio = SocketIO(app, logger=logging, cors_allowed_origins="https://krugsbasement.com")
+    socketio = SocketIO(app, logger=False, cors_allowed_origins="https://krugsbasement.com")
 
 @socketio.on('chat-input')
 def chat_input(data:Dict[str, str]) -> None:
@@ -46,6 +47,7 @@ TOKEN_PATH_LIST = get_token_paths()
 def handle_connection() -> None:
     global session_id
     session_id += 1
+    logging.info('Connection from %s', request.remote_addr)
     emit('session-id', session_id)
     emit('token-paths', TOKEN_PATH_LIST)
 

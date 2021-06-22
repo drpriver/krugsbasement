@@ -5,8 +5,7 @@ from typing import Generic, TypeVar, Callable, Optional, Union, Any
 from . import appconfig
 import threading
 import time
-import logging
-logging.basicConfig(level=logging.INFO,format='[%(asctime)s][%(levelname)s] - %(funcName)s: %(message)s')
+from .logs import logging
 
 T = TypeVar('T')
 JsType = Union[str, dict, list, int, float]

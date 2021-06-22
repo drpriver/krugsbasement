@@ -1,6 +1,7 @@
 from typing import List, Dict, Any, NamedTuple, Callable, Tuple, Union, Mapping
 from .persist import Persister
 from enum import IntFlag, IntEnum
+from .logs import logging
 
 class MapFlag(IntFlag):
     NONE        = 0x0
