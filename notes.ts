@@ -145,19 +145,27 @@ socket.on('note-delete', function(note_id:number){
     delete_note_by_id(note_id);
 });
 socket.on('notes-initialize', function(notes:Array<{id:number, flags:NOTEFLAGS, title:string, body:string}>){
-    if(document.readyState == 'complete'){
-        for(let note of notes){
-            const n = {flags:note.flags, title:note.title, body:note.body};
-            add_note(note.id, n);
-        }
+    NOTES.clear();
+    NOTE_ID_TO_OPTION.clear();
+
+    for(let note of notes){
+        const n = {flags:note.flags, title:note.title, body:note.body};
+        NOTES.set(note.id, n);
     }
-    else {
-        for(let note of notes){
-            const n = {flags:note.flags, title:note.title, body:note.body};
-            NOTES.set(note.id, n);
-        }
+    if(document.readyState == 'complete'){
+        set_existing_notes();
     }
 });
+function set_existing_notes(){
+    const notes_selection = document.getElementById('current-note-name')! as HTMLSelectElement;
+    while(notes_selection.options.length > 1){
+        notes_selection.remove(1);
+    }
+    // populate the initial notes
+    for(let [id, note] of NOTES.entries()){
+        add_note_option(notes_selection, note.title, id);
+    }
+}
 let INITIAL_EDIT_NOTE_BUTTON_TEXT = "Edit Note";
 document.addEventListener('DOMContentLoaded', function(){
     const new_note_button = document.getElementById('new-note-button')! as HTMLButtonElement;
@@ -180,10 +188,7 @@ document.addEventListener('DOMContentLoaded', function(){
             edit_note_button_reset_name();
     });
     const notes_selection = document.getElementById('current-note-name')! as HTMLSelectElement;
-    // populate the initial notes
-    for(let [id, note] of NOTES.entries()){
-        add_note_option(notes_selection, note.title, id);
-    }
+    set_existing_notes();
     notes_selection.addEventListener('input', function(e:Event){
         e.stopPropagation();
         show_note_by_id(+notes_selection.value);

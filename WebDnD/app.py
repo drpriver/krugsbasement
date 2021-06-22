@@ -47,7 +47,6 @@ TOKEN_PATH_LIST = get_token_paths()
 def handle_connection() -> None:
     global session_id
     session_id += 1
-    logging.info('Connection from %s', request.remote_addr)
     emit('session-id', session_id)
     emit('token-paths', TOKEN_PATH_LIST)
 
