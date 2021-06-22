@@ -1,4 +1,4 @@
-from typing import List, Dict, Union, Any, NamedTuple, Optional
+from typing import List, Dict, Union, NamedTuple, Optional
 from .persist import Persister, JsType
 from enum import IntFlag
 import logging
@@ -9,7 +9,7 @@ class NoteFlags(IntFlag):
     DELETED = 0x1
 
 
-def load_notes(data:JsType) -> Dict[int, Dict[str, Any]]:
+def load_notes(data:JsType) -> Dict[int, Dict[str, JsType]]:
     assert isinstance(data, list)
     result = {}
     for d in data:
@@ -27,10 +27,10 @@ def load_notes(data:JsType) -> Dict[int, Dict[str, Any]]:
         result[id] = d
     return result
 
-def save_notes(notes:Dict[int, Dict[str, Any]]) -> JsType:
-    result = []
+def save_notes(notes:Dict[int, Dict[str, JsType]]) -> List[Dict[str, JsType]]:
+    result = [] # type: List[Dict[str, JsType]]
     for note_id, note in notes.items():
-        if note['flags'] & NoteFlags.DELETED:
+        if note['flags'] & NoteFlags.DELETED: # type: ignore
             continue
         result.append({
             'id': note_id,
@@ -38,7 +38,7 @@ def save_notes(notes:Dict[int, Dict[str, Any]]) -> JsType:
             })
     return result
 
-NOTES = {'/':{}} # type: Dict[str, Dict[int, Dict[str, Any]]]
+NOTES = {'/':{}} # type: Dict[str, Dict[int, Dict[str, JsType]]]
 NOTES['/'] = Persister(NOTES['/'], 'BadDb/notes.json', dont_persist=True, load_func=load_notes, save_func=save_notes).obj
 
 def new_note_request(room:str) -> int:
@@ -58,9 +58,10 @@ def new_note_request(room:str) -> int:
 def create_notes_for_room(room:str) -> None:
     if room in NOTES:
         return
-    NOTES[room] = Persister({}, 'BadDb'+room+'/notes.json', save_func=save_notes, load_func=load_notes).obj
+    empty_notes = {} # type: Dict[int, Dict[str, JsType]]
+    NOTES[room] = Persister(empty_notes, 'BadDb'+room+'/notes.json', save_func=save_notes, load_func=load_notes).obj
 
-def get_notes_for_room(room:str) -> Dict[int, Dict[str, Any]]:
+def get_notes_for_room(room:str) -> List[Dict[str, JsType]]:
     return save_notes(NOTES[room])
 
 def get_note(room:str, note_id:int) -> Optional[dict]:
