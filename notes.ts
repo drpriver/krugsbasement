@@ -75,7 +75,6 @@ function show_note_text(id:number, note:Note){
     title.id = 'note-input';
     title.value = note.title;
     title.rows = 1;
-    title.classList.add('note-input');
     title.readOnly = true;
     title.spellcheck = false;
     title.addEventListener('input', function(){
@@ -84,7 +83,6 @@ function show_note_text(id:number, note:Note){
     });
     const noteta = document.createElement('textarea');
     noteta.id = 'note';
-    noteta.classList.add('note');
     noteta.value = note.body;
     noteta.cols = 50;
     noteta.spellcheck = false;

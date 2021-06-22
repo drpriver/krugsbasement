@@ -1328,14 +1328,12 @@ function resize_canvas():void{
     canvas = document.getElementsByTagName('canvas')[0]!;
     ctx = canvas.getContext('2d')!;
     const chat_rect = document.getElementById('chat')!.getBoundingClientRect();
-    // const top_bar_rect = document.getElementById('tree')!.getBoundingClientRect();
     const note = document.getElementById('note');
     const right_width = note?note.getBoundingClientRect().width:0;
     let width = window.innerWidth;
     let height = window.innerHeight;
     width -= chat_rect.width;
     width -= right_width;
-    // height -= top_bar_rect.height;
     canvas.width = width;
     canvas.height = height;
     request_render();

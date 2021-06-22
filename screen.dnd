@@ -72,24 +72,32 @@ David20::title @hide
 ::div @id(palette)
 ::div.chat @id(chat)
   ::div @id(tree)
-    ::div @id(map-buttons)
-      ::raw
-        <span>Map:</span><select name="current-map-name" id="current-map-name"></select>
-      ::div.button-container
-        ::raw
-          <button id="new-map-button">New</button>
-          <button id="edit-map-button">Edit</button>
-          <button id="delete-map-button">Delete</button>
-    ::div @id(note-buttons)
-      ::div
-        ::raw
-          <span>Note:</span><select name="current-note-name" id="current-note-name"><option>No Note</option></select>
-      ::div.button-container
-        ::raw
-          <button id="new-note-button">New</button>
-          <button id="hide-notes-button">Hide</button>
-          <button id="edit-note-button">Edit</button>
-          <button id="delete-note-button">Delete</button>
+    ::raw
+      <table id="views-buttons-container">
+        <tr>
+          <td>Map
+          <td><select style="width:100%;" name="current-map-name" id="current-map-name"></select>
+        </tr>
+        <tr>
+          <td colspan="2" class="view-buttons-separator">
+            <button id="new-map-button">New</button>
+            <button id="edit-map-button">Edit</button>
+            <button id="delete-map-button">Delete</button>
+          </td>
+        </tr>
+        <tr>
+          <td>Note
+          <td><select style="width:100%;" name="current-note-name" id="current-note-name"><option>No Note</option></select>
+        </tr>
+        <tr>
+          <td colspan="2" class="view-buttons-separator">
+            <button id="new-note-button">New</button>
+            <button id="hide-notes-button">Hide</button>
+            <button id="edit-note-button">Edit</button>
+            <button id="delete-note-button">Delete</button>
+          </td>
+        </tr>
+      </table>
   ::div.log @id(chat-history)
   ::div @id(macros)
     ::raw
@@ -98,11 +106,6 @@ David20::title @hide
     <textarea id="chatinput" rows="4"></textarea>
 
 ::css @inline
-  .button-container {
-    display: flex;
-    flex-wrap: wrap;
-    margin: 0;
-  }
   :root {
     color-scheme: light dark; /* both supported */
   }
@@ -166,32 +169,16 @@ David20::title @hide
     max-height: 512px;
     overflow-y: auto;
   }
-  #tree {
-    display: flex;
-    flex-direction: column;
-    border: 1px solid black;
-    font-size: 1rem;
-    align-items: center;
+  #views-buttons-container {
+    width: 100%;
+    padding: 0 0.5em;
   }
-  #tree div *{
-    max-width: 20em;
+  .view-buttons-separator {
+    border-bottom: 1px solid gray;
   }
 
-  #tree button {
-  }
   #tree select{
-    height: 24px;
-    min-width: 12em;
-    margin: 4px 0px 4px 0px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-    /*font-size: 24px;*/
-  }
-  #map-buttons, #note-buttons{
-    display: flex;
-    white-space: nowrap;
-    align-items: center;
-    flex-wrap: wrap;
-    border: 1px solid black;
   }
   #right-split{
     border: 1px solid black;
@@ -201,6 +188,7 @@ David20::title @hide
     align-items: center;
   }
   #note-input{
+    height: 2em;
     font-size: 12px;
     font-weight: 800;
     resize: none;
@@ -208,9 +196,8 @@ David20::title @hide
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   }
-  #note, .note {
-    min-height: 90%;
-    height: auto;
+  #note {
+    height: calc(100% - 2em);
     overflow-y: auto;
     padding: .5em;
     margin: 0;
