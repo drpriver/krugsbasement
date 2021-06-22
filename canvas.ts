@@ -1333,10 +1333,8 @@ function resize_canvas():void{
     const right_width = note?note.getBoundingClientRect().width:0;
     let width = window.innerWidth;
     let height = window.innerHeight;
-    // width -= 4;
     width -= chat_rect.width;
     width -= right_width;
-    // height -= 4;
     height -= top_bar_rect.height;
     canvas.width = width;
     canvas.height = height;
