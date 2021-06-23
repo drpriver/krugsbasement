@@ -1,0 +1,8 @@
+Firefox on Windows 10:
+> opening a note changes the width of the screen (it becomes horizontally
+> scrollable)
+
+This is probably due to minor differences in widths that trigger a scrollbar
+and windows10 scrollbars are fat.
+
+I was doing some weird stuff with calculating sizes. It should be fine now.

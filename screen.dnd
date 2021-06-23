@@ -73,28 +73,20 @@ David20::title @hide
 ::div.chat @id(chat)
   ::div @id(tree)
     ::raw
-      <table id="views-buttons-container">
-        <tr>
-          <td>Map
-          <td><select style="width:100%;" name="current-map-name" id="current-map-name"></select>
-        </tr>
-        <tr>
-          <td colspan="2" class="view-buttons-separator">
-            <button id="new-map-button">New</button>
-            <button id="edit-map-button">Edit</button>
-            <button id="delete-map-button">Delete</button>
+      <table id="views-buttons-container" style="border-collapse: collapse">
+        <tr style="border-bottom: 1px solid grey; max-width: 100%;">
+          <td><span style="font-size:0.8rem;">Map</span>
+          <td><select style="width: 60%; text-overflow:ellipsis;" name="current-map-name" id="current-map-name"></select>
+            <button style="margin:0;" id="new-map-button"><span>+</style></button>
+            <button style="margin:0;" id="edit-map-button">✎</button>
+            <button style="margin:0;" id="delete-map-button">✘</button>
           </td>
         </tr>
-        <tr>
-          <td>Note
-          <td><select style="width:100%;" name="current-note-name" id="current-note-name"><option>No Note</option></select>
-        </tr>
-        <tr>
-          <td colspan="2" class="view-buttons-separator">
-            <button id="new-note-button">New</button>
-            <button id="hide-notes-button">Hide</button>
-            <button id="edit-note-button">Edit</button>
-            <button id="delete-note-button">Delete</button>
+        <tr style="border-bottom: 1px solid grey; max-width: 100%;">
+          <td><span style="font-size:0.8rem;">Note</span>
+          <td><select style="width: 60%; text-overflow:ellipsis;" name="current-note-name" id="current-note-name"><option>No Note</option></select>
+            <button style="margin:0;" id="new-note-button">+</button>
+            <button style="margin:0;" id="delete-note-button">✘</button>
           </td>
         </tr>
       </table>
@@ -171,7 +163,6 @@ David20::title @hide
   }
   #views-buttons-container {
     width: 100%;
-    padding: 0 0.5em;
   }
   .view-buttons-separator {
     border-bottom: 1px solid gray;
@@ -181,14 +172,15 @@ David20::title @hide
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   }
   #right-split{
-    border: 1px solid black;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: stretch;
     align-items: center;
+    width: 300px;
+    box-sizing: border-box;
   }
   #note-input{
-    height: 2em;
+    height: auto;
     font-size: 12px;
     font-weight: 800;
     resize: none;
@@ -197,7 +189,7 @@ David20::title @hide
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   }
   #note {
-    height: calc(100% - 2em);
+    flex-grow: 100;
     overflow-y: auto;
     padding: .5em;
     margin: 0;
@@ -328,7 +320,7 @@ David20::title @hide
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   }
   body {
-    /*overflow: hidden;*/
+    overflow: hidden;
   }
   body > div {
     display: grid;

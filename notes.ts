@@ -28,7 +28,6 @@ function add_note_option(notes_selection:HTMLSelectElement, name:string, id:numb
     NOTE_ID_TO_OPTION.set(id, option);
 }
 function hide_notes(){
-    edit_note_button_reset_name();
     const right = document.getElementById('right-split')! as HTMLDivElement;
     (right as any).replaceChildren();
     right.style.display = 'none';
@@ -75,7 +74,6 @@ function show_note_text(id:number, note:Note){
     title.id = 'note-input';
     title.value = note.title;
     title.rows = 1;
-    title.readOnly = true;
     title.spellcheck = false;
     title.addEventListener('input', function(){
         update_note_title(id, title.value);
@@ -84,9 +82,8 @@ function show_note_text(id:number, note:Note){
     const noteta = document.createElement('textarea');
     noteta.id = 'note';
     noteta.value = note.body;
-    noteta.cols = 50;
+    noteta.style.width = '100%';
     noteta.spellcheck = false;
-    noteta.readOnly = true;
     noteta.addEventListener('input', function(){
         update_note_body(id, noteta.value);
         socket.emit('note-update-body', {note_id:id, body:noteta.value});
@@ -94,9 +91,8 @@ function show_note_text(id:number, note:Note){
     right.appendChild(title);
     right.appendChild(noteta);
     right.style.display = 'flex';
-    edit_note_button_reset_name();
     resize_canvas();
-    title.style.width = noteta.getBoundingClientRect().width + 'px';
+    title.style.width = '100%';
 }
 function show_note_by_id(note_id:number){
     const note = NOTES.get(note_id);
@@ -113,10 +109,6 @@ function show_note_by_id(note_id:number){
         }
     }
     CURRENT_NOTE_ID = note_id;
-}
-function edit_note_button_reset_name(){
-    const edit_note_button = document.getElementById('edit-note-button')! as HTMLButtonElement;
-    edit_note_button.innerText = INITIAL_EDIT_NOTE_BUTTON_TEXT;
 }
 function delete_note_by_id(id:number){
     const note = NOTES.get(id);
@@ -164,27 +156,10 @@ function set_existing_notes(){
         add_note_option(notes_selection, note.title, id);
     }
 }
-let INITIAL_EDIT_NOTE_BUTTON_TEXT = "Edit";
 document.addEventListener('DOMContentLoaded', function(){
     const new_note_button = document.getElementById('new-note-button')! as HTMLButtonElement;
     const edit_note_button = document.getElementById('edit-note-button')! as HTMLButtonElement;
     const delete_note_button = document.getElementById('delete-note-button')! as HTMLButtonElement;
-    const hide_notes_button = document.getElementById('hide-notes-button')! as HTMLButtonElement;
-    INITIAL_EDIT_NOTE_BUTTON_TEXT = edit_note_button.innerText;
-    edit_note_button.addEventListener('click', function(){
-        const note = document.getElementById('note') as HTMLTextAreaElement | undefined;
-        if(!note)
-            return;
-        const title = document.getElementById('note-input')! as HTMLTextAreaElement;
-        note.readOnly = !note.readOnly;
-        title.readOnly = note.readOnly;
-        if(!note.readOnly){
-            note.focus();
-            edit_note_button.innerText = 'Stop Edit';
-        }
-        else
-            edit_note_button_reset_name();
-    });
     const notes_selection = document.getElementById('current-note-name')! as HTMLSelectElement;
     set_existing_notes();
     notes_selection.addEventListener('input', function(e:Event){
@@ -203,8 +178,5 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     delete_note_button.addEventListener('click', function(){
         socket.emit('delete-note-request', CURRENT_NOTE_ID);
-    });
-    hide_notes_button.addEventListener('click', function(){
-        hide_notes();
     });
 });

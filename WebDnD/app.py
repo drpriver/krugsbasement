@@ -128,6 +128,7 @@ def new_map_request(data) -> None:
     grid_type: int = data['grid_type']
     room = get_room(request)
     new_map_id = canvas.new_map_request(room, map_name, grid_type)
+    logging.info('new map: %d for room "%s", with name: "%s"', map_id, room, map_name)
     emit('canvas-create-map', new_map_id, broadcast=True, include_self=True, to=room)
     emit('canvas-name-map', {'map_id':new_map_id, 'map_name':map_name}, broadcast=True, include_self=True, to=room)
     emit('canvas-grid-type', {'map_id':new_map_id, 'grid_type':grid_type}, broadcast=True, include_self=True, to=room)
@@ -152,6 +153,7 @@ def change_grid_numbered(data) -> None:
 @socketio.on('canvas-delete-map-request')
 def delete_map_request(map_id:int) -> None:
     room = get_room(request)
+    logging.info('delete map: %d for room "%s"', map_id, room)
     was_deleted = canvas.delete_map(room, map_id)
     if was_deleted:
         emit('canvas-delete-map', map_id, broadcast=True, include_self=True, to=room)
@@ -160,7 +162,7 @@ def delete_map_request(map_id:int) -> None:
 def new_note_request() -> int:
     room = get_room(request)
     note_id = notes.new_note_request(room)
-    logging.info('new note: %d', note_id)
+    logging.info('new note: %d for room "%s"', note_id, room)
     emit('new-note', note_id, broadcast=True, include_self=False, to=room)
     return note_id
 
@@ -179,6 +181,7 @@ def note_update_body(data) -> None:
 @socketio.on('delete-note-request')
 def not_delete(note_id:int) -> None:
     room = get_room(request)
+    logging.info('delete note: %d for room "%s"', note_id, room)
     notes.note_delete(room, note_id)
     emit('note-delete', note_id, broadcast=True, include_self=True, to=room)
 try:
