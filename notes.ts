@@ -98,7 +98,7 @@ function show_note_by_id(note_id:number){
     const note = NOTES.get(note_id);
     if(!note){
         hide_notes();
-        return; 
+        return;
     }
     show_note_text(note_id, note);
     const notes_selection = document.getElementById('current-note-name')! as HTMLSelectElement;
@@ -177,6 +177,23 @@ document.addEventListener('DOMContentLoaded', function(){
         });
     });
     delete_note_button.addEventListener('click', function(){
-        socket.emit('delete-note-request', CURRENT_NOTE_ID);
+
+        const note = NOTES.get(CURRENT_NOTE_ID);
+        if(!note) return;
+        let html = `
+        <h2>Delete Note</h2>
+        <table class="input-container">
+            <tr>
+                <td><label for="hover-delete">Delete Note: ${note.title}</label>
+                <td><input name="hover-delete" type="checkbox" id="hover-delete">
+            </tr>
+        </table>
+        `;
+        make_ok_dialog(html, function(unused:any){
+            const delete_checkbox = document.getElementById('hover-delete')! as HTMLInputElement;
+            const should_delete = delete_checkbox.checked;
+            if(should_delete)
+                socket.emit('delete-note-request', CURRENT_NOTE_ID);
+        });
     });
 });

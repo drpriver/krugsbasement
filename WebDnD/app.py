@@ -179,7 +179,7 @@ def note_update_body(data) -> None:
     emit('note-update-body', data, broadcast=True, include_self=False, to=room)
 
 @socketio.on('delete-note-request')
-def not_delete(note_id:int) -> None:
+def note_delete(note_id:int) -> None:
     room = get_room(request)
     logging.info('delete note: %d for room "%s"', note_id, room)
     notes.note_delete(room, note_id)

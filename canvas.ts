@@ -7029,6 +7029,9 @@ document.addEventListener('DOMContentLoaded', function(){
             </tr>
             `
         }
+        else {
+            html += `<tr><td>This map can't be deleted</td></tr>`;
+        }
         html += `
         </table>
         `;
