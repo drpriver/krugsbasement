@@ -84,9 +84,15 @@ function show_note_text(id:number, note:Note){
     noteta.value = note.body;
     noteta.style.width = '100%';
     noteta.spellcheck = false;
+    let note_generation = 0;
     noteta.addEventListener('input', function(){
-        update_note_body(id, noteta.value);
-        socket.emit('note-update-body', {note_id:id, body:noteta.value});
+        let text = noteta.value;
+        setTimeout(function(t:string, generation:number){
+            if(note_generation > generation)
+                return;
+            update_note_body(id, text);
+            socket.emit('note-update-body', {note_id:id, body:text});
+        }, 500, text, ++note_generation);
     });
     right.appendChild(title);
     right.appendChild(noteta);

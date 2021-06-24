@@ -128,7 +128,7 @@ def new_map_request(data) -> None:
     grid_type: int = data['grid_type']
     room = get_room(request)
     new_map_id = canvas.new_map_request(room, map_name, grid_type)
-    logging.info('new map: %d for room "%s", with name: "%s"', map_id, room, map_name)
+    logging.info('new map: %d for room "%s", with name: "%s"', new_map_id, room, map_name)
     emit('canvas-create-map', new_map_id, broadcast=True, include_self=True, to=room)
     emit('canvas-name-map', {'map_id':new_map_id, 'map_name':map_name}, broadcast=True, include_self=True, to=room)
     emit('canvas-grid-type', {'map_id':new_map_id, 'grid_type':grid_type}, broadcast=True, include_self=True, to=room)
@@ -138,6 +138,7 @@ def change_grid_type(data) -> None:
     map_id = data['map_id']
     gt = data['grid_type']
     room = get_room(request)
+    logging.info('Changing grid type to %s for map %s in room %s', gt, map_id, room)
     canvas.change_grid_type(room, map_id, gt)
     emit('canvas-grid-type', {'map_id':map_id, 'grid_type':gt}, broadcast=True, include_self=True, to=room)
 
@@ -170,11 +171,13 @@ def new_note_request() -> int:
 def note_update_title(data) -> None:
     room = get_room(request)
     notes.note_update_title(room, data['note_id'], data['title'])
+    logging.info('Updating note title. Note: %s. Room: %s. Title: %s', data['note_id'], room, data['title'])
     emit('note-update-title', data, broadcast=True, include_self=False, to=room)
 
 @socketio.on('note-update-body')
 def note_update_body(data) -> None:
     room = get_room(request)
+    logging.info('Updating note body. Note: %s. Room: %s', data['note_id'], room)
     notes.note_update_body(room, data['note_id'], data['body'])
     emit('note-update-body', data, broadcast=True, include_self=False, to=room)
 
