@@ -1017,6 +1017,24 @@ const DOOR_TO_NAMES = [
     // DOORTYPE.HALLWAY
     'Hallway',
 ];
+const DOOR_TO_SHORT_NAMES = [
+    // DOORTYPE.DOOR
+    'Door',
+    // DOORTYPE.DOUBLE
+    'Double',
+    // DOORTYPE.PORTCULLIS
+    'Portcul',
+    // DOORTYPE.SECRET
+    'Secret',
+    // DOORTYPE.BRICKED_WALL
+    'Bricks',
+    // DOORTYPE.PORTAL
+    'Portal',
+    // DOORTYPE.CURTAINS
+    'Curtain',
+    // DOORTYPE.HALLWAY
+    'Hall',
+];
 let current_door = DOORTYPE.DOOR;
 
 enum SNAPMODE {
@@ -5546,24 +5564,24 @@ document.addEventListener('DOMContentLoaded', function():void{
         // Selecttype is bit flags, so it has to be its own special snowflake.
         // I guess it should actually be like checkboxes?
         if(toolel.id == 'select-tool'){
-            const name = toolel.getElementsByTagName('span')[0];
+            const name = document.getElementById('select-tool-menu')! as HTMLDivElement;
             function change_st(st:SELECTTYPE){
                 select_type = st;
                 switch(select_type){
                     case SELECTTYPE.NONBACKGROUND:
-                        name.innerText = '- Map & Token ☰';
+                        name.innerText = 'M/T☰';
                         break;
                     case SELECTTYPE.MAP:
-                        name.innerText = '- Map ☰';
+                        name.innerText = 'Map☰';
                         break;
                     case SELECTTYPE.TOKEN:
-                        name.innerText = '- Token ☰';
+                        name.innerText = 'Token☰';
                         break;
                     case SELECTTYPE.BACKGROUND:
-                        name.innerText = '- Background ☰';
+                        name.innerText = 'Bg☰';
                         break;
                     case SELECTTYPE.ANY:
-                        name.innerText = '- Any ☰';
+                        name.innerText = 'Any☰';
                         break;
                 }
             }
@@ -5605,8 +5623,8 @@ document.addEventListener('DOMContentLoaded', function():void{
                 },
                 max_index: 5,
             });
-            const triangle = toolel.getElementsByTagName('span')[0];
-            triangle.addEventListener('click', function(e:MouseEvent){
+            // const triangle = toolel.getElementsByTagName('span')[0];
+            name.addEventListener('click', function(e:MouseEvent){
                 e.preventDefault();
                 e.stopPropagation();
                 if(has_tri_menu)
@@ -5620,12 +5638,12 @@ document.addEventListener('DOMContentLoaded', function():void{
                 ]);
             });
         }
-        function setup_multi_option(toolel:HTMLElement, t_type:TOOLTYPE, set_current:(_:number)=>void, t_to_name:Array<string>, t_max:number){
-            const name = toolel.getElementsByTagName('span')[0];
+        function setup_multi_option(toolel:HTMLElement, menu_id:string, t_type:TOOLTYPE, set_current:(_:number)=>void, t_to_name:Array<string>, t_to_short_name:Array<string>, t_max:number){
+            const name = document.getElementById(menu_id)! as HTMLDivElement;
             function change_t(t:number){
                 set_current(t);
-                const tname = t_to_name[t];
-                name.innerText = ` - ${tname} ☰`;
+                const tname = t_to_short_name[t];
+                name.innerText = `${tname}☰`;
             }
             numeric_hot_keys.set(t_type, {
                 func: change_t,
@@ -5639,8 +5657,8 @@ document.addEventListener('DOMContentLoaded', function():void{
                 };
                 return cb;
             }
-            const triangle = toolel.getElementsByTagName('span')[0];
-            triangle.addEventListener('click', function(e:MouseEvent){
+            // const triangle = toolel.getElementsByTagName('span')[0];
+            name.addEventListener('click', function(e:MouseEvent){
                 e.preventDefault();
                 e.stopPropagation();
                 if(has_tri_menu)
@@ -5656,22 +5674,22 @@ document.addEventListener('DOMContentLoaded', function():void{
         }
         switch(TOOL_IDS_TO_TOOL.get(toolel.id)){
             case TOOLTYPE.DOOR:
-                setup_multi_option(toolel, TOOLTYPE.DOOR, function(i:number){current_door=i}, DOOR_TO_NAMES, DOORTYPE_MAX);
+                setup_multi_option(toolel, 'door-tool-menu', TOOLTYPE.DOOR, function(i:number){current_door=i}, DOOR_TO_NAMES, DOOR_TO_SHORT_NAMES, DOORTYPE_MAX);
             break;
             case TOOLTYPE.TOKEN:
-                setup_multi_option(toolel, TOOLTYPE.TOKEN, function(i:number){current_token_type=i}, TOKEN_TO_NAME, TOKENTYPE_MAX);
+                setup_multi_option(toolel, 'token-tool-menu', TOOLTYPE.TOKEN, function(i:number){current_token_type=i}, TOKEN_TO_NAME, TOKEN_TO_NAME, TOKENTYPE_MAX);
             break;
             case TOOLTYPE.RECT:
-                setup_multi_option(toolel, TOOLTYPE.RECT, function(i:number){current_rect_type=i}, RECTTYPE_TO_NAME, RECTTYPE_MAX);
+                setup_multi_option(toolel, 'rect-tool-menu', TOOLTYPE.RECT, function(i:number){current_rect_type=i}, RECTTYPE_TO_NAME, RECTTYPE_TO_NAME, RECTTYPE_MAX);
             break;
             case TOOLTYPE.ELLIPSE:
-                setup_multi_option(toolel, TOOLTYPE.ELLIPSE, function(i:number){current_ellipse=i}, ELLIPSETYPE_TO_NAME, ELLIPSETYPE_MAX);
+                setup_multi_option(toolel, 'ellipse-tool-menu', TOOLTYPE.ELLIPSE, function(i:number){current_ellipse=i}, ELLIPSETYPE_TO_NAME, ELLIPSETYPE_TO_NAME, ELLIPSETYPE_MAX);
             break;
             case TOOLTYPE.FIXTURE:
-                setup_multi_option(toolel, TOOLTYPE.FIXTURE, function(i:number){current_fixture_type=i}, FIXTURETYPE_TO_NAME, FIXTURETYPE_MAX);
+                setup_multi_option(toolel, 'fixture-tool-menu', TOOLTYPE.FIXTURE, function(i:number){current_fixture_type=i}, FIXTURETYPE_TO_NAME, FIXTURETYPE_TO_NAME, FIXTURETYPE_MAX);
             break;
             case TOOLTYPE.TILE:
-                setup_multi_option(toolel, TOOLTYPE.TILE, function(i:number){
+                setup_multi_option(toolel, 'tile-tool-menu', TOOLTYPE.TILE, function(i:number){
                     current_tile_type=i;
                     switch(current_tile_type){
                         case TILETYPE.FILLED:
@@ -5684,7 +5702,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                             make_terrain_icon_palette();
                             break;
                     }
-                }, TILETYPE_TO_NAME, TILETYPE_MAX);
+                }, TILETYPE_TO_NAME, TILETYPE_TO_NAME, TILETYPE_MAX);
             break;
             default:
             break;
