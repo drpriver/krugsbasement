@@ -293,144 +293,59 @@ function macros_dialog(){
     hover_is_open = true;
     const hoverpop = document.createElement('section');
     hoverpop.classList.add('hover');
-    let html = `
-    <h2>Macros</h2>
-    <div style="max-height: 70vh; overflow-y:auto; padding: 2em;">
-    <table class="input-container" id="hover-macro-table">
-    <thead><tr>
-        <th>Name
-        <th>Group
-        <th>Macro
-        <th>
-    </tr></thead>
-    `
-    for(let m of MACROS){
-        html += `
-        <tr>
-            <td><input type="text" value="${m.name?m.name:""}">
-            <td><input type="text" value="${m.group?m.group:""}">
-            <td><textarea rows="3" cols="40">${m.body?m.body:""}</textarea>
-            <td><button class="delete-macro-button">Delete</button>
-        </tr>
-        `;
-    }
-    if(!MACROS.length){
-        // have an extra blank one ready.
-        html += `
-        <tr>
-            <td><input type="text" value="">
-            <td><input type="text" value="">
-            <td><textarea rows="3" cols="40"></textarea>
-            <td><button class="delete-macro-button">Delete</button>
-        </tr>
-        `;
-    }
-    html +=`
-    </table>
-    </div>
-    `;
-    html+= `
-    <div class="hover-button-container">
-        <button id="hover-add-macro">+ Add Macro</button>
-        <button id="export-settings">Export</button>
-        <button id="import-settings">Import</button>
-    </div>
-    <div class="hover-button-container">
-        <button type="button" id="hoverpop-ok">Ok</button>
-        <button type="button" id="hoverpop-cancel">Cancel</button>
-    </div>
-    `;
-    hoverpop.innerHTML = html;
-
-    for(let button of hoverpop.getElementsByClassName('delete-macro-button')){
-        (button as HTMLElement).addEventListener('click', delete_macro);
-    }
-    document.body.appendChild(hoverpop);
-    function delete_macro(e:MouseEvent){
-        e.preventDefault();
-        e.stopPropagation();
-        ((e.currentTarget as HTMLElement).parentNode!.parentNode! as HTMLElement).remove();
-    }
-
-    const hover_macro_table = document.getElementById('hover-macro-table')! as HTMLTableElement;;
-    document.getElementById('hover-add-macro')!.addEventListener('click', function(e:MouseEvent){
-        e.stopPropagation();
-        e.preventDefault();
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><input type="text" value="">
-            <td><input type="text" value="">
-            <td><textarea rows="3" cols="40"></textarea>
-            <td><button class="delete-macro-button">Delete</button>
-        `;
-        const button = tr.getElementsByClassName('delete-macro-button')[0] as HTMLElement;
-        button.addEventListener('click', delete_macro);
-        const body = hover_macro_table.getElementsByTagName('tbody');
-        if(body.length){
-            body[0].appendChild(tr);
-        }
-        else {
-            const tbody = document.createElement('tbody');
-            tbody.appendChild(tr);
-            hover_macro_table.appendChild(tbody);
-        }
-    });
-    function remove_hoverpop(){
-        document.body.removeChild(hoverpop);
-        hover_is_open = false;
-    }
-    document.getElementById('export-settings')!.addEventListener('click', export_settings);
-    document.getElementById('import-settings')!.addEventListener('click', function(e:MouseEvent){import_settings(e, remove_hoverpop);});
-    const ok = document.getElementById('hoverpop-ok')!;
-    function submit(){
-        const trs = hover_macro_table.getElementsByTagName('tr');
-        const macros: Array<Macro> = [];
-        for(let i = 1; i < trs.length; i++){
-            let tr = trs[i];
-            const name = (tr.children[0].children[0] as HTMLInputElement).value;
-            const group = (tr.children[1].children[0] as HTMLInputElement).value;
-            const body = (tr.children[2].children[0] as HTMLTextAreaElement).value;
-            if(!name || !body)
-                continue;
-            macros.push({name:name, group:group, body:body});
-        }
-        clear_macro_buttons();
-        MACROS.length = 0;
-        add_macros_and_buttons(macros);
-        remove_hoverpop();
-    }
-    ok.addEventListener('click', function(){
-        submit();
-    });
-    const cancel = document.getElementById('hoverpop-cancel')!;
-    cancel.addEventListener('click', function(){
-        remove_hoverpop();
-    });
-    const text_inputs = hoverpop.getElementsByTagName('input');
-    let did_focus = false;
-    for(let i = 0; i < text_inputs.length; i++){
-        const text_input = text_inputs[i];
-        if(text_input.type == 'text' || text_input.type == 'url'){
-            if(!did_focus){
-                text_input.focus();
-                did_focus = true;
-            }
-        }
-    }
-}
-function macros_dialog2(){
-    if(hover_is_open)
-        return;
-    hover_is_open = true;
-    const hoverpop = document.createElement('section');
-    hoverpop.classList.add('hover');
     type TabStuff = {
         tab: HTMLDivElement;
         table: HTMLTableElement;
         tbody: HTMLTableSectionElement;
     };
+    function delete_macro(e:MouseEvent){
+        e.preventDefault();
+        e.stopPropagation();
+        const row = ((e.currentTarget as HTMLElement).parentNode!.parentNode! as HTMLElement);
+        const parent = row.parentNode!;
+        row.remove();
+        if(parent.children.length == 0){
+            add_row(current_group, "", "");
+        }
+    }
+    function move_macro_up(e:MouseEvent){
+        e.preventDefault();
+        e.stopPropagation();
+        const row = ((e.currentTarget as HTMLElement).parentNode!.parentNode!.parentNode! as HTMLElement);
+        const parent = row.parentNode!;
+        if(row.previousSibling)
+            parent.insertBefore(row, row.previousSibling);
+
+    }
+    function move_macro_down(e:MouseEvent){
+        e.preventDefault();
+        e.stopPropagation();
+        const row = ((e.currentTarget as HTMLElement).parentNode!.parentNode!.parentNode! as HTMLElement);
+        const parent = row.parentNode!;
+        let next = row.nextSibling;
+        if(next)
+            next = next.nextSibling;
+        parent.insertBefore(row, next);
+    }
     const mapping: Map<string, TabStuff> = new Map();
     const groups: Array<string> = [];
+    function add_row(group:string, name:string, body:string){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><div class="up-down"><button class="up">▲</button><button class="down">▼</button></div>
+            <td><input type="text" value="${name}">
+            <td><textarea rows="3" cols="40">${body}</textarea>
+            <td><button class="delete-macro-button">Delete</button>
+        `;
+        const button = tr.getElementsByClassName('delete-macro-button')[0] as HTMLButtonElement;
+        button.addEventListener('click', delete_macro);
+        const up = tr.getElementsByClassName('up')[0] as HTMLButtonElement;
+        up.addEventListener('click', move_macro_up);
+        const down = tr.getElementsByClassName('down')[0] as HTMLButtonElement;
+        down.addEventListener('click', move_macro_down);
+        const ts = mapping.get(group)!;
+        ts.tbody.appendChild(tr);
+    }
     function make_tab_stuff(group:string):void{
         const name = group? group : "General";
         const tab = document.createElement('div');
@@ -441,6 +356,7 @@ function macros_dialog2(){
         table.classList.add('hover-tab-table');
         table.innerHTML = `
             <thead><tr>
+                <th>
                 <th>Name
                 <th>Macro
                 <th>
@@ -458,26 +374,12 @@ function macros_dialog2(){
     for(let m of MACROS){
         if(!mapping.has(m.group))
             make_tab_stuff(m.group);
-        const t = mapping.get(m.group)!;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><input type="text" value="${m.name?m.name:""}">
-            <td><textarea rows="3" cols="40">${m.body?m.body:""}</textarea>
-            <td><button class="delete-macro-button">Delete</button>
-        `;
-        t.tbody.appendChild(tr);
+        add_row(m.group, m.name?m.name:"", m.body?m.body:"");
     }
     if(!mapping.has("")){
         groups.push("");
         make_tab_stuff("");
-        const t = mapping.get("")!;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><input type="text" value="">
-            <td><textarea rows="3" cols="40"></textarea>
-            <td><button class="delete-macro-button">Delete</button>
-        `;
-        t.tbody.appendChild(tr);
+        add_row("", "", "");
     }
 
     let html = `
@@ -502,18 +404,6 @@ function macros_dialog2(){
     tabcontents.id = "hover-tab-contents";
     tabcontainer.appendChild(tabs);
     tabcontainer.appendChild(tabcontents);
-    function add_row(group:string){
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><input type="text" value="">
-            <td><textarea rows="3" cols="40"></textarea>
-            <td><button class="delete-macro-button">Delete</button>
-        `;
-        const button = tr.getElementsByClassName('delete-macro-button')[0] as HTMLElement;
-        button.addEventListener('click', delete_macro);
-        const ts = mapping.get(group)!;
-        ts.tbody.appendChild(tr);
-    }
     let current_group = groups[0];
     for(let i = 0; i < groups.length; i++){
         let group = groups[i];
@@ -540,21 +430,11 @@ function macros_dialog2(){
         (button as HTMLElement).addEventListener('click', delete_macro);
     }
     document.body.appendChild(hoverpop);
-    function delete_macro(e:MouseEvent){
-        e.preventDefault();
-        e.stopPropagation();
-        const row = ((e.currentTarget as HTMLElement).parentNode!.parentNode! as HTMLElement);
-        const parent = row.parentNode!;
-        row.remove();
-        if(parent.children.length == 0){
-            add_row(current_group);
-        }
-    }
 
     document.getElementById('hover-add-macro')!.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
-        add_row(current_group);
+        add_row(current_group, "", "");
     });
     function remove_hoverpop(){
         document.body.removeChild(hoverpop);
@@ -569,8 +449,8 @@ function macros_dialog2(){
             const trs = ts.tbody.getElementsByTagName('tr');
             for(let i = 0; i < trs.length; i++){
                 let tr = trs[i];
-                const name = (tr.children[0].children[0] as HTMLInputElement).value;
-                const body = (tr.children[1].children[0] as HTMLTextAreaElement).value;
+                const name = (tr.children[1].children[0] as HTMLInputElement).value;
+                const body = (tr.children[2].children[0] as HTMLTextAreaElement).value;
                 if(!name || !body)
                     continue;
                 macros.push({name:name, group:group, body:body});
@@ -719,7 +599,7 @@ document.addEventListener('DOMContentLoaded', function(){
     macros_button.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
-        macros_dialog2();
+        macros_dialog();
     });
     window.addEventListener('resize', resize_chat);
     const ta = document.getElementById('chatinput')! as HTMLInputElement;

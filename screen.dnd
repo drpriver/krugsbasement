@@ -522,6 +522,10 @@ David20::title @hide
     height: 50vh;
     overflow-y: scroll;
   }
+  div.up-down {
+    display: grid;
+    grid-template-rows: repeat(2, 1fr);
+  }
   div.dice-roll-msg{
   }
   span.dice-roll, span.dice-constant {
