@@ -98,91 +98,121 @@ function resize_chat(){
     hist.scrollTo({top:hist.scrollHeight});
 }
 
-const MACROS: Map<string, string> = (function(){
-    const macros = localStorage.getItem('MACROS');
-    if(!macros)
-        return new Map();
-    return new Map(Object.entries(JSON.parse(macros)));
+type Macro = {
+    group: string;
+    name: string;
+    body: string;
+};
+const MACROS: Array<Macro> = (function(){
+    const macros_string = localStorage.getItem('MACROS');
+    if(!macros_string)
+        return []
+    const macros = JSON.parse(macros_string);
+    // handle old macros
+    const result: Array<Macro> = [];
+    if(!Array.isArray(macros)){
+        for(let [key, value] of Object.entries(macros)){
+            if(typeof key !== "string")
+                continue;
+            if(typeof value !== "string")
+                continue
+            result.push({name:key, body:value, group:""});
+        }
+    }
+    else {
+        for(let m of macros){
+            if(!m.name)
+                continue;
+            if(!m.body)
+                continue;
+            result.push({name:m.name, body:m.body, group:m.group?m.group:""});
+        }
+    }
+    return result;
 }());
-
+const MACROGROUPS: Map<string, HTMLDivElement> = new Map();
 document.addEventListener('DOMContentLoaded', function(){
-    for(let key of MACROS.keys()){
-        add_macro_button(key);
+    for(let i = 0; i < MACROS.length; i++){
+        const m = MACROS[i];
+        add_macro_button(m.name, m.group, i);
     }
 });
-function set_macro(name:string, body:string){
-    MACROS.set(name, body);
-    localStorage.setItem('MACROS', JSON.stringify(Object.fromEntries(MACROS.entries())));
+function add_macro(m:Macro){
+    MACROS.push(m);
+    localStorage.setItem('MACROS', JSON.stringify(MACROS));
 }
-function set_macros(pairs:Array<[string, string]>){
-    for(let [name, body] of pairs){
-        MACROS.set(name, body);
+function add_macros(macros:Array<Macro>){
+    for(let m of macros){
+        MACROS.push(m);
     }
-    localStorage.setItem('MACROS', JSON.stringify(Object.fromEntries(MACROS.entries())));
+    localStorage.setItem('MACROS', JSON.stringify(MACROS));
 }
 
-function add_macro_button(name:string){
+function add_macro_button(name:string, group:string, macro_index:number){
     const macro_button = document.createElement('button');
     macro_button.classList.add('macro-button');
     macro_button.innerText = name;
     macro_button.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
-        let text = MACROS.get(name);
-        if(!text)
-            text = "(invalid macro): " + name;
+        let macro = MACROS[macro_index];
+        if(!macro)
+            return;
+        let text = macro.body;
         socket.emit('chat-input', {chatname:chatname, text:text});
     });
     const macros = document.getElementById('macros')!;
-    const options = document.getElementById('chat-options')!;
-    macros.insertBefore(macro_button, options);
+    let macrogroup = MACROGROUPS.get(group);
+    if(!macrogroup){
+        const outer = document.createElement('div');
+        macrogroup = document.createElement('div');
+        macrogroup.classList.add('macro-group');
+        if(group){
+            const title = document.createElement('b');
+            title.classList.add('macro-group-title');
+            title.appendChild(document.createTextNode(group));
+            outer.appendChild(title);
+        }
+        else {
+            outer.appendChild(document.createElement('hr'));
+        }
+        outer.appendChild(macrogroup);
+        const buttons = document.getElementById('chat-buttons')!;
+        macros.insertBefore(outer, buttons);
+        MACROGROUPS.set(group, macrogroup);
+    }
+    macrogroup.appendChild(macro_button);
 }
 function clear_macro_buttons(){
     const macro_buttons = Array.from(document.getElementsByClassName('macro-button'));
     for(let mb of macro_buttons){
         mb.remove();
     }
+    const macros_children = Array.from(document.getElementById('macros')!.children);
+    for(let m of macros_children){
+        if(m.id == 'chat-buttons')
+            continue;
+        m.remove();
+    }
+    MACROGROUPS.clear();
 }
 
-function add_macro_and_button(name:string, body:string){
-    set_macro(name, body);
-    add_macro_button(name);
+function add_macro_and_button(m:Macro){
+    add_macro(m);
+    add_macro_button(m.name, m.group, MACROS.length-1);
 }
-function add_macros_and_buttons(pairs:Array<[string, string]>){
-    set_macros(pairs);
-    for(let pair of pairs){
-        add_macro_button(pair[0]);
+function add_macros_and_buttons(macros:Array<Macro>){
+    let start = MACROS.length;
+    add_macros(macros);
+    for(let m of macros){
+        add_macro_button(m.name, m.group, start++);
     }
 }
 
-function add_macro_dialog(){
-    const html = `
-    <h2>Enter Macro</h2>
-    <table class="input-container">
-        <tr>
-            <td><label for="hover-macro-name">Name:</label>
-            <td><input type="text" id="hover-macro-name" >
-        </tr>
-        <tr>
-            <td><label for="hover-macro-body">Body:</label>
-            <td><textarea id="hover-macro-body" cols="30" rows="5"></textarea>
-        </tr>
-    </table>
-    `;
-    make_ok_dialog(html, function(unused){
-        const body_el = document.getElementById('hover-macro-body')! as HTMLInputElement;
-        const name_el = document.getElementById('hover-macro-name')! as HTMLInputElement;
-        if(!name_el.value)
-            return;
-        if(!body_el.value)
-            return;
-        add_macro_and_button(name_el.value, body_el.value);
-    });
-}
 function export_settings(e:MouseEvent){
     e.stopPropagation();
     e.preventDefault();
-    const macros = Object.fromEntries(MACROS.entries());
+    const macros = MACROS;
     const settings = {macros:macros, chatname:chatname};
     const s = JSON.stringify(settings);
     const a = document.createElement('a');
@@ -191,6 +221,385 @@ function export_settings(e:MouseEvent){
     a.click();
 
 }
+function import_settings(e:MouseEvent, remove_hoverpop:()=>void){
+    e.stopPropagation();
+    e.preventDefault();
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    function show_err(err:any){
+        err_dialog(
+            `
+            <div style="max-width:600px; margin:auto; padding:2em;">
+            <h1>Unable to load settings</h1>
+            <p> There was a problem loading the settings. Good luck!
+            <br>
+            <code>
+            ${err}
+            </code>
+            </div>
+            `);
+    }
+    function handlefiles(){
+        const files = inp.files;
+        if(!files)
+            return;
+        if(!files.length)
+            return;
+        const file = files[0];
+        const fr = new FileReader();
+        fr.addEventListener('load', function(){
+            try {
+                if(!fr.result)
+                    return;
+                const new_settings = JSON.parse(fr.result as string);
+                // look before you leap
+                if(new_settings.chatname && typeof new_settings.chatname !== 'string'){
+                show_err('Non string chatname.');
+                    return;
+                }
+                if(new_settings.macros){
+                    // TODO: validate macros
+                }
+
+                if(new_settings.macros){
+                    clear_macro_buttons();
+                    MACROS.length = 0;
+                    add_macros_and_buttons(new_settings.macros);
+                }
+                if(new_settings.chatname){
+                    setchatname(new_settings.chatname);
+                    const name = document.getElementById('hover-chatname');
+                    if(name){
+                        (name as HTMLInputElement).value = new_settings.chatname;
+                    }
+                }
+            remove_hoverpop();
+            }
+            catch(err) {
+                remove_hoverpop();
+                show_err(err);
+                return;
+            }
+
+        });
+        fr.readAsText(file);
+    }
+    inp.addEventListener('change', handlefiles, false);
+    inp.click();
+}
+function macros_dialog(){
+    if(hover_is_open)
+        return;
+    hover_is_open = true;
+    const hoverpop = document.createElement('section');
+    hoverpop.classList.add('hover');
+    let html = `
+    <h2>Macros</h2>
+    <div style="max-height: 70vh; overflow-y:auto; padding: 2em;">
+    <table class="input-container" id="hover-macro-table">
+    <thead><tr>
+        <th>Name
+        <th>Group
+        <th>Macro
+        <th>
+    </tr></thead>
+    `
+    for(let m of MACROS){
+        html += `
+        <tr>
+            <td><input type="text" value="${m.name?m.name:""}">
+            <td><input type="text" value="${m.group?m.group:""}">
+            <td><textarea rows="3" cols="40">${m.body?m.body:""}</textarea>
+            <td><button class="delete-macro-button">Delete</button>
+        </tr>
+        `;
+    }
+    if(!MACROS.length){
+        // have an extra blank one ready.
+        html += `
+        <tr>
+            <td><input type="text" value="">
+            <td><input type="text" value="">
+            <td><textarea rows="3" cols="40"></textarea>
+            <td><button class="delete-macro-button">Delete</button>
+        </tr>
+        `;
+    }
+    html +=`
+    </table>
+    </div>
+    `;
+    html+= `
+    <div class="hover-button-container">
+        <button id="hover-add-macro">+ Add Macro</button>
+        <button id="export-settings">Export</button>
+        <button id="import-settings">Import</button>
+    </div>
+    <div class="hover-button-container">
+        <button type="button" id="hoverpop-ok">Ok</button>
+        <button type="button" id="hoverpop-cancel">Cancel</button>
+    </div>
+    `;
+    hoverpop.innerHTML = html;
+
+    for(let button of hoverpop.getElementsByClassName('delete-macro-button')){
+        (button as HTMLElement).addEventListener('click', delete_macro);
+    }
+    document.body.appendChild(hoverpop);
+    function delete_macro(e:MouseEvent){
+        e.preventDefault();
+        e.stopPropagation();
+        ((e.currentTarget as HTMLElement).parentNode!.parentNode! as HTMLElement).remove();
+    }
+
+    const hover_macro_table = document.getElementById('hover-macro-table')! as HTMLTableElement;;
+    document.getElementById('hover-add-macro')!.addEventListener('click', function(e:MouseEvent){
+        e.stopPropagation();
+        e.preventDefault();
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" value="">
+            <td><input type="text" value="">
+            <td><textarea rows="3" cols="40"></textarea>
+            <td><button class="delete-macro-button">Delete</button>
+        `;
+        const button = tr.getElementsByClassName('delete-macro-button')[0] as HTMLElement;
+        button.addEventListener('click', delete_macro);
+        const body = hover_macro_table.getElementsByTagName('tbody');
+        if(body.length){
+            body[0].appendChild(tr);
+        }
+        else {
+            const tbody = document.createElement('tbody');
+            tbody.appendChild(tr);
+            hover_macro_table.appendChild(tbody);
+        }
+    });
+    function remove_hoverpop(){
+        document.body.removeChild(hoverpop);
+        hover_is_open = false;
+    }
+    document.getElementById('export-settings')!.addEventListener('click', export_settings);
+    document.getElementById('import-settings')!.addEventListener('click', function(e:MouseEvent){import_settings(e, remove_hoverpop);});
+    const ok = document.getElementById('hoverpop-ok')!;
+    function submit(){
+        const trs = hover_macro_table.getElementsByTagName('tr');
+        const macros: Array<Macro> = [];
+        for(let i = 1; i < trs.length; i++){
+            let tr = trs[i];
+            const name = (tr.children[0].children[0] as HTMLInputElement).value;
+            const group = (tr.children[1].children[0] as HTMLInputElement).value;
+            const body = (tr.children[2].children[0] as HTMLTextAreaElement).value;
+            if(!name || !body)
+                continue;
+            macros.push({name:name, group:group, body:body});
+        }
+        clear_macro_buttons();
+        MACROS.length = 0;
+        add_macros_and_buttons(macros);
+        remove_hoverpop();
+    }
+    ok.addEventListener('click', function(){
+        submit();
+    });
+    const cancel = document.getElementById('hoverpop-cancel')!;
+    cancel.addEventListener('click', function(){
+        remove_hoverpop();
+    });
+    const text_inputs = hoverpop.getElementsByTagName('input');
+    let did_focus = false;
+    for(let i = 0; i < text_inputs.length; i++){
+        const text_input = text_inputs[i];
+        if(text_input.type == 'text' || text_input.type == 'url'){
+            if(!did_focus){
+                text_input.focus();
+                did_focus = true;
+            }
+        }
+    }
+}
+function macros_dialog2(){
+    if(hover_is_open)
+        return;
+    hover_is_open = true;
+    const hoverpop = document.createElement('section');
+    hoverpop.classList.add('hover');
+    type TabStuff = {
+        tab: HTMLDivElement;
+        table: HTMLTableElement;
+        tbody: HTMLTableSectionElement;
+    };
+    const mapping: Map<string, TabStuff> = new Map();
+    const groups: Array<string> = [];
+    function make_tab_stuff(group:string):void{
+        const name = group? group : "General";
+        const tab = document.createElement('div');
+        tab.classList.add('hover-tab');
+        tab.appendChild(document.createTextNode(name));
+        groups.push(group);
+        const table = document.createElement('table');
+        table.classList.add('hover-tab-table');
+        table.innerHTML = `
+            <thead><tr>
+                <th>Name
+                <th>Macro
+                <th>
+            </tr></thead>
+        `;
+        const tbody = document.createElement('tbody');
+        table.appendChild(tbody);
+        const t: TabStuff = {
+            tab:tab,
+            table:table,
+            tbody:tbody,
+        };
+        mapping.set(group, t);
+    }
+    for(let m of MACROS){
+        if(!mapping.has(m.group))
+            make_tab_stuff(m.group);
+        const t = mapping.get(m.group)!;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" value="${m.name?m.name:""}">
+            <td><textarea rows="3" cols="40">${m.body?m.body:""}</textarea>
+            <td><button class="delete-macro-button">Delete</button>
+        `;
+        t.tbody.appendChild(tr);
+    }
+    if(!mapping.has("")){
+        groups.push("");
+        make_tab_stuff("");
+        const t = mapping.get("")!;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" value="">
+            <td><textarea rows="3" cols="40"></textarea>
+            <td><button class="delete-macro-button">Delete</button>
+        `;
+        t.tbody.appendChild(tr);
+    }
+
+    let html = `
+        <h2>Macros</h2>
+        <div id="hover-tab-container" class="hover-tab-container">
+        </div>
+        <div class="hover-button-container">
+            <button id="hover-add-macro">+ Add Macro</button>
+            <button id="export-settings">Export</button>
+            <button id="import-settings">Import</button>
+        </div>
+        <div class="hover-button-container">
+            <button type="button" id="hoverpop-ok">Ok</button>
+            <button type="button" id="hoverpop-cancel">Cancel</button>
+        </div>
+    `;
+    hoverpop.innerHTML = html;
+    const tabcontainer = hoverpop.getElementsByClassName('hover-tab-container')[0] as HTMLDivElement;
+    const tabs = document.createElement('div');
+    tabs.id = "hover-tabs";
+    const tabcontents = document.createElement('div');
+    tabcontents.id = "hover-tab-contents";
+    tabcontainer.appendChild(tabs);
+    tabcontainer.appendChild(tabcontents);
+    function add_row(group:string){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" value="">
+            <td><textarea rows="3" cols="40"></textarea>
+            <td><button class="delete-macro-button">Delete</button>
+        `;
+        const button = tr.getElementsByClassName('delete-macro-button')[0] as HTMLElement;
+        button.addEventListener('click', delete_macro);
+        const ts = mapping.get(group)!;
+        ts.tbody.appendChild(tr);
+    }
+    let current_group = groups[0];
+    for(let i = 0; i < groups.length; i++){
+        let group = groups[i];
+        const t = mapping.get(group)!;
+        if(i != 0){
+            t.table.style.display = 'none';
+        }
+        else {
+            t.tab.classList.add('active');
+        }
+        tabs.appendChild(t.tab);
+        tabcontents.appendChild(t.table);
+        t.tab.addEventListener('click', function(){
+            for(let ts of mapping.values()){
+                ts.tab.classList.remove('active');
+                ts.table.style.display = 'none';
+            }
+            t.tab.classList.add('active');
+            t.table.style.display = 'initial';
+            current_group = group;
+        });
+    }
+    for(let button of hoverpop.getElementsByClassName('delete-macro-button')){
+        (button as HTMLElement).addEventListener('click', delete_macro);
+    }
+    document.body.appendChild(hoverpop);
+    function delete_macro(e:MouseEvent){
+        e.preventDefault();
+        e.stopPropagation();
+        const row = ((e.currentTarget as HTMLElement).parentNode!.parentNode! as HTMLElement);
+        const parent = row.parentNode!;
+        row.remove();
+        if(parent.children.length == 0){
+            add_row(current_group);
+        }
+    }
+
+    document.getElementById('hover-add-macro')!.addEventListener('click', function(e:MouseEvent){
+        e.stopPropagation();
+        e.preventDefault();
+        add_row(current_group);
+    });
+    function remove_hoverpop(){
+        document.body.removeChild(hoverpop);
+        hover_is_open = false;
+    }
+    document.getElementById('export-settings')!.addEventListener('click', export_settings);
+    document.getElementById('import-settings')!.addEventListener('click', function(e:MouseEvent){import_settings(e, remove_hoverpop);});
+    const ok = document.getElementById('hoverpop-ok')!;
+    function submit(){
+        const macros: Array<Macro> = [];
+        for(let [group, ts] of mapping.entries()){
+            const trs = ts.tbody.getElementsByTagName('tr');
+            for(let i = 0; i < trs.length; i++){
+                let tr = trs[i];
+                const name = (tr.children[0].children[0] as HTMLInputElement).value;
+                const body = (tr.children[1].children[0] as HTMLTextAreaElement).value;
+                if(!name || !body)
+                    continue;
+                macros.push({name:name, group:group, body:body});
+            }
+        }
+        clear_macro_buttons();
+        MACROS.length = 0;
+        add_macros_and_buttons(macros);
+        remove_hoverpop();
+    }
+    ok.addEventListener('click', function(){
+        submit();
+    });
+    const cancel = document.getElementById('hoverpop-cancel')!;
+    cancel.addEventListener('click', function(){
+        remove_hoverpop();
+    });
+    const text_inputs = hoverpop.getElementsByTagName('input');
+    let did_focus = false;
+    for(let i = 0; i < text_inputs.length; i++){
+        const text_input = text_inputs[i];
+        if(text_input.type == 'text' || text_input.type == 'url'){
+            if(!did_focus){
+                text_input.focus();
+                did_focus = true;
+            }
+        }
+    }
+}
 function chat_options_dialog(){
     if(hover_is_open)
         return;
@@ -198,6 +607,7 @@ function chat_options_dialog(){
     const hoverpop = document.createElement('section');
     hoverpop.classList.add('hover');
     const is_dev = chatname == 'dev';
+    const pan_tool = document.getElementById('pan-tool')!;
     let html = `
     <h2>Options</h2>
     <table class="input-container">
@@ -205,34 +615,6 @@ function chat_options_dialog(){
             <td><label for="hover-chatname">Chat Name:</label>
             <td><input type="text" id="hover-chatname" value="${chatname}">
         </tr>
-    </table>
-    <div style="max-height: 500px; overflow-y:auto; padding: 2em;">
-    <table class="input-container" id="hover-macro-table">
-    <thead><tr>
-        <th>Macro Name
-        <th>Macro
-        <th>
-    </tr></thead>
-    `
-    for(let [key, value] of MACROS.entries()){
-        html += `
-        <tr>
-            <td><input type="text" value="${key}">
-            <td><textarea rows="3" cols="40">${value}</textarea>
-            <td><button class="delete-macro-button">Delete</button>
-        </tr>
-        `;
-    }
-    // have an extra blank one ready.
-    html += `
-    <tr>
-        <td><input type="text" value="">
-        <td><textarea rows="3" cols="40"></textarea>
-        <td><button class="delete-macro-button">Delete</button>
-    </tr>
-    `;
-    const pan_tool = document.getElementById('pan-tool')!;
-    html += `
     </table>
     </div>
     <div class="hover-button-container">
@@ -249,7 +631,6 @@ function chat_options_dialog(){
         <br>
         <span>(might need reload)</span>
         <br>
-        <button id="hover-add-macro">+ Add Macro</button>
         <button id="export-settings">Export</button>
         <button id="import-settings">Import</button>
     </div>
@@ -269,12 +650,6 @@ function chat_options_dialog(){
         `;
     }
     hoverpop.innerHTML = html;
-
-
-
-    for(let button of hoverpop.getElementsByClassName('delete-macro-button')){
-        (button as HTMLElement).addEventListener('click', delete_macro);
-    }
     document.body.appendChild(hoverpop);
     {
     const dark_auto = document.getElementById('dark-mode-auto') as HTMLInputElement;
@@ -284,120 +659,13 @@ function chat_options_dialog(){
     const dark_dark = document.getElementById('dark-mode-dark') as HTMLInputElement;
     dark_dark.addEventListener('change', function(){change_dark_mode(DarkMode.DARK);});
     }
-    function delete_macro(e:MouseEvent){
-        e.preventDefault();
-        e.stopPropagation();
-        ((e.currentTarget as HTMLElement).parentNode!.parentNode! as HTMLElement).remove();
-    }
 
-    const hover_macro_table = document.getElementById('hover-macro-table')! as HTMLTableElement;;
-    document.getElementById('hover-add-macro')!.addEventListener('click', function(e:MouseEvent){
-        e.stopPropagation();
-        e.preventDefault();
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><input type="text" value="">
-            <td><textarea rows="3" cols="40"></textarea>
-            <td><button class="delete-macro-button">Delete</button>
-        `;
-        const button = tr.getElementsByClassName('delete-macro-button')[0] as HTMLElement;
-        button.addEventListener('click', delete_macro);
-        const body = hover_macro_table.getElementsByTagName('tbody');
-        if(body.length){
-            body[0].appendChild(tr);
-        }
-        else {
-            const tbody = document.createElement('tbody');
-            tbody.appendChild(tr);
-            hover_macro_table.appendChild(tbody);
-        }
-    });
-    document.getElementById('export-settings')!.addEventListener('click', export_settings);
-    document.getElementById('import-settings')!.addEventListener('click', function(e:MouseEvent){
-        e.stopPropagation();
-        e.preventDefault();
-        const inp = document.createElement('input');
-        inp.type = 'file';
-        function show_err(err:any){
-            err_dialog(
-                `
-                <div style="max-width:600px; margin:auto; padding:2em;">
-                <h1>Unable to load settings</h1>
-                <p> There was a problem loading the settings. Good luck!
-                <br>
-                <code>
-                ${err}
-                </code>
-                </div>
-                `);
-        }
-        function handlefiles(){
-            const files = inp.files;
-            if(!files)
-                return;
-            if(!files.length)
-                return;
-            const file = files[0];
-            const fr = new FileReader();
-            fr.addEventListener('load', function(){
-                try {
-                    if(!fr.result)
-                        return;
-                    const new_settings = JSON.parse(fr.result as string);
-                    // look before you leap
-                    if(new_settings.chatname && typeof new_settings.chatname !== 'string'){
-                    show_err('Non string chatname.');
-                        return;
-                    }
-                    if(new_settings.macros){
-                        if(typeof new_settings.macros !== 'object'){
-                        show_err('Invalid macros.')
-                            return;
-                        }
-                        for(let [key, value] of Object.entries(new_settings.macros)){
-                            if(typeof key !== 'string'){
-                            show_err('Nonstring key.');
-                                return;
-                            }
-                            if(typeof value !== 'string'){
-                                show_err('Nonstring macro body');
-                                return;
-                            }
-                        }
-                    }
-
-                    if(new_settings.macros){
-                        clear_macro_buttons();
-                        MACROS.clear();
-                        for(let [key, value] of Object.entries(new_settings.macros)){
-                            add_macro_and_button(key as string, value as string);
-                        }
-                    }
-                    if(new_settings.chatname){
-                        setchatname(new_settings.chatname);
-                        const name = document.getElementById('hover-chatname');
-                        if(name){
-                            (name as HTMLInputElement).value = new_settings.chatname;
-                        }
-                    }
-                remove_hoverpop();
-                }
-                catch(err) {
-                    remove_hoverpop();
-                    show_err(err);
-                    return;
-                }
-
-            });
-            fr.readAsText(file);
-        }
-        inp.addEventListener('change', handlefiles, false);
-        inp.click();
-    });
     function remove_hoverpop(){
         document.body.removeChild(hoverpop);
         hover_is_open = false;
     }
+    document.getElementById('export-settings')!.addEventListener('click', export_settings);
+    document.getElementById('import-settings')!.addEventListener('click', function(e:MouseEvent){import_settings(e, remove_hoverpop);});
     const ok = document.getElementById('hoverpop-ok')!;
     function submit(){
         if(is_dev){
@@ -409,19 +677,6 @@ function chat_options_dialog(){
         setchatname(chatname_el.value);
         const hide_pan = document.getElementById('hide-pan')! as HTMLInputElement;
         change_pan_visibility(!hide_pan.checked);
-        const trs = hover_macro_table.getElementsByTagName('tr');
-        const macros: Array<[string, string]> = [];
-        for(let i = 1; i < trs.length; i++){
-            let tr = trs[i];
-            const name = (tr.children[0].children[0] as HTMLInputElement).value;
-            const body = (tr.children[1].children[0] as HTMLTextAreaElement).value;
-            if(!name || !body)
-                continue;
-            macros.push([name, body]);
-        }
-        clear_macro_buttons();
-        MACROS.clear();
-        add_macros_and_buttons(macros);
         remove_hoverpop();
     }
     ok.addEventListener('click', function(){
@@ -459,6 +714,12 @@ document.addEventListener('DOMContentLoaded', function(){
         e.stopPropagation();
         e.preventDefault();
         chat_options_dialog();
+    });
+    const macros_button = document.getElementById('macros-button')!;
+    macros_button.addEventListener('click', function(e:MouseEvent){
+        e.stopPropagation();
+        e.preventDefault();
+        macros_dialog2();
     });
     window.addEventListener('resize', resize_chat);
     const ta = document.getElementById('chatinput')! as HTMLInputElement;

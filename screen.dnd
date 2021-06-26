@@ -92,8 +92,10 @@ David20::title @hide
       </table>
   ::div.log @id(chat-history)
   ::div @id(macros)
-    ::raw
-      <button id="chat-options">Options</button>
+    ::div @id(chat-buttons)
+      ::raw
+        <button id="chat-options">Options</button>
+        <button id="macros-button">Macros</button>
   ::raw
     <textarea id="chatinput" rows="4"></textarea>
 
@@ -396,6 +398,28 @@ David20::title @hide
   }
   #macros{
     margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid black;
+  }
+  .macro-group {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    max-width: 17em;
+    overflow: hidden;
+    padding-bottom: 6px;
+    padding-top: 4px;
+    grid-gap: 2px;
+  }
+  .macro-button {
+    text-overflow:ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  #chat-buttons{
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-gap: 2px;
   }
   .chat > textarea {
     min-height: 4em;
@@ -436,7 +460,7 @@ David20::title @hide
     left: 50%;
     transform: translate(-50%, -50%);
     min-width: 400px;
-    min-height: 200px;
+    min-height: 20%;
     background-color: white;
     border-radius: 8px;
     border: 1px solid black;
@@ -464,6 +488,39 @@ David20::title @hide
     margin: auto;
     text-align: center;
     padding: 1em 1em 1em 1em;
+  }
+  #hover-tab-container {
+  }
+  #hover-tabs{
+    display: flex;
+    margin: 0 0.5em;
+    align-items: stretch;
+  }
+  #hover-tabs > div {
+    background-color: lightgray;
+    border-top: 1px solid black;
+    border-left: 1px solid black;
+    border-right: 1px solid black;
+    border-bottom: 1px solid black;
+    padding: 0 1em;
+    margin-bottom: -1px;
+    margin-right: -1px;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: pointer;
+  }
+  #hover-tabs > div.active {
+    background: initial;
+    border-bottom: 1px solid white;
+  }
+  #hover-tab-contents {
+    border-bottom: 1px solid black;
+    border-left: 1px solid black;
+    border-right: 1px solid black;
+    border-top: 1px solid black;
+    margin: 0 0.5em;
+    height: 50vh;
+    overflow-y: scroll;
   }
   div.dice-roll-msg{
   }
@@ -534,7 +591,14 @@ David20::title @hide
       background-color: #666;
     }
     body.dark-mode section.hover {
-      background-color: #333;
+      background-color: #666;
+    }
+    body.dark-mode #hover-tabs > div.active {
+      border-bottom: 1px solid #666;
+      background-color: #666;
+    }
+    body.dark-mode #hover-tabs > div {
+      background-color: #505050;
     }
     body.dark-mode #chat{
       color: #aaa;
