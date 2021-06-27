@@ -204,12 +204,12 @@ function clear_macro_buttons(){
     for(let mb of macro_buttons){
         mb.remove();
     }
-    const macros_children = Array.from(document.getElementById('macros')!.children);
-    for(let m of macros_children){
-        if(m.id == 'chat-buttons')
-            continue;
+    const macros_tabs = Array.from(document.getElementById('macro-tabs')!.children);
+    for(let m of macros_tabs)
         m.remove();
-    }
+    const macros_buttons = Array.from(document.getElementById('macro-buttons')!.children);
+    for(let m of macros_buttons)
+        m.remove();
     MACROGROUPS.clear();
 }
 
@@ -421,10 +421,11 @@ function macros_dialog(){
     tabcontainer.appendChild(tabs);
     tabcontainer.appendChild(tabcontents);
     let current_group = groups[0];
+    // cut-n-paste: very similar code is in the new tab below.
     for(let i = 0; i < groups.length; i++){
         let group = groups[i];
         const t = mapping.get(group)!;
-        if(i != 0){
+        if(group != current_group){
             t.table.style.display = 'none';
         }
         else {
@@ -442,6 +443,53 @@ function macros_dialog(){
             current_group = group;
         });
     }
+    const new_tab = document.createElement('div');
+    const new_tab_text = document.createElement('input');
+    new_tab_text.size = 8;
+    const new_tab_button = document.createElement('span');
+    new_tab_button.appendChild(document.createTextNode('+'));
+    new_tab_text.type = 'text';
+    new_tab.appendChild(new_tab_text);
+    new_tab.appendChild(new_tab_button);
+    tabs.appendChild(new_tab);
+    new_tab.addEventListener('click', function(e:MouseEvent){
+        e.preventDefault();
+        e.stopPropagation();
+        const value = new_tab_text.value.trim();
+        if(!value)
+            return;
+        if(mapping.has(value))
+            return;
+        groups.push(value);
+        make_tab_stuff(value)
+        add_row(value, "", "");
+        current_group = value;
+        const t = mapping.get(value)!;
+        tabs.insertBefore(t.tab, new_tab);
+        tabcontents.appendChild(t.table);
+        // this is copy-paste-y from above
+        t.tab.addEventListener('click', function(){
+            for(let ts of mapping.values()){
+                ts.tab.classList.remove('active');
+                ts.table.style.display = 'none';
+            }
+            t.tab.classList.add('active');
+            t.table.style.display = 'initial';
+            current_group = value;
+        });
+        for(let i = 0; i < groups.length; i++){
+            let group = groups[i];
+            const t = mapping.get(group)!;
+            if(group != current_group){
+                t.tab.classList.remove('active');
+                t.table.style.display = 'none';
+            }
+            else {
+                t.tab.classList.add('active');
+                t.table.style.display = 'initial';
+            }
+        }
+    });
     for(let button of hoverpop.getElementsByClassName('delete-macro-button')){
         (button as HTMLElement).addEventListener('click', delete_macro);
     }
@@ -484,17 +532,6 @@ function macros_dialog(){
     cancel.addEventListener('click', function(){
         remove_hoverpop();
     });
-    const text_inputs = hoverpop.getElementsByTagName('input');
-    let did_focus = false;
-    for(let i = 0; i < text_inputs.length; i++){
-        const text_input = text_inputs[i];
-        if(text_input.type == 'text' || text_input.type == 'url'){
-            if(!did_focus){
-                text_input.focus();
-                did_focus = true;
-            }
-        }
-    }
 }
 function chat_options_dialog(){
     if(hover_is_open)

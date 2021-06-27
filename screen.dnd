@@ -542,10 +542,12 @@ David20::title @hide
     -webkit-user-select: none;
     user-select: none;
     cursor: pointer;
+    text-align: center;
   }
   #hover-tabs > div.active {
     background-color: initial;
     border-bottom: 1px solid white;
+    z-index: 1;
   }
   #hover-tab-contents {
     border-bottom: 1px solid black;
