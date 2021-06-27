@@ -1348,12 +1348,18 @@ function resize_canvas():void{
     const chat_rect = document.getElementById('chat')!.getBoundingClientRect();
     const note = document.getElementById('note');
     const right_width = note?note.getBoundingClientRect().width:0;
-    let width = window.innerWidth;
-    let height = window.innerHeight;
+    const ww = window.innerWidth;
+    const wh = window.innerHeight;
+    width = ww;
+    height = wh;
     width -= chat_rect.width;
     width -= right_width;
+    width |= 0;
+    height |= 0;
     canvas.width = width;
-    canvas.height = height;
+    canvas.height = height ;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
     request_render();
 }
 

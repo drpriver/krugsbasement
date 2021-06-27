@@ -446,6 +446,7 @@ function macros_dialog(){
     const new_tab = document.createElement('div');
     const new_tab_text = document.createElement('input');
     new_tab_text.size = 8;
+    new_tab_text.id = 'new-tab-input';
     const new_tab_button = document.createElement('span');
     new_tab_button.appendChild(document.createTextNode('+'));
     new_tab_text.type = 'text';

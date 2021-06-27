@@ -121,6 +121,9 @@ David20::title @hide
   }
   #map {
     background-color: #fff;
+    position: fixed;
+    left: 0;
+    top: 0;
   }
   #disconnect {
     background-color: red;
@@ -425,15 +428,15 @@ David20::title @hide
     white-space: nowrap;
   }
   #macro-tabs > div.active {
-    background-color: initial;
-    border-bottom: 1px solid white;
+    background-color: white;
+    border-bottom: 2px solid white;
     z-index: 1;
   }
   #macro-buttons {
     border-top: 1px solid black;
     border-bottom: 1px solid black;
     height: 4em;
-    overflow-y: scroll;
+    overflow-y: auto;
   }
   .macro-group {
     display: grid;
@@ -446,7 +449,6 @@ David20::title @hide
   .macro-button {
     text-overflow:ellipsis;
     white-space: nowrap;
-    overflow: hidden;
     -webkit-user-select: none;
     user-select: none;
   }
@@ -557,6 +559,9 @@ David20::title @hide
     margin: 0 0.5em;
     height: 50vh;
     overflow-y: scroll;
+  }
+  #new-tab-input:not(:focus){
+    background-color: lightgray;
   }
   div.up-down {
     display: grid;
