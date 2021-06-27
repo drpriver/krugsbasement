@@ -1350,8 +1350,8 @@ function resize_canvas():void{
     const right_width = note?note.getBoundingClientRect().width:0;
     const ww = window.innerWidth;
     const wh = window.innerHeight;
-    width = ww;
-    height = wh;
+    let width = ww;
+    let height = wh;
     width -= chat_rect.width;
     width -= right_width;
     width |= 0;

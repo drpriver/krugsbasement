@@ -381,6 +381,7 @@ David20::title @hide
   #views {
     display: flex;
     flex-direction: row;
+    justify-content: flex-end;
   }
   #chat {
     grid-column: 2;
