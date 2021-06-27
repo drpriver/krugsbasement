@@ -57,6 +57,7 @@ def load_canvas(data) -> Dict[int, Map]:
     for d in data:
         if 'map_name' not in d:
             d['map_name'] = 'Untitled'
+        d['objects'] = [o for o in d['objects'] if o['type'] != CANVASTYPE.MEASURE]
         m = Map(**d)
         for o in m.objects:
             repair(o)

@@ -2522,6 +2522,8 @@ function rotate_everything_90(view:DungeonMapView){
     for(let obj of view.map.canvas_obj_array){
         if(obj.flags & CANVASFLAG.DELETED)
             continue;
+        if(obj.type == CANVASTYPE.MEASURE)
+            continue;
         before_rotate.push(strip_obj(obj));
         const after = rotate_and_then_strip_obj(obj);
         after_rotate.push(after)
