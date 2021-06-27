@@ -92,6 +92,8 @@ David20::title @hide
       </table>
   ::div.log @id(chat-history)
   ::div @id(macros)
+    ::div @id(macro-tabs)
+    ::div @id(macro-buttons)
     ::div @id(chat-buttons)
       ::raw
         <button id="chat-options">Options</button>
@@ -402,11 +404,41 @@ David20::title @hide
     flex-direction: column;
     border-top: 1px solid black;
   }
+  #macro-tabs {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    padding: 0 .3em;
+  }
+  #macro-tabs > div {
+    background-color: lightgray;
+    border-top: 1px solid black;
+    border-left: 1px solid black;
+    border-right: 1px solid black;
+    padding: 0 1em;
+    margin-bottom: -1px;
+    margin-right: -1px;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  #macro-tabs > div.active {
+    background-color: initial;
+    border-bottom: 1px solid white;
+    z-index: 1;
+  }
+  #macro-buttons {
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+    height: 4em;
+    overflow-y: scroll;
+  }
   .macro-group {
     display: grid;
     grid-template-columns: repeat(3, auto);
     max-width: 17em;
-    overflow: hidden;
     padding-bottom: 6px;
     padding-top: 4px;
     grid-gap: 2px;
@@ -415,6 +447,8 @@ David20::title @hide
     text-overflow:ellipsis;
     white-space: nowrap;
     overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
   }
   #chat-buttons{
     display: grid;
@@ -510,7 +544,7 @@ David20::title @hide
     cursor: pointer;
   }
   #hover-tabs > div.active {
-    background: initial;
+    background-color: initial;
     border-bottom: 1px solid white;
   }
   #hover-tab-contents {
@@ -603,11 +637,23 @@ David20::title @hide
     }
     body.dark-mode #hover-tabs > div {
       background-color: #505050;
+      color: white;
+    }
+    body.dark-mode #macro-tabs > div.active {
+      border-bottom: 1px solid #666;
+      background-color: #666;
+    }
+    body.dark-mode #macro-tabs > div {
+      background-color: #505050;
+      color: white;
     }
     body.dark-mode #chat{
       color: #aaa;
     }
     body.dark-mode #palette {
+      background-color: #333;
+    }
+    body.dark-mode #colors {
       background-color: #333;
     }
   /*}*/

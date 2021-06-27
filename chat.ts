@@ -161,25 +161,41 @@ function add_macro_button(name:string, group:string, macro_index:number){
         let text = macro.body;
         socket.emit('chat-input', {chatname:chatname, text:text});
     });
-    const macros = document.getElementById('macros')!;
+    // const macros = document.getElementById('macros')!;
     let macrogroup = MACROGROUPS.get(group);
     if(!macrogroup){
-        const outer = document.createElement('div');
+        const macro_tabs = document.getElementById('macro-tabs') as HTMLDivElement;
+        const macro_buttons = document.getElementById('macro-buttons') as HTMLDivElement;
+        const tab = document.createElement('div');
+        tab.classList.add('macro-group-title');
+        tab.appendChild(document.createTextNode(group?group:"General"));
+        macro_tabs.appendChild(tab);
+        const is_first = macro_tabs.children.length == 1;
+        if(is_first){
+            tab.classList.add('active');
+        }
         macrogroup = document.createElement('div');
         macrogroup.classList.add('macro-group');
-        if(group){
-            const title = document.createElement('b');
-            title.classList.add('macro-group-title');
-            title.appendChild(document.createTextNode(group));
-            outer.appendChild(title);
-        }
-        else {
-            outer.appendChild(document.createElement('hr'));
-        }
-        outer.appendChild(macrogroup);
-        const buttons = document.getElementById('chat-buttons')!;
-        macros.insertBefore(outer, buttons);
+        if(!is_first)
+            macrogroup.style.display = 'none';
+        macro_buttons.appendChild(macrogroup);
         MACROGROUPS.set(group, macrogroup);
+        tab.addEventListener('click', function(e:MouseEvent){
+            e.stopPropagation();
+            e.preventDefault();
+            for(let el of macro_tabs.children){
+                if(tab.isSameNode(el)){
+                    el.classList.add('active');
+                }
+                else {
+                    el.classList.remove('active');
+                }
+            }
+            for(let mg of MACROGROUPS.values()){
+                mg.style.display = 'none';
+            }
+            macrogroup!.style.display = 'grid';
+        });
     }
     macrogroup.appendChild(macro_button);
 }
