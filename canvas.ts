@@ -5758,6 +5758,13 @@ function maybe_move_selection_one_unit(view:DungeonMapView, dx:number, dy:number
     note_updates_for_undo(view.map, [before], [after]);
     return true;
 }
+enum CONTEXTMENUWHENFLAGS {
+    ALWAYS            = 1 << 0,
+    MULTIPLE_SELECTED = 1 << 1, //  > 1
+    NO_SELECTION      = 1 << 2, // == 0
+    ONE_SELECTED      = 1 << 3, // == 1
+    ANY_SELECTED      = 1 << 4, // >= 1
+}
 document.addEventListener('DOMContentLoaded', function(){
     canvas = document.getElementsByTagName('canvas')[0]!;
     canvas.addEventListener('wheel', function(e:WheelEvent){
@@ -6763,13 +6770,6 @@ document.addEventListener('DOMContentLoaded', function(){
                 e.preventDefault();
             }
         }
-        enum CONTEXTMENUWHENFLAGS {
-            ALWAYS            = 1 << 0,
-            MULTIPLE_SELECTED = 1 << 1, // > 1
-            NO_SELECTION      = 1 << 2, // == 0
-            ONE_SELECTED      = 1 << 3, // == 1
-            ANY_SELECTED      = 1 << 4, // >= 1
-        };
         let whenflags = CONTEXTMENUWHENFLAGS.ALWAYS;
         if(view.selected.size == 0){
             whenflags |= CONTEXTMENUWHENFLAGS.NO_SELECTION;
@@ -6796,7 +6796,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 label: 'Ping',
                 func: function(){ping_at(view.map, click_x, click_y);remove_menu();},
                 disabled: false,
-                whenflags: CONTEXTMENUWHENFLAGS.NO_SELECTION,
+                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
             },
             {
                 label: 'Zoom In',
@@ -6823,13 +6823,13 @@ document.addEventListener('DOMContentLoaded', function(){
                     remove_menu();
                 },
                 disabled: false,
-                whenflags: CONTEXTMENUWHENFLAGS.NO_SELECTION,
+                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
             },
             {
                 label: 'Rotate Everything',
                 func: function(){rotate_everything_90(view);remove_menu();},
                 disabled: false,
-                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
+                whenflags: CONTEXTMENUWHENFLAGS.NO_SELECTION,
             },
             {
                 label: 'Edit',
