@@ -1,3 +1,5 @@
+import io
+import shlex
 from typing import List, Dict, Union, Any
 import random
 from .dice import dice_from_string, roll_dice
@@ -57,7 +59,8 @@ def create_chat(room:str) -> None:
 def handle_input(room:str, data:str, user:str='anon') -> List[dict]:
     result = []
     for line in data.split('\n'):
-        if not line.strip():
+        line = line.strip()
+        if not line:
             continue
         result.append({'user':user, 'data':line, 'type':Msg.PLAIN})
 
@@ -73,7 +76,19 @@ def handle_input(room:str, data:str, user:str='anon') -> List[dict]:
                 result.append({'user':'', 'data':roll_result, 'type':Msg.DICEROLL})
 
         parts = line.split()
-        if parts[0] in {'/gather'} and len(parts) == 3:
+        if parts[0] in {'/shuffle', '/shuff', '/shuf', 'shuf', 'shuff', 'shuffle'}:
+            try:
+                shuffle_result = parse_and_shuffle(line[len(parts[0]):])
+            except:
+                pass
+            result.append({'user':'', 'data':shuffle_result, 'type':Msg.PLAIN})
+        elif parts[0] in {'/choose', 'choose'}:
+            try:
+                choose_result = parse_and_choose(line[len(parts[0]):])
+            except:
+                pass
+            result.append({'user':'', 'data':choose_result, 'type':Msg.PLAIN})
+        elif parts[0] in {'/gather'} and len(parts) == 3:
             try:
                 x = int(parts[1])
                 y = int(parts[2])
@@ -84,6 +99,32 @@ def handle_input(room:str, data:str, user:str='anon') -> List[dict]:
 
     HISTORY[room].extend(result)
     return result
+
+DOUBLEQUOTE_TABLE = str.maketrans('\u201c\u201d', '""')
+def parse_and_shuffle(line:str, table=DOUBLEQUOTE_TABLE) -> str:
+    line = line.translate(table)
+    parts = shlex.split(line)
+    if not parts:
+        raise Exception
+    random.shuffle(parts)
+    s = io.StringIO()
+    for p in parts:
+        if ' ' in p:
+            s.write('\u201c')
+            s.write(p)
+            s.write('\u201d')
+        else:
+            s.write(p)
+        s.write(' ')
+    return s.getvalue()
+
+def parse_and_choose(line:str, table=DOUBLEQUOTE_TABLE) -> str:
+    line = line.translate(table)
+    parts = shlex.split(line)
+    if not parts:
+        raise Exception
+    return random.choice(parts)
+
 
 def get_history(room:str) -> List[dict]:
     return HISTORY[room][-100:]
