@@ -7,7 +7,7 @@ from .persist import Persister
 from flask_socketio import emit
 from .logs import logging
 
-from enum import IntEnum
+from enum import IntEnum, IntFlag
 class Msg(IntEnum):
     PLAIN = 0
     DICEROLL = 1
@@ -50,6 +50,49 @@ def load_chat(data:Union[str, dict, list, int, float]) -> List[dict]:
 
 HISTORY = {'/':[]}  # type: Dict[str, List[dict]]
 HISTORY['/'] = Persister(HISTORY['/'], 'BadDb/chat.json', dont_persist=True, load_func=load_chat).obj
+
+class ROLLTABLEFLAGS(IntFlag):
+    NONE = 0
+    IS_TABLE = 1
+
+ROLLTABLES = {'/':[]}  # type: Dict[str, List[dict]]
+ROLLTABLES['/'] = Persister(ROLLTABLES['/'], 'BadDb/tables.json', dont_persist=True).obj
+
+def get_roll_tables(room:str) -> list:
+    if room in ROLLTABLES:
+        return ROLLTABLES[room]
+    ROLLTABLES[room] = Persister([], 'BadDb'+room+'/tables.json').obj
+    return ROLLTABLES[room]
+
+def update_roll_tables(room:str, data:list) -> None:
+    for d in data:
+        if not isinstance(d, dict):
+            raise Exception
+        if 'name' not in d or not isinstance(d['name'], str):
+            raise Exception
+        if 'id' not in d or not isinstance(d['id'], int):
+            raise Exception
+        if 'entries' not in d or not isinstance(d['entries'], list):
+            raise Exception
+        if set(d) != {'name', 'id', 'entries'}:
+            raise Exception
+        for entry in d['entries']:
+            if not isinstance(entry, dict):
+                raise Exception
+            if 'weight' not in entry and not isinstance(entry['weight'], (int, float)):
+                raise Exception
+            if entry['weight'] < 0.5:
+                raise Exception
+            if entry['weight'] > 1e8:
+                raise Exception
+            if 'value' not in entry and not isinstance(entry['value'], str):
+                raise Exception
+            if 'flags' not in entry and not isinstance(entry['flags'], int):
+                raise Exception
+            if set(entry) != {'weight', 'value', 'flags'}:
+                raise Exception
+    ROLLTABLES[room] = data
+
 
 def create_chat(room:str) -> None:
     if room in HISTORY:
@@ -96,6 +139,16 @@ def handle_input(room:str, data:str, user:str='anon') -> List[dict]:
                 pass
             else:
                 emit('canvas-gather', {'x':x, 'y':y}, broadcast=True)
+        elif parts[0] in {'/table', 'table'}:
+            try:
+                table_result, path = parse_and_roll_table(room, line[len(parts[0]):])
+            except Exception as e:
+                result.append({'user':'', 'data': str(e), 'type':Msg.ERROR})
+            else:
+                if not table_result:
+                    table_result = '(No entry)'
+                result.append({'user':'', 'data': path + ': '+table_result, 'type':Msg.PLAIN})
+
 
     HISTORY[room].extend(result)
     return result
@@ -124,6 +177,32 @@ def parse_and_choose(line:str, table=DOUBLEQUOTE_TABLE) -> str:
     if not parts:
         raise Exception
     return random.choice(parts)
+
+def parse_and_roll_table(room:str, line:str) -> str:
+    line = line.strip()
+    tables = get_roll_tables(room)
+    mapping = {d['name'].lower(): d for d in tables}
+    return parse_and_roll_table_inner(mapping, line, line, 0)
+
+def parse_and_roll_table_inner(mapping:dict, key:str, path:str, depth:int) -> (str, str):
+    if depth > 10:
+        raise Exception('Maximum table depth reached for table path: {}.'.format(path))
+    table = mapping.get(key.lower())
+    if not table:
+        raise Exception('"{}" is not the name of a table.'.format(key))
+    weights = []
+    values = []
+    is_subtable = []
+    for e in table['entries']:
+        weights.append(e['weight'])
+        values.append(e['value'])
+        is_subtable.append(e['flags'] & ROLLTABLEFLAGS.IS_TABLE)
+    indexes = list(range(len(weights)))
+    index = random.choices(indexes, weights=weights, k=1)[0]
+    value = values[index]
+    if is_subtable[index]:
+        return parse_and_roll_table_inner(mapping, value, path+'❯'+value, depth+1)
+    return value, path
 
 
 def get_history(room:str) -> List[dict]:

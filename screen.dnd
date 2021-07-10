@@ -98,6 +98,7 @@ David20::title @hide
       ::raw
         <button id="chat-options">Options</button>
         <button id="macros-button">Macros</button>
+        <button id="tables-button">Tables</button>
   ::raw
     <textarea id="chatinput" rows="4"></textarea>
 
@@ -455,7 +456,7 @@ David20::title @hide
   }
   #chat-buttons{
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     grid-gap: 2px;
   }
   .chat > textarea {
@@ -521,7 +522,7 @@ David20::title @hide
     border: 1px solid gray;
     padding: 4px 4px 4px 4px;
   }
-  section.hover > div.hover-button-container {
+  div.hover-button-container {
     margin: auto;
     text-align: center;
     padding: 1em 1em 1em 1em;
@@ -591,6 +592,9 @@ David20::title @hide
   }
   body {
     background-color: #fff;
+  }
+  div.rolltable table{
+    margin: auto;
   }
   /*@media (prefers-color-scheme: dark) {*/
     body.dark-mode #map {

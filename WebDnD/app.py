@@ -187,6 +187,19 @@ def note_delete(note_id:int) -> None:
     logging.info('delete note: %d for room "%s"', note_id, room)
     notes.note_delete(room, note_id)
     emit('note-delete', note_id, broadcast=True, include_self=True, to=room)
+
+@socketio.on('retrieve-roll-tables')
+def retrieve_roll_tables() -> list:
+    room = get_room(request)
+    logging.info('retrieving roll tables for room "%s"', room)
+    return chat.get_roll_tables(room)
+
+@socketio.on('update-roll-tables')
+def update_roll_tables(tables:list) -> None:
+    room = get_room(request)
+    logging.info('Setting roll tables for room "%s"', room)
+    chat.update_roll_tables(room, tables)
+
 try:
     SCREEN: Optional[str] = open('screen.html').read()
 except:

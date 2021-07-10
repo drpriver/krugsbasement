@@ -44,12 +44,11 @@ function setchatname(name:string){
 function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>){
     for(let i = 0; i < msgs.length; i++){
         const msg = msgs[i];
-        const entry = document.createElement('div');
+        const entry = elem_with_parent(log, 'div');
         switch(msg.type){
             case MSG.PLAIN:{
                 if(msg.user){
-                    const user = document.createElement('b');
-                    user.appendChild(document.createTextNode(msg.user+': '));
+                    const user = elem_with_text('b', msg.user+': ');
                     entry.appendChild(user);
                 }
                 const text = document.createTextNode(msg.data as string);
@@ -62,14 +61,11 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>){
                 entry.innerHTML += formatted;
             }break;
             case MSG.ERROR:{
-                const error = document.createElement('span');
+                const error = elem_with_text('span', msg.data as string);
                 error.classList.add('chat-error');
-                const text = document.createTextNode(msg.data as string);
-                error.appendChild(text);
                 entry.appendChild(error);
             }break;
         }
-        log.appendChild(entry);
     }
 }
 
@@ -149,9 +145,7 @@ function add_macros(macros:Array<Macro>){
 }
 
 function add_macro_button(name:string, group:string, macro_index:number){
-    const macro_button = document.createElement('button');
-    macro_button.classList.add('macro-button');
-    macro_button.innerText = name;
+    const macro_button = elem_with_text('button', name, null, 'macro-button');
     macro_button.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
@@ -166,16 +160,14 @@ function add_macro_button(name:string, group:string, macro_index:number){
     if(!macrogroup){
         const macro_tabs = document.getElementById('macro-tabs') as HTMLDivElement;
         const macro_buttons = document.getElementById('macro-buttons') as HTMLDivElement;
-        const tab = document.createElement('div');
+        const tab = elem_with_text('div', group?group:"General");
         tab.classList.add('macro-group-title');
-        tab.appendChild(document.createTextNode(group?group:"General"));
         macro_tabs.appendChild(tab);
         const is_first = macro_tabs.children.length == 1;
         if(is_first){
             tab.classList.add('active');
         }
-        macrogroup = document.createElement('div');
-        macrogroup.classList.add('macro-group');
+        macrogroup = elem('div', null, 'macro-group');
         if(!is_first)
             macrogroup.style.display = 'none';
         macro_buttons.appendChild(macrogroup);
@@ -307,8 +299,7 @@ function macros_dialog(){
     if(hover_is_open)
         return;
     hover_is_open = true;
-    const hoverpop = document.createElement('section');
-    hoverpop.classList.add('hover');
+    const hoverpop = elem('section', null, 'hover');
     type TabStuff = {
         tab: HTMLDivElement;
         table: HTMLTableElement;
@@ -331,7 +322,6 @@ function macros_dialog(){
         const parent = row.parentNode!;
         if(row.previousSibling)
             parent.insertBefore(row, row.previousSibling);
-
     }
     function move_macro_down(e:MouseEvent){
         e.preventDefault();
@@ -364,12 +354,9 @@ function macros_dialog(){
     }
     function make_tab_stuff(group:string):void{
         const name = group? group : "General";
-        const tab = document.createElement('div');
-        tab.classList.add('hover-tab');
-        tab.appendChild(document.createTextNode(name));
+        const tab = elem_with_text('div', name, null, 'hover-tab');
         groups.push(group);
-        const table = document.createElement('table');
-        table.classList.add('hover-tab-table');
+        const table = elem('table', null, 'hover-tab-table');
         table.innerHTML = `
             <thead><tr>
                 <th>
@@ -414,10 +401,8 @@ function macros_dialog(){
     `;
     hoverpop.innerHTML = html;
     const tabcontainer = hoverpop.getElementsByClassName('hover-tab-container')[0] as HTMLDivElement;
-    const tabs = document.createElement('div');
-    tabs.id = "hover-tabs";
-    const tabcontents = document.createElement('div');
-    tabcontents.id = "hover-tab-contents";
+    const tabs = elem('div', 'hover-tabs');
+    const tabcontents = elem('div', 'hover-tab-contents');
     tabcontainer.appendChild(tabs);
     tabcontainer.appendChild(tabcontents);
     let current_group = groups[0];
@@ -443,16 +428,12 @@ function macros_dialog(){
             current_group = group;
         });
     }
-    const new_tab = document.createElement('div');
-    const new_tab_text = document.createElement('input');
+    const new_tab = elem_with_parent(tabs, 'div');
+    const new_tab_text = elem_with_parent(new_tab, 'input', 'new-tab-input');
     new_tab_text.size = 8;
-    new_tab_text.id = 'new-tab-input';
-    const new_tab_button = document.createElement('span');
-    new_tab_button.appendChild(document.createTextNode('+'));
+    const new_tab_button = elem_with_text('span', '+');
     new_tab_text.type = 'text';
-    new_tab.appendChild(new_tab_text);
     new_tab.appendChild(new_tab_button);
-    tabs.appendChild(new_tab);
     new_tab.addEventListener('click', function(e:MouseEvent){
         e.preventDefault();
         e.stopPropagation();
@@ -538,8 +519,7 @@ function chat_options_dialog(){
     if(hover_is_open)
         return;
     hover_is_open = true;
-    const hoverpop = document.createElement('section');
-    hoverpop.classList.add('hover');
+    const hoverpop = elem('section', null, 'hover');
     const is_dev = chatname == 'dev';
     const pan_tool = document.getElementById('pan-tool')!;
     let html = `
@@ -643,6 +623,12 @@ function chat_options_dialog(){
 
 document.addEventListener('DOMContentLoaded', function(){
     resize_chat();
+    const tables_button = document.getElementById('tables-button')!;
+    tables_button.addEventListener('click', function(e:MouseEvent){
+        e.stopPropagation();
+        e.preventDefault();
+        tables_button_dialog();
+    });
     const options_button = document.getElementById('chat-options')!;
     options_button.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
@@ -844,8 +830,7 @@ function format_dice_roll(roll:DieRoll){
     return result;
 }
 function err_dialog(html:string){
-    const errpop = document.createElement('section');
-    errpop.classList.add('hover');
+    const errpop = elem('section', null, 'hover');
     html += `
         <div class="hover-button-container">
             <button type="button" class="errpop-ok">Ok</button>
@@ -862,4 +847,214 @@ function err_dialog(html:string){
             remove_errpop();
         });
     }
+}
+
+
+enum ROLLTABLEFLAGS { 
+    NONE = 0,
+    IS_TABLE = 1 << 0,
+}
+type RollTableEntry = {
+    weight: number;
+    value: string;
+    flags: ROLLTABLEFLAGS;
+}
+type RollTable = {
+    name: string;
+    id: number;
+    entries: Array<RollTableEntry>;
+}
+
+function tables_button_dialog(){
+    if(hover_is_open)
+        return;
+    socket.emit('retrieve-roll-tables', function(rolltables:Array<RollTable>){
+        if(hover_is_open)
+            return;
+        hover_is_open = true;
+        const hoverpop = elem('section', null, 'hover');
+        function remove_hoverpop(){
+            document.body.removeChild(hoverpop);
+            hover_is_open = false;
+        }
+        hoverpop.appendChild(elem_with_text('h2', 'Tables'));
+        const tabcontainer = elem('div', 'hover-tab-container', 'hover-tab-container');
+        hoverpop.appendChild(tabcontainer);
+        const tabs_el = elem('div', 'hover-tabs');
+        const new_table_button = elem_with_text('div', '\u0020+\u0020', 'new-table', 'hover-tab');
+        new_table_button.addEventListener('click', function(){
+            const table = {
+                name: "Untitled",
+                id: -1, // sending -1 to the server means the server should assign a new id
+                entries: [{weight:1, value:"", flags:0}]
+            };
+            add_table(table);
+        });
+        tabs_el.appendChild(new_table_button);
+        const tabs_contents_el = elem('div', 'hover-tab-contents');
+        tabcontainer.appendChild(tabs_el);
+        tabcontainer.appendChild(tabs_contents_el);
+
+        const container = elem('div', null, 'hover-button-container');
+        const ok = elem_with_text('button', 'Ok');
+        ok.addEventListener('click', function(){
+            submit_tables();
+            remove_hoverpop();
+        });
+        ok.id = 'hoverpop-ok';
+        const cancel = elem_with_text('button', 'Cancel');
+        cancel.addEventListener('click', function(){
+            remove_hoverpop();
+        });
+        cancel.id = 'hoverpop-cancel';
+        container.appendChild(ok);
+        container.appendChild(cancel);
+        hoverpop.appendChild(container);
+        type Table = {
+            id: number;
+            body: HTMLTableSectionElement;
+            table: HTMLTableElement;
+            t: HTMLDivElement;
+            tablename:HTMLInputElement;
+            toptab: HTMLDivElement;
+        };
+        const tabs:Array<HTMLDivElement> = [];
+        const tables: Array<Table> = [];
+        function add_table(table:RollTable){
+            const tab = elem_with_text('div', table.name, null, 'hover-tab');
+            tab.addEventListener('click', function(){
+                for(let tablegroup of tables){
+                    tablegroup.t.style.display = 'none';
+                    tablegroup.toptab.classList.remove('active');
+                }
+                t.style.display = 'initial';
+                tab.classList.add('active');
+            });
+            const t = elem('div', null, 'rolltable');
+            t.style.display = 'none';
+            t.appendChild(elem_with_text('b', 'Table Name:'));
+            const tablename = elem_with_parent(t, 'input');
+            tablename.type = 'text'
+            tablename.value = table.name;
+            tablename.addEventListener('input', function(){
+                tab.innerText = tablename.value;
+            });
+            const table_el = elem_with_parent(t, 'table');
+            {
+                const thead = elem_with_parent(table_el, 'thead');
+                const tr = elem_with_parent(thead, 'tr');
+                for(let n of ["", "Weight", "Value", "Table?", ""]){
+                    tr.appendChild(elem_with_text('th', n));
+                }
+            }
+            const tbody = elem_with_parent(table_el, 'tbody');
+            function append_row_element(tr:HTMLTableRowElement, el:HTMLElement){
+                const td = elem_with_parent(tr, 'td');
+                td.appendChild(el);
+            }
+            function delete_row(e:MouseEvent){
+                e.preventDefault();
+                e.stopPropagation();
+                const row = ((e.currentTarget as HTMLElement).parentNode!.parentNode! as HTMLElement);
+                const parent = row.parentNode!;
+                row.remove();
+                if(parent.children.length == 0){
+                    add_row(1, "", false);
+                }
+            }
+            function move_up(e:MouseEvent){
+                e.preventDefault();
+                e.stopPropagation();
+                const row = ((e.currentTarget as HTMLElement).parentNode!.parentNode!.parentNode! as HTMLElement);
+                const parent = row.parentNode!;
+                if(row.previousSibling)
+                    parent.insertBefore(row, row.previousSibling);
+            }
+            function move_down(e:MouseEvent){
+                e.preventDefault();
+                e.stopPropagation();
+                const row = ((e.currentTarget as HTMLElement).parentNode!.parentNode!.parentNode! as HTMLElement);
+                const parent = row.parentNode!;
+                let next = row.nextSibling;
+                if(next)
+                    next = next.nextSibling;
+                parent.insertBefore(row, next);
+            }
+            function add_row(weight:number, value:string, is_table:boolean){
+                const tr = elem_with_parent(tbody, 'tr');
+
+                const ud = elem('div', null, 'up-down');
+                const up = elem_with_text('button', '▲', null, 'up');
+                const down = elem_with_text('button', '▼', null, 'down');
+                ud.appendChild(up);
+                up.addEventListener('click', move_up);
+                ud.appendChild(down);
+                down.addEventListener('click', move_down);
+                append_row_element(tr, ud);
+
+                const weightinp = document.createElement('input');
+                weightinp.value = ""+weight;
+                weightinp.type = 'numeric';
+                append_row_element(tr, weightinp);
+
+                const valinp = document.createElement('input');
+                valinp.type = 'text';
+                valinp.value = value;
+                append_row_element(tr, valinp);
+
+                const tablecheck = document.createElement('input');
+                tablecheck.type = 'checkbox';
+                tablecheck.checked = is_table;
+                append_row_element(tr, tablecheck);
+
+                const delbutton = elem_with_text('button', 'Delete');
+                append_row_element(tr,delbutton);
+                delbutton.addEventListener('click', delete_row);
+            }
+
+            for(let i = 0; i < table.entries.length;i++){
+                const entry = table.entries[i];
+                add_row(entry.weight, entry.value, !!(entry.flags & ROLLTABLEFLAGS.IS_TABLE));
+            }
+            const d = elem('div', null, 'hover-button-container');
+            const addrowbutton = elem_with_text('button', 'Add Row');
+            addrowbutton.addEventListener('click', function(){
+                add_row(1, "", false);
+            });
+            d.appendChild(addrowbutton);
+            t.appendChild(d);
+            tabs_contents_el.appendChild(t);
+            tabs_el.insertBefore(tab, new_table_button);
+            tabs.push(tab);
+            tables.push({body:tbody, id:table.id, table:table_el, t:t, tablename:tablename, toptab:tab});
+        }
+        for(let rt of rolltables)
+            add_table(rt);
+        if(!tables.length)
+            add_table({
+                name: "Untitled",
+                id: -1, // sending -1 to the server means the server should assign a new id
+                entries: [{weight:1, value:"", flags:0}]
+            });
+        tables[0].t.style.display = 'initial';
+        tabs[0].classList.add('active');
+        function submit_tables(){
+            const outtables: Array<RollTable> = [];
+            for(let tableelems of tables){
+                const name = tableelems.tablename.value;
+                const id = tableelems.id;
+                const entries: Array<RollTableEntry> = [];
+
+                for(let row of tableelems.body.children){
+                    const w = row.children[1].children[0] as HTMLInputElement;
+                    const v = row.children[2].children[0] as HTMLInputElement;
+                    const is_table = (row.children[3].children[0] as HTMLInputElement).checked;
+                    entries.push({weight:+w.value, value:v.value, flags:is_table?ROLLTABLEFLAGS.IS_TABLE : ROLLTABLEFLAGS.NONE});
+                }
+                outtables.push({name:name, id:id, entries:entries});
+            }
+            socket.emit('update-roll-tables',outtables);
+        }
+        document.body.appendChild(hoverpop);
+    });
 }
