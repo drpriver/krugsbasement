@@ -43,3 +43,5 @@ shrink-tokens:
 ship-it: dist.zip
 	scp dist.zip david@droplet:/home/david
 	ssh david@droplet "make backup && rm -rf dist && unzip dist && make restore && make token-list"
+tags: *.ts Scripts/tag_ts.py
+	python3 -m Scripts.tag_ts

@@ -1,0 +1,117 @@
+import glob
+from enum import IntEnum, auto
+from typing import NamedTuple, List
+import io
+import re
+class TagType(IntEnum):
+    FUNC = 0
+    ENUM = 1
+    GLOBAL = 2
+    TYPE = 3
+TYPE_TO_KIND = {
+        TagType.FUNC:'f',
+        TagType.ENUM: 'g',
+        TagType.GLOBAL:'v',
+        TagType.TYPE:'t',
+    }
+
+class TagLoc(NamedTuple):
+    type: TagType
+    query: str
+    ident: str
+    filename: str
+    lineno:int 
+    is_global: bool
+
+IDENT = r'\b([A-Za-z0-9_]+)\b'
+RE = re.compile(r'\b(function|type|enum|(^(let|const|var)))\b\s?'+IDENT)
+MATCH_TO_TYPE = {
+    'function': TagType.FUNC,
+    'type': TagType.TYPE,
+    'let': TagType.GLOBAL,
+    'const': TagType.GLOBAL,
+    'var': TagType.GLOBAL,
+    'enum': TagType.ENUM,
+    }
+
+def analyze_line(filename:str, lineno:int, line:str) -> List[TagLoc]:
+    result = []
+    matches = re.finditer(RE, line)
+    for m in matches:
+        t = MATCH_TO_TYPE[m[1]]
+        if m.start() == 0:
+            is_global = True
+            query = '/^'+m[0]+'/'
+        else:
+            is_global = False
+            query = '/'+m[0]+'/'
+        result.append(TagLoc(t, query, m[4], filename, lineno, is_global))
+    return result
+
+def get_tags(filename:str) -> List[TagLoc]:
+    tags = []
+    with open(filename) as fp:
+        for lineno, line in enumerate(fp):
+            tags.extend(analyze_line(filename, lineno+1, line))
+    return tags
+
+def get_all_tags() -> List[TagLoc]:
+    tsfiles = glob.glob('*.ts')
+    tags = []
+    for filename in tsfiles:
+        tags.extend(get_tags(filename))
+    tags = sorted(tags, key=lambda x: (x.ident, not x.is_global, x.lineno, x.filename, x.type))
+    return tags
+
+def format_tag(tag:TagLoc, s:io.StringIO):
+    s.write(tag.ident)
+    s.write('\t')
+    s.write(tag.filename)
+    s.write('\t')
+    s.write(tag.query)
+    s.write(';"')
+    s.write('\t')
+    s.write(TYPE_TO_KIND[tag.type])
+    s.write('\n')
+
+
+def write_files(tags:List[TagLoc]) -> None:
+    tag_s = io.StringIO()
+    funcs = io.StringIO()
+    variables = io.StringIO()
+    types = io.StringIO()
+    buffers = {
+        TagType.FUNC: funcs,
+        TagType.ENUM: types,
+        TagType.GLOBAL: variables,
+        TagType.TYPE: types,
+        }
+    for tag in tags:
+        format_tag(tag, tag_s)
+        buff = buffers[tag.type]
+        buff.write(' ')
+        buff.write(tag.ident)
+    with open('tags', 'w') as fp:
+        fp.write('!_TAG_FILE_FORMAT\t2\n')
+        fp.write('!_TAG_FILE_SORTED\t1\n')
+        fp.write('!_TAG_FILE_AUTHOR\tDavid\n')
+        fp.write(tag_s.getvalue())
+
+    with open('.vimrc', 'w') as fp:
+        fp.write('set path=.,,WebDnD,Bugs,ResolvedBugs,Scripts,WontFixBugs/\n')
+        fp.write('au BufEnter *.ts,*.js setlocal ts=4 sw=4 sts=4 et foldmethod=indent\n')
+        fp.write('au BufEnter *.ts setlocal errorformat=%+A\ %#%f\ %#(%l\\\,%c):\ %m,%C%m\n')
+        fp.write('hi tsConstant cterm=bold gui=bold\n')
+        fp.write('hi tsFunction ctermfg=109 guifg=#664499\n')
+        fp.write('au BufEnter *.ts syn keyword tsFunction')
+        fp.write(funcs.getvalue())
+        fp.write('\n')
+        fp.write('au BufEnter *.ts syn keyword Type')
+        fp.write(types.getvalue())
+        fp.write('\n')
+        fp.write('au BufEnter *.ts syn keyword tsConstant')
+        fp.write(variables.getvalue())
+        fp.write('\n')
+
+if __name__ == '__main__':
+    write_files(get_all_tags())

@@ -62,14 +62,14 @@ function change_dark_mode(mode:DarkMode){
     change_dark_mode(mode);
 }());
 
-let socket = io({transports:["websocket"]});
-socket.on("connect", () => {
+let SOCKET = io({transports:["websocket"]});
+SOCKET.on("connect", () => {
     clear_disconnected();
-    socket.emit('join', window.location.pathname)
-    socket.emitBuffered();
+    SOCKET.emit('join', window.location.pathname)
+    SOCKET.emitBuffered();
     // Flush the buffer here so that the post-join gives us
     // our own objects.
-    socket.emit('post-join')
+    SOCKET.emit('post-join')
 });
 function clear_disconnected(){
     const d = document.getElementById('disconnect')!;
@@ -79,7 +79,7 @@ function set_disconnected(){
     const d = document.getElementById('disconnect')!;
     d.style.display = 'initial';
 }
-socket.on('disconnect', function(reason:string){
+SOCKET.on('disconnect', function(reason:string){
     switch(reason){
         case 'io server disconnect':
         case 'io client disconnect':
@@ -115,7 +115,7 @@ function change_pan_visibility(visible:boolean){
     const pan_tool = document.getElementById('pan-tool')!;
     pan_tool.style.display = visible? 'initial': 'none';
 }
-socket.on('session-id', function(resp:number){
+SOCKET.on('session-id', function(resp:number){
     session_id = resp;
 });
 

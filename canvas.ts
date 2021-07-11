@@ -1126,10 +1126,10 @@ type Ping = {
 function ping_at(map:DungeonMap, x:number, y:number){
     const ping = {cx:x, cy:y, color:'#ff3300'};
     map.pings.push(ping);
-    socket.emit('canvas-ping', {ping:ping, map_id:map.map_id});
+    SOCKET.emit('canvas-ping', {ping:ping, map_id:map.map_id});
     request_render();
 }
-socket.on('canvas-ping', function(data:{ping:Ping, map_id:number}){
+SOCKET.on('canvas-ping', function(data:{ping:Ping, map_id:number}){
     const map = get_map(data.map_id);
     map.pings.push(data.ping);
     request_render();
@@ -1234,7 +1234,7 @@ function get_map(map_id:number): DungeonMap {
 
         pings: [],
     };
-    socket.emit('canvas-create-map', map_id);
+    SOCKET.emit('canvas-create-map', map_id);
     MAPS.set(map_id, new_map);
     const option = document.createElement('option');
     option.innerText = 'Untitled';
@@ -1262,7 +1262,7 @@ function sort_canv_objs(map:DungeonMap){
     });
     map.is_sorted = true;
 }
-socket.on('canvas-create-map', function(map_id:number){
+SOCKET.on('canvas-create-map', function(map_id:number){
     if(MAPS.has(map_id))
         return;
     dungeon_map_views.push(new_map_view(map_id));
@@ -1273,16 +1273,16 @@ function rename_map(map:DungeonMap, name:string){
     const opt = MapOptionElements.get(map.map_id)!;
     opt.innerText = name;
 }
-socket.on('canvas-name-map', function(data:{map_id:number, map_name:string}){
+SOCKET.on('canvas-name-map', function(data:{map_id:number, map_name:string}){
     const map = get_map(data.map_id);
     rename_map(map, data.map_name);
 });
-socket.on('canvas-grid-type', function(data:{map_id:number, grid_type:GRIDTYPE}){
+SOCKET.on('canvas-grid-type', function(data:{map_id:number, grid_type:GRIDTYPE}){
     const map = get_map(data.map_id);
     map.grid_type = data.grid_type;
     request_render();
 });
-socket.on('canvas-grid-numbered', function(data:{map_id:number, numbered:number}){
+SOCKET.on('canvas-grid-numbered', function(data:{map_id:number, numbered:number}){
     const map = get_map(data.map_id);
     if(data.numbered)
         map.flags |= MapFlags.NUMBERED
@@ -1298,7 +1298,7 @@ const REFERENCE_WIDTH = 64; // the size of a square at scale = 1.
 // The main canvas and its context. These are set once the content loads.
 let canvas:HTMLCanvasElement;
 let ctx:CanvasRenderingContext2D;
-socket.on('canvas-gather', function(where:{map_id:number; x:number; y:number}): void{
+SOCKET.on('canvas-gather', function(where:{map_id:number; x:number; y:number}): void{
     change_map(where.map_id, false);
     const view = get_active_view();
     view.camera_x = where.x;
@@ -2080,7 +2080,7 @@ function clear_canvas(map:DungeonMap):void{
     }
     request_render();
 }
-socket.on('canvas-clear', function():void{
+SOCKET.on('canvas-clear', function():void{
     for(let m of MAPS.values())
         clear_canvas(m);
     MAPS.clear()
@@ -2566,7 +2566,7 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
     request_render();
 }
 
-socket.on('canvas-delete-map', function(map_id:number){
+SOCKET.on('canvas-delete-map', function(map_id:number){
     delete_map(map_id);
 });
 
@@ -2601,7 +2601,7 @@ function delete_map(map_id:number){
 
 // cutnpaste from below. TODO: factor these.
 
-socket.on('canvas-initialize-maps', function(msgs:Array<{map_id:number; map_name:string; objects:Array<StrippedObj>; flags:MapFlags; grid_type:GRIDTYPE}>){
+SOCKET.on('canvas-initialize-maps', function(msgs:Array<{map_id:number; map_name:string; objects:Array<StrippedObj>; flags:MapFlags; grid_type:GRIDTYPE}>){
     for(let msg of msgs){
         const map_id = msg.map_id;
         if(msg.flags & MapFlags.DELETED){
@@ -2628,7 +2628,7 @@ socket.on('canvas-initialize-maps', function(msgs:Array<{map_id:number; map_name
     }
     request_render();
 });
-socket.on('canvas-create-objects', function(msgs:Array<{map_id:number;objects:Array<StrippedObj>}>){
+SOCKET.on('canvas-create-objects', function(msgs:Array<{map_id:number;objects:Array<StrippedObj>}>){
     for(let msg of msgs){
         const map_id = msg.map_id;
         if(!MAPS.has(map_id)){
@@ -2650,7 +2650,7 @@ socket.on('canvas-create-objects', function(msgs:Array<{map_id:number;objects:Ar
     }
     request_render();
 });
-socket.on('canvas-delete', function(msg:{map_id:number;ids:Array<number>}){
+SOCKET.on('canvas-delete', function(msg:{map_id:number;ids:Array<number>}){
     const map_id = msg.map_id;
     const map = get_map(map_id);
     const obj_ids = msg.ids;
@@ -2669,7 +2669,7 @@ socket.on('canvas-delete', function(msg:{map_id:number;ids:Array<number>}){
 });
 
 
-socket.on('canvas-update', function(msg:{map_id:number;obj_states:Array<StrippedObj>}){
+SOCKET.on('canvas-update', function(msg:{map_id:number;obj_states:Array<StrippedObj>}){
     const map_id = msg.map_id;
     const map = get_map(map_id);
     const obj_states = msg.obj_states;
@@ -3375,7 +3375,7 @@ function set_obj_from_stripped(obj_: CanvasObject, state:StrippedObj){
 
 }
 function publish_delete_by_ids(map_id:number, ids:Array<number>):void{
-    socket.emit('canvas-delete', {map_id:map_id, ids:ids})
+    SOCKET.emit('canvas-delete', {map_id:map_id, ids:ids})
 }
 function publish_obj_by_id(map:DungeonMap, id:number):void{
     const obj = map.canvas_objs.get(id);
@@ -3384,7 +3384,7 @@ function publish_obj_by_id(map:DungeonMap, id:number):void{
         return;
     }
     const stripped_obj = strip_obj(obj);
-    socket.emit('canvas-create-objects', {map_id:map.map_id, object:stripped_obj});
+    SOCKET.emit('canvas-create-objects', {map_id:map.map_id, object:stripped_obj});
 }
 function get_stripped_state_by_id(map:DungeonMap, ids:Array<number>):Array<StrippedObj>{
     const length = ids.length;
@@ -3402,7 +3402,7 @@ function get_stripped_state_by_id(map:DungeonMap, ids:Array<number>):Array<Strip
     return updates;
 }
 function publish_obj_updates(map_id:number, updates:Array<StrippedObj>){
-    socket.emit('canvas-update', {map_id:map_id, obj_states:updates});
+    SOCKET.emit('canvas-update', {map_id:map_id, obj_states:updates});
 }
 
 function edit_is_impossible(view:DungeonMapView):boolean{
@@ -5736,7 +5736,7 @@ const DEFAULT_NUMERIC_HOT_KEY = {
 let numeric_hot_key = DEFAULT_NUMERIC_HOT_KEY;
 let numeric_hot_keys:Map<TOOLTYPE, NumericHotKey> = new Map();
 let token_paths: Array<string> = [];
-socket.on('token-paths', function(paths:Array<string>){
+SOCKET.on('token-paths', function(paths:Array<string>){
     token_paths = paths;
 });
 function maybe_move_selection_one_unit(view:DungeonMapView, dx:number, dy:number):boolean{
@@ -6819,7 +6819,7 @@ document.addEventListener('DOMContentLoaded', function(){
             {
                 label: 'Gather Party',
                 func: function(){
-                    socket.emit('canvas-gather', {x:-x, y:-y, map_id:view.map.map_id});
+                    SOCKET.emit('canvas-gather', {x:-x, y:-y, map_id:view.map.map_id});
                     remove_menu();
                 },
                 disabled: false,
@@ -6960,17 +6960,17 @@ document.addEventListener('DOMContentLoaded', function(){
             if(!name.length)
                 return;
             rename_map(active_view.map, name);
-            socket.emit('canvas-name-map', {map_id:active_view.map.map_id, map_name:name});
+            SOCKET.emit('canvas-name-map', {map_id:active_view.map.map_id, map_name:name});
             const hg = document.getElementById('hover-hex-grid')! as HTMLInputElement;
             const ng = document.getElementById('hover-no-grid')! as HTMLInputElement;
             let gt = hg.checked? GRIDTYPE.HEX : GRIDTYPE.SQUARE;
             if(ng.checked)
                 gt |= GRIDTYPE.NOGRID;
             if(active_view.map.grid_type != gt)
-                socket.emit('canvas-grid-type', {map_id:active_view.map.map_id, grid_type:gt});
+                SOCKET.emit('canvas-grid-type', {map_id:active_view.map.map_id, grid_type:gt});
             const numbered = (document.getElementById('hover-numbered')! as HTMLInputElement).checked? MapFlags.NUMBERED : 0;
             if((active_view.map.flags & MapFlags.NUMBERED) != numbered)
-                socket.emit('canvas-grid-numbered', {map_id:active_view.map.map_id, numbered:numbered});
+                SOCKET.emit('canvas-grid-numbered', {map_id:active_view.map.map_id, numbered:numbered});
         }
         make_ok_dialog(html, on_ok);
     });
@@ -7002,7 +7002,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 const delete_checkbox = document.getElementById('hover-delete')! as HTMLInputElement;
                 const should_delete = delete_checkbox.checked;
                 if(should_delete){
-                    socket.emit('canvas-delete-map-request', active_view.map.map_id);
+                    SOCKET.emit('canvas-delete-map-request', active_view.map.map_id);
                     return;
                 }
             }
@@ -7041,7 +7041,7 @@ document.addEventListener('DOMContentLoaded', function(){
             let gt = hg.checked? GRIDTYPE.HEX : GRIDTYPE.SQUARE;
             if(ng.checked)
                 gt |= GRIDTYPE.NOGRID;
-            socket.emit('canvas-new-map-request', {name:value, grid_type:gt});
+            SOCKET.emit('canvas-new-map-request', {name:value, grid_type:gt});
         }
         make_ok_dialog(html, on_ok);
     });

@@ -17,7 +17,7 @@ function add_note(id:number, note:Note){
     const notes_selection = document.getElementById('current-note-name')! as HTMLSelectElement;
     add_note_option(notes_selection, note.title, id);
 }
-socket.on('new-note', function(note_id:number){
+SOCKET.on('new-note', function(note_id:number){
     add_note(note_id, {flags:0, title:'Untitled Note', body:''});
 });
 function add_note_option(notes_selection:HTMLSelectElement, name:string, id:number){
@@ -52,13 +52,13 @@ function update_note_body(note_id:number, body:string){
         return;
     note.body = body;
 }
-socket.on('note-update-title', function(data:{note_id:number, title:string}){
+SOCKET.on('note-update-title', function(data:{note_id:number, title:string}){
     update_note_title(data.note_id, data.title);
     const notetitle = document.getElementById('note-input') as HTMLTextAreaElement | undefined;
     if(notetitle)
         notetitle.value = data.title;
 });
-socket.on('note-update-body', function(data:{note_id:number, body:string}){
+SOCKET.on('note-update-body', function(data:{note_id:number, body:string}){
     update_note_body(data.note_id, data.body);
     if(CURRENT_NOTE_ID != data.note_id)
         return;
@@ -77,7 +77,7 @@ function show_note_text(id:number, note:Note){
     title.spellcheck = false;
     title.addEventListener('input', function(){
         update_note_title(id, title.value);
-        socket.emit('note-update-title', {note_id:id, title:title.value});
+        SOCKET.emit('note-update-title', {note_id:id, title:title.value});
     });
     const noteta = document.createElement('textarea');
     noteta.id = 'note';
@@ -91,7 +91,7 @@ function show_note_text(id:number, note:Note){
             if(note_generation > generation)
                 return;
             update_note_body(id, text);
-            socket.emit('note-update-body', {note_id:id, body:text});
+            SOCKET.emit('note-update-body', {note_id:id, body:text});
         }, 500, text, ++note_generation);
     });
     right.appendChild(title);
@@ -137,10 +137,10 @@ function remove_note_option(select:HTMLSelectElement, id:number){
     }
     NOTE_ID_TO_OPTION.delete(id);
 }
-socket.on('note-delete', function(note_id:number){
+SOCKET.on('note-delete', function(note_id:number){
     delete_note_by_id(note_id);
 });
-socket.on('notes-initialize', function(notes:Array<{id:number, flags:NOTEFLAGS, title:string, body:string}>){
+SOCKET.on('notes-initialize', function(notes:Array<{id:number, flags:NOTEFLAGS, title:string, body:string}>){
     NOTES.clear();
     NOTE_ID_TO_OPTION.clear();
 
@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     new_note_button.addEventListener('click', function(){
         let id: number;
-        socket.emit('new-note-request', function(new_id:number){
+        SOCKET.emit('new-note-request', function(new_id:number){
             id = new_id;
             add_note(id, {title:"Untitled Note", body:"", flags:0});
             show_note_by_id(id);
@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function(){
             const delete_checkbox = document.getElementById('hover-delete')! as HTMLInputElement;
             const should_delete = delete_checkbox.checked;
             if(should_delete)
-                socket.emit('delete-note-request', CURRENT_NOTE_ID);
+                SOCKET.emit('delete-note-request', CURRENT_NOTE_ID);
         });
     });
 });

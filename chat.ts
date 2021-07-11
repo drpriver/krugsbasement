@@ -78,13 +78,13 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>){
     }
 }
 
-socket.on('chat-msg', function(msgs:Array<ChatMsg>){
+SOCKET.on('chat-msg', function(msgs:Array<ChatMsg>){
     const log = document.getElementById('chat-history')!;
     add_chat_msgs(log, msgs);
     log.scrollTo({behavior:'smooth', top:log.scrollHeight});
 });
 
-socket.on('chat-create', function(msgs:Array<ChatMsg>){
+SOCKET.on('chat-create', function(msgs:Array<ChatMsg>){
     const log = document.getElementById('chat-history')!;
     add_chat_msgs(log, msgs);
     log.scrollTop = log.scrollHeight;
@@ -94,7 +94,7 @@ function clear_chat(){
     const log = document.getElementById('chat-history')!;
     log.innerHTML = '';
 }
-socket.on('chat-clear', function(){
+SOCKET.on('chat-clear', function(){
     clear_chat();
 });
 
@@ -169,7 +169,7 @@ function add_macro_button(name:string, group:string, macro_index:number){
         if(!macro)
             return;
         let text = macro.body;
-        socket.emit('chat-input', {chatname:chatname, text:text});
+        SOCKET.emit('chat-input', {chatname:chatname, text:text});
     });
     // const macros = document.getElementById('macros')!;
     let macrogroup = MACROGROUPS.get(group);
@@ -674,7 +674,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 if(maybe_handle_command(value)){
                 }
                 else {
-                    socket.emit('chat-input', {chatname:chatname, text:value});
+                    SOCKET.emit('chat-input', {chatname:chatname, text:value});
                 }
                 if(!(history.length && value == history[history.length-1])){
                     history.push(value);
@@ -884,7 +884,7 @@ type RollTable = {
 function tables_button_dialog(){
     if(hover_is_open)
         return;
-    socket.emit('retrieve-roll-tables', function(rolltables:Array<RollTable>){
+    SOCKET.emit('retrieve-roll-tables', function(rolltables:Array<RollTable>){
         if(hover_is_open)
             return;
         hover_is_open = true;
@@ -1088,6 +1088,24 @@ function tables_button_dialog(){
                 add_row(entry.weight, entry.value, !!(entry.flags & ROLLTABLEFLAGS.IS_TABLE));
             }
             const d = elem('div', null, 'hover-button-container');
+            const export_table = elem_with_text('button', 'Export Table');
+            d.appendChild(export_table);
+            d.addEventListener('click', function(){
+                const name = tablename.value;
+                const entries = [];
+                for(let row of tbody.children){
+                    const w = row.children[1].children[0] as HTMLInputElement;
+                    const v = row.children[2].children[0] as HTMLInputElement;
+                    const is_table = (row.children[3].children[0] as HTMLInputElement).checked;
+                    entries.push({weight:+w.value, value:v.value, flags:is_table?ROLLTABLEFLAGS.IS_TABLE : ROLLTABLEFLAGS.NONE});
+                }
+                const out = {name:name, entries:entries};
+                const s = JSON.stringify(out);
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(new Blob([s], {type:'text/plain'}));
+                a.download = `${name}.json`
+                a.click();
+            });
             const addrowbutton = elem_with_text('button', 'Add Row');
             addrowbutton.addEventListener('click', function(){
                 add_row(1, "", false);
@@ -1124,7 +1142,7 @@ function tables_button_dialog(){
                 }
                 outtables.push({name:name, id:id, entries:entries});
             }
-            socket.emit('update-roll-tables',outtables);
+            SOCKET.emit('update-roll-tables',outtables);
         }
         document.body.appendChild(hoverpop);
     });
