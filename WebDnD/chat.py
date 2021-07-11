@@ -100,12 +100,16 @@ def create_chat(room:str) -> None:
     HISTORY[room] = Persister([], 'BadDb'+room+'/chat.json', load_func=load_chat).obj  # type: ignore
 
 def handle_input(room:str, data:str, user:str='anon') -> List[dict]:
+    apparent_user = user
     result = []
     for line in data.split('\n'):
         line = line.strip()
         if not line:
             continue
-        result.append({'user':user, 'data':line, 'type':Msg.PLAIN})
+        if line.startswith('/name'):
+            apparent_user = line[len('/name'):].strip()
+            continue
+        result.append({'user':apparent_user, 'data':line, 'type':Msg.PLAIN})
 
         try:
             dice = dice_from_string(line)

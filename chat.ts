@@ -254,7 +254,7 @@ function import_settings(e:MouseEvent, remove_hoverpop:()=>void){
         err_dialog(
             `
             <div style="max-width:600px; margin:auto; padding:2em;">
-            <h1>Unable to load settings</h1>
+            <h1>Unable to Load Settings</h1>
             <p> There was a problem loading the settings. Good luck!
             <br>
             <code>
@@ -912,6 +912,60 @@ function tables_button_dialog(){
         tabcontainer.appendChild(tabs_contents_el);
 
         const container = elem('div', null, 'hover-button-container');
+        const import_ = elem_with_text('button', 'Import Table');
+        import_.addEventListener('click', function(){
+            const inp = document.createElement('input');
+            inp.type = 'file';
+            function show_err(err:any){
+                err_dialog(
+                    `
+                    <div style="max-width:600px; margin:auto; padding2em;">
+                    <h1> Unable to Import Table</h1>
+                    <p>There was a problem loading the table. Oh well.</p>
+                    <br>
+                    <code>
+                    ${err}
+                    </code>
+                    </div>
+                    `);
+            }
+            function handlefiles(){
+                const files = inp.files;
+                if(!files)
+                    return;
+                if(!files.length)
+                    return;
+                const file = files[0];
+                const fr = new FileReader();
+                fr.addEventListener('load', function(){
+                    try {
+                        if(!fr.result)
+                            return;
+                        const new_table = JSON.parse(fr.result as string);
+                        // look before you leap
+                        if(new_table.name && typeof new_table.name !== 'string'){
+                        show_err('Non string table name.');
+                            return;
+                        }
+                        if(new_table.entries){
+                            // TODO: validate macros
+                        }
+
+                        if(new_table.entries){
+                            new_table.id = -1;
+                            add_table(new_table);
+                        }
+                    }
+                    catch(err) {
+                        show_err(err);
+                        return;
+                    }
+                });
+                fr.readAsText(file);
+            }
+            inp.addEventListener('change', handlefiles, false);
+            inp.click();
+        });
         const ok = elem_with_text('button', 'Ok');
         ok.addEventListener('click', function(){
             submit_tables();
@@ -923,6 +977,7 @@ function tables_button_dialog(){
             remove_hoverpop();
         });
         cancel.id = 'hoverpop-cancel';
+        container.appendChild(import_);
         container.appendChild(ok);
         container.appendChild(cancel);
         hoverpop.appendChild(container);
