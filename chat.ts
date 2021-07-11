@@ -29,7 +29,16 @@ type ChatMsg = {
     data: string | RollMsg;
 }
 
-let chatname = localStorage.getItem('chatname');
+const THISPAGE = window.location.pathname;
+
+let chatname = localStorage.getItem(`${THISPAGE}/chatname`);
+// This is for backwards compatibility. Remove this code path in the future
+// once things have been successfully saved.
+if(!chatname){
+    chatname = localStorage.getItem('chatname');
+    if(chatname)
+        localStorage.setItem(`${THISPAGE}/chatname`, chatname);
+}
 if(!chatname)
     chatname = "anon";
 function setchatname(name:string){
@@ -38,7 +47,7 @@ function setchatname(name:string){
     if(!name)
         name = 'anon';
     chatname = name;
-    localStorage.setItem('chatname', name);
+    localStorage.setItem(`${THISPAGE}/chatname`, name);
 }
 
 function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>){
@@ -100,7 +109,14 @@ type Macro = {
     body: string;
 };
 const MACROS: Array<Macro> = (function(){
-    const macros_string = localStorage.getItem('MACROS');
+    let macros_string = localStorage.getItem(`${THISPAGE}/MACROS`);
+    if(!macros_string){
+        // for backwards compat with unnamespaced macro storage.
+        // Delete this in a few weeks when we've all played.
+        macros_string = localStorage.getItem('MACROS');
+        if(macros_string)
+            localStorage.setItem(`${THISPAGE}/MACROS`, macros_string);
+    }
     if(!macros_string)
         return []
     const macros = JSON.parse(macros_string);
@@ -135,13 +151,13 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 function add_macro(m:Macro){
     MACROS.push(m);
-    localStorage.setItem('MACROS', JSON.stringify(MACROS));
+    localStorage.setItem(`${THISPAGE}/MACROS`, JSON.stringify(MACROS));
 }
 function add_macros(macros:Array<Macro>){
     for(let m of macros){
         MACROS.push(m);
     }
-    localStorage.setItem('MACROS', JSON.stringify(MACROS));
+    localStorage.setItem(`${THISPAGE}/MACROS`, JSON.stringify(MACROS));
 }
 
 function add_macro_button(name:string, group:string, macro_index:number){
