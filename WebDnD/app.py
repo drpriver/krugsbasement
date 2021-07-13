@@ -253,6 +253,8 @@ def app_state(campaign:str='/') -> str:
             'chat':chat.get_history(query),
             'canvas': canvas.get_state(query),
             'app':{'session_id':session_id},
+            'notes':notes.get_notes_for_room(query),
+            'tables': chat.get_roll_tables(query),
             }
         if 'which' in args:
             try:
