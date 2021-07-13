@@ -68,7 +68,6 @@ def join(room:str) -> None:
 @socketio.on('post-join')
 def post_join():
     room = get_room(request)
-    emit('canvas-clear')
     emit('chat-clear')
     emit('chat-create', chat.get_history(room))
     emit('canvas-initialize-maps', canvas.get_state(room))
