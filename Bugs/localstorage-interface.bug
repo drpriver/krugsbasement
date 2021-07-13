@@ -1,0 +1,3 @@
+I've just got a bunch of random calls to localStorage all over the
+place. I should standardize them to go through a shared set of
+functions in order to avoid bugs.

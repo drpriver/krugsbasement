@@ -365,7 +365,7 @@ const STATUSFLAG_NAMES = [
     'Restrained',
     'Stunned',
 ];
-const STATUSICONSIZE = 16;
+const STATUSICONSIZE = 24;
 const STATUSICONS = (function(){
     const result = [];
     for(let i = 0; i < STATUSFLAG_NAMES.length; i++){
@@ -1186,8 +1186,10 @@ function new_map_view(map_id:number): DungeonMapView{
     };
     return view;
 }
-function change_active_map_view(idx: number, from_select:boolean){
+function change_active_map_view(idx: number, from_select:boolean, store:boolean){
     active_map_view_index = idx;
+    if(store)
+        localStorage.setItem(`${THISPAGE}/active_map_view_index`, ""+idx);
     request_render();
     if(from_select)
         return;
@@ -1210,7 +1212,7 @@ document.addEventListener('DOMContentLoaded', function(){
 function get_active_view(): DungeonMapView{
     if(!dungeon_map_views.length){
         dungeon_map_views.push(new_map_view(0));
-        change_active_map_view(0, false);
+        change_active_map_view(0, false, false);
     }
     return dungeon_map_views[active_map_view_index];
 }
@@ -1248,7 +1250,7 @@ function change_map(map_id:number, from_select:boolean){
     for(let i = 0; i < dungeon_map_views.length; ++i){
         const mv = dungeon_map_views[i];
         if(mv.map.map_id == map_id){
-            change_active_map_view(i, from_select);
+            change_active_map_view(i, from_select, true);
             break;
         }
     }
@@ -1266,7 +1268,7 @@ SOCKET.on('canvas-create-map', function(map_id:number){
     if(MAPS.has(map_id))
         return;
     dungeon_map_views.push(new_map_view(map_id));
-    change_active_map_view(dungeon_map_views.length-1, false);
+    change_active_map_view(dungeon_map_views.length-1, false, true);
 });
 function rename_map(map:DungeonMap, name:string){
     map.map_name = name;
@@ -2080,18 +2082,6 @@ function clear_canvas(map:DungeonMap):void{
     }
     request_render();
 }
-SOCKET.on('canvas-clear', function():void{
-    for(let m of MAPS.values())
-        clear_canvas(m);
-    MAPS.clear()
-    dungeon_map_views.length = 0;
-    active_map_view_index = 0;
-    const select = document.getElementById('current-map-name') as HTMLSelectElement;
-    while(select.options.length){
-        select.remove(0);
-    }
-    MapOptionElements.clear();
-});
 
 enum UNDO_EVENT_TYPE {
     CREATE = 0,
@@ -2593,7 +2583,7 @@ function delete_map(map_id:number){
     select.selectedIndex = prev_idx;
     for(let i = 0; i < dungeon_map_views.length; ++i){
         if(dungeon_map_views[i].map.map_id == new_active_map_id){
-            change_active_map_view(i, true);
+            change_active_map_view(i, true, true);
             break;
         }
     }
@@ -2602,6 +2592,20 @@ function delete_map(map_id:number){
 // cutnpaste from below. TODO: factor these.
 
 SOCKET.on('canvas-initialize-maps', function(msgs:Array<{map_id:number; map_name:string; objects:Array<StrippedObj>; flags:MapFlags; grid_type:GRIDTYPE}>){
+    // Clear
+    {
+        for(let m of MAPS.values())
+            clear_canvas(m);
+        MAPS.clear()
+        dungeon_map_views = []
+        active_map_view_index = 0;
+        const select = document.getElementById('current-map-name') as HTMLSelectElement;
+        while(select.options.length){
+            select.remove(0);
+        }
+        MapOptionElements.clear();
+    }
+
     for(let msg of msgs){
         const map_id = msg.map_id;
         if(msg.flags & MapFlags.DELETED){
@@ -2625,6 +2629,12 @@ SOCKET.on('canvas-initialize-maps', function(msgs:Array<{map_id:number; map_name
                 add_canv_obj(map, obj);
             }
         }
+    }
+    const old_idx_s = localStorage.getItem(`${THISPAGE}/active_map_view_index`);
+    if(old_idx_s){
+        let old_idx = +old_idx_s;
+        if(old_idx < dungeon_map_views.length && old_idx >= 0)
+            change_active_map_view(old_idx, false, false);
     }
     request_render();
 });
@@ -3470,8 +3480,52 @@ function launch_edit_dialog(view:DungeonMapView):void{
             return;
         case CANVASTYPE.FILLED_RECT:
             return;
-        case CANVASTYPE.IMAGE:
-            return;
+        case CANVASTYPE.IMAGE:{
+            const obj = obj_ as ImageObj;
+            const html = `
+                <h2>Edit Image</h2>
+                <table class="input-container">
+                    <tr>
+                        <td><label for="width">Width:</label>
+                        <input type="number" name="width" id="hover-width" min="0" class="numeric-input" value="${obj.width}">
+                        <td><label for="height">Height:</label>
+                        <input type="number" name="height" id="hover-height" min="0" class="numeric-input" value="${obj.height}">
+                        <td><label for="hover-checkbox">Round to Grid</label>
+                        <input name="round" type="checkbox" id="hover-checkbox" checked>
+                    </tr>
+                    <tr>
+                        <td colspan="3"><label for="url">URL:</label>
+                        <input type="url" name="url" id="hover-url" value="${obj.url}">
+                    </tr>
+                </table>
+            `;
+            make_ok_dialog(html, function(hoverpop){
+                const text = (document.getElementById('hover-url') as HTMLInputElement).value;
+                if(!text || !text.trim()){
+                    return;
+                }
+                let width = +(document.getElementById('hover-width') as HTMLInputElement).value;
+                let height = +(document.getElementById('hover-height') as HTMLInputElement).value;
+                if(!width)
+                    width = 0;
+                if(!height)
+                    height = 0;
+                const round = (document.getElementById('hover-checkbox') as HTMLInputElement).checked;
+                if(round){
+                    width = snap_to_grid(width);
+                    height = snap_to_grid(height);
+                }
+                const before = strip_obj(obj);
+                obj.width = width;
+                obj.height = height;
+                obj.url = text;
+                const after = strip_obj(obj);
+                delay_load_obj_image(obj, obj.width, obj.height, obj.width?obj.width:64, obj.height?obj.height:64);
+                note_updates_for_undo(view.map,[before], [after]);
+                publish_obj_updates(view.map.map_id, [after]);
+                request_render();
+            });
+        }return;
         case CANVASTYPE.TEXT:{
             const obj = obj_ as TextObj;
             const html = `

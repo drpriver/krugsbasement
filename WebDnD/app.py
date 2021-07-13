@@ -68,7 +68,6 @@ def join(room:str) -> None:
 @socketio.on('post-join')
 def post_join():
     room = get_room(request)
-    emit('canvas-clear')
     emit('chat-clear')
     emit('chat-create', chat.get_history(room))
     emit('canvas-initialize-maps', canvas.get_state(room))
@@ -253,6 +252,8 @@ def app_state(campaign:str='/') -> str:
             'chat':chat.get_history(query),
             'canvas': canvas.get_state(query),
             'app':{'session_id':session_id},
+            'notes':notes.get_notes_for_room(query),
+            'tables': chat.get_roll_tables(query),
             }
         if 'which' in args:
             try:
