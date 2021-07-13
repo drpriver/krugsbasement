@@ -365,7 +365,7 @@ const STATUSFLAG_NAMES = [
     'Restrained',
     'Stunned',
 ];
-const STATUSICONSIZE = 16;
+const STATUSICONSIZE = 24;
 const STATUSICONS = (function(){
     const result = [];
     for(let i = 0; i < STATUSFLAG_NAMES.length; i++){
