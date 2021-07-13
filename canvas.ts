@@ -3470,8 +3470,52 @@ function launch_edit_dialog(view:DungeonMapView):void{
             return;
         case CANVASTYPE.FILLED_RECT:
             return;
-        case CANVASTYPE.IMAGE:
-            return;
+        case CANVASTYPE.IMAGE:{
+            const obj = obj_ as ImageObj;
+            const html = `
+                <h2>Edit Image</h2>
+                <table class="input-container">
+                    <tr>
+                        <td><label for="width">Width:</label>
+                        <input type="number" name="width" id="hover-width" min="0" class="numeric-input" value="${obj.width}">
+                        <td><label for="height">Height:</label>
+                        <input type="number" name="height" id="hover-height" min="0" class="numeric-input" value="${obj.height}">
+                        <td><label for="hover-checkbox">Round to Grid</label>
+                        <input name="round" type="checkbox" id="hover-checkbox" checked>
+                    </tr>
+                    <tr>
+                        <td colspan="3"><label for="url">URL:</label>
+                        <input type="url" name="url" id="hover-url" value="${obj.url}">
+                    </tr>
+                </table>
+            `;
+            make_ok_dialog(html, function(hoverpop){
+                const text = (document.getElementById('hover-url') as HTMLInputElement).value;
+                if(!text || !text.trim()){
+                    return;
+                }
+                let width = +(document.getElementById('hover-width') as HTMLInputElement).value;
+                let height = +(document.getElementById('hover-height') as HTMLInputElement).value;
+                if(!width)
+                    width = 0;
+                if(!height)
+                    height = 0;
+                const round = (document.getElementById('hover-checkbox') as HTMLInputElement).checked;
+                if(round){
+                    width = snap_to_grid(width);
+                    height = snap_to_grid(height);
+                }
+                const before = strip_obj(obj);
+                obj.width = width;
+                obj.height = height;
+                obj.url = text;
+                const after = strip_obj(obj);
+                delay_load_obj_image(obj, obj.width, obj.height, obj.width?obj.width:64, obj.height?obj.height:64);
+                note_updates_for_undo(view.map,[before], [after]);
+                publish_obj_updates(view.map.map_id, [after]);
+                request_render();
+            });
+        }return;
         case CANVASTYPE.TEXT:{
             const obj = obj_ as TextObj;
             const html = `
