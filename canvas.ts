@@ -4235,18 +4235,27 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(is_selected){
                     ctx.beginPath();
                     ctx.fillStyle = SELECTED_COLOR;
-                    ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x+4, 0, 2*Math.PI);
+                    if(radius_x == radius_y)
+                        ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x+4, 0, 2*Math.PI);
+                    else
+                        ctx.ellipse(obj.base_x+radius_x, obj.base_y+radius_y, radius_x+4, radius_y+4, 0, 0, 2*Math.PI);
                     ctx.fill();
                 }
                 ctx.beginPath();
                 ctx.fillStyle = '#000';
-                ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x, 0, 2*Math.PI);
+                if(radius_x == radius_y)
+                    ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x, 0, 2*Math.PI);
+                else
+                    ctx.ellipse(obj.base_x+radius_x, obj.base_y+radius_y, radius_x, radius_y, 0, 0, 2*Math.PI);
                 ctx.fill();
                 ctx.beginPath();
                 ctx.fillStyle = obj.color;
-                ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x-2, 0, 2*Math.PI);
+                if(radius_x == radius_y)
+                    ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x-2, 0, 2*Math.PI);
+                else
+                    ctx.ellipse(obj.base_x+radius_x, obj.base_y+radius_y, radius_x-2, radius_y-2, 0, 0, 2*Math.PI);
                 ctx.fill();
-                ctx.font = '18px sans-serif';
+                ctx.font = "" + ((18 * obj.width)|0) + 'px sans-serif';
                 ctx.textBaseline = 'middle';
                 ctx.textAlign = "center";
                 ctx.fillStyle = '#000';
