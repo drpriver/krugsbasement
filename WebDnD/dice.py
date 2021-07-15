@@ -369,6 +369,7 @@ def _group(tokens:List[Union[str, Value, List[Any]]]) -> Value:
 
 def group(tokens:List[Union[str, Value, List[Any]]]) -> Value:
     result = _group(tokens)
+    return result
     if result.isgroup:
         result = cast(Group, result)
         result = simplify(result)
