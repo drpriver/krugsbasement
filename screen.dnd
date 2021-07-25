@@ -391,6 +391,7 @@ David20::title @hide
     display: flex;
     flex-direction: column;
     border-left: 1px solid black;
+    overflow-wrap: break-word;
   }
   #chat-history {
     overflow-y: scroll;
