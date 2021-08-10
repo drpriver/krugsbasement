@@ -43,5 +43,12 @@ shrink-tokens:
 ship-it: dist.zip
 	scp dist.zip david@droplet:/home/david
 	ssh david@droplet "make backup && rm -rf dist && unzip dist && make restore && make token-list"
+.PHONY: backup
+backup:
+	ssh david@droplet "make backup"
+	-mv BadDb.tar.gz BadDb.tar.gz.bak
+	scp "david@droplet:/home/david/BadDb.tar.gz" .
+	rm -rf BadDb
+	tar xzf BadDb.tar.gz
 tags: *.ts Scripts/tag_ts.py
 	python3 -m Scripts.tag_ts
