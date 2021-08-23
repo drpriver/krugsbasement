@@ -700,7 +700,7 @@ David20::title @hide
   }
 
   /*endcss*/
-::js @noinline
+::script @noinline
   https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js
-::js
+::script
   combined.js
