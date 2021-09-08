@@ -1,3 +1,34 @@
+enum GRIDSCALE {
+    FIVE = "5",
+    TEN = "10",
+};
+let gridscale = GRIDSCALE.TEN;
+function change_gridscale(newscale:GRIDSCALE){
+    gridscale = newscale;
+    switch(gridscale){
+        case GRIDSCALE.FIVE:
+            visually_set_snapmode(SNAPMODE.HALF);
+            break;
+        case GRIDSCALE.TEN:
+            visually_set_snapmode(SNAPMODE.GRID);
+            break;
+    }
+    request_render();
+}
+document.addEventListener('DOMContentLoaded', function(){
+    const grid10 = document.getElementById('grid-10') as HTMLInputElement;
+    grid10.addEventListener('change', function(){
+        change_gridscale(grid10.value as GRIDSCALE);
+    });
+    if(grid10.checked)
+        gridscale = GRIDSCALE.TEN;
+    const grid5 = document.getElementById('grid-5') as HTMLInputElement;
+    grid5.addEventListener('change', function(){
+        change_gridscale(grid5.value as GRIDSCALE);
+    });
+    if(grid5.checked)
+        gridscale = GRIDSCALE.FIVE;
+});
 interface Bbox {
     // These are relative to some base_x, base_y.
     x0: number;
@@ -1040,15 +1071,17 @@ let current_door = DOORTYPE.DOOR;
 enum SNAPMODE {
     GRID = "GRID",
     HALF = "HALF",
+    QUARTER = "QUARTER",
     FREE = "FREE",
 }
 let snapmode: SNAPMODE = SNAPMODE.GRID;
-function change_snapmode(mode:SNAPMODE){
+function invisibly_change_snapmode(mode:SNAPMODE){
     snapmode = mode;
 }
 function visually_set_snapmode(mode:SNAPMODE){
     const snap_grid = document.getElementById('grid-snap-grid') as HTMLInputElement;
     const snap_half = document.getElementById('grid-snap-half') as HTMLInputElement;
+    const snap_quarter = document.getElementById('grid-snap-quarter') as HTMLInputElement;
     const snap_free = document.getElementById('grid-snap-free') as HTMLInputElement;
     switch(mode){
         case SNAPMODE.GRID:
@@ -1056,6 +1089,9 @@ function visually_set_snapmode(mode:SNAPMODE){
             break;
         case SNAPMODE.HALF:
             snap_half.click();
+            break;
+        case SNAPMODE.QUARTER:
+            snap_quarter.click();
             break;
         case SNAPMODE.FREE:
             snap_free.click();
@@ -1065,19 +1101,25 @@ function visually_set_snapmode(mode:SNAPMODE){
 document.addEventListener('DOMContentLoaded', function(){
     const snap_grid = document.getElementById('grid-snap-grid') as HTMLInputElement;
     snap_grid.addEventListener('change', function(){
-        change_snapmode(snap_grid.value as SNAPMODE);
+        invisibly_change_snapmode(snap_grid.value as SNAPMODE);
     });
     if(snap_grid.checked)
         snapmode = SNAPMODE.GRID;
     const snap_half = document.getElementById('grid-snap-half') as HTMLInputElement;
     snap_half.addEventListener('change', function(){
-        change_snapmode(snap_half.value as SNAPMODE);
+        invisibly_change_snapmode(snap_half.value as SNAPMODE);
     });
     if(snap_half.checked)
         snapmode = SNAPMODE.HALF;
+    const snap_quarter = document.getElementById('grid-snap-quarter') as HTMLInputElement;
+    snap_quarter.addEventListener('change', function(){
+        invisibly_change_snapmode(snap_quarter.value as SNAPMODE);
+    });
+    if(snap_quarter.checked)
+        snapmode = SNAPMODE.QUARTER;
     const snap_free = document.getElementById('grid-snap-free') as HTMLInputElement;
     snap_free.addEventListener('change', function(){
-        change_snapmode(snap_free.value as SNAPMODE);
+        invisibly_change_snapmode(snap_free.value as SNAPMODE);
     });
     if(snap_free.checked)
         snapmode = SNAPMODE.FREE;
@@ -1510,6 +1552,19 @@ function snap_to_half_grid(x:number):number{
     }
     return x;
 }
+
+function snap_to_quarter_grid(x:number):number{
+    const SNAP = REFERENCE_WIDTH/4;
+    x = Math.round(x);
+    const remainder = x & (SNAP-1);
+    if(remainder < (SNAP>>1)){
+        x -= remainder;
+    }
+    else {
+        x += SNAP - remainder;
+    }
+    return x;
+}
 function snap_identity(x:number):number{
     return x;
 }
@@ -1521,6 +1576,8 @@ function get_snap_func():(x:number)=>number{
             return snap_to_half_grid;
         case SNAPMODE.FREE:
             return snap_identity;
+        case SNAPMODE.QUARTER:
+            return snap_to_quarter_grid;
     }
 }
 
@@ -1534,6 +1591,11 @@ function snap_to_half_grid_center(x:number):number{
     x = x - (x & (REFERENCE_WIDTH/2-1)) + REFERENCE_WIDTH/4;
     return x;
 }
+function snap_to_quarter_grid_center(x:number):number{
+    x = Math.round(x);
+    x = x - (x & (REFERENCE_WIDTH/4-1)) + REFERENCE_WIDTH/8;
+    return x;
+}
 
 function get_snap_center_func():(_:number)=>number{
     switch(snapmode){
@@ -1541,6 +1603,34 @@ function get_snap_center_func():(_:number)=>number{
             return snap_to_grid_center;
         case SNAPMODE.HALF:
             return snap_to_half_grid_center;
+        case SNAPMODE.QUARTER:
+            return snap_to_quarter_grid_center;
+        case SNAPMODE.FREE:
+            return snap_identity;
+    }
+}
+
+function snap_to_grid_tl(x:number):number{
+    x |= 0;
+    return x - (x & (REFERENCE_WIDTH-1));
+}
+function snap_to_half_tl(x:number):number{
+    x |= 0;
+    return x - (x & (REFERENCE_WIDTH/2-1));
+}
+function snap_to_quarter_tl(x:number):number{
+    x |= 0;
+    return x - (x & (REFERENCE_WIDTH/4-1));
+}
+
+function get_snap_tl_func():(_:number)=>number{
+    switch(snapmode){
+        case SNAPMODE.GRID:
+            return snap_to_grid_tl;
+        case SNAPMODE.HALF:
+            return snap_to_half_tl;
+        case SNAPMODE.QUARTER:
+            return snap_to_quarter_tl;
         case SNAPMODE.FREE:
             return snap_identity;
     }
@@ -1603,14 +1693,9 @@ function calc_measure_length(map:DungeonMap, x0:number, y0:number, x1:number, y1
 }
 
 function make_gridline(id:number, base_x:number, base_y:number, color:string):GridLine{
-    if(snapmode == SNAPMODE.HALF){
-        base_x = snap_to_half_grid(base_x);
-        base_y = snap_to_half_grid(base_y);
-    }
-    else{
-        base_x = snap_to_grid(base_x);
-        base_y = snap_to_grid(base_y);
-    }
+    let snap = get_snap_func();
+    base_x = snap(base_x);
+    base_y = snap(base_y);
     const obj: GridLine =  {
         type: CANVASTYPE.GRID_LINE,
         id: id,
@@ -1633,31 +1718,46 @@ function add_gridline_point(obj:GridLine, x:number, y:number):void{
     const last_x = points.length? points[points.length-2]+obj.base_x : obj.base_x;
     const last_y = points.length? points[points.length-1]+obj.base_y : obj.base_x;
     const dist = Math.abs(last_x - x) + Math.abs(last_y - y);
-    if(snapmode == SNAPMODE.HALF){
-        if(dist < 30)
-            return;
-        if(dist < 64){
-            let xrem = Math.round(x) & ((REFERENCE_WIDTH>>1)-1);
-            let yrem = Math.round(y) & ((REFERENCE_WIDTH>>1)-1);
-            if((xrem > 8 && xrem < 24) || (yrem > 8 && yrem < 24)){
+    switch(snapmode){
+        case SNAPMODE.HALF:{
+            if(dist < 30)
                 return;
+            if(dist < 64){
+                let xrem = Math.round(x) & ((REFERENCE_WIDTH>>1)-1);
+                let yrem = Math.round(y) & ((REFERENCE_WIDTH>>1)-1);
+                if((xrem > 8 && xrem < 24) || (yrem > 8 && yrem < 24)){
+                    return;
+                }
             }
-        }
-        x = snap_to_half_grid(x);
-        y = snap_to_half_grid(y);
-    }
-    else {
-        if(dist < 60)
-            return;
-        if(dist < 128){
-            let xrem = Math.round(x) & (REFERENCE_WIDTH-1);
-            let yrem = Math.round(y) & (REFERENCE_WIDTH-1);
-            if((xrem > 16 && xrem < 48) || (yrem > 16 && yrem < 48)){
+            x = snap_to_half_grid(x);
+            y = snap_to_half_grid(y);
+        }break;
+        case SNAPMODE.QUARTER:{
+            if(dist < 15)
                 return;
+            if(dist < 32){
+                let xrem = Math.round(x) & ((REFERENCE_WIDTH>>2)-1);
+                let yrem = Math.round(y) & ((REFERENCE_WIDTH>>2)-1);
+                if((xrem > 4 && xrem < 12) || (yrem > 4 && yrem < 12)){
+                    return;
+                }
             }
+            x = snap_to_quarter_grid(x);
+            y = snap_to_quarter_grid(y);
+        }break;
+        default:{
+            if(dist < 60)
+                return;
+            if(dist < 128){
+                let xrem = Math.round(x) & (REFERENCE_WIDTH-1);
+                let yrem = Math.round(y) & (REFERENCE_WIDTH-1);
+                if((xrem > 16 && xrem < 48) || (yrem > 16 && yrem < 48)){
+                    return;
+                }
+            }
+            x = snap_to_grid(x);
+            y = snap_to_grid(y);
         }
-        x = snap_to_grid(x);
-        y = snap_to_grid(y);
     }
     x -= obj.base_x;
     y -= obj.base_y;
@@ -1903,9 +2003,7 @@ function add_text(map:DungeonMap, id:number, base_x:number, base_y:number, text:
     add_canv_obj(map, obj);
 }
 function make_ez_token(id:number, base_x:number, base_y:number, text:string, color:string, width:number, height:number):EzToken{
-    base_x = base_x - (base_x & (REFERENCE_WIDTH-1));
-    base_y = base_y - (base_y & (REFERENCE_WIDTH-1));
-    const obj: EzToken =  {
+    const obj: EzToken = {
         type: CANVASTYPE.EZ_TOKEN,
         id: id,
         base_x: Math.round(base_x),
@@ -1923,11 +2021,8 @@ function add_ez_token(map:DungeonMap, id:number, base_x:number, base_y:number, t
     const obj = make_ez_token(id, base_x, base_y, text, color, width, height);
     add_canv_obj(map, obj);
 }
-function make_img_token(id:number, base_x:number, base_y:number, url:string):ImgToken{
-    base_x = base_x - (base_x & (REFERENCE_WIDTH-1));
-    base_y = base_y - (base_y & (REFERENCE_WIDTH-1));
-
-    const obj:ImgToken =  {
+function make_img_token(id:number, base_x:number, base_y:number, url:string, width:number, height: number):ImgToken{
+    const obj:ImgToken = {
         type: CANVASTYPE.IMG_TOKEN,
         id: id,
         base_x: Math.round(base_x),
@@ -1935,15 +2030,15 @@ function make_img_token(id:number, base_x:number, base_y:number, url:string):Img
         flags: CANVASFLAG.NONE,
         url: url,
         img: undefined,
-        width: 1,
-        height: 1,
+        width: width,
+        height: height,
         statusflags: 0,
     };
     delay_load_obj_image(obj, REFERENCE_WIDTH, REFERENCE_WIDTH, 1, 1);
     return obj;
 }
-function add_img_token(map:DungeonMap, id:number, base_x:number, base_y:number, url:string):void{
-    const obj = make_img_token(id, base_x, base_y, url);
+function add_img_token(map:DungeonMap, id:number, base_x:number, base_y:number, url:string, width:number, height:number):void{
+    const obj = make_img_token(id, base_x, base_y, url, width, height);
     add_canv_obj(map, obj);
 }
 
@@ -2980,7 +3075,16 @@ function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number
     if(rigid){
         const ox = base_x + dx;
         const oy = base_y + dy;
-        let m = (snapmode == SNAPMODE.HALF || (view.map.grid_type & GRIDTYPE.HEX))? REFERENCE_WIDTH/2-1 : REFERENCE_WIDTH-1;
+        let m;
+        if(snapmode == SNAPMODE.HALF || (view.map.grid_type & GRIDTYPE.HEX)){
+            m = REFERENCE_WIDTH/2-1;
+        }
+        else if(snapmode == SNAPMODE.QUARTER){
+            m = REFERENCE_WIDTH/4-1;
+        }
+        else{
+            m = REFERENCE_WIDTH-1;
+            }
         const m1 = m + 1;
         const aligned_old_x = base_x - (base_x & m);
         const aligned_old_y = base_y - (base_y & m);
@@ -3891,8 +3995,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
     ctx.fillStyle = 'rgb(150, 150, 150)';
     if(map.grid_type & GRIDTYPE.NOGRID){
     }
-    else {
-        if(map.grid_type & GRIDTYPE.HEX){
+    else if(map.grid_type & GRIDTYPE.HEX){
             function draw_hex_grid(){
                 let top_left_hex_x = Math.ceil(camera_x / REFERENCE_WIDTH);
                 if(((camera_x) & (REFERENCE_WIDTH-1)) == 0){
@@ -3931,17 +4034,29 @@ function render(timestamp:DOMHighResTimeStamp):void{
             }
             draw_hex_grid();
         }
-        else{
-            let grid_base_x = camera_x & (REFERENCE_WIDTH-1);
-            let grid_base_y = camera_y & (REFERENCE_WIDTH-1);
-            let grid_max_x = width/SCALE;
-            let grid_max_y = height/SCALE;
-            for(let x = grid_base_x; x < grid_max_x; x+= REFERENCE_WIDTH){
-                ctx.fillRect(x, 0, 1/SCALE, height/SCALE);
-            }
-            for(let y = grid_base_y; y < grid_max_y; y+= REFERENCE_WIDTH){
-                ctx.fillRect(0, y, width/SCALE, 1/SCALE);
-            }
+    else if(gridscale == GRIDSCALE.FIVE){
+        const RW = REFERENCE_WIDTH/2;
+        let grid_base_x = camera_x & (RW-1);
+        let grid_base_y = camera_y & (RW-1);
+        let grid_max_x = width/SCALE;
+        let grid_max_y = height/SCALE;
+        for(let x = grid_base_x; x < grid_max_x; x+= RW){
+            ctx.fillRect(x, 0, 1/SCALE, height/SCALE);
+        }
+        for(let y = grid_base_y; y < grid_max_y; y+= RW){
+            ctx.fillRect(0, y, width/SCALE, 1/SCALE);
+        }
+    }
+    else{
+        let grid_base_x = camera_x & (REFERENCE_WIDTH-1);
+        let grid_base_y = camera_y & (REFERENCE_WIDTH-1);
+        let grid_max_x = width/SCALE;
+        let grid_max_y = height/SCALE;
+        for(let x = grid_base_x; x < grid_max_x; x+= REFERENCE_WIDTH){
+            ctx.fillRect(x, 0, 1/SCALE, height/SCALE);
+        }
+        for(let y = grid_base_y; y < grid_max_y; y+= REFERENCE_WIDTH){
+            ctx.fillRect(0, y, width/SCALE, 1/SCALE);
         }
     }
     ctx.translate(camera_x, camera_y);
@@ -5738,6 +5853,12 @@ SOCKET.on('token-paths', function(paths:Array<string>){
     token_paths = paths;
 });
 function maybe_move_selection_one_unit(view:DungeonMapView, dx:number, dy:number):boolean{
+    switch(snapmode){
+        case SNAPMODE.FREE: break;
+        case SNAPMODE.GRID: break;
+        case SNAPMODE.HALF: dx/=2; dy/=2; break;
+        case SNAPMODE.QUARTER: dx/=4; dy/=4; break;
+    }
     if(view.selected.size !== 1)
         return false;
     const s = view.selected.values().next().value;
@@ -6478,9 +6599,16 @@ document.addEventListener('DOMContentLoaded', function(){
                             width = 1;
                         if(!height)
                             height = 1;
+                        switch(snapmode){
+                            case SNAPMODE.FREE: break;
+                            case SNAPMODE.GRID: break;
+                            case SNAPMODE.HALF: width/=2; height/=2; break;
+                            case SNAPMODE.QUARTER: width/=4; height/=4; break;
+                        }
                         let id = get_new_id();
                         ez_token_color = (document.getElementById('hover-color') as HTMLInputElement).value;
-                        add_ez_token(view.map, id, x0, y0, text, ez_token_color, width, height);
+                        let snap = get_snap_tl_func();
+                        add_ez_token(view.map, id, snap(x0), snap(y0), text, ez_token_color, width, height);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                         request_render();
@@ -6524,7 +6652,9 @@ document.addEventListener('DOMContentLoaded', function(){
                             return;
                         }
                         let id = get_new_id();
-                        add_img_token(view.map, id, x0, y0, text);
+                        let snap = get_snap_tl_func();
+                        let w = gridscale == GRIDSCALE.TEN?1:0.5;
+                        add_img_token(view.map, id, snap(x0), snap(y0), text, w, w);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                         request_render();

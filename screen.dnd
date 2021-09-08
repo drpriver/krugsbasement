@@ -61,12 +61,20 @@ David20::title @hide
       ::raw
         <input type="color" id="color-picker" value="#000000"><span id="color-picker-dropdown" style="cursor:pointer;width:2em;text-align:center;">▼</span>
         <input type="color" id="color-picker2" value="#ffffff"><span id="color-picker2-dropdown" style="cursor:pointer;width:2em;text-align:center;">▼</span>
+    ::div.scale
+      ::raw
+        <input type="radio" id="grid-10" name="grid-scales" value="10" checked>
+        <label for="grid-10">10' Grid</label>
+        <input type="radio" id="grid-5" name="grid-scales" value="5">
+        <label for="grid-5">5' Grid</label>
     ::div.snaps
       ::raw
         <input type="radio" id="grid-snap-grid" name="snap-to-grid" value="GRID" checked>
         <label for="grid-snap-grid">Grid <b>Q</b></label>
         <input type="radio" id="grid-snap-half" name="snap-to-grid" value="HALF">
         <label for="grid-snap-half">Half <b>W</b></label>
+        <input type="radio" id="grid-snap-quarter" name="snap-to-grid" value="QUARTER">
+        <label for="grid-snap-quarter">Quart </label>
         <input type="radio" id="grid-snap-free" name="snap-to-grid" value="FREE">
         <label for="grid-snap-free">Free <b>E</b></label>
 ::div @id(palette)
@@ -348,7 +356,15 @@ David20::title @hide
   #stuff > div.snaps {
     text-align: center;
     padding: 4px;
+    height: auto;
+    margin: 4px;
   }
+  div.scale {
+    padding: 4px;
+    height: auto;
+    margin: 4px;
+  }
+
   #line-thickness {
     width: 4em;
     pointer-events: auto;
