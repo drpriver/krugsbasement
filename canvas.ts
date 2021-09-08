@@ -2961,8 +2961,19 @@ function obj_in_bbox(obj:CanvasObject, bbox:Bbox, selection_type:SELECTTYPE):boo
             };
             return bbox_overlaps(bbox, ftbbox);
         }
-        case CANVASTYPE.TERRAIN_TILE: // fall-through
         case CANVASTYPE.FILLED_TILE:{
+            if(!(selection_type & SELECTTYPE.BACKGROUND))
+                return false;
+            // kind of cheesy.
+            const ftbbox = {
+                x0: obj.base_x,
+                x1: obj.base_x + REFERENCE_WIDTH*obj.size,
+                y0: obj.base_y,
+                y1: obj.base_y + REFERENCE_WIDTH*obj.size,
+            };
+            return bbox_overlaps(bbox, ftbbox);
+        }
+        case CANVASTYPE.TERRAIN_TILE:{
             if(!(selection_type & SELECTTYPE.BACKGROUND))
                 return false;
             // kind of cheesy.
