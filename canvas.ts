@@ -1056,18 +1056,16 @@ function change_gridscale(newscale:GRIDSCALE){
     request_render();
 }
 document.addEventListener('DOMContentLoaded', function(){
-    const grid10 = document.getElementById('grid-10') as HTMLInputElement;
-    grid10.addEventListener('change', function(){
-        change_gridscale(grid10.value as GRIDSCALE);
-    });
-    if(grid10.checked)
-        gridscale = GRIDSCALE.TEN;
-    const grid5 = document.getElementById('grid-5') as HTMLInputElement;
-    grid5.addEventListener('change', function(){
-        change_gridscale(grid5.value as GRIDSCALE);
-    });
-    if(grid5.checked)
-        gridscale = GRIDSCALE.FIVE;
+    function do_it(id:string, scale:GRIDSCALE){
+        const grid10 = document.getElementById(id) as HTMLInputElement;
+        grid10.addEventListener('change', function(){
+            change_gridscale(grid10.value as GRIDSCALE);
+        });
+        if(grid10.checked)
+            gridscale = scale;
+    }
+    do_it('grid-10', GRIDSCALE.TEN);
+    do_it('grid-5', GRIDSCALE.FIVE);
 });
 
 enum SNAPMODE {
@@ -1101,30 +1099,18 @@ function visually_set_snapmode(mode:SNAPMODE){
     }
 }
 document.addEventListener('DOMContentLoaded', function(){
-    const snap_grid = document.getElementById('grid-snap-grid') as HTMLInputElement;
-    snap_grid.addEventListener('change', function(){
-        invisibly_change_snapmode(snap_grid.value as SNAPMODE);
-    });
-    if(snap_grid.checked)
-        snapmode = SNAPMODE.GRID;
-    const snap_half = document.getElementById('grid-snap-half') as HTMLInputElement;
-    snap_half.addEventListener('change', function(){
-        invisibly_change_snapmode(snap_half.value as SNAPMODE);
-    });
-    if(snap_half.checked)
-        snapmode = SNAPMODE.HALF;
-    const snap_quarter = document.getElementById('grid-snap-quarter') as HTMLInputElement;
-    snap_quarter.addEventListener('change', function(){
-        invisibly_change_snapmode(snap_quarter.value as SNAPMODE);
-    });
-    if(snap_quarter.checked)
-        snapmode = SNAPMODE.QUARTER;
-    const snap_free = document.getElementById('grid-snap-free') as HTMLInputElement;
-    snap_free.addEventListener('change', function(){
-        invisibly_change_snapmode(snap_free.value as SNAPMODE);
-    });
-    if(snap_free.checked)
-        snapmode = SNAPMODE.FREE;
+    function do_it(id:string, mode:SNAPMODE){
+        const snap = document.getElementById(id) as HTMLInputElement;
+        snap.addEventListener('change', function(){
+            invisibly_change_snapmode(snap.value as SNAPMODE);
+        });
+        if(snap.checked)
+            snapmode = mode;
+    }
+    do_it('grid-snap-grid',    SNAPMODE.GRID);
+    do_it('grid-snap-half',    SNAPMODE.HALF);
+    do_it('grid-snap-quarter', SNAPMODE.QUARTER);
+    do_it('grid-snap-free',    SNAPMODE.FREE);
 });
 
 // orientations
