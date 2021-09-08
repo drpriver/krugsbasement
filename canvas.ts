@@ -1,34 +1,3 @@
-enum GRIDSCALE {
-    FIVE = "5",
-    TEN = "10",
-};
-let gridscale = GRIDSCALE.TEN;
-function change_gridscale(newscale:GRIDSCALE){
-    gridscale = newscale;
-    switch(gridscale){
-        case GRIDSCALE.FIVE:
-            visually_set_snapmode(SNAPMODE.HALF);
-            break;
-        case GRIDSCALE.TEN:
-            visually_set_snapmode(SNAPMODE.GRID);
-            break;
-    }
-    request_render();
-}
-document.addEventListener('DOMContentLoaded', function(){
-    const grid10 = document.getElementById('grid-10') as HTMLInputElement;
-    grid10.addEventListener('change', function(){
-        change_gridscale(grid10.value as GRIDSCALE);
-    });
-    if(grid10.checked)
-        gridscale = GRIDSCALE.TEN;
-    const grid5 = document.getElementById('grid-5') as HTMLInputElement;
-    grid5.addEventListener('change', function(){
-        change_gridscale(grid5.value as GRIDSCALE);
-    });
-    if(grid5.checked)
-        gridscale = GRIDSCALE.FIVE;
-});
 interface Bbox {
     // These are relative to some base_x, base_y.
     x0: number;
@@ -1068,6 +1037,38 @@ const DOOR_TO_SHORT_NAMES = [
     'Hall',
 ];
 let current_door = DOORTYPE.DOOR;
+
+enum GRIDSCALE {
+    FIVE = "5",
+    TEN = "10",
+};
+let gridscale = GRIDSCALE.TEN;
+function change_gridscale(newscale:GRIDSCALE){
+    gridscale = newscale;
+    switch(gridscale){
+        case GRIDSCALE.FIVE:
+            visually_set_snapmode(SNAPMODE.HALF);
+            break;
+        case GRIDSCALE.TEN:
+            visually_set_snapmode(SNAPMODE.GRID);
+            break;
+    }
+    request_render();
+}
+document.addEventListener('DOMContentLoaded', function(){
+    const grid10 = document.getElementById('grid-10') as HTMLInputElement;
+    grid10.addEventListener('change', function(){
+        change_gridscale(grid10.value as GRIDSCALE);
+    });
+    if(grid10.checked)
+        gridscale = GRIDSCALE.TEN;
+    const grid5 = document.getElementById('grid-5') as HTMLInputElement;
+    grid5.addEventListener('change', function(){
+        change_gridscale(grid5.value as GRIDSCALE);
+    });
+    if(grid5.checked)
+        gridscale = GRIDSCALE.FIVE;
+});
 
 enum SNAPMODE {
     GRID = "GRID",
