@@ -3014,12 +3014,14 @@ function selection_is_rigid(view:DungeonMapView):boolean{
         if(obj.flags & CANVASFLAG.DELETED)
             continue;
         switch(obj.type){
+            // Idk, this is unclear.
             case CANVASTYPE.EZ_TOKEN:
             case CANVASTYPE.IMG_TOKEN:
-                return snapmode != SNAPMODE.FREE;
+            case CANVASTYPE.ELLIPSE:
             case CANVASTYPE.GRID_RECT:
             case CANVASTYPE.GRID_LINE:
             case CANVASTYPE.IMAGE:
+                return snapmode != SNAPMODE.FREE;
             case CANVASTYPE.DOOR:
             case CANVASTYPE.STAIRS:
             case CANVASTYPE.ICON_TILE:
