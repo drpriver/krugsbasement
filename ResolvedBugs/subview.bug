@@ -1,0 +1,2 @@
+
+I decided to not do this as a subview - instead I could solve the much simpler problem of just rendering the grid at 5' instead of at 10'.
