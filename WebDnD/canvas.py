@@ -215,7 +215,7 @@ validate(CT.DOOR, doortype=int, color=str, width=NUMBER, orientation=int, defaul
 validate(CT.STAIRS, width=NUMBER, height=NUMBER, rotation=int, defaults=dict(width=64, height=64))
 validate(CT.MEASURE, x1=NUMBER, y1=NUMBER, color=str)
 validate(CT.FIXTURE, width=NUMBER, height=NUMBER, ftype=int, defaults=dict(width=64, height=64))
-validate(CT.FILLED_TILE, color=str, defaults=dict(color='#555555'))
+validate(CT.FILLED_TILE, color=str, size=NUMBER, defaults=dict(color='#555555', size=1))
 validate(CT.TERRAIN_TILE, terrain_id=int, defaults=dict(terrain_id=0))
 validate(CT.ICON_TILE, terrainicon_id=int, defaults=dict(terrainicon_id=0))
 

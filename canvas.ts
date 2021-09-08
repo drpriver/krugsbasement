@@ -566,6 +566,7 @@ type FilledTile = {
     base_y: number;
     flags: CANVASFLAG;
     color: string;
+    size: number;
 };
 
 type StrippedFilledTile = FilledTile;
@@ -3257,7 +3258,7 @@ function strip_obj(obj:CanvasObject): StrippedObj{
             const stripped_obj: StrippedFilledTile = {
                 type: obj.type, id: obj.id, flags: obj.flags,
                 base_x: obj.base_x, base_y: obj.base_y,
-                color: obj.color,
+                color: obj.color, size: obj.size,
             };
             return stripped_obj;
         }break;
@@ -3944,11 +3945,12 @@ function render(timestamp:DOMHighResTimeStamp):void{
         }
         else {
             for(let obj of bgtiles){
+                const size = obj.size? obj.size: 1;
                 const rect_bbox = {
                     x0:obj.base_x,
                     y0:obj.base_y,
-                    x1:obj.base_x+REFERENCE_WIDTH,
-                    y1:obj.base_y+REFERENCE_WIDTH,
+                    x1:obj.base_x+REFERENCE_WIDTH*size,
+                    y1:obj.base_y+REFERENCE_WIDTH*size,
                 };
                 if(!bbox_overlaps(rect_bbox, canvas_bbox)){
                     continue;
@@ -3958,7 +3960,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.fillStyle = SELECTED_COLOR;
                 else
                     ctx.fillStyle = obj.color;
-                ctx.fillRect(obj.base_x, obj.base_y, REFERENCE_WIDTH, REFERENCE_WIDTH);
+                ctx.fillRect(obj.base_x, obj.base_y, REFERENCE_WIDTH*size, REFERENCE_WIDTH*size);
             }
             for(let obj of terraintiles){
                 const rect_bbox = {
@@ -6820,8 +6822,9 @@ document.addEventListener('DOMContentLoaded', function(){
                     [x, y] = snap_down_to_hex_grid(e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y);
                 }
                 else {
-                    x = snap_down_to_grid(e.offsetX/view.scale-view.camera_x);
-                    y = snap_down_to_grid(e.offsetY/view.scale-view.camera_y);
+                    let snap = get_snap_tl_func();
+                    x = snap(e.offsetX/view.scale-view.camera_x);
+                    y = snap(e.offsetY/view.scale-view.camera_y);
                 }
                 let id = get_new_id();
                 switch(current_tile_type){
@@ -6833,6 +6836,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             base_y: y,
                             flags: CANVASFLAG.NONE,
                             color: get_primary_color(),
+                            size: gridscale == GRIDSCALE.TEN?1:0.5,
                         };
                         add_canv_obj(view.map, filled);
                     }break;
