@@ -1,0 +1,1 @@
+JSON is very verbose (repeating the keys over and over again for identical objects). It'd be way more efficient to store everything as arrays.
