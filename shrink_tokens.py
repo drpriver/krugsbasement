@@ -15,6 +15,8 @@ def do_it(directory:str, size:int) -> None:
         bigger = max(img.size)
         head, tail = os.path.splitext(path)
         savepath = head + '.png'
+        if os.path.isfile(savepath):
+            continue
         if bigger > size:
             img.thumbnail((size, size))
             img.save(savepath)
