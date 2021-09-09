@@ -3869,6 +3869,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
         ctx.font = 12 + 'px sans-serif';
         ctx.textBaseline = 'bottom';
         ctx.textAlign = 'center';
+        // draw hex version of map
         if(map.grid_type & GRIDTYPE.HEX){
             const half = REFERENCE_WIDTH/2;
             const full = REFERENCE_WIDTH;
@@ -3882,9 +3883,9 @@ function render(timestamp:DOMHighResTimeStamp):void{
             p.closePath();
             for(let obj of bgtiles){
                 const rect_bbox = {
-                    x0:obj.base_x,
+                    x0:obj.base_x-9,
                     y0:obj.base_y,
-                    x1:obj.base_x+REFERENCE_WIDTH,
+                    x1:obj.base_x+REFERENCE_WIDTH+9,
                     y1:obj.base_y+REFERENCE_WIDTH,
                 };
                 if(!bbox_overlaps(rect_bbox, canvas_bbox)){
@@ -3909,9 +3910,9 @@ function render(timestamp:DOMHighResTimeStamp):void{
             }
             for(let obj of terraintiles){
                 const rect_bbox = {
-                    x0:obj.base_x,
+                    x0:obj.base_x-9,
                     y0:obj.base_y,
-                    x1:obj.base_x+REFERENCE_WIDTH,
+                    x1:obj.base_x+REFERENCE_WIDTH+9,
                     y1:obj.base_y+REFERENCE_WIDTH,
                 };
                 if(!bbox_overlaps(rect_bbox, canvas_bbox)){
@@ -3998,44 +3999,44 @@ function render(timestamp:DOMHighResTimeStamp):void{
     if(map.grid_type & GRIDTYPE.NOGRID){
     }
     else if(map.grid_type & GRIDTYPE.HEX){
-            function draw_hex_grid(){
-                let top_left_hex_x = Math.ceil(camera_x / REFERENCE_WIDTH);
-                if(((camera_x) & (REFERENCE_WIDTH-1)) == 0){
-                    top_left_hex_x++;
-                }
-                let grid_base_x = camera_x & (REFERENCE_WIDTH-1);
-                let grid_base_y = camera_y & (REFERENCE_WIDTH-1);
-                ctx.lineWidth = 1;
-                // ctx.strokeStyle = '#000000';
-                ctx.strokeStyle = '#888888';
-                grid_base_x -= REFERENCE_WIDTH;
-                const half = REFERENCE_WIDTH/2;
-                const full = REFERENCE_WIDTH;
-                const p = new Path2D();
-                p.moveTo(-9, -half);
-                let n_y = Math.ceil(height/SCALE/REFERENCE_WIDTH)+3;
-                for(let i = 0; i < n_y; i++){
-                    p.lineTo(-9, i*full-half);
-                    p.lineTo(+9, i*full);
-                    p.lineTo(-9+full, i*full);
-                    p.lineTo(+9, i*full);
-                }
-                ctx.save();
-                if(top_left_hex_x & 1)
-                    ctx.translate(grid_base_x-full, grid_base_y-full);
-                else
-                    ctx.translate(grid_base_x-full, grid_base_y-half);
-                let n_x = Math.ceil(width/SCALE/REFERENCE_WIDTH)+3;
-                for(let i = 0; i < n_x; i++){
-                    ctx.translate(full, -half);
-                    ctx.stroke(p);
-                    ctx.translate(full, +half);
-                    ctx.stroke(p);
-                }
-                ctx.restore();
+        function draw_hex_grid(){
+            let top_left_hex_x = Math.ceil(camera_x / REFERENCE_WIDTH);
+            if(((camera_x) & (REFERENCE_WIDTH-1)) == 0){
+                top_left_hex_x++;
             }
-            draw_hex_grid();
+            let grid_base_x = camera_x & (REFERENCE_WIDTH-1);
+            let grid_base_y = camera_y & (REFERENCE_WIDTH-1);
+            ctx.lineWidth = 1;
+            // ctx.strokeStyle = '#000000';
+            ctx.strokeStyle = '#888888';
+            grid_base_x -= REFERENCE_WIDTH;
+            const half = REFERENCE_WIDTH/2;
+            const full = REFERENCE_WIDTH;
+            const p = new Path2D();
+            p.moveTo(-9, -half);
+            let n_y = Math.ceil(height/SCALE/REFERENCE_WIDTH)+3;
+            for(let i = 0; i < n_y; i++){
+                p.lineTo(-9, i*full-half);
+                p.lineTo(+9, i*full);
+                p.lineTo(-9+full, i*full);
+                p.lineTo(+9, i*full);
+            }
+            ctx.save();
+            if(top_left_hex_x & 1)
+                ctx.translate(grid_base_x-full, grid_base_y-full);
+            else
+                ctx.translate(grid_base_x-full, grid_base_y-half);
+            let n_x = Math.ceil(width/SCALE/REFERENCE_WIDTH)+3;
+            for(let i = 0; i < n_x; i++){
+                ctx.translate(full, -half);
+                ctx.stroke(p);
+                ctx.translate(full, +half);
+                ctx.stroke(p);
+            }
+            ctx.restore();
         }
+        draw_hex_grid();
+    }
     else if(gridscale == GRIDSCALE.FIVE){
         const RW = REFERENCE_WIDTH/2;
         let grid_base_x = camera_x & (RW-1);
