@@ -1,6 +1,6 @@
 import io
 import shlex
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Union, Any, Tuple
 import random
 from .dice import dice_from_string, roll_dice
 from .persist import Persister
@@ -61,7 +61,7 @@ ROLLTABLES['/'] = Persister(ROLLTABLES['/'], 'BadDb/tables.json', dont_persist=T
 def get_roll_tables(room:str) -> list:
     if room in ROLLTABLES:
         return ROLLTABLES[room]
-    ROLLTABLES[room] = Persister([], 'BadDb'+room+'/tables.json').obj
+    ROLLTABLES[room] = Persister([], 'BadDb'+room+'/tables.json').obj # type: ignore
     return ROLLTABLES[room]
 
 def update_roll_tables(room:str, data:list) -> None:
@@ -182,13 +182,13 @@ def parse_and_choose(line:str, table=DOUBLEQUOTE_TABLE) -> str:
         raise Exception
     return random.choice(parts)
 
-def parse_and_roll_table(room:str, line:str) -> str:
+def parse_and_roll_table(room:str, line:str) -> Tuple[str, str]:
     line = line.strip()
     tables = get_roll_tables(room)
     mapping = {d['name'].lower(): d for d in tables}
     return parse_and_roll_table_inner(mapping, line, line, 0)
 
-def parse_and_roll_table_inner(mapping:dict, key:str, path:str, depth:int) -> (str, str):
+def parse_and_roll_table_inner(mapping:dict, key:str, path:str, depth:int) -> Tuple[str, str]:
     if depth > 10:
         raise Exception('Maximum table depth reached for table path: {}.'.format(path))
     table = mapping.get(key.lower())
