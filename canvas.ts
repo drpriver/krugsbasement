@@ -3811,6 +3811,11 @@ RUBBLEIMAGE.addEventListener('error', function(){
 if(RUBBLEIMAGE)
     RUBBLEIMAGE.src = '/imgs/rubble.png';
 const timings: Array<number> = [];
+// It's kind of janky, but so that hexmaps and staggered squares
+// are just two views of the same data, we stretch the resulting
+// image via these factors.
+const HEX_Y_FIX_INV = 74/82;
+const HEX_Y_FIX = 82/74;
 function render(timestamp:DOMHighResTimeStamp):void{
     const before = SHOW_FPS?performance.now():0;
     if(!ctx)
@@ -3847,6 +3852,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
         x1:-camera_x+width/scale,
         y1:-camera_y+height/scale,
     };
+    if(map.grid_type & GRIDTYPE.HEX){
+        canvas_bbox.y0 *= HEX_Y_FIX_INV;
+        canvas_bbox.y1 *= HEX_Y_FIX_INV;
+    }
     {
         const bgtiles: Array<FilledTile> = [];
         const terraintiles: Array<TerrainTile> = [];
@@ -3871,6 +3880,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
         ctx.textAlign = 'center';
         // draw hex version of map
         if(map.grid_type & GRIDTYPE.HEX){
+            ctx.scale(1, HEX_Y_FIX);
             const half = REFERENCE_WIDTH/2;
             const full = REFERENCE_WIDTH;
             const p = new Path2D();
@@ -4005,7 +4015,9 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 top_left_hex_x++;
             }
             let grid_base_x = camera_x & (REFERENCE_WIDTH-1);
-            let grid_base_y = camera_y & (REFERENCE_WIDTH-1);
+            let fixed = view.camera_y*HEX_Y_FIX_INV
+            let rounded = Math.round(fixed);
+            let grid_base_y = rounded & (REFERENCE_WIDTH-1);
             ctx.lineWidth = 1;
             // ctx.strokeStyle = '#000000';
             ctx.strokeStyle = '#888888';
@@ -4035,7 +4047,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
             }
             ctx.restore();
         }
+        ctx.save();
+        ctx.scale(1, HEX_Y_FIX);
         draw_hex_grid();
+        ctx.restore();
     }
     else if(gridscale == GRIDSCALE.FIVE){
         const RW = REFERENCE_WIDTH/2;
@@ -4063,6 +4078,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
         }
     }
     ctx.translate(camera_x, camera_y);
+    if(map.grid_type & GRIDTYPE.HEX)
+        ctx.scale(1, HEX_Y_FIX);
     let length = canvas_obj_array.length;
     function draw_status_icons(token_bbox: Bbox, statusflags: TOKENSTATUSFLAGS, scale:number){
         let sx = token_bbox.x0;
@@ -5886,6 +5903,20 @@ enum CONTEXTMENUWHENFLAGS {
     NO_SELECTION      = 1 << 2, // == 0
     ONE_SELECTED      = 1 << 3, // == 1
     ANY_SELECTED      = 1 << 4, // >= 1
+};
+function event_to_coord(e:MouseEvent, view:DungeonMapView):[number, number]{
+    const x = e.offsetX/view.scale - view.camera_x
+    const y = view.map.grid_type & GRIDTYPE.HEX?
+        HEX_Y_FIX_INV*(e.offsetY/view.scale - view.camera_y)
+        : e.offsetY/view.scale - view.camera_y;
+    return [x,y];
+}
+function event_to_coord_snapped(e:MouseEvent, view:DungeonMapView, snap:(x:number)=>number):[number, number]{
+    const x = e.offsetX/view.scale - view.camera_x
+    const y = view.map.grid_type & GRIDTYPE.HEX?
+        HEX_Y_FIX_INV*(e.offsetY/view.scale - view.camera_y)
+        : e.offsetY/view.scale - view.camera_y;
+    return [snap(x),snap(y)];
 }
 document.addEventListener('DOMContentLoaded', function(){
     canvas = document.getElementsByTagName('canvas')[0]!;
@@ -6092,8 +6123,7 @@ document.addEventListener('DOMContentLoaded', function(){
         let snap = get_snap_func();
         switch(current_tool){
             case TOOLTYPE.SELECT:{
-                let clicked_x = e.offsetX/view.scale - view.camera_x;
-                let clicked_y = e.offsetY/view.scale - view.camera_y;
+                let [clicked_x, clicked_y] = event_to_coord(e, view);
                 const fudged_x0 = clicked_x-10/view.scale;
                 const fudged_x1 = clicked_x+10/view.scale;
                 const fudged_y0 = clicked_y-10/view.scale;
@@ -6111,8 +6141,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         const diff = Math.abs(e.offsetX - rawclick_x) + Math.abs(e.offsetY - rawclick_y);
                         if(diff < 1)
                             return;
-                        let move_x = e.offsetX/view.scale - view.camera_x;
-                        let move_y = e.offsetY/view.scale - view.camera_y;
+                        let [move_x, move_y] = event_to_coord(e, view);
                         changed = true;
                         move_selected_objects(view, is_rigid, clicked_x, clicked_y, move_x - clicked_x, move_y - clicked_y);
                         clicked_x = move_x;
@@ -6141,8 +6170,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     function select(e:MouseEvent){
                         e.stopPropagation();
                         e.preventDefault();
-                        let select_x = e.offsetX/view.scale - view.camera_x;
-                        let select_y = e.offsetY/view.scale - view.camera_y;
+                        let [select_x, select_y] = event_to_coord(e, view);
                         if(select_x != clicked_x || select_y != select_y)
                             view.selection_area.select_one = false;
                         update_selection(view, clicked_x, clicked_y, select_x, select_y);
@@ -6160,6 +6188,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
             }break;
             case TOOLTYPE.PAN:{
+                // don't use the helper as it includes view.camera_*
                 let clicked_x = e.offsetX/view.scale;
                 let clicked_y = e.offsetY/view.scale;
                 function pan(e:MouseEvent){
@@ -6188,16 +6217,14 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case TOOLTYPE.LINE:{
                 let id = get_new_id();
-                const x0 = e.offsetX/view.scale-view.camera_x;
-                const y0 = e.offsetY/view.scale-view.camera_y;
+                const [x0, y0] = event_to_coord(e, view);
                 const thickness_input = document.getElementById('line-thickness') as HTMLInputElement;
                 const thickness = +thickness_input.value || 4;
                 add_freehand_line(view.map, id, x0, y0, get_primary_color(), thickness);
                 function add_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    const x1 = e.offsetX/view.scale-view.camera_x;
-                    const y1 = e.offsetY/view.scale-view.camera_y;
+                    const [x1, y1] = event_to_coord(e, view);
                     add_freehand_point_by_id(view.map, id, x1, y1);
                     request_render();
                 }
@@ -6216,14 +6243,12 @@ document.addEventListener('DOMContentLoaded', function(){
                 let id = get_new_id();
                 if(snapmode == SNAPMODE.FREE){
                     // copy paste from LINE above.
-                    const x0 = e.offsetX/view.scale-view.camera_x;
-                    const y0 = e.offsetY/view.scale-view.camera_y;
+                    const [x0, y0] = event_to_coord(e, view);
                     add_freehand_line(view.map, id, x0, y0, get_primary_color(), 4);
                     function add_point(e:MouseEvent){
                         e.stopPropagation();
                         e.preventDefault();
-                        const x1 = e.offsetX/view.scale-view.camera_x;
-                        const y1 = e.offsetY/view.scale-view.camera_y;
+                        const [x1, y1] = event_to_coord(e, view);
                         add_freehand_point_by_id(view.map, id, x1, y1);
                         request_render();
                     }
@@ -6239,14 +6264,12 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.addEventListener('mouseleave', finish_point);
                 }
                 else{
-                    const x0 = e.offsetX/view.scale-view.camera_x;
-                    const y0 = e.offsetY/view.scale-view.camera_y;
+                    const [x0, y0] = event_to_coord(e, view);
                     add_gridline(view.map, id, x0, y0, get_primary_color());
                     function add_point(e:MouseEvent){
                         e.stopPropagation();
                         e.preventDefault();
-                        const x1 = e.offsetX/view.scale-view.camera_x;
-                        const y1 = e.offsetY/view.scale-view.camera_y;
+                        const [x1, y1] = event_to_coord(e, view);
                         add_gridline_point_by_id(view.map, id, x1, y1);
                         request_render();
                     }
@@ -6263,8 +6286,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
             }break;
             case TOOLTYPE.DOOR:{
-                let x0 = snap(e.offsetX/view.scale-view.camera_x);
-                let y0 = snap(e.offsetY/view.scale-view.camera_y);
+                const [x0, y0] = event_to_coord_snapped(e, view, snap);
                 let x1 = x0;
                 let y1 = y0;
                 view.placing_area.is_placing = true;
@@ -6277,8 +6299,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 function change_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    x1 = snap(e.offsetX/view.scale-view.camera_x);
-                    y1 = snap(e.offsetY/view.scale-view.camera_y);
+                    [x1, y1] = event_to_coord_snapped(e, view, snap);
                     if(x1 > x0 + REFERENCE_WIDTH)
                         x1 = x0 + REFERENCE_WIDTH;
                     if(x1 < x0 - REFERENCE_WIDTH)
@@ -6338,14 +6359,12 @@ document.addEventListener('DOMContentLoaded', function(){
                 switch(current_rect_type){
                     case RECTTYPE.HOLLOW:{
                         let id = get_new_id();
-                        const x0 = snap(e.offsetX/view.scale-view.camera_x);
-                        const y0 = snap(e.offsetY/view.scale-view.camera_y);
+                        const [x0, y0] = event_to_coord_snapped(e, view, snap);
                         add_rect(view.map, id, x0, y0, get_primary_color());
                         function add_point(e:MouseEvent){
                             e.stopPropagation();
                             e.preventDefault();
-                            const x1 = snap(e.offsetX/view.scale-view.camera_x);
-                            const y1 = snap(e.offsetY/view.scale-view.camera_y);
+                            const [x1, y1] = event_to_coord_snapped(e, view, snap);
                             change_rect_by_id(view.map, id, x1, y1, x0, y0);
                             request_render();
                         }
@@ -6362,14 +6381,12 @@ document.addEventListener('DOMContentLoaded', function(){
                     }break;
                     case RECTTYPE.FILLED:{
                         let id = get_new_id();
-                        const x0 = snap(e.offsetX/view.scale-view.camera_x);
-                        const y0 = snap(e.offsetY/view.scale-view.camera_y);
+                        const [x0, y0] = event_to_coord_snapped(e, view, snap);
                         add_filled_rect(view.map, id, x0, y0, get_primary_color(), get_secondary_color());
                         function add_point(e:MouseEvent){
                             e.stopPropagation();
                             e.preventDefault();
-                            const x1 = snap(e.offsetX/view.scale-view.camera_x);
-                            const y1 = snap(e.offsetY/view.scale-view.camera_y);
+                            const [x1, y1] = event_to_coord_snapped(e, view, snap);
                             change_filled_rect_by_id(view.map, id, x1, y1, x0, y0);
                             request_render();
                         }
@@ -6386,8 +6403,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     }break;
                     case RECTTYPE.SOLID:{
                         let id = get_new_id();
-                        const x0 = snap(e.offsetX/view.scale-view.camera_x);
-                        const y0 = snap(e.offsetY/view.scale-view.camera_y);
+                        const [x0, y0] = event_to_coord_snapped(e, view, snap);
                         add_gridrect(view.map, id, x0, y0, get_primary_color());
                         const gridrect = view.map.canvas_objs.get(id) as GridRectangle;
                         view.placing_area.is_placing = true;
@@ -6400,8 +6416,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         function add_point(e:MouseEvent){
                             e.stopPropagation();
                             e.preventDefault();
-                            const x1 = snap(e.offsetX/view.scale-view.camera_x);
-                            const y1 = snap(e.offsetY/view.scale-view.camera_y);
+                            const [x1, y1] = event_to_coord_snapped(e, view, snap);
                             change_gridrect_by_id(view.map, id, x1, y1, x0, y0);
                             view.placing_area.x0 = gridrect.base_x;
                             view.placing_area.y0 = gridrect.base_y;
@@ -6426,8 +6441,7 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case TOOLTYPE.ELLIPSE:{
                 let id = get_new_id();
-                const x0 = snap(e.offsetX/view.scale-view.camera_x);
-                const y0 = snap(e.offsetY/view.scale-view.camera_y);
+                const [x0, y0] = event_to_coord_snapped(e, view, snap);
                 add_ellipse(view.map, id, x0, y0, get_primary_color(), get_secondary_color(), current_ellipse);
                 const ellipse = view.map.canvas_objs.get(id)! as Ellipse;
                 view.placing_area.is_placing = true;
@@ -6440,8 +6454,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 function add_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    let x1 = snap(e.offsetX/view.scale-view.camera_x);
-                    let y1 = snap(e.offsetY/view.scale-view.camera_y);
+                    const [x1, y1] = event_to_coord_snapped(e, view, snap);
                     if(x1 < x0)
                         ellipse.base_x = x1;
                     else
@@ -6472,8 +6485,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 canvas.addEventListener('mouseleave', finish_point);
             }break;
             case TOOLTYPE.TEXT:{
-                const x0 = e.offsetX/view.scale-view.camera_x;
-                const y0 = e.offsetY/view.scale-view.camera_y;
+                const [x0, y0] = event_to_coord(e, view);
                 const html = `
                 <h2>Enter Text</h2>
                 <table class="input-container">
@@ -6526,8 +6538,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 });
             }break;
             case TOOLTYPE.IMAGE:{
-                const x0 = e.offsetX/view.scale-view.camera_x;
-                const y0 = e.offsetY/view.scale-view.camera_y;
+                const [x0, y0] = event_to_coord(e, view);
                 const html = `
                     <h2>Enter Image</h2>
                     <table class="input-container">
@@ -6570,8 +6581,7 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case TOOLTYPE.TOKEN:{
                 if(current_token_type == TOKENTYPE.EZ){
-                    const x0 = e.offsetX/view.scale-view.camera_x;
-                    const y0 = e.offsetY/view.scale-view.camera_y;
+                    const [x0, y0] = event_to_coord(e, view);
                     const html = `
                         <h2>Enter Token</h2>
                         <table class="input-container">
@@ -6618,8 +6628,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     });
                 }
                 else {
-                    const x0 = e.offsetX/view.scale-view.camera_x;
-                    const y0 = e.offsetY/view.scale-view.camera_y;
+                    const [x0, y0] = event_to_coord(e, view);
                     let html = `
                         <h2>Enter Image</h2>
                         <div id="token-img-gallery">
@@ -6669,8 +6678,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     // Legacy: is its own impl
                     case FIXTURETYPE.STAIRS:{
                         let id = get_new_id();
-                        let x0 = e.offsetX/view.scale-view.camera_x;
-                        let y0 = e.offsetY/view.scale-view.camera_y;
+                        let [x0, y0] = event_to_coord(e, view);
                         add_stairs(view.map, id, x0, y0);
                         view.placing_area.is_placing = true;
                         view.placing_area.is_line = false;
@@ -6685,8 +6693,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         function change_stairs_on_move(e:MouseEvent){
                             e.stopPropagation();
                             e.preventDefault();
-                            const ex0 = e.offsetX/view.scale-view.camera_x;
-                            const ey0 = e.offsetY/view.scale-view.camera_y;
+                            const [ex0, ey0] = event_to_coord(e, view);
                             change_stairs(stairs, x0, y0, ex0, ey0);
                             view.placing_area.x0 = stairs.base_x;
                             view.placing_area.y0 = stairs.base_y;
@@ -6714,8 +6721,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     }break;
                     default:{
                         let id = get_new_id();
-                        const x = snap(e.offsetX/view.scale-view.camera_x);
-                        const y = snap(e.offsetY/view.scale-view.camera_y);
+                        const [x, y] = event_to_coord_snapped(e, view, snap);
                         const fixture = make_fixture(id, x, y, current_fixture_type);
                         add_canv_obj(view.map, fixture);
                         view.placing_area.is_placing = true;
@@ -6730,8 +6736,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             e.preventDefault();
                             let x0 = x;
                             let y0 = y;
-                            let x1 = snap(e.offsetX/view.scale-view.camera_x);
-                            let y1 = snap(e.offsetY/view.scale-view.camera_y);
+                            let [x1, y1] = event_to_coord_snapped(e, view, snap);
                             if(x1 < x0){
                                 let temp = x1; x1 = x0; x0 = temp;
                             }
@@ -6784,8 +6789,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         return [x0, y0];
                     };
                 }
-                const unsnapped_x = e.offsetX/view.scale-view.camera_x;
-                const unsnapped_y = e.offsetY/view.scale-view.camera_y;
+                const [unsnapped_x, unsnapped_y] = event_to_coord(e, view);
                 const [x0, y0] = snap(unsnapped_x, unsnapped_y);
                 let measure = make_measure(id, x0, y0, '#aa0033');
                 add_canv_obj(view.map, measure);
@@ -6794,7 +6798,8 @@ document.addEventListener('DOMContentLoaded', function(){
                 function move(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    const [x, y] = snap(e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y);
+                    const [x_, y_] = event_to_coord(e, view);
+                    const [x, y] = snap(x_, y_);
                     if(x == measure.x1 && y == measure.y1)
                         return;
                     measure.x1 = x;
@@ -6820,12 +6825,12 @@ document.addEventListener('DOMContentLoaded', function(){
                 let x:number;
                 let y:number;
                 if(view.map.grid_type & GRIDTYPE.HEX){
-                    [x, y] = snap_down_to_hex_grid(e.offsetX/view.scale-view.camera_x, e.offsetY/view.scale-view.camera_y);
+                    const [x_, y_] = event_to_coord(e, view);
+                    [x, y] = snap_down_to_hex_grid(x_, y_);
                 }
                 else {
                     let snap = get_snap_tl_func();
-                    x = snap(e.offsetX/view.scale-view.camera_x);
-                    y = snap(e.offsetY/view.scale-view.camera_y);
+                    [x, y] = event_to_coord_snapped(e, view, snap);
                 }
                 let id = get_new_id();
                 switch(current_tile_type){
@@ -6890,10 +6895,10 @@ document.addEventListener('DOMContentLoaded', function(){
         ctxmenu.style.left = e.clientX + 'px';
         ctxmenu.style.top = e.clientY + 'px';
         const view = get_active_view();
-        const x = e.offsetX/view.scale - view.camera_x - canvas.width/2/view.scale;
-        const y = e.offsetY/view.scale - view.camera_y - canvas.height/2/view.scale;
-        const click_x = e.offsetX/view.scale - view.camera_x;
-        const click_y = e.offsetY/view.scale - view.camera_y;
+        let [x, y] = event_to_coord(e, view);
+        x -= canvas.width/2/view.scale;
+        y -= canvas.height/2/view.scale;
+        const [click_x, click_y] = event_to_coord(e, view);
         function remove_menu(e?:MouseEvent){
             canvas.removeEventListener('mousedown', remove_menu);
             document.body.removeChild(ctxmenu);
