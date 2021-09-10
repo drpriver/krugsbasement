@@ -692,7 +692,7 @@ David20::title @hide
   /*}*/
   @media only screen and (max-width: 450px) {
     /* Turn the site into a diceroller. */
-    #tools {
+    #tools, #stuff{
       display: none;
     }
     #editorcontainer {
