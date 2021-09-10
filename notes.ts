@@ -203,3 +203,145 @@ document.addEventListener('DOMContentLoaded', function(){
         });
     });
 });
+
+const make_dnd_html = (function(){
+    let wasm_instance: WebAssembly.Instance;
+    const decoder = new TextDecoder();
+    const encoder = new TextEncoder();
+    let memory: Uint8Array;
+    function marshall_string(s:string): number{
+        let encoded = encoder.encode(s)
+        let p = (wasm_instance.exports.malloc as any)(encoded.length+1);
+        let lengthp = memory.subarray(p, p+4);
+        lengthp[0] = (encoded.length >> 0) & 255;
+        lengthp[1] = (encoded.length >> 8) & 255;
+        lengthp[2] = (encoded.length >> 16) & 255;
+        lengthp[3] = (encoded.length >> 24) & 255;
+        let sub = memory.subarray(p+4, p+4+encoded.length);
+        memory[p+4+encoded.length] = 0;
+        sub.set(encoded);
+        return p;
+    }
+    function wasm_string_to_js(pstring:number):string{
+        let sub = memory.subarray(pstring, pstring+4);
+        let length = sub[0]| (sub[1]<<8) | (sub[2]<<16) | (sub[3]<<24);
+        let textmem = memory.subarray(pstring+4, pstring+4+length);
+        let text = decoder.decode(textmem);
+        return text;
+    }
+    let errors: Array<string> = [];
+    let imports = {
+      env: {
+          logi32: function(i:number) {
+              errors.push(""+i);
+          },
+          log_string: function(p:number, len:number){
+              let sub = memory.subarray(p, p+len);
+              errors.push(decoder.decode(sub));
+          },
+          abort: function(){
+            throw new WebAssembly.RuntimeError;
+          }
+      }
+    };
+    let init = false;
+    function initialize(text:string, cb:(_:string, __:Array<string>)=>void){
+        init = true;
+        fetch('/wasm/dndc.wasm').then(response=> response.arrayBuffer())
+        .then(bytes=> WebAssembly.instantiate(bytes, imports))
+        .then(x => {
+            wasm_instance = x.instance;
+            (wasm_instance.exports.memory as any).grow(1024);
+            memory = new Uint8Array((wasm_instance.exports.memory as any).buffer);
+            do_it(text, cb);
+        });
+    }
+    function make_dnd_html(text:string, cb:(_:string, __:Array<string>)=>void):void{
+        if(!init){
+            initialize(text, cb);
+        }
+        else {
+            do_it(text, cb);
+        }
+    }
+    function do_it(text:string, cb:(_:string, __:Array<string>)=>void){
+        errors = [];
+        if(!text.length){
+            cb(" ", []);
+            return;
+        }
+        (wasm_instance.exports as any).reset_memory();
+        const marshalled = marshall_string(text);
+        let result = (wasm_instance.exports as any).make_html(marshalled);
+        if(result){
+            const jsresult = wasm_string_to_js(result);
+            return cb(jsresult, errors);
+        }
+        else {
+            return cb("", errors);
+        }
+    }
+    return make_dnd_html;
+})();
+
+document.addEventListener('DOMContentLoaded', function(){
+    const button = document.getElementById('notes-window-button') as HTMLButtonElement;
+    const notes_window = document.getElementById('notes-window') as HTMLDivElement;
+    const notes_area = document.getElementById('note-view-edit') as HTMLTextAreaElement;
+    const iframe = notes_window.getElementsByTagName('iframe')[0];
+    const editor_log = document.getElementById('note-view-editor-log') as HTMLDivElement;
+    let notes_is_open = false;
+    const boilerplate = `
+        ::css @inline
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+          }
+          table, table * {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 8px 8px;
+          }
+          blockquote {
+            font-style: italic;
+          }
+          body {
+            padding: 0px 2em;
+          }`;
+    let title = "Some Title";
+    function update_iframe(){
+        let s = boilerplate + '\n' + title + '::title\n' + notes_area.value;
+        make_dnd_html(s, function(html:string, errors:Array<string>){
+            while(editor_log.childNodes.length){
+              editor_log.removeChild(editor_log.lastChild!);
+            }
+            for(let error of errors){
+              const pp = document.createElement('pre');
+              pp.innerHTML = error;
+              editor_log.appendChild(pp);
+            }
+            if(html)
+                iframe.srcdoc = html;
+        });
+    }
+    update_iframe();
+    notes_area.addEventListener('input', function(){
+        update_iframe();
+    });
+    notes_area.addEventListener('keydown', function(e){
+      if(e.key != 'Tab')
+        return;
+      e.preventDefault();
+      let start = notes_area.selectionStart;
+      let end = notes_area.selectionEnd;
+      notes_area.value = notes_area.value.substring(0, start) + "  " + notes_area.value.substring(end);
+      // restore cursor position
+      notes_area.selectionStart = notes_area.selectionEnd = start+2;
+    });
+    button.addEventListener('click', function(){
+        if(notes_is_open)
+            return;
+        notes_is_open = true;
+        notes_window.style.display='grid';
+        update_iframe();
+    });
+});

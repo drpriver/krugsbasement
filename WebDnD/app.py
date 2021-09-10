@@ -236,6 +236,10 @@ if appconfig.DEV:
     @app.route('/tiles/<tile>')
     def get_tile(tile:str):
         return send_from_directory('tiles', tile)
+    @app.route('/wasm/<wasm>')
+    def get_wasm(wasm:str):
+        logging.info('wasm: %s', wasm)
+        return send_from_directory('wasm', wasm)
     @app.route('/favicon.ico')
     def get_favicon():
         return send_from_directory('.', 'favicon.ico')
