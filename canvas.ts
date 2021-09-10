@@ -5993,6 +5993,7 @@ document.addEventListener('DOMContentLoaded', function(){
     window.addEventListener('keydown', function(e:KeyboardEvent){
         if(document.activeElement !== document.body)
             return;
+        const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;
         const ctrl_or_cmd_is_pressed = e.ctrlKey || e.metaKey;
         const other_modifiers = e.altKey || e.shiftKey;
         // const shift = e.shiftKey;
@@ -6047,51 +6048,67 @@ document.addEventListener('DOMContentLoaded', function(){
                 end_selecting(view);
             }break;
             case 'q':
+                if(modified) return;
                 visually_set_snapmode(SNAPMODE.GRID);
                 break;
             case 'w':
+                if(modified) return;
                 visually_set_snapmode(SNAPMODE.HALF);
                 break;
             case 'e':
+                if(modified) return;
                 visually_set_snapmode(SNAPMODE.FREE);
                 break;
             case 's':
+                if(modified) return;
                 change_tool(TOOLTYPE.SELECT);
                 break;
             case 'p':
+                if(modified) return;
                 change_tool(TOOLTYPE.ELLIPSE);
                 break;
             case 'n':
+                if(modified) return;
                 if(show_pan) change_tool(TOOLTYPE.PAN);
                 break;
             case 'l':
+                if(modified) return;
                 change_tool(TOOLTYPE.LINE);
                 break;
             case 'r':
+                if(modified) return;
                 change_tool(TOOLTYPE.RECT);
                 break;
             case 'i':
+                if(modified) return;
                 change_tool(TOOLTYPE.IMAGE);
                 break;
             case 'f':
+                if(modified) return;
                 change_tool(TOOLTYPE.FIXTURE);
                 break;
             case 'd':
+                if(modified) return;
                 change_tool(TOOLTYPE.DOOR);
                 break;
             case 'm':
+                if(modified) return;
                 change_tool(TOOLTYPE.MEASURE);
                 break;
             case 'a':
+                if(modified) return;
                 change_tool(TOOLTYPE.WALL);
                 break;
             case 't':
+                if(modified) return;
                 change_tool(TOOLTYPE.TEXT);
                 break;
             case 'o':
+                if(modified) return;
                 change_tool(TOOLTYPE.TOKEN);
                 break;
             case 'k':
+                if(modified) return;
                 change_tool(TOOLTYPE.TILE);
                 break;
             case 'y':
@@ -6106,6 +6123,8 @@ document.addEventListener('DOMContentLoaded', function(){
                 if(shortcut){
                     do_one_undo(view.map);
                 }
+                else
+                    return;
                 break;
             case 'x':
                 if(shortcut){
@@ -6114,6 +6133,8 @@ document.addEventListener('DOMContentLoaded', function(){
                         cut_selected_objs_to_copy_buffer(view);
                     }
                 }
+                else
+                    return;
                 break;
             case 'c':
                 if(shortcut){
@@ -6122,6 +6143,8 @@ document.addEventListener('DOMContentLoaded', function(){
                         copy_selected_objs_to_copy_buffer(view);
                     }
                 }
+                else
+                    return;
                 break;
             case 'v':
                 if(shortcut){
@@ -6132,6 +6155,8 @@ document.addEventListener('DOMContentLoaded', function(){
                     }
                     break;
                 }
+                else
+                    return;
                 break;
             case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':{
                 const index = (+e.key) - 1;
