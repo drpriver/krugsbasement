@@ -5929,6 +5929,43 @@ function event_to_coord_snapped(e:MouseEvent, view:DungeonMapView, snap:(x:numbe
 }
 document.addEventListener('DOMContentLoaded', function(){
     canvas = document.getElementsByTagName('canvas')[0]!;
+    let gesturing = false;
+    (function(){
+        let start_scale = 1.0;
+        let start_x = 0;
+        let start_y = 0;
+        canvas.addEventListener('gesturestart', function(e:any){
+            e.stopPropagation();
+            e.preventDefault();
+            const view = get_active_view();
+            start_scale = view.scale;
+            start_x = view.camera_x;
+            start_y = view.camera_y;
+            gesturing = true;
+        });
+        canvas.addEventListener('gesturechange', function(e:any){
+            e.stopPropagation();
+            e.preventDefault();
+            const view = get_active_view();
+            view.scale = start_scale * e.scale;
+            view.scale = clamp_scale(view.scale);
+            let cx = start_x - canvas.width/2/start_scale;
+            let cy = start_y - canvas.height/2/start_scale;
+            cx += canvas.width/2/view.scale;
+            cy += canvas.height/2/view.scale;
+            cx = Math.round(cx);
+            cy = Math.round(cy);
+            view.camera_x = cx;
+            view.camera_y = cy;
+
+            request_render();
+        });
+        canvas.addEventListener('gestureend', function(e:any){
+            e.stopPropagation();
+            e.preventDefault();
+            gesturing = false;
+        });
+    })();
     canvas.addEventListener('wheel', function(e:WheelEvent){
         e.stopPropagation();
         e.preventDefault();
@@ -6113,12 +6150,20 @@ document.addEventListener('DOMContentLoaded', function(){
     let ctxmenu_is_active = 0;
     let ez_token_color = '#ff3333';
     canvas.addEventListener('pointerdown', function(e:MouseEvent){
+        if(gesturing) return;
         if(e.button !== 0 && e.button !== 1){ //0 is the 'primary' button
+            return;
+        }
+        let view = get_active_view();
+        if(e.shiftKey){
+            const [click_x, click_y] = event_to_coord(e, view);
+            ping_at(view.map, click_x, click_y);
+            e.stopPropagation();
+            e.preventDefault();
             return;
         }
         if(document.activeElement)
             (document.activeElement as any).blur();
-        let view = get_active_view();
         if(ctxmenu_is_active !== 0)
             return;
         if(has_tri_menu)

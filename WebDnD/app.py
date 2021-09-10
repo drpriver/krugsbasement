@@ -239,6 +239,10 @@ if appconfig.DEV:
     @app.route('/favicon.ico')
     def get_favicon():
         return send_from_directory('.', 'favicon.ico')
+    @socketio.on('debug')
+    def log_debug(msg:str) -> None:
+        room = get_room(request)
+        logging.info('room: %s - %s', room, msg)
 
 @app.route('/state', methods=['GET'])
 @app.route('/campaigns/<campaign>/state', methods=['GET', 'POST', 'DELETE'])
