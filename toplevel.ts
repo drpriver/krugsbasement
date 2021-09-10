@@ -97,9 +97,10 @@ SOCKET.on('disconnect', function(reason:string){
 let session_id = 0;
 let show_pan = (function(){
     const sp = localStorage.getItem('showpan');
-    if(!sp){
+    if(sp == '1')
+        return true;
+    if(sp == '0')
         return false;
-    }
     return true;
 })();
 document.addEventListener('DOMContentLoaded', function(){
@@ -109,9 +110,9 @@ document.addEventListener('DOMContentLoaded', function(){
 function change_pan_visibility(visible:boolean){
     show_pan = visible;
     if(visible)
-        localStorage.setItem('showpan', '1')
+        localStorage.setItem('showpan', '1');
     else
-        localStorage.removeItem('showpan')
+        localStorage.setItem('showpan', '0');
     const pan_tool = document.getElementById('pan-tool')!;
     pan_tool.style.display = visible? 'initial': 'none';
 }
