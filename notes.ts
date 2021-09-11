@@ -197,9 +197,21 @@ document.addEventListener('DOMContentLoaded', function(){
             padding: 0px 2em;
           }`;
     let current_note_id = -1;
+    function make_active(id:number){
+        current_note_id = id;
+        for(let nl of notes_list.getElementsByTagName('div')){
+            nl.classList.remove('active');
+            // @ts-ignore
+            if(+nl.dataset.id ==id)
+                nl.classList.add('active');
+        }
+    }
     function update_iframe(){
         let note = NOTES.get(current_note_id);
-        if(!note) return;
+        if(!note){
+            iframe.srcdoc = '';
+            return;
+        }
         let title = notes_title_area.value;
         let s = boilerplate + '\n' + title + '::title\n' + notes_area.value;
         make_dnd_html(s, function(html:string, errors:Array<string>){
@@ -315,17 +327,17 @@ document.addEventListener('DOMContentLoaded', function(){
                 NOTES.set(id, n);
                 notes_area.value = n.body;
                 notes_title_area.value = n.title;
-                current_note_id = id;
-                update_iframe();
                 set_nl(n.id, n.title);
+                make_active(id);
+                update_iframe();
             });
         }
         else {
             notes_area.value = note.body;
             notes_title_area.value = note.title;
-            current_note_id = id;
-            update_iframe();
             set_nl(note.id, note.title);
+            make_active(id);
+            update_iframe();
         }
     }
     function add_note(id:number, note:Note){
@@ -342,10 +354,29 @@ document.addEventListener('DOMContentLoaded', function(){
     function delete_note_by_id(id:number){
         const note = NOTES.get(id);
         if(!note) return;
-        for(let nl of notes_list.childNodes){
-            if(!(nl as any).dataset) continue;
-            if((nl as HTMLElement).dataset.id == ""+note.id){
+        let divs = Array.from(notes_list.getElementsByTagName('div'));
+        for(let i = 0; i < divs.length; i++){
+            let nl = divs[i];
+            if(!nl.dataset) continue;
+            if(nl.dataset.id == ""+note.id){
                 notes_list.removeChild(nl);
+                if(current_note_id == id){
+                    if(divs.length == 1){
+                        make_active(-1);
+                        update_iframe();
+                        break;
+                    }
+                    if(i == 0){
+                        // @ts-ignore
+                        make_active(+divs[i+1].dataset.id);
+                        update_iframe();
+                        break;
+                    }
+                    // @ts-ignore
+                    make_active(+divs[i-1].dataset.id);
+                    update_iframe();
+                    break;
+                }
                 break;
             }
         }

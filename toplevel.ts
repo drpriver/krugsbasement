@@ -73,11 +73,13 @@ SOCKET.on("connect", () => {
 });
 function clear_disconnected(){
     const d = document.getElementById('disconnect')!;
-    d.style.display = 'none';
+    if(d)
+        d.style.display = 'none';
 }
 function set_disconnected(){
     const d = document.getElementById('disconnect')!;
-    d.style.display = 'initial';
+    if(d)
+        d.style.display = 'initial';
 }
 SOCKET.on('disconnect', function(reason:string){
     switch(reason){
