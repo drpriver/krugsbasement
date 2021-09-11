@@ -7,6 +7,8 @@ type Note = {
     body: string;
     flags: NOTEFLAGS;
     id: number;
+    need_send: boolean;
+    need_receive: boolean;
 }
 const NOTES: Map<number, Note> = new Map();
 // We need this so we can update the option's text when the note's title changes.
@@ -94,12 +96,44 @@ const make_dnd_html = (function(){
 document.addEventListener('DOMContentLoaded', function(){
     const button = document.getElementById('notes-window-button') as HTMLButtonElement;
     const notes_window = document.getElementById('notes-window') as HTMLDivElement;
+    const notes_editor_container = document.getElementById('note-view-editor-container') as HTMLDivElement;
+    const move_handle = document.getElementById('notes-window-handle') as HTMLDivElement;
+    const notes_area = document.getElementById('note-view-edit') as HTMLTextAreaElement;
+    const notes_title_area = document.getElementById('note-view-title') as HTMLTextAreaElement;
+    const iframe = notes_window.getElementsByTagName('iframe')[0];
+    const editor_log = document.getElementById('note-view-editor-log') as HTMLDivElement;
+    const edit_notes_button = document.getElementById('edit-notes-button') as HTMLButtonElement;
+    const del_note_button = document.getElementById('delete-note') as HTMLButtonElement;
+    del_note_button.addEventListener('click', function(){
+        SOCKET.emit('delete-note-request', current_note_id);
+    });
+    let is_editing = false;
+    function stop_editing(){
+        if(!is_editing) return;
+        is_editing = false;
+        edit_notes_button.innerText = 'Edit';
+        notes_editor_container.style.display = 'none';
+        sync_note();
+    }
+    function start_editing(){
+        if(is_editing) return;
+        is_editing = true;
+        edit_notes_button.innerText = 'Done';
+        notes_editor_container.style.display = 'block';
+    }
+    edit_notes_button.addEventListener('click', function(){
+        if(edit_notes_button.innerText == 'Edit'){
+            start_editing();
+        }
+        else {
+            stop_editing();
+        }
+    });
     let dragging = false;
     let x = 0;
     let y = 0;
     let xorg = 0;
     let yorg = 0;
-    const move_handle = document.getElementById('notes-window-handle') as HTMLDivElement;
     move_handle.addEventListener('pointerdown', function(e:PointerEvent){
         if(e.target !== move_handle)
             return;
@@ -141,12 +175,10 @@ document.addEventListener('DOMContentLoaded', function(){
     function hide_note_view(e:MouseEvent){
         e.preventDefault();
         e.stopPropagation();
+        sync_note();
         notes_window.style.display='none';
         notes_is_open = false;
     }
-    const notes_area = document.getElementById('note-view-edit') as HTMLTextAreaElement;
-    const iframe = notes_window.getElementsByTagName('iframe')[0];
-    const editor_log = document.getElementById('note-view-editor-log') as HTMLDivElement;
     let notes_is_open = false;
     const boilerplate = `
         ::css @inline
@@ -164,8 +196,11 @@ document.addEventListener('DOMContentLoaded', function(){
           body {
             padding: 0px 2em;
           }`;
-    let title = "Some Title";
+    let current_note_id = -1;
     function update_iframe(){
+        let note = NOTES.get(current_note_id);
+        if(!note) return;
+        let title = notes_title_area.value;
         let s = boilerplate + '\n' + title + '::title\n' + notes_area.value;
         make_dnd_html(s, function(html:string, errors:Array<string>){
             while(editor_log.childNodes.length){
@@ -176,13 +211,45 @@ document.addEventListener('DOMContentLoaded', function(){
               pp.innerHTML = error;
               editor_log.appendChild(pp);
             }
-            if(html)
+            if(html){
+                // This is unbelievably hacky, but for some reason
+                // internal links aren't being recognized as internal,
+                // so we need to do it ourselves.
+                html += `<scr` + `ipt>
+                document.addEventListener('DOMContentLoaded', function(){
+                    const anchors = document.getElementsByTagName('a');
+                    for(let a of anchors){
+                        a.onclick = function(e){
+                           e.preventDefault();
+                           e.stopPropagation();
+                           let target = e.target.href.split('#')[1];
+                           let t = document.getElementById(target);
+                           if(t)
+                               t.scrollIntoView();
+                           return false;
+                        };
+                    }
+                });
+                </scr`+ `ipt>
+                `;
                 iframe.srcdoc = html;
+            }
         });
     }
-    update_iframe();
     notes_area.addEventListener('input', function(){
         update_iframe();
+        let note = NOTES.get(current_note_id);
+        if(!note) return;
+        note.body = notes_area.value;
+        note.need_send = true;
+    });
+    notes_title_area.addEventListener('input', function(){
+        update_iframe();
+        let note = NOTES.get(current_note_id);
+        if(!note) return;
+        note.title = notes_title_area.value;
+        SOCKET.emit('note-update-title', {note_id:note.id, title:note.title});
+        set_nl(note.id, note.title);
     });
     notes_area.addEventListener('keydown', function(e){
       if(e.key != 'Tab')
@@ -201,20 +268,74 @@ document.addEventListener('DOMContentLoaded', function(){
         notes_window.style.display='grid';
         update_iframe();
     });
-    const new_note = document.getElementById('new-note') as HTMLSpanElement;
+    const new_note = document.getElementById('new-note') as HTMLDivElement;
     const notes_list = document.getElementById('notes-list') as HTMLDivElement;
+    function set_nl(id:number, title:string){
+        for(let nl of notes_list.getElementsByTagName('div')){
+            if(!nl.dataset) continue;
+            // @ts-ignore
+            if(nl.dataset.id == ""+id){
+                nl.innerText = title;
+                break;
+            }
+        }
+    }
+    SOCKET.on('note-dirty', function(note_id:number){
+        let note = NOTES.get(note_id);
+        if(!note) return;
+        note.need_receive = true;
+        if(note_id == current_note_id){
+            SOCKET.emit('get-note', note_id, function(n:Note){
+                n.need_receive = false;
+                n.need_send = false;
+                NOTES.set(n.id, n);
+                notes_area.value = n.body;
+                notes_title_area.value = n.title;
+                update_iframe();
+                set_nl(n.id, n.title);
+            });
+        }
+    });
+    function sync_note(){
+        let note = NOTES.get(current_note_id);
+        if(!note) return;
+        if(note.need_send){
+            SOCKET.emit('note-update-body', {note_id:note.id, body:note.body});
+            note.need_send = false;
+        }
+    }
+    function set_note_by_id(id:number){
+        sync_note();
+        let note = NOTES.get(id);
+        if(!note) return;
+        if(note.need_receive){
+            SOCKET.emit('get-note', id, function(n:Note){
+                n.need_receive = false;
+                n.need_send = false;
+                NOTES.set(id, n);
+                notes_area.value = n.body;
+                notes_title_area.value = n.title;
+                current_note_id = id;
+                update_iframe();
+                set_nl(n.id, n.title);
+            });
+        }
+        else {
+            notes_area.value = note.body;
+            notes_title_area.value = note.title;
+            current_note_id = id;
+            update_iframe();
+            set_nl(note.id, note.title);
+        }
+    }
     function add_note(id:number, note:Note){
         const d = document.createElement('div');
         d.dataset.id = ""+id;
-        const s = document.createElement('span');
-        s.innerText = note.title;
-        const b1 = document.createElement('button');
-        b1.innerText='✎';
-        const b2 = document.createElement('button');
-        b2.innerText='✘';
-        d.appendChild(s);
-        d.appendChild(b1);
-        d.appendChild(b2);
+        d.innerText = note.title;
+        d.addEventListener('click', function(){
+            stop_editing();
+            set_note_by_id(id);
+        });
         notes_list.appendChild(d);
         NOTES.set(id, note);
     }
@@ -222,6 +343,7 @@ document.addEventListener('DOMContentLoaded', function(){
         const note = NOTES.get(id);
         if(!note) return;
         for(let nl of notes_list.childNodes){
+            if(!(nl as any).dataset) continue;
             if((nl as HTMLElement).dataset.id == ""+note.id){
                 notes_list.removeChild(nl);
                 break;
@@ -234,31 +356,41 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     SOCKET.on('notes-initialize', function(notes:Array<Note>){
         let n = notes_list.childNodes.length;
-        while(--n){
+        while(--n > 1){
             notes_list.removeChild(notes_list.lastChild!);
         }
         NOTES.clear();
         for(let note of notes){
+            note.need_receive = false;
+            note.need_send = false;
             add_note(note.id, note);
         }
     });
     SOCKET.on('new-note', function(note_id:number){
-        add_note(note_id, {flags:0, title:'Untitled Note', body:'', id:note_id});
+        add_note(note_id, {flags:0, title:'Untitled', body:'', id:note_id, need_send:false, need_receive:false});
     });
-    function set_note_by_id(id:number){
-        let note = NOTES.get(id);
-        if(!note) return;
-        notes_area.value = note.body;
-        title = note.title;
-    }
     new_note.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
         let id: number;
+        stop_editing();
         SOCKET.emit('new-note-request', function(new_id:number){
             id = new_id;
-            add_note(id, {id:id, title:"Unitled", body:"", flags:0});
+            add_note(id, {id:id, title:'Untitled', body:'', flags:0, need_send:false,  need_receive:false});
             set_note_by_id(id);
         });
+    });
+    SOCKET.on('note-update-title', function(data:{note_id:number, title:string}){
+        let note = NOTES.get(data.note_id);
+        if(!note) return;
+        note.title = data.title;
+        set_nl(data.note_id, data.title);
+        update_iframe();
+    });
+    SOCKET.on('note-update-body', function(data:{note_id:number, body:string}){
+        let note = NOTES.get(data.note_id);
+        if(!note) return;
+        note.body = data.body;
+        update_iframe();
     });
 });

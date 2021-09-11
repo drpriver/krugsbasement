@@ -16,7 +16,7 @@ def load_notes(data:JsType) -> Dict[int, Dict[str, JsType]]:
         if not isinstance(d.get('flags'), int):
             d['flags'] = 0
         if not isinstance(d.get('title'), str):
-            d['title'] = 'Untitled Note'
+            d['title'] = 'Untitled'
         if not isinstance(d.get('body'), str):
             d['body'] = ''
         if not isinstance(d.get('id'), int):
@@ -51,7 +51,7 @@ def new_note_request(room:str) -> int:
         result = max(notes.keys())+1
     notes[result] = dict(
             flags = NoteFlags.NONE,
-            title = 'Untitled Note',
+            title = 'Untitled',
             body = '')
     return result
 
