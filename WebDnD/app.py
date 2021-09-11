@@ -161,7 +161,7 @@ def delete_map_request(map_id:int) -> None:
 @socketio.on('get-note')
 def note_get(note_id: int):
     room = get_room(request)
-    logging.info('get note: %d', note_id)
+    # logging.info('get note: %d', note_id)
     return notes.get_note(room, note_id)
 
 @socketio.on('new-note-request')
@@ -176,14 +176,14 @@ def new_note_request() -> int:
 def note_update_title(data) -> None:
     room = get_room(request)
     notes.note_update_title(room, data['note_id'], data['title'])
-    logging.info('Updating note title. Note: %s. Room: %s. Title: %s', data['note_id'], room, data['title'])
+    # logging.info('Updating note title. Note: %s. Room: %s. Title: %s', data['note_id'], room, data['title'])
     emit('note-update-title', data, broadcast=True, include_self=False, to=room)
     # emit('note-dirty', data['note_id'], broadcast=True, include_self=False, to=room)
 
 @socketio.on('note-update-body')
 def note_update_body(data) -> None:
     room = get_room(request)
-    logging.info('Updating note body. Note: %s. Room: %s', data['note_id'], room)
+    # logging.info('Updating note body. Note: %s. Room: %s', data['note_id'], room)
     notes.note_update_body(room, data['note_id'], data['body'])
     # emit('note-update-body', data, broadcast=True, include_self=False, to=room)
     emit('note-dirty', data['note_id'], broadcast=True, include_self=False, to=room)

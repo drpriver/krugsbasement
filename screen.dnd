@@ -649,6 +649,7 @@ David20::title @hide
     font-family: sans-serif;
     overflow-y: auto;
     max-height: 90%;
+    z-index: 10;
   }
   section.hover input.numeric-input {
     width: 5em;

@@ -105,7 +105,21 @@ document.addEventListener('DOMContentLoaded', function(){
     const edit_notes_button = document.getElementById('edit-notes-button') as HTMLButtonElement;
     const del_note_button = document.getElementById('delete-note') as HTMLButtonElement;
     del_note_button.addEventListener('click', function(){
-        SOCKET.emit('delete-note-request', current_note_id);
+        make_ok_dialog(`
+            <h2>Delete Note</h2>
+            <table class = "input-container">
+            <tr>
+              <td><label for="hover-delete-note">Delete Note</label>
+              <td><input name="hover-delete-note" type="checkbox" id="hover-delete-note">
+            </tr>
+            </table>`,
+            function (e:HTMLElement){
+                const delete_checkbox = document.getElementById('hover-delete-note')! as HTMLInputElement;
+                const should_delete = delete_checkbox.checked;
+                if(should_delete){
+                    SOCKET.emit('delete-note-request', current_note_id);
+                }
+            })
     });
     let is_editing = false;
     function stop_editing(){
@@ -339,6 +353,13 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     function set_note_by_id(id:number){
         sync_note();
+        if(id == -1){
+            notes_area.value = '';
+            notes_title_area.value =''
+            make_active(id);
+            update_iframe();
+            return;
+        }
         let note = NOTES.get(id);
         if(!note) return;
         if(note.need_receive){
@@ -383,19 +404,16 @@ document.addEventListener('DOMContentLoaded', function(){
                 notes_list.removeChild(nl);
                 if(current_note_id == id){
                     if(divs.length == 1){
-                        make_active(-1);
-                        update_iframe();
+                        set_note_by_id(-1);
                         break;
                     }
                     if(i == 0){
                         // @ts-ignore
-                        make_active(+divs[i+1].dataset.id);
-                        update_iframe();
+                        set_note_by_id(+divs[i+1].dataset.id);
                         break;
                     }
                     // @ts-ignore
-                    make_active(+divs[i-1].dataset.id);
-                    update_iframe();
+                    set_note_by_id(+divs[i-1].dataset.id);
                     break;
                 }
                 break;
