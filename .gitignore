@@ -24,3 +24,4 @@ tags
 *.gz
 *.vim
 *.bak
+wasm
