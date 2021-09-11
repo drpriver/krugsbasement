@@ -24,8 +24,8 @@ David20::title @hide
   }
   #notes-window-handle {
     grid-row: 1;
-    cursor: pointer;
-    background-color: red;
+    cursor: grab;
+    background-color: rgb(221,221,221);
     border-radius: 8px 8px 0px 0px;
   }
   #notes-container {
@@ -49,7 +49,6 @@ David20::title @hide
   }
   #notes-window-iframe-container iframe {
     height: calc(100% - 16px);
-    background-color: white;
     border: none;
   }
   #note-view-editor-container {
@@ -92,20 +91,30 @@ David20::title @hide
     background-color: #f8f8f8;
   }
   #notes-list div.active:hover {
-    background-color: yellow;
+    background-color: rgb(233, 233, 255);
   }
   #notes-list div.active {
-    background-color: green;
+    background-color: rgb(211, 211, 255);
+  }
+  #notes-close {
+    text-align: center;
+    font-size: 24px;
+    padding: 4px 12px;
+    cursor: pointer;
+  }
+  #notes-close:hover {
+    background-color: rgba(0, 0, 0, 0.1);
   }
 ::raw
-  <div id="notes-window" style="display:grid; width:min(80%, 80em); height: 85%;">
+  <div id="notes-window" style="display:none; width:min(80%, 80em); height: 85%;">
     <div id="notes-window-handle">
+    <span id="notes-close">X</span>
     </div>
     <div id="notes-container">
       <div id="notes-list">
-        <div id="new-note">
+        <button id="new-note">
           + New Note
-        </div>
+        </button>
       </div>
       <div id="notes-window-iframe-container">
         <div id="notes-buttons">
@@ -801,6 +810,34 @@ David20::title @hide
     }
     body.dark-mode #colors {
       background-color: #333;
+    }
+    body.dark-mode #notes-window {
+      background-color: #333;
+    }
+    body.dark-mode #notes-window-handle {
+      background-color: #444;
+    }
+    body.dark-mode #notes-list div {
+      color: #aaa;
+      background-color: #111;
+    }
+    body.dark-mode #notes-list div:hover {
+      background-color: #113;
+    }
+    body.dark-mode #notes-list div.active:hover {
+      background-color: #446;
+    }
+    body.dark-mode #notes-list div.active {
+      background-color: #335;
+    }
+    body.dark-mode #notes-close:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    @supports (-moz-appearance:none) {
+      body.dark-mode textarea {
+        color: #aaa;
+        background-color: #333;
+      }
     }
   /*}*/
   @media only screen and (max-width: 450px) {

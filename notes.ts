@@ -140,6 +140,7 @@ document.addEventListener('DOMContentLoaded', function(){
         e.preventDefault();
         e.stopPropagation();
         dragging = true;
+        move_handle.style.cursor = 'grabbing';
         let r = notes_window.getBoundingClientRect();
         notes_window.style.top = r.top + 'px';
         notes_window.style.left = r.left + 'px';
@@ -155,6 +156,7 @@ document.addEventListener('DOMContentLoaded', function(){
         window.removeEventListener('pointermove', pointermove);
         window.removeEventListener('pointerleave', endmove);
         window.removeEventListener('pointerup', endmove);
+        move_handle.style.cursor = 'grab';
         dragging = false;
     }
     function pointermove(e:PointerEvent){
@@ -171,10 +173,12 @@ document.addEventListener('DOMContentLoaded', function(){
         x = e.screenX;
         y = e.screenY;
     }
-    move_handle.addEventListener('dblclick', hide_note_view);
+    const notes_close = document.getElementById('notes-close') as HTMLElement;
+    notes_close.addEventListener('click', hide_note_view);
     function hide_note_view(e:MouseEvent){
         e.preventDefault();
         e.stopPropagation();
+        stop_editing();
         sync_note();
         notes_window.style.display='none';
         notes_is_open = false;
@@ -195,6 +199,7 @@ document.addEventListener('DOMContentLoaded', function(){
           }
           body {
             padding: 0px 2em;
+            max-width: 40em;
           }`;
     let current_note_id = -1;
     function make_active(id:number){
@@ -227,6 +232,9 @@ document.addEventListener('DOMContentLoaded', function(){
                 // This is unbelievably hacky, but for some reason
                 // internal links aren't being recognized as internal,
                 // so we need to do it ourselves.
+
+                // breaking up the tags as a version of safari
+                // interprets them as regex for some reason
                 html += `<scr` + `ipt>
                 document.addEventListener('DOMContentLoaded', function(){
                     const anchors = document.getElementsByTagName('a');
@@ -244,6 +252,19 @@ document.addEventListener('DOMContentLoaded', function(){
                 });
                 </scr`+ `ipt>
                 `;
+                if(DARKMODE){
+                    html += `<scr` + `ipt>
+                    document.documentElement.style.colorScheme = 'dark';
+                    </sc` + `ript>`;
+                    html += `<sty` + `le>
+                    @supports (-moz-appearance:none) {
+                      body {
+                        color: #eee;
+                        background-color: #333;
+                      }
+                    }
+                    </sty` + `le>`;
+                }
                 iframe.srcdoc = html;
             }
         });
@@ -280,7 +301,7 @@ document.addEventListener('DOMContentLoaded', function(){
         notes_window.style.display='grid';
         update_iframe();
     });
-    const new_note = document.getElementById('new-note') as HTMLDivElement;
+    const new_note = document.getElementById('new-note') as HTMLButtonElement;
     const notes_list = document.getElementById('notes-list') as HTMLDivElement;
     function set_nl(id:number, title:string){
         for(let nl of notes_list.getElementsByTagName('div')){
@@ -386,9 +407,9 @@ document.addEventListener('DOMContentLoaded', function(){
         delete_note_by_id(note_id);
     });
     SOCKET.on('notes-initialize', function(notes:Array<Note>){
-        let n = notes_list.childNodes.length;
-        while(--n > 1){
-            notes_list.removeChild(notes_list.lastChild!);
+        const divs = Array.from(notes_list.getElementsByTagName('div'));
+        for(let div of divs){
+            notes_list.removeChild(div);
         }
         NOTES.clear();
         for(let note of notes){
@@ -396,6 +417,10 @@ document.addEventListener('DOMContentLoaded', function(){
             note.need_send = false;
             add_note(note.id, note);
         }
+        if(notes.length){
+            set_note_by_id(notes[0].id);
+        }
+
     });
     SOCKET.on('new-note', function(note_id:number){
         add_note(note_id, {flags:0, title:'Untitled', body:'', id:note_id, need_send:false, need_receive:false});
