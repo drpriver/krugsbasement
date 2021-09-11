@@ -6,17 +6,25 @@ David20::title @hide
   </div>
 ::css @inline
   #notes-window {
-    padding: 20px;
     position: fixed;
     top: 10%;
     left: 10%;
     z-index: 3;
-    background-color: yellow;
     resize: both;
-    cursor: pointer;
-    overflow: scroll;
-    grid-template-columns: 1fr 1fr;
+    overflow: auto;
+    grid-template-rows: 32px auto;
+    grid-template-columns: 10em 1fr 1fr;
     height: auto;
+    padding: 0px;
+    border-radius: 8px 8px 0px 0px;
+    background-color: white;
+  }
+  #notes-window-handle {
+    grid-row: 1;
+    grid-column: 1/4;
+    cursor: pointer;
+    background-color: red;
+    border-radius: 8px 8px 0px 0px;
   }
   #notes-window iframe {
     margin: auto;
@@ -26,6 +34,13 @@ David20::title @hide
     min-width: 30em;
     min-height: 500px;
     height: 100%;
+    grid-row: 2;
+    width: 100%;
+    grid-column: 2;
+  }
+  #note-view-editor-container {
+    grid-row: 2;
+    grid-column: 3;
   }
   #notes-window textarea {
     resize: none;
@@ -38,8 +53,44 @@ David20::title @hide
     background-color: blue;
     border: 1px solid grey;
   }
+  #notes-list {
+    display: flex;
+    flex-direction: column;
+  }
+  #notes-list div {
+    padding: 8px;
+    border-bottom: 1px solid black;
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+  #notes-list div span {
+    margin-right: auto;
+  }
+  #notes-list div:hover {
+    background-color: #f8f8f8;
+  }
+  #notes-list div.active:hover {
+    background-color: #fcfcfc;
+  }
+  #notes-list div.active {
+    background-color: #fafafa;
+  }
 ::raw
-  <div id="notes-window" style="display:grid">
+  <div id="notes-window" style="display:grid; width:60em; height: 60em;">
+  <div id="notes-list">
+    <div>
+      <span id="new-note">+ New Note</span>
+    </div>
+    <div class="active">
+      <span>Untitled</span>
+      <button style="margin:0;">✎</button>
+      <button style="margin:0;">✘</button>
+    </div>
+  </div>
+  <div id="notes-window-handle">
+  </div>
   <iframe id="current-note-view">Hello World</iframe>
   <div id="note-view-editor-container">
   <textarea id="note-view-edit" style="display:initial">
@@ -144,15 +195,8 @@ David20::title @hide
             <button style="margin:0;" id="delete-map-button">✘</button>
           </td>
         </tr>
-        <tr style="border-bottom: 1px solid grey; max-width: 100%;">
-          <td><span style="font-size:0.8rem;">Note</span>
-          <td><select style="width: 60%; text-overflow:ellipsis;" name="current-note-name" id="current-note-name"><option>No Note</option></select>
-            <button style="margin:0;" id="new-note-button">+</button>
-            <button style="margin:0;" id="delete-note-button">✘</button>
-          </td>
-        </tr>
         <tr>
-          <button id="notes-window-button">Notes</button>
+          <td><button id="notes-window-button">Notes</button></td>
         </tr>
       </table>
   ::div.log @id(chat-history)
