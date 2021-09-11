@@ -198,23 +198,23 @@ document.addEventListener('DOMContentLoaded', function(){
         notes_is_open = false;
     }
     let notes_is_open = false;
-    const boilerplate = `
-        ::css @inline
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-          }
-          table, table * {
-            border: 1px solid black;
-            border-collapse: collapse;
-            padding: 8px 8px;
-          }
-          blockquote {
-            font-style: italic;
-          }
-          body {
-            padding: 0px 2em;
-            max-width: 40em;
-          }`;
+    const boilerplate = (''
+        +'::css @inline\n'
+        +'  body {\n'
+        +'    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;\n'
+        +'  }\n'
+        +'  table, table * {\n'
+        +'    border: 1px solid black;\n'
+        +'    border-collapse: collapse;\n'
+        +'    padding: 8px 8px;\n'
+        +'  }\n'
+        +'  blockquote {\n'
+        +'    font-style: italic;\n'
+        +'  }\n'
+        +'  body {\n'
+        +'    padding: 0px 2em;\n'
+        +'    max-width: 40em;\n'
+        +'  }\n');
     let current_note_id = -1;
     function make_active(id:number){
         current_note_id = id;

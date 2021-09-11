@@ -215,7 +215,7 @@ def get_html() -> str:
     if appconfig.DEV or SCREEN is None:
         import pydndc
         try:
-            html, _ = pydndc.htmlgen(open('screen.dnd').read())
+            html, _ = pydndc.htmlgen(open('screen.dnd').read(), flags=pydndc.STRIP_WHITESPACE)
         except:
             return ''
     else:
