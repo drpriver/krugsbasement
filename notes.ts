@@ -20,15 +20,15 @@ const make_dnd_html = (function(){
     let memory: Uint8Array;
     function marshall_string(s:string): number{
         let encoded = encoder.encode(s)
-        let p = (wasm_instance.exports.malloc as any)(encoded.length+1);
+        let p = (wasm_instance.exports.malloc as any)(encoded.length+5);
         let lengthp = memory.subarray(p, p+4);
         lengthp[0] = (encoded.length >> 0) & 255;
         lengthp[1] = (encoded.length >> 8) & 255;
         lengthp[2] = (encoded.length >> 16) & 255;
         lengthp[3] = (encoded.length >> 24) & 255;
         let sub = memory.subarray(p+4, p+4+encoded.length);
-        memory[p+4+encoded.length] = 0;
         sub.set(encoded);
+        memory[p+4+encoded.length] = 0;
         return p;
     }
     function wasm_string_to_js(pstring:number):string{
@@ -299,24 +299,31 @@ document.addEventListener('DOMContentLoaded', function(){
         set_nl(note.id, note.title);
     });
     notes_area.addEventListener('keydown', function(e){
-      if(e.key != 'Tab')
-        return;
-      e.preventDefault();
-      let start = notes_area.selectionStart;
-      let end = notes_area.selectionEnd;
-      notes_area.value = notes_area.value.substring(0, start) + "  " + notes_area.value.substring(end);
-      // restore cursor position
-      notes_area.selectionStart = notes_area.selectionEnd = start+2;
+        if(e.key != 'Tab')
+            return;
+        e.preventDefault();
+        let start = notes_area.selectionStart;
+        let end = notes_area.selectionEnd;
+        notes_area.value = notes_area.value.substring(0, start) + "  " + notes_area.value.substring(end);
+        // restore cursor position
+        notes_area.selectionStart = notes_area.selectionEnd = start+2;
     });
+    const new_note = document.getElementById('new-note') as HTMLButtonElement;
+    const notes_list = document.getElementById('notes-list') as HTMLDivElement;
     button.addEventListener('click', function(){
         if(notes_is_open)
             return;
         notes_is_open = true;
         notes_window.style.display='grid';
-        update_iframe();
+        if(current_note_id == -1){
+            for(let nl of notes_list.getElementsByTagName('div')){
+                if(!nl.dataset) continue;
+                // @ts-ignore
+                set_note_by_id(+nl.dataset.id);
+                break;
+            }
+        }
     });
-    const new_note = document.getElementById('new-note') as HTMLButtonElement;
-    const notes_list = document.getElementById('notes-list') as HTMLDivElement;
     function set_nl(id:number, title:string){
         for(let nl of notes_list.getElementsByTagName('div')){
             if(!nl.dataset) continue;
@@ -435,10 +442,6 @@ document.addEventListener('DOMContentLoaded', function(){
             note.need_send = false;
             add_note(note.id, note);
         }
-        if(notes.length){
-            set_note_by_id(notes[0].id);
-        }
-
     });
     SOCKET.on('new-note', function(note_id:number){
         add_note(note_id, {flags:0, title:'Untitled', body:'', id:note_id, need_send:false, need_receive:false});
