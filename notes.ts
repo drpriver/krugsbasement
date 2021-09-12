@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', function(){
             return;
         }
         let title = notes_title_area.value;
-        let s = boilerplate + '\n' + title + '::title\n' + notes_area.value;
+        let s = title + '::title\n' + notes_area.value + '\n' + boilerplate;
         make_dnd_html(s, function(html:string, errors:Array<string>){
             while(editor_log.childNodes.length){
               editor_log.removeChild(editor_log.lastChild!);
@@ -254,13 +254,18 @@ document.addEventListener('DOMContentLoaded', function(){
                     const anchors = document.getElementsByTagName('a');
                     for(let a of anchors){
                         a.onclick = function(e){
-                           e.preventDefault();
-                           e.stopPropagation();
-                           let target = e.target.href.split('#')[1];
-                           let t = document.getElementById(target);
-                           if(t)
-                               t.scrollIntoView();
-                           return false;
+                           let split = e.target.href.split('#');
+                           if(split.length > 1){
+                               let target = e.target.href.split('#')[1];
+                               let t = document.getElementById(target);
+                               if(t){
+                                   t.scrollIntoView();
+                                   e.preventDefault();
+                                   e.stopPropagation();
+                                   return false;
+                               }
+                           }
+                           e.target.setAttribute('target', '_blank');
                         };
                     }
                 });
