@@ -27,6 +27,7 @@ David20::title @hide
     cursor: grab;
     background-color: rgb(221,221,221);
     border-radius: 8px 8px 0px 0px;
+    display: flex;
   }
   #notes-container {
     grid-row: 2;

@@ -188,6 +188,9 @@ document.addEventListener('DOMContentLoaded', function(){
         y = e.screenY;
     }
     const notes_close = document.getElementById('notes-close') as HTMLElement;
+    if(window.navigator.platform.includes('Windows')){
+        notes_close.style.marginLeft = 'auto';
+    }
     notes_close.addEventListener('click', hide_note_view);
     function hide_note_view(e:MouseEvent){
         e.preventDefault();
