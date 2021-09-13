@@ -96,6 +96,14 @@ const make_dnd_html = (function(){
 document.addEventListener('DOMContentLoaded', function(){
     const button = document.getElementById('notes-window-button') as HTMLButtonElement;
     const notes_window = document.getElementById('notes-window') as HTMLDivElement;
+    if(window.innerWidth > 800)
+        notes_window.style.width = '800px';
+    else
+        notes_window.style.width = '400px';
+    if(window.innerHeight > 600)
+        notes_window.style.height = '600px';
+    else
+        notes_window.style.height = '300px';
     const notes_editor_container = document.getElementById('note-view-editor-container') as HTMLDivElement;
     const move_handle = document.getElementById('notes-window-handle') as HTMLDivElement;
     const notes_area = document.getElementById('note-view-edit') as HTMLTextAreaElement;
@@ -179,8 +187,16 @@ document.addEventListener('DOMContentLoaded', function(){
         e.stopPropagation();
         let xdiff = e.screenX - x;
         let ydiff = e.screenY - y;
-        notes_window.style.top = yorg + ydiff + 'px';
-        notes_window.style.left = xorg + xdiff + 'px';
+        let newy = yorg + ydiff;
+        let newx = xorg + xdiff;
+        if(newy < 0) newy = 0;
+        if(newx < 0) newx = 0;
+        if(newx + 128 > window.innerWidth)
+            newx = window.innerWidth - 128;
+        if(newy + 128 > window.innerHeight)
+            newy = window.innerHeight - 128;
+        notes_window.style.top = newy + 'px';
+        notes_window.style.left = newx + 'px';
         let r = notes_window.getBoundingClientRect();
         xorg = r.left;
         yorg = r.top;
@@ -255,11 +271,13 @@ document.addEventListener('DOMContentLoaded', function(){
                 html += `<scr` + `ipt>
                 document.addEventListener('DOMContentLoaded', function(){
                     const anchors = document.getElementsByTagName('a');
-                    for(let a of anchors){
+                    function add_interceptor(a){
                         a.onclick = function(e){
-                           let split = e.target.href.split('#');
+                            let href = a.href;
+                            if(href.baseVal) href = href.baseVal;
+                           let split = href.split('#');
                            if(split.length > 1){
-                               let target = e.target.href.split('#')[1];
+                               let target = split[1];
                                let t = document.getElementById(target);
                                if(t){
                                    t.scrollIntoView();
@@ -268,8 +286,11 @@ document.addEventListener('DOMContentLoaded', function(){
                                    return false;
                                }
                            }
-                           e.target.setAttribute('target', '_blank');
+                           a.setAttribute('target', '_blank');
                         };
+                    }
+                    for(let a of anchors){
+                        add_interceptor(a);
                     }
                 });
                 </scr`+ `ipt>

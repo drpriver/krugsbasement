@@ -107,7 +107,7 @@ David20::title @hide
     background-color: rgba(0, 0, 0, 0.1);
   }
 ::raw
-  <div id="notes-window" style="display:none; width:min(80%, 80em); height: 85%;">
+  <div id="notes-window" style="display:none;">
     <div id="notes-window-handle">
     <span id="notes-close">X</span>
     </div>
