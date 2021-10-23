@@ -1,9 +1,9 @@
-enum MSG {
+const enum MSG {
     PLAIN = 0,
     DICEROLL = 1,
     ERROR = 2,
 }
-enum ROLLTYPE {
+const enum ROLLTYPE {
     DICE = 0,
     PRODUCT = 1,
     SUM = 2,
@@ -866,7 +866,7 @@ function err_dialog(html:string){
 }
 
 
-enum ROLLTABLEFLAGS { 
+const enum ROLLTABLEFLAGS { 
     NONE = 0,
     IS_TABLE = 1 << 0,
 }

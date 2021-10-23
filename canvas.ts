@@ -55,7 +55,7 @@ function line_overlaps_bbox(bbox:Bbox, x0:number, y0:number, x1:number, y1:numbe
 //
 //  Canvas Obj Types
 //  ================
-enum CANVASTYPE {
+const enum CANVASTYPE {
     FREEHAND_LINE =  1,
     GRID_LINE     =  2,
     RECT          =  3,
@@ -98,7 +98,7 @@ const SORTORDER = [
 ];
 //
 // flags
-enum CANVASFLAG {
+const enum CANVASFLAG {
     NONE = 0,
     DELETED = 1 << 0,
     ALL = NONE | DELETED,
@@ -1044,7 +1044,7 @@ const DOOR_TO_SHORT_NAMES = [
 ];
 let current_door = DOORTYPE.DOOR;
 
-enum GRIDSCALE {
+const enum GRIDSCALE {
     FIVE = "5",
     TEN = "10",
 };
@@ -1074,7 +1074,7 @@ document.addEventListener('DOMContentLoaded', function(){
     do_it('grid-5', GRIDSCALE.FIVE);
 });
 
-enum SNAPMODE {
+const enum SNAPMODE {
     GRID = "GRID",
     HALF = "HALF",
     QUARTER = "QUARTER",
@@ -1120,7 +1120,7 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 
 // orientations
-enum ORIENTATION {
+const enum ORIENTATION {
     VERTICAL = 0,
     HORIZONTAL = 1,
     TOPLEFT_DOWNRIGHT = 2,
@@ -1129,14 +1129,14 @@ enum ORIENTATION {
 
 const MAPS:Map<number,DungeonMap> = new Map();
 const MapOptionElements: Map<number, HTMLOptionElement> = new Map();
-enum MapFlags {
+const enum MapFlags {
     NONE        = 0,
     DELETED     = 1 << 0,
     CANT_DELETE = 1 << 1,
     NUMBERED    = 1 << 2,
 }
 
-enum GRIDTYPE {
+const enum GRIDTYPE {
     // Square is default.
     SQUARE = 0,
     // Hexes are drawn "odd-q" vertical layout
@@ -2175,7 +2175,7 @@ function clear_canvas(map:DungeonMap):void{
     request_render();
 }
 
-enum UNDO_EVENT_TYPE {
+const enum UNDO_EVENT_TYPE {
     CREATE = 0,
     DELETE = 1,
     UPDATE = 2,
@@ -2780,7 +2780,7 @@ function set_obj_states_from_stripped_objs(map:DungeonMap, obj_states:Array<Stri
 
 // These are a bit flags
 // Select background things (walls, lines).
-enum SELECTTYPE {
+const enum SELECTTYPE {
     MAP = 1 << 0,
     TOKEN = 1 << 1,
     BACKGROUND = 1 << 2,
@@ -5257,7 +5257,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
         ctx.fillText('max '+ max.toFixed(4)+'ms', 10, 50);
     }
 }
-enum TOOLTYPE {
+const enum TOOLTYPE {
     PAN     = 0,
     SELECT  = 1,
     LINE    = 2,
@@ -5323,7 +5323,7 @@ const TOOL_TO_TOOL_ID = [
     'tile-tool',
 ];
 let current_fixture_type = FIXTURETYPE.STAIRS;
-enum TOKENTYPE {
+const enum TOKENTYPE {
     EZ = 0,
     IMG = 1,
 }
@@ -5335,7 +5335,7 @@ const TOKEN_TO_NAME = [
 ];
 const TOKENTYPE_MAX = TOKENTYPE.IMG + 1;
 let current_token_type = TOKENTYPE.EZ;
-enum RECTTYPE {
+const enum RECTTYPE {
     HOLLOW = 0,
     SOLID = 1,
     FILLED = 2,
@@ -5906,7 +5906,7 @@ function maybe_move_selection_one_unit(view:DungeonMapView, dx:number, dy:number
     note_updates_for_undo(view.map, [before], [after]);
     return true;
 }
-enum CONTEXTMENUWHENFLAGS {
+const enum CONTEXTMENUWHENFLAGS {
     ALWAYS            = 1 << 0,
     MULTIPLE_SELECTED = 1 << 1, //  > 1
     NO_SELECTION      = 1 << 2, // == 0

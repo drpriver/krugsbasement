@@ -1,4 +1,4 @@
-enum NOTEFLAGS {
+const enum NOTEFLAGS {
     NONE = 0,
     DELETED = 1 << 0,
 }
