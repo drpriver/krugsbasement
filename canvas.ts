@@ -1061,6 +1061,19 @@ function change_gridscale(newscale:GRIDSCALE){
     }
     request_render();
 }
+function visually_set_gridscale(newscale:GRIDSCALE){
+    // change_gridscale(newscale);
+    switch(newscale){
+        case GRIDSCALE.TEN:{
+            const g = document.getElementById('grid-10')!;
+            g.click();
+        }break;
+        case GRIDSCALE.FIVE:{
+            const g = document.getElementById('grid-5')!;
+            g.click();
+        }break;
+    }
+}
 document.addEventListener('DOMContentLoaded', function(){
     function do_it(id:string, scale:GRIDSCALE){
         const grid10 = document.getElementById(id) as HTMLInputElement;
@@ -1344,6 +1357,18 @@ SOCKET.on(ToClient.CANVAS_GATHER, function(where:{map_id:number; x:number; y:num
     const view = get_active_view();
     view.camera_x = where.x;
     view.camera_y = where.y;
+    request_render();
+});
+SOCKET.on(ToClient.CANVAS_BATTLE, function(where:{map_id:number; x:number; y:number}): void{
+    change_map(where.map_id, false);
+    const view = get_active_view();
+    view.camera_x = where.x;
+    view.camera_y = where.y;
+    visually_set_gridscale(GRIDSCALE.FIVE);
+    request_render();
+});
+SOCKET.on(ToClient.CANVAS_DUNGEON_MODE, function():void{
+    visually_set_gridscale(GRIDSCALE.TEN);
     request_render();
 });
 const MIN_SCALE = 0.125;
@@ -5921,6 +5946,8 @@ const enum CONTEXTMENUWHENFLAGS {
     NO_SELECTION      = 1 << 2, // == 0
     ONE_SELECTED      = 1 << 3, // == 1
     ANY_SELECTED      = 1 << 4, // >= 1
+    GRID_TEN          = 1 << 5, //
+    GRID_FIVE         = 1 << 6, //
 };
 function event_to_coord(e:MouseEvent, view:DungeonMapView):[number, number]{
     const x = e.offsetX/view.scale - view.camera_x
@@ -7003,12 +7030,14 @@ document.addEventListener('DOMContentLoaded', function(){
         else {
             whenflags |= CONTEXTMENUWHENFLAGS.ANY_SELECTED;
         }
-        if(view.selected.size > 1){
+        if(view.selected.size > 1)
             whenflags |= CONTEXTMENUWHENFLAGS.MULTIPLE_SELECTED;
-        }
-        if(view.selected.size == 1){
+        if(view.selected.size == 1)
             whenflags |= CONTEXTMENUWHENFLAGS.ONE_SELECTED;
-        }
+        if(gridscale == GRIDSCALE.TEN)
+            whenflags |= CONTEXTMENUWHENFLAGS.GRID_TEN;
+        else
+            whenflags |= CONTEXTMENUWHENFLAGS.GRID_FIVE;
 
         canvas.addEventListener('pointerdown', remove_menu);
         type itemtype = {
@@ -7050,6 +7079,24 @@ document.addEventListener('DOMContentLoaded', function(){
                 },
                 disabled: false,
                 whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
+            },
+            {
+                label: 'Battlemode',
+                func: function(){
+                    SOCKET.emit(FromClient.CANVAS_BATTLE, {x:-x, y:-y, map_id:view.map.map_id});
+                    remove_menu();
+                },
+                disabled: false,
+                whenflags: CONTEXTMENUWHENFLAGS.GRID_TEN,
+            },
+            {
+                label: 'Dungeonmode',
+                func: function(){
+                    SOCKET.emit(FromClient.CANVAS_DUNGEON_MODE);
+                    remove_menu();
+                },
+                disabled: false,
+                whenflags: CONTEXTMENUWHENFLAGS.GRID_FIVE,
             },
             {
                 label: 'Rotate Everything',

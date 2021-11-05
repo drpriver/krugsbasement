@@ -1,15 +1,15 @@
 FromClient
-	# builtin
+    # builtin
     CONNECT = connect
-	# Core messages
+    # Core messages
     JOIN = j
     POST_JOIN = pj
-	# Chat messages
+    # Chat messages
     CHAT_INPUT = ci
-	# Roll Tables
+    # Roll Tables
     RETRIEVE_ROLL_TABLES = rrt
     UPDATE_ROLL_TABLES = urt
-	# Canvas Messages
+    # Canvas Messages
     CANVAS_CREATE_OBJECTS = cco
     CANVAS_DELETE = cd
     CANVAS_UPDATE = cu
@@ -21,27 +21,29 @@ FromClient
     CANVAS_GRID_TYPE = cgt
     CANVAS_GRID_NUMBERED = cgn
     CANVAS_DELETE_MAP_REQUEST = cdmr
-	# Note messages
+    CANVAS_BATTLE = cb
+    CANVAS_DUNGEON_MODE = cdmo
+    # Note messages
     GET_NOTE = gn
     NEW_NOTE_REQUEST = nnr
     NOTE_UPDATE_TITLE = nut
     NOTE_UPDATE_BODY = nub
     DELETE_NOTE_REQUEST = dnr
-	# debugging
-	DEBUG = d
+    # debugging
+    DEBUG = d
 
 ToClient
-	# builtin
-	CONNECT = connect
-	DISCONNECT = disconnect
-	# Core messages
+    # builtin
+    CONNECT = connect
+    DISCONNECT = disconnect
+    # Core messages
     SESSION_ID = si
     TOKEN_PATHS = tp
-	# Chat messages
+    # Chat messages
     CHAT_MSG = cm
     CHAT_CLEAR = ccl
     CHAT_CREATE = ccr
-	# Canvas
+    # Canvas
     CANVAS_INITIALIZE_MAPS = cim
     CANVAS_CREATE_OBJECTS = cco
     CANVAS_DELETE = cd
@@ -53,7 +55,9 @@ ToClient
     CANVAS_GRID_TYPE = cgt
     CANVAS_GRID_NUMBERED = cgn
     CANVAS_DELETE_MAP = cdm
-	# Notes
+    CANVAS_BATTLE = cb
+    CANVAS_DUNGEON_MODE = cdmo
+    # Notes
     NOTES_INITIALIZE = ni
     NEW_NOTE = nn
     NOTE_UPDATE_TITLE = nut

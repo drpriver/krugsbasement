@@ -107,6 +107,22 @@ def canvas_gather(where:Dict[str, int]) -> None:
     else:
         emit(ToClient.CANVAS_GATHER, where, broadcast=True, to=room)
 
+@socketio.on(FromClient.CANVAS_BATTLE)
+def canvas_battle(where:Dict[str, int]) -> None:
+    room = get_room(request)
+    try:
+        where = {'x':int(where['x']), 'y':int(where['y']), 'map_id':where['map_id']}
+    except:
+        pass
+    else:
+        emit(ToClient.CANVAS_BATTLE, where, broadcast=True, to=room)
+
+@socketio.on(FromClient.CANVAS_DUNGEON_MODE)
+def canvas_dungeon_mode() -> None:
+    room = get_room(request)
+    emit(ToClient.CANVAS_DUNGEON_MODE, broadcast=True, to=room)
+
+
 @socketio.on(FromClient.CANVAS_CREATE_MAP)
 def canvas_create_map(data:int) -> None:
     room = get_room(request)
