@@ -2043,11 +2043,20 @@ function delay_load_obj_image(obj:ImageObj|ImgToken, width:number, height:number
     const img = width && height? new Image(width, height): new Image();
     img.addEventListener('load', function(){
         obj.img = img;
+        if(!width || !height){
+            obj.width = img.width;
+            obj.height = img.height;
+        }
         request_render();
     }, {once:true});
     img.addEventListener('error', function(){
         obj.width = error_width;
         obj.height = error_height;
+        if(!error_width || !error_height){
+            obj.width = REFERENCE_WIDTH;
+            obj.height = REFERENCE_WIDTH;
+        }
+        request_render();
     }, {once:true});
     img.src = obj.url;
 }
