@@ -8,6 +8,9 @@ from .persist import Persister
 from. import appconfig
 import os
 import logging
+from .messages import FromClient, ToClient
+
+
 
 from typing import List, Dict, Optional, Set, Union
 
@@ -18,14 +21,14 @@ if appconfig.DEV:
 else:
     socketio = SocketIO(app, logger=False, cors_allowed_origins="https://krugsbasement.com")
 
-@socketio.on('chat-input')
+@socketio.on(FromClient.CHAT_INPUT)
 def chat_input(data:Dict[str, str]) -> None:
     room = get_room(request)
     if not data:
         return
     responses = chat.handle_input(room, data['text'], data['chatname'])
     if responses:
-        emit('chat-msg', responses, broadcast=True, to=room)
+        emit(ToClient.CHAT_MSG, responses, broadcast=True, to=room)
 
 def save_session_id(unused) -> int:
     return session_id
@@ -47,14 +50,14 @@ def get_token_paths():
 
 TOKEN_PATH_LIST = get_token_paths()
 
-@socketio.on('connect')
+@socketio.on(FromClient.CONNECT)
 def handle_connection() -> None:
     global session_id
     session_id += 1
-    emit('session-id', session_id)
-    emit('token-paths', TOKEN_PATH_LIST)
+    emit(ToClient.SESSION_ID, session_id)
+    emit(ToClient.TOKEN_PATHS, TOKEN_PATH_LIST)
 
-@socketio.on('join')
+@socketio.on(FromClient.JOIN)
 def join(room:str) -> None:
     record_room(request, room)
     logging.info("Someone joining room: '%s'", room);
@@ -65,36 +68,36 @@ def join(room:str) -> None:
     canvas.create_maps(room)
     notes.create_notes_for_room(room)
 
-@socketio.on('post-join')
+@socketio.on(FromClient.POST_JOIN)
 def post_join():
     room = get_room(request)
-    emit('chat-clear')
-    emit('chat-create', chat.get_history(room))
-    emit('canvas-initialize-maps', canvas.get_state(room))
-    emit('notes-initialize', notes.get_notes_for_room(room))
+    emit(ToClient.CHAT_CLEAR)
+    emit(ToClient.CHAT_CREATE, chat.get_history(room))
+    emit(ToClient.CANVAS_INITIALIZE_MAPS, canvas.get_state(room))
+    emit(ToClient.NOTES_INITIALIZE, notes.get_notes_for_room(room))
 
-@socketio.on('canvas-create-objects')
+@socketio.on(FromClient.CANVAS_CREATE_OBJECTS)
 def handle_canvas_create(data:dict) -> None:
     room = get_room(request)
     response = canvas.handle_create(room, data)
     if response:
-        emit('canvas-create-objects', response, broadcast=True, include_self=False, to=room)
+        emit(ToClient.CANVAS_CREATE_OBJECTS, response, broadcast=True, include_self=False, to=room)
 
-@socketio.on('canvas-delete')
+@socketio.on(FromClient.CANVAS_DELETE)
 def handle_canvas_delete(data:dict) -> None:
     room = get_room(request)
     response = canvas.handle_delete(room, data)
     if response:
-        emit('canvas-delete', response, broadcast=True, include_self=False, to=room)
+        emit(ToClient.CANVAS_DELETE, response, broadcast=True, include_self=False, to=room)
 
-@socketio.on('canvas-update')
+@socketio.on(FromClient.CANVAS_UPDATE)
 def handle_canvas_update(data:dict) -> None:
     room = get_room(request)
     response = canvas.handle_update(room, data)
     if response:
-        emit('canvas-update', response, broadcast=True, include_self=False, to=room)
+        emit(ToClient.CANVAS_UPDATE, response, broadcast=True, include_self=False, to=room)
 
-@socketio.on('canvas-gather')
+@socketio.on(FromClient.CANVAS_GATHER)
 def canvas_gather(where:Dict[str, int]) -> None:
     room = get_room(request)
     try:
@@ -102,74 +105,74 @@ def canvas_gather(where:Dict[str, int]) -> None:
     except:
         pass
     else:
-        emit('canvas-gather', where, broadcast=True, to=room)
+        emit(ToClient.CANVAS_GATHER, where, broadcast=True, to=room)
 
-@socketio.on('canvas-create-map')
+@socketio.on(FromClient.CANVAS_CREATE_MAP)
 def canvas_create_map(data:int) -> None:
     room = get_room(request)
     canvas.create_map(room, data)
-    emit('canvas-create-map', data, broadcast=True, include_self=False, to=room)
+    emit(ToClient.CANVAS_CREATE_MAP, data, broadcast=True, include_self=False, to=room)
 
-@socketio.on('canvas-ping')
+@socketio.on(FromClient.CANVAS_PING)
 def canvas_ping(data) -> None:
     room = get_room(request)
-    emit('canvas-ping', data, broadcast=True, include_self=False, to=room)
+    emit(ToClient.CANVAS_PING, data, broadcast=True, include_self=False, to=room)
 
-@socketio.on('canvas-name-map')
+@socketio.on(FromClient.CANVAS_NAME_MAP)
 def canvas_name_map(data) -> None:
     room = get_room(request)
     canvas.name_map(room, **data)
-    emit('canvas-name-map', data, broadcast=True, include_self=False, to=room)
+    emit(ToClient.CANVAS_NAME_MAP, data, broadcast=True, include_self=False, to=room)
 
-@socketio.on('canvas-new-map-request')
+@socketio.on(FromClient.CANVAS_NEW_MAP_REQUEST)
 def new_map_request(data) -> None:
     map_name:str = data['name']
     grid_type: int = data['grid_type']
     room = get_room(request)
     new_map_id = canvas.new_map_request(room, map_name, grid_type)
     logging.info('new map: %d for room "%s", with name: "%s"', new_map_id, room, map_name)
-    emit('canvas-create-map', new_map_id, broadcast=True, include_self=True, to=room)
-    emit('canvas-name-map', {'map_id':new_map_id, 'map_name':map_name}, broadcast=True, include_self=True, to=room)
-    emit('canvas-grid-type', {'map_id':new_map_id, 'grid_type':grid_type}, broadcast=True, include_self=True, to=room)
+    emit(ToClient.CANVAS_CREATE_MAP, new_map_id, broadcast=True, include_self=True, to=room)
+    emit(ToClient.CANVAS_NAME_MAP, {'map_id':new_map_id, 'map_name':map_name}, broadcast=True, include_self=True, to=room)
+    emit(ToClient.CANVAS_GRID_TYPE, {'map_id':new_map_id, 'grid_type':grid_type}, broadcast=True, include_self=True, to=room)
 
-@socketio.on('canvas-grid-type')
+@socketio.on(FromClient.CANVAS_GRID_TYPE)
 def change_grid_type(data) -> None:
     map_id = data['map_id']
     gt = data['grid_type']
     room = get_room(request)
     logging.info('Changing grid type to %s for map %s in room %s', gt, map_id, room)
     canvas.change_grid_type(room, map_id, gt)
-    emit('canvas-grid-type', {'map_id':map_id, 'grid_type':gt}, broadcast=True, include_self=True, to=room)
+    emit(ToClient.CANVAS_GRID_TYPE, {'map_id':map_id, 'grid_type':gt}, broadcast=True, include_self=True, to=room)
 
-@socketio.on('canvas-grid-numbered')
+@socketio.on(FromClient.CANVAS_GRID_NUMBERED)
 def change_grid_numbered(data) -> None:
     map_id = data['map_id']
     numbered = data['numbered']
     room = get_room(request)
     canvas.set_numbered(room, map_id, numbered)
-    emit('canvas-grid-numbered', {'map_id':map_id, 'numbered':numbered}, broadcast=True, include_self=True, to=room)
+    emit(ToClient.CANVAS_GRID_NUMBERED, {'map_id':map_id, 'numbered':numbered}, broadcast=True, include_self=True, to=room)
 
 
-@socketio.on('canvas-delete-map-request')
+@socketio.on(FromClient.CANVAS_DELETE_MAP_REQUEST)
 def delete_map_request(map_id:int) -> None:
     room = get_room(request)
     logging.info('delete map: %d for room "%s"', map_id, room)
     was_deleted = canvas.delete_map(room, map_id)
     if was_deleted:
-        emit('canvas-delete-map', map_id, broadcast=True, include_self=True, to=room)
+        emit(ToClient.CANVAS_DELETE_MAP, map_id, broadcast=True, include_self=True, to=room)
 
-@socketio.on('get-note')
+@socketio.on(FromClient.GET_NOTE)
 def note_get(note_id: int):
     room = get_room(request)
     # logging.info('get note: %d', note_id)
     return notes.get_note(room, note_id)
 
-@socketio.on('new-note-request')
+@socketio.on(FromClient.NEW_NOTE_REQUEST)
 def new_note_request() -> int:
     room = get_room(request)
     note_id = notes.new_note_request(room)
     logging.info('new note: %d for room "%s"', note_id, room)
-    emit('new-note', note_id, broadcast=True, include_self=False, to=room)
+    emit(ToClient.NEW_NOTE, note_id, broadcast=True, include_self=False, to=room)
     return note_id
 
 @socketio.on('note-update-title')
