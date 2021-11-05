@@ -69,7 +69,23 @@ def make_ts(fc:KVS, tc:KVS) -> None:
     fp.flush()
     fp.close()
 
+def check_unique(vals:KVS, name:str) -> None:
+    keys = set()
+    values = set()
+    for item in vals:
+        if isinstance(item, str):
+            continue
+        key, value = item
+        if key in keys:
+            raise Exception(f'Duplicate key for {name} : {key}')
+        if value in values:
+            raise Exception(f'Duplicate value for {name} (key = {key}) : {value}')
+        keys.add(key)
+        values.add(value)
+
 if __name__ == '__main__':
     FromClient, ToClient = get_values()
+    check_unique(FromClient, 'FromClient')
+    check_unique(ToClient, 'ToClient')
     make_python(FromClient, ToClient)
     make_ts(FromClient, ToClient)
