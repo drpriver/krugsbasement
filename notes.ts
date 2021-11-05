@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 const delete_checkbox = document.getElementById('hover-delete-note')! as HTMLInputElement;
                 const should_delete = delete_checkbox.checked;
                 if(should_delete){
-                    SOCKET.emit('delete-note-request', current_note_id);
+                    SOCKET.emit(FromClient.DELETE_NOTE_REQUEST, current_note_id);
                 }
             })
     });
@@ -324,7 +324,7 @@ document.addEventListener('DOMContentLoaded', function(){
         let note = NOTES.get(current_note_id);
         if(!note) return;
         note.title = notes_title_area.value;
-        SOCKET.emit('note-update-title', {note_id:note.id, title:note.title});
+        SOCKET.emit(FromClient.NOTE_UPDATE_TITLE, {note_id:note.id, title:note.title});
         set_nl(note.id, note.title);
     });
     notes_area.addEventListener('keydown', function(e){
@@ -363,12 +363,12 @@ document.addEventListener('DOMContentLoaded', function(){
             }
         }
     }
-    SOCKET.on('note-dirty', function(note_id:number){
+    SOCKET.on(ToClient.NOTE_DIRTY, function(note_id:number){
         let note = NOTES.get(note_id);
         if(!note) return;
         note.need_receive = true;
         if(note_id == current_note_id){
-            SOCKET.emit('get-note', note_id, function(n:Note){
+            SOCKET.emit(FromClient.GET_NOTE, note_id, function(n:Note){
                 n.need_receive = false;
                 n.need_send = false;
                 NOTES.set(n.id, n);
@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded', function(){
         let note = NOTES.get(current_note_id);
         if(!note) return;
         if(note.need_send){
-            SOCKET.emit('note-update-body', {note_id:note.id, body:note.body});
+            SOCKET.emit(FromClient.NOTE_UPDATE_BODY, {note_id:note.id, body:note.body});
             note.need_send = false;
         }
     }
@@ -399,7 +399,7 @@ document.addEventListener('DOMContentLoaded', function(){
         let note = NOTES.get(id);
         if(!note) return;
         if(note.need_receive){
-            SOCKET.emit('get-note', id, function(n:Note){
+            SOCKET.emit(FromClient.GET_NOTE, id, function(n:Note){
                 n.need_receive = false;
                 n.need_send = false;
                 NOTES.set(id, n);
@@ -457,10 +457,10 @@ document.addEventListener('DOMContentLoaded', function(){
         }
         note.flags |= NOTEFLAGS.DELETED;
     }
-    SOCKET.on('note-delete', function(note_id:number){
+    SOCKET.on(ToClient.NOTE_DELETE, function(note_id:number){
         delete_note_by_id(note_id);
     });
-    SOCKET.on('notes-initialize', function(notes:Array<Note>){
+    SOCKET.on(ToClient.NOTES_INITIALIZE, function(notes:Array<Note>){
         const divs = Array.from(notes_list.getElementsByTagName('div'));
         for(let div of divs){
             notes_list.removeChild(div);
@@ -472,7 +472,7 @@ document.addEventListener('DOMContentLoaded', function(){
             add_note(note.id, note);
         }
     });
-    SOCKET.on('new-note', function(note_id:number){
+    SOCKET.on(ToClient.NEW_NOTE, function(note_id:number){
         add_note(note_id, {flags:0, title:'Untitled', body:'', id:note_id, need_send:false, need_receive:false});
     });
     new_note.addEventListener('click', function(e:MouseEvent){
@@ -480,23 +480,26 @@ document.addEventListener('DOMContentLoaded', function(){
         e.preventDefault();
         let id: number;
         stop_editing();
-        SOCKET.emit('new-note-request', function(new_id:number){
+        SOCKET.emit(FromClient.NEW_NOTE_REQUEST, function(new_id:number){
             id = new_id;
             add_note(id, {id:id, title:'Untitled', body:'', flags:0, need_send:false,  need_receive:false});
             set_note_by_id(id);
         });
     });
-    SOCKET.on('note-update-title', function(data:{note_id:number, title:string}){
+    SOCKET.on(ToClient.NOTE_UPDATE_TITLE, function(data:{note_id:number, title:string}){
         let note = NOTES.get(data.note_id);
         if(!note) return;
         note.title = data.title;
         set_nl(data.note_id, data.title);
         update_iframe();
     });
-    SOCKET.on('note-update-body', function(data:{note_id:number, body:string}){
+    // Server currently never sends this message
+    /*
+    SOCKET.on(ToClient.NOTE_UPDATE_BODY, function(data:{note_id:number, body:string}){
         let note = NOTES.get(data.note_id);
         if(!note) return;
         note.body = data.body;
         update_iframe();
     });
+    */
 });

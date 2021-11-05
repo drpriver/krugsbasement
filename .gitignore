@@ -25,3 +25,5 @@ tags
 *.vim
 *.bak
 wasm
+messages.ts
+WebDnD/messages.py

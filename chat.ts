@@ -78,13 +78,13 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>){
     }
 }
 
-SOCKET.on('chat-msg', function(msgs:Array<ChatMsg>){
+SOCKET.on(ToClient.CHAT_MSG, function(msgs:Array<ChatMsg>){
     const log = document.getElementById('chat-history')!;
     add_chat_msgs(log, msgs);
     log.scrollTo({behavior:'smooth', top:log.scrollHeight});
 });
 
-SOCKET.on('chat-create', function(msgs:Array<ChatMsg>){
+SOCKET.on(ToClient.CHAT_CREATE, function(msgs:Array<ChatMsg>){
     const log = document.getElementById('chat-history')!;
     add_chat_msgs(log, msgs);
     log.scrollTop = log.scrollHeight;
@@ -94,7 +94,7 @@ function clear_chat(){
     const log = document.getElementById('chat-history')!;
     log.innerHTML = '';
 }
-SOCKET.on('chat-clear', function(){
+SOCKET.on(ToClient.CHAT_CLEAR, function(){
     clear_chat();
 });
 
@@ -169,7 +169,7 @@ function add_macro_button(name:string, group:string, macro_index:number){
         if(!macro)
             return;
         let text = macro.body;
-        SOCKET.emit('chat-input', {chatname:chatname, text:text});
+        SOCKET.emit(FromClient.CHAT_INPUT, {chatname:chatname, text:text});
     });
     // const macros = document.getElementById('macros')!;
     let macrogroup = MACROGROUPS.get(group);
@@ -674,7 +674,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 if(maybe_handle_command(value)){
                 }
                 else {
-                    SOCKET.emit('chat-input', {chatname:chatname, text:value});
+                    SOCKET.emit(FromClient.CHAT_INPUT, {chatname:chatname, text:value});
                 }
                 if(!(history.length && value == history[history.length-1])){
                     history.push(value);
@@ -884,7 +884,7 @@ type RollTable = {
 function tables_button_dialog(){
     if(hover_is_open)
         return;
-    SOCKET.emit('retrieve-roll-tables', function(rolltables:Array<RollTable>){
+    SOCKET.emit(FromClient.RETRIEVE_ROLL_TABLES, function(rolltables:Array<RollTable>){
         if(hover_is_open)
             return;
         hover_is_open = true;
@@ -1142,7 +1142,7 @@ function tables_button_dialog(){
                 }
                 outtables.push({name:name, id:id, entries:entries});
             }
-            SOCKET.emit('update-roll-tables',outtables);
+            SOCKET.emit(FromClient.UPDATE_ROLL_TABLES,outtables);
         }
         document.body.appendChild(hoverpop);
     });

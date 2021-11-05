@@ -1,0 +1,61 @@
+FromClient
+	# builtin
+    CONNECT = connect
+	# Core messages
+    JOIN = join
+    POST_JOIN = post-join
+	# Chat messages
+    CHAT_INPUT = chat-input
+	# Roll Tables
+    RETRIEVE_ROLL_TABLES = retrieve-roll-tables
+    UPDATE_ROLL_TABLES = update-roll-tables
+	# Canvas Messages
+    CANVAS_CREATE_OBJECTS = canvas-create-objects
+    CANVAS_DELETE = canvas-delete
+    CANVAS_UPDATE = canvas-update
+    CANVAS_GATHER = canvas-gather
+    CANVAS_CREATE_MAP = canvas-create-map
+    CANVAS_PING = canvas-ping
+    CANVAS_NAME_MAP = canvas-name-map
+    CANVAS_NEW_MAP_REQUEST = canvas-new-map-request
+    CANVAS_GRID_TYPE = canvas-grid-type
+    CANVAS_GRID_NUMBERED = canvas-grid-numbered
+    CANVAS_DELETE_MAP_REQUEST = canvas-delete-map-request
+	# Note messages
+    GET_NOTE = get-note
+    NEW_NOTE_REQUEST = new-note-request
+    NOTE_UPDATE_TITLE = note-update-title
+    NOTE_UPDATE_BODY = note-update-body
+    DELETE_NOTE_REQUEST = delete-note-request
+	# debugging
+	DEBUG = debug
+
+ToClient
+	# builtin
+	CONNECT = connect
+	DISCONNECT = disconnect
+	# Core messages
+    SESSION_ID = session-id
+    TOKEN_PATHS = token-paths
+	# Chat messages
+    CHAT_MSG = chat-msg
+    CHAT_CLEAR = chat-clear
+    CHAT_CREATE = chat-create
+	# Canvas
+    CANVAS_INITIALIZE_MAPS = canvas-initialize-maps
+    CANVAS_CREATE_OBJECTS = canvas-create-objects
+    CANVAS_DELETE = canvas-delete
+    CANVAS_UPDATE = canvas-update
+    CANVAS_GATHER = canvas-gather
+    CANVAS_CREATE_MAP = canvas-create-map
+    CANVAS_PING = canvas-ping
+    CANVAS_NAME_MAP = canvas-name-map
+    CANVAS_GRID_TYPE = canvas-grid-type
+    CANVAS_GRID_NUMBERED = canvas-grid-numbered
+    CANVAS_DELETE_MAP = canvas-delete-map
+	# Notes
+    NOTES_INITIALIZE = notes-initialize
+    NEW_NOTE = new-note
+    NOTE_UPDATE_TITLE = note-update-title
+    NOTE_DIRTY = note-dirty
+    NOTE_DELETE = note-delete

@@ -7,6 +7,8 @@ from .persist import Persister
 from flask_socketio import emit
 from .logs import logging
 
+from .messages import ToClient
+
 from enum import IntEnum, IntFlag
 class Msg(IntEnum):
     PLAIN = 0
@@ -142,7 +144,7 @@ def handle_input(room:str, data:str, user:str='anon') -> List[dict]:
             except:
                 pass
             else:
-                emit('canvas-gather', {'x':x, 'y':y}, broadcast=True)
+                emit(ToClient.CANVAS_GATHER,{'x':x, 'y':y}, broadcast=True)
         elif parts[0] in {'/table', 'table'}:
             try:
                 table_result, path = parse_and_roll_table(room, line[len(parts[0]):])

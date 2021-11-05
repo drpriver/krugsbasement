@@ -175,36 +175,36 @@ def new_note_request() -> int:
     emit(ToClient.NEW_NOTE, note_id, broadcast=True, include_self=False, to=room)
     return note_id
 
-@socketio.on('note-update-title')
+@socketio.on(FromClient.NOTE_UPDATE_TITLE)
 def note_update_title(data) -> None:
     room = get_room(request)
     notes.note_update_title(room, data['note_id'], data['title'])
     # logging.info('Updating note title. Note: %s. Room: %s. Title: %s', data['note_id'], room, data['title'])
-    emit('note-update-title', data, broadcast=True, include_self=False, to=room)
-    # emit('note-dirty', data['note_id'], broadcast=True, include_self=False, to=room)
+    emit(ToClient.NOTE_UPDATE_TITLE, data, broadcast=True, include_self=False, to=room)
+    # emit(ToClient.NOTE_DIRTY, data['note_id'], broadcast=True, include_self=False, to=room)
 
-@socketio.on('note-update-body')
+@socketio.on(FromClient.NOTE_UPDATE_BODY)
 def note_update_body(data) -> None:
     room = get_room(request)
     # logging.info('Updating note body. Note: %s. Room: %s', data['note_id'], room)
     notes.note_update_body(room, data['note_id'], data['body'])
     # emit('note-update-body', data, broadcast=True, include_self=False, to=room)
-    emit('note-dirty', data['note_id'], broadcast=True, include_self=False, to=room)
+    emit(ToClient.NOTE_DIRTY, data['note_id'], broadcast=True, include_self=False, to=room)
 
-@socketio.on('delete-note-request')
+@socketio.on(FromClient.DELETE_NOTE_REQUEST)
 def note_delete(note_id:int) -> None:
     room = get_room(request)
     logging.info('delete note: %d for room "%s"', note_id, room)
     notes.note_delete(room, note_id)
-    emit('note-delete', note_id, broadcast=True, include_self=True, to=room)
+    emit(ToClient.NOTE_DELETE, note_id, broadcast=True, include_self=True, to=room)
 
-@socketio.on('retrieve-roll-tables')
+@socketio.on(FromClient.RETRIEVE_ROLL_TABLES)
 def retrieve_roll_tables() -> list:
     room = get_room(request)
     logging.info('retrieving roll tables for room "%s"', room)
     return chat.get_roll_tables(room)
 
-@socketio.on('update-roll-tables')
+@socketio.on(FromClient.UPDATE_ROLL_TABLES)
 def update_roll_tables(tables:list) -> None:
     room = get_room(request)
     logging.info('Setting roll tables for room "%s"', room)
@@ -254,7 +254,7 @@ if appconfig.DEV:
     @app.route('/favicon.ico')
     def get_favicon():
         return send_from_directory('.', 'favicon.ico')
-    @socketio.on('debug')
+    @socketio.on(FromClient.DEBUG)
     def log_debug(msg:str) -> None:
         room = get_room(request)
         logging.info('room: %s - %s', room, msg)

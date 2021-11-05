@@ -2,9 +2,9 @@ Depends: ; mkdir -p $@
 DEPFILES:= $(wildcard Depends/*.dep)
 include $(DEPFILES)
 TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError
-TSFILES:= toplevel.ts chat.ts canvas.ts notes.ts utils.ts
+TSFILES:= toplevel.ts chat.ts canvas.ts notes.ts utils.ts messages.ts
 combined.js: $(TSFILES)
-	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc $^ $(TSCFLAGS) --outFile $@ | cat"
+	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc $(TSFILES) $(TSCFLAGS) --outFile $@ | cat"
 
 .PHONY: watcher
 watcher:
@@ -12,11 +12,14 @@ watcher:
 .DEFAULT_GOAL:=combined.js
 
 .PHONY: run
-run: combined.js token-list
+run: combined.js token-list WebDnD/messages.py
 	. venv/bin/activate && python3 -m WebDnD.app
 
 screen.html: screen.dnd combined.js | Depends
 	dndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
+
+messages.ts WebDnD/messages.py: message-enum.txt
+	python3 Scripts/make_enums.py
 
 .PHONY: dist.zip
 dist.zip: screen.html
