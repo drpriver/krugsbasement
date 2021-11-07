@@ -169,6 +169,7 @@ function add_macro_button(name:string, group:string, macro_index:number){
         if(!macro)
             return;
         let text = macro.body;
+        text = preprocess_command(text);
         SOCKET.emit(FromClient.CHAT_INPUT, {chatname:chatname, text:text});
     });
     // const macros = document.getElementById('macros')!;
@@ -671,11 +672,8 @@ document.addEventListener('DOMContentLoaded', function(){
             const value = ta.value;
             if(value.length){
                 ta.value = "";
-                if(maybe_handle_command(value)){
-                }
-                else {
-                    SOCKET.emit(FromClient.CHAT_INPUT, {chatname:chatname, text:value});
-                }
+                let processed = preprocess_command(value);
+                SOCKET.emit(FromClient.CHAT_INPUT, {chatname:chatname, text:processed});
                 if(!(history.length && value == history[history.length-1])){
                     history.push(value);
                 }
@@ -710,6 +708,74 @@ document.addEventListener('DOMContentLoaded', function(){
     });
 });
 
+function preprocess_command(value:string):string {
+    let result = [];
+    let lines = value.split('\n');
+    let lines_length = lines.length;
+    for(let i = 0; i < lines_length; i++){
+        let line = lines[i];
+        if(maybe_handle_command(line)) continue;
+        if(line.trim().length && line.trim()[0] == '{'){
+            let closing_brace = process_script_lines(lines, i, result);
+            i = closing_brace;
+            continue;
+        }
+        result.push(line);
+    }
+    return result.join('\n');
+}
+
+function evaluate(text:string):any{
+    const vars = {
+        strength: 3,
+        bab: 4,
+        rapid: true,
+    };
+    vars as unknown as void;
+    return eval(text); // LOL
+}
+
+function process_script_lines(lines: Array<string>, i:number, result:Array<string>): number {
+    let braces = 0;
+    let lines_length = lines.length;
+    for(let k = i; k < lines_length; k++){
+        let line = lines[k];
+        for(let c of line){
+            if(c == '{')
+                braces++
+            if(c == '}')
+                braces--;
+        }
+        if(braces == 0){
+            if(i+1 < k){
+                let scriptlines = lines.slice(i+1, k).join('\n');
+                // remove smart quotes
+                scriptlines = scriptlines.replace(/[“”]/g,'"');
+                scriptlines = scriptlines.replace(/[‘’]/g,"'");
+                scriptlines = `(function(){
+                    const _CHATLINES = [];
+                    const chat = function(line){
+                        line = "" + line;
+                        _CHATLINES.push(line);
+                    }
+                    ${scriptlines}
+                    return _CHATLINES;
+                })()`;
+                try {
+                    let evaled = evaluate(scriptlines);
+                    for(let e of evaled){
+                        result.push(e);
+                    }
+                }catch(e){
+                    alert(""+e);
+                    console.log(e);
+                }
+            }
+            return k;
+        }
+    }
+    return i;
+}
 
 function maybe_handle_command(value:string):boolean{
     let splitted = value.split(" ");
