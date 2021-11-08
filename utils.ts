@@ -91,7 +91,6 @@ function make_ok_dialog2(html:string, after_append:()=>void, on_ok:(_:HTMLElemen
     }
 }
 
-
 function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement){
     let dragging = false;
     let x = 0;
@@ -159,4 +158,9 @@ function setup_closable_window(win:HTMLElement, closer:HTMLElement, onclose:()=>
         onclose();
         win.style.display='none';
     }
+}
+
+function get_by_id<T extends HTMLElement >(id:string):T{
+    const result = document.getElementById(id) as T;
+    return result;
 }

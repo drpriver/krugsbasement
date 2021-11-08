@@ -161,30 +161,46 @@ document.addEventListener('DOMContentLoaded', function(){
         add_macro_button(m.name, m.group, i);
     }
 });
+
+function save_macros(){
+    localStorage.setItem(`${THISPAGE}/MACROS`, JSON.stringify(MACROS));
+}
+window.addEventListener("beforeunload", function(){
+    save_macros();
+}, false);
+
 function add_macro(m:Macro){
     MACROS.push(m);
-    localStorage.setItem(`${THISPAGE}/MACROS`, JSON.stringify(MACROS));
+    save_macros();
 }
 function add_macros(macros:Array<Macro>){
-    for(let m of macros){
+    for(let m of macros)
         MACROS.push(m);
-    }
-    localStorage.setItem(`${THISPAGE}/MACROS`, JSON.stringify(MACROS));
+    save_macros();
 }
-
 
 document.addEventListener('DOMContentLoaded', function(){
     let current_macro: Macro | null = null;
     let displayed_group = "";
-    function delete_macro(m:any){
-        console.log(m);
+    function delete_macro(m:Macro){
+        const index = MACROS.indexOf(m);
+        MACROS.splice(index, 1);
+        save_macros();
+        if(MACROS.length){
+            current_macro = MACROS[0];
+            displayed_group = current_macro.group;
+        }
+        update_list();
+        make_active(current_macro);
     }
-    const button = document.getElementById('macros-button') as HTMLButtonElement;
+    const button: HTMLButtonElement = get_by_id('macros-button');
+    const label: HTMLSpanElement = get_by_id('macro-category-label');
     let macros_is_open = false;
     button.addEventListener('click', function(){
         if(macros_is_open) return;
         macros_is_open = true;
         macros_window.style.display = 'grid';
+        label.style.height = '' + new_macro.clientHeight + 'px';
         if(MACROS.length){
             current_macro = MACROS[0];
             displayed_group = current_macro.group;
@@ -192,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function(){
         update_list();
         make_active(current_macro);
     });
-    const macros_window = document.getElementById('macros-window') as HTMLDivElement;
+    const macros_window: HTMLDivElement = get_by_id('macros-window');
     if(window.innerWidth > 800)
         macros_window.style.width = '800px';
     else
@@ -201,13 +217,14 @@ document.addEventListener('DOMContentLoaded', function(){
         macros_window.style.height = '600px';
     else
         macros_window.style.height = '300px';
-    const editor_container = document.getElementById('macro-editor') as HTMLDivElement;
-    const move_handle = document.getElementById('macros-window-handle') as HTMLDivElement;
-    const macro_area = document.getElementById('macro-view-edit') as HTMLTextAreaElement;
-    const macro_group_area = document.getElementById('macro-view-group') as HTMLTextAreaElement;
-    const macro_title_area = document.getElementById('macro-view-title') as HTMLTextAreaElement;
-    const del_macro_button = document.getElementById('delete-macro') as HTMLButtonElement;
-    const new_macro = document.getElementById('new-macro') as HTMLButtonElement;
+    const editor_container: HTMLDivElement      = get_by_id('macro-editor');
+    const move_handle     : HTMLDivElement      = get_by_id('macros-window-handle');
+    const macro_area      : HTMLTextAreaElement = get_by_id('macro-view-edit');
+    const macro_group_area: HTMLTextAreaElement = get_by_id('macro-view-group');
+    const macro_title_area: HTMLTextAreaElement = get_by_id('macro-view-title');
+    const del_macro_button: HTMLButtonElement   = get_by_id('delete-macro');
+    const new_macro       : HTMLButtonElement   = get_by_id('new-macro');
+    const log             : HTMLDivElement      = get_by_id('macro-test-log');
     new_macro.addEventListener('click', function(){
         let new_macro: Macro;
         if(current_macro){
@@ -232,8 +249,24 @@ document.addEventListener('DOMContentLoaded', function(){
         update_list();
         make_active(new_macro);
     });
-    const macros_list = document.getElementById('macros-list') as HTMLDivElement;
-    const macros_group_list = document.getElementById('macros-group-list') as HTMLDivElement;
+    const test_button: HTMLButtonElement = get_by_id('test-macro');
+    test_button.addEventListener('click', function(){
+        if(!current_macro) return;
+        let lines = evaluate(current_macro.body);
+        let pre = document.createElement('pre');
+        pre.textContent = lines.join('\n');
+        (log as any).replaceChildren(pre);
+    });
+    const use_button: HTMLButtonElement = get_by_id('use-macro');
+    use_button.addEventListener('click', function(){
+        if(!current_macro) return;
+        let text = current_macro.body;
+        text = preprocess_command(text);
+        SOCKET.emit(FromClient.CHAT_INPUT, {chatname:chatname, text:text});
+    });
+
+    const macros_list: HTMLDivElement = get_by_id('macros-list');
+    const macros_group_list: HTMLDivElement = get_by_id('macros-group-list');
     del_macro_button.addEventListener('click', function(){
         make_ok_dialog(`
             <h2>Delete Macro</h2>
@@ -244,19 +277,22 @@ document.addEventListener('DOMContentLoaded', function(){
             </tr>
             </table>`,
             function (e:HTMLElement){
-                const delete_checkbox = document.getElementById('hover-delete-macro')! as HTMLInputElement;
+                const delete_checkbox: HTMLInputElement = get_by_id('hover-delete-macro');
                 const should_delete = delete_checkbox.checked;
-                if(should_delete){
+                if(should_delete && current_macro !== null){
                     delete_macro(current_macro);
                 }
             });
     });
     setup_movable_window(macros_window, move_handle);
-    const macro_close = document.getElementById('macros-close') as HTMLElement;
+    const macro_close = get_by_id('macros-close');
     setup_closable_window(macros_window, macro_close, function(){
+        save_macros();
         macros_is_open = false;
+        do_macro_buttons();
     });
     function make_active(m:Macro | null){
+        (log as any).replaceChildren();
         let mid;
         let groupid;
         if(!m){
@@ -454,6 +490,12 @@ function add_macros_and_buttons(macros:Array<Macro>){
     for(let m of macros){
         add_macro_button(m.name, m.group, start++);
     }
+}
+function do_macro_buttons(){
+    clear_macro_buttons();
+    let i = 0;
+    for(let m of MACROS)
+        add_macro_button(m.name, m.group, i++);
 }
 
 function export_settings(e:MouseEvent){

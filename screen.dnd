@@ -62,11 +62,15 @@ David20::title @hide
   #macro-editor {
     height: calc(100% - 32px);
     width: 100%;
+    padding-right: 12px;
   }
-  #note-view-title, #macro-view-title{
+  #note-view-title, #macro-view-title, #macro-view-group {
     resize: none;
     width: 100%;
     font-family: monospace;
+  }
+  #macro-view-group::after{
+    content: "Group: ";
   }
   #note-view-edit, #macro-view-edit {
     resize: none;
@@ -80,9 +84,17 @@ David20::title @hide
     height: max(70%, calc(100% - 200px));
   }
   #note-view-editor-log, #macro-test-log {
-    height: min(20%, 100px);
+    height: min(20%, 120px);
     color: #800;
     border: 1px solid grey;
+    overflow-y: auto;
+  }
+  #macro-test-log pre {
+    margin: 0;
+    padding: 8px;
+    -webkit-user-select: initial;
+    user-select: initial;
+    width: 20em;
   }
   #notes-list, #macros-list, #macros-group-list{
     display: flex;
@@ -149,7 +161,7 @@ David20::title @hide
     </div>
   </div>
 ::raw
-  <div id="macros-window" style="display:block;">
+  <div id="macros-window" style="display:none;">
     <div id="macros-window-handle">
       <span id="macros-close">X</span>
     </div>
@@ -166,9 +178,12 @@ David20::title @hide
         <div id="macros-buttons">
           <button id="delete-macro">Delete</button>
           <button id="test-macro">Test</button>
+          <button id="use-macro">Use</button>
         </div>
-        <textarea id="macro-view-title" rows=1></textarea>
-        <textarea id="macro-view-group" rows=1></textarea>
+        <div style="display:table; width: 100%;">
+        <div style="display:table-row; width: 100%;"><span style="display:table-cell; vertical-align:top; padding-left: 8px;">Title: </span><textarea id="macro-view-title" rows=1 style="display:table-cell;"></textarea></div>
+        <div style="display:table-row; width: 100%;"><span style="display:table-cell; vertical-align:top; padding-left: 8px;">Group: </span><textarea id="macro-view-group" rows=1 style="display:table-cell;"></textarea></div>
+        </div>
         <textarea id="macro-view-edit"></textarea>
         <div id="macro-test-log"></div>
       </div>
