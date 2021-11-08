@@ -107,7 +107,11 @@ type Macro = {
     group: string;
     name: string;
     body: string;
+    id: number;
 };
+let macro_id = 0;
+let macro_group_id = 0;
+const MACRO_GROUPS: Map<string, number> = new Map();
 const MACROS: Array<Macro> = (function(){
     let macros_string = localStorage.getItem(`${THISPAGE}/MACROS`);
     if(!macros_string){
@@ -122,13 +126,16 @@ const MACROS: Array<Macro> = (function(){
     const macros = JSON.parse(macros_string);
     // handle old macros
     const result: Array<Macro> = [];
+    MACRO_GROUPS.set("", 0);
+    macro_group_id++;
     if(!Array.isArray(macros)){
         for(let [key, value] of Object.entries(macros)){
             if(typeof key !== "string")
                 continue;
             if(typeof value !== "string")
                 continue
-            result.push({name:key, body:value, group:""});
+            result.push({name:key, body:value, group:"", id:macro_id});
+            macro_id++;
         }
     }
     else {
@@ -137,7 +144,12 @@ const MACROS: Array<Macro> = (function(){
                 continue;
             if(!m.body)
                 continue;
-            result.push({name:m.name, body:m.body, group:m.group?m.group:""});
+            result.push({name:m.name, body:m.body, group:m.group?m.group:"", id:macro_id});
+            macro_id++;
+            if(m.group && !MACRO_GROUPS.has(m.group)){
+                MACRO_GROUPS.set(m.group, macro_group_id);
+                macro_group_id++;
+            }
         }
     }
     return result;
@@ -159,6 +171,216 @@ function add_macros(macros:Array<Macro>){
     }
     localStorage.setItem(`${THISPAGE}/MACROS`, JSON.stringify(MACROS));
 }
+
+
+document.addEventListener('DOMContentLoaded', function(){
+    let current_macro: Macro | null = null;
+    let displayed_group = "";
+    function delete_macro(m:any){
+        console.log(m);
+    }
+    const button = document.getElementById('macros-button') as HTMLButtonElement;
+    let macros_is_open = false;
+    button.addEventListener('click', function(){
+        if(macros_is_open) return;
+        macros_is_open = true;
+        macros_window.style.display = 'grid';
+        if(MACROS.length){
+            current_macro = MACROS[0];
+            displayed_group = current_macro.group;
+        }
+        update_list();
+        make_active(current_macro);
+    });
+    const macros_window = document.getElementById('macros-window') as HTMLDivElement;
+    if(window.innerWidth > 800)
+        macros_window.style.width = '800px';
+    else
+        macros_window.style.width = '400px';
+    if(window.innerHeight > 600)
+        macros_window.style.height = '600px';
+    else
+        macros_window.style.height = '300px';
+    const editor_container = document.getElementById('macro-editor') as HTMLDivElement;
+    const move_handle = document.getElementById('macros-window-handle') as HTMLDivElement;
+    const macro_area = document.getElementById('macro-view-edit') as HTMLTextAreaElement;
+    const macro_group_area = document.getElementById('macro-view-group') as HTMLTextAreaElement;
+    const macro_title_area = document.getElementById('macro-view-title') as HTMLTextAreaElement;
+    const del_macro_button = document.getElementById('delete-macro') as HTMLButtonElement;
+    const new_macro = document.getElementById('new-macro') as HTMLButtonElement;
+    new_macro.addEventListener('click', function(){
+        let new_macro: Macro;
+        if(current_macro){
+            new_macro = {
+                group: current_macro.group,
+                id: macro_id++,
+                name: 'Untitled',
+                body: '',
+            };
+        }
+        else {
+            new_macro = {
+                group: "",
+                id: macro_id++,
+                name: 'Untitled',
+                body: '',
+            };
+        }
+        current_macro = new_macro;
+        displayed_group = current_macro.group;
+        add_macro(new_macro);
+        update_list();
+        make_active(new_macro);
+    });
+    const macros_list = document.getElementById('macros-list') as HTMLDivElement;
+    const macros_group_list = document.getElementById('macros-group-list') as HTMLDivElement;
+    del_macro_button.addEventListener('click', function(){
+        make_ok_dialog(`
+            <h2>Delete Macro</h2>
+            <table class = "input-container">
+            <tr>
+              <td><label for="hover-delete-macro">Delete Macro</label>
+              <td><input name="hover-delete-macro" type="checkbox" id="hover-delete-macro">
+            </tr>
+            </table>`,
+            function (e:HTMLElement){
+                const delete_checkbox = document.getElementById('hover-delete-macro')! as HTMLInputElement;
+                const should_delete = delete_checkbox.checked;
+                if(should_delete){
+                    delete_macro(current_macro);
+                }
+            });
+    });
+    setup_movable_window(macros_window, move_handle);
+    const macro_close = document.getElementById('macros-close') as HTMLElement;
+    setup_closable_window(macros_window, macro_close, function(){
+        macros_is_open = false;
+    });
+    function make_active(m:Macro | null){
+        let mid;
+        let groupid;
+        if(!m){
+            editor_container.style.display = 'none';
+            mid = -1;
+            groupid = -1;
+        }
+        else {
+            editor_container.style.display = 'block';
+            mid = m.id;
+            groupid = MACRO_GROUPS.get(m.group) as number;
+        }
+        for(let ml of macros_list.getElementsByTagName('div')){
+            ml.classList.remove('active');
+            // @ts-ignore
+            if(+ml.dataset.id==mid)
+                ml.classList.add('active');
+        }
+        for(let gl of macros_group_list.getElementsByTagName('div')){
+            gl.classList.remove('active');
+            // @ts-ignore
+            if(+gl.dataset.id==groupid){
+                gl.classList.add('active');
+            }
+        }
+        if(m){
+            macro_area.value = m.body;
+            macro_title_area.value = m.name;
+            macro_group_area.value = m.group;
+        }
+    }
+    function update_list(){
+        for(let ml of Array.from(macros_list.getElementsByTagName('div'))){
+            ml.parentNode!.removeChild(ml);
+        }
+        for(let ml of Array.from(macros_group_list.getElementsByTagName('div'))){
+            ml.parentNode!.removeChild(ml);
+        }
+        function make_click_handler(group:string){
+            return function(){
+                if(displayed_group == group){
+                    return;
+                }
+                for(let m of Array.from(MACROS).sort((a, b) => { return (a.group < b.group)?-1:(a.group>b.group)?1:0})){
+                    if(m.group == group){
+                        current_macro = m;
+                        displayed_group = m.group;
+                        update_list();
+                        make_active(m);
+                        return;
+                    }
+                }
+            };
+        }
+        for(let [group, id] of MACRO_GROUPS.entries()){
+            let has_it = false;
+            for(let m of MACROS){
+                if(m.group == group){
+                    has_it = true;
+                    break;
+                }
+            }
+            if(!has_it) continue;
+            const d = document.createElement('div');
+            d.dataset.id = ""+id;
+            d.innerText = group.length?group:"General";
+            d.addEventListener('click', make_click_handler(group));
+            macros_group_list.appendChild(d);
+        }
+        function make_mclick_handler(m:Macro){
+            return function(){
+                current_macro = m;
+                make_active(m);
+            };
+        }
+        for(let m of MACROS.sort((a, b) => {
+            if(a.group < b.group)
+                return -1;
+            if(a.group > b.group)
+                return 1;
+            if(a.name < b.name)
+                return -1;
+            if(a.name > b.name)
+                return 1;
+            if(a.id < b.id)
+                return -1;
+            if(a.id > b.id)
+                return 1;
+            return 0;
+        })){
+            if(m.group !== displayed_group)
+                continue;
+            const d = document.createElement('div');
+            d.dataset.id = ""+m.id;
+            d.innerText = m.name;
+            d.addEventListener('click', make_mclick_handler(m));
+            macros_list.appendChild(d);
+        }
+
+    }
+    macro_area.addEventListener('input', function(){
+        if(!current_macro) return;
+        current_macro.body = macro_area.value;
+    });
+    macro_title_area.addEventListener('input', function(){
+        if(!current_macro) return;
+        current_macro.name = macro_title_area.value;
+        update_list();
+        make_active(current_macro);
+    });
+    macro_group_area.addEventListener('input', function(){
+        console.log('input');
+        if(!current_macro) return;
+        let new_value = macro_group_area.value;
+        if(new_value != current_macro.group){
+            current_macro.group = new_value;
+            if(!MACRO_GROUPS.has(new_value))
+                MACRO_GROUPS.set(new_value, macro_group_id++);
+            displayed_group = new_value;
+            update_list();
+            make_active(current_macro);
+        }
+    });
+});
 
 function add_macro_button(name:string, group:string, macro_index:number){
     const macro_button = elem_with_text('button', name, null, 'macro-button');
@@ -312,226 +534,226 @@ function import_settings(e:MouseEvent, remove_hoverpop:()=>void){
     inp.addEventListener('change', handlefiles, false);
     inp.click();
 }
-function macros_dialog(){
-    if(hover_is_open)
-        return;
-    hover_is_open = true;
-    const hoverpop = elem('section', null, 'hover');
-    type TabStuff = {
-        tab: HTMLDivElement;
-        table: HTMLTableElement;
-        tbody: HTMLTableSectionElement;
-    };
-    function delete_macro(e:MouseEvent){
-        e.preventDefault();
-        e.stopPropagation();
-        const row = ((e.currentTarget as HTMLElement).parentNode!.parentNode! as HTMLElement);
-        const parent = row.parentNode!;
-        row.remove();
-        if(parent.children.length == 0){
-            add_row(current_group, "", "");
-        }
-    }
-    function move_macro_up(e:MouseEvent){
-        e.preventDefault();
-        e.stopPropagation();
-        const row = ((e.currentTarget as HTMLElement).parentNode!.parentNode!.parentNode! as HTMLElement);
-        const parent = row.parentNode!;
-        if(row.previousSibling)
-            parent.insertBefore(row, row.previousSibling);
-    }
-    function move_macro_down(e:MouseEvent){
-        e.preventDefault();
-        e.stopPropagation();
-        const row = ((e.currentTarget as HTMLElement).parentNode!.parentNode!.parentNode! as HTMLElement);
-        const parent = row.parentNode!;
-        let next = row.nextSibling;
-        if(next)
-            next = next.nextSibling;
-        parent.insertBefore(row, next);
-    }
-    const mapping: Map<string, TabStuff> = new Map();
-    const groups: Array<string> = [];
-    function add_row(group:string, name:string, body:string){
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><div class="up-down"><button class="up">▲</button><button class="down">▼</button></div>
-            <td><input type="text" value="${name}">
-            <td><textarea rows="3" cols="40">${body}</textarea>
-            <td><button class="delete-macro-button">Delete</button>
-        `;
-        const button = tr.getElementsByClassName('delete-macro-button')[0] as HTMLButtonElement;
-        button.addEventListener('click', delete_macro);
-        const up = tr.getElementsByClassName('up')[0] as HTMLButtonElement;
-        up.addEventListener('click', move_macro_up);
-        const down = tr.getElementsByClassName('down')[0] as HTMLButtonElement;
-        down.addEventListener('click', move_macro_down);
-        const ts = mapping.get(group)!;
-        ts.tbody.appendChild(tr);
-    }
-    function make_tab_stuff(group:string):void{
-        const name = group? group : "General";
-        const tab = elem_with_text('div', name, null, 'hover-tab');
-        groups.push(group);
-        const table = elem('table', null, 'hover-tab-table');
-        table.innerHTML = `
-            <thead><tr>
-                <th>
-                <th>Name
-                <th>Macro
-                <th>
-            </tr></thead>
-        `;
-        const tbody = document.createElement('tbody');
-        table.appendChild(tbody);
-        const t: TabStuff = {
-            tab:tab,
-            table:table,
-            tbody:tbody,
-        };
-        mapping.set(group, t);
-    }
-    for(let m of MACROS){
-        if(!mapping.has(m.group))
-            make_tab_stuff(m.group);
-        add_row(m.group, m.name?m.name:"", m.body?m.body:"");
-    }
-    if(!mapping.has("")){
-        groups.push("");
-        make_tab_stuff("");
-        add_row("", "", "");
-    }
+// function macros_dialog(){
+    // if(hover_is_open)
+        // return;
+    // hover_is_open = true;
+    // const hoverpop = elem('section', null, 'hover');
+    // type TabStuff = {
+        // tab: HTMLDivElement;
+        // table: HTMLTableElement;
+        // tbody: HTMLTableSectionElement;
+    // };
+    // function delete_macro(e:MouseEvent){
+        // e.preventDefault();
+        // e.stopPropagation();
+        // const row = ((e.currentTarget as HTMLElement).parentNode!.parentNode! as HTMLElement);
+        // const parent = row.parentNode!;
+        // row.remove();
+        // if(parent.children.length == 0){
+            // add_row(current_group, "", "");
+        // }
+    // }
+    // function move_macro_up(e:MouseEvent){
+        // e.preventDefault();
+        // e.stopPropagation();
+        // const row = ((e.currentTarget as HTMLElement).parentNode!.parentNode!.parentNode! as HTMLElement);
+        // const parent = row.parentNode!;
+        // if(row.previousSibling)
+            // parent.insertBefore(row, row.previousSibling);
+    // }
+    // function move_macro_down(e:MouseEvent){
+        // e.preventDefault();
+        // e.stopPropagation();
+        // const row = ((e.currentTarget as HTMLElement).parentNode!.parentNode!.parentNode! as HTMLElement);
+        // const parent = row.parentNode!;
+        // let next = row.nextSibling;
+        // if(next)
+            // next = next.nextSibling;
+        // parent.insertBefore(row, next);
+    // }
+    // const mapping: Map<string, TabStuff> = new Map();
+    // const groups: Array<string> = [];
+    // function add_row(group:string, name:string, body:string){
+        // const tr = document.createElement('tr');
+        // tr.innerHTML = `
+            // <td><div class="up-down"><button class="up">▲</button><button class="down">▼</button></div>
+            // <td><input type="text" value="${name}">
+            // <td><textarea rows="3" cols="40">${body}</textarea>
+            // <td><button class="delete-macro-button">Delete</button>
+        // `;
+        // const button = tr.getElementsByClassName('delete-macro-button')[0] as HTMLButtonElement;
+        // button.addEventListener('click', delete_macro);
+        // const up = tr.getElementsByClassName('up')[0] as HTMLButtonElement;
+        // up.addEventListener('click', move_macro_up);
+        // const down = tr.getElementsByClassName('down')[0] as HTMLButtonElement;
+        // down.addEventListener('click', move_macro_down);
+        // const ts = mapping.get(group)!;
+        // ts.tbody.appendChild(tr);
+    // }
+    // function make_tab_stuff(group:string):void{
+        // const name = group? group : "General";
+        // const tab = elem_with_text('div', name, null, 'hover-tab');
+        // groups.push(group);
+        // const table = elem('table', null, 'hover-tab-table');
+        // table.innerHTML = `
+            // <thead><tr>
+                // <th>
+                // <th>Name
+                // <th>Macro
+                // <th>
+            // </tr></thead>
+        // `;
+        // const tbody = document.createElement('tbody');
+        // table.appendChild(tbody);
+        // const t: TabStuff = {
+            // tab:tab,
+            // table:table,
+            // tbody:tbody,
+        // };
+        // mapping.set(group, t);
+    // }
+    // for(let m of MACROS){
+        // if(!mapping.has(m.group))
+            // make_tab_stuff(m.group);
+        // add_row(m.group, m.name?m.name:"", m.body?m.body:"");
+    // }
+    // if(!mapping.has("")){
+        // groups.push("");
+        // make_tab_stuff("");
+        // add_row("", "", "");
+    // }
 
-    let html = `
-        <h2>Macros</h2>
-        <div id="hover-tab-container" class="hover-tab-container">
-        </div>
-        <div class="hover-button-container">
-            <button id="hover-add-macro">+ Add Macro</button>
-            <button id="export-settings">Export</button>
-            <button id="import-settings">Import</button>
-        </div>
-        <div class="hover-button-container">
-            <button type="button" id="hoverpop-ok">Ok</button>
-            <button type="button" id="hoverpop-cancel">Cancel</button>
-        </div>
-    `;
-    hoverpop.innerHTML = html;
-    const tabcontainer = hoverpop.getElementsByClassName('hover-tab-container')[0] as HTMLDivElement;
-    const tabs = elem('div', 'hover-tabs');
-    const tabcontents = elem('div', 'hover-tab-contents');
-    tabcontainer.appendChild(tabs);
-    tabcontainer.appendChild(tabcontents);
-    let current_group = groups[0];
+    // let html = `
+        // <h2>Macros</h2>
+        // <div id="hover-tab-container" class="hover-tab-container">
+        // </div>
+        // <div class="hover-button-container">
+            // <button id="hover-add-macro">+ Add Macro</button>
+            // <button id="export-settings">Export</button>
+            // <button id="import-settings">Import</button>
+        // </div>
+        // <div class="hover-button-container">
+            // <button type="button" id="hoverpop-ok">Ok</button>
+            // <button type="button" id="hoverpop-cancel">Cancel</button>
+        // </div>
+    // `;
+    // hoverpop.innerHTML = html;
+    // const tabcontainer = hoverpop.getElementsByClassName('hover-tab-container')[0] as HTMLDivElement;
+    // const tabs = elem('div', 'hover-tabs');
+    // const tabcontents = elem('div', 'hover-tab-contents');
+    // tabcontainer.appendChild(tabs);
+    // tabcontainer.appendChild(tabcontents);
+    // let current_group = groups[0];
     // cut-n-paste: very similar code is in the new tab below.
-    for(let i = 0; i < groups.length; i++){
-        let group = groups[i];
-        const t = mapping.get(group)!;
-        if(group != current_group){
-            t.table.style.display = 'none';
-        }
-        else {
-            t.tab.classList.add('active');
-        }
-        tabs.appendChild(t.tab);
-        tabcontents.appendChild(t.table);
-        t.tab.addEventListener('click', function(){
-            for(let ts of mapping.values()){
-                ts.tab.classList.remove('active');
-                ts.table.style.display = 'none';
-            }
-            t.tab.classList.add('active');
-            t.table.style.display = 'initial';
-            current_group = group;
-        });
-    }
-    const new_tab = elem_with_parent(tabs, 'div');
-    const new_tab_text = elem_with_parent(new_tab, 'input', 'new-tab-input');
-    new_tab_text.size = 8;
-    const new_tab_button = elem_with_text('span', '+');
-    new_tab_text.type = 'text';
-    new_tab.appendChild(new_tab_button);
-    new_tab.addEventListener('click', function(e:MouseEvent){
-        e.preventDefault();
-        e.stopPropagation();
-        const value = new_tab_text.value.trim();
-        if(!value)
-            return;
-        if(mapping.has(value))
-            return;
-        groups.push(value);
-        make_tab_stuff(value)
-        add_row(value, "", "");
-        current_group = value;
-        const t = mapping.get(value)!;
-        tabs.insertBefore(t.tab, new_tab);
-        tabcontents.appendChild(t.table);
+    // for(let i = 0; i < groups.length; i++){
+        // let group = groups[i];
+        // const t = mapping.get(group)!;
+        // if(group != current_group){
+            // t.table.style.display = 'none';
+        // }
+        // else {
+            // t.tab.classList.add('active');
+        // }
+        // tabs.appendChild(t.tab);
+        // tabcontents.appendChild(t.table);
+        // t.tab.addEventListener('click', function(){
+            // for(let ts of mapping.values()){
+                // ts.tab.classList.remove('active');
+                // ts.table.style.display = 'none';
+            // }
+            // t.tab.classList.add('active');
+            // t.table.style.display = 'initial';
+            // current_group = group;
+        // });
+    // }
+    // const new_tab = elem_with_parent(tabs, 'div');
+    // const new_tab_text = elem_with_parent(new_tab, 'input', 'new-tab-input');
+    // new_tab_text.size = 8;
+    // const new_tab_button = elem_with_text('span', '+');
+    // new_tab_text.type = 'text';
+    // new_tab.appendChild(new_tab_button);
+    // new_tab.addEventListener('click', function(e:MouseEvent){
+        // e.preventDefault();
+        // e.stopPropagation();
+        // const value = new_tab_text.value.trim();
+        // if(!value)
+            // return;
+        // if(mapping.has(value))
+            // return;
+        // groups.push(value);
+        // make_tab_stuff(value)
+        // add_row(value, "", "");
+        // current_group = value;
+        // const t = mapping.get(value)!;
+        // tabs.insertBefore(t.tab, new_tab);
+        // tabcontents.appendChild(t.table);
         // this is copy-paste-y from above
-        t.tab.addEventListener('click', function(){
-            for(let ts of mapping.values()){
-                ts.tab.classList.remove('active');
-                ts.table.style.display = 'none';
-            }
-            t.tab.classList.add('active');
-            t.table.style.display = 'initial';
-            current_group = value;
-        });
-        for(let i = 0; i < groups.length; i++){
-            let group = groups[i];
-            const t = mapping.get(group)!;
-            if(group != current_group){
-                t.tab.classList.remove('active');
-                t.table.style.display = 'none';
-            }
-            else {
-                t.tab.classList.add('active');
-                t.table.style.display = 'initial';
-            }
-        }
-    });
-    for(let button of hoverpop.getElementsByClassName('delete-macro-button')){
-        (button as HTMLElement).addEventListener('click', delete_macro);
-    }
-    document.body.appendChild(hoverpop);
+        // t.tab.addEventListener('click', function(){
+            // for(let ts of mapping.values()){
+                // ts.tab.classList.remove('active');
+                // ts.table.style.display = 'none';
+            // }
+            // t.tab.classList.add('active');
+            // t.table.style.display = 'initial';
+            // current_group = value;
+        // });
+        // for(let i = 0; i < groups.length; i++){
+            // let group = groups[i];
+            // const t = mapping.get(group)!;
+            // if(group != current_group){
+                // t.tab.classList.remove('active');
+                // t.table.style.display = 'none';
+            // }
+            // else {
+                // t.tab.classList.add('active');
+                // t.table.style.display = 'initial';
+            // }
+        // }
+    // });
+    // for(let button of hoverpop.getElementsByClassName('delete-macro-button')){
+        // (button as HTMLElement).addEventListener('click', delete_macro);
+    // }
+    // document.body.appendChild(hoverpop);
 
-    document.getElementById('hover-add-macro')!.addEventListener('click', function(e:MouseEvent){
-        e.stopPropagation();
-        e.preventDefault();
-        add_row(current_group, "", "");
-    });
-    function remove_hoverpop(){
-        document.body.removeChild(hoverpop);
-        hover_is_open = false;
-    }
-    document.getElementById('export-settings')!.addEventListener('click', export_settings);
-    document.getElementById('import-settings')!.addEventListener('click', function(e:MouseEvent){import_settings(e, remove_hoverpop);});
-    const ok = document.getElementById('hoverpop-ok')!;
-    function submit(){
-        const macros: Array<Macro> = [];
-        for(let [group, ts] of mapping.entries()){
-            const trs = ts.tbody.getElementsByTagName('tr');
-            for(let i = 0; i < trs.length; i++){
-                let tr = trs[i];
-                const name = (tr.children[1].children[0] as HTMLInputElement).value;
-                const body = (tr.children[2].children[0] as HTMLTextAreaElement).value;
-                if(!name || !body)
-                    continue;
-                macros.push({name:name, group:group, body:body});
-            }
-        }
-        clear_macro_buttons();
-        MACROS.length = 0;
-        add_macros_and_buttons(macros);
-        remove_hoverpop();
-    }
-    ok.addEventListener('click', function(){
-        submit();
-    });
-    const cancel = document.getElementById('hoverpop-cancel')!;
-    cancel.addEventListener('click', function(){
-        remove_hoverpop();
-    });
-}
+    // document.getElementById('hover-add-macro')!.addEventListener('click', function(e:MouseEvent){
+        // e.stopPropagation();
+        // e.preventDefault();
+        // add_row(current_group, "", "");
+    // });
+    // function remove_hoverpop(){
+        // document.body.removeChild(hoverpop);
+        // hover_is_open = false;
+    // }
+    // document.getElementById('export-settings')!.addEventListener('click', export_settings);
+    // document.getElementById('import-settings')!.addEventListener('click', function(e:MouseEvent){import_settings(e, remove_hoverpop);});
+    // const ok = document.getElementById('hoverpop-ok')!;
+    // function submit(){
+        // const macros: Array<Macro> = [];
+        // for(let [group, ts] of mapping.entries()){
+            // const trs = ts.tbody.getElementsByTagName('tr');
+            // for(let i = 0; i < trs.length; i++){
+                // let tr = trs[i];
+                // const name = (tr.children[1].children[0] as HTMLInputElement).value;
+                // const body = (tr.children[2].children[0] as HTMLTextAreaElement).value;
+                // if(!name || !body)
+                    // continue;
+                // macros.push({name:name, group:group, body:body});
+            // }
+        // }
+        // clear_macro_buttons();
+        // MACROS.length = 0;
+        // add_macros_and_buttons(macros);
+        // remove_hoverpop();
+    // }
+    // ok.addEventListener('click', function(){
+        // submit();
+    // });
+    // const cancel = document.getElementById('hoverpop-cancel')!;
+    // cancel.addEventListener('click', function(){
+        // remove_hoverpop();
+    // });
+// }
 function chat_options_dialog(){
     if(hover_is_open)
         return;
@@ -652,12 +874,12 @@ document.addEventListener('DOMContentLoaded', function(){
         e.preventDefault();
         chat_options_dialog();
     });
-    const macros_button = document.getElementById('macros-button')!;
-    macros_button.addEventListener('click', function(e:MouseEvent){
-        e.stopPropagation();
-        e.preventDefault();
-        macros_dialog();
-    });
+    // const macros_button = document.getElementById('macros-button')!;
+    // macros_button.addEventListener('click', function(e:MouseEvent){
+        // e.stopPropagation();
+        // e.preventDefault();
+        // macros_dialog();
+    // });
     window.addEventListener('resize', resize_chat);
     const ta = document.getElementById('chatinput')! as HTMLInputElement;
     const history: Array<string> = [];

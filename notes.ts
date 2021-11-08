@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 if(should_delete){
                     SOCKET.emit(FromClient.DELETE_NOTE_REQUEST, current_note_id);
                 }
-            })
+            });
     });
     let is_editing = false;
     function stop_editing(){
@@ -151,71 +151,15 @@ document.addEventListener('DOMContentLoaded', function(){
             stop_editing();
         }
     });
-    let dragging = false;
-    let x = 0;
-    let y = 0;
-    let xorg = 0;
-    let yorg = 0;
-    move_handle.addEventListener('pointerdown', function(e:PointerEvent){
-        if(e.target !== move_handle)
-            return;
-        e.preventDefault();
-        e.stopPropagation();
-        dragging = true;
-        move_handle.style.cursor = 'grabbing';
-        let r = notes_window.getBoundingClientRect();
-        notes_window.style.top = r.top + 'px';
-        notes_window.style.left = r.left + 'px';
-        x = e.screenX;
-        y = e.screenY;
-        xorg = r.left;
-        yorg = r.top;
-        window.addEventListener('pointermove', pointermove);
-        window.addEventListener('pointerleave', endmove);
-        window.addEventListener('pointerup', endmove);
-    });
-    function endmove(e:PointerEvent){
-        window.removeEventListener('pointermove', pointermove);
-        window.removeEventListener('pointerleave', endmove);
-        window.removeEventListener('pointerup', endmove);
-        move_handle.style.cursor = 'grab';
-        dragging = false;
-    }
-    function pointermove(e:PointerEvent){
-        if(!dragging) return;
-        e.preventDefault();
-        e.stopPropagation();
-        let xdiff = e.screenX - x;
-        let ydiff = e.screenY - y;
-        let newy = yorg + ydiff;
-        let newx = xorg + xdiff;
-        if(newy < 0) newy = 0;
-        if(newx < 0) newx = 0;
-        if(newx + 128 > window.innerWidth)
-            newx = window.innerWidth - 128;
-        if(newy + 128 > window.innerHeight)
-            newy = window.innerHeight - 128;
-        notes_window.style.top = newy + 'px';
-        notes_window.style.left = newx + 'px';
-        let r = notes_window.getBoundingClientRect();
-        xorg = r.left;
-        yorg = r.top;
-        x = e.screenX;
-        y = e.screenY;
-    }
+
+    setup_movable_window(notes_window, move_handle);
     const notes_close = document.getElementById('notes-close') as HTMLElement;
-    if(window.navigator.platform.includes('Windows')){
-        notes_close.style.marginLeft = 'auto';
-    }
-    notes_close.addEventListener('click', hide_note_view);
-    function hide_note_view(e:MouseEvent){
-        e.preventDefault();
-        e.stopPropagation();
+    setup_closable_window(notes_window, notes_close, function(){
         stop_editing();
         sync_note();
-        notes_window.style.display='none';
         notes_is_open = false;
-    }
+    });
+
     let notes_is_open = false;
     const boilerplate = (''
         +'::css @inline\n'

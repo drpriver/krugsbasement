@@ -5,11 +5,11 @@ David20::title @hide
   reconnect.
   </div>
 ::css @inline
-  #notes-window {
+  #notes-window, #macros-window {
     position: fixed;
     top: 10%;
     left: 10%;
-    z-index: 3;
+    z-index: 4;
     resize: both;
     overflow: auto;
     flex-direction: row;
@@ -22,14 +22,17 @@ David20::title @hide
     -webkit-user-select: none;
     user-select: none;
   }
-  #notes-window-handle {
+  #macros-window {
+    z-index: 3;
+  }
+  #notes-window-handle, #macros-window-handle {
     grid-row: 1;
     cursor: grab;
     background-color: rgb(221,221,221);
     border-radius: 8px 8px 0px 0px;
     display: flex;
   }
-  #notes-container {
+  #notes-container, #macros-container {
     grid-row: 2;
     display: flex;
     flex-direction: row;
@@ -43,7 +46,7 @@ David20::title @hide
     display: flex;
     flex-direction: column;
   }
-  #notes-buttons {
+  #notes-buttons, #macros-buttons {
     display: block;
     height: 24px;
     margin-left: 0.5em;
@@ -56,30 +59,39 @@ David20::title @hide
     height: calc(100% - 16px);
     width: 100%;
   }
-  #note-view-title{
+  #macro-editor {
+    height: calc(100% - 32px);
+    width: 100%;
+  }
+  #note-view-title, #macro-view-title{
     resize: none;
     width: 100%;
     font-family: monospace;
+  }
+  #note-view-edit, #macro-view-edit {
+    resize: none;
+    font-family: monospace;
+    width: 100%;
   }
   #note-view-edit {
-    resize: none;
-    font-family: monospace;
-    width: 100%;
     height: max(80%, calc(100% - 100px));
   }
-  #note-view-editor-log {
+  #macro-view-edit {
+    height: max(70%, calc(100% - 200px));
+  }
+  #note-view-editor-log, #macro-test-log {
     height: min(20%, 100px);
     color: #800;
     border: 1px solid grey;
   }
-  #notes-list {
+  #notes-list, #macros-list, #macros-group-list{
     display: flex;
     flex-direction: column;
     width: 18em;
     height: calc(100% - 32px);
     overflow-y: auto;
   }
-  #notes-list div {
+  #notes-list div, #macros-list div, #macros-group-list div {
     padding: 8px;
     border-bottom: 1px solid black;
     cursor: pointer;
@@ -88,23 +100,27 @@ David20::title @hide
     -webkit-user-select: none;
     user-select: none;
   }
-  #notes-list div:hover {
+  #notes-list div:hover, #macros-list div:hover, #macros-group-list div:hover {
     background-color: #f8f8f8;
   }
-  #notes-list div.active:hover {
+  #notes-list div.active:hover, #macros-list div.active:hover, #macros-group-list div.active:hover {
     background-color: rgb(233, 233, 255);
   }
-  #notes-list div.active {
+  #notes-list div.active, #macros-list div.active, #macros-group-list div.active {
     background-color: rgb(211, 211, 255);
   }
-  #notes-close {
+  #notes-close, #macros-close {
     text-align: center;
     font-size: 24px;
     padding: 4px 12px;
     cursor: pointer;
+    height: 32px;
   }
-  #notes-close:hover {
+  #notes-close:hover, #macros-close:hover {
     background-color: rgba(0, 0, 0, 0.1);
+  }
+  #macro-category-label {
+    text-align: center;
   }
   /*endcss*/
 ::raw
@@ -133,20 +149,28 @@ David20::title @hide
     </div>
   </div>
 ::raw
-  <div id="macros-window" style="display:none;">
+  <div id="macros-window" style="display:block;">
     <div id="macros-window-handle">
       <span id="macros-close">X</span>
     </div>
     <div id="macros-container">
       <div id="macros-group-list">
-        <button id="new-macro-group">
-          + New Group
-        </button>
+        <span id="macro-category-label">Category</span>
       </div>
       <div id="macros-list">
         <button id="new-macro">
           + New Macro
         </button>
+      </div>
+      <div id="macro-editor" style="display:none;">
+        <div id="macros-buttons">
+          <button id="delete-macro">Delete</button>
+          <button id="test-macro">Test</button>
+        </div>
+        <textarea id="macro-view-title" rows=1></textarea>
+        <textarea id="macro-view-group" rows=1></textarea>
+        <textarea id="macro-view-edit"></textarea>
+        <div id="macro-test-log"></div>
       </div>
     </div>
   </div>
@@ -832,27 +856,30 @@ David20::title @hide
     body.dark-mode #colors {
       background-color: #333;
     }
-    body.dark-mode #notes-window {
+    body.dark-mode #notes-window, body.dark-mode #macros-window {
       background-color: #333;
     }
-    body.dark-mode #notes-window-handle {
+    body.dark-mode #notes-window-handle, body.dark-mode #macros-window-handle {
       background-color: #444;
     }
-    body.dark-mode #notes-list div {
+    body.dark-mode #notes-list div, body.dark-mode #macros-list div,  body.dark-mode #macros-group-list div{
       color: #aaa;
       background-color: #111;
     }
-    body.dark-mode #notes-list div:hover {
+    body.dark-mode #notes-list div:hover body.dark-mode #macros-list div:hover, body.dark-mode #macros-group-list div:hover{
       background-color: #113;
     }
-    body.dark-mode #notes-list div.active:hover {
+    body.dark-mode #notes-list div.active:hover, body.dark-mode #macros-list div.active:hover, body.dark-mode #macros-group-list div.active:hover{
       background-color: #446;
     }
-    body.dark-mode #notes-list div.active {
+    body.dark-mode #notes-list div.active, body.dark-mode #macros-list div.active, body.dark-mode #macros-group-list div.active{
       background-color: #335;
     }
     body.dark-mode #notes-close:hover {
       background-color: rgba(255, 255, 255, 0.1);
+    }
+    body.dark-mode #macro-category-label {
+      color: white;
     }
     @supports (-moz-appearance:none) {
       body.dark-mode textarea {
@@ -902,8 +929,6 @@ David20::title @hide
   #editorcontainer, #tool-container, #palette{
     touch-action: none;
   }
-
-
   /*endcss*/
 ::script @noinline
   https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js
