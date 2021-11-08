@@ -106,6 +106,7 @@ David20::title @hide
   #notes-close:hover {
     background-color: rgba(0, 0, 0, 0.1);
   }
+  /*endcss*/
 ::raw
   <div id="notes-window" style="display:none;">
     <div id="notes-window-handle">
@@ -128,6 +129,24 @@ David20::title @hide
         <textarea id="note-view-title" rows=1></textarea>
         <textarea id="note-view-edit"></textarea>
         <div id="note-view-editor-log"></div>
+      </div>
+    </div>
+  </div>
+::raw
+  <div id="macros-window" style="display:none;">
+    <div id="macros-window-handle">
+      <span id="macros-close">X</span>
+    </div>
+    <div id="macros-container">
+      <div id="macros-group-list">
+        <button id="new-macro-group">
+          + New Group
+        </button>
+      </div>
+      <div id="macros-list">
+        <button id="new-macro">
+          + New Macro
+        </button>
       </div>
     </div>
   </div>

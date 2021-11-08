@@ -859,7 +859,6 @@ function err_dialog(html:string){
     }
 }
 
-
 const enum ROLLTABLEFLAGS {
     NONE = 0,
     IS_TABLE = 1 << 0,
