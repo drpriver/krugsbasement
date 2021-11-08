@@ -15,7 +15,7 @@ type DieRoll = {
     values: Array<number>;
 }
 type GroupRoll = {
-    type: ROLLTYPE; // either .PRODUCT or 
+    type: ROLLTYPE; // either .PRODUCT or
     values: Array<DieRoll | GroupRoll>
 }
 type Roll = GroupRoll | DieRoll;
@@ -710,101 +710,29 @@ document.addEventListener('DOMContentLoaded', function(){
 
 function preprocess_command(value:string):string {
     let result = [];
-    let lines = value.split('\n');
-    let lines_length = lines.length;
-    for(let i = 0; i < lines_length; i++){
-        let line = lines[i];
-        if(maybe_handle_command(line)) continue;
-        if(line.trim().length && line.trim()[0] == '{'){
-            let closing_brace = process_script_lines(lines, i, result);
-            i = closing_brace;
-            continue;
+    value = value.replace(/[“”]/g,'"');
+    value = value.replace(/[‘’]/g,"'");
+    try {
+        let evaled = evaluate(value);
+        for(let e of evaled){
+            result.push(e);
         }
-        result.push(line);
+    }catch(e){
+        alert(""+e);
+        console.log(e);
     }
     return result.join('\n');
 }
 
 function evaluate(text:string):any{
-    const vars = {
-        strength: 3,
-        bab: 4,
-        rapid: true,
-    };
-    vars as unknown as void;
-    return eval(text); // LOL
-}
-
-function process_script_lines(lines: Array<string>, i:number, result:Array<string>): number {
-    let braces = 0;
-    let lines_length = lines.length;
-    for(let k = i; k < lines_length; k++){
-        let line = lines[k];
-        for(let c of line){
-            if(c == '{')
-                braces++
-            if(c == '}')
-                braces--;
-        }
-        if(braces == 0){
-            if(i+1 < k){
-                let scriptlines = lines.slice(i+1, k).join('\n');
-                // remove smart quotes
-                scriptlines = scriptlines.replace(/[“”]/g,'"');
-                scriptlines = scriptlines.replace(/[‘’]/g,"'");
-                scriptlines = `(function(){
-                    const _CHATLINES = [];
-                    const chat = function(line){
-                        line = "" + line;
-                        _CHATLINES.push(line);
-                    }
-                    ${scriptlines}
-                    return _CHATLINES;
-                })()`;
-                try {
-                    let evaled = evaluate(scriptlines);
-                    for(let e of evaled){
-                        result.push(e);
-                    }
-                }catch(e){
-                    alert(""+e);
-                    console.log(e);
-                }
-            }
-            return k;
-        }
-    }
-    return i;
-}
-
-function maybe_handle_command(value:string):boolean{
-    let splitted = value.split(" ");
-    let split = [];
-    for(let s of splitted){
-        if(!s)
-            continue;
-        split.push(s);
-    }
-    if(split.length){
-        if(split[0] === "/get-state"){
-            if(split.length > 1){
-                get_state(split[1]);
-            }
-            else{
-                get_state('');
-            }
-            return true;
-        }
-        if(split[0] == '/clear'){
-            clear_chat();
-            return true;
-        }
-        if(split[0] == '/upload'){
-            upload();
-            return true;
-        }
-    }
-    return false;
+    let vars: Map<string, number> = new Map();
+    vars.set('rapid', 1);
+    let yowa = new Map();
+    yowa.set('dex', 2);
+    yowa.set('bab', 3);
+    let ns = new Map();
+    ns.set('yowa', yowa);
+    return evaluate_script(text, vars, ns);
 }
 
 function format_die_roll_result(roll_result:RollMsg):string{
@@ -932,7 +860,7 @@ function err_dialog(html:string){
 }
 
 
-const enum ROLLTABLEFLAGS { 
+const enum ROLLTABLEFLAGS {
     NONE = 0,
     IS_TABLE = 1 << 0,
 }
