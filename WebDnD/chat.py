@@ -101,7 +101,7 @@ def create_chat(room:str) -> None:
         return
     HISTORY[room] = Persister([], 'BadDb'+room+'/chat.json', load_func=load_chat).obj  # type: ignore
 
-def handle_input(room:str, data:str, user:str='anon') -> List[dict]:
+def handle_input(room:str, data:str, user:str='anon', test:bool=False) -> List[dict]:
     apparent_user = user
     result = []
     for line in data.split('\n'):
@@ -144,7 +144,8 @@ def handle_input(room:str, data:str, user:str='anon') -> List[dict]:
             except:
                 pass
             else:
-                emit(ToClient.CANVAS_GATHER,{'x':x, 'y':y}, broadcast=True)
+                if not test:
+                    emit(ToClient.CANVAS_GATHER,{'x':x, 'y':y}, broadcast=True)
         elif parts[0] in {'/table', 'table'}:
             try:
                 table_result, path = parse_and_roll_table(room, line[len(parts[0]):])
@@ -156,7 +157,8 @@ def handle_input(room:str, data:str, user:str='anon') -> List[dict]:
                 result.append({'user':'', 'data': path + ': '+table_result, 'type':Msg.PLAIN})
 
 
-    HISTORY[room].extend(result)
+    if not test:
+        HISTORY[room].extend(result)
     return result
 
 DOUBLEQUOTE_TABLE = str.maketrans('\u201c\u201d', '""')

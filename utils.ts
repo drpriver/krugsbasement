@@ -91,17 +91,33 @@ function make_ok_dialog2(html:string, after_append:()=>void, on_ok:(_:HTMLElemen
     }
 }
 
+
+// FIXME: this infinitely grows, which is ok as zindex is limited to
+// 2**32-1 or something like that, but is still kind of gross, you know?
+let TOPPERMOST_Z = 3;
+function setup_zsorted_window(win:HTMLDivElement):()=>void{
+    win.addEventListener('pointerdown', function(){
+        make_top();
+    });
+    function make_top(){
+        let z = +win.style.zIndex;
+        if(z < TOPPERMOST_Z){
+            TOPPERMOST_Z++;
+            win.style.zIndex = ""+TOPPERMOST_Z;
+        }
+    }
+    return make_top;
+}
 function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement){
     let dragging = false;
     let x = 0;
     let y = 0;
     let xorg = 0;
     let yorg = 0;
+    // win.style.border = '1px solid black';
     handle.addEventListener('pointerdown', function(e:PointerEvent){
         if(e.target !== handle)
             return;
-        e.preventDefault();
-        e.stopPropagation();
         dragging = true;
         handle.style.cursor = 'grabbing';
         let r = win.getBoundingClientRect();
@@ -111,6 +127,8 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement){
         y = e.screenY;
         xorg = r.left;
         yorg = r.top;
+        win.style.bottom = 'initial';
+        win.style.right = 'initial';
         window.addEventListener('pointermove', pointermove);
         window.addEventListener('pointerleave', endmove);
         window.addEventListener('pointerup', endmove);
@@ -130,15 +148,16 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement){
         let ydiff = e.screenY - y;
         let newy = yorg + ydiff;
         let newx = xorg + xdiff;
+        let r = win.getBoundingClientRect();
+        if(newx + r.width > window.innerWidth)
+            newx = window.innerWidth - r.width;
+        if(newy + r.height > window.innerHeight)
+            newy = window.innerHeight - r.height;
         if(newy < 0) newy = 0;
         if(newx < 0) newx = 0;
-        if(newx + 128 > window.innerWidth)
-            newx = window.innerWidth - 128;
-        if(newy + 128 > window.innerHeight)
-            newy = window.innerHeight - 128;
         win.style.top = newy + 'px';
         win.style.left = newx + 'px';
-        let r = win.getBoundingClientRect();
+        r = win.getBoundingClientRect();
         xorg = r.left;
         yorg = r.top;
         x = e.screenX;
@@ -147,7 +166,6 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement){
 }
 
 function setup_closable_window(win:HTMLElement, closer:HTMLElement, onclose:()=>void){
-    console.log('closer', closer);
     if(window.navigator.platform.includes('Windows')){
         closer.style.marginLeft = 'auto';
     }
@@ -158,6 +176,19 @@ function setup_closable_window(win:HTMLElement, closer:HTMLElement, onclose:()=>
         onclose();
         win.style.display='none';
     }
+}
+
+function setup_window_size(win:HTMLElement){
+    if (window.innerWidth > 1200) 
+        win.style.width = '1000px';
+    else if(window.innerWidth > 800)
+        win.style.width = '800px';
+    else
+        win.style.width = '400px';
+    if(window.innerHeight > 600)
+        win.style.height = '600px';
+    else
+        win.style.height = '300px';
 }
 
 function get_by_id<T extends HTMLElement >(id:string):T{

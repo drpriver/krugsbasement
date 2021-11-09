@@ -31,22 +31,22 @@ type ChatMsg = {
 
 const THISPAGE = window.location.pathname;
 
-let chatname = localStorage.getItem(`${THISPAGE}/chatname`);
+let CHATNAME = localStorage.getItem(`${THISPAGE}/chatname`);
 // This is for backwards compatibility. Remove this code path in the future
 // once things have been successfully saved.
-if(!chatname){
-    chatname = localStorage.getItem('chatname');
-    if(chatname)
-        localStorage.setItem(`${THISPAGE}/chatname`, chatname);
+if(!CHATNAME){
+    CHATNAME = localStorage.getItem('chatname');
+    if(CHATNAME)
+        localStorage.setItem(`${THISPAGE}/chatname`, CHATNAME);
 }
-if(!chatname)
-    chatname = "anon";
+if(!CHATNAME)
+    CHATNAME = "anon";
 function setchatname(name:string){
     if(name)
         name = name.trim();
     if(!name)
         name = 'anon';
-    chatname = name;
+    CHATNAME = name;
     localStorage.setItem(`${THISPAGE}/chatname`, name);
 }
 
@@ -179,6 +179,11 @@ function add_macros(macros:Array<Macro>){
     save_macros();
 }
 
+function preprocess_and_send_chat(text:string){
+    text = preprocess_command(text);
+    SOCKET.emit(FromClient.CHAT_INPUT, {chatname:CHATNAME, text:text});
+}
+
 document.addEventListener('DOMContentLoaded', function(){
     let current_macro: Macro | null = null;
     let displayed_group = "";
@@ -198,6 +203,7 @@ document.addEventListener('DOMContentLoaded', function(){
     let macros_is_open = false;
     button.addEventListener('click', function(){
         if(macros_is_open) return;
+        make_top();
         macros_is_open = true;
         macros_window.style.display = 'grid';
         label.style.height = '' + new_macro.clientHeight + 'px';
@@ -209,14 +215,6 @@ document.addEventListener('DOMContentLoaded', function(){
         make_active(current_macro);
     });
     const macros_window: HTMLDivElement = get_by_id('macros-window');
-    if(window.innerWidth > 800)
-        macros_window.style.width = '800px';
-    else
-        macros_window.style.width = '400px';
-    if(window.innerHeight > 600)
-        macros_window.style.height = '600px';
-    else
-        macros_window.style.height = '300px';
     const editor_container: HTMLDivElement      = get_by_id('macro-editor');
     const move_handle     : HTMLDivElement      = get_by_id('macros-window-handle');
     const macro_area      : HTMLTextAreaElement = get_by_id('macro-view-edit');
@@ -253,16 +251,15 @@ document.addEventListener('DOMContentLoaded', function(){
     test_button.addEventListener('click', function(){
         if(!current_macro) return;
         let lines = evaluate(current_macro.body);
-        let pre = document.createElement('pre');
-        pre.textContent = lines.join('\n');
-        (log as any).replaceChildren(pre);
+        (log as any).replaceChildren();
+        SOCKET.emit(FromClient.CHAT_TEST_INPUT, {chatname:CHATNAME, text:lines.join('\n')}, function(response:Array<ChatMsg>){
+            add_chat_msgs(log, response);
+        });
     });
     const use_button: HTMLButtonElement = get_by_id('use-macro');
     use_button.addEventListener('click', function(){
         if(!current_macro) return;
-        let text = current_macro.body;
-        text = preprocess_command(text);
-        SOCKET.emit(FromClient.CHAT_INPUT, {chatname:chatname, text:text});
+        preprocess_and_send_chat(current_macro.body);
     });
 
     const macros_list: HTMLDivElement = get_by_id('macros-list');
@@ -284,8 +281,10 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
             });
     });
-    setup_movable_window(macros_window, move_handle);
     const macro_close = get_by_id('macros-close');
+    setup_window_size(macros_window);
+    let make_top = setup_zsorted_window(macros_window);
+    setup_movable_window(macros_window, move_handle);
     setup_closable_window(macros_window, macro_close, function(){
         save_macros();
         macros_is_open = false;
@@ -424,11 +423,8 @@ function add_macro_button(name:string, group:string, macro_index:number){
         e.stopPropagation();
         e.preventDefault();
         let macro = MACROS[macro_index];
-        if(!macro)
-            return;
-        let text = macro.body;
-        text = preprocess_command(text);
-        SOCKET.emit(FromClient.CHAT_INPUT, {chatname:chatname, text:text});
+        if(!macro) return;
+        preprocess_and_send_chat(macro.body);
     });
     // const macros = document.getElementById('macros')!;
     let macrogroup = MACROGROUPS.get(group);
@@ -502,7 +498,7 @@ function export_settings(e:MouseEvent){
     e.stopPropagation();
     e.preventDefault();
     const macros = MACROS;
-    const settings = {macros:macros, chatname:chatname};
+    const settings = {macros:macros, chatname:CHATNAME};
     const s = JSON.stringify(settings);
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([s], {type:'text/plain'}));
@@ -576,239 +572,19 @@ function import_settings(e:MouseEvent, remove_hoverpop:()=>void){
     inp.addEventListener('change', handlefiles, false);
     inp.click();
 }
-// function macros_dialog(){
-    // if(hover_is_open)
-        // return;
-    // hover_is_open = true;
-    // const hoverpop = elem('section', null, 'hover');
-    // type TabStuff = {
-        // tab: HTMLDivElement;
-        // table: HTMLTableElement;
-        // tbody: HTMLTableSectionElement;
-    // };
-    // function delete_macro(e:MouseEvent){
-        // e.preventDefault();
-        // e.stopPropagation();
-        // const row = ((e.currentTarget as HTMLElement).parentNode!.parentNode! as HTMLElement);
-        // const parent = row.parentNode!;
-        // row.remove();
-        // if(parent.children.length == 0){
-            // add_row(current_group, "", "");
-        // }
-    // }
-    // function move_macro_up(e:MouseEvent){
-        // e.preventDefault();
-        // e.stopPropagation();
-        // const row = ((e.currentTarget as HTMLElement).parentNode!.parentNode!.parentNode! as HTMLElement);
-        // const parent = row.parentNode!;
-        // if(row.previousSibling)
-            // parent.insertBefore(row, row.previousSibling);
-    // }
-    // function move_macro_down(e:MouseEvent){
-        // e.preventDefault();
-        // e.stopPropagation();
-        // const row = ((e.currentTarget as HTMLElement).parentNode!.parentNode!.parentNode! as HTMLElement);
-        // const parent = row.parentNode!;
-        // let next = row.nextSibling;
-        // if(next)
-            // next = next.nextSibling;
-        // parent.insertBefore(row, next);
-    // }
-    // const mapping: Map<string, TabStuff> = new Map();
-    // const groups: Array<string> = [];
-    // function add_row(group:string, name:string, body:string){
-        // const tr = document.createElement('tr');
-        // tr.innerHTML = `
-            // <td><div class="up-down"><button class="up">▲</button><button class="down">▼</button></div>
-            // <td><input type="text" value="${name}">
-            // <td><textarea rows="3" cols="40">${body}</textarea>
-            // <td><button class="delete-macro-button">Delete</button>
-        // `;
-        // const button = tr.getElementsByClassName('delete-macro-button')[0] as HTMLButtonElement;
-        // button.addEventListener('click', delete_macro);
-        // const up = tr.getElementsByClassName('up')[0] as HTMLButtonElement;
-        // up.addEventListener('click', move_macro_up);
-        // const down = tr.getElementsByClassName('down')[0] as HTMLButtonElement;
-        // down.addEventListener('click', move_macro_down);
-        // const ts = mapping.get(group)!;
-        // ts.tbody.appendChild(tr);
-    // }
-    // function make_tab_stuff(group:string):void{
-        // const name = group? group : "General";
-        // const tab = elem_with_text('div', name, null, 'hover-tab');
-        // groups.push(group);
-        // const table = elem('table', null, 'hover-tab-table');
-        // table.innerHTML = `
-            // <thead><tr>
-                // <th>
-                // <th>Name
-                // <th>Macro
-                // <th>
-            // </tr></thead>
-        // `;
-        // const tbody = document.createElement('tbody');
-        // table.appendChild(tbody);
-        // const t: TabStuff = {
-            // tab:tab,
-            // table:table,
-            // tbody:tbody,
-        // };
-        // mapping.set(group, t);
-    // }
-    // for(let m of MACROS){
-        // if(!mapping.has(m.group))
-            // make_tab_stuff(m.group);
-        // add_row(m.group, m.name?m.name:"", m.body?m.body:"");
-    // }
-    // if(!mapping.has("")){
-        // groups.push("");
-        // make_tab_stuff("");
-        // add_row("", "", "");
-    // }
-
-    // let html = `
-        // <h2>Macros</h2>
-        // <div id="hover-tab-container" class="hover-tab-container">
-        // </div>
-        // <div class="hover-button-container">
-            // <button id="hover-add-macro">+ Add Macro</button>
-            // <button id="export-settings">Export</button>
-            // <button id="import-settings">Import</button>
-        // </div>
-        // <div class="hover-button-container">
-            // <button type="button" id="hoverpop-ok">Ok</button>
-            // <button type="button" id="hoverpop-cancel">Cancel</button>
-        // </div>
-    // `;
-    // hoverpop.innerHTML = html;
-    // const tabcontainer = hoverpop.getElementsByClassName('hover-tab-container')[0] as HTMLDivElement;
-    // const tabs = elem('div', 'hover-tabs');
-    // const tabcontents = elem('div', 'hover-tab-contents');
-    // tabcontainer.appendChild(tabs);
-    // tabcontainer.appendChild(tabcontents);
-    // let current_group = groups[0];
-    // cut-n-paste: very similar code is in the new tab below.
-    // for(let i = 0; i < groups.length; i++){
-        // let group = groups[i];
-        // const t = mapping.get(group)!;
-        // if(group != current_group){
-            // t.table.style.display = 'none';
-        // }
-        // else {
-            // t.tab.classList.add('active');
-        // }
-        // tabs.appendChild(t.tab);
-        // tabcontents.appendChild(t.table);
-        // t.tab.addEventListener('click', function(){
-            // for(let ts of mapping.values()){
-                // ts.tab.classList.remove('active');
-                // ts.table.style.display = 'none';
-            // }
-            // t.tab.classList.add('active');
-            // t.table.style.display = 'initial';
-            // current_group = group;
-        // });
-    // }
-    // const new_tab = elem_with_parent(tabs, 'div');
-    // const new_tab_text = elem_with_parent(new_tab, 'input', 'new-tab-input');
-    // new_tab_text.size = 8;
-    // const new_tab_button = elem_with_text('span', '+');
-    // new_tab_text.type = 'text';
-    // new_tab.appendChild(new_tab_button);
-    // new_tab.addEventListener('click', function(e:MouseEvent){
-        // e.preventDefault();
-        // e.stopPropagation();
-        // const value = new_tab_text.value.trim();
-        // if(!value)
-            // return;
-        // if(mapping.has(value))
-            // return;
-        // groups.push(value);
-        // make_tab_stuff(value)
-        // add_row(value, "", "");
-        // current_group = value;
-        // const t = mapping.get(value)!;
-        // tabs.insertBefore(t.tab, new_tab);
-        // tabcontents.appendChild(t.table);
-        // this is copy-paste-y from above
-        // t.tab.addEventListener('click', function(){
-            // for(let ts of mapping.values()){
-                // ts.tab.classList.remove('active');
-                // ts.table.style.display = 'none';
-            // }
-            // t.tab.classList.add('active');
-            // t.table.style.display = 'initial';
-            // current_group = value;
-        // });
-        // for(let i = 0; i < groups.length; i++){
-            // let group = groups[i];
-            // const t = mapping.get(group)!;
-            // if(group != current_group){
-                // t.tab.classList.remove('active');
-                // t.table.style.display = 'none';
-            // }
-            // else {
-                // t.tab.classList.add('active');
-                // t.table.style.display = 'initial';
-            // }
-        // }
-    // });
-    // for(let button of hoverpop.getElementsByClassName('delete-macro-button')){
-        // (button as HTMLElement).addEventListener('click', delete_macro);
-    // }
-    // document.body.appendChild(hoverpop);
-
-    // document.getElementById('hover-add-macro')!.addEventListener('click', function(e:MouseEvent){
-        // e.stopPropagation();
-        // e.preventDefault();
-        // add_row(current_group, "", "");
-    // });
-    // function remove_hoverpop(){
-        // document.body.removeChild(hoverpop);
-        // hover_is_open = false;
-    // }
-    // document.getElementById('export-settings')!.addEventListener('click', export_settings);
-    // document.getElementById('import-settings')!.addEventListener('click', function(e:MouseEvent){import_settings(e, remove_hoverpop);});
-    // const ok = document.getElementById('hoverpop-ok')!;
-    // function submit(){
-        // const macros: Array<Macro> = [];
-        // for(let [group, ts] of mapping.entries()){
-            // const trs = ts.tbody.getElementsByTagName('tr');
-            // for(let i = 0; i < trs.length; i++){
-                // let tr = trs[i];
-                // const name = (tr.children[1].children[0] as HTMLInputElement).value;
-                // const body = (tr.children[2].children[0] as HTMLTextAreaElement).value;
-                // if(!name || !body)
-                    // continue;
-                // macros.push({name:name, group:group, body:body});
-            // }
-        // }
-        // clear_macro_buttons();
-        // MACROS.length = 0;
-        // add_macros_and_buttons(macros);
-        // remove_hoverpop();
-    // }
-    // ok.addEventListener('click', function(){
-        // submit();
-    // });
-    // const cancel = document.getElementById('hoverpop-cancel')!;
-    // cancel.addEventListener('click', function(){
-        // remove_hoverpop();
-    // });
-// }
 function chat_options_dialog(){
     if(hover_is_open)
         return;
     hover_is_open = true;
     const hoverpop = elem('section', null, 'hover');
-    const is_dev = chatname == 'dev';
+    const is_dev = CHATNAME == 'dev';
     const pan_tool = document.getElementById('pan-tool')!;
     let html = `
     <h2>Options</h2>
     <table class="input-container">
         <tr>
             <td><label for="hover-chatname">Chat Name:</label>
-            <td><input type="text" id="hover-chatname" value="${chatname}">
+            <td><input type="text" id="hover-chatname" value="${CHATNAME}">
         </tr>
     </table>
     </div>
@@ -936,8 +712,7 @@ document.addEventListener('DOMContentLoaded', function(){
             const value = ta.value;
             if(value.length){
                 ta.value = "";
-                let processed = preprocess_command(value);
-                SOCKET.emit(FromClient.CHAT_INPUT, {chatname:chatname, text:processed});
+                preprocess_and_send_chat(value);
                 if(!(history.length && value == history[history.length-1])){
                     history.push(value);
                 }
@@ -1404,3 +1179,24 @@ function tables_button_dialog(){
         document.body.appendChild(hoverpop);
     });
 }
+
+document.addEventListener('DOMContentLoaded', function(){
+    const container: HTMLDivElement = get_by_id('tool-container');
+    const handle: HTMLDivElement = get_by_id('tool-container-handle');
+    setup_movable_window(container, handle);
+    setup_zsorted_window(container);
+});
+
+document.addEventListener('DOMContentLoaded', function(){
+    const var_button: HTMLButtonElement = get_by_id('variables-button');
+    const var_window:HTMLDivElement = get_by_id('variables-window');
+    const var_handle:HTMLDivElement = get_by_id('variables-handle');
+    const make_top = setup_zsorted_window(var_window);
+    setup_movable_window(var_window, var_handle);
+    let variables_is_open = false;
+    var_button.addEventListener('click', function(){
+        if(variables_is_open) return;
+        variables_is_open = true;
+        make_top();
+    });
+});

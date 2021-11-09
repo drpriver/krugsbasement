@@ -32,6 +32,16 @@ David20::title @hide
     border-radius: 8px 8px 0px 0px;
     display: flex;
   }
+  #tool-container-handle {
+    cursor: grab;
+    background-color: rgb(221,221,221);
+    border-radius: 12px 12px 0px 0px;
+    height: 16px;
+    touch-action: initial;
+    pointer-events: initial;
+    width: 64px;
+    margin-left: 24px;
+  }
   #notes-container, #macros-container {
     grid-row: 2;
     display: flex;
@@ -89,12 +99,11 @@ David20::title @hide
     border: 1px solid grey;
     overflow-y: auto;
   }
-  #macro-test-log pre {
-    margin: 0;
+  #macro-test-log {
+    margin: 8px;
     padding: 8px;
     -webkit-user-select: initial;
     user-select: initial;
-    width: 20em;
   }
   #notes-list, #macros-list, #macros-group-list{
     display: flex;
@@ -154,8 +163,8 @@ David20::title @hide
         <iframe id="current-note-view"></iframe>
       </div>
       <div id="note-view-editor-container" style="display:none">
-        <textarea id="note-view-title" rows=1></textarea>
-        <textarea id="note-view-edit"></textarea>
+        <textarea spellcheck="false" id="note-view-title" rows=1></textarea>
+        <textarea spellcheck="false" id="note-view-edit"></textarea>
         <div id="note-view-editor-log"></div>
       </div>
     </div>
@@ -181,10 +190,10 @@ David20::title @hide
           <button id="use-macro">Use</button>
         </div>
         <div style="display:table; width: 100%;">
-        <div style="display:table-row; width: 100%;"><span style="display:table-cell; vertical-align:top; padding-left: 8px;">Title: </span><textarea id="macro-view-title" rows=1 style="display:table-cell;"></textarea></div>
-        <div style="display:table-row; width: 100%;"><span style="display:table-cell; vertical-align:top; padding-left: 8px;">Group: </span><textarea id="macro-view-group" rows=1 style="display:table-cell;"></textarea></div>
+        <div style="display:table-row; width: 100%;"><span style="display:table-cell; vertical-align:top; padding-left: 8px;">Title: </span><textarea spellcheck="false" id="macro-view-title" rows=1 style="display:table-cell;"></textarea></div>
+        <div style="display:table-row; width: 100%;"><span style="display:table-cell; vertical-align:top; padding-left: 8px;">Group: </span><textarea spellcheck="false" id="macro-view-group" rows=1 style="display:table-cell;"></textarea></div>
         </div>
-        <textarea id="macro-view-edit"></textarea>
+        <textarea spellcheck="false" id="macro-view-edit"></textarea>
         <div id="macro-test-log"></div>
       </div>
     </div>
@@ -196,6 +205,7 @@ David20::title @hide
       <div id="right-split" style="display:none;"></div>
 
 ::div @id(tool-container)
+  ::div @id(tool-container-handle)
   ::div @id(tools)
     ::div.tool @id(pan-tool)
       Pa<b>n</b>
@@ -290,9 +300,10 @@ David20::title @hide
       ::raw
         <button id="chat-options">Options</button>
         <button id="macros-button">Macros</button>
+        <button id="variables-button">Variables</button>
         <button id="tables-button">Tables</button>
   ::raw
-    <textarea id="chatinput" rows="4"></textarea>
+    <textarea spellcheck="false" id="chatinput" rows="4"></textarea>
 
 ::css @inline
   :root {
@@ -708,7 +719,7 @@ David20::title @hide
     font-family: sans-serif;
     overflow-y: auto;
     max-height: 90%;
-    z-index: 10;
+    z-index: 16777216;
   }
   section.hover input.numeric-input {
     width: 5em;
@@ -874,7 +885,7 @@ David20::title @hide
     body.dark-mode #notes-window, body.dark-mode #macros-window {
       background-color: #333;
     }
-    body.dark-mode #notes-window-handle, body.dark-mode #macros-window-handle {
+    body.dark-mode #notes-window-handle, body.dark-mode #macros-window-handle, body.dark-mode #tool-container-handle {
       background-color: #444;
     }
     body.dark-mode #notes-list div, body.dark-mode #macros-list div,  body.dark-mode #macros-group-list div{

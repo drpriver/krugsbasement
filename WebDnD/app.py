@@ -30,6 +30,15 @@ def chat_input(data:Dict[str, str]) -> None:
     if responses:
         emit(ToClient.CHAT_MSG, responses, broadcast=True, to=room)
 
+@socketio.on(FromClient.CHAT_TEST_INPUT)
+def chat_test_input(data:Dict[str, str]):
+    room = get_room(request)
+    if not data:
+        return
+    responses = chat.handle_input(room, data['text'], data['chatname'], test=True)
+    return responses
+
+
 def save_session_id(unused) -> int:
     return session_id
 

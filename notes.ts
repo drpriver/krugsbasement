@@ -96,14 +96,7 @@ const make_dnd_html = (function(){
 document.addEventListener('DOMContentLoaded', function(){
     const button = document.getElementById('notes-window-button') as HTMLButtonElement;
     const notes_window = document.getElementById('notes-window') as HTMLDivElement;
-    if(window.innerWidth > 800)
-        notes_window.style.width = '800px';
-    else
-        notes_window.style.width = '400px';
-    if(window.innerHeight > 600)
-        notes_window.style.height = '600px';
-    else
-        notes_window.style.height = '300px';
+
     const notes_editor_container = document.getElementById('note-view-editor-container') as HTMLDivElement;
     const move_handle = document.getElementById('notes-window-handle') as HTMLDivElement;
     const notes_area = document.getElementById('note-view-edit') as HTMLTextAreaElement;
@@ -152,6 +145,8 @@ document.addEventListener('DOMContentLoaded', function(){
         }
     });
 
+    setup_window_size(notes_window);
+    let make_top = setup_zsorted_window(notes_window);
     setup_movable_window(notes_window, move_handle);
     const notes_close = document.getElementById('notes-close') as HTMLElement;
     setup_closable_window(notes_window, notes_close, function(){
@@ -286,6 +281,7 @@ document.addEventListener('DOMContentLoaded', function(){
     button.addEventListener('click', function(){
         if(notes_is_open)
             return;
+        make_top();
         notes_is_open = true;
         notes_window.style.display='grid';
         if(current_note_id == -1){
