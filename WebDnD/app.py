@@ -4,13 +4,11 @@ from .logs import logging
 from . import chat
 from . import canvas
 from . import notes
-from .persist import Persister
+from .persist import Persister, RepeatTimer
 from. import appconfig
 import os
 import logging
 from .messages import FromClient, ToClient
-
-
 
 from typing import List, Dict, Optional, Set, Union
 
@@ -311,6 +309,15 @@ def app_state(campaign:str='/') -> str:
         # data should be in request.json?
     else:
         abort(404)
+def log_connections() -> None:
+    server = socketio.server
+    manager = server.manager
+    if '/' not in manager.rooms:
+        logging.info('No users are connected')
+        return
+    nsids = len(manager.rooms['/'][None])
+    logging.info('Active connections: %s', nsids)
+RepeatTimer(60, log_connections).start()
 
 if __name__ == '__main__':
     if appconfig.DEV:
