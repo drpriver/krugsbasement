@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', function(){
         update_list();
         make_active(current_macro);
     });
-    const macros_window: HTMLDivElement = get_by_id('macros-window');
+    const macros_window   : HTMLDivElement      = get_by_id('macros-window');
     const editor_container: HTMLDivElement      = get_by_id('macro-editor');
     const move_handle     : HTMLDivElement      = get_by_id('macros-window-handle');
     const macro_area      : HTMLTextAreaElement = get_by_id('macro-view-edit');
@@ -422,7 +422,6 @@ function add_macro_button(name:string, group:string, macro_index:number){
         if(!macro) return;
         preprocess_and_send_chat(macro.body);
     });
-    // const macros = document.getElementById('macros')!;
     let macrogroup = MACROGROUPS.get(group);
     if(!macrogroup){
         const macro_tabs = document.getElementById('macro-tabs') as HTMLDivElement;
@@ -619,11 +618,11 @@ function chat_options_dialog(){
     hoverpop.innerHTML = html;
     document.body.appendChild(hoverpop);
     {
-    const dark_auto = document.getElementById('dark-mode-auto') as HTMLInputElement;
+    const dark_auto:HTMLInputElement = get_by_id('dark-mode-auto');
     dark_auto.addEventListener('change', function(){change_dark_mode(DarkMode.SYSTEM);});
-    const dark_light = document.getElementById('dark-mode-light') as HTMLInputElement;
+    const dark_light:HTMLInputElement = get_by_id('dark-mode-light');
     dark_light.addEventListener('change', function(){change_dark_mode(DarkMode.LIGHT);});
-    const dark_dark = document.getElementById('dark-mode-dark') as HTMLInputElement;
+    const dark_dark:HTMLInputElement = get_by_id('dark-mode-dark');
     dark_dark.addEventListener('change', function(){change_dark_mode(DarkMode.DARK);});
     }
 
@@ -631,25 +630,27 @@ function chat_options_dialog(){
         document.body.removeChild(hoverpop);
         hover_is_open = false;
     }
-    document.getElementById('export-settings')!.addEventListener('click', export_settings);
-    document.getElementById('import-settings')!.addEventListener('click', function(e:MouseEvent){import_settings(e, remove_hoverpop);});
-    const ok = document.getElementById('hoverpop-ok')!;
+    get_by_id('export-settings').addEventListener('click', export_settings);
+    get_by_id('import-settings').addEventListener('click', function(e:MouseEvent){
+        import_settings(e, remove_hoverpop);
+    });
+    const ok = get_by_id('hoverpop-ok');
     function submit(){
         if(is_dev){
-            const show_fps = document.getElementById('show-fps')! as HTMLInputElement;
+            const show_fps:HTMLInputElement = get_by_id('show-fps');
             SHOW_FPS = show_fps.checked;
             request_render();
         }
-        const chatname_el = document.getElementById('hover-chatname')! as HTMLInputElement;
+        const chatname_el:HTMLInputElement = get_by_id('hover-chatname');
         setchatname(chatname_el.value);
-        const hide_pan = document.getElementById('hide-pan')! as HTMLInputElement;
+        const hide_pan:HTMLInputElement = get_by_id('hide-pan');
         change_pan_visibility(!hide_pan.checked);
         remove_hoverpop();
     }
     ok.addEventListener('click', function(){
         submit();
     });
-    const cancel = document.getElementById('hoverpop-cancel')!;
+    const cancel = get_by_id('hoverpop-cancel');
     cancel.addEventListener('click', function(){
         remove_hoverpop();
     });
@@ -676,26 +677,21 @@ function chat_options_dialog(){
 
 document.addEventListener('DOMContentLoaded', function(){
     resize_chat();
-    const tables_button = document.getElementById('tables-button')!;
+    const tables_button = get_by_id('tables-button');
     tables_button.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
         tables_button_dialog();
     });
-    const options_button = document.getElementById('chat-options')!;
+    const options_button = get_by_id('chat-options');
     options_button.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
         chat_options_dialog();
     });
-    // const macros_button = document.getElementById('macros-button')!;
-    // macros_button.addEventListener('click', function(e:MouseEvent){
-        // e.stopPropagation();
-        // e.preventDefault();
-        // macros_dialog();
-    // });
+
     window.addEventListener('resize', resize_chat);
-    const ta = document.getElementById('chatinput')! as HTMLInputElement;
+    const ta:HTMLTextAreaElement = get_by_id('chatinput');
     const history: Array<string> = [];
     let history_index = 0;
     let current_text = "";
@@ -1216,7 +1212,9 @@ const SCRIPTVARIABLES: Array<ScriptVariable> = (function(){
     }
     return result;
 })();
+let save_variables_in_flight = false;
 function actually_save_the_variables(){
+    save_variables_in_flight = false;
     const to_save = [];
     for(let sv of SCRIPTVARIABLES){
         if(sv.flags & ScriptVariableFlags.DELETED)
@@ -1228,17 +1226,10 @@ function actually_save_the_variables(){
 window.addEventListener('beforeunload', actually_save_the_variables, false);
 // todo: maybe use a timer?
 function save_variables(){
-    actually_save_the_variables();
+    if(save_variables_in_flight) return;
+    save_variables_in_flight = true;
+    setTimeout(actually_save_the_variables, 1000);
 }
-
-const SCRIPTVARIABLES_BY_ID: Map<number, ScriptVariable> = (function(){
-    let result = new Map();
-    for(let sv of SCRIPTVARIABLES){
-        sv.id = current_script_variable_id++;
-        result.set(sv.id, sv);
-    }
-    return result;
-})();
 
 function get_script_variables():Map<string, Map<string, number>>{
     let result = new Map();
@@ -1306,6 +1297,7 @@ document.addEventListener('DOMContentLoaded', function(){
     setup_closable_window(var_window, var_close, function(){
         variables_is_open = false;
         show_float();
+        actually_save_the_variables();
     });
     function add_table_row(sv:ScriptVariable){
         let row = elem_with_parent(var_table, 'div', null, 'variables-row');
@@ -1487,6 +1479,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     inp.checked = !!sv.value;
                     inp.addEventListener('change', function(){
                         sv.value = +inp.checked;
+                        save_variables();
                     });
                 break;
                 case ScriptVariableType.NUMBER:
@@ -1494,6 +1487,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     inp.value = ""+sv.value;
                     inp.addEventListener('input', function(){
                         sv.value = +inp.value;
+                        save_variables();
                     });
                 break;
             }
