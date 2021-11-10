@@ -110,8 +110,8 @@
   attack = d20 + bab + dex
   /roll attack
 
-  # In the above, all of the variable's from Yowa will then be available and
-  # the /roll attack expands to:
+  # In the above example, all of the variables from Yowa will then be available
+  # and the /roll attack expands to:
 
   /roll d20 + 3 + 2
 

@@ -58,3 +58,9 @@ backup:
 	tar xzf BadDb.tar.gz
 tags: *.ts Scripts/tag_ts.py
 	python3 -m Scripts.tag_ts
+
+DOCS=macro-doc.html
+
+.PHONY: ship-docs
+ship-docs: $(DOCS)
+	scp $< david@droplet:/home/david/docs/docs
