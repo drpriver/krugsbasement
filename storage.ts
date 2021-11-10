@@ -9,6 +9,8 @@
 const enum StorageCategory {
     MACROS = 'macros',
     CHAT = 'chat',
+    CANVAS = 'canvas',
+    SETTINGS = 'settings',
 }
 function store_local(category:StorageCategory, key:string, obj:any){
     let value = JSON.stringify(obj);

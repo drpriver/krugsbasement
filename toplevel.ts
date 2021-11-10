@@ -36,7 +36,7 @@ function change_dark_mode(mode:DarkMode){
             break;
     }
     current_dark_mode = mode;
-    localStorage.setItem('darkmode', ""+mode);
+    store_global(StorageCategory.SETTINGS, 'darkmode', mode);
     if(document.readyState === "complete"){
         request_render();
         if(DARKMODE)
@@ -55,7 +55,9 @@ function change_dark_mode(mode:DarkMode){
 
 }
 (function(){
-    let mode = +(localStorage.getItem('darkmode') || 0);
+    let mode = get_global(StorageCategory.SETTINGS, 'darkmode');
+    if(mode === undefined)
+        mode = +(localStorage.getItem('darkmode') || 0);
     mode |= 0;
     if(mode < 0 || mode > 2)
         mode = 0;
@@ -98,7 +100,9 @@ SOCKET.on(ToClient.DISCONNECT, function(reason:string){
 });
 let session_id = 0;
 let show_pan = (function(){
-    const sp = localStorage.getItem('showpan');
+    let sp = get_global(StorageCategory.SETTINGS, 'showpan');
+    if(sp === undefined)
+        sp = localStorage.getItem('showpan');
     if(sp == '1')
         return true;
     if(sp == '0')
@@ -112,9 +116,9 @@ document.addEventListener('DOMContentLoaded', function(){
 function change_pan_visibility(visible:boolean){
     show_pan = visible;
     if(visible)
-        localStorage.setItem('showpan', '1');
+        store_global(StorageCategory.SETTINGS, 'showpan', '1');
     else
-        localStorage.setItem('showpan', '0');
+        store_global(StorageCategory.SETTINGS, 'showpan', '0');
     const pan_tool = document.getElementById('pan-tool')!;
     pan_tool.style.display = visible? 'initial': 'none';
 }

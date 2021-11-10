@@ -1241,7 +1241,7 @@ function new_map_view(map_id:number): DungeonMapView{
 function change_active_map_view(idx: number, from_select:boolean, store:boolean){
     active_map_view_index = idx;
     if(store)
-        localStorage.setItem(`${THISPAGE}/active_map_view_index`, ""+idx);
+        store_local(StorageCategory.CANVAS, 'active_map_view_index', idx);
     request_render();
     if(from_select)
         return;
@@ -2743,9 +2743,13 @@ SOCKET.on(ToClient.CANVAS_INITIALIZE_MAPS, function(msgs:Array<{map_id:number; m
             }
         }
     }
-    const old_idx_s = localStorage.getItem(`${THISPAGE}/active_map_view_index`);
-    if(old_idx_s){
-        let old_idx = +old_idx_s;
+    let old_idx = get_local(StorageCategory.CANVAS, 'active_map_view_index');
+    if(old_idx === undefined){
+        const old_idx_s = localStorage.getItem(`${THISPAGE}/active_map_view_index`);
+        if(old_idx_s)
+            old_idx = +old_idx_s;
+    }
+    if(old_idx !== undefined){
         if(old_idx < dungeon_map_views.length && old_idx >= 0)
             change_active_map_view(old_idx, false, false);
     }
@@ -5385,18 +5389,21 @@ const RECTTYPE_TO_NAME = [
 ];
 let current_rect_type = RECTTYPE.HOLLOW;
 let current_tool:TOOLTYPE = (function(){
-    const t = localStorage.getItem('current_tool');
+    let t = get_global(StorageCategory.CANVAS, 'current_tool');
+    if(t === undefined)
+        t = localStorage.getItem('current_tool');
     if(t){
         const result =  TOOL_IDS_TO_TOOL.get(t);
-        if(result !== undefined){
+        if(result !== undefined)
             return result;
-        }
     }
     return show_pan?TOOLTYPE.PAN:TOOLTYPE.SELECT;
     }());
 let color_picker_:HTMLInputElement;
 let color_picker2_:HTMLInputElement;
 function retrieve_colors(storage_key:string): Array<string>{
+    let result = get_global(StorageCategory.CANVAS, storage_key);
+    if(result) return result;
     const js = localStorage.getItem(storage_key);
     if(!js)
         return ['#ff2600', '#ff9300', '#fffb00', '#00f900', '#00fdff', '#0433ff', '#ff40ff', '#942192', '#aa7942', '#ffffff', '#919191', '#000000'];
@@ -5414,7 +5421,7 @@ function add_recent_color(color:string, colors:Array<string>, storage_key:string
         colors.pop();
     }
     if(index == -1){
-        localStorage.setItem(storage_key, JSON.stringify(colors));
+        store_global(StorageCategory.CANVAS, storage_key, colors);
     }
 }
 function get_primary_color():string{
@@ -5549,7 +5556,7 @@ function make_terrain_icon_palette(){
 }
 let tools: Array<HTMLElement> = [];
 function change_tool(tool:TOOLTYPE):void{
-    localStorage.setItem('current_tool', TOOL_TO_TOOL_ID[tool]);
+    store_global(StorageCategory.CANVAS, 'current_tool', TOOL_TO_TOOL_ID[tool]);
     let prev = current_tool;
     if(!tools)
         return;
