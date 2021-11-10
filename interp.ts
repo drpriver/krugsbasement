@@ -653,7 +653,7 @@ const evaluate_script = (function(){
     }
 
     function eval_script(text:string, vars:Map<string, number>, namespaces:Map<string, Map<string,number>>): Array<string> {
-        const before = performance.now();
+        // const before = performance.now();
         let outlines: Array<string> = [];
         let ass = new Map();
         let glob = make_block(null, -1);
@@ -662,9 +662,8 @@ const evaluate_script = (function(){
         if(err !== null) throw new Error(err);
         let err2 = interpret(glob, vars, namespaces, ass, outlines);
         if(err2.length) throw new Error(err2);
-        const after = performance.now();
-        outlines.push(`Parsing took: ${after-before}ms`);
-        // console.log('after-before', after-before);
+        // const after = performance.now();
+        // outlines.push(`Parsing took: ${after-before}ms`);
         return outlines;
     }
     return eval_script;
