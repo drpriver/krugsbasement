@@ -134,7 +134,7 @@ const MACROS: Array<Macro> = (function(){
         if(macros_string)
             macros = JSON.parse(macros_string);
         // handle old macros
-        const result: Array<Macro> = [];
+        result = [];
         if(!Array.isArray(macros)){
             for(let [key, value] of Object.entries(macros)){
                 if(typeof key !== "string")
