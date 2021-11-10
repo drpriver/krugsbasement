@@ -119,14 +119,12 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement){
         if(save_in_flight) return;
         save_in_flight = true;
         setTimeout(function(){
-            console.log([x, y]);
             store_global(StorageCategory.WINDOW, win.id, [x, y]);
             save_in_flight = false;
         }, 100);
     }
     let old_pos = get_global(StorageCategory.WINDOW, win.id);
     if(old_pos !== undefined){
-        console.log(old_pos);
         const [old_x, old_y] = old_pos;
         win.style.top = old_y + 'px';
         win.style.left = old_x + 'px';
