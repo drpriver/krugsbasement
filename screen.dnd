@@ -5,7 +5,7 @@ David20::title @hide
   reconnect.
   </div>
 ::css @inline
-  #notes-window, #macros-window {
+  .window {
     position: fixed;
     top: 10%;
     left: 10%;
@@ -25,12 +25,14 @@ David20::title @hide
   #macros-window {
     z-index: 3;
   }
-  #notes-window-handle, #macros-window-handle {
+  .window-handle {
     grid-row: 1;
     cursor: grab;
     background-color: rgb(221,221,221);
     border-radius: 8px 8px 0px 0px;
     display: flex;
+    height: 32px;
+    min-width: 32px;
   }
   #tool-container-handle {
     cursor: grab;
@@ -42,11 +44,14 @@ David20::title @hide
     width: 64px;
     margin-left: 24px;
   }
-  #notes-container, #macros-container {
+  .window-container {
     grid-row: 2;
     display: flex;
     flex-direction: row;
     height: calc(100% - 32px);
+  }
+  #float-variables-container {
+    flex-direction: column;
   }
   #notes-window-iframe-container {
     margin: auto;
@@ -70,7 +75,7 @@ David20::title @hide
     width: 100%;
   }
   #macro-editor {
-    height: calc(100% - 32px);
+    height: 100%;
     width: 100%;
     padding-right: 12px;
   }
@@ -88,13 +93,13 @@ David20::title @hide
     width: 100%;
   }
   #note-view-edit {
-    height: max(80%, calc(100% - 100px));
+    height: 50%;
   }
   #macro-view-edit {
-    height: max(70%, calc(100% - 200px));
+    height: 50%;
   }
   #note-view-editor-log, #macro-test-log {
-    height: min(20%, 120px);
+    height: 20%;
     color: #800;
     border: 1px solid grey;
     overflow-y: auto;
@@ -105,14 +110,14 @@ David20::title @hide
     -webkit-user-select: initial;
     user-select: initial;
   }
-  #notes-list, #macros-list, #macros-group-list{
+  .window-group-list {
     display: flex;
     flex-direction: column;
     width: 18em;
-    height: calc(100% - 32px);
     overflow-y: auto;
+    height: 100%;
   }
-  #notes-list div, #macros-list div, #macros-group-list div {
+  .window-group-list div {
     padding: 8px;
     border-bottom: 1px solid black;
     cursor: pointer;
@@ -121,36 +126,54 @@ David20::title @hide
     -webkit-user-select: none;
     user-select: none;
   }
-  #notes-list div:hover, #macros-list div:hover, #macros-group-list div:hover {
+  .window-group-list div:hover {
     background-color: #f8f8f8;
   }
-  #notes-list div.active:hover, #macros-list div.active:hover, #macros-group-list div.active:hover {
+  .window-group-list div.active:hover {
     background-color: rgb(233, 233, 255);
   }
-  #notes-list div.active, #macros-list div.active, #macros-group-list div.active {
+  .window-group-list div.active {
     background-color: rgb(211, 211, 255);
   }
-  #notes-close, #macros-close {
+  .window-closer {
     text-align: center;
     font-size: 24px;
     padding: 4px 12px;
     cursor: pointer;
     height: 32px;
   }
-  #notes-close:hover, #macros-close:hover {
+  .window-closer:hover {
     background-color: rgba(0, 0, 0, 0.1);
   }
   #macro-category-label {
     text-align: center;
   }
+  .variable-table-row {
+    display: table-row;
+  }
+  .variable-table-row > div {
+    display: table-cell;
+    padding: 2px;
+    text-align: center;
+  }
+  .variable-table-row > div > input {
+    width: 8em;
+  }
+  .variable-table-row > div > input[type="numeric"] {
+    width: 4em;
+  }
+  .variable-table-row > div> input[type="checkbox"] {
+    width: 4em;
+    margin-left: 35%;
+  }
   /*endcss*/
 ::raw
-  <div id="notes-window" style="display:none;">
-    <div id="notes-window-handle">
-    <span id="notes-close">X</span>
+  <div id="notes-window" style="display:none;" class="window">
+    <div id="notes-window-handle" class="window-handle">
+    <span id="notes-close" class="window-closer">X</span>
     </div>
-    <div id="notes-container">
-      <div id="notes-list">
+    <div id="notes-container" class="window-container">
+      <div id="notes-list" class="window-group-list">
         <button id="new-note">
           + New Note
         </button>
@@ -170,15 +193,15 @@ David20::title @hide
     </div>
   </div>
 ::raw
-  <div id="macros-window" style="display:none;">
-    <div id="macros-window-handle">
-      <span id="macros-close">X</span>
+  <div id="macros-window" style="display:none;" class="window">
+    <div id="macros-window-handle" class="window-handle">
+      <span id="macros-close" class="window-closer">X</span>
     </div>
-    <div id="macros-container">
-      <div id="macros-group-list">
+    <div id="macros-container" class="window-container">
+      <div id="macros-group-list" class="window-group-list">
         <span id="macro-category-label">Category</span>
       </div>
-      <div id="macros-list">
+      <div id="macros-list" class="window-group-list">
         <button id="new-macro">
           + New Macro
         </button>
@@ -196,6 +219,47 @@ David20::title @hide
         <textarea spellcheck="false" id="macro-view-edit"></textarea>
         <div id="macro-test-log"></div>
       </div>
+    </div>
+  </div>
+::raw
+  <div id="variables-window" style="display:none" class="window">
+    <div id="variables-window-handle" class="window-handle">
+    <span id="variables-close" class="window-closer">X</span>
+    </div>
+    <div id="variables-container" class="window-container">
+      <div id="variables-group-list" class="window-group-list">
+        <button id="variables-add-category">+ Add Category</button>
+        <div class="active">Global</div>
+      </div>
+      <div id="variables-editor">
+        <input id="variable-group-name" value="Global"></input><br/>
+        <button id="variable-add-variable">+ Add Variable</button>
+        <div style="display:table;" id="variables-table">
+          <div style="display:table-row;" class="variables-row variable-table-row" id="variables-table-header">
+            <div><b>Type</b></div>
+            <div><b>Name</b></div>
+            <div><b>Value</b></div>
+            <div><b>UI</b></div>
+            <div><b>Delete</b></div>
+          </div>
+          <div style="display:table-row;" class="variables-row">
+            <input style="display:table-cell;" value="Str"></input>
+            <select style="display:table-cell;">
+              <option value="number">Number</option>
+              <option value="boolean">Boolean</option>
+            </select>
+            <input style="display: table-cell;" type="numeric" value="0"></input>
+            <input style="display:table-cell;" type="checkbox"></input>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+::raw
+  <div id="float-variables-window" style="display:none;" class="window">
+    <div id="float-variables-window-handle" class="window-handle">
+    </div>
+    <div id="float-variables-container" class="window-container">
     </div>
   </div>
 ::div @id(editorcontainer)
@@ -882,26 +946,26 @@ David20::title @hide
     body.dark-mode #colors {
       background-color: #333;
     }
-    body.dark-mode #notes-window, body.dark-mode #macros-window {
+    body.dark-mode .window {
       background-color: #333;
     }
-    body.dark-mode #notes-window-handle, body.dark-mode #macros-window-handle, body.dark-mode #tool-container-handle {
+    body.dark-mode .window-handle, body.dark-mode #tool-container-handle {
       background-color: #444;
     }
-    body.dark-mode #notes-list div, body.dark-mode #macros-list div,  body.dark-mode #macros-group-list div{
+    body.dark-mode .window-group-list div {
       color: #aaa;
       background-color: #111;
     }
-    body.dark-mode #notes-list div:hover body.dark-mode #macros-list div:hover, body.dark-mode #macros-group-list div:hover{
+    body.dark-mode .window-group-list div:hover {
       background-color: #113;
     }
-    body.dark-mode #notes-list div.active:hover, body.dark-mode #macros-list div.active:hover, body.dark-mode #macros-group-list div.active:hover{
+    body.dark-mode .window-group-list div.active:hover {
       background-color: #446;
     }
-    body.dark-mode #notes-list div.active, body.dark-mode #macros-list div.active, body.dark-mode #macros-group-list div.active{
+    body.dark-mode .window-group-list div.active {
       background-color: #335;
     }
-    body.dark-mode #notes-close:hover {
+    body.dark-mode .window-closer:hover {
       background-color: rgba(255, 255, 255, 0.1);
     }
     body.dark-mode #macro-category-label {

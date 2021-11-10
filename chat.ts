@@ -31,23 +31,27 @@ type ChatMsg = {
 
 const THISPAGE = window.location.pathname;
 
-let CHATNAME = localStorage.getItem(`${THISPAGE}/chatname`);
-// This is for backwards compatibility. Remove this code path in the future
-// once things have been successfully saved.
-if(!CHATNAME){
-    CHATNAME = localStorage.getItem('chatname');
-    if(CHATNAME)
-        localStorage.setItem(`${THISPAGE}/chatname`, CHATNAME);
-}
-if(!CHATNAME)
-    CHATNAME = "anon";
+let CHATNAME = (function(){
+    let name = get_local(StorageCategory.CHAT, 'name');
+    // legacy
+    if(!name)
+        name = localStorage.getItem(`${THISPAGE}/chatname`);
+    // also legacy
+    if(!name)
+        name = localStorage.getItem('chatname');
+    // default name
+    if(!name)
+        name = 'anon';
+    store_local(StorageCategory.CHAT, 'name', name);
+    return name;
+})();
 function setchatname(name:string){
     if(name)
         name = name.trim();
     if(!name)
         name = 'anon';
     CHATNAME = name;
-    localStorage.setItem(`${THISPAGE}/chatname`, name);
+    store_local(StorageCategory.CHAT,'name', name);
 }
 
 function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>){
@@ -110,48 +114,51 @@ type Macro = {
     id: number;
 };
 let macro_id = 0;
-let macro_group_id = 0;
-const MACRO_GROUPS: Map<string, number> = new Map();
+function get_macro_groups():Set<string>{
+    let result:Set<string> = new Set();
+    for(let m of MACROS)
+        result.add(m.group);
+    return result;
+}
 const MACROS: Array<Macro> = (function(){
-    let macros_string = localStorage.getItem(`${THISPAGE}/MACROS`);
-    if(!macros_string){
-        // for backwards compat with unnamespaced macro storage.
-        // Delete this in a few weeks when we've all played.
-        macros_string = localStorage.getItem('MACROS');
-        if(macros_string)
-            localStorage.setItem(`${THISPAGE}/MACROS`, macros_string);
-    }
-    if(!macros_string)
-        return []
-    const macros = JSON.parse(macros_string);
-    // handle old macros
-    const result: Array<Macro> = [];
-    MACRO_GROUPS.set("", 0);
-    macro_group_id++;
-    if(!Array.isArray(macros)){
-        for(let [key, value] of Object.entries(macros)){
-            if(typeof key !== "string")
-                continue;
-            if(typeof value !== "string")
-                continue
-            result.push({name:key, body:value, group:"", id:macro_id});
-            macro_id++;
+    let result:Array<Macro> = get_local(StorageCategory.MACROS, 'macros');
+    if(!result){
+        // legacy macros
+        let macros_string = localStorage.getItem(`${THISPAGE}/MACROS`);
+        if(!macros_string){
+            // for backwards compat with unnamespaced macro storage.
+            // Delete this in a few weeks when we've all played.
+            macros_string = localStorage.getItem('MACROS');
         }
-    }
-    else {
-        for(let m of macros){
-            if(!m.name)
-                continue;
-            if(!m.body)
-                continue;
-            result.push({name:m.name, body:m.body, group:m.group?m.group:"", id:macro_id});
-            macro_id++;
-            if(m.group && !MACRO_GROUPS.has(m.group)){
-                MACRO_GROUPS.set(m.group, macro_group_id);
-                macro_group_id++;
+        let macros = [];
+        if(macros_string)
+            macros = JSON.parse(macros_string);
+        // handle old macros
+        const result: Array<Macro> = [];
+        if(!Array.isArray(macros)){
+            for(let [key, value] of Object.entries(macros)){
+                if(typeof key !== "string")
+                    continue;
+                if(typeof value !== "string")
+                    continue
+                result.push({name:key, body:value, group:"", id:0});
             }
         }
+        else {
+            for(let m of macros){
+                if(!m.name)
+                    continue;
+                if(!m.body)
+                    continue;
+                result.push({name:m.name, body:m.body, group:m.group?m.group:"", id:0});
+            }
+        }
+        store_local(StorageCategory.MACROS, 'macros', result);
     }
+    for(let i = 0; i < result.length; i++){
+        result[i].id = i;
+    }
+    macro_id = result.length;
     return result;
 }());
 const MACROGROUPS: Map<string, HTMLDivElement> = new Map();
@@ -163,11 +170,9 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 
 function save_macros(){
-    localStorage.setItem(`${THISPAGE}/MACROS`, JSON.stringify(MACROS));
+    store_local(StorageCategory.MACROS, 'macros', MACROS);
 }
-window.addEventListener("beforeunload", function(){
-    save_macros();
-}, false);
+window.addEventListener('beforeunload',  save_macros, false);
 
 function add_macro(m:Macro){
     MACROS.push(m);
@@ -205,7 +210,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if(macros_is_open) return;
         make_top();
         macros_is_open = true;
-        macros_window.style.display = 'grid';
+        macros_window.style.display = 'block';
         label.style.height = '' + new_macro.clientHeight + 'px';
         if(MACROS.length){
             current_macro = MACROS[0];
@@ -293,16 +298,15 @@ document.addEventListener('DOMContentLoaded', function(){
     function make_active(m:Macro | null){
         (log as any).replaceChildren();
         let mid;
-        let groupid;
+        let group = "";
         if(!m){
             editor_container.style.display = 'none';
             mid = -1;
-            groupid = -1;
         }
         else {
             editor_container.style.display = 'block';
             mid = m.id;
-            groupid = MACRO_GROUPS.get(m.group) as number;
+            group = m.group;
         }
         for(let ml of macros_list.getElementsByTagName('div')){
             ml.classList.remove('active');
@@ -313,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function(){
         for(let gl of macros_group_list.getElementsByTagName('div')){
             gl.classList.remove('active');
             // @ts-ignore
-            if(+gl.dataset.id==groupid){
+            if(+gl.dataset.group==group){
                 gl.classList.add('active');
             }
         }
@@ -346,17 +350,11 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
             };
         }
-        for(let [group, id] of MACRO_GROUPS.entries()){
-            let has_it = false;
-            for(let m of MACROS){
-                if(m.group == group){
-                    has_it = true;
-                    break;
-                }
-            }
-            if(!has_it) continue;
+        let groups = Array.from(get_macro_groups());
+        groups.sort();
+        for(let group of groups){
             const d = document.createElement('div');
-            d.dataset.id = ""+id;
+            d.dataset.group = group;
             d.innerText = group.length?group:"General";
             d.addEventListener('click', make_click_handler(group));
             macros_group_list.appendChild(d);
@@ -408,8 +406,6 @@ document.addEventListener('DOMContentLoaded', function(){
         let new_value = macro_group_area.value;
         if(new_value != current_macro.group){
             current_macro.group = new_value;
-            if(!MACRO_GROUPS.has(new_value))
-                MACRO_GROUPS.set(new_value, macro_group_id++);
             displayed_group = new_value;
             update_list();
             make_active(current_macro);
@@ -764,13 +760,12 @@ function preprocess_command(value:string):string {
 }
 
 function evaluate(text:string):any{
-    let vars: Map<string, number> = new Map();
-    vars.set('rapid', 1);
-    let yowa = new Map();
-    yowa.set('dex', 2);
-    yowa.set('bab', 3);
-    let ns = new Map();
-    ns.set('yowa', yowa);
+    let ns = get_script_variables();
+    let vars: Map<string, number>;
+    if(ns.has('global'))
+        vars = ns.get('global')!;
+    else
+        vars = new Map();
     return evaluate_script(text, vars, ns);
 }
 
@@ -1187,16 +1182,330 @@ document.addEventListener('DOMContentLoaded', function(){
     setup_zsorted_window(container);
 });
 
+const enum ScriptVariableType {
+    NUMBER = 0,
+    BOOLEAN = 1,
+}
+const enum ScriptVariableFlags {
+    NONE = 0,
+    // actually means it rarely changes
+    UI = 1 << 0,
+    DELETED = 1 << 1,
+}
+
+type ScriptVariable = {
+    group: string;
+    name: string;
+    type: ScriptVariableType;
+    value: number;
+    id: number; // gets reset on load time, this is just for across rename consistency.
+    flags: ScriptVariableFlags;
+}
+let current_script_variable_id = 0;
+const SCRIPTVARIABLES: Array<ScriptVariable> = (function(){
+    const result:Array<ScriptVariable> = [];
+    let variables: Array<ScriptVariable>|undefined = get_local(StorageCategory.MACROS, 'variables');
+    if(variables === undefined){
+        return result;
+    }
+    for(let sv of variables){
+        if(sv.flags & ScriptVariableFlags.DELETED)
+            continue;
+        sv.id = current_script_variable_id++;
+        result.push(sv);
+    }
+    return result;
+})();
+function actually_save_the_variables(){
+    const to_save = [];
+    for(let sv of SCRIPTVARIABLES){
+        if(sv.flags & ScriptVariableFlags.DELETED)
+            continue;
+        to_save.push(sv);
+    }
+    store_local(StorageCategory.MACROS,'variables', to_save);
+}
+window.addEventListener('beforeunload', actually_save_the_variables, false);
+// todo: maybe use a timer?
+function save_variables(){
+    actually_save_the_variables();
+}
+
+const SCRIPTVARIABLES_BY_ID: Map<number, ScriptVariable> = (function(){
+    let result = new Map();
+    for(let sv of SCRIPTVARIABLES){
+        sv.id = current_script_variable_id++;
+        result.set(sv.id, sv);
+    }
+    return result;
+})();
+
+function get_script_variables():Map<string, Map<string, number>>{
+    let result = new Map();
+    for(let sv of SCRIPTVARIABLES){
+        let group = sv.group.toLowerCase();
+        let m;
+        if(!result.has(group)){
+            m = new Map();
+            result.set(group, m);
+        }
+        else
+            m = result.get(group);
+        m.set(sv.name.toLowerCase(), +sv.value);
+    }
+    return result;
+}
+
 document.addEventListener('DOMContentLoaded', function(){
     const var_button: HTMLButtonElement = get_by_id('variables-button');
-    const var_window:HTMLDivElement = get_by_id('variables-window');
-    const var_handle:HTMLDivElement = get_by_id('variables-handle');
+    const var_window: HTMLDivElement    = get_by_id('variables-window');
+    const var_handle: HTMLDivElement    = get_by_id('variables-window-handle');
+    const var_close : HTMLSpanElement   = get_by_id('variables-close');
+    const var_groups: HTMLDivElement    = get_by_id('variables-group-list');
+    const var_table:  HTMLDivElement    = get_by_id('variables-table');
+    const var_group_name: HTMLInputElement = get_by_id('variable-group-name');
+    var_group_name.addEventListener('input', function(){
+        let new_group = var_group_name.value;
+        for(let sv of SCRIPTVARIABLES){
+            if(sv.group == active_group)
+                sv.group = new_group;
+        }
+        active_group = new_group;
+        setup();
+    });
+    const var_add_group: HTMLButtonElement = get_by_id('variables-add-category');
+    var_add_group.addEventListener('click', function(){
+        active_group = 'Untitled';
+        setup();
+    })
+    const var_add_var: HTMLButtonElement = get_by_id('variable-add-variable');
+    var_add_var.addEventListener('click', function(){
+        let sv = {
+            group: active_group,
+            name: '',
+            type: ScriptVariableType.NUMBER,
+            id: current_script_variable_id++,
+            flags: ScriptVariableFlags.NONE,
+            value: 0,
+        };
+        SCRIPTVARIABLES.push(sv);
+        add_table_row(sv);
+    });
     const make_top = setup_zsorted_window(var_window);
     setup_movable_window(var_window, var_handle);
     let variables_is_open = false;
+    let active_group = 'Global';
     var_button.addEventListener('click', function(){
         if(variables_is_open) return;
         variables_is_open = true;
+        hide_float();
+        setup();
         make_top();
+        var_window.style.display = 'block';
     });
+    setup_closable_window(var_window, var_close, function(){
+        variables_is_open = false;
+        show_float();
+    });
+    function add_table_row(sv:ScriptVariable){
+        let row = elem_with_parent(var_table, 'div', null, 'variables-row');
+        row.classList.add('variable-table-row');
+        let d = elem_with_parent(row, 'div');
+        let select = elem_with_parent(d, 'select', null, null);
+        let numopt = elem('option');
+        numopt.innerText = "Number";
+        numopt.value = "" + ScriptVariableType.NUMBER;
+        select.options.add(numopt);
+        let boolopt = elem('option');
+        boolopt.innerText = "Boolean";
+        boolopt.value = ""+ScriptVariableType.BOOLEAN;
+        select.options.add(boolopt);
+        select.addEventListener('input', function(){
+            sv.type = +select.value as ScriptVariableType;
+            switch(+select.value as ScriptVariableType){
+                case ScriptVariableType.NUMBER:
+                    inpb.style.display = 'none';
+                    inpn.style.display = 'initial';
+                    break;
+                case ScriptVariableType.BOOLEAN:
+                    inpb.style.display = 'initial';
+                    inpn.style.display = 'none';
+                    break;
+            }
+            select.blur();
+        });
+        d = elem_with_parent(row, 'div');
+        let name = elem_with_parent(d, 'input', null, null);
+        name.value = sv.name;
+        name.addEventListener('input', function(){
+            sv.name = name.value;
+        });
+        d = elem_with_parent(row, 'div');
+        let inpn = elem_with_parent(d, 'input', null, null);
+        inpn.type = "numeric";
+        inpn.value = ""+sv.value;
+        inpn.addEventListener('input', function(){
+            sv.value = +inpn.value;
+            inpb.checked = !!inpn.value;
+        });
+        let inpb = elem_with_parent(d, 'input', null, null);
+        inpb.type = "checkbox";
+        inpb.checked = !!sv.value;
+        inpb.addEventListener('change', function(){
+            sv.value = +inpb.checked;
+            inpn.value = ""+(+inpb.checked);
+        });
+        switch(sv.type){
+            case ScriptVariableType.NUMBER:{
+                inpb.style.display='none';
+                select.selectedIndex = 0;
+            }break;
+            case ScriptVariableType.BOOLEAN:{
+                inpn.style.display='none';
+                select.selectedIndex = 1;
+            }break;
+        }
+        d = elem_with_parent(row, 'div');
+        let uicheck = elem_with_parent(d, 'input');
+        uicheck.type = "checkbox";
+        uicheck.checked = !!(sv.flags & ScriptVariableFlags.UI);
+        uicheck.addEventListener('change', function(){
+            if(uicheck.checked){
+                sv.flags |= ScriptVariableFlags.UI;
+            }
+            else {
+                sv.flags &= ~ScriptVariableFlags.UI;
+            }
+        });
+        d = elem_with_parent(row, 'div');
+        let delbutton = elem_with_parent(d, 'button');
+        delbutton.innerText = '✘';
+        delbutton.addEventListener('click', function(){
+            sv.flags |= ScriptVariableFlags.DELETED;
+            row.remove();
+        });
+    }
+    function group_click(group:string){
+        return function(){
+            active_group = group;
+            setup();
+        };
+    }
+    function setup(){
+        for(let gd of Array.from(var_groups.getElementsByTagName('div')))
+            gd.remove();
+
+        let groups_: Set<string> = new Set();
+        for(let sv of SCRIPTVARIABLES){
+            if(sv.flags & ScriptVariableFlags.DELETED)
+                continue;
+            groups_.add(sv.group);
+        }
+        let groups = Array.from(groups_);
+        groups.sort();
+        if(!groups_.has(active_group)){
+            const d = document.createElement('div');
+            d.innerText = active_group;
+            d.classList.add('active');
+            d.addEventListener('click', group_click(active_group));
+            var_groups.appendChild(d);
+        }
+        for(let g of groups){
+            const d = document.createElement('div');
+            d.innerText = g;
+            if(g == active_group)
+                d.classList.add('active');
+            d.addEventListener('click', group_click(g));
+            var_groups.appendChild(d);
+        }
+        for(let vr of Array.from(var_table.getElementsByClassName('variables-row'))){
+            if(vr.id == 'variables-table-header')
+                continue
+            vr.remove();
+        }
+        for(let sv of SCRIPTVARIABLES.sort((a, b) => strcmp(a.name, b.name))){
+            if(sv.flags & ScriptVariableFlags.DELETED)
+                continue;
+            if(sv.group != active_group) continue;
+            add_table_row(sv);
+        }
+        if(var_group_name.value != active_group)
+            var_group_name.value = active_group;
+    }
+    function strcmp(a:string, b:string){
+        if(a < b) return -1;
+        if(a > b) return 1;
+        return 0;
+    }
+    const float_window:HTMLDivElement = get_by_id('float-variables-window');
+    const float_handle:HTMLDivElement = get_by_id('float-variables-window-handle');
+    const float_container:HTMLDivElement = get_by_id('float-variables-container');
+    let float_top = setup_zsorted_window(float_window);
+    function show_float(){
+        SCRIPTVARIABLES.sort((a, b) =>{ 
+            if(a.group == b.group) return 0;
+            if(a.group == 'Global') return -1;
+            if(b.group == 'Global') return 1;
+            return strcmp(a.group, b.group)
+        });
+        (float_container as any).replaceChildren();
+        let has_any = false;
+        let last_group = '';
+        let n = 0;
+        let holder:HTMLDivElement|null = null;;
+        for(let sv of SCRIPTVARIABLES){
+            if(sv.flags & ScriptVariableFlags.DELETED)
+                continue;
+            if(!(sv.flags & ScriptVariableFlags.UI))
+                continue;
+            has_any = true;
+            if(sv.group != last_group){
+                const h = elem_with_parent(float_container, 'h3');
+                h.textContent = sv.group;
+                last_group = sv.group;
+                h.style.margin = '0';
+                holder = elem_with_parent(float_container, 'div');
+                holder.style.display = 'table';
+            }
+            const row = elem_with_parent(holder!, 'div');
+            row.style.display = 'table-row';
+            const name = elem_with_parent(row, 'label');
+            name.textContent = sv.name;
+            name.style.width = '4em';
+            name.style.display = 'table-cell';
+            let id = 'float-var-id-'+n++;
+            name.htmlFor = id;
+            const inpwrap = elem_with_parent(row, 'div');
+            inpwrap.style.width = '4em';
+            inpwrap.style.display = 'table-cell';
+            const inp = elem_with_parent(inpwrap, 'input');
+            inp.style.width = '4em';
+            inp.id = id;
+            switch(sv.type){
+                case ScriptVariableType.BOOLEAN:
+                    inp.type = 'checkbox';
+                    inp.checked = !!sv.value;
+                    inp.addEventListener('change', function(){
+                        sv.value = +inp.checked;
+                    });
+                break;
+                case ScriptVariableType.NUMBER:
+                    inp.type = 'numeric';
+                    inp.value = ""+sv.value;
+                    inp.addEventListener('input', function(){
+                        sv.value = +inp.value;
+                    });
+                break;
+            }
+        }
+        if(has_any){
+            float_window.style.display = 'block';
+            float_top();
+        }
+    }
+    function hide_float(){
+        float_window.style.display = 'none';
+    }
+    setup_movable_window(float_window, float_handle);
+    show_float();
 });

@@ -2,7 +2,7 @@ Depends: ; mkdir -p $@
 DEPFILES:= $(wildcard Depends/*.dep)
 include $(DEPFILES)
 TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError
-TSFILES:= toplevel.ts chat.ts canvas.ts notes.ts utils.ts messages.ts interp.ts
+TSFILES:= toplevel.ts chat.ts canvas.ts notes.ts utils.ts messages.ts interp.ts storage.ts
 combined.js: $(TSFILES)
 	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc $(TSFILES) $(TSCFLAGS) --outFile $@ | cat"
 

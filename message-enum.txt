@@ -6,7 +6,7 @@ FromClient
     POST_JOIN = pj
     # Chat messages
     CHAT_INPUT = ci
-	CHAT_TEST_INPUT = cti
+    CHAT_TEST_INPUT = cti
     # Roll Tables
     RETRIEVE_ROLL_TABLES = rrt
     UPDATE_ROLL_TABLES = urt

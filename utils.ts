@@ -149,10 +149,12 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement){
         let newy = yorg + ydiff;
         let newx = xorg + xdiff;
         let r = win.getBoundingClientRect();
-        if(newx + r.width > window.innerWidth)
-            newx = window.innerWidth - r.width;
-        if(newy + r.height > window.innerHeight)
-            newy = window.innerHeight - r.height;
+        let xmarg = r.width > 128? 128: r.width;
+        let ymarg = r.height > 128? 128: r.height;
+        if(newx + xmarg > window.innerWidth)
+            newx = window.innerWidth - xmarg;
+        if(newy + ymarg > window.innerHeight)
+            newy = window.innerHeight - ymarg;
         if(newy < 0) newy = 0;
         if(newx < 0) newx = 0;
         win.style.top = newy + 'px';

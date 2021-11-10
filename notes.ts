@@ -283,7 +283,7 @@ document.addEventListener('DOMContentLoaded', function(){
             return;
         make_top();
         notes_is_open = true;
-        notes_window.style.display='grid';
+        notes_window.style.display='block';
         if(current_note_id == -1){
             for(let nl of notes_list.getElementsByTagName('div')){
                 if(!nl.dataset) continue;
