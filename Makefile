@@ -18,6 +18,9 @@ run: combined.js token-list WebDnD/messages.py
 screen.html: screen.dnd combined.js | Depends
 	dndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
 
+macro-doc.html: Docs/macro-doc.dnd
+	dndc $< --output $@
+
 messages.ts WebDnD/messages.py: message-enum.txt
 	python3 Scripts/make_enums.py
 

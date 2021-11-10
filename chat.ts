@@ -1333,7 +1333,7 @@ document.addEventListener('DOMContentLoaded', function(){
         let name = elem_with_parent(d, 'input', null, null);
         name.value = sv.name;
         name.addEventListener('input', function(){
-            sv.name = name.value;
+            sv.name = name.value.replace(/\s/g, '_');
             save_variables();
         });
         d = elem_with_parent(row, 'div');

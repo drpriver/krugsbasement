@@ -1,0 +1,187 @@
+::css @inline
+  body > div {
+    margin: auto;
+    width: 50em;
+  }
+  pre {
+    width: 50em;
+  }
+  /*endcss*/
+::pre
+  # This is a comment. A line beginning with the pound sign is a comment.
+  # This entire page is a valid macro.
+
+  # The expanded functionality of the chat processor can now insert
+  # variables into your roll expressions. You can also do basic conditional
+  # statements with `if`.
+
+  # As a refresher, the server checks if a line of input from a chat
+  # message is a command. If it is not a command, it is just text and is just
+  # echoed to all users. If it is a command, then something special happens.
+  # The server considers a collection of lines all at once.
+  #
+  # The current commands are:
+  #   - Roll command:
+  #       roll, r, /roll, /r or any line of text that can be successfully
+  #       parsed as a dice expression.
+  #
+  #       The server parses the command as a dice expression, rolls the dice
+  #       and displays the result.
+  #
+  #   - Name command:
+  #       /name some name
+  #
+  #       Your chatname is temporarily changed to the given name for display
+  #       purposes in this collection of lines.
+  #
+  #   - Chat command
+  #       Any general text.
+  #
+  #       Not really a command, but here for completeness's sake. Just send
+  #       some text.
+  #
+  # That's it. Pretty bare bones
+  #
+  # Now for the extra functionality. Basically, a preprocessing step interprets
+  # the input, altering the lines that are sent to the server.
+  #
+  # Here's an example, we will then explain afterwards.
+
+  bonus = 4
+  attack = d20 + bonus
+  /roll attack
+
+  # I'll break it down line by line.
+
+  bonus = 4
+
+  # The above creates a local variable, setting it to 4.
+  # Assignment statements are "identifier" "=" "whatever stuff"
+
+  attack = d20 + bonus
+
+  # The above also creates a local variable, named attack.
+  # This one indirectly references the local variable we created before.
+  # When it comes time to use this variable, multiple expansions will need to
+  # happen. I'll explain that in a second
+
+  /roll attack
+
+  # The above is a roll statement, so we try to replace any terms we can with
+  # known variables. After the first substitution, we end up with:
+
+  /roll d20 + bonus
+
+  # There is still a variable in this statement, so it is expanded again.
+
+  /roll d20 + 4
+
+  # which is the final line. This line is what will end up being sent to
+  # the server.
+
+  # Variables only have to be defined when you get to actually expanding them.
+  # This means that we could have written the above as:
+
+  attack = d20 + bonus
+  bonus = 4
+  /roll attack
+
+  # As variables are lazily expanded, this just works.
+
+  # Variables are case insensitive. These lines are the same:
+
+  /roll attack
+  /roll ATTACK
+  /roll Attack
+
+  # It's annoying to have to define all your variables in every script,
+  # especially when they are values you'll want to use in many places, like
+  # your strength bonus or your base attack bonus. To help with this, there are
+  # variable groups. You can't create variable groups inside a macro - they
+  # are created through the variables window. A variable group can have any
+  # number of variables defined in it.
+  #
+  # To actually access a variable in a macro, you need to bring it into the
+  # local context. To do that, we have the `use` statement. Imagine you have a
+  # variable group where you have defined `bab` to be 3 and `dex` to be 2,
+  # named `Yowa`. You can then do this:
+
+  use Yowa
+  attack = d20 + bab + dex
+  /roll attack
+
+  # In the above, all of the variable's from Yowa will then be available and
+  # the /roll attack expands to:
+
+  /roll d20 + 3 + 2
+
+  # Variable groups are also case insensitive.
+
+  # There is a special variable group. If you create a variable group named
+  # 'Global', (or 'global'), that group is implicitly "used" in all of your
+  # macros and even in your chat box. In the future, I will add the ability to
+  # conditionally use variable groups in the chat.
+
+  # The last major feature is conditional execution. This is done using `if`
+  # and `else`. An example:
+
+  rapid = 1
+  if rapid:
+    /roll d20 - 2
+    /roll d20 - 2
+  else:
+    /roll d20
+
+  # The `if` statement is written as "if" "expression" ":".
+  # The trailing colon is mandatory. Without it, it is considered a regular
+  # line of text.
+  #
+  # Currently expressions are limited to a single token (which can be a
+  # variable that gets expanded). A very crude expression evaluator is then run
+  # and if the result is non-zero, it is considered "true". If it's true, then
+  # the indented statements after the if are evaluated.
+  #
+  # An `if` can have an `else`, which looks like in the above example. The
+  # indented statements after the else are run if the expression turned out to
+  # be false (0). An `if` doesn't have to have an `else`. There's also `else
+  # if`.
+
+  # With the if you can conditionally send roll commands and also conditionally
+  # set variables. For example:
+
+  prone = 1
+  if prone:
+    penalty = 4
+  else:
+    penalty = 0
+  /roll d20 - penalty
+
+  # With all that, we can finally arrive at our final example which uses all of
+  # these features:
+
+  /name Yowa
+  use Yowa
+  attack = d20 + dex + bab
+  if rapid:
+    Rapid Attack!
+    /roll attack - 2
+    /roll attack - 2
+  else:
+    /roll attack
+
+  # Rarely, you want to type something that looks like a roll expression, but
+  # isn't, such as:
+
+  Roll a d20 + str Don
+
+  # Variable expansion will be attempted on this, which would be confusing as
+  # it would come out as "Roll a d20 + 3 Don" if you had a str variable set to
+  # 3. To avoid this, you can prefix with a "/say " which will cause the rest
+  # to be processed as literal text. You can also use a leading backtick (`) to
+  # the same effect. Do not use a trailing backtick.
+
+  /say Roll a d20 + str Don
+  `Roll a d20 + str Don
+
+  # Generally, slash commands other than /roll are not expanded, so if future
+  # slash commands are added there will be no problem.
