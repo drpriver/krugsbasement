@@ -1,0 +1,5 @@
+When you check a variable group to be implicitly used, it should uncheck
+conflicting groups.
+
+Update:
+  This now works.

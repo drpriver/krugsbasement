@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function(){
 function save_macros(){
     store_local(StorageCategory.MACROS, 'macros', MACROS);
 }
-window.addEventListener('beforeunload',  save_macros, false);
+// window.addEventListener('beforeunload',  save_macros, false);
 
 function add_macro(m:Macro){
     MACROS.push(m);
@@ -778,13 +778,13 @@ function evaluate(text:string, flags:EvaluateFlags):any{
             for(let k of more.keys()){
                 if(vars.has(k)){
                     err_dialog(`
-                               <div style="max-width: 30em; margin:auto; padding: 1em;">
-                               <h2>Error when processing commands</h2>
-                               <p>A duplicate variable has been encountered:</p>
-                               <p style="text-align:center;"><code>${k}</code></p>
-                               <p>This is due to having multiple groups checked, where more than one group has the same variable defined. This error was detected for group <code>${g}</code>. Uncheck one of your groups to resolve this error.</p>
-                               </div>
-                               `);
+                    <div style="max-width: 30em; margin:auto; padding: 1em;">
+                    <h2>Error when processing commands</h2>
+                    <p>A duplicate variable has been encountered:</p>
+                    <p style="text-align:center;"><code>${k}</code></p>
+                    <p>This is due to having multiple groups checked, where more than one group has the same variable defined. This error was detected for group <code>${g}</code>. Uncheck one of your groups to resolve this error.</p>
+                    </div>
+                    `);
                     return [];
                 }
             }
@@ -1254,7 +1254,7 @@ function actually_save_the_variables(){
     }
     store_local(StorageCategory.MACROS,'variables', to_save);
 }
-window.addEventListener('beforeunload', actually_save_the_variables, false);
+// window.addEventListener('beforeunload', actually_save_the_variables, false);
 function save_variables(){
     if(save_variables_in_flight) return;
     save_variables_in_flight = true;
@@ -1513,6 +1513,7 @@ document.addEventListener('DOMContentLoaded', function(){
         let n = 0;
         let holder:HTMLDivElement|null = null;;
         let new_used_groups:Set<string> = new Set();
+        const group_checkboxes:Map<string, HTMLInputElement> = new Map();
         for(let sv of SCRIPTVARIABLES){
             if(sv.flags & ScriptVariableFlags.DELETED)
                 continue;
@@ -1528,6 +1529,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     let gid = `use-group-for-${sv.group}`;
                     l.htmlFor = gid;
                     const inp = elem_with_parent(d, 'input');
+                    group_checkboxes.set(sv.group, inp);
                     inp.type = 'checkbox';
                     inp.id = gid;
                     if(USED_VARIABLE_GROUPS.has(sv.group)){
@@ -1535,8 +1537,15 @@ document.addEventListener('DOMContentLoaded', function(){
                         new_used_groups.add(sv.group);
                     }
                     inp.addEventListener('change', function(){
-                        if(inp.checked)
-                            USED_VARIABLE_GROUPS.add(sv.group);
+                        if(inp.checked){
+                            add_to_used_variable_group_consistently(sv.group);
+                            for(let [k, v] of group_checkboxes.entries()){
+                                if(USED_VARIABLE_GROUPS.has(k))
+                                    v.checked = true;
+                                else
+                                    v.checked = false;
+                            }
+                        }
                         else
                             USED_VARIABLE_GROUPS.delete(sv.group);
                         store_local(StorageCategory.MACROS, 'used-variables', Array.from(USED_VARIABLE_GROUPS));
@@ -1608,3 +1617,24 @@ let USED_VARIABLE_GROUPS: Set<string> = (function():Set<string>{
     if(result === undefined) return new Set();
     return new Set(result as Array<string>);
 })();
+
+function add_to_used_variable_group_consistently(group:string){
+    let vars = get_script_variables();
+    let these_vars = vars.get(group.toLowerCase());
+    if(!these_vars || these_vars.size == 0){
+        USED_VARIABLE_GROUPS.add(group);
+        return;
+    }
+    for(let g of USED_VARIABLE_GROUPS){
+        let v = vars.get(g.toLowerCase());
+        if(!v || v.size == 0)
+            continue;
+        for(let k of these_vars.keys()){
+            if(v.has(k.toLowerCase())){
+                USED_VARIABLE_GROUPS.delete(g);
+                break;
+            }
+        }
+    }
+    USED_VARIABLE_GROUPS.add(group);
+}
