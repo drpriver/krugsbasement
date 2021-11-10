@@ -218,6 +218,7 @@ document.addEventListener('DOMContentLoaded', function(){
         }
         update_list();
         make_active(current_macro);
+        ensure_window_is_completely_on_screen(macros_window);
     });
     const macros_window   : HTMLDivElement      = get_by_id('macros-window');
     const editor_container: HTMLDivElement      = get_by_id('macro-editor');
@@ -1176,6 +1177,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const handle: HTMLDivElement = get_by_id('tool-container-handle');
     setup_movable_window(container, handle);
     setup_zsorted_window(container);
+    ensure_window_is_completely_on_screen(container);
 });
 
 const enum ScriptVariableType {
@@ -1292,6 +1294,7 @@ document.addEventListener('DOMContentLoaded', function(){
         setup();
         make_top();
         var_window.style.display = 'block';
+        ensure_window_is_completely_on_screen(var_window);
     });
     setup_closable_window(var_window, var_close, function(){
         variables_is_open = false;
@@ -1500,6 +1503,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if(has_any){
             float_window.style.display = 'block';
             float_top();
+            ensure_window_is_completely_on_screen(float_window);
         }
     }
     function hide_float(){

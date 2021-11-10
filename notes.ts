@@ -292,6 +292,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 break;
             }
         }
+        ensure_window_is_completely_on_screen(notes_window);
     });
     function set_nl(id:number, title:string){
         for(let nl of notes_list.getElementsByTagName('div')){

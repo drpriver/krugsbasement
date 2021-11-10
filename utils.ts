@@ -114,6 +114,25 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement){
     let y = 0;
     let xorg = 0;
     let yorg = 0;
+    let save_in_flight = false;
+    function save_position(x:number, y:number){
+        if(save_in_flight) return;
+        save_in_flight = true;
+        setTimeout(function(){
+            console.log([x, y]);
+            store_global(StorageCategory.WINDOW, win.id, [x, y]);
+            save_in_flight = false;
+        }, 100);
+    }
+    let old_pos = get_global(StorageCategory.WINDOW, win.id);
+    if(old_pos !== undefined){
+        console.log(old_pos);
+        const [old_x, old_y] = old_pos;
+        win.style.top = old_y + 'px';
+        win.style.left = old_x + 'px';
+        win.style.bottom = 'initial';
+        win.style.right = 'initial';
+    }
     // win.style.border = '1px solid black';
     handle.addEventListener('pointerdown', function(e:PointerEvent){
         if(e.target !== handle)
@@ -139,6 +158,8 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement){
         window.removeEventListener('pointerup', endmove);
         handle.style.cursor = 'grab';
         dragging = false;
+        let r = win.getBoundingClientRect();
+        save_position(r.left, r.top);
     }
     function pointermove(e:PointerEvent){
         if(!dragging) return;
@@ -191,6 +212,22 @@ function setup_window_size(win:HTMLElement){
         win.style.height = '600px';
     else
         win.style.height = '300px';
+}
+
+function ensure_window_is_completely_on_screen(win:HTMLElement){
+    let r = win.getBoundingClientRect();
+    let newx = r.left;
+    let newy = r.top;
+    let xmarg = r.width;
+    let ymarg = r.height;
+    if(newx + xmarg > window.innerWidth)
+        newx = window.innerWidth - xmarg;
+    if(newy + ymarg > window.innerHeight)
+        newy = window.innerHeight - ymarg;
+    if(newy < 0) newy = 0;
+    if(newx < 0) newx = 0;
+    win.style.top = newy + 'px';
+    win.style.left = newx + 'px';
 }
 
 function get_by_id<T extends HTMLElement >(id:string):T{
