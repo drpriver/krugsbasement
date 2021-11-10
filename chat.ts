@@ -185,7 +185,11 @@ function add_macros(macros:Array<Macro>){
 }
 
 function preprocess_and_send_chat(text:string){
-    text = preprocess_command(text);
+    text = preprocess_command(text, false);
+    SOCKET.emit(FromClient.CHAT_INPUT, {chatname:CHATNAME, text:text});
+}
+function preprocess_and_send_chat_with_usings(text:string){
+    text = preprocess_command(text, true);
     SOCKET.emit(FromClient.CHAT_INPUT, {chatname:CHATNAME, text:text});
 }
 
@@ -256,7 +260,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const test_button: HTMLButtonElement = get_by_id('test-macro');
     test_button.addEventListener('click', function(){
         if(!current_macro) return;
-        let lines = evaluate(current_macro.body);
+        let lines = evaluate(current_macro.body, true);
         (log as any).replaceChildren();
         SOCKET.emit(FromClient.CHAT_TEST_INPUT, {chatname:CHATNAME, text:lines.join('\n')}, function(response:Array<ChatMsg>){
             add_chat_msgs(log, response);
@@ -402,7 +406,6 @@ document.addEventListener('DOMContentLoaded', function(){
         make_active(current_macro);
     });
     macro_group_area.addEventListener('input', function(){
-        console.log('input');
         if(!current_macro) return;
         let new_value = macro_group_area.value;
         if(new_value != current_macro.group){
@@ -705,7 +708,7 @@ document.addEventListener('DOMContentLoaded', function(){
             const value = ta.value;
             if(value.length){
                 ta.value = "";
-                preprocess_and_send_chat(value);
+                preprocess_and_send_chat_with_usings(value);
                 if(!(history.length && value == history[history.length-1])){
                     history.push(value);
                 }
@@ -740,12 +743,12 @@ document.addEventListener('DOMContentLoaded', function(){
     });
 });
 
-function preprocess_command(value:string):string {
+function preprocess_command(value:string, use_usings:boolean):string {
     let result = [];
     value = value.replace(/[“”]/g,'"');
     value = value.replace(/[‘’]/g,"'");
     try {
-        let evaled = evaluate(value);
+        let evaled = evaluate(value, use_usings);
         for(let e of evaled){
             result.push(e);
         }
@@ -756,13 +759,20 @@ function preprocess_command(value:string):string {
     return result.join('\n');
 }
 
-function evaluate(text:string):any{
+function evaluate(text:string, use_usings:boolean):any{
     let ns = get_script_variables();
     let vars: Map<string, number>;
     if(ns.has('global'))
         vars = ns.get('global')!;
     else
         vars = new Map();
+    if(use_usings){
+        for(let g of Array.from(USED_VARIABLE_GROUPS).sort()){
+            let more = ns.get(g.toLowerCase());
+            if(!more) continue;
+            vars = new Map([...vars, ...more]);
+        }
+    }
     return evaluate_script(text, vars, ns);
 }
 
@@ -1453,6 +1463,7 @@ document.addEventListener('DOMContentLoaded', function(){
         let last_group = '';
         let n = 0;
         let holder:HTMLDivElement|null = null;;
+        let new_used_groups:Set<string> = new Set();
         for(let sv of SCRIPTVARIABLES){
             if(sv.flags & ScriptVariableFlags.DELETED)
                 continue;
@@ -1460,12 +1471,34 @@ document.addEventListener('DOMContentLoaded', function(){
                 continue;
             has_any = true;
             if(sv.group != last_group){
-                const h = elem_with_parent(float_container, 'h3');
-                h.textContent = sv.group;
-                last_group = sv.group;
+                let d = elem_with_parent(float_container, 'div');
+                const h = elem_with_parent(d, 'h3');
                 h.style.margin = '0';
+                h.style.display = 'inline';
+                const l = elem_with_parent(h, 'label');
+                l.textContent = sv.group;
+                if(sv.group != 'Global'){
+                    let gid = `use-group-for-${sv.group}`;
+                    l.htmlFor = gid;
+                    const inp = elem_with_parent(d, 'input');
+                    inp.type = 'checkbox';
+                    inp.id = gid;
+                    if(USED_VARIABLE_GROUPS.has(sv.group)){
+                        inp.checked = true;
+                        new_used_groups.add(sv.group);
+                    }
+                    inp.addEventListener('change', function(){
+                        if(inp.checked)
+                            USED_VARIABLE_GROUPS.add(sv.group);
+                        else
+                            USED_VARIABLE_GROUPS.delete(sv.group);
+                        store_local(StorageCategory.MACROS, 'used-variables', Array.from(USED_VARIABLE_GROUPS));
+                    });
+                }
+                last_group = sv.group;
                 holder = elem_with_parent(float_container, 'div');
                 holder.style.display = 'table';
+
             }
             const row = elem_with_parent(holder!, 'div');
             row.style.display = 'table-row';
@@ -1500,6 +1533,8 @@ document.addEventListener('DOMContentLoaded', function(){
                 break;
             }
         }
+        USED_VARIABLE_GROUPS = new_used_groups;
+        store_local(StorageCategory.MACROS, 'used-variables', Array.from(USED_VARIABLE_GROUPS));
         if(has_any){
             float_window.style.display = 'block';
             float_top();
@@ -1512,3 +1547,9 @@ document.addEventListener('DOMContentLoaded', function(){
     setup_movable_window(float_window, float_handle);
     show_float();
 });
+
+let USED_VARIABLE_GROUPS: Set<string> = (function():Set<string>{
+    let result = get_local(StorageCategory.MACROS, 'used-variables');
+    if(result === undefined) return new Set();
+    return new Set(result as Array<string>);
+})();

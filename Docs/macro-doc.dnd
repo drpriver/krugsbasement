@@ -119,8 +119,10 @@
 
   # There is a special variable group. If you create a variable group named
   # 'Global', (or 'global'), that group is implicitly "used" in all of your
-  # macros and even in your chat box. In the future, I will add the ability to
-  # conditionally use variable groups in the chat.
+  # macros and even in your chat box. You can check the box next to the
+  # global's name in the mini variable window to enable a using for the
+  # chat box (so you can type d20 + bab in the chat window and have it get
+  # expanded).
 
   # The last major feature is conditional execution. This is done using `if`
   # and `else`. An example:
