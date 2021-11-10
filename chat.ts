@@ -185,11 +185,11 @@ function add_macros(macros:Array<Macro>){
 }
 
 function preprocess_and_send_chat(text:string){
-    text = preprocess_command(text, false);
+    text = preprocess_command(text, EvaluateFlags.NONE);
     SOCKET.emit(FromClient.CHAT_INPUT, {chatname:CHATNAME, text:text});
 }
 function preprocess_and_send_chat_with_usings(text:string){
-    text = preprocess_command(text, true);
+    text = preprocess_command(text, EvaluateFlags.USE_USINGS);
     SOCKET.emit(FromClient.CHAT_INPUT, {chatname:CHATNAME, text:text});
 }
 
@@ -260,11 +260,12 @@ document.addEventListener('DOMContentLoaded', function(){
     const test_button: HTMLButtonElement = get_by_id('test-macro');
     test_button.addEventListener('click', function(){
         if(!current_macro) return;
-        let lines = evaluate(current_macro.body, true);
+        let lines = evaluate(current_macro.body, EvaluateFlags.NONE);
         (log as any).replaceChildren();
-        SOCKET.emit(FromClient.CHAT_TEST_INPUT, {chatname:CHATNAME, text:lines.join('\n')}, function(response:Array<ChatMsg>){
-            add_chat_msgs(log, response);
-        });
+        if(lines.length)
+            SOCKET.emit(FromClient.CHAT_TEST_INPUT, {chatname:CHATNAME, text:lines.join('\n')}, function(response:Array<ChatMsg>){
+                add_chat_msgs(log, response);
+            });
     });
     const use_button: HTMLButtonElement = get_by_id('use-macro');
     use_button.addEventListener('click', function(){
@@ -743,12 +744,12 @@ document.addEventListener('DOMContentLoaded', function(){
     });
 });
 
-function preprocess_command(value:string, use_usings:boolean):string {
+function preprocess_command(value:string, flags:EvaluateFlags):string {
     let result = [];
     value = value.replace(/[“”]/g,'"');
     value = value.replace(/[‘’]/g,"'");
     try {
-        let evaled = evaluate(value, use_usings);
+        let evaled = evaluate(value, flags);
         for(let e of evaled){
             result.push(e);
         }
@@ -759,17 +760,34 @@ function preprocess_command(value:string, use_usings:boolean):string {
     return result.join('\n');
 }
 
-function evaluate(text:string, use_usings:boolean):any{
+const enum EvaluateFlags {
+    NONE = 0,
+    USE_USINGS = 1 << 0,
+}
+function evaluate(text:string, flags:EvaluateFlags):any{
     let ns = get_script_variables();
     let vars: Map<string, number>;
     if(ns.has('global'))
         vars = ns.get('global')!;
     else
         vars = new Map();
-    if(use_usings){
+    if(flags & EvaluateFlags.USE_USINGS){
         for(let g of Array.from(USED_VARIABLE_GROUPS).sort()){
             let more = ns.get(g.toLowerCase());
             if(!more) continue;
+            for(let k of more.keys()){
+                if(vars.has(k)){
+                    err_dialog(`
+                               <div style="max-width: 30em; margin:auto; padding: 1em;">
+                               <h2>Error when processing commands</h2>
+                               <p>A duplicate variable has been encountered:</p>
+                               <p style="text-align:center;"><code>${k}</code></p>
+                               <p>This is due to having multiple groups checked, where more than one group has the same variable defined. This error was detected for group <code>${g}</code>. Uncheck one of your groups to resolve this error.</p>
+                               </div>
+                               `);
+                    return [];
+                }
+            }
             vars = new Map([...vars, ...more]);
         }
     }
@@ -1245,6 +1263,8 @@ function save_variables(){
 function get_script_variables():Map<string, Map<string, number>>{
     let result = new Map();
     for(let sv of SCRIPTVARIABLES){
+        if(sv.flags & ScriptVariableFlags.DELETED)
+            continue;
         let group = sv.group.toLowerCase();
         let m;
         if(!result.has(group)){
@@ -1467,8 +1487,6 @@ document.addEventListener('DOMContentLoaded', function(){
         for(let sv of SCRIPTVARIABLES){
             if(sv.flags & ScriptVariableFlags.DELETED)
                 continue;
-            if(!(sv.flags & ScriptVariableFlags.UI))
-                continue;
             has_any = true;
             if(sv.group != last_group){
                 let d = elem_with_parent(float_container, 'div');
@@ -1498,8 +1516,9 @@ document.addEventListener('DOMContentLoaded', function(){
                 last_group = sv.group;
                 holder = elem_with_parent(float_container, 'div');
                 holder.style.display = 'table';
-
             }
+            if(!(sv.flags & ScriptVariableFlags.UI))
+                continue;
             const row = elem_with_parent(holder!, 'div');
             row.style.display = 'table-row';
             const name = elem_with_parent(row, 'label');
