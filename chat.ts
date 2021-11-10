@@ -1224,7 +1224,6 @@ function actually_save_the_variables(){
     store_local(StorageCategory.MACROS,'variables', to_save);
 }
 window.addEventListener('beforeunload', actually_save_the_variables, false);
-// todo: maybe use a timer?
 function save_variables(){
     if(save_variables_in_flight) return;
     save_variables_in_flight = true;
@@ -1313,6 +1312,7 @@ document.addEventListener('DOMContentLoaded', function(){
         boolopt.value = ""+ScriptVariableType.BOOLEAN;
         select.options.add(boolopt);
         select.addEventListener('input', function(){
+            save_variables();
             sv.type = +select.value as ScriptVariableType;
             switch(+select.value as ScriptVariableType){
                 case ScriptVariableType.NUMBER:
@@ -1331,6 +1331,7 @@ document.addEventListener('DOMContentLoaded', function(){
         name.value = sv.name;
         name.addEventListener('input', function(){
             sv.name = name.value;
+            save_variables();
         });
         d = elem_with_parent(row, 'div');
         let inpn = elem_with_parent(d, 'input', null, null);
@@ -1339,6 +1340,7 @@ document.addEventListener('DOMContentLoaded', function(){
         inpn.addEventListener('input', function(){
             sv.value = +inpn.value;
             inpb.checked = !!inpn.value;
+            save_variables();
         });
         let inpb = elem_with_parent(d, 'input', null, null);
         inpb.type = "checkbox";
@@ -1346,6 +1348,7 @@ document.addEventListener('DOMContentLoaded', function(){
         inpb.addEventListener('change', function(){
             sv.value = +inpb.checked;
             inpn.value = ""+(+inpb.checked);
+            save_variables();
         });
         switch(sv.type){
             case ScriptVariableType.NUMBER:{
@@ -1368,6 +1371,7 @@ document.addEventListener('DOMContentLoaded', function(){
             else {
                 sv.flags &= ~ScriptVariableFlags.UI;
             }
+            save_variables();
         });
         d = elem_with_parent(row, 'div');
         let delbutton = elem_with_parent(d, 'button');
@@ -1375,6 +1379,7 @@ document.addEventListener('DOMContentLoaded', function(){
         delbutton.addEventListener('click', function(){
             sv.flags |= ScriptVariableFlags.DELETED;
             row.remove();
+            save_variables();
         });
     }
     function group_click(group:string){
@@ -1434,7 +1439,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const float_container:HTMLDivElement = get_by_id('float-variables-container');
     let float_top = setup_zsorted_window(float_window);
     function show_float(){
-        SCRIPTVARIABLES.sort((a, b) =>{ 
+        SCRIPTVARIABLES.sort((a, b) =>{
             if(a.group == b.group) return 0;
             if(a.group == 'Global') return -1;
             if(b.group == 'Global') return 1;
