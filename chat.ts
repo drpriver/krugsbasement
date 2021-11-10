@@ -766,7 +766,7 @@ const enum EvaluateFlags {
 }
 function evaluate(text:string, flags:EvaluateFlags):any{
     let ns = get_script_variables();
-    let vars: Map<string, number>;
+    let vars: Map<string, number|string>;
     if(ns.has('global'))
         vars = ns.get('global')!;
     else
@@ -1117,7 +1117,7 @@ function tables_button_dialog(){
 
                 const weightinp = document.createElement('input');
                 weightinp.value = ""+weight;
-                weightinp.type = 'numeric';
+                weightinp.type = 'number';
                 append_row_element(tr, weightinp);
 
                 const valinp = document.createElement('input');
@@ -1211,6 +1211,7 @@ document.addEventListener('DOMContentLoaded', function(){
 const enum ScriptVariableType {
     NUMBER = 0,
     BOOLEAN = 1,
+    STRING  = 2,
 }
 const enum ScriptVariableFlags {
     NONE = 0,
@@ -1223,7 +1224,7 @@ type ScriptVariable = {
     group: string;
     name: string;
     type: ScriptVariableType;
-    value: number;
+    value: number | string;
     id: number; // gets reset on load time, this is just for across rename consistency.
     flags: ScriptVariableFlags;
 }
@@ -1260,7 +1261,7 @@ function save_variables(){
     setTimeout(actually_save_the_variables, 1000);
 }
 
-function get_script_variables():Map<string, Map<string, number>>{
+function get_script_variables():Map<string, Map<string, number|string>>{
     let result = new Map();
     for(let sv of SCRIPTVARIABLES){
         if(sv.flags & ScriptVariableFlags.DELETED)
@@ -1273,7 +1274,7 @@ function get_script_variables():Map<string, Map<string, number>>{
         }
         else
             m = result.get(group);
-        m.set(sv.name.toLowerCase(), +sv.value);
+        m.set(sv.name.toLowerCase(), sv.value);
     }
     return result;
 }
@@ -1344,6 +1345,10 @@ document.addEventListener('DOMContentLoaded', function(){
         boolopt.innerText = "Boolean";
         boolopt.value = ""+ScriptVariableType.BOOLEAN;
         select.options.add(boolopt);
+        let stropt = elem('option');
+        stropt.innerText = "String";
+        stropt.value = ""+ScriptVariableType.STRING;
+        select.options.add(stropt);
         select.addEventListener('input', function(){
             save_variables();
             sv.type = +select.value as ScriptVariableType;
@@ -1351,10 +1356,17 @@ document.addEventListener('DOMContentLoaded', function(){
                 case ScriptVariableType.NUMBER:
                     inpb.style.display = 'none';
                     inpn.style.display = 'initial';
+                    inps.style.display = 'none';
                     break;
                 case ScriptVariableType.BOOLEAN:
                     inpb.style.display = 'initial';
                     inpn.style.display = 'none';
+                    inps.style.display = 'none';
+                    break;
+                case ScriptVariableType.STRING:
+                    inpb.style.display = 'none';
+                    inpn.style.display = 'none';
+                    inps.style.display = 'initial';
                     break;
             }
             select.blur();
@@ -1368,11 +1380,12 @@ document.addEventListener('DOMContentLoaded', function(){
         });
         d = elem_with_parent(row, 'div');
         let inpn = elem_with_parent(d, 'input', null, null);
-        inpn.type = "numeric";
+        inpn.type = "number";
         inpn.value = ""+sv.value;
         inpn.addEventListener('input', function(){
             sv.value = +inpn.value;
             inpb.checked = !!inpn.value;
+            inps.value = ""+inpn.value;
             save_variables();
         });
         let inpb = elem_with_parent(d, 'input', null, null);
@@ -1381,16 +1394,32 @@ document.addEventListener('DOMContentLoaded', function(){
         inpb.addEventListener('change', function(){
             sv.value = +inpb.checked;
             inpn.value = ""+(+inpb.checked);
+            inps.value = ""+(+inpb.checked);
+            save_variables();
+        });
+        let inps = elem_with_parent(d, 'input', null, null);
+        inps.value = ""+sv.value;
+        inps.addEventListener('input', function(){
+            sv.value = inps.value;
+            inpn.value = ""+(+inps.value);
+            inpb.checked = !!(+inps.value);
             save_variables();
         });
         switch(sv.type){
             case ScriptVariableType.NUMBER:{
                 inpb.style.display='none';
+                inps.style.display='none';
                 select.selectedIndex = 0;
             }break;
             case ScriptVariableType.BOOLEAN:{
                 inpn.style.display='none';
+                inps.style.display='none';
                 select.selectedIndex = 1;
+            }break;
+            case ScriptVariableType.STRING:{
+                inpb.style.display='none';
+                inpn.style.display='none';
+                select.selectedIndex = 2;
             }break;
         }
         d = elem_with_parent(row, 'div');
@@ -1543,10 +1572,17 @@ document.addEventListener('DOMContentLoaded', function(){
                     });
                 break;
                 case ScriptVariableType.NUMBER:
-                    inp.type = 'numeric';
+                    inp.type = 'number';
                     inp.value = ""+sv.value;
                     inp.addEventListener('input', function(){
                         sv.value = +inp.value;
+                        save_variables();
+                    });
+                break;
+                case ScriptVariableType.STRING:
+                    inp.value = ""+sv.value;
+                    inp.addEventListener('input', function(){
+                        sv.value = inp.value;
                         save_variables();
                     });
                 break;

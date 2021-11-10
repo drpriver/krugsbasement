@@ -512,8 +512,8 @@ const evaluate_script = (function(){
         return error;
     }
 
-    function evaluate_expression(expr:string, vars:Map<string, number>, assignments:Map<string, Array<Token>>):number{
-        let toks = expand_tokens(vars, assignments, expr, new Set());
+    function evaluate_expression(expr:string, vars:Map<string, Array<Token>>):number{
+        let toks = expand_tokens(vars, expr, new Set());
         // FIXME: this is like the worst expression evaluator ever
         let minus = false;
         let value = 0;
@@ -537,7 +537,7 @@ const evaluate_script = (function(){
         return value;
     }
 
-    function interpret(statement:Statement, vars:Map<string, number>, namespaces:Map<string, Map<string, number>>, assignments:Map<string, Array<Token>>, outlines:Array<string>):string{
+    function interpret(statement:Statement, vars:Map<string, Array<Token>>, namespaces:Map<string, Map<string, Array<Token>>>, outlines:Array<string>):string{
         switch(statement.kind){
             case StatementKind.RAW:{
                 let s = "";
@@ -560,7 +560,7 @@ const evaluate_script = (function(){
                 let s = "";
                 for(let tok of statement.contents){
                     if(tok.kind == TokenKind.IDENT)
-                        s += expand(vars, assignments, tok.text, new Set());
+                        s += expand(vars, tok.text, new Set());
                     else
                         s += tok.text;
                 }
@@ -568,11 +568,11 @@ const evaluate_script = (function(){
             }break;
             case StatementKind.BLOCK:{
                 for(let s of statement.statements)
-                    interpret(s, vars, namespaces, assignments, outlines);
+                    interpret(s, vars, namespaces, outlines);
             }break;
             case StatementKind.IF:{
-                if(evaluate_expression(statement.test.text.toLowerCase(), vars, assignments)){
-                    interpret(statement.iftrue, vars, namespaces, assignments, outlines);
+                if(evaluate_expression(statement.test.text.toLowerCase(), vars)){
+                    interpret(statement.iftrue, vars, namespaces, outlines);
                 }
                 else {
                     let handled = false;
@@ -580,17 +580,17 @@ const evaluate_script = (function(){
                         let t2 = vars.get(elif.test.text);
                         if(t2){
                             handled = true;
-                            interpret(elif.block, vars, namespaces, assignments, outlines);
+                            interpret(elif.block, vars, namespaces, outlines);
                             break;
                         }
                     }
                     if(!handled && statement.iffalse !== null){
-                        interpret(statement.iffalse, vars, namespaces, assignments, outlines);
+                        interpret(statement.iffalse, vars, namespaces, outlines);
                     }
                 }
             }break;
             case StatementKind.ASSIGN:{
-                assignments.set(statement.lhs.text.toLowerCase(), statement.rhs);
+                vars.set(statement.lhs.text.toLowerCase(), statement.rhs);
             }break;
             case StatementKind.USE:{
                 let ns = namespaces.get(statement.name.text.toLowerCase());
@@ -602,46 +602,24 @@ const evaluate_script = (function(){
         }
         return "";
     }
-    function expand(vars:Map<string, number>, assignments:Map<string, Array<Token>>, ident:string, visited:Set<string>):string{
-        let original = ident;
-        ident = ident.toLowerCase();
-        if(visited.has(ident)) return original;
-        visited.add(ident);
-        let s = "";
-        let v = vars.get(ident);
-        if(v !== undefined){
-            s += v;
-            return s;
+    function expand(vars:Map<string, Array<Token>>, ident:string, visited:Set<string>):string{
+        let toks = expand_tokens(vars, ident, visited);
+        let s = ""
+        for(let tok of toks){
+            s += tok.text;
         }
-        let a = assignments.get(ident);
-        if(a !== undefined){
-            for(let tok of a){
-                if(tok.kind == TokenKind.IDENT){
-                    s += expand(vars, assignments, tok.text, visited);
-                }
-                else {
-                    s += tok.text;
-                }
-            }
-        }
-        if(!s.length) return original;
-        return s
+        return s;
     }
-    function expand_tokens(vars:Map<string, number>, assignments:Map<string, Array<Token>>, ident:string, visited:Set<string>):Array<Token>{
+    function expand_tokens(vars:Map<string, Array<Token>>, ident:string, visited:Set<string>):Array<Token>{
         ident = ident.toLowerCase();
         if(visited.has(ident)) return [];
         visited.add(ident);
         let result:Array<Token> = [];
         let v = vars.get(ident);
         if(v !== undefined){
-            result.push({kind:TokenKind.NUMBER, text:""+v});
-            return result;
-        }
-        let a = assignments.get(ident);
-        if(a !== undefined){
-            for(let tok of a){
+            for(let tok of v){
                 if(tok.kind == TokenKind.IDENT){
-                    for(let t of expand_tokens(vars, assignments, tok.text, visited))
+                    for(let t of expand_tokens(vars, tok.text, visited))
                         result.push(t);
                 }
                 else {
@@ -649,22 +627,56 @@ const evaluate_script = (function(){
                 }
             }
         }
+        else {
+            result.push({kind:TokenKind.IDENT, text:ident});
+        }
         return result;
     }
 
-    function eval_script(text:string, vars:Map<string, number>, namespaces:Map<string, Map<string,number>>): Array<string> {
+    function really_eval_script(text:string, vars:Map<string, Array<Token>>, namespaces:Map<string, Map<string, Array<Token>>>){
         // const before = performance.now();
         let outlines: Array<string> = [];
-        let ass = new Map();
         let glob = make_block(null, -1);
         let tokens = tokenize(text);
         let err = parse(tokens, glob);
         if(err !== null) throw new Error(err);
-        let err2 = interpret(glob, vars, namespaces, ass, outlines);
+        let err2 = interpret(glob, vars, namespaces, outlines);
         if(err2.length) throw new Error(err2);
         // const after = performance.now();
         // outlines.push(`Parsing took: ${after-before}ms`);
         return outlines;
+    }
+
+    function eval_script(text:string, vars:Map<string, number|string>, namespaces:Map<string, Map<string,number|string>>): Array<string> {
+        let newvars: Map<string, Array<Token>> = new Map();
+        for(const[k, v] of vars.entries()){
+            if(typeof v == 'string'){
+                newvars.set(k, tokenize(v));
+            }
+            else {
+                newvars.set(k, [{
+                    kind: TokenKind.NUMBER,
+                    text: "" + v,
+                }]);
+            }
+        }
+        let newnamespaces:Map<string, Map<string, Array<Token>>> = new Map();
+        for(const [name, ns] of namespaces.entries()){
+            let newnamespace: Map<string, Array<Token>> = new Map();
+            for(const[k, v] of ns.entries()){
+                if(typeof v == 'string'){
+                    newnamespace.set(k, tokenize(v));
+                }
+                else {
+                    newnamespace.set(k, [{
+                        kind: TokenKind.NUMBER,
+                        text: "" + v,
+                    }]);
+                }
+            }
+            newnamespaces.set(name, newnamespace);
+        }
+        return really_eval_script(text, newvars, newnamespaces);
     }
     return eval_script;
 })();
