@@ -13,6 +13,7 @@ const evaluate_script = (function(){
         OTHER    = "OTHER",
         USE      = "USE",
         BACKTICK = "BACKTICK",
+        MINUS    = "MINUS",
     }
     type Token = {
         kind: TokenKind,
@@ -157,6 +158,9 @@ const evaluate_script = (function(){
                 case '=':
                     result.push({kind:TokenKind.EQUALS, text:c});
                     continue;
+                case '-':
+                    result.push({kind:TokenKind.MINUS, text:c});
+                    continue;
                 case '#':
                     for(i++; i < text.length; i++){
                         if(text[i] == '\n') break;
@@ -268,6 +272,12 @@ const evaluate_script = (function(){
                         return parse_assignment();
                     else
                         return parse_raw();
+                case TokenKind.MINUS:{
+                    let k = peek_no_space().kind;
+                    if(k == TokenKind.NUMBER || k == TokenKind.DIE)
+                        return parse_roll();
+                    return parse_raw();
+                    }
                 case TokenKind.NUMBER:
                 case TokenKind.DIE:
                     return parse_roll();
@@ -527,11 +537,9 @@ const evaluate_script = (function(){
                 value += v;
                 continue;
             }
-            if(t.kind == TokenKind.OTHER){
-                if(t.text == "-"){
-                    minus = !minus;
-                    continue;
-                }
+            if(t.kind == TokenKind.MINUS){
+                minus = !minus;
+                continue;
             }
         }
         return value;
