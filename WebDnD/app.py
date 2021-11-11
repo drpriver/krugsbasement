@@ -317,7 +317,7 @@ def log_connections() -> None:
         return
     nsids = len(manager.rooms['/'][None])
     logging.info('Active connections: %s', nsids)
-RepeatTimer(60, log_connections).start()
+RepeatTimer(600, log_connections).start()
 
 if __name__ == '__main__':
     if appconfig.DEV:
