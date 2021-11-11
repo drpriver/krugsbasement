@@ -111,6 +111,10 @@ def handle_input(room:str, data:str, user:str='anon', test:bool=False) -> List[d
         if line.startswith('/name'):
             apparent_user = line[len('/name'):].strip()
             continue
+        if line.startswith('/say '):
+            result.append({'user':apparent_user, 'data':line[4:].lstrip(), 'type':Msg.PLAIN})
+            continue
+
         result.append({'user':apparent_user, 'data':line, 'type':Msg.PLAIN})
 
         try:

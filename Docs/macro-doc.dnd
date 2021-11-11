@@ -28,19 +28,42 @@
   #       The server parses the command as a dice expression, rolls the dice
   #       and displays the result.
   #
+  #   - Shuffle command:
+  #       shuffle, shuf, shuff, /shuffle, /shuff, /shuffle stuff
+  #
+  #       The text after the shuffle is split on whitespace (although quoted
+  #       text is treated as a single thing) and then shuffled. The results is
+  #       then sent back. This is useful for if you need a random order of
+  #       some things.
+  #
+  #   - Choose command:
+  #       choose, /choose stuff
+  #
+  #       The text after the choose is broken up the same way as with the
+  #       shuffle command. One of them is chosen and sent back.
+  #
+  #   - Table command:
+  #       table, /table tablename
+  #
+  #       The named table is looked up and rolled on (which can trigger a roll
+  #       on a different table). The result is then sent back.
+  #
   #   - Name command:
   #       /name some name
   #
   #       Your chatname is temporarily changed to the given name for display
   #       purposes in this collection of lines.
   #
-  #   - Chat command
+  #   - Chat command:
   #       Any general text.
   #
   #       Not really a command, but here for completeness's sake. Just send
   #       some text.
   #
-  # That's it. Pretty bare bones
+  #   - Say command:
+  #       /say some text
+  #
+  #       Says the text, without trying to parse it as a die roll.
   #
   # Now for the extra functionality. Basically, a preprocessing step interprets
   # the input, altering the lines that are sent to the server.

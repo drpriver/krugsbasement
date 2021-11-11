@@ -546,12 +546,7 @@ const evaluate_script = (function(){
                 outlines.push(s);
             }break;
             case StatementKind.SLASH:{
-                let s = "";
-                if(statement.first.text == "say"){
-                }
-                else {
-                    s = "/" + statement.first.text;
-                }
+                let s = "/" + statement.first.text;
                 for(let tok of statement.content)
                     s += tok.text;
                 outlines.push(s);
