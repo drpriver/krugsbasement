@@ -32,7 +32,7 @@
   #       shuffle, shuf, shuff, /shuffle, /shuff, /shuffle stuff
   #
   #       The text after the shuffle is split on whitespace (although quoted
-  #       text is treated as a single thing) and then shuffled. The results is
+  #       text is treated as a single thing) and then shuffled. The result is
   #       then sent back. This is useful for if you need a random order of
   #       some things.
   #

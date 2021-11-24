@@ -4,7 +4,7 @@ David20::title @hide
   You are currently not connected. Inputs will be buffered and sent upon
   reconnect.
   </div>
-::css @inline
+::css
   .window {
     position: fixed;
     top: 10%;
@@ -369,7 +369,7 @@ David20::title @hide
   ::raw
     <textarea spellcheck="false" id="chatinput" rows="4"></textarea>
 
-::css @inline
+::css
   :root {
     color-scheme: light dark; /* both supported */
   }
@@ -1022,5 +1022,5 @@ David20::title @hide
   /*endcss*/
 ::script @noinline
   https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js
-::script
+::script @import
   combined.js
