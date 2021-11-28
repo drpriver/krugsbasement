@@ -5707,8 +5707,9 @@ function make_tri_menu(e:MouseEvent, options:Array<{func:()=>void;text:string}>)
     const trimenu = document.createElement('section');
     trimenu.classList.add('menu');
     trimenu.style.left = e.clientX + 'px';
+    trimenu.style.zIndex = ""+TOPPERMOST_Z;
     const window_height = window.innerHeight;
-    trimenu.style.bottom = (window_height - e.clientY)+'px'
+    trimenu.style.bottom = (window_height - e.clientY)+'px';
     function remove_tri_menu(e?:MouseEvent){
         if(e){
             e.stopPropagation();
@@ -5970,6 +5971,7 @@ function event_to_coord_snapped(e:MouseEvent, view:DungeonMapView, snap:(x:numbe
         : e.offsetY/view.scale - view.camera_y;
     return [snap(x),snap(y)];
 }
+
 document.addEventListener('DOMContentLoaded', function(){
     canvas = document.getElementsByTagName('canvas')[0]!;
     let gesturing = false;

@@ -133,6 +133,14 @@ document.addEventListener('DOMContentLoaded', function(){
     function start_editing(){
         if(is_editing) return;
         is_editing = true;
+        if(current_note_id == -1){
+            // this was copy-pasted from the new note button.
+            SOCKET.emit(FromClient.NEW_NOTE_REQUEST, function(new_id:number){
+                let id = new_id;
+                add_note(id, {id:id, title:'Untitled', body:'', flags:0, need_send:false,  need_receive:false});
+                set_note_by_id(id);
+            });
+        }
         edit_notes_button.innerText = 'Done';
         notes_editor_container.style.display = 'block';
     }
