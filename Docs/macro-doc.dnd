@@ -1,212 +1,266 @@
 ::css @inline
   body > div {
     margin: auto;
-    width: 50em;
+    width: 40em;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   }
   pre {
-    width: 50em;
+    width: 42em;
+    padding: 0.0em 1em;
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monaco, monospace;
   }
+  .macro {
+    border: 1px solid black;
+  }
+  .indented p {
+    margin-left: 3em;
+  }
+  .left {
+    position: fixed;
+    left: 0;
+    top: 0;
+  }
+  .command h3:before {
+    content: " - ";
+  }
+  .command h3:after {
+    content: " Command:";
+  }
+  h2:hover {
+    cursor: pointer;
+  }
+  h3:hover {
+    cursor: pointer;
+  }
+  @media only screen and (max-width: 66em) {
+    .left {
+      display: none;
+    }
+  }
+
   /*endcss*/
-::pre
-  # This is a comment. A line beginning with the pound sign is a comment.
-  # This entire page is a valid macro.
+::script
+  document.addEventListener('DOMContentLoaded', function(){
+    console.log('wtf');
+    const h2s = Array.from(document.getElementsByTagName('h2'));
+    const h3s = Array.from(document.getElementsByTagName('h3'));
+    function add_clicker(elem){
+      elem.onclick = function(){
+        location.hash = '#' + elem.id;
+        console.log(elem.id);
+      }
+    }
+    for(let h of h2s)
+      add_clicker(h);
+    for(let h of h3s){
+      add_clicker(h);
+      console.log(h)
+    }
+  });
+  //endjs
+::nav.left
+Expanded Macro Processor::title
+::div
+  ::md.comment
+    The expanded functionality of the chat processor can now insert
+    variables into your roll expressions. You can also do basic conditional
+    statements with <code>if</code>.
 
-  # The expanded functionality of the chat processor can now insert
-  # variables into your roll expressions. You can also do basic conditional
-  # statements with `if`.
+    Chat Commands::md
 
-  # As a refresher, the server checks if a line of input from a chat
-  # message is a command. If it is not a command, it is just text and is just
-  # echoed to all users. If it is a command, then something special happens.
-  # The server considers a collection of lines all at once.
-  #
-  # The current commands are:
-  #   - Roll command:
-  #       roll, r, /roll, /r or any line of text that can be successfully
-  #       parsed as a dice expression.
-  #
-  #       The server parses the command as a dice expression, rolls the dice
-  #       and displays the result.
-  #
-  #   - Shuffle command:
-  #       shuffle, shuf, shuff, /shuffle, /shuff, /shuffle stuff
-  #
-  #       The text after the shuffle is split on whitespace (although quoted
-  #       text is treated as a single thing) and then shuffled. The result is
-  #       then sent back. This is useful for if you need a random order of
-  #       some things.
-  #
-  #   - Choose command:
-  #       choose, /choose stuff
-  #
-  #       The text after the choose is broken up the same way as with the
-  #       shuffle command. One of them is chosen and sent back.
-  #
-  #   - Table command:
-  #       table, /table tablename
-  #
-  #       The named table is looked up and rolled on (which can trigger a roll
-  #       on a different table). The result is then sent back.
-  #
-  #   - Name command:
-  #       /name some name
-  #
-  #       Your chatname is temporarily changed to the given name for display
-  #       purposes in this collection of lines.
-  #
-  #   - Chat command:
-  #       Any general text.
-  #
-  #       Not really a command, but here for completeness's sake. Just send
-  #       some text.
-  #
-  #   - Say command:
-  #       /say some text
-  #
-  #       Says the text, without trying to parse it as a die roll.
-  #
-  # Now for the extra functionality. Basically, a preprocessing step interprets
-  # the input, altering the lines that are sent to the server.
-  #
-  # Here's an example, we will then explain afterwards.
+      As a refresher, the server checks if a line of input from a chat
+      message is a command. If it is not a command, it is just text and is just
+      echoed to all users. If it is a command, then something special happens.
+      The server considers a collection of lines all at once.
+      
+      The current commands are:
+        Roll::md.indented .command
+            <code>roll, r, /roll, /r</code> or any line of text that can be successfully
+            parsed as a dice expression.
+      
+            The server parses the command as a dice expression, rolls the dice
+            and displays the result.
+      
+        Shuffle::md.indented .command
+            <code>shuffle, shuf, shuff, /shuffle, /shuff, /shuffle</code> stuff
+      
+            The text after the shuffle is split on whitespace (although quoted
+            text is treated as a single thing) and then shuffled. The result is
+            then sent back. This is useful for if you need a random order of
+            some things.
+      
+        Choose::md.indented .command
+            <code>choose, /choose</code> stuff
+      
+            The text after the choose is broken up the same way as with the
+            shuffle command. One of them is chosen and sent back.
+      
+        Table::md.indented .command
+            <code>table, /table</code> tablename
+      
+            The named table is looked up and rolled on (which can trigger a roll
+            on a different table). The result is then sent back.
+      
+        Name::md.indented .command
+            <code>/name</code> some name
+      
+            Your chatname is temporarily changed to the given name for display
+            purposes in this collection of lines.
+      
+        Chat::md.indented .command
+            Any general text.
+      
+            Not really a command, but here for completeness's sake. Just send
+            some text.
+      
+        Say::md.indented .command
+            <code>/say</code> some text
+      
+            Says the text, without trying to parse it as a die roll.
+      
+    Macro Processor::md
+      Now for the extra functionality. Basically, a preprocessing step interprets
+      the input, altering the lines that are sent to the server.
+        
+      Example::md
+        Here's an example, we will then explain afterwards.
+      ::pre.macro
+        bonus = 4
+        attack = d20 + bonus
+        /roll attack
+      ::md.comment
+        I'll break it down line by line.
+      ::pre.macro
+        bonus = 4
+      ::md.comment
+        The above creates a local variable, setting it to 4.
+        Assignment statements are "identifier" "=" "whatever stuff"
+      ::pre.macro
+        attack = d20 + bonus
+      ::md.comment
+        The above also creates a local variable, named attack.
+        This one indirectly references the local variable we created before.
+        When it comes time to use this variable, multiple expansions will need to
+        happen. I'll explain that in a second
+      ::pre.macro
+        /roll attack
+      ::md.comment
+        The above is a roll statement, so we try to replace any terms we can with
+        known variables. After the first substitution, we end up with:
+      ::pre.macro
+        /roll d20 + bonus
+      ::md.comment
+        There is still a variable in this statement, so it is expanded again.
+      ::pre.macro
+        /roll d20 + 4
+      ::md.comment
+        which is the final line. This line is what will end up being sent to
+        the server.
+      ::md.comment
+        Variables only have to be defined when you get to actually expanding them.
+        This means that we could have written the above as:
+      ::pre.macro
+        attack = d20 + bonus
+        bonus = 4
+        /roll attack
+      ::md.comment
+        As variables are lazily expanded, this just works.
 
-  bonus = 4
-  attack = d20 + bonus
-  /roll attack
+      ::md.comment
+        Variables are case insensitive. These lines are the same:
+      ::pre.macro
+        /roll attack
+        /roll ATTACK
+        /roll Attack
+      Variable Groups::md.comment
+        It's annoying to have to define all your variables in every script,
+        especially when they are values you'll want to use in many places, like
+        your strength bonus or your base attack bonus. To help with this, there are
+        variable groups. You can't create variable groups inside a macro - they
+        are created through the variables window. A variable group can have any
+        number of variables defined in it.
+        
+        To actually access a variable in a macro, you need to bring it into the
+        local context. To do that, we have the <code>use</code> statement. Imagine you have a
+        variable group where you have defined <code>bab</code> to be 3 and <code>dex</code> to be 2,
+        named <code>Yowa</code>. You can then do this:
+      ::pre.macro
+        use Yowa
+        attack = d20 + bab + dex
+        /roll attack
+      ::md.comment
+        In the above example, all of the variables from Yowa will then be available
+        and the /roll attack expands to:
+      ::pre.macro
+        /roll d20 + 3 + 2
+      ::md.comment
+        Variable groups are also case insensitive.
 
-  # I'll break it down line by line.
+        There is a special variable group. If you create a variable group named
+        'Global', (or 'global'), that group is implicitly "used" in all of your
+        macros and even in your chat box. You can check the box next to the
+        global's name in the mini variable window to enable a using for the
+        chat box (so you can type d20 + bab in the chat window and have it get
+        expanded).
 
-  bonus = 4
+      If Statements::md.comment
+        The last major feature is conditional execution. This is done using <code>if</code>
+        and <code>else</code>. An example:
+      ::pre.macro
+        rapid = 1
+        if rapid:
+          /roll d20 - 2
+          /roll d20 - 2
+        else:
+          /roll d20
+      ::md.comment
+        The <code>if</code> statement is written as "if" "expression" ":".
+        The trailing colon is mandatory. Without it, it is considered a regular
+        line of text.
+        
+        An expression evaluator is then run
+        and if the result is non-zero, it is considered "true". If it's true, then
+        the indented statements after the if are evaluated.
+        
+        An <code>if</code> can have an <code>else</code>, which looks like in the above example. The
+        indented statements after the else are run if the expression turned out to
+        be false (0). An <code>if</code> doesn't have to have an <code>else</code>. There's also <code>else if</code>.
 
-  # The above creates a local variable, setting it to 4.
-  # Assignment statements are "identifier" "=" "whatever stuff"
-
-  attack = d20 + bonus
-
-  # The above also creates a local variable, named attack.
-  # This one indirectly references the local variable we created before.
-  # When it comes time to use this variable, multiple expansions will need to
-  # happen. I'll explain that in a second
-
-  /roll attack
-
-  # The above is a roll statement, so we try to replace any terms we can with
-  # known variables. After the first substitution, we end up with:
-
-  /roll d20 + bonus
-
-  # There is still a variable in this statement, so it is expanded again.
-
-  /roll d20 + 4
-
-  # which is the final line. This line is what will end up being sent to
-  # the server.
-
-  # Variables only have to be defined when you get to actually expanding them.
-  # This means that we could have written the above as:
-
-  attack = d20 + bonus
-  bonus = 4
-  /roll attack
-
-  # As variables are lazily expanded, this just works.
-
-  # Variables are case insensitive. These lines are the same:
-
-  /roll attack
-  /roll ATTACK
-  /roll Attack
-
-  # It's annoying to have to define all your variables in every script,
-  # especially when they are values you'll want to use in many places, like
-  # your strength bonus or your base attack bonus. To help with this, there are
-  # variable groups. You can't create variable groups inside a macro - they
-  # are created through the variables window. A variable group can have any
-  # number of variables defined in it.
-  #
-  # To actually access a variable in a macro, you need to bring it into the
-  # local context. To do that, we have the `use` statement. Imagine you have a
-  # variable group where you have defined `bab` to be 3 and `dex` to be 2,
-  # named `Yowa`. You can then do this:
-
-  use Yowa
-  attack = d20 + bab + dex
-  /roll attack
-
-  # In the above example, all of the variables from Yowa will then be available
-  # and the /roll attack expands to:
-
-  /roll d20 + 3 + 2
-
-  # Variable groups are also case insensitive.
-
-  # There is a special variable group. If you create a variable group named
-  # 'Global', (or 'global'), that group is implicitly "used" in all of your
-  # macros and even in your chat box. You can check the box next to the
-  # global's name in the mini variable window to enable a using for the
-  # chat box (so you can type d20 + bab in the chat window and have it get
-  # expanded).
-
-  # The last major feature is conditional execution. This is done using `if`
-  # and `else`. An example:
-
-  rapid = 1
-  if rapid:
-    /roll d20 - 2
-    /roll d20 - 2
-  else:
-    /roll d20
-
-  # The `if` statement is written as "if" "expression" ":".
-  # The trailing colon is mandatory. Without it, it is considered a regular
-  # line of text.
-  #
-  # Currently expressions are limited to a single token (which can be a
-  # variable that gets expanded). A very crude expression evaluator is then run
-  # and if the result is non-zero, it is considered "true". If it's true, then
-  # the indented statements after the if are evaluated.
-  #
-  # An `if` can have an `else`, which looks like in the above example. The
-  # indented statements after the else are run if the expression turned out to
-  # be false (0). An `if` doesn't have to have an `else`. There's also `else
-  # if`.
-
-  # With the if you can conditionally send roll commands and also conditionally
-  # set variables. For example:
-
-  prone = 1
-  if prone:
-    penalty = 4
-  else:
-    penalty = 0
-  /roll d20 - penalty
-
-  # With all that, we can finally arrive at our final example which uses all of
-  # these features:
-
-  /name Yowa
-  use Yowa
-  attack = d20 + dex + bab
-  if rapid:
-    Rapid Attack!
-    /roll attack - 2
-    /roll attack - 2
-  else:
-    /roll attack
-
-  # Rarely, you want to type something that looks like a roll expression, but
-  # isn't, such as:
-
-  Roll a d20 + str Don
-
-  # Variable expansion will be attempted on this, which would be confusing as
-  # it would come out as "Roll a d20 + 3 Don" if you had a str variable set to
-  # 3. To avoid this, you can prefix with a "/say " which will cause the rest
-  # to be processed as literal text. You can also use a leading backtick (`) to
-  # the same effect. Do not use a trailing backtick.
-
-  /say Roll a d20 + str Don
-  `Roll a d20 + str Don
-
-  # Generally, slash commands other than /roll are not expanded, so if future
-  # slash commands are added there will be no problem.
+        With the if you can conditionally send roll commands and also conditionally
+        set variables. For example:
+      ::pre.macro
+        prone = 1
+        if prone:
+          penalty = 4
+        else:
+          penalty = 0
+        /roll d20 - penalty
+      ::md.comment
+        With all that, we can finally arrive at our final example which uses all of
+        these features:
+      ::pre.macro
+        /name Yowa
+        use Yowa
+        attack = d20 + dex + bab
+        if rapid:
+          Rapid Attack!
+          /roll attack - 2
+          /roll attack - 2
+        else:
+          /roll attack
+      Escaping::md.comment
+        Rarely, you want to type something that looks like a roll expression, but
+        isn't, such as:
+      ::pre.macro
+        Roll a d20 + str Don
+      ::md.comment
+        Variable expansion will be attempted on this, which would be confusing as
+        it would come out as "Roll a d20 + 3 Don" if you had a str variable set to 3. To avoid this, you can prefix with a "/say " which will cause the rest
+        to be processed as literal text. You can also use a leading backtick (`) to
+        the same effect. Do not use a trailing backtick.
+      ::pre.macro
+        /say Roll a d20 + str Don
+        `Roll a d20 + str Don
+      ::md.comment
+        Generally, slash commands other than /roll are not expanded, so if future
+        slash commands are added there will be no problem.
