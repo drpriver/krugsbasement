@@ -1,28 +1,50 @@
+// These are used in chat messages as well
+const enum BINARY {
+    ADD = 0,
+    SUB = 1,
+    MUL = 2,
+    DIV = 3,
+    EQ = 4,
+    NE = 5,
+    GT = 6,
+    GE = 7,
+    LT = 8,
+    LE = 9,
+}
+const enum UNARY {
+    PLUS = 0,
+    NEG = 1,
+    NOT = 2,
+}
 const evaluate_script = (function(){
     const enum TokenKind {
-        IDENT    = "IDENT",
-        IF       = "IF",
-        ELSE     = "ELSE",
-        NUMBER   = "NUMBER",
-        DIE      = "DIE",
-        OTHER    = "OTHER",
-        USE      = "USE",
+        // 0 is reserved for "not a token"
+        IDENT    = 1,
+        IF       = 2,
+        ELSE     = 3,
+        NUMBER   = 4,
+        DIE      = 5,
+        OTHER    = 6,
+        USE      = 7,
 
-        LPAREN   = "(",
-        RPAREN   = ")",
-        LT       = "<",
-        GT       = ">",
-        BANG     = "!",
-        STAR     = "*",
-        PLUS     = "+",
-        SLASH    = "/",
-        COLON    = ":",
-        BACKTICK = "`",
-        EQUALS   = "=",
-        MINUS    = "-",
+        LPAREN   = 8,
+        RPAREN   = 9,
+        LT       = 10,
+        GT       = 11,
+        BANG     = 12,
+        STAR     = 13,
+        PLUS     = 14,
+        SLASH    = 15,
+        COLON    = 16,
+        BACKTICK = 17,
+        EQUALS   = 18,
+        MINUS    = 19,
 
-        SPACE    = " ",
-        ENDLINE  = "\n",
+        SPACE    = 20,
+        ENDLINE  = 21,
+
+        DQUOTE = 22,
+        SQUOTE = 23,
     }
     type Token = {
         kind: TokenKind,
@@ -30,28 +52,33 @@ const evaluate_script = (function(){
     }
 
     const enum StatementKind {
-        SLASH  = "slash",
-        ROLL   = "roll",
-        BLOCK  = "block",
-        IF     = "if",
-        ASSIGN = "assign",
-        USE    = "use",
-        RAW    = "raw",
+        LIST   = 0,
+        ROLL   = 1,
+        BLOCK  = 2,
+        IF     = 3,
+        ASSIGN = 4,
+        USE    = 5,
+        RAW    = 6,
     }
 
-    type SlashStatement = {
-        kind: StatementKind.SLASH,
-        first: Token,
-        content: Array<Token>,
-    }
     type RawStatement = {
         kind: StatementKind.RAW,
-        content: Array<Token>,
+        content: string,
+        command: ChatCommand.TABLE | ChatCommand.SAY | ChatCommand.NAME,
+        original: string, // for table
+    }
+
+    type ListStatement = {
+        kind: StatementKind.LIST,
+        content: string,
+        command: ChatCommand.SHUFFLE | ChatCommand.CHOOSE,
+        items: Array<string>
     }
 
     type RollStatement = {
         kind: StatementKind.ROLL,
         contents: Array<Token>,
+        expr: Expression,
     }
 
     type BlockStatement = {
@@ -85,7 +112,7 @@ const evaluate_script = (function(){
         name: Token,
     }
 
-    type Statement = SlashStatement | RollStatement | IfStatement | AssignStatement | BlockStatement | UseStatement | RawStatement;
+    type Statement = RollStatement | IfStatement | AssignStatement | BlockStatement | UseStatement | RawStatement | ListStatement;
 
     function isstartident(char:string):boolean{
         return (/[a-zA-Z]/).test(char);
@@ -167,20 +194,20 @@ const evaluate_script = (function(){
                 continue;
             }
             switch(c){
-                case '(':
-                case ')':
-                case '<':
-                case '>':
-                case '!':
-                case '*':
-                case '+':
-                case '/':
-                case ':':
-                case '`':
-                case '=':
-                case '-':
-                    result.push({kind:c as TokenKind, text:c});
-                    continue;
+                case '(': result.push({kind:TokenKind.LPAREN,  text:c}); continue;
+                case ')': result.push({kind:TokenKind.RPAREN,  text:c}); continue;
+                case '<': result.push({kind:TokenKind.LT,      text:c}); continue;
+                case '>': result.push({kind:TokenKind.GT,      text:c}); continue;
+                case '!': result.push({kind:TokenKind.BANG,    text:c}); continue;
+                case '*': result.push({kind:TokenKind.STAR,    text:c}); continue;
+                case '+': result.push({kind:TokenKind.PLUS,    text:c}); continue;
+                case '/': result.push({kind:TokenKind.SLASH,   text:c}); continue;
+                case ':': result.push({kind:TokenKind.COLON,   text:c}); continue;
+                case '`': result.push({kind:TokenKind.BACKTICK,text:c}); continue;
+                case '=': result.push({kind:TokenKind.EQUALS,  text:c}); continue;
+                case '-': result.push({kind:TokenKind.MINUS,   text:c}); continue;
+                case '"': result.push({kind:TokenKind.DQUOTE,  text:c}); continue;
+                case "'": result.push({kind:TokenKind.SQUOTE,  text:c}); continue;
                 case '#':
                     for(i++; i < text.length; i++){
                         if(text[i] == '\n') break;
@@ -208,27 +235,10 @@ const evaluate_script = (function(){
     const enum EXPR {
         NUMBER = 0,
         DICE = 1,
-        IDENT = 2,
-        GROUP = 3,
-        BINARY = 4,
-        UNARY = 5,
-    }
-    const enum BINARY {
-        ADD = 0,
-        SUB = 1,
-        MUL = 2,
-        DIV = 3,
-        EQ = 4,
-        NE = 5,
-        GT = 6,
-        GE = 7,
-        LT = 8,
-        LE = 9,
-    }
-    const enum UNARY {
-        PLUS = 0,
-        NEG = 1,
-        NOT = 2,
+        GROUP = 2,
+        BINARY = 3,
+        UNARY = 4,
+        IDENT = 5,
     }
     type NumberExpression = {
         type: EXPR.NUMBER,
@@ -413,7 +423,10 @@ const evaluate_script = (function(){
             }
             return null;
         }
-        return parse_comparison();
+        let result = parse_comparison();
+        skip_spaces();
+        if(index != tokens.length) return null;
+        return result;
     }
     function eval_expr(expr: Expression, vars:Map<string, Array<Token>>): number | null{
         switch(expr.type){
@@ -552,28 +565,32 @@ const evaluate_script = (function(){
             switch(token.kind){
                 case TokenKind.SPACE:
                     return err(token, "Assertion Error");
-                case TokenKind.EQUALS:
-                    return parse_raw();
-                case TokenKind.COLON:
-                    return parse_raw();
                 case TokenKind.IDENT:
+                    switch(token.text.toLowerCase()){
+                        case 'roll': case 'r':
+                            return parse_roll(1);
+                        case 'name':
+                            return parse_raw(ChatCommand.NAME, 1);
+                        case 'shuffle': case 'shuff': case 'shuf':
+                            return parse_list(ChatCommand.SHUFFLE, 1);
+                        case 'choose':
+                            return parse_list(ChatCommand.CHOOSE, 1);
+                        case 'table':
+                            return parse_raw(ChatCommand.TABLE, 1);
+                        case 'say':
+                            return parse_raw(ChatCommand.SAY, 1);
 
-                    if(token.text.toLowerCase() == "roll" || token.text.toLowerCase() == "r")
-                        return parse_roll();
+                    }
                     if(peek_no_space().kind == TokenKind.EQUALS)
                         return parse_assignment();
                     else
-                        return parse_raw();
+                        return parse_raw(ChatCommand.SAY, 0);
                 case TokenKind.PLUS:
-                case TokenKind.MINUS:{
-                    let k = peek_no_space().kind;
-                    if(k == TokenKind.NUMBER || k == TokenKind.DIE)
-                        return parse_roll();
-                    return parse_raw();
-                    }
+                case TokenKind.MINUS:
+                case TokenKind.LPAREN:
                 case TokenKind.NUMBER:
                 case TokenKind.DIE:
-                    return parse_roll();
+                    return parse_roll(0);
                 case TokenKind.IF:
                     return parse_if(indentation);
                 case TokenKind.ELSE:
@@ -584,24 +601,86 @@ const evaluate_script = (function(){
                     index++;
                     return;
                 case TokenKind.SLASH:{
-                    let p = peek_no_space().text.toLowerCase();
-                    if(p == "r" || p == "roll")
-                        return parse_roll();
-                    else
-                        return parse_slash();
+                    switch(peek_no_space().text.toLowerCase()){
+                        case 'r': case 'roll':
+                            return parse_roll(2);
+                        case 'n': case 'name':
+                            return parse_raw(ChatCommand.NAME, 2)
+                        case 'sh': case 'shuffle': case 'shuff': case 'shuf':
+                            return parse_list(ChatCommand.SHUFFLE, 2);
+                        case 'c': case 'choose':
+                            return parse_list(ChatCommand.CHOOSE, 2);
+                        case 't': case 'tab': case 'table':
+                            return parse_raw(ChatCommand.TABLE, 2);
+                        case 's': case 'say':
+                            return parse_raw(ChatCommand.SAY, 2);
+
+                    }
+                    return parse_raw(ChatCommand.SAY, 0);
                 }
                 case TokenKind.BACKTICK:
                     index++;
-                    return parse_raw();
+                    return parse_raw(ChatCommand.SAY, 0);
                 default:
-                    return parse_raw();
+                    return parse_raw(ChatCommand.SAY, 0);
             }
+        }
+
+        function parse_list(command:ChatCommand.SHUFFLE | ChatCommand.CHOOSE, nskip:number){
+            let text = '';
+            while(nskip--){
+                text += take().text;
+            }
+
+            let items = [];
+            let quoted = '';
+            let item = '';
+            for(;;){
+                let t = take();
+                if(t.kind == TokenKind.ENDLINE)
+                    break;
+                text += t.text;
+                if(!quoted && t.kind == TokenKind.SPACE){
+                    if(item.length)
+                        items.push(item)
+                    item = '';
+                    continue;
+                }
+                if(t.text == quoted){
+                    item += t.text;
+                    quoted = '';
+                    items.push(item);
+                    item = '';
+                    continue;
+                }
+                if(quoted){
+                    item += t.text;
+                    continue;
+                }
+                if(t.kind == TokenKind.DQUOTE || t.kind == TokenKind.SQUOTE){
+                    quoted = t.text;
+                    item = t.text;
+                    continue;
+                }
+                if(t.kind == TokenKind.SPACE)
+                    continue;
+                items.push(t.text);
+            }
+            if(item)
+                items.push(item);
+            let stmt: ListStatement = {
+                kind: StatementKind.LIST,
+                content: text,
+                command: command,
+                items: items,
+            };
+            currentblock.statements.push(stmt);
         }
         function parse_assignment(){
             const startidx = index;
             function parse_as_raw(){
                 index = startidx;
-                return parse_raw();
+                return parse_raw(ChatCommand.SAY, 0);
             }
             let ident = take();
             if(ident.kind != TokenKind.IDENT)
@@ -627,7 +706,7 @@ const evaluate_script = (function(){
             };
             currentblock.statements.push(statement);
         }
-        function parse_roll(){
+        function parse_roll(nskip:number){
             let contents = [];
             for(;;){
                 let tok = take();
@@ -635,9 +714,27 @@ const evaluate_script = (function(){
                     break;
                 contents.push(tok);
             }
+            let expr = parse_expression(contents.slice(nskip));
+            if(!expr){
+                let result: RawStatement = {
+                    kind: StatementKind.RAW,
+                    command: ChatCommand.SAY,
+                    original: '', // unused here
+                    content: (function(){
+                        let s = "";
+                        for(let c of contents)
+                            s += c.text;
+                        return s;
+                    }()),
+                };
+                console.log(result);
+                currentblock.statements.push(result);
+                return;
+            }
             let statement:RollStatement = {
                 kind: StatementKind.ROLL,
                 contents: contents,
+                expr: expr,
             };
             currentblock.statements.push(statement);
         }
@@ -645,7 +742,7 @@ const evaluate_script = (function(){
             const startidx = index;
             function parse_as_raw(){
                 index = startidx;
-                return parse_raw();
+                return parse_raw(ChatCommand.SAY, 0);
             }
             let if_ = take();
             if(if_.kind != TokenKind.IF)
@@ -685,7 +782,7 @@ const evaluate_script = (function(){
             const startidx = index;
             function parse_as_raw(){
                 index = startidx;
-                return parse_raw();
+                return parse_raw(ChatCommand.SAY, 0);
             }
             let else_ = take();
             if(!currentblock.statements.length){
@@ -747,7 +844,7 @@ const evaluate_script = (function(){
             const startidx = index;
             function parse_as_raw(){
                 index = startidx;
-                return parse_raw();
+                return parse_raw(ChatCommand.SAY, 0);
             }
             let use = take();
             if(use.kind != TokenKind.USE){
@@ -772,36 +869,22 @@ const evaluate_script = (function(){
             };
             currentblock.statements.push(usestatement);
         }
-        function parse_slash(){
-            let tok = take();
-            if(tok.kind != TokenKind.SLASH){
-                index--;
-                return parse_raw();
-            }
-            let postslash = take();
-            let slash: SlashStatement = {
-                kind: StatementKind.SLASH,
-                first: postslash,
-                content: [],
-            };
-            for(;;){
-                let tok = take();
-                if(tok.kind == TokenKind.ENDLINE)
-                    break;
-                slash.content.push(tok);
-            }
-            currentblock.statements.push(slash);
-        }
-        function parse_raw(){
+        function parse_raw(command:ChatCommand.SAY | ChatCommand.TABLE | ChatCommand.NAME, nskip:number){
             let raw: RawStatement = {
                 kind: StatementKind.RAW,
-                content: [],
+                content: '',
+                command: command,
+                original: ''
             };
+            while(nskip--){
+                raw.original += take().text;
+            }
             for(;;){
                 let tok = take();
                 if(tok.kind == TokenKind.ENDLINE)
                     break;
-                raw.content.push(tok);
+                raw.content += tok.text;
+                raw.original += tok.text;
             }
             currentblock.statements.push(raw);
         }
@@ -817,37 +900,73 @@ const evaluate_script = (function(){
         return error;
     }
 
-    function interpret(statement:Statement, vars:Map<string, Array<Token>>, namespaces:Map<string, Map<string, Array<Token>>>, outlines:Array<string>):string{
+    function expand_dice(expr: Expression, vars:Map<string, Array<Token>>, muldiv:boolean): UnrolledDiceExpr | null {
+        switch(expr.type){
+            case EXPR.NUMBER:
+                return [DieExprTypes.NUMBER, expr.value];
+            case EXPR.DICE:
+                return [DieExprTypes.DICE, expr.n, expr.base];
+            case EXPR.GROUP:{
+                let e = expand_dice(expr.expr, vars, false);
+                if(!e) return e;
+                return [DieExprTypes.GROUP, e];
+            }
+            case EXPR.BINARY:{
+                let childmuldiv = expr.btype == BINARY.MUL || expr.btype == BINARY.DIV;
+                let lhs = expand_dice(expr.lhs, vars, childmuldiv);
+                if(!lhs) return lhs;
+                let rhs = expand_dice(expr.rhs, vars, childmuldiv);
+                if(!rhs) return rhs;
+                let result: UnrolledDiceExpr = [DieExprTypes.BINARY, expr.btype, lhs, rhs];
+                if(muldiv && !childmuldiv)
+                    return [DieExprTypes.GROUP, result];
+                return result;
+            }
+            case EXPR.UNARY:{
+                let e = expand_dice(expr.expr, vars, false);
+                if(!e) return e;
+                return [DieExprTypes.UNARY, expr.utype, e];
+            }
+            case EXPR.IDENT:{
+                let toks = vars.get(expr.ident.toLowerCase());
+                if(!toks) return null;
+                let e = parse_expression(toks);
+                if(!e) return null;
+                return expand_dice(e, vars, muldiv);
+            }
+        }
+    }
+
+    function interpret(statement:Statement, vars:Map<string, Array<Token>>, namespaces:Map<string, Map<string, Array<Token>>>, outcommands:Array<Command>):string{
         switch(statement.kind){
-            case StatementKind.RAW:{
-                let s = "";
-                for(let tok of statement.content)
-                    s += tok.text;
-                outlines.push(s);
-            }break;
-            case StatementKind.SLASH:{
-                let s = "/" + statement.first.text;
-                for(let tok of statement.content)
-                    s += tok.text;
-                outlines.push(s);
-            }break;
+            case StatementKind.LIST:{
+                outcommands.push([statement.command, statement.content, statement.items]);
+                return "";
+            }
             case StatementKind.ROLL:{
-                let s = "";
+                let s = '';
                 for(let tok of statement.contents){
                     if(tok.kind == TokenKind.IDENT)
                         s += expand(vars, tok.text, new Set());
                     else
                         s += tok.text;
                 }
-                outlines.push(s);
+                let unrolled = expand_dice(statement.expr, vars, false);
+                if(!unrolled){
+                    outcommands.push([ChatCommand.SAY, s]);
+                    return "";
+                }
+                outcommands.push([ChatCommand.ROLL, s, unrolled]);
+                return "";
             }break;
             case StatementKind.BLOCK:{
                 for(let s of statement.statements)
-                    interpret(s, vars, namespaces, outlines);
+                    interpret(s, vars, namespaces, outcommands);
+                return "";
             }break;
             case StatementKind.IF:{
                 if(eval_expr(statement.test, vars)){
-                    interpret(statement.iftrue, vars, namespaces, outlines);
+                    interpret(statement.iftrue, vars, namespaces, outcommands);
                 }
                 else {
                     let handled = false;
@@ -855,27 +974,37 @@ const evaluate_script = (function(){
                         let t2 = eval_expr(elif.test, vars);
                         if(t2){
                             handled = true;
-                            interpret(elif.block, vars, namespaces, outlines);
-                            break;
+                            interpret(elif.block, vars, namespaces, outcommands);
+                            return "";
                         }
                     }
                     if(!handled && statement.iffalse !== null){
-                        interpret(statement.iffalse, vars, namespaces, outlines);
+                        interpret(statement.iffalse, vars, namespaces, outcommands);
                     }
                 }
+                return "";
             }break;
             case StatementKind.ASSIGN:{
                 vars.set(statement.lhs.text.toLowerCase(), statement.rhs);
+                return "";
             }break;
             case StatementKind.USE:{
                 let ns = namespaces.get(statement.name.text.toLowerCase());
-                if(!ns) break;
+                if(!ns) return "";
                 for(let [key, value] of ns.entries()){
                     vars.set(key.toLowerCase(), value);
                 }
+                return "";
+            }break;
+            case StatementKind.RAW:{
+                if(statement.command == ChatCommand.TABLE){
+                    outcommands.push([ChatCommand.TABLE, statement.original, statement.content.trim()]);
+                    return "";
+                }
+                outcommands.push([statement.command, statement.content.trim()]);
+                return "";
             }break;
         }
-        return "";
     }
     function expand(vars:Map<string, Array<Token>>, ident:string, visited:Set<string>):string{
         let toks = expand_tokens(vars, ident, visited);
@@ -908,9 +1037,9 @@ const evaluate_script = (function(){
         return result;
     }
 
-    function really_eval_script(text:string, vars:Map<string, Array<Token>>, namespaces:Map<string, Map<string, Array<Token>>>){
+    function really_eval_script(text:string, vars:Map<string, Array<Token>>, namespaces:Map<string, Map<string, Array<Token>>>):Array<Command>{
         // const before = performance.now();
-        let outlines: Array<string> = [];
+        let outlines: Array<Command> = [];
         let glob = make_block(null, -1);
         let tokens = tokenize(text);
         let err = parse(tokens, glob);
@@ -922,7 +1051,7 @@ const evaluate_script = (function(){
         return outlines;
     }
 
-    function eval_script(text:string, vars:Map<string, number|string>, namespaces:Map<string, Map<string,number|string>>): Array<string> {
+    function eval_script(text:string, vars:Map<string, number|string>, namespaces:Map<string, Map<string,number|string>>): Array<Command> {
         let newvars: Map<string, Array<Token>> = new Map();
         for(const[k, v] of vars.entries()){
             if(typeof v == 'string'){

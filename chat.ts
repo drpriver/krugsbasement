@@ -1,8 +1,12 @@
-const enum MSG {
-    PLAIN = 0,
-    DICEROLL = 1,
-    ERROR = 2,
-}
+type NameCommand = [ChatCommand.NAME, string];
+type RollCommand = [ChatCommand.ROLL, string, UnrolledDiceExpr];
+type SayCommand = [ChatCommand.SAY, string];
+type ShuffleCommand = [ChatCommand.SHUFFLE, string, Array<string>];
+type ChooseCommand = [ChatCommand.CHOOSE, string, Array<string>];
+type TableCommand = [ChatCommand.TABLE, string, string];
+type Command = NameCommand | RollCommand | SayCommand | ShuffleCommand | ChooseCommand | TableCommand;
+
+
 const enum ROLLTYPE {
     DICE = 0,
     PRODUCT = 1,
@@ -23,11 +27,57 @@ type RollMsg = {
     roll: Roll;
     total: number;
 };
-type ChatMsg = {
-    type: MSG;
-    user: string;
-    data: string | RollMsg;
+
+type ChatPlainMsg = {
+    type: Msg.PLAIN,
+    user: string,
+    data: string,
 }
+
+type ChatErrorMsg = {
+    type: Msg.ERROR,
+    user: string,
+    data: string,
+}
+
+type ChatNewRollMsg = {
+    type: Msg.DICEROLL_NEW,
+    user: string,
+    data: RolledExprs,
+}
+
+type ChatRollMsg = {
+    type: Msg.DICEROLL,
+    user: string,
+    data: RollMsg,
+}
+
+type ChatEchoableMsg = {
+    type: Msg.ECHOABLE_TEXT,
+    user: string,
+    data: string,
+}
+
+type ChatMsg = ChatPlainMsg | ChatErrorMsg | ChatNewRollMsg | ChatRollMsg | ChatEchoableMsg;
+
+type RolledNumber = [DieExprTypes.NUMBER, number];
+//                                    n       base    rolled dice
+type RolledDice = [DieExprTypes.DICE, number, number, Array<number>];
+type RolledGroup = [DieExprTypes.GROUP, RolledExprs];
+type RolledUnary = [DieExprTypes.UNARY, UNARY, RolledExprs];
+type RolledBinary = [DieExprTypes.BINARY, BINARY, RolledExprs, RolledExprs];
+type RolledExprs = RolledNumber | RolledDice | RolledGroup | RolledUnary | RolledBinary;
+
+//                                    n       base    rolled dice
+type UnrolledDice = [DieExprTypes.DICE, number, number];
+type UnrolledGroup = [DieExprTypes.GROUP, UnrolledDiceExpr];
+type UnrolledUnary = [DieExprTypes.UNARY, UNARY, UnrolledDiceExpr];
+type UnrolledBinary = [DieExprTypes.BINARY, BINARY, UnrolledDiceExpr, UnrolledDiceExpr];
+
+
+type UnrolledDiceExpr = RolledNumber | UnrolledDice | UnrolledGroup | UnrolledUnary | UnrolledBinary;
+
+type ChatStructuredMsg = ChatPlainMsg | ChatErrorMsg | ChatNewRollMsg;
 
 const THISPAGE = window.location.pathname;
 
@@ -59,30 +109,57 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>){
         const msg = msgs[i];
         const entry = elem_with_parent(log, 'div');
         switch(msg.type){
-            case MSG.PLAIN:{
+            case Msg.PLAIN:{
                 if(msg.user){
                     const user = elem_with_text('b', msg.user+': ');
                     entry.appendChild(user);
                 }
-                const text = document.createTextNode(msg.data as string);
+                const text = document.createTextNode(msg.data);
                 entry.appendChild(text);
             }break;
-            case MSG.DICEROLL:{
+            case Msg.ECHOABLE_TEXT:{
+                if(msg.user){
+                    const user = elem_with_text('b', msg.user+': ');
+                    entry.appendChild(user);
+                }
+                const span = elem_with_text('span', msg.data);
+                entry.appendChild(span);
+                span.style.cursor = 'pointer';
+                let msg_data = msg.data;
+                span.addEventListener('click', function(e){
+                    e.stopPropagation();
+                    e.preventDefault();
+                    preprocess_and_send_chat(msg_data);
+                });
+            }break;
+            case Msg.DICEROLL:{
                 entry.classList.add('dice-roll-msg');
-                const r = msg.data as RollMsg;
+                const r = msg.data;
                 const formatted = format_die_roll_result(r);
                 entry.innerHTML += formatted;
             }break;
-            case MSG.ERROR:{
-                const error = elem_with_text('span', msg.data as string);
+            case Msg.ERROR:{
+                const error = elem_with_text('span', msg.data);
                 error.classList.add('chat-error');
                 entry.appendChild(error);
+            }break;
+            case Msg.DICEROLL_NEW:{
+                entry.classList.add('dice-roll-msg');
+                const r = msg.data;
+                const formatted = format_new_die_roll_result(r);
+                entry.innerHTML += formatted;
             }break;
         }
     }
 }
 
 SOCKET.on(ToClient.CHAT_MSG, function(msgs:Array<ChatMsg>){
+    const log = document.getElementById('chat-history')!;
+    add_chat_msgs(log, msgs);
+    log.scrollTo({behavior:'smooth', top:log.scrollHeight});
+});
+
+SOCKET.on(ToClient.CHAT_STRUCTURED_MSG, function(msgs:Array<ChatStructuredMsg>){
     const log = document.getElementById('chat-history')!;
     add_chat_msgs(log, msgs);
     log.scrollTo({behavior:'smooth', top:log.scrollHeight});
@@ -185,12 +262,12 @@ function add_macros(macros:Array<Macro>){
 }
 
 function preprocess_and_send_chat(text:string){
-    text = preprocess_command(text, EvaluateFlags.NONE);
-    SOCKET.emit(FromClient.CHAT_INPUT, {chatname:CHATNAME, text:text});
+    let commands = preprocess_command(text, EvaluateFlags.NONE);
+    SOCKET.emit(FromClient.CHAT_STRUCTURED_INPUT, {chatname:CHATNAME, commands:commands});
 }
 function preprocess_and_send_chat_with_usings(text:string){
-    text = preprocess_command(text, EvaluateFlags.USE_USINGS);
-    SOCKET.emit(FromClient.CHAT_INPUT, {chatname:CHATNAME, text:text});
+    let commands = preprocess_command(text, EvaluateFlags.USE_USINGS);
+    SOCKET.emit(FromClient.CHAT_STRUCTURED_INPUT, {chatname:CHATNAME, commands:commands});
 }
 
 document.addEventListener('DOMContentLoaded', function(){
@@ -260,10 +337,10 @@ document.addEventListener('DOMContentLoaded', function(){
     const test_button: HTMLButtonElement = get_by_id('test-macro');
     test_button.addEventListener('click', function(){
         if(!current_macro) return;
-        let lines = evaluate(current_macro.body, EvaluateFlags.NONE);
+        let commands = evaluate(current_macro.body, EvaluateFlags.NONE);
         (log as any).replaceChildren();
-        if(lines.length)
-            SOCKET.emit(FromClient.CHAT_TEST_INPUT, {chatname:CHATNAME, text:lines.join('\n')}, function(response:Array<ChatMsg>){
+        if(commands.length)
+            SOCKET.emit(FromClient.CHAT_TEST_STRUCTURED_INPUT, {chatname:CHATNAME, commands:commands}, function(response:Array<ChatMsg>){
                 add_chat_msgs(log, response);
             });
     });
@@ -744,7 +821,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
 });
 
-function preprocess_command(value:string, flags:EvaluateFlags):string {
+function preprocess_command(value:string, flags:EvaluateFlags):Array<Command> {
     let result = [];
     value = value.replace(/[“”]/g,'"');
     value = value.replace(/[‘’]/g,"'");
@@ -757,14 +834,14 @@ function preprocess_command(value:string, flags:EvaluateFlags):string {
         alert(""+e);
         console.log(e);
     }
-    return result.join('\n');
+    return result;
 }
 
 const enum EvaluateFlags {
     NONE = 0,
     USE_USINGS = 1 << 0,
 }
-function evaluate(text:string, flags:EvaluateFlags):any{
+function evaluate(text:string, flags:EvaluateFlags):Array<Command>{
     let ns = get_script_variables();
     let vars: Map<string, number|string>;
     if(ns.has('global'))
@@ -792,6 +869,105 @@ function evaluate(text:string, flags:EvaluateFlags):any{
         }
     }
     return evaluate_script(text, vars, ns);
+}
+function format_new_die_roll_result(roll_result:RolledExprs):string{
+    let [total, text] = format_new_die_roll(roll_result, false);
+    total = rounddown(total);
+    return text + `<br> = <span class="dice-total">${total}</span>`;
+}
+
+function rounddown(a:number):number{
+    return Math.trunc(a) | 0;
+}
+const enum MINUS {_ = '\u2212'};
+function format_new_die_roll(roll_result:RolledExprs, tight:boolean):[number, string]{
+    switch(roll_result[0]){
+        case DieExprTypes.NUMBER:
+            return [roll_result[1], `<span class="dice-constant">${roll_result[1]}</span>`];
+        case DieExprTypes.DICE:{
+            let text = tight && roll_result[1] > 1 ?'( ':'';
+            let max = roll_result[2];
+            let first = true;
+            let total = 0;
+            for(let v of roll_result[3]){
+                if(first)
+                    first = false;
+                else
+                    text += ' + ';
+                total += v;
+                text += '[';
+                if(v == max){
+                    text += '<span class="dice-roll dice-roll-max">';
+                }
+                else if(v == 1){
+                    text += '<span class="dice-roll dice-roll-min">';
+                }
+                else {
+                    text += '<span class="dice-roll">';
+                }
+                text += `${v}</span>]`;
+            }
+            if(tight && roll_result[1] > 1) text += ' )';
+            return [total, text];
+        }
+        case DieExprTypes.GROUP:{
+            let [total, text] = format_new_die_roll(roll_result[1], false);
+            return [total, '( ' + text + ' )'];
+        }
+        case DieExprTypes.UNARY:{
+            let [total, text] = format_new_die_roll(roll_result[2], true);
+            switch(roll_result[1]){
+                case UNARY.PLUS:
+                    text = '+' + text;
+                    return [total, text];
+                case UNARY.NEG:
+                    text = MINUS._ + text;
+                    return [-total, text];
+                case UNARY.NOT:
+                    text = '!' + text;
+                    return [+!total, text];
+            }
+        }
+        case DieExprTypes.BINARY:{
+            let op = roll_result[1];
+            let [ltotal, ltext] = format_new_die_roll(roll_result[2], op == BINARY.MUL || op == BINARY.DIV);
+            let [rtotal, rtext] = format_new_die_roll(roll_result[3], op == BINARY.MUL || op == BINARY.DIV);
+            let result: [number, string];
+            switch(op){
+                case BINARY.ADD:
+                    result = [rounddown(ltotal)+rounddown(rtotal), `${ltext} + ${rtext}`];
+                    break;
+                case BINARY.SUB:
+                    result = [rounddown(ltotal)-rounddown(rtotal), `${ltext} ${MINUS._} ${rtext}`];
+                    break;
+                case BINARY.MUL:
+                    result = [ltotal*rtotal, `${ltext} &times; ${rtext}`];
+                    break;
+                case BINARY.DIV:
+                    result = [rtotal?ltotal/rtotal:0, `${ltext} &divide; ${rtext}`];
+                    break;
+                case BINARY.EQ:
+                    result = [+(rounddown(ltotal)==rounddown(rtotal)), `${ltext} ＝ ${rtext}`];
+                    break;
+                case BINARY.NE:
+                    result = [+(rounddown(ltotal)!=rounddown(rtotal)), `${ltext} &ne; ${rtext}`];
+                    break;
+                case BINARY.GT:
+                    result = [+(rounddown(ltotal) > rounddown(rtotal)), `${ltext} &gt; ${rtext}`];
+                    break;
+                case BINARY.GE:
+                    result = [+(rounddown(ltotal) >= rounddown(rtotal)), `${ltext} &geq; ${rtext}`];
+                    break;
+                case BINARY.LT:
+                    result = [+(rounddown(ltotal) < rounddown(rtotal)), `${ltext} &lt; ${rtext}`];
+                    break;
+                case BINARY.LE:
+                    result = [+(rounddown(ltotal) <= rounddown(rtotal)), `${ltext} &leq; ${rtext}`];
+                    break;
+            }
+            return result;
+        }
+    }
 }
 
 function format_die_roll_result(roll_result:RollMsg):string{
@@ -860,11 +1036,10 @@ function format_roll(roll: Roll):string{
 
 function format_dice_roll(roll:DieRoll){
     let result = '';
-    const MINUS = '\u2212';
     function write_die(roll:DieRoll){
         if(roll.base == 1){
             if(roll.values[0] < 0){
-                result += ' ' + MINUS;
+                result += ' ' + MINUS._;
             }
             result += '<span class="dice-constant">' + Math.abs(roll.values[0]) + '</span>';
             return;
@@ -873,7 +1048,7 @@ function format_dice_roll(roll:DieRoll){
         for(let j = 0; j < length; ++j){
             const v = roll.values[j] | 0;
             if(roll.negative){
-                result += ' ' + MINUS;
+                result += ' ' + MINUS._;
             }
             else if(j == 0){
             }
@@ -1346,7 +1521,7 @@ document.addEventListener('DOMContentLoaded', function(){
         boolopt.value = ""+ScriptVariableType.BOOLEAN;
         select.options.add(boolopt);
         let stropt = elem('option');
-        stropt.innerText = "String";
+        stropt.innerText = "Expression";
         stropt.value = ""+ScriptVariableType.STRING;
         select.options.add(stropt);
         select.addEventListener('input', function(){

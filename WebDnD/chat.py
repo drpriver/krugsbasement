@@ -7,14 +7,9 @@ from .persist import Persister
 from flask_socketio import emit
 from .logs import logging
 
-from .messages import ToClient
+from .messages import ToClient, ChatCommand, DieExprTypes, Msg
 
 from enum import IntEnum, IntFlag
-class Msg(IntEnum):
-    PLAIN = 0
-    DICEROLL = 1
-    ERROR = 2
-
 
 def load_chat(data:Union[str, dict, list, int, float]) -> List[dict]:
     assert isinstance(data, list)
@@ -141,15 +136,6 @@ def handle_input(room:str, data:str, user:str='anon', test:bool=False) -> List[d
             except:
                 pass
             result.append({'user':'', 'data':choose_result, 'type':Msg.PLAIN})
-        elif parts[0] in {'/gather'} and len(parts) == 3:
-            try:
-                x = int(parts[1])
-                y = int(parts[2])
-            except:
-                pass
-            else:
-                if not test:
-                    emit(ToClient.CANVAS_GATHER,{'x':x, 'y':y}, broadcast=True)
         elif parts[0] in {'/table', 'table'}:
             try:
                 table_result, path = parse_and_roll_table(room, line[len(parts[0]):])
@@ -159,7 +145,6 @@ def handle_input(room:str, data:str, user:str='anon', test:bool=False) -> List[d
                 if not table_result:
                     table_result = '(No entry)'
                 result.append({'user':'', 'data': path + ': '+table_result, 'type':Msg.PLAIN})
-
 
     if not test:
         HISTORY[room].extend(result)
@@ -226,3 +211,68 @@ def clear(room:str) -> None:
 def set_state(room:str, state:List[dict]) -> None:
     clear(room)
     HISTORY[room].extend(state)
+
+def handle_structured_input(room:str, user:str, commands:List[dict], test:bool) -> List[dict]:
+    apparent_user = user
+    result = []
+    for command in commands:
+        cc = ChatCommand(command[0])
+        if cc != ChatCommand.NAME:
+            line = command[1]
+            if cc != ChatCommand.SAY:
+                result.append({'user':apparent_user, 'data':line, 'type':Msg.ECHOABLE_TEXT})
+            else:
+                result.append({'user':apparent_user, 'data':line, 'type':Msg.PLAIN})
+            del line
+
+        if cc == ChatCommand.ROLL:
+            dice = command[2]
+            structured_roll_die(dice)
+            result.append({'user':'', 'data':dice, 'type':Msg.DICEROLL_NEW})
+        elif cc == ChatCommand.SAY:
+            pass
+        elif cc == ChatCommand.NAME:
+            apparent_user = command[1]
+        elif cc == ChatCommand.SHUFFLE:
+            stuff = command[2]
+            random.shuffle(stuff)
+            result.append({'user':'', 'data':' '.join(stuff), 'type':Msg.PLAIN})
+        elif cc == ChatCommand.CHOOSE:
+            options = command[2]
+            choice = random.choice(options)
+            result.append({'user':apparent_user, 'data':choice, 'type':Msg.PLAIN})
+        elif cc == ChatCommand.TABLE:
+            table = command[2]
+            try:
+                table_result, path = parse_and_roll_table(room, table)
+            except Exception as e:
+                result.append({'user':'', 'data': str(e), 'type':Msg.ERROR})
+            else:
+                if not table_result:
+                    table_result = '(No entry)'
+                result.append({'user':'', 'data': path + ': '+table_result, 'type':Msg.PLAIN})
+        else:
+            raise Exception(cc)
+
+    if not test:
+        HISTORY[room].extend(result)
+    return result
+
+def structured_roll_die(die:list) -> None:
+    t = die[0]
+    if t == DieExprTypes.NUMBER:
+        return
+    if t == DieExprTypes.DICE:
+        vals = []
+        for _ in range(die[1]):
+            vals.append(random.randint(1, die[2]))
+        die.append(vals)
+        return
+    if t == DieExprTypes.GROUP:
+        return structured_roll_die(die[1])
+    if t == DieExprTypes.UNARY:
+        return structured_roll_die(die[2])
+    if t == DieExprTypes.BINARY:
+        structured_roll_die(die[2])
+        structured_roll_die(die[3])
+

@@ -200,7 +200,7 @@ function setup_closable_window(win:HTMLElement, closer:HTMLElement, onclose:()=>
 }
 
 function setup_window_size(win:HTMLElement){
-    if (window.innerWidth > 1200) 
+    if (window.innerWidth > 1200)
         win.style.width = '1000px';
     else if(window.innerWidth > 800)
         win.style.width = '800px';

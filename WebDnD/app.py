@@ -36,6 +36,24 @@ def chat_test_input(data:Dict[str, str]):
     responses = chat.handle_input(room, data['text'], data['chatname'], test=True)
     return responses
 
+@socketio.on(FromClient.CHAT_STRUCTURED_INPUT)
+def chat_structured_input(data:dict):
+    room = get_room(request)
+    if not data:
+        return
+    responses = chat.handle_structured_input(room, data['chatname'], data['commands'], test=False)
+    if responses:
+        emit(ToClient.CHAT_STRUCTURED_MSG, responses, broadcast=True, to=room)
+
+@socketio.on(FromClient.CHAT_TEST_STRUCTURED_INPUT)
+def chat_structured_input(data:dict):
+    room = get_room(request)
+    if not data:
+        return
+    responses = chat.handle_structured_input(room, data['chatname'], data['commands'], test=True)
+    return responses
+
+
 
 def save_session_id(unused) -> int:
     return session_id
@@ -306,9 +324,11 @@ def app_state(campaign:str='/') -> str:
         return jsonify(state)
     elif request.method == 'POST':
         abort(404)
+        return ''
         # data should be in request.json?
     else:
         abort(404)
+        return ''
 def log_connections() -> None:
     server = socketio.server
     manager = server.manager
