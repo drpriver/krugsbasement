@@ -72,56 +72,56 @@ Expanded Macro Processor::title
       message is a command. If it is not a command, it is just text and is just
       echoed to all users. If it is a command, then something special happens.
       The server considers a collection of lines all at once.
-      
+
       The current commands are:
         Roll::md.indented .command
             <code>roll, r, /roll, /r</code> or any line of text that can be successfully
             parsed as a dice expression.
-      
+
             The server parses the command as a dice expression, rolls the dice
             and displays the result.
-      
+
         Shuffle::md.indented .command
             <code>shuffle, shuf, shuff, /shuffle, /shuff, /shuffle</code> stuff
-      
+
             The text after the shuffle is split on whitespace (although quoted
             text is treated as a single thing) and then shuffled. The result is
             then sent back. This is useful for if you need a random order of
             some things.
-      
+
         Choose::md.indented .command
             <code>choose, /choose</code> stuff
-      
+
             The text after the choose is broken up the same way as with the
             shuffle command. One of them is chosen and sent back.
-      
+
         Table::md.indented .command
             <code>table, /table</code> tablename
-      
+
             The named table is looked up and rolled on (which can trigger a roll
             on a different table). The result is then sent back.
-      
+
         Name::md.indented .command
             <code>/name</code> some name
-      
+
             Your chatname is temporarily changed to the given name for display
             purposes in this collection of lines.
-      
+
         Chat::md.indented .command
             Any general text.
-      
+
             Not really a command, but here for completeness's sake. Just send
             some text.
-      
+
         Say::md.indented .command
             <code>/say</code> some text
-      
+
             Says the text, without trying to parse it as a die roll.
-      
+
     Macro Processor::md
       Now for the extra functionality. Basically, a preprocessing step interprets
       the input, altering the lines that are sent to the server.
-        
+
       Example::md
         Here's an example, we will then explain afterwards.
       ::pre.macro
@@ -150,21 +150,21 @@ Expanded Macro Processor::title
       ::pre.macro
         /roll d20 + bonus
       ::md.comment
-        There is still a variable in this statement, so it is expanded again.
+        There is still a variable in this statement, so it is substituted again.
       ::pre.macro
         /roll d20 + 4
       ::md.comment
         which is the final line. This line is what will end up being sent to
         the server.
       ::md.comment
-        Variables only have to be defined when you get to actually expanding them.
+        Variables only have to be defined when you get to actually substituting them.
         This means that we could have written the above as:
       ::pre.macro
         attack = d20 + bonus
         bonus = 4
         /roll attack
       ::md.comment
-        As variables are lazily expanded, this just works.
+        As variables are lazily substituted, this just works.
 
       ::md.comment
         Variables are case insensitive. These lines are the same:
@@ -172,6 +172,55 @@ Expanded Macro Processor::title
         /roll attack
         /roll ATTACK
         /roll Attack
+
+      Expressions::md.comment
+        To understand how the system works, it is important to understand what is an expression
+        for a roll command, in descending precedence.
+        1. Dice literal, for example "<code>3d6</code>" or "<code>d20</code>".
+        2. Integer literal, for example "<code>3</code>" or "<code>42</code>".
+        3. Variable, such as "attack" above.
+        4. Parenthesized group, like "<code>(3 + d6)</code>" or "<code>(2*3)</code>."
+        5. Unary operations, like "<code>!4</code>" or "<code>-d6</code>". The
+           unary operations are "<code>!</code>" (not, turns 0 to 1 and all other
+           values to 0), "<code>-</code>" (negative), and "<code>+</code>" (which
+           does nothing).
+        4. Multiplication and division, like "<code>3 * 3d6</code>", or "<code>attack/2</code>".
+        5. Addition and subtraction, like "<code>d20+4</code>", or "<code>d6 - 1</code>".
+        6. Comparisons, like "<code>d6 == 1</code>" or "<code>d10 <= 2</code>". The comparison operatiors are "<code>=</code>", "<code><</code>", "<code><=</code>", "<code>></code>", <code>>=</code>", "<code>!=</code>".
+
+        When substituted, variables are implicitly grouped. This means that something like:
+        ::pre.macro
+          x = 3 + 2
+          /roll 3*x
+        will evaluate to 15, as you would expect.
+
+        Integer literals are always positive, but since unary operations are
+        high enough precedence, "<code>-4 + 2</code>" works in the normal way,
+        producing <code>-2</code>.
+      Rounding::md.comment
+        As per the usual rules of rpgs, if you are left with a fractional
+        result, that result is rounded down. That is still ambiguous, so to be
+        explicit, rounding will occur at these times:
+        * Before adding, subtracting, or comparing two values.
+        * The final total will be rounded.
+
+        This basically works as you would expect, but gives a couple non-obvious results.
+
+        ::pre.macro
+          /roll 2/3*3 # produces 2
+
+          /roll 3/2 > 1 # produces 0, left side is rounded down to 1,
+                        # which is not greater than 1
+
+          /roll 3/2 + 3/2 # produces 2, as the left side of the plus
+                          # and the right side of the plus are both
+                          # rounded to 1.
+        This means that division is not distributive. It is associative.
+
+
+        Rounding is truncation towards 0.
+        ::pre.macro
+          /roll -3/2 # produces -1
       Variable Groups::md.comment
         It's annoying to have to define all your variables in every script,
         especially when they are values you'll want to use in many places, like
@@ -179,7 +228,7 @@ Expanded Macro Processor::title
         variable groups. You can't create variable groups inside a macro - they
         are created through the variables window. A variable group can have any
         number of variables defined in it.
-        
+
         To actually access a variable in a macro, you need to bring it into the
         local context. To do that, we have the <code>use</code> statement. Imagine you have a
         variable group where you have defined <code>bab</code> to be 3 and <code>dex</code> to be 2,
@@ -190,7 +239,7 @@ Expanded Macro Processor::title
         /roll attack
       ::md.comment
         In the above example, all of the variables from Yowa will then be available
-        and the /roll attack expands to:
+        and the /roll attack substitutes to:
       ::pre.macro
         /roll d20 + 3 + 2
       ::md.comment
@@ -201,7 +250,31 @@ Expanded Macro Processor::title
         macros and even in your chat box. You can check the box next to the
         global's name in the mini variable window to enable a using for the
         chat box (so you can type d20 + bab in the chat window and have it get
-        expanded).
+        substituted).
+
+      Variable Kinds::md.comment
+        There are three kinds of variables that can be defined.
+        * [Number     | number variables]
+        * [Boolean    | boolean variables]
+        * [Expression | expression variables]
+        Number Variables::md.comment
+          These are pretty straightforward, they are negative or positive integers.
+        Boolean Variables::md.comment
+          These variables can only take the value of true or false, which are
+          treated as 1 and 0 respectively.
+        Expression Variables::md.comment
+          These variables are stored as strings, but they must succesfully
+          parse as an expression in order to be used. You can still take
+          advantage of lazy evaluation of variables.  For example, "<code>d20 + attack</code>"
+          is a legal expression, but "<code>d20 +</code>" is not as there is no
+          postfix "<code>+</code>" operator and so it is an incomplete add
+          expression, missing the right hand side.
+
+          Expression variables are very powerful due to the lazy evaluation.
+          Globally defined expression variables can thus refer to locally
+          defined variables in your macros.
+
+          You can think of these variables as formulas.
 
       If Statements::md.comment
         The last major feature is conditional execution. This is done using <code>if</code>
@@ -217,11 +290,11 @@ Expanded Macro Processor::title
         The <code>if</code> statement is written as "if" "expression" ":".
         The trailing colon is mandatory. Without it, it is considered a regular
         line of text.
-        
+
         An expression evaluator is then run
         and if the result is non-zero, it is considered "true". If it's true, then
         the indented statements after the if are evaluated.
-        
+
         An <code>if</code> can have an <code>else</code>, which looks like in the above example. The
         indented statements after the else are run if the expression turned out to
         be false (0). An <code>if</code> doesn't have to have an <code>else</code>. There's also <code>else if</code>.
@@ -250,17 +323,21 @@ Expanded Macro Processor::title
           /roll attack
       Escaping::md.comment
         Rarely, you want to type something that looks like a roll expression, but
-        isn't, such as:
+        isn't, such as telling someone how to roll something:
       ::pre.macro
-        Roll a d20 + str Don
+        To roll a strength check, type:
+        Roll d20 + str
       ::md.comment
-        Variable expansion will be attempted on this, which would be confusing as
-        it would come out as "Roll a d20 + 3 Don" if you had a str variable set to 3. To avoid this, you can prefix with a "/say " which will cause the rest
+        Variable substitution and expression evaluation will be attempted on this, which would be confusing as
+        it would come out as "Roll d20 + 3" if you had a str variable set to 3, which would then get rolled! To avoid this, you can prefix with a "/say " which will cause the rest
         to be processed as literal text. You can also use a leading backtick (`) to
         the same effect. Do not use a trailing backtick.
       ::pre.macro
-        /say Roll a d20 + str Don
-        `Roll a d20 + str Don
+        /say Roll d20 + str
+        `Roll d20 + str
       ::md.comment
-        Generally, slash commands other than /roll are not expanded, so if future
+        Generally, slash commands other than /roll are not substituted, so if future
         slash commands are added there will be no problem.
+
+        The roll command has to succesfully parse as a dice expression in order for
+        substitution to get involved, so this is a pretty rare occurrence.
