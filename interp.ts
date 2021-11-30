@@ -3,17 +3,26 @@ const evaluate_script = (function(){
         IDENT    = "IDENT",
         IF       = "IF",
         ELSE     = "ELSE",
-        COLON    = "COLON",
-        SPACE    = "SPACE",
-        ENDLINE  = "ENDLINE",
         NUMBER   = "NUMBER",
-        EQUALS   = "EQUALS",
-        SLASH    = "SLASH",
         DIE      = "DIE",
         OTHER    = "OTHER",
         USE      = "USE",
-        BACKTICK = "BACKTICK",
-        MINUS    = "MINUS",
+
+        LPAREN   = "(",
+        RPAREN   = ")",
+        LT       = "<",
+        GT       = ">",
+        BANG     = "!",
+        STAR     = "*",
+        PLUS     = "+",
+        SLASH    = "/",
+        COLON    = ":",
+        BACKTICK = "`",
+        EQUALS   = "=",
+        MINUS    = "-",
+
+        SPACE    = " ",
+        ENDLINE  = "\n",
     }
     type Token = {
         kind: TokenKind,
@@ -53,13 +62,13 @@ const evaluate_script = (function(){
     }
 
     type Elif = {
-        test: Token,
+        test: Expression,
         block: BlockStatement,
     }
 
     type IfStatement = {
         kind: StatementKind.IF,
-        test: Token, // only support bare identifiers for now
+        test: Expression,
         iftrue: BlockStatement,
         iffalse: BlockStatement | null,
         elifs: Array<Elif>,
@@ -82,7 +91,7 @@ const evaluate_script = (function(){
         return (/[a-zA-Z]/).test(char);
     }
     function iscontinueident(char:string):boolean{
-        return (/[a-zA-Z_0-9]/).test(char);
+        return (/[a-zA-Z_0-9\.]/).test(char);
     }
     function isnum(char:string):boolean{
         return (/[0-9]/).test(char);
@@ -133,6 +142,18 @@ const evaluate_script = (function(){
                 for(i++; i < text.length; i++){
                     if(!isnum(text[i])) break;
                 }
+                if(text[i] == 'd' || text[i] == 'D'){
+                    let j = i;
+                    for(j++; j < text.length; j++){
+                        if(!isnum(text[j])) break;
+                    }
+                    if(j != i){
+                        i = j;
+                        result.push({kind:TokenKind.DIE, text:text.slice(start, i)});
+                        i--;
+                        continue;
+                    }
+                }
                 result.push({kind:TokenKind.NUMBER, text:text.slice(start, i)});
                 i--;
                 continue;
@@ -146,20 +167,19 @@ const evaluate_script = (function(){
                 continue;
             }
             switch(c){
+                case '(':
+                case ')':
+                case '<':
+                case '>':
+                case '!':
+                case '*':
+                case '+':
                 case '/':
-                    result.push({kind:TokenKind.SLASH, text:c});
-                    continue;
                 case ':':
-                    result.push({kind:TokenKind.COLON, text:c});
-                    continue;
                 case '`':
-                    result.push({kind:TokenKind.BACKTICK, text:c});
-                    continue;
                 case '=':
-                    result.push({kind:TokenKind.EQUALS, text:c});
-                    continue;
                 case '-':
-                    result.push({kind:TokenKind.MINUS, text:c});
+                    result.push({kind:c as TokenKind, text:c});
                     continue;
                 case '#':
                     for(i++; i < text.length; i++){
@@ -183,6 +203,278 @@ const evaluate_script = (function(){
             parent: parent,
             indentation:indentation,
         };
+    }
+
+    const enum EXPR {
+        NUMBER = 0,
+        DICE = 1,
+        IDENT = 2,
+        GROUP = 3,
+        BINARY = 4,
+        UNARY = 5,
+    }
+    const enum BINARY {
+        ADD = 0,
+        SUB = 1,
+        MUL = 2,
+        DIV = 3,
+        EQ = 4,
+        NE = 5,
+        GT = 6,
+        GE = 7,
+        LT = 8,
+        LE = 9,
+    }
+    const enum UNARY {
+        PLUS = 0,
+        NEG = 1,
+        NOT = 2,
+    }
+    type NumberExpression = {
+        type: EXPR.NUMBER,
+        value: number,
+    }
+    type DiceExpression = {
+        type: EXPR.DICE,
+        n: number;
+        base: number;
+    }
+    type IdentExpression = {
+        type: EXPR.IDENT,
+        ident: string,
+    }
+    type GroupExpression = {
+        type: EXPR.GROUP,
+        expr: Expression,
+    }
+    type BinaryExpression = {
+        type: EXPR.BINARY,
+        btype: BINARY,
+        lhs: Expression,
+        rhs: Expression,
+    }
+    type UnaryExpression = {
+        type: EXPR.UNARY,
+        utype: UNARY,
+        expr: Expression,
+    }
+    type Expression = NumberExpression | DiceExpression | IdentExpression | GroupExpression | BinaryExpression | UnaryExpression;
+
+
+    function parse_expression(tokens: Array<Token>): Expression | null{
+        let index = 0;
+        function current():Token {
+            if(index >= tokens.length){
+                return {
+                    kind: TokenKind.ENDLINE,
+                    text: '\n',
+                };
+            }
+            return tokens[index];
+        }
+        function skip_spaces(){
+            while(current().kind == TokenKind.SPACE)
+                index++;
+        }
+        function match(kinds:Array<TokenKind>): null | TokenKind {
+            let c = current().kind;
+            for(let k of kinds){
+                if(k == c) {
+                    index++;
+                    return c;
+                }
+            }
+            return null;
+        }
+        function parse_comparison(): Expression | null {
+            skip_spaces();
+            let lhs = parse_addplus();
+            if(!lhs) return lhs;
+            skip_spaces();
+            let c;
+            while(c = match([TokenKind.BANG, TokenKind.LT, TokenKind.GT, TokenKind.EQUALS])){
+                let c2 = match([TokenKind.EQUALS]);
+                if(c == TokenKind.BANG && !c2) return null;
+                let rhs = parse_addplus();
+                if(!rhs) return rhs;
+                let op: BINARY;
+                switch(c){
+                    case TokenKind.EQUALS: op = BINARY.EQ; break;
+                    case TokenKind.BANG: op = BINARY.NE; break;
+                    case TokenKind.LT: op = c2? BINARY.LE : BINARY.LT; break;
+                    case TokenKind.GT: op = c2? BINARY.GE : BINARY.GT; break;
+                    default: return null;
+                }
+                lhs = {
+                    type: EXPR.BINARY,
+                    btype: op,
+                    lhs: lhs,
+                    rhs: rhs,
+                };
+                skip_spaces();
+            }
+            return lhs;
+        }
+        function parse_addplus():Expression | null{
+            skip_spaces();
+            let lhs = parse_divmul();
+            if(!lhs) return lhs;
+            skip_spaces();
+            let c;
+            while(c = match([TokenKind.PLUS, TokenKind.MINUS])){
+                let rhs = parse_divmul();
+                if(!rhs) return rhs;
+                lhs = {
+                    type: EXPR.BINARY,
+                    btype: c == TokenKind.PLUS? BINARY.ADD : BINARY.SUB,
+                    lhs: lhs,
+                    rhs: rhs,
+                };
+                skip_spaces();
+            }
+            return lhs;
+        }
+        function parse_divmul():Expression | null{
+            skip_spaces();
+            let lhs = parse_unary();
+            if(!lhs) return lhs;
+            skip_spaces();
+            let c;
+            while(c = match([TokenKind.SLASH, TokenKind.STAR])){
+                let rhs = parse_unary();
+                if(!rhs) return rhs;
+                lhs = {
+                    type: EXPR.BINARY,
+                    btype: c == TokenKind.SLASH? BINARY.DIV : BINARY.MUL,
+                    lhs: lhs,
+                    rhs: rhs,
+                };
+                skip_spaces();
+            }
+            return lhs;
+        }
+        function parse_unary():Expression | null{
+            skip_spaces();
+            let c;
+            if(c = match([TokenKind.PLUS, TokenKind.BANG, TokenKind.MINUS])){
+                skip_spaces();
+                let expr = parse_comparison();
+                if(!expr) return null;
+                return {
+                    type: EXPR.UNARY,
+                    utype: c == TokenKind.PLUS? UNARY.PLUS : c == TokenKind.BANG? UNARY.NOT : UNARY.NEG,
+                    expr: expr,
+                };
+            }
+            return parse_terminal();
+        }
+        function parse_terminal(): Expression | null {
+            skip_spaces();
+            let t = current();
+            let c = match([TokenKind.LPAREN, TokenKind.NUMBER, TokenKind.DIE, TokenKind.IDENT]);
+            if(!c) return null;
+            switch(t.kind){
+                case TokenKind.LPAREN:{
+                    skip_spaces();
+                    let expr = parse_comparison();
+                    if(!expr) return null;
+                    skip_spaces();
+                    if(!match([TokenKind.RPAREN]))
+                        return null
+                    return {
+                        type: EXPR.GROUP,
+                        expr: expr,
+                    };
+                }
+                case TokenKind.NUMBER:{
+                    return {
+                        type: EXPR.NUMBER,
+                        value: +t.text,
+                    };
+                }
+                case TokenKind.DIE:{
+                    let [a, b] = t.text.split(/[dD]/);
+                    let num = a.length? +a : 1;
+                    let base = +b;
+                    return {
+                        type: EXPR.DICE,
+                        n: num,
+                        base: base,
+                    };
+                }
+                case TokenKind.IDENT:{
+                    return {
+                        type: EXPR.IDENT,
+                        ident: t.text,
+                    };
+                }
+                default:
+                    return null;
+            }
+            return null;
+        }
+        return parse_comparison();
+    }
+    function eval_expr(expr: Expression, vars:Map<string, Array<Token>>): number | null{
+        switch(expr.type){
+            case EXPR.NUMBER:
+                return expr.value;
+            // can't eval dice client side
+            case EXPR.DICE:
+                return null;
+            case EXPR.IDENT:{
+                let tokens = vars.get(expr.ident.toLowerCase());
+                if(!tokens) return null;
+                let subexpr = parse_expression(tokens);
+                if(!subexpr) return subexpr;
+                return eval_expr(subexpr, vars);
+            }
+            case EXPR.GROUP:
+                return eval_expr(expr.expr, vars);
+            case EXPR.BINARY:{
+                let lhs = eval_expr(expr.lhs, vars);
+                let rhs = eval_expr(expr.rhs, vars);
+                if(lhs === null) return null;
+                if(rhs === null) return null;
+                switch(expr.btype){
+                    case BINARY.ADD:
+                        return lhs + rhs;
+                    case BINARY.SUB:
+                        return lhs - rhs;
+                    case BINARY.MUL:
+                        return lhs * rhs;
+                    case BINARY.DIV:
+                        if(!rhs) return 0;
+                        return (lhs / rhs) | 0;
+                    case BINARY.EQ:
+                        return lhs == rhs? 1 : 0;
+                    case BINARY.NE:
+                        return lhs != rhs? 1 : 0;
+                    case BINARY.LT:
+                        return lhs < rhs? 1 : 0;
+                    case BINARY.LE:
+                        return lhs <= rhs? 1 : 0;
+                    case BINARY.GT:
+                        return lhs > rhs? 1 : 0;
+                    case BINARY.GE:
+                        return lhs >= rhs? 1 : 0;
+                }
+            }
+            case EXPR.UNARY:{
+                let v = eval_expr(expr.expr, vars);
+                if(v === null) return null;
+                switch(expr.utype){
+                    case UNARY.PLUS:
+                        return v;
+                    case UNARY.NOT:
+                        return !v? 1 : 0;
+                    case UNARY.NEG:
+                        return -v;
+                }
+            }
+
+        }
+
     }
 
     function parse(tokens:Array<Token>, topblock:BlockStatement): string | null{
@@ -272,6 +564,7 @@ const evaluate_script = (function(){
                         return parse_assignment();
                     else
                         return parse_raw();
+                case TokenKind.PLUS:
                 case TokenKind.MINUS:{
                     let k = peek_no_space().kind;
                     if(k == TokenKind.NUMBER || k == TokenKind.DIE)
@@ -359,17 +652,17 @@ const evaluate_script = (function(){
                 return parse_as_raw();
                 // return err(if_, "Assertion error, should've been if");
             skip_spaces();
-            let expr = take();
-            if(expr.kind != TokenKind.IDENT){
-                return parse_as_raw();
-                // return err(expr, "Need an expression for an if statement");
+            let condtokens = [];
+            for(;;){
+                let tok = take();
+                if(tok.kind == TokenKind.ENDLINE)
+                    return parse_as_raw();
+                if(tok.kind == TokenKind.COLON)
+                    break;
+                condtokens.push(tok);
             }
-            skip_spaces();
-            let colon = take();
-            if(colon.kind != TokenKind.COLON){
-                return parse_as_raw();
-                // return err(colon, "Need a colon after expression of if statement");
-            }
+            let expr = parse_expression(condtokens);
+            if(!expr) return parse_as_raw();
             skip_spaces();
             let endline = take();
             if(endline.kind != TokenKind.ENDLINE){
@@ -426,15 +719,17 @@ const evaluate_script = (function(){
             if(col_or_if.kind != TokenKind.IF)
                 return parse_as_raw();
                 // return err(col_or_if, "Must be a colon or an if");
-            let expr = take();
-            if(expr.kind != TokenKind.IDENT)
-                return parse_as_raw();
-                // return err(expr, "Bare identifiers as expressions expected for if statements");
-            skip_spaces();
-            let col = take();
-            if(col.kind != TokenKind.COLON)
-                return parse_as_raw();
-                // return err(col, "Expected a colon after an if expression");
+            let condtokens = [];
+            for(;;){
+                let tok = take();
+                if(tok.kind == TokenKind.ENDLINE)
+                    return parse_as_raw();
+                if(tok.kind == TokenKind.COLON)
+                    break;
+                condtokens.push(tok);
+            }
+            let expr = parse_expression(condtokens);
+            if(!expr) return parse_as_raw();
             skip_spaces();
             let end = take();
             if(end.kind != TokenKind.ENDLINE)
@@ -522,29 +817,6 @@ const evaluate_script = (function(){
         return error;
     }
 
-    function evaluate_expression(expr:string, vars:Map<string, Array<Token>>):number{
-        let toks = expand_tokens(vars, expr, new Set());
-        // FIXME: this is like the worst expression evaluator ever
-        let minus = false;
-        let value = 0;
-        for(let t of toks){
-            if(t.kind == TokenKind.NUMBER){
-                let v = +t.text;
-                if(minus){
-                    minus = false;
-                    v = -v;
-                }
-                value += v;
-                continue;
-            }
-            if(t.kind == TokenKind.MINUS){
-                minus = !minus;
-                continue;
-            }
-        }
-        return value;
-    }
-
     function interpret(statement:Statement, vars:Map<string, Array<Token>>, namespaces:Map<string, Map<string, Array<Token>>>, outlines:Array<string>):string{
         switch(statement.kind){
             case StatementKind.RAW:{
@@ -574,13 +846,13 @@ const evaluate_script = (function(){
                     interpret(s, vars, namespaces, outlines);
             }break;
             case StatementKind.IF:{
-                if(evaluate_expression(statement.test.text.toLowerCase(), vars)){
+                if(eval_expr(statement.test, vars)){
                     interpret(statement.iftrue, vars, namespaces, outlines);
                 }
                 else {
                     let handled = false;
                     for(let elif of statement.elifs){
-                        let t2 = vars.get(elif.test.text);
+                        let t2 = eval_expr(elif.test, vars);
                         if(t2){
                             handled = true;
                             interpret(elif.block, vars, namespaces, outlines);
