@@ -1,12 +1,14 @@
-FromClient
+FromClient: str
     # builtin
     CONNECT = connect
     # Core messages
     JOIN = j
     POST_JOIN = pj
     # Chat messages
-    CHAT_INPUT = ci
-    CHAT_TEST_INPUT = cti
+    CHAT_INPUT = ci # to be removed
+    CHAT_TEST_INPUT = cti # to be replaced with structured
+    CHAT_STRUCTURED_INPUT = csi
+    CHAT_TEST_STRUCTURED_INPUT = ctsi
     # Roll Tables
     RETRIEVE_ROLL_TABLES = rrt
     UPDATE_ROLL_TABLES = urt
@@ -33,7 +35,7 @@ FromClient
     # debugging
     DEBUG = d
 
-ToClient
+ToClient: str
     # builtin
     CONNECT = connect
     DISCONNECT = disconnect
@@ -44,6 +46,7 @@ ToClient
     CHAT_MSG = cm
     CHAT_CLEAR = ccl
     CHAT_CREATE = ccr
+    CHAT_STRUCTURED_MSG = csm
     # Canvas
     CANVAS_INITIALIZE_MAPS = cim
     CANVAS_CREATE_OBJECTS = cco
@@ -64,3 +67,25 @@ ToClient
     NOTE_UPDATE_TITLE = nut
     NOTE_DIRTY = nd
     NOTE_DELETE = ndel
+
+ChatCommand: int
+    ROLL = 0
+    SAY = 1
+    NAME = 2
+    SHUFFLE = 3
+    CHOOSE = 4
+    TABLE = 5
+
+DieExprTypes: int
+    NUMBER = 0
+    DICE = 1
+    GROUP = 2
+    UNARY = 3
+    BINARY = 4
+
+Msg: int
+    PLAIN = 0
+    DICEROLL = 1
+    ERROR = 2
+    DICEROLL_NEW = 3
+    ECHOABLE_TEXT = 4
