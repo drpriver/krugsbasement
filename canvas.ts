@@ -237,7 +237,7 @@ type GridRectangle = {
 // Stripped Grid Rectangles are the same as regular rectangles.
 type StrippedGridRectangle = GridRectangle;
 
-enum ELLIPSETYPE {
+const enum ELLIPSETYPE {
     HOLLOW = 0,
     SOLID = 1,
     FILLED = 2,
@@ -297,7 +297,7 @@ type StrippedImageObj = {
 }
 //  text
 //  ----
-enum TEXTALIGNMENT {
+const enum TEXTALIGNMENT {
     LEFT = 0,
     CENTER = 1,
     RIGHT = 2,
@@ -328,7 +328,7 @@ type StrippedTextObj = {
 
 // status flags for conditions and status effects
 // Bit flags
-enum TOKENSTATUSFLAGS {
+const enum TOKENSTATUSFLAGS {
     NONE = 0,
     ASLEEP     = 1 << 0,
     BLESS      = 1 << 1,
@@ -438,7 +438,7 @@ type DoorObj = {
 }
 // stripped doors are the same as regular doors.
 type StrippedDoorObj = DoorObj;
-enum ROTATION {
+const enum ROTATION {
     // we might add the diagonals
     UP    = 0,
     RIGHT = 2,
@@ -473,7 +473,7 @@ type MeasureObj = {
 }
 // stripped measure is the same as regular measure.
 type StrippedMeasureObj = MeasureObj;
-enum FIXTURETYPE {
+const enum FIXTURETYPE {
     STATUE = 0,
     STAIRS = 1,
     PIT    = 2,
@@ -509,7 +509,7 @@ type FixtureObj = {
 type StrippedFixtureObj = FixtureObj;
 
 // Tile stuff
-enum TILETYPE {
+const enum TILETYPE {
     FILLED = 0,
     TERRAIN = 1,
     ICON = 2,
@@ -995,7 +995,7 @@ type StrippedObj = StrippedFreehandLine | StrippedGridLine | StrippedRectangle |
 
 // Door subtypes
 // ------------
-enum DOORTYPE {
+const enum DOORTYPE {
     DOOR = 0,
     DOUBLE = 1,
     PORTCULLIS = 2,
