@@ -321,8 +321,8 @@ Expanded Macro Processor::title
           /roll attack - 2
         else:
           /roll attack
-        No Dice in Ifs::md.comment
-          Note! if conditions cannot contain dice expressions, directly or indirectly.
+      No Dice in Ifs::md.comment
+        Note! if conditions cannot contain dice expressions, directly or indirectly.
       Escaping::md.comment
         Rarely, you want to type something that looks like a roll expression, but
         isn't, such as telling someone how to roll something:
