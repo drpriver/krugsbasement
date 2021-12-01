@@ -1,90 +1,3 @@
-type NameCommand = [ChatCommand.NAME, string];
-type RollCommand = [ChatCommand.ROLL, string, UnrolledDiceExpr];
-type SayCommand = [ChatCommand.SAY, string];
-type ShuffleCommand = [ChatCommand.SHUFFLE, string, Array<string>];
-type ChooseCommand = [ChatCommand.CHOOSE, string, Array<string>];
-type TableCommand = [ChatCommand.TABLE, string, string];
-type Command = NameCommand | RollCommand | SayCommand | ShuffleCommand | ChooseCommand | TableCommand;
-
-
-const enum ROLLTYPE {
-    DICE = 0,
-    PRODUCT = 1,
-    SUM = 2,
-}
-type DieRoll = {
-    type: ROLLTYPE; // always .DICE
-    base: number;
-    negative: boolean;
-    values: Array<number>;
-}
-type GroupRoll = {
-    type: ROLLTYPE; // either .PRODUCT or
-    values: Array<DieRoll | GroupRoll>
-}
-type Roll = GroupRoll | DieRoll;
-type RollMsg = {
-    roll: Roll;
-    total: number;
-};
-
-type ChatPlainMsg = {
-    type: Msg.PLAIN,
-    user: string,
-    data: string,
-}
-
-type ChatErrorMsg = {
-    type: Msg.ERROR,
-    user: string,
-    data: string,
-}
-
-type ChatNewRollMsg = {
-    type: Msg.DICEROLL_NEW,
-    user: string,
-    data: RolledExprs,
-}
-
-// Old message type
-type ChatRollMsg = {
-    type: Msg.DICEROLL,
-    user: string,
-    data: RollMsg,
-}
-
-type ChatEchoableMsg = {
-    type: Msg.ECHOABLE_TEXT,
-    user: string,
-    data: string,
-}
-
-type ChatStructuredMsg = ChatPlainMsg | ChatErrorMsg | ChatNewRollMsg | ChatEchoableMsg | ChatRollMsg;
-
-
-//
-// These are sent to the server
-//                                    n       base    rolled dice
-type UnrolledDice = [DieExprTypes.DICE, number, number];
-// Bit of a misnomer, but whatever
-type RolledNumber = [DieExprTypes.NUMBER, number];
-type UnrolledGroup = [DieExprTypes.GROUP, UnrolledDiceExpr];
-type UnrolledUnary = [DieExprTypes.UNARY, UNARY, UnrolledDiceExpr];
-type UnrolledBinary = [DieExprTypes.BINARY, BINARY, UnrolledDiceExpr, UnrolledDiceExpr];
-
-type UnrolledDiceExpr = RolledNumber | UnrolledDice | UnrolledGroup | UnrolledUnary | UnrolledBinary;
-
-//
-// These are received back from the server
-//                                    n       base    rolled dice
-type RolledDice = [DieExprTypes.DICE, number, number, Array<number>];
-type RolledGroup = [DieExprTypes.GROUP, RolledExprs];
-type RolledUnary = [DieExprTypes.UNARY, UNARY, RolledExprs];
-type RolledBinary = [DieExprTypes.BINARY, BINARY, RolledExprs, RolledExprs];
-type RolledExprs = RolledNumber | RolledDice | RolledGroup | RolledUnary | RolledBinary;
-
-
-
 
 const THISPAGE = window.location.pathname;
 
@@ -111,48 +24,48 @@ function setchatname(name:string){
     store_local(StorageCategory.CHAT,'name', name);
 }
 
-function add_chat_msgs(log:HTMLElement, msgs:Array<ChatStructuredMsg>){
+function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>){
     for(let i = 0; i < msgs.length; i++){
         const msg = msgs[i];
         const entry = elem_with_parent(log, 'div');
-        switch(msg.type){
+        const type_ = msg[0];
+        const user_ = msg[1];
+        switch(type_){
             case Msg.PLAIN:{
-                if(msg.user){
-                    const user = elem_with_text('b', msg.user+': ');
+                const data = msg[2];
+                if(user_){
+                    const user = elem_with_text('b', user_+': ');
                     entry.appendChild(user);
                 }
-                const text = document.createTextNode(msg.data);
+                const text = document.createTextNode(data);
                 entry.appendChild(text);
             }break;
             case Msg.ECHOABLE_TEXT:{
-                if(msg.user){
-                    const user = elem_with_text('b', msg.user+': ');
+                if(user_){
+                    const user = elem_with_text('b', user_+': ');
                     entry.appendChild(user);
                 }
-                const span = elem_with_text('span', msg.data);
+                const data = msg[2];
+                const span = elem_with_text('span', data);
                 entry.appendChild(span);
                 span.style.cursor = 'pointer';
-                let msg_data = msg.data;
+                let msg_data = data;
                 span.addEventListener('click', function(e){
                     e.stopPropagation();
                     e.preventDefault();
                     preprocess_and_send_chat(msg_data);
                 });
             }break;
-            case Msg.DICEROLL:{
-                entry.classList.add('dice-roll-msg');
-                const r = msg.data;
-                const formatted = format_die_roll_result(r);
-                entry.innerHTML += formatted;
-            }break;
             case Msg.ERROR:{
-                const error = elem_with_text('span', msg.data);
+                const data = msg[2];
+                const error = elem_with_text('span', data);
                 error.classList.add('chat-error');
                 entry.appendChild(error);
             }break;
             case Msg.DICEROLL_NEW:{
+                const data = msg[2];
                 entry.classList.add('dice-roll-msg');
-                const r = msg.data;
+                const r = data;
                 const formatted = format_new_die_roll_result(r);
                 entry.innerHTML += formatted;
             }break;
@@ -160,13 +73,13 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatStructuredMsg>){
     }
 }
 
-SOCKET.on(ToClient.CHAT_STRUCTURED_MSG, function(msgs:Array<ChatStructuredMsg>){
+SOCKET.on(ToClient.CHAT_STRUCTURED_MSG, function(msgs:Array<ChatMsg>){
     const log = document.getElementById('chat-history')!;
     add_chat_msgs(log, msgs);
     log.scrollTo({behavior:'smooth', top:log.scrollHeight});
 });
 
-SOCKET.on(ToClient.CHAT_CREATE, function(msgs:Array<ChatStructuredMsg>){
+SOCKET.on(ToClient.CHAT_CREATE, function(msgs:Array<ChatMsg>){
     const log = document.getElementById('chat-history')!;
     add_chat_msgs(log, msgs);
     log.scrollTop = log.scrollHeight;
@@ -341,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function(){
         let commands = evaluate(current_macro.body, EvaluateFlags.NONE);
         (log as any).replaceChildren();
         if(commands.length)
-            SOCKET.emit(FromClient.CHAT_TEST_STRUCTURED_INPUT, {chatname:CHATNAME, commands:commands}, function(response:Array<ChatStructuredMsg>){
+            SOCKET.emit(FromClient.CHAT_TEST_STRUCTURED_INPUT, {chatname:CHATNAME, commands:commands}, function(response:Array<ChatMsg>){
                 add_chat_msgs(log, response);
             });
     });
@@ -871,7 +784,7 @@ function evaluate(text:string, flags:EvaluateFlags):Array<Command>{
     }
     return evaluate_script(text, vars, ns);
 }
-function format_new_die_roll_result(roll_result:RolledExprs):string{
+function format_new_die_roll_result(roll_result:RolledExpr):string{
     let [total, text] = format_new_die_roll(roll_result, false);
     total = rounddown(total);
     return text + `<br> = <span class="dice-total">${total}</span>`;
@@ -881,7 +794,7 @@ function rounddown(a:number):number{
     return Math.trunc(a) | 0;
 }
 const enum MINUS {m = '\u2212'};
-function format_new_die_roll(roll_result:RolledExprs, tight:boolean):[number, string]{
+function format_new_die_roll(roll_result:RolledExpr, tight:boolean):[number, string]{
     switch(roll_result[0]){
         case DieExprTypes.NUMBER:
             return [roll_result[1], `<span class="dice-constant">${roll_result[1]}</span>`];
@@ -971,110 +884,6 @@ function format_new_die_roll(roll_result:RolledExprs, tight:boolean):[number, st
     }
 }
 
-// These are for the old dice format.
-function format_die_roll_result(roll_result:RollMsg):string{
-    return format_roll(roll_result.roll) +  ` <br> = <span class="dice-total">${roll_result.total}</span>`;
-}
-function format_roll(roll: Roll):string{
-    let result = '';
-    switch(roll.type){
-        case ROLLTYPE.DICE:{
-            const r = roll as DieRoll;
-            result += format_dice_roll(r);
-        }break;
-        case ROLLTYPE.PRODUCT:{
-            const r = roll as GroupRoll;
-            const values = r.values;
-            const length = values.length;
-            for(let i = 0; i < length; i++){
-                if(i != 0)
-                    result += ' * ';
-                const v = values[i];
-                switch(v.type){
-                    case ROLLTYPE.DICE:{
-                        const d = v as DieRoll;
-                        if(d.values.length > 1){
-                            result += '('+format_roll(v) + ')';
-                        }
-                        else {
-                            result += format_roll(v);
-                        }
-                    }break;
-                    case ROLLTYPE.SUM:{
-                        result += '('+format_roll(v)+')';
-                    }break;
-                    case ROLLTYPE.PRODUCT:{
-                        // no parens
-                        result += format_roll(v);
-                    }break;
-                }
-            }
-        }break;
-        case ROLLTYPE.SUM:{
-            const r = roll as GroupRoll;
-            const values = r.values;
-            const length = values.length;
-            for(let i = 0; i < length; i++){
-                const v = values[i];
-                if(i != 0){
-                    switch(v.type){
-                        case ROLLTYPE.DICE:{
-                            const d = v as DieRoll;
-                            if(!d.negative){
-                                result += ' + ';
-                            }
-                        }break;
-                        default:{
-                            result += ' + ';
-                        }
-                    }
-                }
-                result += format_roll(values[i]);
-            }
-        }break;
-    }
-    return result;
-}
-
-function format_dice_roll(roll:DieRoll){
-    let result = '';
-    function write_die(roll:DieRoll){
-        if(roll.base == 1){
-            if(roll.values[0] < 0){
-                result += ' ' + MINUS.m;
-            }
-            result += '<span class="dice-constant">' + Math.abs(roll.values[0]) + '</span>';
-            return;
-        }
-        const length = roll.values.length;
-        for(let j = 0; j < length; ++j){
-            const v = roll.values[j] | 0;
-            if(roll.negative){
-                result += ' ' + MINUS.m;
-            }
-            else if(j == 0){
-            }
-            else {
-                result += ' +';
-            }
-            result += '[';
-            if(v == roll.base){
-                result += '<span class="dice-roll dice-roll-max">';
-            }
-            else if(v == 1){
-                result += '<span class="dice-roll dice-roll-min">';
-            }
-            else {
-                result += '<span class="dice-roll">';
-            }
-            result += v;
-            result += '</span>';
-            result += ']';
-        }
-    }
-    write_die(roll);
-    return result;
-}
 function err_dialog(html:string){
     const errpop = elem('section', null, 'hover');
     html += `
@@ -1095,10 +904,6 @@ function err_dialog(html:string){
     }
 }
 
-const enum ROLLTABLEFLAGS {
-    NONE = 0,
-    IS_TABLE = 1 << 0,
-}
 type RollTableEntry = {
     weight: number;
     value: string;

@@ -1,4 +1,4 @@
-FromClient: str
+enum FromClient: str
     # builtin
     CONNECT = connect
     # Core messages
@@ -33,7 +33,7 @@ FromClient: str
     # debugging
     DEBUG = d
 
-ToClient: str
+enum ToClient: str
     # builtin
     CONNECT = connect
     DISCONNECT = disconnect
@@ -65,7 +65,7 @@ ToClient: str
     NOTE_DIRTY = nd
     NOTE_DELETE = ndel
 
-ChatCommand: int
+enum ChatCommand: int
     ROLL = 0
     SAY = 1
     NAME = 2
@@ -73,16 +73,153 @@ ChatCommand: int
     CHOOSE = 4
     TABLE = 5
 
-DieExprTypes: int
+struct NameCommand
+    type = ChatCommand.NAME
+    name = str
+struct RollCommand
+    type = ChatCommand.ROLL
+    original = str
+    expr = UnrolledDiceExpr
+struct SayCommand
+    type = ChatCommand.SAY
+    text = str
+struct ShuffleCommand
+    type = ChatCommand.SHUFFLE
+    original = str
+    items = [str]
+struct ChooseCommand
+    type = ChatCommand.CHOOSE
+    original = str
+    items = [str]
+struct TableCommand
+    type = ChatCommand.TABLE
+    original = str
+    table = str
+
+union Command
+    NameCommand
+    RollCommand
+    SayCommand
+    ShuffleCommand
+    ChooseCommand
+    TableCommand
+
+enum DieExprTypes: int
     NUMBER = 0
     DICE = 1
     GROUP = 2
     UNARY = 3
     BINARY = 4
 
-Msg: int
+enum UNARY: int
+    PLUS = 0
+    NEG = 1
+    NOT = 2
+
+enum BINARY: int
+    ADD = 0
+    SUB = 1
+    MUL = 2
+    DIV = 3
+    EQ = 4
+    NE = 5
+    GT = 6
+    GE = 7
+    LT = 8
+    LE = 9
+
+struct RolledNumber
+    type = DieExprTypes.NUMBER
+    value = int
+
+struct RolledDice
+    type = DieExprTypes.DICE
+    n = int
+    base = int
+    values = [int]
+
+struct RolledGroup
+    type = DieExprTypes.GROUP
+    value = RolledExpr
+
+struct RolledUnary
+    type = DieExprTypes.UNARY
+    op = UNARY
+    value = RolledExpr
+
+struct RolledBinary
+    type = DieExprTypes.BINARY
+    op = BINARY
+    left = RolledExpr
+    right = RolledExpr
+
+union RolledExpr
+    RolledNumber
+    RolledDice
+    RolledGroup
+    RolledUnary
+    RolledBinary
+
+struct UnrolledDice
+    type = DieExprTypes.DICE
+    n = int
+    base = int
+
+struct UnrolledGroup
+    type = DieExprTypes.GROUP
+    value = UnrolledDiceExpr
+
+struct UnrolledUnary
+    type = DieExprTypes.UNARY
+    op = UNARY
+    value = UnrolledDiceExpr
+
+struct UnrolledBinary
+    type = DieExprTypes.BINARY
+    op = BINARY
+    left = UnrolledDiceExpr
+    right = UnrolledDiceExpr
+
+union UnrolledDiceExpr
+    RolledNumber
+    UnrolledDice
+    UnrolledGroup
+    UnrolledUnary
+    UnrolledBinary
+
+enum Msg: int
     PLAIN = 0
     DICEROLL = 1
     ERROR = 2
     DICEROLL_NEW = 3
     ECHOABLE_TEXT = 4
+
+struct ChatPlainMsg
+    type = Msg.PLAIN
+    user = str
+    data = str
+
+struct ChatErrorMsg
+    type = Msg.ERROR
+    user = str
+    data = str
+
+struct ChatNewRollMsg
+    type = Msg.DICEROLL_NEW
+    user = str
+    data = RolledExpr
+
+struct ChatEchoableMsg
+    type = Msg.ECHOABLE_TEXT
+    user = str
+    data = str
+
+union ChatMsg
+    ChatPlainMsg
+    ChatErrorMsg
+    ChatNewRollMsg
+    ChatEchoableMsg
+
+enum ROLLTABLEFLAGS:int
+    NONE = 0
+    IS_TABLE = 1 << 0

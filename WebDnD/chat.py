@@ -7,15 +7,66 @@ from .persist import Persister
 from flask_socketio import emit
 from .logs import logging
 
-from .messages import ToClient, ChatCommand, DieExprTypes, Msg
+from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg, UnrolledDiceExpr, BINARY, UNARY, RolledExpr, ROLLTABLEFLAGS
 
 from enum import IntEnum, IntFlag
 
-def load_chat(data:Union[str, dict, list, int, float]) -> List[dict]:
+def load_chat(data) -> List[ChatMsg]:
     assert isinstance(data, list)
-    result = [] # type: List[dict]
+    if data and isinstance(data[0], dict): # old format
+        return convert_old_format(data)
+    else:
+        return data
+def convert_old_format(data:List[dict]) -> List[ChatMsg]:
+    result = [] # type: List[ChatMsg]
     d: Dict[str, object]
-    for d in data:
+
+    # old roll types
+    DICE = 0
+    PRODUCT = 1
+    SUM = 2
+
+    def convert(roll):
+        type = roll['type']
+        values = roll['values']
+        result: 'RolledExpr'
+        if type == DICE:
+            if roll['base'] == 1:
+                return (DieExprTypes.NUMBER, values[0])
+            result = (DieExprTypes.DICE, len(values), roll['base'], values)
+            if roll['negative']:
+                result = (DieExprTypes.UNARY, UNARY.NEG, result)
+            return result
+        if type == PRODUCT:
+            dice = [convert(v) for v in values]
+            result = (DieExprTypes.BINARY, BINARY.MUL, dice[0], dice[1])
+            for i in range(2, len(dice)):
+                d = dice[i]
+                result = (DieExprTypes.BINARY, BINARY.MUL, result, d)
+            return result
+        if type == SUM:
+            dice = [convert(v) for v in values]
+            result = (DieExprTypes.BINARY, BINARY.ADD, dice[0], dice[1])
+            for i in range(2, len(dice)):
+                d = dice[i]
+                result = (DieExprTypes.BINARY, BINARY.ADD, result, d)
+            return result
+        assert 0
+    def ancient_convert(roll):
+        first = roll[0]
+        if first['base'] == 1:
+            result = (DieExprTypes.NUMBER, first['base'])
+        else:
+            result = (DieExprTypes.DICE, len(first['values']), first['base'], first['values'])
+        for die in roll[1:]:
+            if die['base'] == 1:
+                d = (DieExprTypes.NUMBER, die['base'])
+            else:
+                result = (DieExprTypes.DICE, len(die['values']), die['base'], die['values'])
+            result = (DieExprTypes.BINARY, BINARY.ADD, result, d)
+        return result
+
+    for i, d in enumerate(data):
         if 'type' not in d:
             continue
         if not isinstance(d['type'], int):
@@ -24,33 +75,37 @@ def load_chat(data:Union[str, dict, list, int, float]) -> List[dict]:
             continue
         if not isinstance(d['user'], str):
             continue
+        user: str = d['user']
         if 'data' not in d:
             continue
         datum = d['data']
-        t: int = d['type']
+        t: Msg = d['type'] # type: ignore
         if t == Msg.PLAIN:
             if not isinstance(datum, str):
                 continue
+            if i + 1 < len(data) and data[i+1]['type'] == Msg.DICEROLL:
+                t = Msg.ECHOABLE_TEXT
+            result.append((t, user, datum)) # type: ignore
         elif t == Msg.ERROR:
             if not isinstance(datum, str):
                 continue
+            result.append((t, user, datum)) # type: ignore
         elif t == Msg.DICEROLL:
+            from pprint import pprint
             if not isinstance(datum, dict):
-                continue
-            if 'total' not in datum:
+                roll = ancient_convert(datum)
+                result.append((Msg.DICEROLL_NEW, user, roll))
                 continue
             if 'roll' not in datum:
                 continue
-        result.append(d)
+            roll = convert(datum['roll'])
+            result.append((Msg.DICEROLL_NEW, user, roll)) # type: ignore
+
     return result
 
 
-HISTORY = {'/':[]}  # type: Dict[str, List[dict]]
+HISTORY = {'/':[]}  # type: Dict[str, List[ChatMsg]]
 HISTORY['/'] = Persister(HISTORY['/'], 'BadDb/chat.json', dont_persist=True, load_func=load_chat).obj
-
-class ROLLTABLEFLAGS(IntFlag):
-    NONE = 0
-    IS_TABLE = 1
 
 ROLLTABLES = {'/':[]}  # type: Dict[str, List[dict]]
 ROLLTABLES['/'] = Persister(ROLLTABLES['/'], 'BadDb/tables.json', dont_persist=True).obj
@@ -122,17 +177,26 @@ def parse_and_roll_table_inner(mapping:dict, key:str, path:str, depth:int) -> Tu
     return value, path
 
 
-def get_history(room:str) -> List[dict]:
+def get_history(room:str) -> List[ChatMsg]:
     return HISTORY[room][-100:]
 
 def clear(room:str) -> None:
     HISTORY[room].clear()
 
-def set_state(room:str, state:List[dict]) -> None:
+def set_state(room:str, state:List[ChatMsg]) -> None:
     clear(room)
     HISTORY[room].extend(state)
 
-def handle_structured_input(room:str, user:str, commands:List[dict], test:bool) -> List[dict]:
+
+def handle_structured_input(room:str, user:str, commands:List[Command], test:bool) -> List[ChatMsg]:
+    def echo(user:str, text:str) -> ChatMsg:
+        return (Msg.ECHOABLE_TEXT, user, text) # type: ignore
+    def plain(user:str, text:str) -> ChatMsg:
+        return (Msg.PLAIN, user, text) # type: ignore
+    def dieroll(dice) -> ChatMsg:
+        return (Msg.DICEROLL_NEW, '', dice) # type: ignore
+    def error(e:str) -> ChatMsg:
+        return (Msg.ERROR, '', e) # type: ignore
     apparent_user = user
     result = []
     for command in commands:
@@ -140,37 +204,37 @@ def handle_structured_input(room:str, user:str, commands:List[dict], test:bool) 
         if cc != ChatCommand.NAME:
             line = command[1]
             if cc != ChatCommand.SAY:
-                result.append({'user':apparent_user, 'data':line, 'type':Msg.ECHOABLE_TEXT})
+                result.append(echo(apparent_user, line))
             else:
-                result.append({'user':apparent_user, 'data':line, 'type':Msg.PLAIN})
+                result.append(plain(apparent_user, line))
             del line
 
         if cc == ChatCommand.ROLL:
-            dice = command[2]
+            dice: UnrolledDiceExpr = command[2] # type: ignore
             structured_roll_die(dice)
-            result.append({'user':'', 'data':dice, 'type':Msg.DICEROLL_NEW})
+            result.append(dieroll(dice))
         elif cc == ChatCommand.SAY:
             pass
         elif cc == ChatCommand.NAME:
             apparent_user = command[1]
         elif cc == ChatCommand.SHUFFLE:
-            stuff = command[2]
+            stuff: List[str] = command[2] # type: ignore
             random.shuffle(stuff)
-            result.append({'user':'', 'data':' '.join(stuff), 'type':Msg.PLAIN})
+            result.append(plain('', ' '.join(stuff)))
         elif cc == ChatCommand.CHOOSE:
-            options = command[2]
+            options: List[str] = command[2] # type: ignore
             choice = random.choice(options)
-            result.append({'user':apparent_user, 'data':choice, 'type':Msg.PLAIN})
+            result.append(plain(apparent_user, choice))
         elif cc == ChatCommand.TABLE:
-            table = command[2]
+            table: str = command[2] # type: ignore
             try:
                 table_result, path = parse_and_roll_table(room, table)
             except Exception as e:
-                result.append({'user':'', 'data': str(e), 'type':Msg.ERROR})
+                result.append(error(str(e)))
             else:
                 if not table_result:
                     table_result = '(No entry)'
-                result.append({'user':'', 'data': path + ': '+table_result, 'type':Msg.PLAIN})
+                result.append(plain('', path + ': '+table_result))
         else:
             raise Exception(cc)
 
@@ -178,21 +242,21 @@ def handle_structured_input(room:str, user:str, commands:List[dict], test:bool) 
         HISTORY[room].extend(result)
     return result
 
-def structured_roll_die(die:list) -> None:
+def structured_roll_die(die:UnrolledDiceExpr) -> None:
     t = die[0]
     if t == DieExprTypes.NUMBER:
         return
     if t == DieExprTypes.DICE:
         vals = []
         for _ in range(die[1]):
-            vals.append(random.randint(1, die[2]))
-        die.append(vals)
+            vals.append(random.randint(1, die[2])) # type: ignore
+        die.append(vals) # type: ignore
         return
     if t == DieExprTypes.GROUP:
-        return structured_roll_die(die[1])
+        return structured_roll_die(die[1]) # type: ignore
     if t == DieExprTypes.UNARY:
-        return structured_roll_die(die[2])
+        return structured_roll_die(die[2]) # type: ignore
     if t == DieExprTypes.BINARY:
-        structured_roll_die(die[2])
-        structured_roll_die(die[3])
+        structured_roll_die(die[2]) # type: ignore
+        structured_roll_die(die[3]) # type: ignore
 

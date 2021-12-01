@@ -1,21 +1,7 @@
-// These are used in chat messages as well
-const enum BINARY {
-    ADD = 0,
-    SUB = 1,
-    MUL = 2,
-    DIV = 3,
-    EQ = 4,
-    NE = 5,
-    GT = 6,
-    GE = 7,
-    LT = 8,
-    LE = 9,
-}
-const enum UNARY {
-    PLUS = 0,
-    NEG = 1,
-    NOT = 2,
-}
+//
+// Definitions for BINARY and UNARY are shared between
+// client and server and so are in the shared types.
+//
 const evaluate_script = (function(){
     const enum TokenKind {
         // 0 is reserved for "not a token"
