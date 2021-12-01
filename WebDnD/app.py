@@ -19,23 +19,6 @@ if appconfig.DEV:
 else:
     socketio = SocketIO(app, logger=False, cors_allowed_origins="https://krugsbasement.com")
 
-@socketio.on(FromClient.CHAT_INPUT)
-def chat_input(data:Dict[str, str]) -> None:
-    room = get_room(request)
-    if not data:
-        return
-    responses = chat.handle_input(room, data['text'], data['chatname'])
-    if responses:
-        emit(ToClient.CHAT_MSG, responses, broadcast=True, to=room)
-
-@socketio.on(FromClient.CHAT_TEST_INPUT)
-def chat_test_input(data:Dict[str, str]):
-    room = get_room(request)
-    if not data:
-        return
-    responses = chat.handle_input(room, data['text'], data['chatname'], test=True)
-    return responses
-
 @socketio.on(FromClient.CHAT_STRUCTURED_INPUT)
 def chat_structured_input(data:dict):
     room = get_room(request)
@@ -46,7 +29,7 @@ def chat_structured_input(data:dict):
         emit(ToClient.CHAT_STRUCTURED_MSG, responses, broadcast=True, to=room)
 
 @socketio.on(FromClient.CHAT_TEST_STRUCTURED_INPUT)
-def chat_structured_input(data:dict):
+def chat_test_structured_input(data:dict):
     room = get_room(request)
     if not data:
         return

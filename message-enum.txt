@@ -5,8 +5,6 @@ FromClient: str
     JOIN = j
     POST_JOIN = pj
     # Chat messages
-    CHAT_INPUT = ci # to be removed
-    CHAT_TEST_INPUT = cti # to be replaced with structured
     CHAT_STRUCTURED_INPUT = csi
     CHAT_TEST_STRUCTURED_INPUT = ctsi
     # Roll Tables
@@ -43,7 +41,6 @@ ToClient: str
     SESSION_ID = si
     TOKEN_PATHS = tp
     # Chat messages
-    CHAT_MSG = cm
     CHAT_CLEAR = ccl
     CHAT_CREATE = ccr
     CHAT_STRUCTURED_MSG = csm

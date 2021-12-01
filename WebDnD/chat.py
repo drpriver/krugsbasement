@@ -90,90 +90,10 @@ def update_roll_tables(room:str, data:list) -> None:
                 raise Exception
     ROLLTABLES[room] = data
 
-
 def create_chat(room:str) -> None:
     if room in HISTORY:
         return
     HISTORY[room] = Persister([], 'BadDb'+room+'/chat.json', load_func=load_chat).obj  # type: ignore
-
-def handle_input(room:str, data:str, user:str='anon', test:bool=False) -> List[dict]:
-    apparent_user = user
-    result = []
-    for line in data.split('\n'):
-        line = line.strip()
-        if not line:
-            continue
-        if line.startswith('/name'):
-            apparent_user = line[len('/name'):].strip()
-            continue
-        if line.startswith('/say '):
-            result.append({'user':apparent_user, 'data':line[4:].lstrip(), 'type':Msg.PLAIN})
-            continue
-
-        result.append({'user':apparent_user, 'data':line, 'type':Msg.PLAIN})
-
-        try:
-            dice = dice_from_string(line)
-        except:
-            pass
-        else:
-            roll_result = roll_dice(dice)
-            if isinstance(roll_result, str):
-                result.append({'user':'', 'data':roll_result, 'type':Msg.ERROR})
-            else:
-                result.append({'user':'', 'data':roll_result, 'type':Msg.DICEROLL})
-
-        parts = line.split()
-        if parts[0] in {'/shuffle', '/shuff', '/shuf', 'shuf', 'shuff', 'shuffle'}:
-            try:
-                shuffle_result = parse_and_shuffle(line[len(parts[0]):])
-            except:
-                pass
-            result.append({'user':'', 'data':shuffle_result, 'type':Msg.PLAIN})
-        elif parts[0] in {'/choose', 'choose'}:
-            try:
-                choose_result = parse_and_choose(line[len(parts[0]):])
-            except:
-                pass
-            result.append({'user':'', 'data':choose_result, 'type':Msg.PLAIN})
-        elif parts[0] in {'/table', 'table'}:
-            try:
-                table_result, path = parse_and_roll_table(room, line[len(parts[0]):])
-            except Exception as e:
-                result.append({'user':'', 'data': str(e), 'type':Msg.ERROR})
-            else:
-                if not table_result:
-                    table_result = '(No entry)'
-                result.append({'user':'', 'data': path + ': '+table_result, 'type':Msg.PLAIN})
-
-    if not test:
-        HISTORY[room].extend(result)
-    return result
-
-DOUBLEQUOTE_TABLE = str.maketrans('\u201c\u201d', '""')
-def parse_and_shuffle(line:str, table=DOUBLEQUOTE_TABLE) -> str:
-    line = line.translate(table)
-    parts = shlex.split(line)
-    if not parts:
-        raise Exception
-    random.shuffle(parts)
-    s = io.StringIO()
-    for p in parts:
-        if ' ' in p:
-            s.write('\u201c')
-            s.write(p)
-            s.write('\u201d')
-        else:
-            s.write(p)
-        s.write(' ')
-    return s.getvalue()
-
-def parse_and_choose(line:str, table=DOUBLEQUOTE_TABLE) -> str:
-    line = line.translate(table)
-    parts = shlex.split(line)
-    if not parts:
-        raise Exception
-    return random.choice(parts)
 
 def parse_and_roll_table(room:str, line:str) -> Tuple[str, str]:
     line = line.strip()

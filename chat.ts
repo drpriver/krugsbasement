@@ -46,6 +46,7 @@ type ChatNewRollMsg = {
     data: RolledExprs,
 }
 
+// Old message type
 type ChatRollMsg = {
     type: Msg.DICEROLL,
     user: string,
@@ -58,9 +59,23 @@ type ChatEchoableMsg = {
     data: string,
 }
 
-type ChatMsg = ChatPlainMsg | ChatErrorMsg | ChatNewRollMsg | ChatRollMsg | ChatEchoableMsg;
+type ChatStructuredMsg = ChatPlainMsg | ChatErrorMsg | ChatNewRollMsg | ChatEchoableMsg | ChatRollMsg;
 
+
+//
+// These are sent to the server
+//                                    n       base    rolled dice
+type UnrolledDice = [DieExprTypes.DICE, number, number];
+// Bit of a misnomer, but whatever
 type RolledNumber = [DieExprTypes.NUMBER, number];
+type UnrolledGroup = [DieExprTypes.GROUP, UnrolledDiceExpr];
+type UnrolledUnary = [DieExprTypes.UNARY, UNARY, UnrolledDiceExpr];
+type UnrolledBinary = [DieExprTypes.BINARY, BINARY, UnrolledDiceExpr, UnrolledDiceExpr];
+
+type UnrolledDiceExpr = RolledNumber | UnrolledDice | UnrolledGroup | UnrolledUnary | UnrolledBinary;
+
+//
+// These are received back from the server
 //                                    n       base    rolled dice
 type RolledDice = [DieExprTypes.DICE, number, number, Array<number>];
 type RolledGroup = [DieExprTypes.GROUP, RolledExprs];
@@ -68,16 +83,8 @@ type RolledUnary = [DieExprTypes.UNARY, UNARY, RolledExprs];
 type RolledBinary = [DieExprTypes.BINARY, BINARY, RolledExprs, RolledExprs];
 type RolledExprs = RolledNumber | RolledDice | RolledGroup | RolledUnary | RolledBinary;
 
-//                                    n       base    rolled dice
-type UnrolledDice = [DieExprTypes.DICE, number, number];
-type UnrolledGroup = [DieExprTypes.GROUP, UnrolledDiceExpr];
-type UnrolledUnary = [DieExprTypes.UNARY, UNARY, UnrolledDiceExpr];
-type UnrolledBinary = [DieExprTypes.BINARY, BINARY, UnrolledDiceExpr, UnrolledDiceExpr];
 
 
-type UnrolledDiceExpr = RolledNumber | UnrolledDice | UnrolledGroup | UnrolledUnary | UnrolledBinary;
-
-type ChatStructuredMsg = ChatPlainMsg | ChatErrorMsg | ChatNewRollMsg;
 
 const THISPAGE = window.location.pathname;
 
@@ -104,7 +111,7 @@ function setchatname(name:string){
     store_local(StorageCategory.CHAT,'name', name);
 }
 
-function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>){
+function add_chat_msgs(log:HTMLElement, msgs:Array<ChatStructuredMsg>){
     for(let i = 0; i < msgs.length; i++){
         const msg = msgs[i];
         const entry = elem_with_parent(log, 'div');
@@ -153,19 +160,13 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>){
     }
 }
 
-SOCKET.on(ToClient.CHAT_MSG, function(msgs:Array<ChatMsg>){
-    const log = document.getElementById('chat-history')!;
-    add_chat_msgs(log, msgs);
-    log.scrollTo({behavior:'smooth', top:log.scrollHeight});
-});
-
 SOCKET.on(ToClient.CHAT_STRUCTURED_MSG, function(msgs:Array<ChatStructuredMsg>){
     const log = document.getElementById('chat-history')!;
     add_chat_msgs(log, msgs);
     log.scrollTo({behavior:'smooth', top:log.scrollHeight});
 });
 
-SOCKET.on(ToClient.CHAT_CREATE, function(msgs:Array<ChatMsg>){
+SOCKET.on(ToClient.CHAT_CREATE, function(msgs:Array<ChatStructuredMsg>){
     const log = document.getElementById('chat-history')!;
     add_chat_msgs(log, msgs);
     log.scrollTop = log.scrollHeight;
@@ -340,7 +341,7 @@ document.addEventListener('DOMContentLoaded', function(){
         let commands = evaluate(current_macro.body, EvaluateFlags.NONE);
         (log as any).replaceChildren();
         if(commands.length)
-            SOCKET.emit(FromClient.CHAT_TEST_STRUCTURED_INPUT, {chatname:CHATNAME, commands:commands}, function(response:Array<ChatMsg>){
+            SOCKET.emit(FromClient.CHAT_TEST_STRUCTURED_INPUT, {chatname:CHATNAME, commands:commands}, function(response:Array<ChatStructuredMsg>){
                 add_chat_msgs(log, response);
             });
     });
@@ -879,7 +880,7 @@ function format_new_die_roll_result(roll_result:RolledExprs):string{
 function rounddown(a:number):number{
     return Math.trunc(a) | 0;
 }
-const enum MINUS {_ = '\u2212'};
+const enum MINUS {m = '\u2212'};
 function format_new_die_roll(roll_result:RolledExprs, tight:boolean):[number, string]{
     switch(roll_result[0]){
         case DieExprTypes.NUMBER:
@@ -921,7 +922,7 @@ function format_new_die_roll(roll_result:RolledExprs, tight:boolean):[number, st
                     text = '+' + text;
                     return [total, text];
                 case UNARY.NEG:
-                    text = MINUS._ + text;
+                    text = MINUS.m + text;
                     return [-total, text];
                 case UNARY.NOT:
                     text = '!' + text;
@@ -938,7 +939,7 @@ function format_new_die_roll(roll_result:RolledExprs, tight:boolean):[number, st
                     result = [rounddown(ltotal)+rounddown(rtotal), `${ltext} + ${rtext}`];
                     break;
                 case BINARY.SUB:
-                    result = [rounddown(ltotal)-rounddown(rtotal), `${ltext} ${MINUS._} ${rtext}`];
+                    result = [rounddown(ltotal)-rounddown(rtotal), `${ltext} ${MINUS.m} ${rtext}`];
                     break;
                 case BINARY.MUL:
                     result = [ltotal*rtotal, `${ltext} &times; ${rtext}`];
@@ -970,6 +971,7 @@ function format_new_die_roll(roll_result:RolledExprs, tight:boolean):[number, st
     }
 }
 
+// These are for the old dice format.
 function format_die_roll_result(roll_result:RollMsg):string{
     return format_roll(roll_result.roll) +  ` <br> = <span class="dice-total">${roll_result.total}</span>`;
 }
@@ -1039,7 +1041,7 @@ function format_dice_roll(roll:DieRoll){
     function write_die(roll:DieRoll){
         if(roll.base == 1){
             if(roll.values[0] < 0){
-                result += ' ' + MINUS._;
+                result += ' ' + MINUS.m;
             }
             result += '<span class="dice-constant">' + Math.abs(roll.values[0]) + '</span>';
             return;
@@ -1048,7 +1050,7 @@ function format_dice_roll(roll:DieRoll){
         for(let j = 0; j < length; ++j){
             const v = roll.values[j] | 0;
             if(roll.negative){
-                result += ' ' + MINUS._;
+                result += ' ' + MINUS.m;
             }
             else if(j == 0){
             }
