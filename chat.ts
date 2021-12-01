@@ -904,17 +904,6 @@ function err_dialog(html:string){
     }
 }
 
-type RollTableEntry = {
-    weight: number;
-    value: string;
-    flags: ROLLTABLEFLAGS;
-}
-type RollTable = {
-    name: string;
-    id: number;
-    entries: Array<RollTableEntry>;
-}
-
 function tables_button_dialog(){
     if(hover_is_open)
         return;

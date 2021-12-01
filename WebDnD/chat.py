@@ -17,6 +17,8 @@ def load_chat(data) -> List[ChatMsg]:
         return convert_old_format(data)
     else:
         return data
+
+#TODO: delete this garbage once I've persisted everything to new format.
 def convert_old_format(data:List[dict]) -> List[ChatMsg]:
     result = [] # type: List[ChatMsg]
     d: Dict[str, object]

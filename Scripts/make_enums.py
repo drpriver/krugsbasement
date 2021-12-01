@@ -3,6 +3,14 @@ from typing import List, Tuple, Union, Optional, Set
 INPUT = 'message-enum.txt'
 Comment = str
 TypeName = str
+class CommentInfo:
+    def __init__(self):
+        self.comments:List[Comment] = []
+    def add_line(self, line:str) -> None:
+        raise Exception
+        self.append(line)
+    def add_comment(self, comment:Comment) -> None:
+        self.comments.append(comment.rstrip())
 class EnumInfo:
     def __init__(self, name:str, type:str):
         assert type in {'str', 'int'}
@@ -12,7 +20,9 @@ class EnumInfo:
         self.values:Set[str] = set()
         self.keys:Set[str] = set()
     def add_line(self, line:str) -> None:
-        k, v = line.split('=')
+        k, *v = line.split('=')
+        assert v
+        v = '='.join(v)
         self.append(k, v)
     def add_comment(self, comment:Comment) -> None:
         self.items.append(comment.strip())
@@ -21,9 +31,9 @@ class EnumInfo:
         v = v.strip()
         comment = None
         if '#' in v:
-            v, comment = v.split('#')
+            v, *comment = v.split('#')
             v = v.strip()
-            comment = comment.strip()
+            comment = '#'.join(comment).strip()
         if k in self.keys:
             raise Exception(self.name, 'duplicate key:', k)
         if v in self.values:
@@ -33,13 +43,17 @@ class EnumInfo:
         self.items.append((k, v, comment))
 
 class StructInfo:
-    def __init__(self, name:str) -> None:
+    def __init__(self, name:str, base:str) -> None:
         self.name = name
+        self.base = base
+        if base not in {'array', 'dict'}:
+            raise Exception(base)
         self.members: List[Union[Comment, Tuple[str, TypeName, Optional[Comment]]]] = []
         self.member_names: Set[str] = set()
     def add_line(self, line:str) -> None:
-        k, v = line.split('=')
-        self.append(k, v)
+        k, *v = line.split('=')
+        assert v
+        self.append(k, '='.join(v))
     def add_comment(self, comment:Comment) -> None:
         self.members.append(comment.strip())
     def append(self, name:str, type:str) -> None:
@@ -47,9 +61,9 @@ class StructInfo:
         type = type.strip()
         comment = None
         if '#' in type:
-            a, b = type.split('#')
+            a, *b = type.split('#')
             type = a.strip()
-            comment = b.strip()
+            comment = '#'.join(b).strip()
         if name in self.member_names:
             raise Exception()
         self.member_names.add(name)
@@ -68,33 +82,41 @@ class UnionInfo:
         type = type.strip()
         comment = None
         if '#' in type:
-            a, b = type.split('#')
+            a, *b = type.split('#')
             type = a.strip()
-            comment = b.strip()
+            comment = '#'.join(b).strip()
         if type in self.variant_types:
             raise Exception()
         self.variant_types.add(type)
         self.variants.append((type, comment))
 
-Info = Union[EnumInfo, StructInfo, UnionInfo]
+Info = Union[EnumInfo, StructInfo, UnionInfo | CommentInfo]
 
 def get_values() -> List[Info]:
     fp = open(INPUT, encoding='utf-8')
     result = []
-    current_info: Info
+    current_info: Info = None # type: ignore
+    result = []
     for line in fp:
         line = line.rstrip()
         if not line:
             continue
         if line[0] == '\t':
             raise Exception('tab')
+        if line[0] == '#':
+            if not isinstance(current_info, CommentInfo):
+                current_info = CommentInfo()
+                result.append(current_info)
         if line.strip()[0] == '#':
             current_info.add_comment(line.strip()[1:])
             continue
         if line[0] != ' ':
-            if line.startswith('struct'):
+            if line.startswith('#'):
+                pass
+            elif line.startswith('struct'):
                 line = line[len('struct'):].strip()
-                current_info = StructInfo(line)
+                name, base = line.split(':')
+                current_info = StructInfo(name.strip(), base.strip())
             elif line.startswith('enum'):
                 line = line[len('enum'):].strip()
                 name, type = line.split(':')
@@ -131,7 +153,12 @@ def make_python(infos: List[Info]) -> None:
             return f"'{t}'"
         return t
     for info in infos:
-        if isinstance(info, EnumInfo):
+        if isinstance(info, CommentInfo):
+            if info.comments:
+                p('')
+            for comment in info.comments:
+                p(f'#{comment}')
+        elif isinstance(info, EnumInfo):
             p(f'class {info.name}({info.type}, Enum):')
             for item in info.items:
                 if isinstance(item, str):
@@ -149,16 +176,17 @@ def make_python(infos: List[Info]) -> None:
                         p(f"    {item[0]} = {item[1]}")
             p('')
         elif isinstance(info, StructInfo):
-            p(f'{info.name} = Tuple[', end='')
-            for i, member in enumerate(info.members):
-                if isinstance(member, Comment):
-                    continue
-                typename = convert_type(member[1])
-                if i != 0:
-                    p(f', {typename}', end='')
-                else:
-                    p(f'{typename}', end='')
-            p('] # type: ignore')
+            if info.base == 'array':
+                p(f'{info.name} = Tuple[', end='')
+                for i, member in enumerate(info.members):
+                    if isinstance(member, Comment):
+                        continue
+                    typename = convert_type(member[1])
+                    if i != 0:
+                        p(f', {typename}', end='')
+                    else:
+                        p(f'{typename}', end='')
+                p('] # type: ignore')
         elif isinstance(info, UnionInfo):
             p(f'{info.name} = Union[', end='')
             for i, variant in enumerate(info.variants):
@@ -198,7 +226,12 @@ def make_ts(infos:List[Info]) -> None:
         return t
 
     for info in infos:
-        if isinstance(info, EnumInfo):
+        if isinstance(info, CommentInfo):
+            if info.comments:
+                p('')
+            for comment in info.comments:
+                p(f'//{comment}')
+        elif isinstance(info, EnumInfo):
             p(f'const enum {info.name}', '{')
             for item in info.items:
                 if isinstance(item, str):
@@ -216,16 +249,27 @@ def make_ts(infos:List[Info]) -> None:
             p('}')
             p('')
         elif isinstance(info, StructInfo):
-            p(f'type {info.name} = [', end='')
-            for i, member in enumerate(info.members):
-                if isinstance(member, Comment):
-                    continue
-                typename = convert_type(member[1])
-                if i != 0:
-                    p(f', {typename}', end='')
-                else:
-                    p(f'{typename}', end='')
-            p('];')
+            if info.base == 'array':
+                p(f'type {info.name} = [', end='')
+                for i, member in enumerate(info.members):
+                    if isinstance(member, Comment):
+                        continue
+                    typename = convert_type(member[1])
+                    if i != 0:
+                        p(f', {typename}', end='')
+                    else:
+                        p(f'{typename}', end='')
+                p('];')
+            else:
+                p(f'type {info.name} =', '{')
+                for member in info.members:
+                    if isinstance(member, Comment):
+                        p(f'    // {member}')
+                        continue
+                    typename = convert_type(member[1])
+                    p(f'    {member[0]}: {typename}{" // "+member[2] if member[2] else ""};')
+                p('}')
+
         elif isinstance(info, UnionInfo):
             p(f'type {info.name} = ', end='')
             for i, variant in enumerate(info.variants):
