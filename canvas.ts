@@ -889,18 +889,18 @@ type DungeonMap = {
     pings: Array<Ping>;
 }
 type Ping = {
-    t0?: DOMHighResTimeStamp;
+    t0?: DOMHighResTimeStamp; // we add this onto the PingMessage
     cx: number;
     cy: number;
     color: string;
 };
 function ping_at(map:DungeonMap, x:number, y:number){
-    const ping = {cx:x, cy:y, color:'#ff3300'};
+    const ping: PingMessage = {cx:x, cy:y, color:'#ff3300'};
     map.pings.push(ping);
     SOCKET.emit(FromClient.CANVAS_PING, {ping:ping, map_id:map.map_id});
     request_render();
 }
-SOCKET.on(ToClient.CANVAS_PING, function(data:{ping:Ping, map_id:number}){
+SOCKET.on(ToClient.CANVAS_PING, function(data:{ping:PingMessage, map_id:number}){
     const map = get_map(data.map_id);
     map.pings.push(data.ping);
     request_render();

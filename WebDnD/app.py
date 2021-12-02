@@ -8,7 +8,7 @@ from .persist import Persister, RepeatTimer
 from. import appconfig
 import os
 import logging
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage
 from .validator import validate, register_list
 
 from typing import List, Dict, Optional, Set, Union
@@ -36,8 +36,6 @@ def chat_test_structured_input(data:ChatCommandMessage):
         return
     responses = chat.handle_structured_input(room, data['chatname'], data['commands'], test=True)
     return responses
-
-
 
 def save_session_id(unused) -> int:
     return session_id
@@ -113,13 +111,13 @@ def handle_canvas_update(data:CanvasUpdateMessage) -> None:
 def canvas_gather(where:GatherMessage) -> None:
     where = validate('GatherMessage', where)
     room = get_room(request)
-    emit(ToClient.CANVAS_GATHER, where, broadcast=True, to=room)
+    emit(ToClient.CANVAS_GATHER, where, broadcast=True, to=room) # type: ignore
 
 @socketio.on(FromClient.CANVAS_BATTLE)
 def canvas_battle(where:GatherMessage) -> None:
     where = validate('GatherMessage', where)
     room = get_room(request)
-    emit(ToClient.CANVAS_BATTLE, where, broadcast=True, to=room)
+    emit(ToClient.CANVAS_BATTLE, where, broadcast=True, to=room) # type: ignore
 
 @socketio.on(FromClient.CANVAS_DUNGEON_MODE)
 def canvas_dungeon_mode() -> None:
@@ -135,9 +133,10 @@ def canvas_create_map(data:int) -> None:
     emit(ToClient.CANVAS_CREATE_MAP, data, broadcast=True, include_self=False, to=room)
 
 @socketio.on(FromClient.CANVAS_PING)
-def canvas_ping(data) -> None:
+def canvas_ping(data:PingMessage) -> None:
+    data = validate('PingMessage', data)
     room = get_room(request)
-    emit(ToClient.CANVAS_PING, data, broadcast=True, include_self=False, to=room)
+    emit(ToClient.CANVAS_PING, data, broadcast=True, include_self=False, to=room) # type: ignore
 
 @socketio.on(FromClient.CANVAS_NAME_MAP)
 def canvas_name_map(data:NameMapMessage) -> None:
@@ -232,6 +231,7 @@ def retrieve_roll_tables() -> list:
     room = get_room(request)
     logging.info('retrieving roll tables for room "%s"', room)
     return chat.get_roll_tables(room)
+
 register_list('[RollTable]', 'RollTable')
 @socketio.on(FromClient.UPDATE_ROLL_TABLES)
 def update_roll_tables(tables:List[RollTable]) -> None:
