@@ -271,7 +271,8 @@ document.addEventListener('DOMContentLoaded', function(){
         let note = NOTES.get(current_note_id);
         if(!note) return;
         note.title = notes_title_area.value;
-        SOCKET.emit(FromClient.NOTE_UPDATE_TITLE, {note_id:note.id, title:note.title});
+        let msg:NoteUpdateTitle = {note_id:note.id, title:note.title};
+        SOCKET.emit(FromClient.NOTE_UPDATE_TITLE, msg);
         set_nl(note.id, note.title);
     });
     notes_area.addEventListener('keydown', function(e){
@@ -332,7 +333,8 @@ document.addEventListener('DOMContentLoaded', function(){
         let note = NOTES.get(current_note_id);
         if(!note) return;
         if(note.need_send){
-            SOCKET.emit(FromClient.NOTE_UPDATE_BODY, {note_id:note.id, body:note.body});
+            let msg: NoteUpdateBody = {note_id:note.id, body:note.body};
+            SOCKET.emit(FromClient.NOTE_UPDATE_BODY, msg);
             note.need_send = false;
         }
     }
@@ -435,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function(){
             set_note_by_id(id);
         });
     });
-    SOCKET.on(ToClient.NOTE_UPDATE_TITLE, function(data:{note_id:number, title:string}){
+    SOCKET.on(ToClient.NOTE_UPDATE_TITLE, function(data:NoteUpdateTitle){
         let note = NOTES.get(data.note_id);
         if(!note) return;
         note.title = data.title;

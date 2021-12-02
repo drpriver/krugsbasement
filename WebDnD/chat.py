@@ -7,7 +7,7 @@ from .persist import Persister
 from flask_socketio import emit
 from .logs import logging
 
-from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg, UnrolledDiceExpr, BINARY, UNARY, RolledExpr, ROLLTABLEFLAGS
+from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg, UnrolledDiceExpr, BINARY, UNARY, RolledExpr, ROLLTABLEFLAGS, RollTable
 
 from enum import IntEnum, IntFlag
 
@@ -96,7 +96,7 @@ def convert_old_format(data:List[dict]) -> List[ChatMsg]:
             from pprint import pprint
             if not isinstance(datum, dict):
                 roll = ancient_convert(datum)
-                result.append((Msg.DICEROLL_NEW, user, roll))
+                result.append((Msg.DICEROLL_NEW, user, roll)) # type: ignore
                 continue
             if 'roll' not in datum:
                 continue
@@ -109,41 +109,21 @@ def convert_old_format(data:List[dict]) -> List[ChatMsg]:
 HISTORY = {'/':[]}  # type: Dict[str, List[ChatMsg]]
 HISTORY['/'] = Persister(HISTORY['/'], 'BadDb/chat.json', dont_persist=True, load_func=load_chat).obj
 
-ROLLTABLES = {'/':[]}  # type: Dict[str, List[dict]]
+ROLLTABLES = {'/':[]}  # type: Dict[str, List[RollTable]]
 ROLLTABLES['/'] = Persister(ROLLTABLES['/'], 'BadDb/tables.json', dont_persist=True).obj
 
-def get_roll_tables(room:str) -> list:
+def get_roll_tables(room:str) -> List[RollTable]:
     if room in ROLLTABLES:
         return ROLLTABLES[room]
     ROLLTABLES[room] = Persister([], 'BadDb'+room+'/tables.json').obj # type: ignore
     return ROLLTABLES[room]
 
-def update_roll_tables(room:str, data:list) -> None:
+def update_roll_tables(room:str, data:List[RollTable]) -> None:
     for d in data:
-        if not isinstance(d, dict):
-            raise Exception
-        if 'name' not in d or not isinstance(d['name'], str):
-            raise Exception
-        if 'id' not in d or not isinstance(d['id'], int):
-            raise Exception
-        if 'entries' not in d or not isinstance(d['entries'], list):
-            raise Exception
-        if set(d) != {'name', 'id', 'entries'}:
-            raise Exception
         for entry in d['entries']:
-            if not isinstance(entry, dict):
-                raise Exception
-            if 'weight' not in entry and not isinstance(entry['weight'], (int, float)):
-                raise Exception
             if entry['weight'] < 0.5:
                 raise Exception
             if entry['weight'] > 1e8:
-                raise Exception
-            if 'value' not in entry and not isinstance(entry['value'], str):
-                raise Exception
-            if 'flags' not in entry and not isinstance(entry['flags'], int):
-                raise Exception
-            if set(entry) != {'weight', 'value', 'flags'}:
                 raise Exception
     ROLLTABLES[room] = data
 
@@ -158,7 +138,7 @@ def parse_and_roll_table(room:str, line:str) -> Tuple[str, str]:
     mapping = {d['name'].lower(): d for d in tables}
     return parse_and_roll_table_inner(mapping, line, line, 0)
 
-def parse_and_roll_table_inner(mapping:dict, key:str, path:str, depth:int) -> Tuple[str, str]:
+def parse_and_roll_table_inner(mapping:Dict[str, RollTable], key:str, path:str, depth:int) -> Tuple[str, str]:
     if depth > 10:
         raise Exception('Maximum table depth reached for table path: {}.'.format(path))
     table = mapping.get(key.lower())

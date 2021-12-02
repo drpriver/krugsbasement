@@ -52,28 +52,6 @@ function line_overlaps_bbox(bbox:Bbox, x0:number, y0:number, x1:number, y1:numbe
     return true;
 }
 
-//
-//  Canvas Obj Types
-//  ================
-const enum CANVASTYPE {
-    FREEHAND_LINE =  1,
-    GRID_LINE     =  2,
-    RECT          =  3,
-    GRID_RECT     =  4,
-    FILLED_RECT   =  5,
-    ELLIPSE       =  6,
-    IMAGE         =  7,
-    TEXT          =  8,
-    EZ_TOKEN      =  9,
-    IMG_TOKEN     = 10,
-    DOOR          = 11,
-    STAIRS        = 12,
-    MEASURE       = 13,
-    FIXTURE       = 14,
-    FILLED_TILE   = 15,
-    TERRAIN_TILE  = 16,
-    ICON_TILE     = 17,
-}
 // High numbers go on top.
 const SORTORDER = [
     9999, // Nothing
@@ -96,13 +74,6 @@ const SORTORDER = [
        1, // TERRAIN_ICON
        1, // ICON_TILE
 ];
-//
-// flags
-const enum CANVASFLAG {
-    NONE = 0,
-    DELETED = 1 << 0,
-    ALL = NONE | DELETED,
-}
 //
 // Base of all objects and then the rest of the fields are different.
 // Essentially, they are tagged unions.
@@ -144,17 +115,6 @@ type FreehandLine = {
     bbox: Bbox;
     thickness: number;
 }
-type StrippedFreehandLine = {
-    type: CANVASTYPE.FREEHAND_LINE; // FREEHAND_LINE
-    id: number;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-    color: string;
-    // points are just raw x,y pairs in a flat array.
-    points: Array<number>;
-    thickness: number;
-}
 //  grid-line
 //  ---------
 //  A grid line are straight line-fragments whose points snap
@@ -175,73 +135,29 @@ type GridLine = {
     path?: Path2D;
     bbox: Bbox;
 }
-type StrippedGridLine = {
-    type: CANVASTYPE.GRID_LINE; // GRID_LINE
-    id: number;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-    color: string;
-    // points are just raw x,y pairs in a flat array.
-    points: Array<number>;
-}
 //  rectangle
 //  ---------
 //  An axis-aligned box.
 //  base_x and base_y is the top-left corner of the box.
-type Rectangle = {
-    type: CANVASTYPE.RECT; // RECT
-    id: number;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-    color: string;
-    width: number;
-    height: number;
-}
+
 // Stripped rectangles are the same as regular Rectangle.
-type StrippedRectangle = Rectangle;
+type Rectangle = StrippedRectangle;
 
 //  filled-rectangle
 //  ---------
 //  An axis-aligned box, but the center is filled with 'color2'
 //  base_x and base_y is the top-left corner of the box.
-type FilledRectangle = {
-    type: CANVASTYPE.FILLED_RECT; // FILLED_RECT
-    id: number;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-    color: string;
-    color2: string;
-    width: number;
-    height: number;
-}
-type StrippedFilledRectangle = FilledRectangle;
+type FilledRectangle = StrippedFilledRectangle;
 //  grid-rectangle
 //  ---------
 //  An axis-aligned box, whose corners snap to the grid.
 //  Same movement restrictions apply to this as apply to the
 //  grid-line.
 //  base_x and base_y is the top-left corner of the box.
-type GridRectangle = {
-    type: CANVASTYPE.GRID_RECT; // GRID_RECT
-    id: number;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-    color: string;
-    width: number;
-    height: number;
-}
-// Stripped Grid Rectangles are the same as regular rectangles.
-type StrippedGridRectangle = GridRectangle;
 
-const enum ELLIPSETYPE {
-    HOLLOW = 0,
-    SOLID = 1,
-    FILLED = 2,
-}
+// Stripped Grid Rectangles are the same as regular rectangles.
+type GridRectangle = StrippedGridRectangle;
+
 const ELLIPSETYPE_MAX = ELLIPSETYPE.FILLED+1;
 const ELLIPSETYPE_TO_NAME = [
     // ELLIPSETYPE.HOLLOW
@@ -256,20 +172,9 @@ let current_ellipse = ELLIPSETYPE.HOLLOW;
 //  -------
 //  base_x and base_y is the center of the ellipse.
 //  We only allow axis-aligned ellipses.
-type Ellipse = {
-    type: CANVASTYPE.ELLIPSE; // ELLIPSE
-    id: number;
-    base_x: number; // top left of the bounding box
-    base_y: number; // top left of the bounding box
-    flags: CANVASFLAG;
-    color: string;
-    color2: string;
-    width: number;
-    height: number;
-    variant: ELLIPSETYPE;
-}
+//
 // Stripped Ellipses are the same as regular rectangles.
-type StrippedEllipse = Ellipse;
+type Ellipse = StrippedEllipse;
 
 //  image
 //  -----
@@ -285,23 +190,8 @@ type ImageObj = {
     img?: HTMLImageElement;
 }
 
-type StrippedImageObj = {
-    type: CANVASTYPE.IMAGE; // IMAGE
-    id: number;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-    width: number;
-    height: number;
-    url: string;
-}
 //  text
 //  ----
-const enum TEXTALIGNMENT {
-    LEFT = 0,
-    CENTER = 1,
-    RIGHT = 2,
-}
 type TextObj = {
     type: CANVASTYPE.TEXT; // TEXT
     id: number;
@@ -315,38 +205,7 @@ type TextObj = {
     bboxes: Array<Bbox>;
     alignment: TEXTALIGNMENT;
 }
-type StrippedTextObj = {
-    type: CANVASTYPE.TEXT; // TEXT
-    id: number;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-    text: string;
-    size: number;
-    alignment: TEXTALIGNMENT;
-}
 
-// status flags for conditions and status effects
-// Bit flags
-const enum TOKENSTATUSFLAGS {
-    NONE = 0,
-    ASLEEP     = 1 << 0,
-    BLESS      = 1 << 1,
-    BLIND      = 1 << 2,
-    CHARMED    = 1 << 3,
-    CONFUSED   = 1 << 4,
-    DEAF       = 1 << 5,
-    FEAR       = 1 << 6,
-    GRAPPLING  = 1 << 7,
-    HASTED     = 1 << 8,
-    INVISIBLE  = 1 << 9,
-    ONFIRE     = 1 << 10,
-    PARALYZED  = 1 << 11,
-    POISONED   = 1 << 12,
-    PRONE      = 1 << 13,
-    RESTRAINED = 1 << 14,
-    STUNNED    = 1 << 15,
-}
 const STATUSFLAG_NAMES = [
     'Asleep',
     'Bless',
@@ -380,21 +239,9 @@ const STATUSICONS = (function(){
 //  ez-token
 //  --------
 //  A token that just has a simple text label.
-type EzToken = {
-    type: CANVASTYPE.EZ_TOKEN; // EZ_TOKEN
-    id: number;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-    text: string;
-    color: string;
-    width: number; // in squares (?)
-    height: number; // in squares (?)
-    statusflags: TOKENSTATUSFLAGS;
-}
 
 // stripped EzToken is the same as a regular EzToken
-type StrippedEzToken = EzToken;
+type EzToken = StrippedEzToken;
 
 //  img-token
 //  --------
@@ -411,74 +258,22 @@ type ImgToken = {
     height: number; // in squares (?)
     statusflags: TOKENSTATUSFLAGS;
 }
-type StrippedImgToken = {
-    type: CANVASTYPE.IMG_TOKEN; // IMG_TOKEN
-    id: number;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-    url: string;
-    width: number; // in squares (?)
-    height: number; // in squares (?)
-    statusflags: TOKENSTATUSFLAGS;
-}
 //  door
 //  ----
 //  A door.
-type DoorObj = {
-    type: CANVASTYPE.DOOR; // DOOR
-    id: number;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-    doortype: DOORTYPE;
-    color: string;
-    width: number; // in squares (?)
-    orientation: ORIENTATION;
-}
 // stripped doors are the same as regular doors.
-type StrippedDoorObj = DoorObj;
-const enum ROTATION {
-    // we might add the diagonals
-    UP    = 0,
-    RIGHT = 2,
-    DOWN  = 4,
-    LEFT  = 6,
-}
-type Stairs = {
-    type: CANVASTYPE.STAIRS; // STAIRS
-    id: number;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-    width: number; // in squares
-    height: number; // in squares
-    rotation: ROTATION;
-}
+type DoorObj = StrippedDoorObj;
+
+
 // stripped stairs are the same as regular stairs.
-type StrippedStairs = Stairs;
+type Stairs = StrippedStairs;
 
 // Measure
 // -------
 // This is a weird object, but it is the measurement tool.
-type MeasureObj = {
-    type: CANVASTYPE.MEASURE; // MEASURE
-    id: number;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-    color: string;
-    x1: number;
-    y1: number;
-}
 // stripped measure is the same as regular measure.
-type StrippedMeasureObj = MeasureObj;
-const enum FIXTURETYPE {
-    STATUE = 0,
-    STAIRS = 1,
-    PIT    = 2,
-    RUBBLE = 3,
-}
+type MeasureObj = StrippedMeasureObj ;
+
 const FIXTURETYPE_MAX = FIXTURETYPE.RUBBLE + 1;
 const FIXTURETYPE_TO_NAME = [
     // FIXTURETYPE.STATUE
@@ -494,26 +289,10 @@ const FIXTURETYPE_TO_NAME = [
 // Fixture
 // ----------
 // For dungeon fixtures, like rubble or pits.
-type FixtureObj = {
-    type: CANVASTYPE.FIXTURE; // FIXTURE
-    id: number;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-    width: number;
-    height: number;
-    ftype: FIXTURETYPE;
-}
 
 // stripped fixture obj is the same as regular fixtures.
-type StrippedFixtureObj = FixtureObj;
+type FixtureObj = StrippedFixtureObj;
 
-// Tile stuff
-const enum TILETYPE {
-    FILLED = 0,
-    TERRAIN = 1,
-    ICON = 2,
-}
 let current_tile_type = TILETYPE.FILLED;
 let current_terrain_id: number = 0;
 const TILETYPE_MAX = TILETYPE.ICON+1;
@@ -528,30 +307,12 @@ const TILETYPE_TO_NAME = [
 
 // FilledTile
 // ----------
-type FilledTile = {
-    type: CANVASTYPE.FILLED_TILE; // FILLED_TILE
-    id: number;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-    color: string;
-    size: number;
-};
 
-type StrippedFilledTile = FilledTile;
+type FilledTile = StrippedFilledTile;
 
 // TerrainTile
 // -----------
 type TerrainTile = {
-    type: CANVASTYPE.TERRAIN_TILE; // TERRAIN_TILE
-    id: number;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-    terrain_id: number;
-}
-
-type StrippedTerrainTile = {
     type: CANVASTYPE.TERRAIN_TILE; // TERRAIN_TILE
     id: number;
     base_x: number;
@@ -570,15 +331,6 @@ let current_terrain_icon_id: number = 0;
 // IconTile
 // --------
 type IconTile = {
-    type: CANVASTYPE.ICON_TILE; // ICON_TILE
-    id: number;
-    base_x: number;
-    base_y: number;
-    flags: CANVASFLAG;
-    terrainicon_id: number;
-}
-
-type StrippedIconTile = {
     type: CANVASTYPE.ICON_TILE; // ICON_TILE
     id: number;
     base_x: number;
@@ -991,20 +743,9 @@ const TERRAIN_ICONS: Map<number, HTMLImageElement> = (function(){
 }());
 
 type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj | FilledTile | TerrainTile | IconTile;
-type StrippedObj = StrippedFreehandLine | StrippedGridLine | StrippedRectangle | StrippedFilledRectangle | StrippedGridRectangle | StrippedEllipse | StrippedImageObj | StrippedTextObj | StrippedEzToken | StrippedImgToken | StrippedDoorObj | StrippedStairs | StrippedMeasureObj | StrippedFixtureObj | StrippedFilledTile | StrippedTerrainTile | StrippedIconTile;
 
 // Door subtypes
 // ------------
-const enum DOORTYPE {
-    DOOR = 0,
-    DOUBLE = 1,
-    PORTCULLIS = 2,
-    SECRET = 3,
-    BRICKED_WALL = 4,
-    PORTAL = 5,
-    CURTAINS = 6,
-    HALLWAY = 7,
-}
 const DOORTYPE_MAX = DOORTYPE.HALLWAY + 1;
 const DOOR_TO_NAMES = [
     // DOORTYPE.DOOR
@@ -1132,31 +873,9 @@ document.addEventListener('DOMContentLoaded', function(){
     do_it('grid-snap-free',    SNAPMODE.FREE);
 });
 
-// orientations
-const enum ORIENTATION {
-    VERTICAL = 0,
-    HORIZONTAL = 1,
-    TOPLEFT_DOWNRIGHT = 2,
-    TOPRIGHT_DOWNLEFT = 3,
-}
-
 const MAPS:Map<number,DungeonMap> = new Map();
 const MapOptionElements: Map<number, HTMLOptionElement> = new Map();
-const enum MapFlags {
-    NONE        = 0,
-    DELETED     = 1 << 0,
-    CANT_DELETE = 1 << 1,
-    NUMBERED    = 1 << 2,
-}
 
-const enum GRIDTYPE {
-    // Square is default.
-    SQUARE = 0,
-    // Hexes are drawn "odd-q" vertical layout
-    HEX    = 1 << 0,
-    // NOGRID just means don't draw the grid.
-    NOGRID = 1 << 1,
-}
 type DungeonMap = {
     map_id: number; // integer
     grid_type: GRIDTYPE;
@@ -1327,16 +1046,16 @@ function rename_map(map:DungeonMap, name:string){
     const opt = MapOptionElements.get(map.map_id)!;
     opt.innerText = name;
 }
-SOCKET.on(ToClient.CANVAS_NAME_MAP, function(data:{map_id:number, map_name:string}){
+SOCKET.on(ToClient.CANVAS_NAME_MAP, function(data:NameMapMessage){
     const map = get_map(data.map_id);
     rename_map(map, data.map_name);
 });
-SOCKET.on(ToClient.CANVAS_GRID_TYPE, function(data:{map_id:number, grid_type:GRIDTYPE}){
+SOCKET.on(ToClient.CANVAS_GRID_TYPE, function(data:CanvasGridTypeMsg){
     const map = get_map(data.map_id);
     map.grid_type = data.grid_type;
     request_render();
 });
-SOCKET.on(ToClient.CANVAS_GRID_NUMBERED, function(data:{map_id:number, numbered:number}){
+SOCKET.on(ToClient.CANVAS_GRID_NUMBERED, function(data:CanvasGridNumberedMsg){
     const map = get_map(data.map_id);
     if(data.numbered)
         map.flags |= MapFlags.NUMBERED
@@ -1352,14 +1071,14 @@ const REFERENCE_WIDTH = 64; // the size of a square at scale = 1.
 // The main canvas and its context. These are set once the content loads.
 let canvas:HTMLCanvasElement;
 let ctx:CanvasRenderingContext2D;
-SOCKET.on(ToClient.CANVAS_GATHER, function(where:{map_id:number; x:number; y:number}): void{
+SOCKET.on(ToClient.CANVAS_GATHER, function(where:GatherMessage): void{
     change_map(where.map_id, false);
     const view = get_active_view();
     view.camera_x = where.x;
     view.camera_y = where.y;
     request_render();
 });
-SOCKET.on(ToClient.CANVAS_BATTLE, function(where:{map_id:number; x:number; y:number}): void{
+SOCKET.on(ToClient.CANVAS_BATTLE, function(where:GatherMessage): void{
     change_map(where.map_id, false);
     const view = get_active_view();
     view.camera_x = where.x;
@@ -2755,7 +2474,7 @@ SOCKET.on(ToClient.CANVAS_INITIALIZE_MAPS, function(msgs:Array<{map_id:number; m
     }
     request_render();
 });
-SOCKET.on(ToClient.CANVAS_CREATE_OBJECTS, function(msgs:Array<{map_id:number;objects:Array<StrippedObj>}>){
+SOCKET.on(ToClient.CANVAS_CREATE_OBJECTS, function(msgs:Array<CreateObjectsMessage>){
     for(let msg of msgs){
         const map_id = msg.map_id;
         if(!MAPS.has(map_id)){
@@ -2777,7 +2496,7 @@ SOCKET.on(ToClient.CANVAS_CREATE_OBJECTS, function(msgs:Array<{map_id:number;obj
     }
     request_render();
 });
-SOCKET.on(ToClient.CANVAS_DELETE, function(msg:{map_id:number;ids:Array<number>}){
+SOCKET.on(ToClient.CANVAS_DELETE, function(msg:CanvasDeleteMessage){
     const map_id = msg.map_id;
     const map = get_map(map_id);
     const obj_ids = msg.ids;
@@ -2796,7 +2515,7 @@ SOCKET.on(ToClient.CANVAS_DELETE, function(msg:{map_id:number;ids:Array<number>}
 });
 
 
-SOCKET.on(ToClient.CANVAS_UPDATE, function(msg:{map_id:number;obj_states:Array<StrippedObj>}){
+SOCKET.on(ToClient.CANVAS_UPDATE, function(msg:CanvasUpdateMessage){
     const map_id = msg.map_id;
     const map = get_map(map_id);
     const obj_states = msg.obj_states;
@@ -3491,7 +3210,8 @@ function set_obj_from_stripped(obj: CanvasObject, state:StrippedObj){
 
 }
 function publish_delete_by_ids(map_id:number, ids:Array<number>):void{
-    SOCKET.emit(FromClient.CANVAS_DELETE, {map_id:map_id, ids:ids})
+    let msg: CanvasDeleteMessage = {map_id:map_id, ids:ids};
+    SOCKET.emit(FromClient.CANVAS_DELETE, msg);
 }
 function publish_obj_by_id(map:DungeonMap, id:number):void{
     const obj = map.canvas_objs.get(id);
@@ -3500,7 +3220,8 @@ function publish_obj_by_id(map:DungeonMap, id:number):void{
         return;
     }
     const stripped_obj = strip_obj(obj);
-    SOCKET.emit(FromClient.CANVAS_CREATE_OBJECTS, {map_id:map.map_id, object:stripped_obj});
+    let msg: CreateObjectMessage = {map_id:map.map_id, object:stripped_obj};
+    SOCKET.emit(FromClient.CANVAS_CREATE_OBJECTS, msg);
 }
 function get_stripped_state_by_id(map:DungeonMap, ids:Array<number>):Array<StrippedObj>{
     const length = ids.length;
@@ -3518,7 +3239,8 @@ function get_stripped_state_by_id(map:DungeonMap, ids:Array<number>):Array<Strip
     return updates;
 }
 function publish_obj_updates(map_id:number, updates:Array<StrippedObj>){
-    SOCKET.emit(FromClient.CANVAS_UPDATE, {map_id:map_id, obj_states:updates});
+    let msg:CanvasUpdateMessage = {map_id:map_id, obj_states:updates};
+    SOCKET.emit(FromClient.CANVAS_UPDATE, msg);
 }
 
 function edit_is_impossible(view:DungeonMapView):boolean{
@@ -7242,17 +6964,22 @@ document.addEventListener('DOMContentLoaded', function(){
             if(!name.length)
                 return;
             rename_map(active_view.map, name);
-            SOCKET.emit(FromClient.CANVAS_NAME_MAP, {map_id:active_view.map.map_id, map_name:name});
+            let msg: NameMapMessage = {map_id:active_view.map.map_id, map_name:name};
+            SOCKET.emit(FromClient.CANVAS_NAME_MAP, msg);
             const hg = document.getElementById('hover-hex-grid')! as HTMLInputElement;
             const ng = document.getElementById('hover-no-grid')! as HTMLInputElement;
             let gt = hg.checked? GRIDTYPE.HEX : GRIDTYPE.SQUARE;
             if(ng.checked)
                 gt |= GRIDTYPE.NOGRID;
-            if(active_view.map.grid_type != gt)
-                SOCKET.emit(FromClient.CANVAS_GRID_TYPE, {map_id:active_view.map.map_id, grid_type:gt});
+            if(active_view.map.grid_type != gt){
+                let msg: CanvasGridTypeMsg = {map_id:active_view.map.map_id, grid_type:gt};
+                SOCKET.emit(FromClient.CANVAS_GRID_TYPE, msg);
+            }
             const numbered = (document.getElementById('hover-numbered')! as HTMLInputElement).checked? MapFlags.NUMBERED : 0;
-            if((active_view.map.flags & MapFlags.NUMBERED) != numbered)
-                SOCKET.emit(FromClient.CANVAS_GRID_NUMBERED, {map_id:active_view.map.map_id, numbered:numbered});
+            if((active_view.map.flags & MapFlags.NUMBERED) != numbered){
+                let msg : CanvasGridNumberedMsg = {map_id:active_view.map.map_id, numbered:numbered};
+                SOCKET.emit(FromClient.CANVAS_GRID_NUMBERED, msg);
+            }
         }
         make_ok_dialog(html, on_ok);
     });
@@ -7323,7 +7050,8 @@ document.addEventListener('DOMContentLoaded', function(){
             let gt = hg.checked? GRIDTYPE.HEX : GRIDTYPE.SQUARE;
             if(ng.checked)
                 gt |= GRIDTYPE.NOGRID;
-            SOCKET.emit(FromClient.CANVAS_NEW_MAP_REQUEST, {name:value, grid_type:gt});
+            let msg: NewMapRequest = {name:value, grid_type:gt};
+            SOCKET.emit(FromClient.CANVAS_NEW_MAP_REQUEST, msg);
         }
         make_ok_dialog(html, on_ok);
     });

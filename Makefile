@@ -64,3 +64,7 @@ DOCS=macro-doc.html
 .PHONY: ship-docs
 ship-docs: $(DOCS)
 	scp $< david@droplet:/home/david/docs/docs
+
+.PHONY: mypy
+mypy:
+	mypy -p WebDnD.app --namespace-packages --ignore-missing-imports

@@ -98,13 +98,17 @@ struct TableCommand: array
     original = str
     table = str
 
-union Command
+union Command: array
     NameCommand
     RollCommand
     SayCommand
     ShuffleCommand
     ChooseCommand
     TableCommand
+
+struct ChatCommandMessage: dict
+    chatname = str
+    commands = [Command]
 
 # Dice stuff
 enum DieExprTypes: int
@@ -158,7 +162,7 @@ struct RolledBinary: array
     right = RolledExpr
 
 # Use the type field to discriminate
-union RolledExpr
+union RolledExpr: array
     RolledNumber
     RolledDice
     RolledGroup
@@ -187,7 +191,7 @@ struct UnrolledBinary: array
     right = UnrolledDiceExpr
 
 # Use the type field to discriminate
-union UnrolledDiceExpr
+union UnrolledDiceExpr: array
     RolledNumber
     UnrolledDice
     UnrolledGroup
@@ -224,7 +228,7 @@ struct ChatEchoableMsg: array
     data = str
 
 # The actual chat message union. Use the type field to discriminate.
-union ChatMsg
+union ChatMsg: array
     ChatPlainMsg
     ChatErrorMsg
     ChatNewRollMsg
@@ -232,7 +236,7 @@ union ChatMsg
 
 # Roll table for the table command
 # Tables are stored on the server, clients can create and update them.
-enum ROLLTABLEFLAGS: int
+enum ROLLTABLEFLAGS: int flag
     NONE = 0
     IS_TABLE = 1 << 0
 
@@ -246,3 +250,347 @@ struct RollTable: dict
     id = int
     entries = [RollTableEntry]
 
+# Canvas stuff
+
+#
+# Canvas Obj Types
+# ================
+enum CANVASTYPE: int
+    FREEHAND_LINE = 1
+    GRID_LINE     = 2
+    RECT          = 3
+    GRID_RECT     = 4
+    FILLED_RECT   = 5
+    ELLIPSE       = 6
+    IMAGE         = 7
+    TEXT          = 8
+    EZ_TOKEN      = 9
+    IMG_TOKEN     = 10
+    DOOR          = 11
+    STAIRS        = 12
+    MEASURE       = 13
+    FIXTURE       = 14
+    FILLED_TILE   = 15
+    TERRAIN_TILE  = 16
+    ICON_TILE     = 17
+
+#
+# flags
+enum CANVASFLAG: int flag
+    NONE = 0
+    DELETED = 1 << 0
+    ALL = NONE | DELETED
+
+struct StrippedFreehandLine: dict
+    type = CANVASTYPE.FREEHAND_LINE
+    id = int
+    base_x = float
+    base_y = float
+    flags = CANVASFLAG
+    color = str
+    # points are just raw x,y pairs in a flat array.
+    points = [float]
+    thickness = float
+
+struct StrippedGridLine: dict
+    type = CANVASTYPE.GRID_LINE
+    id = int
+    base_x = float
+    base_y = float
+    flags = CANVASFLAG
+    color = str
+    # points are just raw x,y pairs in a flat array.
+    points = [float]
+
+struct StrippedRectangle: dict
+    type = CANVASTYPE.RECT
+    id = int
+    base_x = float
+    base_y = float
+    flags = CANVASFLAG
+    color = str
+    width = float
+    height = float
+
+struct StrippedFilledRectangle: dict
+    type = CANVASTYPE.FILLED_RECT
+    id = int
+    base_x = float
+    base_y = float
+    flags = CANVASFLAG
+    color = str
+    color2 = str
+    width = float
+    height = float
+
+struct StrippedGridRectangle: dict
+    type = CANVASTYPE.GRID_RECT
+    id = int
+    base_x = float
+    base_y = float
+    flags = CANVASFLAG
+    color = str
+    width = float
+    height = float
+
+enum ELLIPSETYPE:int
+    HOLLOW = 0
+    SOLID = 1
+    FILLED = 2
+
+struct StrippedEllipse: dict
+    type = CANVASTYPE.ELLIPSE
+    id = int
+    base_x = float
+    base_y = float
+    flags = CANVASFLAG
+    color = str
+    color2 = str
+    width = float
+    height = float
+    variant = ELLIPSETYPE
+
+struct StrippedImageObj: dict
+    type = CANVASTYPE.IMAGE
+    id = int
+    base_x = float
+    base_y = float
+    flags = CANVASFLAG
+    width = float
+    height = float
+    url = str
+
+enum TEXTALIGNMENT: int
+    LEFT = 0
+    CENTER = 1
+    RIGHT = 2
+
+struct StrippedTextObj: dict
+    type = CANVASTYPE.TEXT
+    id = int
+    base_x = float
+    base_y = float
+    flags =  CANVASFLAG
+    text = str
+    size = float
+    alignment = TEXTALIGNMENT
+
+# status flags for conditions and status effects
+# Bit flags
+enum TOKENSTATUSFLAGS: int flag
+    NONE       = 0
+    ASLEEP     = 1 << 0
+    BLESS      = 1 << 1
+    BLIND      = 1 << 2
+    CHARMED    = 1 << 3
+    CONFUSED   = 1 << 4
+    DEAF       = 1 << 5
+    FEAR       = 1 << 6
+    GRAPPLING  = 1 << 7
+    HASTED     = 1 << 8
+    INVISIBLE  = 1 << 9
+    ONFIRE     = 1 << 10
+    PARALYZED  = 1 << 11
+    POISONED   = 1 << 12
+    PRONE      = 1 << 13
+    RESTRAINED = 1 << 14
+    STUNNED    = 1 << 15
+
+struct StrippedEzToken: dict
+    type = CANVASTYPE.EZ_TOKEN
+    id = int
+    base_x = float
+    base_y = float
+    flags = CANVASFLAG
+    text = str
+    color = str
+    width = float # in squares (?)
+    height = float # in squares (?)
+    statusflags = TOKENSTATUSFLAGS
+
+struct StrippedImgToken: dict
+    type = CANVASTYPE.IMG_TOKEN
+    id = int
+    base_x = float
+    base_y = float
+    flags = CANVASFLAG
+    url = str
+    width = float # in squares (?)
+    height = float # in squares (?)
+    statusflags = TOKENSTATUSFLAGS
+
+enum DOORTYPE: int
+    DOOR = 0
+    DOUBLE = 1
+    PORTCULLIS = 2
+    SECRET = 3
+    BRICKED_WALL = 4
+    PORTAL = 5
+    CURTAINS = 6
+    HALLWAY = 7
+
+enum ORIENTATION: int
+    VERTICAL = 0
+    HORIZONTAL = 1
+    TOPLEFT_DOWNRIGHT = 2
+    TOPRIGHT_DOWNLEFT = 3
+
+struct StrippedDoorObj: dict
+    type = CANVASTYPE.DOOR
+    id = int
+    base_x = float
+    base_y = float
+    flags = CANVASFLAG
+    doortype = DOORTYPE
+    color = str
+    width = float # in squares (?)
+    orientation = ORIENTATION
+
+enum ROTATION: int
+    # we might add the diagonals
+    UP    = 0
+    RIGHT = 2
+    DOWN  = 4
+    LEFT  = 6
+
+struct StrippedStairs: dict
+    type = CANVASTYPE.STAIRS
+    id = int
+    base_x = float
+    base_y = float
+    flags = CANVASFLAG
+    width = float # in squares
+    height = float # in squares
+    rotation = ROTATION
+
+struct StrippedMeasureObj: dict
+    type = CANVASTYPE.MEASURE
+    id = int
+    base_x = float
+    base_y = float
+    flags = CANVASFLAG
+    color = str
+    x1 = float
+    y1 = float
+
+enum FIXTURETYPE: int
+    STATUE = 0
+    STAIRS = 1
+    PIT = 2
+    RUBBLE = 3
+
+struct StrippedFixtureObj: dict
+    type = CANVASTYPE.FIXTURE
+    id = int
+    base_x = float
+    base_y = float
+    flags = CANVASFLAG
+    width = float
+    height = float
+    ftype = FIXTURETYPE
+
+enum TILETYPE: int
+    FILLED = 0
+    TERRAIN = 1
+    ICON = 2
+
+struct StrippedFilledTile: dict
+    type = CANVASTYPE.FILLED_TILE
+    id = int
+    base_x = float
+    base_y = float
+    flags = CANVASFLAG
+    color = str
+    size = float
+
+struct StrippedTerrainTile: dict
+    type = CANVASTYPE.TERRAIN_TILE
+    id = int
+    base_x = float
+    base_y = float
+    flags = CANVASFLAG
+    terrain_id = float
+
+struct StrippedIconTile: dict
+    type = CANVASTYPE.ICON_TILE
+    id = int
+    base_x = float
+    base_y = float
+    flags = CANVASFLAG
+    terrainicon_id = int
+
+union StrippedObj: dict
+    StrippedFreehandLine
+    StrippedGridLine
+    StrippedRectangle
+    StrippedFilledRectangle
+    StrippedGridRectangle
+    StrippedEllipse
+    StrippedImageObj
+    StrippedTextObj
+    StrippedEzToken
+    StrippedImgToken
+    StrippedDoorObj
+    StrippedStairs
+    StrippedMeasureObj
+    StrippedFixtureObj
+    StrippedFilledTile
+    StrippedTerrainTile
+    StrippedIconTile
+
+
+enum GRIDTYPE: int flag
+    # square is default
+    SQUARE = 0
+    # Hexes are drawn "odd-q" vertical layout
+    HEX = 1 << 0
+    # NOGRID just means don't draw the grid.
+    NOGRID = 1 << 1
+
+enum MapFlags: int flag
+    NONE = 0
+    DELETED = 1 << 0
+    CANT_DELETE = 1 << 1
+    NUMBERED = 1 << 2
+
+struct CreateObjectMessage: dict
+    map_id = int
+    object = StrippedObj
+
+struct CreateObjectsMessage: dict
+    map_id = int
+    objects = [StrippedObj]
+
+struct CanvasDeleteMessage: dict
+    map_id = int
+    ids = [int]
+
+struct CanvasUpdateMessage: dict
+    map_id = int
+    obj_states = [StrippedObj]
+
+struct NameMapMessage: dict
+    map_id = int
+    map_name = str
+
+struct NewMapRequest: dict
+    name = str
+    grid_type  = GRIDTYPE
+
+struct CanvasGridTypeMsg: dict
+    map_id = int
+    grid_type = GRIDTYPE
+struct CanvasGridNumberedMsg: dict
+    map_id = int
+    numbered = int
+
+struct NoteUpdateTitle: dict
+    note_id = int
+    title = str
+struct NoteUpdateBody: dict
+    note_id = int
+    body = str
+struct GatherMessage: dict
+    x = int
+    y = int
+    map_id = int

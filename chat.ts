@@ -177,11 +177,13 @@ function add_macros(macros:Array<Macro>){
 
 function preprocess_and_send_chat(text:string){
     let commands = preprocess_command(text, EvaluateFlags.NONE);
-    SOCKET.emit(FromClient.CHAT_STRUCTURED_INPUT, {chatname:CHATNAME, commands:commands});
+    let to_send: ChatCommandMessage = {chatname:CHATNAME, commands:commands};
+    SOCKET.emit(FromClient.CHAT_STRUCTURED_INPUT, to_send);
 }
 function preprocess_and_send_chat_with_usings(text:string){
     let commands = preprocess_command(text, EvaluateFlags.USE_USINGS);
-    SOCKET.emit(FromClient.CHAT_STRUCTURED_INPUT, {chatname:CHATNAME, commands:commands});
+    let to_send: ChatCommandMessage = {chatname:CHATNAME, commands:commands};
+    SOCKET.emit(FromClient.CHAT_STRUCTURED_INPUT, to_send);
 }
 
 document.addEventListener('DOMContentLoaded', function(){
@@ -253,10 +255,12 @@ document.addEventListener('DOMContentLoaded', function(){
         if(!current_macro) return;
         let commands = evaluate(current_macro.body, EvaluateFlags.NONE);
         (log as any).replaceChildren();
-        if(commands.length)
-            SOCKET.emit(FromClient.CHAT_TEST_STRUCTURED_INPUT, {chatname:CHATNAME, commands:commands}, function(response:Array<ChatMsg>){
+        if(commands.length){
+            let to_send: ChatCommandMessage = {chatname:CHATNAME, commands:commands};
+            SOCKET.emit(FromClient.CHAT_TEST_STRUCTURED_INPUT, to_send, function(response:Array<ChatMsg>){
                 add_chat_msgs(log, response);
             });
+        }
     });
     const use_button: HTMLButtonElement = get_by_id('use-macro');
     use_button.addEventListener('click', function(){
@@ -1165,7 +1169,7 @@ function tables_button_dialog(){
                 }
                 outtables.push({name:name, id:id, entries:entries});
             }
-            SOCKET.emit(FromClient.UPDATE_ROLL_TABLES,outtables);
+            SOCKET.emit(FromClient.UPDATE_ROLL_TABLES, outtables);
         }
         document.body.appendChild(hoverpop);
     });

@@ -8,7 +8,8 @@ from .persist import Persister, RepeatTimer
 from. import appconfig
 import os
 import logging
-from .messages import FromClient, ToClient
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage
+from .validator import validate
 
 from typing import List, Dict, Optional, Set, Union
 
@@ -20,16 +21,16 @@ else:
     socketio = SocketIO(app, logger=False, cors_allowed_origins="https://krugsbasement.com")
 
 @socketio.on(FromClient.CHAT_STRUCTURED_INPUT)
-def chat_structured_input(data:dict):
+def chat_structured_input(data:ChatCommandMessage):
+    data = validate('ChatCommandMessage', data)
     room = get_room(request)
-    if not data:
-        return
     responses = chat.handle_structured_input(room, data['chatname'], data['commands'], test=False)
     if responses:
         emit(ToClient.CHAT_STRUCTURED_MSG, responses, broadcast=True, to=room)
 
 @socketio.on(FromClient.CHAT_TEST_STRUCTURED_INPUT)
-def chat_test_structured_input(data:dict):
+def chat_test_structured_input(data:ChatCommandMessage):
+    data = validate('ChatCommandMessage', data)
     room = get_room(request)
     if not data:
         return
@@ -85,45 +86,40 @@ def post_join():
     emit(ToClient.NOTES_INITIALIZE, notes.get_notes_for_room(room))
 
 @socketio.on(FromClient.CANVAS_CREATE_OBJECTS)
-def handle_canvas_create(data:dict) -> None:
+def handle_canvas_create(data:CreateObjectMessage) -> None:
+    data = validate('CreateObjectMessage', data)
     room = get_room(request)
     response = canvas.handle_create(room, data)
     if response:
         emit(ToClient.CANVAS_CREATE_OBJECTS, response, broadcast=True, include_self=False, to=room)
 
 @socketio.on(FromClient.CANVAS_DELETE)
-def handle_canvas_delete(data:dict) -> None:
+def handle_canvas_delete(data:CanvasDeleteMessage) -> None:
+    data = validate('CanvasDeleteMessage', data)
     room = get_room(request)
     response = canvas.handle_delete(room, data)
     if response:
-        emit(ToClient.CANVAS_DELETE, response, broadcast=True, include_self=False, to=room)
+        emit(ToClient.CANVAS_DELETE, response, broadcast=True, include_self=False, to=room) # type: ignore
 
 @socketio.on(FromClient.CANVAS_UPDATE)
-def handle_canvas_update(data:dict) -> None:
+def handle_canvas_update(data:CanvasUpdateMessage) -> None:
+    data = validate('CanvasUpdateMessage', data)
     room = get_room(request)
     response = canvas.handle_update(room, data)
     if response:
-        emit(ToClient.CANVAS_UPDATE, response, broadcast=True, include_self=False, to=room)
+        emit(ToClient.CANVAS_UPDATE, response, broadcast=True, include_self=False, to=room) # type: ignore
 
 @socketio.on(FromClient.CANVAS_GATHER)
-def canvas_gather(where:Dict[str, int]) -> None:
+def canvas_gather(where:GatherMessage) -> None:
+    where = validate('GatherMessage', where)
     room = get_room(request)
-    try:
-        where = {'x':int(where['x']), 'y':int(where['y']), 'map_id':where['map_id']}
-    except:
-        pass
-    else:
-        emit(ToClient.CANVAS_GATHER, where, broadcast=True, to=room)
+    emit(ToClient.CANVAS_GATHER, where, broadcast=True, to=room)
 
 @socketio.on(FromClient.CANVAS_BATTLE)
-def canvas_battle(where:Dict[str, int]) -> None:
+def canvas_battle(where:GatherMessage) -> None:
+    where = validate('GatherMessage', where)
     room = get_room(request)
-    try:
-        where = {'x':int(where['x']), 'y':int(where['y']), 'map_id':where['map_id']}
-    except:
-        pass
-    else:
-        emit(ToClient.CANVAS_BATTLE, where, broadcast=True, to=room)
+    emit(ToClient.CANVAS_BATTLE, where, broadcast=True, to=room)
 
 @socketio.on(FromClient.CANVAS_DUNGEON_MODE)
 def canvas_dungeon_mode() -> None:
@@ -133,6 +129,7 @@ def canvas_dungeon_mode() -> None:
 
 @socketio.on(FromClient.CANVAS_CREATE_MAP)
 def canvas_create_map(data:int) -> None:
+    assert isinstance(data, int)
     room = get_room(request)
     canvas.create_map(room, data)
     emit(ToClient.CANVAS_CREATE_MAP, data, broadcast=True, include_self=False, to=room)
@@ -143,15 +140,17 @@ def canvas_ping(data) -> None:
     emit(ToClient.CANVAS_PING, data, broadcast=True, include_self=False, to=room)
 
 @socketio.on(FromClient.CANVAS_NAME_MAP)
-def canvas_name_map(data) -> None:
+def canvas_name_map(data:NameMapMessage) -> None:
+    data = validate('NameMapMessage', data)
     room = get_room(request)
     canvas.name_map(room, **data)
-    emit(ToClient.CANVAS_NAME_MAP, data, broadcast=True, include_self=False, to=room)
+    emit(ToClient.CANVAS_NAME_MAP, data, broadcast=True, include_self=False, to=room) # type: ignore
 
 @socketio.on(FromClient.CANVAS_NEW_MAP_REQUEST)
-def new_map_request(data) -> None:
+def new_map_request(data:NewMapRequest) -> None:
+    data = validate('NewMapRequest', data)
     map_name:str = data['name']
-    grid_type: int = data['grid_type']
+    grid_type = data['grid_type']
     room = get_room(request)
     new_map_id = canvas.new_map_request(room, map_name, grid_type)
     logging.info('new map: %d for room "%s", with name: "%s"', new_map_id, room, map_name)
@@ -160,7 +159,8 @@ def new_map_request(data) -> None:
     emit(ToClient.CANVAS_GRID_TYPE, {'map_id':new_map_id, 'grid_type':grid_type}, broadcast=True, include_self=True, to=room)
 
 @socketio.on(FromClient.CANVAS_GRID_TYPE)
-def change_grid_type(data) -> None:
+def change_grid_type(data:CanvasGridTypeMsg) -> None:
+    data = validate('CanvasGridTypeMsg', data)
     map_id = data['map_id']
     gt = data['grid_type']
     room = get_room(request)
@@ -169,7 +169,8 @@ def change_grid_type(data) -> None:
     emit(ToClient.CANVAS_GRID_TYPE, {'map_id':map_id, 'grid_type':gt}, broadcast=True, include_self=True, to=room)
 
 @socketio.on(FromClient.CANVAS_GRID_NUMBERED)
-def change_grid_numbered(data) -> None:
+def change_grid_numbered(data:CanvasGridNumberedMsg) -> None:
+    data = validate('CanvaGridNumberedMsg', data)
     map_id = data['map_id']
     numbered = data['numbered']
     room = get_room(request)
@@ -179,6 +180,7 @@ def change_grid_numbered(data) -> None:
 
 @socketio.on(FromClient.CANVAS_DELETE_MAP_REQUEST)
 def delete_map_request(map_id:int) -> None:
+    assert isinstance(map_id, int)
     room = get_room(request)
     logging.info('delete map: %d for room "%s"', map_id, room)
     was_deleted = canvas.delete_map(room, map_id)
@@ -187,8 +189,8 @@ def delete_map_request(map_id:int) -> None:
 
 @socketio.on(FromClient.GET_NOTE)
 def note_get(note_id: int):
+    assert isinstance(note_id, int)
     room = get_room(request)
-    # logging.info('get note: %d', note_id)
     return notes.get_note(room, note_id)
 
 @socketio.on(FromClient.NEW_NOTE_REQUEST)
@@ -200,15 +202,17 @@ def new_note_request() -> int:
     return note_id
 
 @socketio.on(FromClient.NOTE_UPDATE_TITLE)
-def note_update_title(data) -> None:
+def note_update_title(data:NoteUpdateTitle) -> None:
+    data = validate('NoteUpdateTitle', data)
     room = get_room(request)
     notes.note_update_title(room, data['note_id'], data['title'])
     # logging.info('Updating note title. Note: %s. Room: %s. Title: %s', data['note_id'], room, data['title'])
-    emit(ToClient.NOTE_UPDATE_TITLE, data, broadcast=True, include_self=False, to=room)
+    emit(ToClient.NOTE_UPDATE_TITLE, data, broadcast=True, include_self=False, to=room) # type: ignore
     # emit(ToClient.NOTE_DIRTY, data['note_id'], broadcast=True, include_self=False, to=room)
 
 @socketio.on(FromClient.NOTE_UPDATE_BODY)
-def note_update_body(data) -> None:
+def note_update_body(data:NoteUpdateBody) -> None:
+    data = validate('NoteUpdateBody', data)
     room = get_room(request)
     # logging.info('Updating note body. Note: %s. Room: %s', data['note_id'], room)
     notes.note_update_body(room, data['note_id'], data['body'])
@@ -217,6 +221,7 @@ def note_update_body(data) -> None:
 
 @socketio.on(FromClient.DELETE_NOTE_REQUEST)
 def note_delete(note_id:int) -> None:
+    assert isinstance(note_id, int)
     room = get_room(request)
     logging.info('delete note: %d for room "%s"', note_id, room)
     notes.note_delete(room, note_id)
@@ -229,7 +234,9 @@ def retrieve_roll_tables() -> list:
     return chat.get_roll_tables(room)
 
 @socketio.on(FromClient.UPDATE_ROLL_TABLES)
-def update_roll_tables(tables:list) -> None:
+def update_roll_tables(tables:List[RollTable]) -> None:
+    for i, d in enumerate(tables):
+        tables[i] = validate('RollTable', d)
     room = get_room(request)
     logging.info('Setting roll tables for room "%s"', room)
     chat.update_roll_tables(room, tables)
@@ -283,35 +290,37 @@ if appconfig.DEV:
         room = get_room(request)
         logging.info('room: %s - %s', room, msg)
 
-@app.route('/state', methods=['GET'])
-@app.route('/campaigns/<campaign>/state', methods=['GET', 'POST', 'DELETE'])
-def app_state(campaign:str='/') -> str:
-    logging.info('request: %s', request)
-    logging.info('campaign: %s',  campaign)
-    query = f'/campaigns/{campaign}' if campaign != '/' else '/'
-    if request.method == 'GET':
-        args = request.args
-        state = {
-            'chat':chat.get_history(query),
-            'canvas': canvas.get_state(query),
-            'app':{'session_id':session_id},
-            'notes':notes.get_notes_for_room(query),
-            'tables': chat.get_roll_tables(query),
-            }
-        if 'which' in args:
-            try:
-                substate = state[args['which']]
-                return jsonify(substate)
-            except:
-                abort(404)
-        return jsonify(state)
-    elif request.method == 'POST':
-        abort(404)
-        return ''
-        # data should be in request.json?
-    else:
-        abort(404)
-        return ''
+if False:
+    @app.route('/state', methods=['GET'])
+    @app.route('/campaigns/<campaign>/state', methods=['GET', 'POST', 'DELETE'])
+    def app_state(campaign:str='/') -> str:
+        logging.info('request: %s', request)
+        logging.info('campaign: %s',  campaign)
+        query = f'/campaigns/{campaign}' if campaign != '/' else '/'
+        if request.method == 'GET':
+            args = request.args
+            state = {
+                'chat':chat.get_history(query),
+                'canvas': canvas.get_state(query),
+                'app':{'session_id':session_id},
+                'notes':notes.get_notes_for_room(query),
+                'tables': chat.get_roll_tables(query),
+                }
+            if 'which' in args:
+                try:
+                    substate = state[args['which']]
+                    return jsonify(substate)
+                except:
+                    abort(404)
+            return jsonify(state)
+        elif request.method == 'POST':
+            abort(404)
+            return ''
+            # data should be in request.json?
+        else:
+            abort(404)
+            return ''
+
 def log_connections() -> None:
     server = socketio.server
     manager = server.manager
