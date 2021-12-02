@@ -85,7 +85,7 @@ def handle_structured_input(room:str, user:str, commands:List[Command], test:boo
     def plain(user:str, text:str) -> ChatMsg:
         return (Msg.PLAIN, user, text) # type: ignore
     def dieroll(dice) -> ChatMsg:
-        return (Msg.DICEROLL_NEW, '', dice) # type: ignore
+        return (Msg.DICEROLL, '', dice) # type: ignore
     def error(e:str) -> ChatMsg:
         return (Msg.ERROR, '', e) # type: ignore
     apparent_user = user

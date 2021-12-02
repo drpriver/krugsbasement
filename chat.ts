@@ -62,7 +62,7 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>){
                 error.classList.add('chat-error');
                 entry.appendChild(error);
             }break;
-            case Msg.DICEROLL_NEW:{
+            case Msg.DICEROLL:{
                 const data = msg[2];
                 entry.classList.add('dice-roll-msg');
                 const r = data;

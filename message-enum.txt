@@ -202,9 +202,10 @@ union UnrolledDiceExpr: array
 # These are in response to Commands
 enum Msg: int
     PLAIN = 0
-    DICEROLL = 1
+    # Used to be DICEROLL = 1
     ERROR = 2
-    DICEROLL_NEW = 3
+    # used to be called DICEROLL_NEW
+    DICEROLL = 3
     ECHOABLE_TEXT = 4
 
 struct ChatPlainMsg: array
@@ -218,7 +219,7 @@ struct ChatErrorMsg: array
     data = str
 
 struct ChatNewRollMsg: array
-    type = Msg.DICEROLL_NEW
+    type = Msg.DICEROLL
     user = str
     data = RolledExpr
 
