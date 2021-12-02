@@ -112,6 +112,7 @@ def write_files(tags:List[TagLoc]) -> None:
         fp.write('au BufEnter *.ts syn keyword tsConstant')
         fp.write(variables.getvalue())
         fp.write('\n')
+        fp.write('source shared.vim')
 
 if __name__ == '__main__':
     write_files(get_all_tags())

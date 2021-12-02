@@ -135,7 +135,7 @@ def get_values() -> List[Info]:
             if not isinstance(current_info, CommentInfo):
                 current_info = CommentInfo()
                 result.append(current_info)
-        if line.strip()[0].startswith(('#', '//')):
+        if line.strip().startswith(('#', '//')):
             com = line.strip()
             if com.startswith('#'):
                 com = com[1:]

@@ -173,7 +173,7 @@ let current_ellipse = ELLIPSETYPE.HOLLOW;
 //  base_x and base_y is the center of the ellipse.
 //  We only allow axis-aligned ellipses.
 //
-// Stripped Ellipses are the same as regular rectangles.
+// Stripped Ellipses are the same as regular ellipses.
 type Ellipse = StrippedEllipse;
 
 //  image

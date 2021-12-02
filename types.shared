@@ -282,6 +282,21 @@ enum CANVASFLAG: int flag
     DELETED = 1 << 0
     ALL = NONE | DELETED
 
+//
+//  Each object also has a "stripped" representation, which is
+//  the minimal amount of information for that object. For several types
+//  this is the same as the regular one, but for others the unstripped
+//  representation would include things like an HTMLImageElement.
+//  Furthermore, the "stripped" representation can be converted to and from json,
+//  so it can be shipped to and from the server.
+//
+
+//  freehand-line
+//  -------------
+//  Freehand lines are a bag of sequenced points that are
+//  interpolated together with quadratic curves.
+//  The server can optimize the lines by removing redundant
+//  points.
 struct StrippedFreehandLine: dict
     type = CANVASTYPE.FREEHAND_LINE
     id = int
@@ -293,6 +308,14 @@ struct StrippedFreehandLine: dict
     points = [float]
     thickness = float
 
+//  grid-line
+//  ---------
+//  A grid line are straight line-fragments whose points snap
+//  to the corners of the grid.
+//  Optimizing the points array is easy.
+//  When moving this object, movements need to snap to the closest
+//  grid point. When moving multiple objects, all of them need to snap
+//  this way so that their relative positions are maintained.
 struct StrippedGridLine: dict
     type = CANVASTYPE.GRID_LINE
     id = int
@@ -317,6 +340,10 @@ struct StrippedRectangle: dict
     width = float
     height = float
 
+//  filled-rectangle
+//  ---------
+//  An axis-aligned box, but the center is filled with 'color2'
+//  base_x and base_y is the top-left corner of the box.
 struct StrippedFilledRectangle: dict
     type = CANVASTYPE.FILLED_RECT
     id = int
@@ -328,6 +355,12 @@ struct StrippedFilledRectangle: dict
     width = float
     height = float
 
+//  grid-rectangle
+//  ---------
+//  An axis-aligned box, whose corners snap to the grid.
+//  Same movement restrictions apply to this as apply to the
+//  grid-line.
+//  base_x and base_y is the top-left corner of the box.
 struct StrippedGridRectangle: dict
     type = CANVASTYPE.GRID_RECT
     id = int
@@ -343,6 +376,11 @@ enum ELLIPSETYPE:int
     SOLID = 1
     FILLED = 2
 
+//  ellipse
+//  -------
+//  base_x and base_y is the center of the ellipse.
+//  We only allow axis-aligned ellipses.
+//
 struct StrippedEllipse: dict
     type = CANVASTYPE.ELLIPSE
     id = int
@@ -355,6 +393,8 @@ struct StrippedEllipse: dict
     height = float
     variant = ELLIPSETYPE
 
+//  image
+//  -----
 struct StrippedImageObj: dict
     type = CANVASTYPE.IMAGE
     id = int
@@ -370,6 +410,8 @@ enum TEXTALIGNMENT: int
     CENTER = 1
     RIGHT = 2
 
+//  text
+//  ----
 struct StrippedTextObj: dict
     type = CANVASTYPE.TEXT
     id = int
@@ -380,8 +422,8 @@ struct StrippedTextObj: dict
     size = float
     alignment = TEXTALIGNMENT
 
-# status flags for conditions and status effects
-# Bit flags
+// status flags for conditions and status effects
+// Bit flags
 enum TOKENSTATUSFLAGS: int flag
     NONE       = 0
     ASLEEP     = 1 << 0
@@ -401,6 +443,9 @@ enum TOKENSTATUSFLAGS: int flag
     RESTRAINED = 1 << 14
     STUNNED    = 1 << 15
 
+//  ez-token
+//  --------
+//  A token that just has a simple text label.
 struct StrippedEzToken: dict
     type = CANVASTYPE.EZ_TOKEN
     id = int
@@ -413,6 +458,9 @@ struct StrippedEzToken: dict
     height = float # in squares (?)
     statusflags = TOKENSTATUSFLAGS
 
+//  img-token
+//  --------
+//  A token that has an image as its contents.
 struct StrippedImgToken: dict
     type = CANVASTYPE.IMG_TOKEN
     id = int
@@ -440,6 +488,9 @@ enum ORIENTATION: int
     TOPLEFT_DOWNRIGHT = 2
     TOPRIGHT_DOWNLEFT = 3
 
+//  door
+//  ----
+//  A door.
 struct StrippedDoorObj: dict
     type = CANVASTYPE.DOOR
     id = int
@@ -468,6 +519,9 @@ struct StrippedStairs: dict
     height = float # in squares
     rotation = ROTATION
 
+// Measure
+// -------
+// This is a weird object, but it is the measurement tool.
 struct StrippedMeasureObj: dict
     type = CANVASTYPE.MEASURE
     id = int
@@ -484,6 +538,9 @@ enum FIXTURETYPE: int
     PIT = 2
     RUBBLE = 3
 
+// Fixture
+// ----------
+// For dungeon fixtures, like rubble or pits.
 struct StrippedFixtureObj: dict
     type = CANVASTYPE.FIXTURE
     id = int
@@ -499,6 +556,8 @@ enum TILETYPE: int
     TERRAIN = 1
     ICON = 2
 
+// FilledTile
+// ----------
 struct StrippedFilledTile: dict
     type = CANVASTYPE.FILLED_TILE
     id = int
@@ -508,6 +567,8 @@ struct StrippedFilledTile: dict
     color = str
     size = float
 
+// TerrainTile
+// -----------
 struct StrippedTerrainTile: dict
     type = CANVASTYPE.TERRAIN_TILE
     id = int
@@ -516,6 +577,8 @@ struct StrippedTerrainTile: dict
     flags = CANVASFLAG
     terrain_id = float
 
+// IconTile
+// --------
 struct StrippedIconTile: dict
     type = CANVASTYPE.ICON_TILE
     id = int
@@ -523,6 +586,17 @@ struct StrippedIconTile: dict
     base_y = float
     flags = CANVASFLAG
     terrainicon_id = int
+
+// Intersection of all of the above types. They should share the following
+// fields:
+//    type = CANVASTYPE
+//    id = int
+//    base_x = float
+//    base_y = float
+//    flags = CANVASFLAG
+//
+// This allows most handling of the objects to work on the generic shared
+// subset (like translating x pixels or setting a flag).
 
 union StrippedObj: dict
     StrippedFreehandLine
