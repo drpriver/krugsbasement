@@ -9,7 +9,7 @@ from. import appconfig
 import os
 import logging
 from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage
-from .validator import validate
+from .validator import validate, register_list
 
 from typing import List, Dict, Optional, Set, Union
 
@@ -232,11 +232,10 @@ def retrieve_roll_tables() -> list:
     room = get_room(request)
     logging.info('retrieving roll tables for room "%s"', room)
     return chat.get_roll_tables(room)
-
+register_list('[RollTable]', 'RollTable')
 @socketio.on(FromClient.UPDATE_ROLL_TABLES)
 def update_roll_tables(tables:List[RollTable]) -> None:
-    for i, d in enumerate(tables):
-        tables[i] = validate('RollTable', d)
+    tables = validate('[RollTable]', tables)
     room = get_room(request)
     logging.info('Setting roll tables for room "%s"', room)
     chat.update_roll_tables(room, tables)

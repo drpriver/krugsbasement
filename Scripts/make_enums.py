@@ -1,6 +1,6 @@
 import os
 from typing import List, Tuple, Union, Optional, Set
-INPUT = 'message-enum.txt'
+INPUT = 'types.shared'
 Comment = str
 TypeName = str
 class CommentInfo:
@@ -41,6 +41,10 @@ class EnumInfo:
             v, *comment = v.split('#')
             v = v.strip()
             comment = '#'.join(comment).strip()
+        elif '//' in v:
+            v, *comment = v.split('//')
+            v = v.strip()
+            comment = '//'.join(comment).strip()
         if k in self.keys:
             raise Exception(self.name, 'duplicate key:', k)
         if v in self.values:
@@ -71,6 +75,10 @@ class StructInfo:
             a, *b = type.split('#')
             type = a.strip()
             comment = '#'.join(b).strip()
+        elif '//' in type:
+            a, *b = type.split('//')
+            type = a.strip()
+            comment = '//'.join(b).strip()
         if name in self.member_names:
             raise Exception()
         self.member_names.add(name)
@@ -99,6 +107,10 @@ class UnionInfo:
             a, *b = type.split('#')
             type = a.strip()
             comment = '#'.join(b).strip()
+        elif '//' in type:
+            a, *b = type.split('//')
+            type = a.strip()
+            comment = '//'.join(b).strip()
         if type in self.variant_types:
             raise Exception()
         self.variant_types.add(type)
@@ -119,15 +131,20 @@ def get_values() -> List[Info]:
             continue
         if line[0] == '\t':
             raise Exception('tab')
-        if line[0] == '#':
+        if line.startswith(('#', '//')):
             if not isinstance(current_info, CommentInfo):
                 current_info = CommentInfo()
                 result.append(current_info)
-        if line.strip()[0] == '#':
-            current_info.add_comment(line.strip()[1:])
+        if line.strip()[0].startswith(('#', '//')):
+            com = line.strip()
+            if com.startswith('#'):
+                com = com[1:]
+            else:
+                com = com[2:]
+            current_info.add_comment(com)
             continue
         if line[0] != ' ':
-            if line.startswith('#'):
+            if line.startswith(('#', '//')):
                 pass
             elif line.startswith('struct'):
                 line = line[len('struct'):].strip()

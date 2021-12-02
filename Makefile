@@ -21,7 +21,7 @@ screen.html: screen.dnd combined.js | Depends
 macro-doc.html: Docs/macro-doc.dnd
 	dndc $< --output $@
 
-messages.ts WebDnD/messages.py: message-enum.txt
+messages.ts WebDnD/messages.py: types.shared
 	python3 Scripts/make_enums.py
 
 .PHONY: dist.zip

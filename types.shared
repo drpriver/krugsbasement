@@ -303,6 +303,10 @@ struct StrippedGridLine: dict
     # points are just raw x,y pairs in a flat array.
     points = [float]
 
+//  rectangle
+//  ---------
+//  An axis-aligned box.
+//  base_x and base_y is the top-left corner of the box.
 struct StrippedRectangle: dict
     type = CANVASTYPE.RECT
     id = int
@@ -588,10 +592,17 @@ struct CanvasGridNumberedMsg: dict
 struct NoteUpdateTitle: dict
     note_id = int
     title = str
+
 struct NoteUpdateBody: dict
     note_id = int
     body = str
+
 struct GatherMessage: dict
     x = int
     y = int
     map_id = int
+
+struct PingMessage: dict
+    cx = float
+    cy = float
+    color = str
