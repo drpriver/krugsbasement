@@ -280,7 +280,7 @@ enum CANVASTYPE: int
 enum CANVASFLAG: int flag
     NONE = 0
     DELETED = 1 << 0
-    ALL = NONE | DELETED
+    ALL = 1 << 0
 
 //
 //  Each object also has a "stripped" representation, which is

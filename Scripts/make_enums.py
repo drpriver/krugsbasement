@@ -47,7 +47,7 @@ class EnumInfo:
             comment = '//'.join(comment).strip()
         if k in self.keys:
             raise Exception(self.name, 'duplicate key:', k)
-        if v in self.values:
+        if v in self.values and k != 'ALL':
             raise Exception(self.name, 'duplicate value:', v)
         self.keys.add(k)
         self.values.add(v)
@@ -413,8 +413,106 @@ def make_ts(infos:List[Info]) -> None:
     fp.flush()
     fp.close();
 
+def make_c(infos:List[Info]) -> None:
+    fp = open('messages.h', 'w', encoding='utf-8')
+    def p(*args, **kwargs):
+        print(*args, **kwargs, file=fp)
+    p('#ifndef WEBDND_MESSAGES_H')
+    p('#define WEBDND_MESSAGES_H')
+    p('#include <stdint.h> // integer types')
+    p('#include <stddef.h> // size_t')
+    p('typedef struct String {')
+    p('    const char* text;')
+    p('    size_t length;')
+    p('} String;')
+    enums = {}
+    structs = {}
+    unions = {}
+    for info in infos:
+        if isinstance(info, EnumInfo):
+            p('typedef enum', info.name, info.name+';')
+            enums[info.name] = info
+        elif isinstance(info, StructInfo):
+            p('typedef struct', info.name, info.name+';')
+            structs[info.name] = info
+        elif isinstance(info, UnionInfo):
+            p('typedef union', info.name, info.name+';')
+            unions[info.name] = info
+    p('')
+    def fix_type(t):
+        typenames = {
+            'str': 'String',
+            'int': 'int64_t',
+        }
+        if t in typenames:
+            return typenames[t]
+        if t in unions:
+            return t+'*'
+        return t
+    for info in infos:
+        if isinstance(info, EnumInfo):
+            p('enum', info.name, '{')
+            for item in info.items:
+                if isinstance(item, Comment):
+                    continue
+                if info.type == 'str':
+                    p('   ', f'{info.name}_{item[0]},')
+                else:
+                    p('   ', f'{info.name}_{item[0]} = {item[1]},')
+            p('};')
+            if info.type == 'str':
+                p('static const String', info.name+'_Strings[] = {')
+                for item in info.items:
+                    if isinstance(item, Comment):
+                        continue
+                    p('    {.text=', f'"{item[1]}", .length=sizeof("{item[1]}")-1', '},')
+                p('};')
+        elif isinstance(info, StructInfo):
+            p('struct', info.name, '{')
+            for member in info.members:
+                if isinstance(member, Comment):
+                    continue
+                name, type, _ = member
+                if '.' in type:
+                    type = type.split('.')[0]
+                if type[0] == '[':
+                    type = type[1:-1]
+                    type = fix_type(type)
+                    p('    struct {')
+                    if type.endswith('*'):
+                        p(f'        {type} data;')
+                    else:
+                        p(f'        {type}* data;')
+                    # int is justified by the fact we're not
+                    # going to receive 2 billion items as json
+                    p(f'        int count, capacity;')
+                    p('    }', name+';')
+                else:
+                    p('   ', fix_type(type), name+';')
+            p('};')
+            p('')
+        elif isinstance(info, UnionInfo):
+            p('union', info.name, '{')
+            first = next(v for v in info.variants if not isinstance(v, Comment))
+            first = next(m for m in structs[first[0]].members if not isinstance(m, Comment))
+            discrimtype = first[1].split('.')[0]
+            p('    struct {', discrimtype, 'type; } discrim;')
+            for variant in info.variants:
+                if isinstance(variant, Comment): continue
+                typename, _ = variant
+                p('   ', typename, typename+'_;')
+            p('};')
+            p('')
+
+
+
+    p('#endif')
+
+
+
 
 if __name__ == '__main__':
     infos = get_values()
     make_python(infos)
     make_ts(infos)
+    make_c(infos)
