@@ -353,8 +353,8 @@ David20::title @hide
           </td>
         </tr>
         <tr>
-          <td><button id="notes-window-button">Notes</button></td>
-          <td><button id="tables-button">Tables</button></td>
+          <td><button id="notes-window-button">Notes…</button></td>
+          <td><button id="tables-button">Tables…</button></td>
         </tr>
       </table>
   ::div.log @id(chat-history)
@@ -363,9 +363,9 @@ David20::title @hide
     ::div @id(macro-buttons)
     ::div @id(chat-buttons)
       ::raw
-        <button id="chat-options">Options</button>
-        <button id="macros-button">Macros</button>
-        <button id="variables-button">Variables</button>
+        <button id="chat-options">Options…</button>
+        <button id="macros-button">Macros…</button>
+        <button id="variables-button">Variables…</button>
   ::raw
     <textarea spellcheck="false" id="chatinput" rows="4"></textarea>
 

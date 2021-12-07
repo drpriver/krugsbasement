@@ -1,3 +1,10 @@
+const enum INDEX {
+    TYPE = 0,
+    ID = 1,
+    BASE_X = 2,
+    BASE_Y = 3,
+    FLAGS = 4,
+}
 interface Bbox {
     // These are relative to some base_x, base_y.
     x0: number;
@@ -140,14 +147,32 @@ type GridLine = {
 //  An axis-aligned box.
 //  base_x and base_y is the top-left corner of the box.
 
-// Stripped rectangles are the same as regular Rectangle.
-type Rectangle = StrippedRectangle;
+type Rectangle = {
+    type: CANVASTYPE.RECT,
+    id: number,
+    base_x: number,
+    base_y: number,
+    flags: CANVASFLAG,
+    color: string,
+    width: number,
+    height: number,
+}
 
 //  filled-rectangle
 //  ---------
 //  An axis-aligned box, but the center is filled with 'color2'
 //  base_x and base_y is the top-left corner of the box.
-type FilledRectangle = StrippedFilledRectangle;
+type FilledRectangle = {
+    type: CANVASTYPE.FILLED_RECT,
+    id: number,
+    base_x: number,
+    base_y: number,
+    flags: CANVASFLAG,
+    color: string,
+    color2: string,
+    width: number,
+    height: number,
+}
 //  grid-rectangle
 //  ---------
 //  An axis-aligned box, whose corners snap to the grid.
@@ -155,8 +180,16 @@ type FilledRectangle = StrippedFilledRectangle;
 //  grid-line.
 //  base_x and base_y is the top-left corner of the box.
 
-// Stripped Grid Rectangles are the same as regular rectangles.
-type GridRectangle = StrippedGridRectangle;
+type GridRectangle = {
+    type: CANVASTYPE.GRID_RECT,
+    id: number,
+    base_x: number,
+    base_y: number,
+    flags: CANVASFLAG,
+    color: string,
+    width: number,
+    height: number,
+}
 
 const ELLIPSETYPE_MAX = ELLIPSETYPE.FILLED+1;
 const ELLIPSETYPE_TO_NAME = [
@@ -173,8 +206,18 @@ let current_ellipse = ELLIPSETYPE.HOLLOW;
 //  base_x and base_y is the center of the ellipse.
 //  We only allow axis-aligned ellipses.
 //
-// Stripped Ellipses are the same as regular ellipses.
-type Ellipse = StrippedEllipse;
+type Ellipse = {
+    type: CANVASTYPE.ELLIPSE,
+    id: number,
+    base_x: number,
+    base_y: number,
+    flags: CANVASFLAG,
+    color: string,
+    color2: string,
+    width: number,
+    height: number,
+    variant: ELLIPSETYPE,
+}
 
 //  image
 //  -----
@@ -240,8 +283,18 @@ const STATUSICONS = (function(){
 //  --------
 //  A token that just has a simple text label.
 
-// stripped EzToken is the same as a regular EzToken
-type EzToken = StrippedEzToken;
+type EzToken = {
+    type: CANVASTYPE.EZ_TOKEN,
+    id: number,
+    base_x: number,
+    base_y: number,
+    flags: CANVASFLAG
+    text: string,
+    color: string,
+    width: number, // in squares (?)
+    height: number, // in squares (?)
+    statusflags: TOKENSTATUSFLAGS,
+}
 
 //  img-token
 //  --------
@@ -262,17 +315,45 @@ type ImgToken = {
 //  ----
 //  A door.
 // stripped doors are the same as regular doors.
-type DoorObj = StrippedDoorObj;
+type DoorObj = {
+    type: CANVASTYPE.DOOR,
+    id: number,
+    base_x: number,
+    base_y: number,
+    flags: CANVASFLAG
+    doortype: DOORTYPE
+    color: string,
+    width: number, // in squares (?)
+    orientation: ORIENTATION,
+}
 
 
 // stripped stairs are the same as regular stairs.
-type Stairs = StrippedStairs;
+type Stairs = {
+    type: CANVASTYPE.STAIRS,
+    id: number,
+    base_x: number,
+    base_y: number,
+    flags: CANVASFLAG,
+    width: number, // in squares
+    height: number, // in squares
+    rotation: ROTATION,
+}
 
 // Measure
 // -------
 // This is a weird object, but it is the measurement tool.
 // stripped measure is the same as regular measure.
-type MeasureObj = StrippedMeasureObj ;
+type MeasureObj = {
+    type: CANVASTYPE.MEASURE,
+    id: number,
+    base_x: number,
+    base_y: number,
+    flags: CANVASFLAG
+    color: string,
+    x1: number,
+    y1: number,
+}
 
 const FIXTURETYPE_MAX = FIXTURETYPE.RUBBLE + 1;
 const FIXTURETYPE_TO_NAME = [
@@ -291,7 +372,16 @@ const FIXTURETYPE_TO_NAME = [
 // For dungeon fixtures, like rubble or pits.
 
 // stripped fixture obj is the same as regular fixtures.
-type FixtureObj = StrippedFixtureObj;
+type FixtureObj = {
+    type: CANVASTYPE.FIXTURE,
+    id: number,
+    base_x: number,
+    base_y: number,
+    flags: CANVASFLAG,
+    width: number,
+    height: number,
+    ftype: FIXTURETYPE,
+}
 
 let current_tile_type = TILETYPE.FILLED;
 let current_terrain_id: number = 0;
@@ -308,7 +398,15 @@ const TILETYPE_TO_NAME = [
 // FilledTile
 // ----------
 
-type FilledTile = StrippedFilledTile;
+type FilledTile = {
+    type: CANVASTYPE.FILLED_TILE,
+    id: number,
+    base_x: number,
+    base_y: number,
+    flags: CANVASFLAG,
+    color: string,
+    size: number,
+}
 
 // TerrainTile
 // -----------
@@ -2016,7 +2114,7 @@ function do_one_undo(map:DungeonMap):void{
             for(let i = 0; i < length; i++){
                 const obj = map.canvas_objs.get(ids[i])!;
                 obj.flags &= ~CANVASFLAG.DELETED;
-                stripped[i].flags &= ~CANVASFLAG.DELETED;
+                stripped[i][INDEX.FLAGS] &= ~CANVASFLAG.DELETED;
             }
             // maybe there should be an undelete?
             publish_obj_updates(map.map_id, stripped);
@@ -2362,15 +2460,15 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
     let x0 = 0;
     let y0 = 0;
     if(length){
-        x0 = copied_objs[0].base_x;
-        y0 = copied_objs[0].base_y;
+        x0 = copied_objs[0][INDEX.BASE_X];
+        y0 = copied_objs[0][INDEX.BASE_Y];
     }
     for(let i = 0; i < length; ++i){
         const stripped = copied_objs[i];
-        if(stripped.base_x < x0)
-            x0 = stripped.base_x;
-        if(stripped.base_y < y0)
-            y0 = stripped.base_y;
+        if(stripped[INDEX.BASE_X] < x0)
+            x0 = stripped[INDEX.BASE_X];
+        if(stripped[INDEX.BASE_Y] < y0)
+            y0 = stripped[INDEX.BASE_Y];
     }
     const dx = x - x0;
     const dy = y - y0;
@@ -2526,9 +2624,9 @@ function set_obj_states_from_stripped_objs(map:DungeonMap, obj_states:Array<Stri
     const length = obj_states.length;
     for(let i = 0; i < length; ++i){
         const state = obj_states[i];
-        const obj: CanvasObject = map.canvas_objs.get(state.id)!;
+        const obj: CanvasObject = map.canvas_objs.get(state[INDEX.ID])!;
         if(!obj){
-            console.log('Updating unknown object??', state.id);
+            console.log('Updating unknown object??', state[INDEX.ID]);
             continue;
         }
         set_obj_from_stripped(obj, state);
@@ -2890,158 +2988,72 @@ function add_canv_obj(map:DungeonMap, obj:CanvasObject):void{
 function strip_obj(obj:CanvasObject): StrippedObj{
     switch(obj.type){
         case CANVASTYPE.FREEHAND_LINE:{
-            const stripped_obj: StrippedFreehandLine = {
-                type: obj.type, id: obj.id, flags: obj.flags,
-                base_x: obj.base_x, base_y: obj.base_y,
-                thickness: obj.thickness,
-                points: Array.from(obj.points),
-                color: obj.color,
-            };
+            const stripped_obj: StrippedFreehandLine = 
+                [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.color, Array.from(obj.points), obj.thickness];
             return stripped_obj;
         }break;
         case CANVASTYPE.GRID_LINE:{
-            const stripped_obj: StrippedGridLine = {
-                type: obj.type, id: obj.id, flags: obj.flags,
-                base_x: obj.base_x, base_y: obj.base_y,
-                points: Array.from(obj.points),
-                color: obj.color,
-            };
-            return stripped_obj;
-        }break;
-        case CANVASTYPE.ELLIPSE:{
-            const stripped_obj: StrippedEllipse = {
-                type: obj.type, id: obj.id, flags: obj.flags,
-                base_x: obj.base_x, base_y: obj.base_y,
-                width: obj.width, height:obj.height,
-                color: obj.color, color2: obj.color2,
-                variant: obj.variant,
-            };
-            return stripped_obj;
-        }break;
-        case CANVASTYPE.FILLED_RECT:{
-            const stripped_obj: StrippedFilledRectangle = {
-                type: obj.type, id: obj.id, flags: obj.flags,
-                base_x: obj.base_x, base_y: obj.base_y,
-                width: obj.width, height:obj.height,
-                color: obj.color, color2: obj.color2,
-            };
+            const stripped_obj: StrippedGridLine = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.color, Array.from(obj.points)];
             return stripped_obj;
         }break;
         case CANVASTYPE.RECT:{
-            const stripped_obj: StrippedRectangle = {
-                type: obj.type, id: obj.id, flags: obj.flags,
-                base_x: obj.base_x, base_y: obj.base_y,
-                width: obj.width, height:obj.height,
-                color: obj.color,
-            };
+            const stripped_obj: StrippedRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.color, obj.width, obj.height];
+            return stripped_obj;
+        }break;
+        case CANVASTYPE.FILLED_RECT:{
+            const stripped_obj: StrippedFilledRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.color, obj.color2, obj.width, obj.height];
             return stripped_obj;
         }break;
         case CANVASTYPE.GRID_RECT:{
-            const stripped_obj: StrippedGridRectangle = {
-                type: obj.type, id: obj.id, flags: obj.flags,
-                base_x: obj.base_x, base_y: obj.base_y,
-                width: obj.width, height:obj.height,
-                color: obj.color,
-            };
+            const stripped_obj: StrippedGridRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.color, obj.width, obj.height];
+            return stripped_obj;
+        }break;
+        case CANVASTYPE.ELLIPSE:{
+            const stripped_obj: StrippedEllipse = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.color, obj.color2, obj.width, obj.height, obj.variant];
             return stripped_obj;
         }break;
         case CANVASTYPE.IMAGE:{
-            const stripped_obj: StrippedImageObj = {
-                type: obj.type, id: obj.id, flags: obj.flags,
-                base_x: obj.base_x, base_y: obj.base_y,
-                width: obj.width, height:obj.height,
-                url: obj.url,
-            };
+            const stripped_obj: StrippedImageObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.width, obj.height, obj.url];
             return stripped_obj;
         }break;
         case CANVASTYPE.TEXT:{
-            const stripped_obj: StrippedTextObj = {
-                type: obj.type, id: obj.id, flags: obj.flags,
-                base_x: obj.base_x, base_y: obj.base_y,
-                text: obj.text, size: obj.size, alignment:obj.alignment,
-            };
+            const stripped_obj: StrippedTextObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.text, obj.size, obj.alignment];
             return stripped_obj;
         }break;
         case CANVASTYPE.EZ_TOKEN:{
-            const stripped_obj: StrippedEzToken = {
-                type: obj.type, id: obj.id, flags: obj.flags,
-                base_x: obj.base_x, base_y: obj.base_y,
-                width: obj.width, height:obj.height,
-                color: obj.color, text: obj.text,
-                statusflags: obj.statusflags,
-            };
+            const stripped_obj: StrippedEzToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.text, obj.color, obj.width, obj.height, obj.statusflags];
             return stripped_obj;
         }break;
         case CANVASTYPE.IMG_TOKEN:{
-            const stripped_obj: StrippedImgToken = {
-                type: obj.type, id: obj.id, flags: obj.flags,
-                base_x: obj.base_x, base_y: obj.base_y,
-                width: obj.width, height:obj.height,
-                url: obj.url,
-                statusflags: obj.statusflags,
-            };
+            const stripped_obj: StrippedImgToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.url, obj.width, obj.height, obj.statusflags];
             return stripped_obj;
         }break;
         case CANVASTYPE.DOOR:{
-            const stripped_obj: StrippedDoorObj = {
-                type: obj.type, id: obj.id, flags: obj.flags,
-                base_x: obj.base_x, base_y: obj.base_y,
-                width: obj.width,
-                color: obj.color,
-                doortype: obj.doortype,
-                orientation: obj.orientation,
-            };
+            const stripped_obj: StrippedDoorObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.doortype, obj.color, obj.width, obj.orientation];
             return stripped_obj;
         }break;
         case CANVASTYPE.STAIRS:{
-            const stripped_obj: StrippedStairs = {
-                type: obj.type, id: obj.id, flags: obj.flags,
-                base_x: obj.base_x, base_y: obj.base_y,
-                width: obj.width, height:obj.height,
-                rotation: obj.rotation,
-            };
+            const stripped_obj: StrippedStairs = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.width, obj.height, obj.rotation];
             return stripped_obj;
         }break;
         case CANVASTYPE.MEASURE:{
-            const stripped_obj: StrippedMeasureObj = {
-                type: obj.type, id: obj.id, flags: obj.flags,
-                base_x: obj.base_x, base_y: obj.base_y,
-                x1: obj.x1, y1: obj.y1,
-                color: obj.color,
-            };
+            const stripped_obj: StrippedMeasureObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.color, obj.x1, obj.y1];
             return stripped_obj;
         }break;
         case CANVASTYPE.FIXTURE:{
-            const stripped_obj: StrippedFixtureObj = {
-                type: obj.type, id: obj.id, flags: obj.flags,
-                base_x: obj.base_x, base_y: obj.base_y,
-                width: obj.width, height: obj.height,
-                ftype: obj.ftype,
-            };
+            const stripped_obj: StrippedFixtureObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.width, obj.height, obj.ftype];
             return stripped_obj;
         }break;
         case CANVASTYPE.FILLED_TILE:{
-            const stripped_obj: StrippedFilledTile = {
-                type: obj.type, id: obj.id, flags: obj.flags,
-                base_x: obj.base_x, base_y: obj.base_y,
-                color: obj.color, size: obj.size,
-            };
+            const stripped_obj: StrippedFilledTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.color, obj.size];
             return stripped_obj;
         }break;
         case CANVASTYPE.TERRAIN_TILE:{
-            const stripped_obj: StrippedTerrainTile = {
-                type: obj.type, id: obj.id, flags: obj.flags,
-                base_x: obj.base_x, base_y: obj.base_y,
-                terrain_id: obj.terrain_id,
-            };
+            const stripped_obj: StrippedTerrainTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.terrain_id];
             return stripped_obj;
         }break;
         case CANVASTYPE.ICON_TILE:{
-            const stripped_obj: StrippedIconTile = {
-                type: obj.type, id: obj.id, flags: obj.flags,
-                base_x: obj.base_x, base_y: obj.base_y,
-                terrainicon_id: obj.terrainicon_id,
-            };
+            const stripped_obj: StrippedIconTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.terrainicon_id];
             return stripped_obj;
         }break;
     }
@@ -3051,10 +3063,18 @@ function strip_obj(obj:CanvasObject): StrippedObj{
 // Things like arrays are created fresh to avoid sharing state.
 //
 function unstrip_obj(sobj: StrippedObj):CanvasObject{
-    switch(sobj.type){
+    switch(sobj[INDEX.TYPE]){
         case CANVASTYPE.FREEHAND_LINE:{
             const obj:FreehandLine = {
-                ...sobj,
+                type: CANVASTYPE.FREEHAND_LINE,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                // typescript  is being dumb here
+                color: (sobj as StrippedFreehandLine)[5],
+                points: (sobj as StrippedFreehandLine)[6],
+                thickness: (sobj as StrippedFreehandLine)[7],
                 bbox:{x0:0, x1:0, y0:0, y1:0}
             };
             obj.points = Array.from(obj.points),
@@ -3064,7 +3084,13 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             }break;
         case CANVASTYPE.GRID_LINE:{
             const obj:GridLine = {
-                ...sobj,
+                type: CANVASTYPE.GRID_LINE,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                color:  (sobj as StrippedGridLine)[5],
+                points: (sobj as StrippedGridLine)[6],
                 bbox:{x0:0, x1:0, y0:0, y1:0},
             };
             obj.points = Array.from(obj.points),
@@ -3072,89 +3098,206 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             gridline_recalculate_path(obj);
             return obj;
         }break;
-        case CANVASTYPE.FILLED_RECT:{
-            const obj:FilledRectangle = {...sobj};
-            return obj;
-        }break;
-        case CANVASTYPE.ELLIPSE:{
-            const obj:Ellipse = {...sobj};
-            return obj;
-        }break;
         case CANVASTYPE.RECT:{
-            const obj:Rectangle = {...sobj};
+            const obj:Rectangle = {
+                type: CANVASTYPE.RECT,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                color: (sobj as StrippedRectangle)[5],
+                width: (sobj as StrippedRectangle)[6],
+                height: (sobj as StrippedRectangle)[7],
+            };
+            return obj;
+        }break;
+        case CANVASTYPE.FILLED_RECT:{
+            const obj:FilledRectangle = {
+                type: CANVASTYPE.FILLED_RECT,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                color  : (sobj as StrippedFilledRectangle)[5],
+                color2 : (sobj as StrippedFilledRectangle)[6],
+                width  : (sobj as StrippedFilledRectangle)[7],
+                height : (sobj as StrippedFilledRectangle)[8],
+            };
             return obj;
         }break;
         case CANVASTYPE.GRID_RECT:{
-            const obj: GridRectangle = {...sobj};
+            const obj: GridRectangle = {
+                type: CANVASTYPE.GRID_RECT,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                color  : (sobj as StrippedGridRectangle)[5],
+                width  : (sobj as StrippedGridRectangle)[6],
+                height : (sobj as StrippedGridRectangle)[7],
+            };
+            return obj;
+        }break;
+        case CANVASTYPE.ELLIPSE:{
+            const obj:Ellipse = {
+                type: CANVASTYPE.ELLIPSE,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                color   : (sobj as StrippedEllipse)[5],
+                color2  : (sobj as StrippedEllipse)[6],
+                width   : (sobj as StrippedEllipse)[7],
+                height  : (sobj as StrippedEllipse)[8],
+                variant : (sobj as StrippedEllipse)[9],
+            };
             return obj;
         }break;
         case CANVASTYPE.IMAGE:{
-            const obj: ImageObj = {...sobj};
+            const obj: ImageObj = {
+                type: CANVASTYPE.IMAGE,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                width  : (sobj as StrippedImageObj)[5],
+                height : (sobj as StrippedImageObj)[6],
+                url    : (sobj as StrippedImageObj)[7],
+            };
             delay_load_obj_image(obj, obj.width, obj.height, obj.width?obj.width:64, obj.height?obj.height:64);
             return obj;
         }break;
         case CANVASTYPE.TEXT:{
             const obj: TextObj = {
-                ...sobj,
+                type: CANVASTYPE.TEXT,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                text      : (sobj as StrippedTextObj)[5],
+                size      : (sobj as StrippedTextObj)[6],
+                alignment : (sobj as StrippedTextObj)[7],
                 bbox:{x0:0, x1:0, y0:0, y1:0},
-                lines: sobj.text.split('\n'),
+                lines: (sobj as StrippedTextObj)[5].split('\n'),
                 bboxes: [],
             };
             return obj;
         }break;
         case CANVASTYPE.EZ_TOKEN:{
             const obj: EzToken = {
-                ...sobj,
+                type: CANVASTYPE.EZ_TOKEN,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                text        : (sobj as StrippedEzToken)[5],
+                color       : (sobj as StrippedEzToken)[6],
+                width       : (sobj as StrippedEzToken)[7],
+                height      : (sobj as StrippedEzToken)[8],
+                statusflags : (sobj as StrippedEzToken)[9],
             };
             return obj;
         }break;
         case CANVASTYPE.IMG_TOKEN:{
             const obj: ImgToken = {
-                ...sobj,
+                type: CANVASTYPE.IMG_TOKEN,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                url         : (sobj as StrippedImgToken)[5],
+                width       : (sobj as StrippedImgToken)[6],
+                height      : (sobj as StrippedImgToken)[7],
+                statusflags : (sobj as StrippedImgToken)[8],
             };
             delay_load_obj_image(obj, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH, obj.width, obj.width);
             return obj;
         }break;
         case CANVASTYPE.DOOR:{
             const obj:DoorObj = {
-                ...sobj,
+                type: CANVASTYPE.DOOR,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                doortype    : (sobj as StrippedDoorObj)[5],
+                color       : (sobj as StrippedDoorObj)[6],
+                width       : (sobj as StrippedDoorObj)[7],
+                orientation : (sobj as StrippedDoorObj)[8],
             };
             return obj;
         }break;
         case CANVASTYPE.STAIRS:{
             const obj: Stairs = {
-                ...sobj,
+                type: CANVASTYPE.STAIRS,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                width    : (sobj as StrippedStairs)[5],
+                height   : (sobj as StrippedStairs)[6],
+                rotation : (sobj as StrippedStairs)[7],
             };
             return obj;
         }break;
         case CANVASTYPE.MEASURE:{
             const obj: MeasureObj = {
-                ...sobj,
+                type: CANVASTYPE.MEASURE,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                color : (sobj as StrippedMeasureObj)[5],
+                x1    : (sobj as StrippedMeasureObj)[6],
+                y1    : (sobj as StrippedMeasureObj)[7],
             };
             return obj;
             // all fields are good
         }break;
         case CANVASTYPE.FIXTURE:{
             const obj: FixtureObj = {
-                ...sobj,
+                type: CANVASTYPE.FIXTURE,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                width  : (sobj as StrippedFixtureObj)[5],
+                height : (sobj as StrippedFixtureObj)[6],
+                ftype  : (sobj as StrippedFixtureObj)[7],
             };
             return obj;
         }break;
         case CANVASTYPE.FILLED_TILE:{
             const obj: FilledTile = {
-                ...sobj,
+                type: CANVASTYPE.FILLED_TILE,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                color : (sobj as StrippedFilledTile)[5],
+                size  : (sobj as StrippedFilledTile)[6],
             };
             return obj;
         }break;
         case CANVASTYPE.TERRAIN_TILE:{
             const obj: TerrainTile = {
-                ...sobj,
+                type: CANVASTYPE.TERRAIN_TILE,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                terrain_id: (sobj as StrippedTerrainTile)[5],
             };
             return obj;
         }break;
         case CANVASTYPE.ICON_TILE:{
             const obj: IconTile = {
-                ...sobj,
+                type: CANVASTYPE.ICON_TILE,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                terrainicon_id: (sobj as StrippedIconTile)[5],
             };
             return obj;
         }break;
@@ -3168,43 +3311,47 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
 function set_obj_from_stripped(obj: CanvasObject, state:StrippedObj){
     switch(obj.type){
         case CANVASTYPE.FREEHAND_LINE:{
-            Object.assign(obj, state);
+            const o = unstrip_obj(state);
+            Object.assign(obj, o);
             obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-            obj.points = Array.from((state as StrippedFreehandLine).points);
+            obj.points = Array.from(obj.points);
             freehand_recalculate_bbox(obj);
             freehand_recalculate_path(obj);
         }break;
         case CANVASTYPE.GRID_LINE:{
-            Object.assign(obj, state);
+            const o = unstrip_obj(state);
+            Object.assign(obj, o);
             obj.bbox = {x0:0, x1:0, y0:0, y1:0};
-            obj.points = Array.from((state as StrippedGridLine).points);
+            obj.points = Array.from(obj.points);
             gridline_recalculate_bbox(obj);
             gridline_recalculate_path(obj);
         }break;
         case CANVASTYPE.IMAGE:{
-            const state_ = state as StrippedImageObj;
-            const needs_new_image = (obj.width !== state_.width) || (obj.height !== state_.height) || (obj.url !== state_.url);
-            Object.assign(obj, state);
+            const o = unstrip_obj(state) as ImageObj;
+            const needs_new_image = (obj.width !== o.width) || (obj.height !== o.height) || (obj.url !== o.url);
+            Object.assign(obj, o);
             if(needs_new_image){
                 delay_load_obj_image(obj, obj.width, obj.height, obj.width?obj.width:64, obj.height?obj.height:64);
             }
         }break;
         case CANVASTYPE.IMG_TOKEN:{
-            const state_ = state as StrippedImgToken;
-            const needs_new_image = (obj.width !== state_.width) || (obj.height !== state_.height) || (obj.url !== state_.url);
-            Object.assign(obj, state);
+            const o = unstrip_obj(state) as ImgToken;
+            const needs_new_image = (obj.width !== o.width) || (obj.height !== o.height) || (obj.url !== o.url);
+            Object.assign(obj, o);
             if(needs_new_image){
                 delay_load_obj_image(obj, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH, obj.width, obj.height);
             }
         }break;
         case CANVASTYPE.TEXT:{
-            Object.assign(obj, state);
+            const o = unstrip_obj(state);
+            Object.assign(obj, o);
             obj.bbox = {x0:0, x1:0, y0:0, y1:0};
             obj.bboxes = [];
             obj.lines = obj.text.split('\n');
         }break;
         default:
-            Object.assign(obj, state);
+            const o = unstrip_obj(state);
+            Object.assign(obj, o);
             break;
     }
 

@@ -297,7 +297,7 @@ enum CANVASFLAG: int flag
 //  interpolated together with quadratic curves.
 //  The server can optimize the lines by removing redundant
 //  points.
-struct StrippedFreehandLine: dict
+struct StrippedFreehandLine: array
     type = CANVASTYPE.FREEHAND_LINE
     id = int
     base_x = float
@@ -316,7 +316,7 @@ struct StrippedFreehandLine: dict
 //  When moving this object, movements need to snap to the closest
 //  grid point. When moving multiple objects, all of them need to snap
 //  this way so that their relative positions are maintained.
-struct StrippedGridLine: dict
+struct StrippedGridLine: array
     type = CANVASTYPE.GRID_LINE
     id = int
     base_x = float
@@ -330,7 +330,7 @@ struct StrippedGridLine: dict
 //  ---------
 //  An axis-aligned box.
 //  base_x and base_y is the top-left corner of the box.
-struct StrippedRectangle: dict
+struct StrippedRectangle: array
     type = CANVASTYPE.RECT
     id = int
     base_x = float
@@ -344,7 +344,7 @@ struct StrippedRectangle: dict
 //  ---------
 //  An axis-aligned box, but the center is filled with 'color2'
 //  base_x and base_y is the top-left corner of the box.
-struct StrippedFilledRectangle: dict
+struct StrippedFilledRectangle: array
     type = CANVASTYPE.FILLED_RECT
     id = int
     base_x = float
@@ -361,7 +361,7 @@ struct StrippedFilledRectangle: dict
 //  Same movement restrictions apply to this as apply to the
 //  grid-line.
 //  base_x and base_y is the top-left corner of the box.
-struct StrippedGridRectangle: dict
+struct StrippedGridRectangle: array
     type = CANVASTYPE.GRID_RECT
     id = int
     base_x = float
@@ -381,7 +381,7 @@ enum ELLIPSETYPE:int
 //  base_x and base_y is the center of the ellipse.
 //  We only allow axis-aligned ellipses.
 //
-struct StrippedEllipse: dict
+struct StrippedEllipse: array
     type = CANVASTYPE.ELLIPSE
     id = int
     base_x = float
@@ -395,7 +395,7 @@ struct StrippedEllipse: dict
 
 //  image
 //  -----
-struct StrippedImageObj: dict
+struct StrippedImageObj: array
     type = CANVASTYPE.IMAGE
     id = int
     base_x = float
@@ -412,7 +412,7 @@ enum TEXTALIGNMENT: int
 
 //  text
 //  ----
-struct StrippedTextObj: dict
+struct StrippedTextObj: array
     type = CANVASTYPE.TEXT
     id = int
     base_x = float
@@ -446,7 +446,7 @@ enum TOKENSTATUSFLAGS: int flag
 //  ez-token
 //  --------
 //  A token that just has a simple text label.
-struct StrippedEzToken: dict
+struct StrippedEzToken: array
     type = CANVASTYPE.EZ_TOKEN
     id = int
     base_x = float
@@ -461,7 +461,7 @@ struct StrippedEzToken: dict
 //  img-token
 //  --------
 //  A token that has an image as its contents.
-struct StrippedImgToken: dict
+struct StrippedImgToken: array
     type = CANVASTYPE.IMG_TOKEN
     id = int
     base_x = float
@@ -491,7 +491,7 @@ enum ORIENTATION: int
 //  door
 //  ----
 //  A door.
-struct StrippedDoorObj: dict
+struct StrippedDoorObj: array
     type = CANVASTYPE.DOOR
     id = int
     base_x = float
@@ -509,7 +509,7 @@ enum ROTATION: int
     DOWN  = 4
     LEFT  = 6
 
-struct StrippedStairs: dict
+struct StrippedStairs: array
     type = CANVASTYPE.STAIRS
     id = int
     base_x = float
@@ -522,7 +522,7 @@ struct StrippedStairs: dict
 // Measure
 // -------
 // This is a weird object, but it is the measurement tool.
-struct StrippedMeasureObj: dict
+struct StrippedMeasureObj: array
     type = CANVASTYPE.MEASURE
     id = int
     base_x = float
@@ -541,7 +541,7 @@ enum FIXTURETYPE: int
 // Fixture
 // ----------
 // For dungeon fixtures, like rubble or pits.
-struct StrippedFixtureObj: dict
+struct StrippedFixtureObj: array
     type = CANVASTYPE.FIXTURE
     id = int
     base_x = float
@@ -558,7 +558,7 @@ enum TILETYPE: int
 
 // FilledTile
 // ----------
-struct StrippedFilledTile: dict
+struct StrippedFilledTile: array
     type = CANVASTYPE.FILLED_TILE
     id = int
     base_x = float
@@ -569,17 +569,17 @@ struct StrippedFilledTile: dict
 
 // TerrainTile
 // -----------
-struct StrippedTerrainTile: dict
+struct StrippedTerrainTile: array
     type = CANVASTYPE.TERRAIN_TILE
     id = int
     base_x = float
     base_y = float
     flags = CANVASFLAG
-    terrain_id = float
+    terrain_id = int
 
 // IconTile
 // --------
-struct StrippedIconTile: dict
+struct StrippedIconTile: array
     type = CANVASTYPE.ICON_TILE
     id = int
     base_x = float
@@ -598,7 +598,7 @@ struct StrippedIconTile: dict
 // This allows most handling of the objects to work on the generic shared
 // subset (like translating x pixels or setting a flag).
 
-union StrippedObj: dict
+union StrippedObj: array
     StrippedFreehandLine
     StrippedGridLine
     StrippedRectangle
