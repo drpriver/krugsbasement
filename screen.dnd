@@ -1,4 +1,4 @@
-David20::title @hide
+David20::title #hide
 ::raw
   <div id="disconnect" style="display:none;">
   You are currently not connected. Inputs will be buffered and sent upon
@@ -262,61 +262,61 @@ David20::title @hide
     <div id="float-variables-container" class="window-container">
     </div>
   </div>
-::div @id(editorcontainer)
-  ::div @id(views)
+::div #id(editorcontainer)
+  ::div #id(views)
     ::raw
       <canvas id="map"></canvas>
       <div id="right-split" style="display:none;"></div>
 
-::div @id(tool-container)
-  ::div @id(tool-container-handle)
-  ::div @id(tools)
-    ::div.tool @id(pan-tool)
+::div #id(tool-container)
+  ::div #id(tool-container-handle)
+  ::div #id(tools)
+    ::div.tool #id(pan-tool)
       Pa<b>n</b>
-    ::div.tool @id(select-tool)
+    ::div.tool #id(select-tool)
       <b>S</b>elect
-    ::div.tool-menu @id(select-tool-menu)
+    ::div.tool-menu #id(select-tool-menu)
       ☰
-    ::div.tool @id(wall-tool)
+    ::div.tool #id(wall-tool)
       W<b>a</b>ll
-    ::div.tool @id(door-tool)
+    ::div.tool #id(door-tool)
       <b>D</b>oor
-    ::div.tool-menu @id(door-tool-menu)
+    ::div.tool-menu #id(door-tool-menu)
       ☰
-    ::div.tool @id(fixture-tool)
+    ::div.tool #id(fixture-tool)
       <b>F</b>ixture
-    ::div.tool-menu @id(fixture-tool-menu)
+    ::div.tool-menu #id(fixture-tool-menu)
       ☰
-    ::div.tool @id(line-tool)
+    ::div.tool #id(line-tool)
       <b>L</b>ine
     ::raw
       <input type="number" id="line-thickness" value="4" max="20" min="1">
-    ::div.tool @id(rect-tool)
+    ::div.tool #id(rect-tool)
       <b>R</b>ect
-    ::div.tool-menu @id(rect-tool-menu)
+    ::div.tool-menu #id(rect-tool-menu)
       ☰
-    ::div.tool @id(ellipse-tool)
+    ::div.tool #id(ellipse-tool)
       Elli<b>p</b>se
-    ::div.tool-menu @id(ellipse-tool-menu)
+    ::div.tool-menu #id(ellipse-tool-menu)
       ☰
-    ::div.tool @id(text-tool)
+    ::div.tool #id(text-tool)
       <b>T</b>ext
-    ::div.tool @id(token-tool)
+    ::div.tool #id(token-tool)
       T<b>o</b>ken
-    ::div.tool-menu @id(token-tool-menu)
+    ::div.tool-menu #id(token-tool-menu)
       ☰
-    ::div.tool @id(image-tool)
+    ::div.tool #id(image-tool)
       <b>I</b>mage
-    ::div.tool @id(tile-tool)
+    ::div.tool #id(tile-tool)
       Tile <b>k</b>
-    ::div.tool-menu @id(tile-tool-menu)
+    ::div.tool-menu #id(tile-tool-menu)
       ☰
-    ::div.tool @id(measure-tool)
+    ::div.tool #id(measure-tool)
       <b>M</b>easure
-    ::div.tool @id(help-tool)
+    ::div.tool #id(help-tool)
       Help
-  ::div @id(stuff)
-    ::div @id(colors)
+  ::div #id(stuff)
+    ::div #id(colors)
       ::raw
         <input type="color" id="color-picker" value="#000000"><span id="color-picker-dropdown" style="cursor:pointer;width:2em;text-align:center;">▼</span>
         <input type="color" id="color-picker2" value="#ffffff"><span id="color-picker2-dropdown" style="cursor:pointer;width:2em;text-align:center;">▼</span>
@@ -339,9 +339,9 @@ David20::title @hide
         <label for="grid-snap-quarter">2½' </label>
         <input type="radio" id="grid-snap-free" name="snap-to-grid" value="FREE">
         <label for="grid-snap-free">Free</label>
-::div @id(palette)
-::div.chat @id(chat)
-  ::div @id(tree)
+::div #id(palette)
+::div.chat #id(chat)
+  ::div #id(tree)
     ::raw
       <table id="views-buttons-container" style="border-collapse: collapse">
         <tr style="border-bottom: 1px solid grey; max-width: 100%;">
@@ -357,11 +357,11 @@ David20::title @hide
           <td><button id="tables-button">Tables…</button></td>
         </tr>
       </table>
-  ::div.log @id(chat-history)
-  ::div @id(macros)
-    ::div @id(macro-tabs)
-    ::div @id(macro-buttons)
-    ::div @id(chat-buttons)
+  ::div.log #id(chat-history)
+  ::div #id(macros)
+    ::div #id(macro-tabs)
+    ::div #id(macro-buttons)
+    ::div #id(chat-buttons)
       ::raw
         <button id="chat-options">Options…</button>
         <button id="macros-button">Macros…</button>
@@ -1020,7 +1020,7 @@ David20::title @hide
     touch-action: none;
   }
   /*endcss*/
-::script @noinline
+::script #noinline
   https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js
-::script @import
+::script #import
   combined.js

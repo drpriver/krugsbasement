@@ -32,7 +32,6 @@ def save_canvas(maps:Dict[int, Map]) -> List[MapDict]:
     return [v.with_live_objs() for v in maps.values() if not (v.flags & MapFlags.DELETED)]
 
 def arrayify(objects):
-    print('arrayify')
     result = []
     def get(*args):
         try:
