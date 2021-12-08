@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+extern void*memmem(const void*, size_t, const void*, size_t);
 enum {
     FILE_ERROR = 1,
     FILE_NOT_OPENED = 2,

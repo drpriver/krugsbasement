@@ -116,7 +116,7 @@ class UnionInfo:
         self.variant_types.add(type)
         self.variants.append((type, comment))
 
-Info = Union[EnumInfo, StructInfo, UnionInfo | CommentInfo]
+Info = Union[EnumInfo, StructInfo, UnionInfo , CommentInfo]
 
 def get_values() -> List[Info]:
     fp = open(INPUT, encoding='utf-8')
