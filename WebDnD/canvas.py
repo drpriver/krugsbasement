@@ -183,7 +183,9 @@ def handle_update(room:str, data:CanvasUpdateMessage) -> CanvasUpdateMessage:
     OBJS_BY_ID = MAP_OBJS_BY_ID[room][map_id]
     obj_states = data['obj_states']
     for obj_state in obj_states:
-        OBJS_BY_ID[obj_state[1]] = obj_state
+        obj_id = obj_state[1]
+        # This must mutate the array!
+        OBJS_BY_ID[obj_id][:] = obj_state
     return data
 
 def clear(room:str) -> None:
