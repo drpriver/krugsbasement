@@ -78,5 +78,6 @@ mypy:
 Bin/meta: meta.c
 	$(CC) $< -o $@
 
-nodes.ts: Bin/meta
-	./meta > nodes.ts
+.PHONY: nodegen
+nodegen: Bin/meta
+	Bin/meta > nodes.ts
