@@ -74,19 +74,19 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>){
 }
 
 SOCKET.on(ToClient.CHAT_STRUCTURED_MSG, function(msgs:Array<ChatMsg>){
-    const log = document.getElementById('chat-history')!;
+    const log = by_id('chat-history');
     add_chat_msgs(log, msgs);
     log.scrollTo({behavior:'smooth', top:log.scrollHeight});
 });
 
 SOCKET.on(ToClient.CHAT_CREATE, function(msgs:Array<ChatMsg>){
-    const log = document.getElementById('chat-history')!;
+    const log = by_id('chat-history');
     add_chat_msgs(log, msgs);
     log.scrollTop = log.scrollHeight;
 });
 
 function clear_chat(){
-    const log = document.getElementById('chat-history')!;
+    const log = by_id('chat-history');
     log.innerHTML = '';
 }
 SOCKET.on(ToClient.CHAT_CLEAR, function(){
@@ -94,7 +94,7 @@ SOCKET.on(ToClient.CHAT_CLEAR, function(){
 });
 
 function resize_chat(){
-    const hist = document.getElementById('chat-history')!;
+    const hist = by_id('chat-history');
     hist.scrollTo({top:hist.scrollHeight});
 }
 
@@ -200,8 +200,8 @@ document.addEventListener('DOMContentLoaded', function(){
         update_list();
         make_active(current_macro);
     }
-    const button: HTMLButtonElement = get_by_id('macros-button');
-    const label: HTMLSpanElement = get_by_id('macro-category-label');
+    const button = by_id('macros-button');
+    const label = by_id('macro-category-label');
     let macros_is_open = false;
     button.addEventListener('click', function(){
         if(macros_is_open) return;
@@ -217,15 +217,15 @@ document.addEventListener('DOMContentLoaded', function(){
         make_active(current_macro);
         ensure_window_is_completely_on_screen(macros_window);
     });
-    const macros_window   : HTMLDivElement      = get_by_id('macros-window');
-    const editor_container: HTMLDivElement      = get_by_id('macro-editor');
-    const move_handle     : HTMLDivElement      = get_by_id('macros-window-handle');
-    const macro_area      : HTMLTextAreaElement = get_by_id('macro-view-edit');
-    const macro_group_area: HTMLTextAreaElement = get_by_id('macro-view-group');
-    const macro_title_area: HTMLTextAreaElement = get_by_id('macro-view-title');
-    const del_macro_button: HTMLButtonElement   = get_by_id('delete-macro');
-    const new_macro       : HTMLButtonElement   = get_by_id('new-macro');
-    const log             : HTMLDivElement      = get_by_id('macro-test-log');
+    const macros_window    = by_id('macros-window');
+    const editor_container = by_id('macro-editor');
+    const move_handle      = by_id('macros-window-handle');
+    const macro_area       = by_id('macro-view-edit');
+    const macro_group_area = by_id('macro-view-group');
+    const macro_title_area = by_id('macro-view-title');
+    const del_macro_button = by_id('delete-macro');
+    const new_macro        = by_id('new-macro');
+    const log              = by_id('macro-test-log');
     new_macro.addEventListener('click', function(){
         let new_macro: Macro;
         if(current_macro){
@@ -250,7 +250,7 @@ document.addEventListener('DOMContentLoaded', function(){
         update_list();
         make_active(new_macro);
     });
-    const test_button: HTMLButtonElement = get_by_id('test-macro');
+    const test_button = by_id('test-macro');
     test_button.addEventListener('click', function(){
         if(!current_macro) return;
         let commands = evaluate(current_macro.body, EvaluateFlags.NONE);
@@ -262,14 +262,14 @@ document.addEventListener('DOMContentLoaded', function(){
             });
         }
     });
-    const use_button: HTMLButtonElement = get_by_id('use-macro');
+    const use_button = by_id('use-macro');
     use_button.addEventListener('click', function(){
         if(!current_macro) return;
         preprocess_and_send_chat(current_macro.body);
     });
 
-    const macros_list: HTMLDivElement = get_by_id('macros-list');
-    const macros_group_list: HTMLDivElement = get_by_id('macros-group-list');
+    const macros_list = by_id('macros-list');
+    const macros_group_list = by_id('macros-group-list');
     del_macro_button.addEventListener('click', function(){
         make_ok_dialog(`
             <h2>Delete Macro</h2>
@@ -280,14 +280,14 @@ document.addEventListener('DOMContentLoaded', function(){
             </tr>
             </table>`,
             function (e:HTMLElement){
-                const delete_checkbox: HTMLInputElement = get_by_id('hover-delete-macro');
+                const delete_checkbox = by_id('hover-delete-macro');
                 const should_delete = delete_checkbox.checked;
                 if(should_delete && current_macro !== null){
                     delete_macro(current_macro);
                 }
             });
     });
-    const macro_close = get_by_id('macros-close');
+    const macro_close = by_id('macros-close');
     setup_window_size(macros_window);
     let make_top = setup_zsorted_window(macros_window);
     setup_movable_window(macros_window, move_handle);
@@ -424,8 +424,8 @@ function add_macro_button(name:string, group:string, macro_index:number){
     });
     let macrogroup = MACROGROUPS.get(group);
     if(!macrogroup){
-        const macro_tabs = document.getElementById('macro-tabs') as HTMLDivElement;
-        const macro_buttons = document.getElementById('macro-buttons') as HTMLDivElement;
+        const macro_tabs = by_id('macro-tabs');
+        const macro_buttons = by_id('macro-buttons');
         const tab = elem_with_text('div', group?group:"General");
         tab.classList.add('macro-group-title');
         macro_tabs.appendChild(tab);
@@ -462,10 +462,10 @@ function clear_macro_buttons(){
     for(let mb of macro_buttons){
         mb.remove();
     }
-    const macros_tabs = Array.from(document.getElementById('macro-tabs')!.children);
+    const macros_tabs = Array.from(by_id('macro-tabs').children);
     for(let m of macros_tabs)
         m.remove();
-    const macros_buttons = Array.from(document.getElementById('macro-buttons')!.children);
+    const macros_buttons = Array.from(by_id('macro-buttons').children);
     for(let m of macros_buttons)
         m.remove();
     MACROGROUPS.clear();
@@ -548,9 +548,9 @@ function import_settings(e:MouseEvent, remove_hoverpop:()=>void){
                 }
                 if(new_settings.chatname){
                     setchatname(new_settings.chatname);
-                    const name = document.getElementById('hover-chatname');
+                    const name = by_id('hover-chatname');
                     if(name){
-                        (name as HTMLInputElement).value = new_settings.chatname;
+                        name.value = new_settings.chatname;
                     }
                 }
             remove_hoverpop();
@@ -573,7 +573,7 @@ function chat_options_dialog(){
     hover_is_open = true;
     const hoverpop = elem('section', null, 'hover');
     const is_dev = CHATNAME == 'dev';
-    const pan_tool = document.getElementById('pan-tool')!;
+    const pan_tool = by_id('pan-tool');
     let html = `
     <h2>Options</h2>
     <table class="input-container">
@@ -618,11 +618,11 @@ function chat_options_dialog(){
     hoverpop.innerHTML = html;
     document.body.appendChild(hoverpop);
     {
-    const dark_auto:HTMLInputElement = get_by_id('dark-mode-auto');
+    const dark_auto = by_id('dark-mode-auto');
     dark_auto.addEventListener('change', function(){change_dark_mode(DarkMode.SYSTEM);});
-    const dark_light:HTMLInputElement = get_by_id('dark-mode-light');
+    const dark_light = by_id('dark-mode-light');
     dark_light.addEventListener('change', function(){change_dark_mode(DarkMode.LIGHT);});
-    const dark_dark:HTMLInputElement = get_by_id('dark-mode-dark');
+    const dark_dark = by_id('dark-mode-dark');
     dark_dark.addEventListener('change', function(){change_dark_mode(DarkMode.DARK);});
     }
 
@@ -630,27 +630,27 @@ function chat_options_dialog(){
         document.body.removeChild(hoverpop);
         hover_is_open = false;
     }
-    get_by_id('export-settings').addEventListener('click', export_settings);
-    get_by_id('import-settings').addEventListener('click', function(e:MouseEvent){
+    by_id('export-settings').addEventListener('click', export_settings);
+    by_id('import-settings').addEventListener('click', function(e:MouseEvent){
         import_settings(e, remove_hoverpop);
     });
-    const ok = get_by_id('hoverpop-ok');
+    const ok = by_id('hoverpop-ok');
     function submit(){
         if(is_dev){
-            const show_fps:HTMLInputElement = get_by_id('show-fps');
+            const show_fps = by_id('show-fps');
             SHOW_FPS = show_fps.checked;
             request_render();
         }
-        const chatname_el:HTMLInputElement = get_by_id('hover-chatname');
+        const chatname_el = by_id('hover-chatname');
         setchatname(chatname_el.value);
-        const hide_pan:HTMLInputElement = get_by_id('hide-pan');
+        const hide_pan = by_id('hide-pan');
         change_pan_visibility(!hide_pan.checked);
         remove_hoverpop();
     }
     ok.addEventListener('click', function(){
         submit();
     });
-    const cancel = get_by_id('hoverpop-cancel');
+    const cancel = by_id('hoverpop-cancel');
     cancel.addEventListener('click', function(){
         remove_hoverpop();
     });
@@ -677,13 +677,13 @@ function chat_options_dialog(){
 
 document.addEventListener('DOMContentLoaded', function(){
     resize_chat();
-    const tables_button = get_by_id('tables-button');
+    const tables_button = by_id('tables-button');
     tables_button.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
         tables_button_dialog();
     });
-    const options_button = get_by_id('chat-options');
+    const options_button = by_id('chat-options');
     options_button.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
@@ -691,7 +691,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
 
     window.addEventListener('resize', resize_chat);
-    const ta:HTMLTextAreaElement = get_by_id('chatinput');
+    const ta = by_id('chatinput');
     const history: Array<string> = [];
     let history_index = 0;
     let current_text = "";
@@ -1176,8 +1176,8 @@ function tables_button_dialog(){
 }
 
 document.addEventListener('DOMContentLoaded', function(){
-    const container: HTMLDivElement = get_by_id('tool-container');
-    const handle: HTMLDivElement = get_by_id('tool-container-handle');
+    const container = by_id('tool-container');
+    const handle = by_id('tool-container-handle');
     setup_movable_window(container, handle);
     setup_zsorted_window(container);
     ensure_window_is_completely_on_screen(container);
@@ -1255,13 +1255,13 @@ function get_script_variables():Map<string, Map<string, number|string>>{
 }
 
 document.addEventListener('DOMContentLoaded', function(){
-    const var_button: HTMLButtonElement = get_by_id('variables-button');
-    const var_window: HTMLDivElement    = get_by_id('variables-window');
-    const var_handle: HTMLDivElement    = get_by_id('variables-window-handle');
-    const var_close : HTMLSpanElement   = get_by_id('variables-close');
-    const var_groups: HTMLDivElement    = get_by_id('variables-group-list');
-    const var_table:  HTMLDivElement    = get_by_id('variables-table');
-    const var_group_name: HTMLInputElement = get_by_id('variable-group-name');
+    const var_button = by_id('variables-button');
+    const var_window = by_id('variables-window');
+    const var_handle = by_id('variables-window-handle');
+    const var_close  = by_id('variables-close');
+    const var_groups = by_id('variables-group-list');
+    const var_table  = by_id('variables-table');
+    const var_group_name = by_id('variable-group-name');
     var_group_name.addEventListener('input', function(){
         let new_group = var_group_name.value;
         for(let sv of SCRIPTVARIABLES){
@@ -1271,12 +1271,12 @@ document.addEventListener('DOMContentLoaded', function(){
         active_group = new_group;
         setup();
     });
-    const var_add_group: HTMLButtonElement = get_by_id('variables-add-category');
+    const var_add_group = by_id('variables-add-category');
     var_add_group.addEventListener('click', function(){
         active_group = 'Untitled';
         setup();
     })
-    const var_add_var: HTMLButtonElement = get_by_id('variable-add-variable');
+    const var_add_var = by_id('variable-add-variable');
     var_add_var.addEventListener('click', function(){
         let sv = {
             group: active_group,
@@ -1471,9 +1471,9 @@ document.addEventListener('DOMContentLoaded', function(){
         if(a > b) return 1;
         return 0;
     }
-    const float_window:HTMLDivElement = get_by_id('float-variables-window');
-    const float_handle:HTMLDivElement = get_by_id('float-variables-window-handle');
-    const float_container:HTMLDivElement = get_by_id('float-variables-container');
+    const float_window = by_id('float-variables-window');
+    const float_handle = by_id('float-variables-window-handle');
+    const float_container = by_id('float-variables-container');
     let float_top = setup_zsorted_window(float_window);
     function show_float(){
         SCRIPTVARIABLES.sort((a, b) =>{

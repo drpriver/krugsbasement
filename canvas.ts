@@ -912,18 +912,18 @@ function visually_set_gridscale(newscale:GRIDSCALE){
     // change_gridscale(newscale);
     switch(newscale){
         case GRIDSCALE.TEN:{
-            const g = document.getElementById('grid-10')!;
+            const g = by_id('grid-10');
             g.click();
         }break;
         case GRIDSCALE.FIVE:{
-            const g = document.getElementById('grid-5')!;
+            const g = by_id('grid-5');
             g.click();
         }break;
     }
 }
 document.addEventListener('DOMContentLoaded', function(){
     function do_it(id:string, scale:GRIDSCALE){
-        const grid10 = document.getElementById(id) as HTMLInputElement;
+        const grid10: HTMLInputElement = get_by_id(id);
         grid10.addEventListener('change', function(){
             change_gridscale(grid10.value as GRIDSCALE);
         });
@@ -945,10 +945,10 @@ function invisibly_change_snapmode(mode:SNAPMODE){
     snapmode = mode;
 }
 function visually_set_snapmode(mode:SNAPMODE){
-    const snap_grid = document.getElementById('grid-snap-grid') as HTMLInputElement;
-    const snap_half = document.getElementById('grid-snap-half') as HTMLInputElement;
-    const snap_quarter = document.getElementById('grid-snap-quarter') as HTMLInputElement;
-    const snap_free = document.getElementById('grid-snap-free') as HTMLInputElement;
+    const snap_grid    = by_id('grid-snap-grid');
+    const snap_half    = by_id('grid-snap-half');
+    const snap_quarter = by_id('grid-snap-quarter');
+    const snap_free    = by_id('grid-snap-free');
     switch(mode){
         case SNAPMODE.GRID:
             snap_grid.click();
@@ -966,7 +966,7 @@ function visually_set_snapmode(mode:SNAPMODE){
 }
 document.addEventListener('DOMContentLoaded', function(){
     function do_it(id:string, mode:SNAPMODE){
-        const snap = document.getElementById(id) as HTMLInputElement;
+        const snap: HTMLInputElement = get_by_id(id);
         snap.addEventListener('change', function(){
             invisibly_change_snapmode(snap.value as SNAPMODE);
         });
@@ -1080,7 +1080,7 @@ function change_active_map_view(idx: number, from_select:boolean, store:boolean)
     request_render();
     if(from_select)
         return;
-    const select = document.getElementById('current-map-name') as HTMLSelectElement;
+    const select = by_id('current-map-name');
     for(let i = 0; i < select.options.length; i++){
         if(+select.options[i].value == dungeon_map_views[idx].map.map_id){
             select.selectedIndex = i;
@@ -1089,7 +1089,7 @@ function change_active_map_view(idx: number, from_select:boolean, store:boolean)
     }
 }
 document.addEventListener('DOMContentLoaded', function(){
-    const select = document.getElementById('current-map-name') as HTMLSelectElement;
+    const select = by_id('current-map-name');
     select.addEventListener('input', function(e:Event){
         e.stopPropagation();
         change_map(+select.value, true);
@@ -1129,7 +1129,7 @@ function get_map(map_id:number): DungeonMap {
     option.innerText = 'Untitled';
     option.value = ""+map_id;
     MapOptionElements.set(map_id, option);
-    const select = document.getElementById('current-map-name') as HTMLSelectElement;
+    const select = by_id('current-map-name');
     select.options.add(option);
     return new_map;
 }
@@ -1246,15 +1246,12 @@ function zoom_out(view:DungeonMapView):void{
 function resize_canvas():void{
     canvas = document.getElementsByTagName('canvas')[0]!;
     ctx = canvas.getContext('2d')!;
-    const chat_rect = document.getElementById('chat')!.getBoundingClientRect();
-    const note = document.getElementById('note');
-    const right_width = note?note.getBoundingClientRect().width:0;
+    const chat_rect = by_id('chat').getBoundingClientRect();
     const ww = window.innerWidth;
     const wh = window.innerHeight;
     let width = ww;
     let height = wh;
     width -= chat_rect.width;
-    width -= right_width;
     width |= 0;
     height |= 0;
     canvas.width = width;
@@ -2518,7 +2515,7 @@ function delete_map(map_id:number){
         return;
     }
     map.flags |= MapFlags.DELETED;
-    const select = document.getElementById('current-map-name') as HTMLSelectElement;
+    const select = by_id('current-map-name');
     let prev_idx = select.selectedIndex-1;
     if(prev_idx < 0)
         prev_idx = 0;
@@ -2548,7 +2545,7 @@ SOCKET.on(ToClient.CANVAS_INITIALIZE_MAPS, function(msgs:Array<{map_id:number; m
         MAPS.clear()
         dungeon_map_views = []
         active_map_view_index = 0;
-        const select = document.getElementById('current-map-name') as HTMLSelectElement;
+        const select = by_id('current-map-name');
         while(select.options.length){
             select.remove(0);
         }
@@ -3578,17 +3575,17 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 </table>
             `;
             make_ok_dialog(html, function(hoverpop){
-                const text = (document.getElementById('hover-url') as HTMLInputElement).value;
+                const text = by_id('hover-url').value;
                 if(!text || !text.trim()){
                     return;
                 }
-                let width = +(document.getElementById('hover-width') as HTMLInputElement).value;
-                let height = +(document.getElementById('hover-height') as HTMLInputElement).value;
+                let width = +by_id('hover-width').value;
+                let height = +by_id('hover-height').value;
                 if(!width)
                     width = 0;
                 if(!height)
                     height = 0;
-                const round = (document.getElementById('hover-checkbox') as HTMLInputElement).checked;
+                const round = by_id('hover-checkbox').checked;
                 if(round){
                     width = snap_to_grid(width);
                     height = snap_to_grid(height);
@@ -3630,28 +3627,28 @@ function launch_edit_dialog(view:DungeonMapView):void{
                     <td>Link To:
                     <td><select id="text-link-dungeon">
                         <option value="-1">No Link</option>
-                    ${get_by_id('current-map-name').innerHTML}
+                    ${by_id('current-map-name').innerHTML}
                     }</select>
                     </td>
                 </tr>
             </table>
             `;
             function insert_obj_text(){
-                const ta = document.getElementById('hover-text')! as HTMLTextAreaElement;
+                const ta = by_id('hover-text');
                 ta.textContent = (obj as TextObj).text;
-                const select: HTMLSelectElement = get_by_id('text-link-dungeon');
+                const select = by_id('text-link-dungeon');
                 select.value = "" + (obj as TextObj).map_id;
             }
             make_ok_dialog2(html, insert_obj_text, function(hoverpop){
-                const number_input: HTMLInputElement = get_by_id('text-size');
+                const number_input = by_id('text-size');
                 const number = +number_input.value;
-                const text_input: HTMLTextAreaElement = get_by_id('hover-text');
+                const text_input = by_id('hover-text');
                 const text = text_input.value.trim();
                 if(!text)
                     return;
-                const tac: HTMLInputElement = get_by_id('text-align-center');
-                const tar: HTMLInputElement = get_by_id('text-align-right');
-                const select: HTMLSelectElement = get_by_id('text-link-dungeon');
+                const tac = by_id('text-align-center');
+                const tar = by_id('text-align-right');
+                const select = by_id('text-link-dungeon');
                 if(tac.checked)
                     obj.alignment = TEXTALIGNMENT.CENTER;
                 else if(tar.checked)
@@ -3697,7 +3694,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
             const flags_before = obj.statusflags;
             let flags_after = flags_before;
             function inject_checkboxes(){
-                const hover_conditions = document.getElementById('hover-conditions')! as HTMLDivElement;
+                const hover_conditions = by_id('hover-conditions');
                 function make_handler(el: HTMLInputElement, flag:TOKENSTATUSFLAGS){
                     function onchange(){
                         if(el.checked)
@@ -3730,20 +3727,20 @@ function launch_edit_dialog(view:DungeonMapView):void{
 
             }
             make_ok_dialog2(html, inject_checkboxes, function(hoverpop){
-                const text_input = document.getElementById('hover-text')! as HTMLInputElement;
+                const text_input = by_id('hover-text');
                 const text = text_input.value;
                 if(text){
                     obj.text = text;
                 }
-                let width = +((document.getElementById('hover-width') as HTMLInputElement).value);
-                let height = +((document.getElementById('hover-height') as HTMLInputElement).value);
+                let width  = +by_id('hover-width').value;
+                let height = +by_id('hover-height').value;
                 if(!width)
                     width = 1;
                 if(!height)
                     height = 1;
                 obj.width = width;
                 obj.height = height;
-                const color = (document.getElementById('hover-color') as HTMLInputElement).value;
+                const color =by_id('hover-color').value;
                 obj.color = color;
                 obj.statusflags = flags_after;
                 const after = strip_obj(obj);
@@ -3769,7 +3766,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
             const flags_before = obj.statusflags;
             let flags_after = flags_before;
             function inject_checkboxes(){
-                const hover_conditions = document.getElementById('hover-conditions')! as HTMLDivElement;
+                const hover_conditions = by_id('hover-conditions');
                 function make_handler(el: HTMLInputElement, flag:TOKENSTATUSFLAGS){
                     function onchange(){
                         if(el.checked)
@@ -3802,8 +3799,8 @@ function launch_edit_dialog(view:DungeonMapView):void{
 
             }
             make_ok_dialog2(html, inject_checkboxes, function(hoverpop){
-                let width = +((document.getElementById('hover-width') as HTMLInputElement).value);
-                let height = +((document.getElementById('hover-height') as HTMLInputElement).value);
+                let width = +by_id('hover-width').value;
+                let height = +by_id('hover-height').value;
                 if(!width)
                     width = 1;
                 if(!height)
@@ -5484,8 +5481,8 @@ function make_color_menu(e:MouseEvent, colorpicker: HTMLInputElement, colors:Arr
     canvas.addEventListener('pointerdown', remove_tri_menu);
 }
 document.addEventListener('DOMContentLoaded', function(){
-    const cpt1 = document.getElementById('color-picker-dropdown')! as HTMLElement;
-    const cpt2 = document.getElementById('color-picker2-dropdown')! as HTMLElement;
+    const cpt1 = by_id('color-picker-dropdown');
+    const cpt2 = by_id('color-picker2-dropdown');
     cpt1.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
@@ -5499,11 +5496,11 @@ document.addEventListener('DOMContentLoaded', function(){
 
 });
 function hide_palette(){
-    const palette = document.getElementById('palette')!;
+    const palette = by_id('palette');
     palette.style.display = 'none';
 }
 function make_terrain_palette(){
-    const palette = document.getElementById('palette')! as HTMLDivElement;
+    const palette = by_id('palette');
     (palette as any).replaceChildren();
     function make_cb(id:number){
         function cb(){
@@ -5532,7 +5529,7 @@ function make_terrain_palette(){
     }
 }
 function make_terrain_icon_palette(){
-    const palette = document.getElementById('palette')! as HTMLDivElement;
+    const palette = by_id('palette');
     (palette as any).replaceChildren();
     function make_cb(id:number){
         function cb(){
@@ -5749,8 +5746,8 @@ function make_tri_menu(e:MouseEvent, options:Array<{func:()=>void;text:string}>)
 }
 document.addEventListener('DOMContentLoaded', function():void{
     tools = Array.from(document.getElementsByClassName('tool')) as Array<HTMLElement>;
-    color_picker_ = document.getElementById('color-picker')! as HTMLInputElement;
-    color_picker2_ = document.getElementById('color-picker2')! as HTMLInputElement;
+    color_picker_ = by_id('color-picker');
+    color_picker2_ = by_id('color-picker2');
     for(let i = 0; i < tools.length; ++i){
         const toolel = tools[i];
         toolel.addEventListener('click', function(e:MouseEvent){
@@ -5761,7 +5758,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         // Selecttype is bit flags, so it has to be its own special snowflake.
         // I guess it should actually be like checkboxes?
         if(toolel.id == 'select-tool'){
-            const name = document.getElementById('select-tool-menu')! as HTMLDivElement;
+            const name = by_id('select-tool-menu');
             function change_st(st:SELECTTYPE){
                 select_type = st;
                 switch(select_type){
@@ -5836,7 +5833,7 @@ document.addEventListener('DOMContentLoaded', function():void{
             });
         }
         function setup_multi_option(toolel:HTMLElement, menu_id:string, t_type:TOOLTYPE, set_current:(_:number)=>void, t_to_name:Array<string>, t_to_short_name:Array<string>, t_max:number){
-            const name = document.getElementById(menu_id)! as HTMLDivElement;
+            const name = get_by_id<HTMLDivElement>(menu_id);
             function change_t(t:number){
                 set_current(t);
                 const tname = t_to_short_name[t];
@@ -6356,7 +6353,7 @@ document.addEventListener('DOMContentLoaded', function(){
             case TOOLTYPE.LINE:{
                 let id = get_new_id();
                 const [x0, y0] = event_to_coord(e, view);
-                const thickness_input = document.getElementById('line-thickness') as HTMLInputElement;
+                const thickness_input = by_id('line-thickness');
                 const thickness = +thickness_input.value || 4;
                 add_freehand_line(view.map, id, x0, y0, get_primary_color(), thickness);
                 function add_point(e:MouseEvent){
@@ -6649,20 +6646,20 @@ document.addEventListener('DOMContentLoaded', function(){
                         <td>Link To:
                         <td><select id="text-link-dungeon">
                             <option value="-1">No Link</option>
-                        ${get_by_id('current-map-name').innerHTML}
+                        ${by_id('current-map-name').innerHTML}
                         }</select>
                         </td>
                     </tr>
                 </table>
                 `;
                 make_ok_dialog(html, function(hoverpop){
-                    const text_input = document.getElementById('hover-text')! as HTMLTextAreaElement;
+                    const text_input = by_id('hover-text');
                     const text = text_input.value;
                     if(!text || !text.trim())
                         return;
-                    // const tal = document.getElementById('text-align-left')! as HTMLInputElement;
-                    const tac = document.getElementById('text-align-center')! as HTMLInputElement;
-                    const tar = document.getElementById('text-align-right')! as HTMLInputElement;
+                    // const tal = by_id('text-align-left');
+                    const tac = by_id('text-align-center');
+                    const tar = by_id('text-align-right');
                     let alignment = TEXTALIGNMENT.LEFT;
                     if(tac.checked)
                         alignment = TEXTALIGNMENT.CENTER;
@@ -6670,13 +6667,13 @@ document.addEventListener('DOMContentLoaded', function(){
                         alignment = TEXTALIGNMENT.RIGHT;
 
 
-                    const size_el = document.getElementById('text-size')! as HTMLInputElement;
+                    const size_el = by_id('text-size');
                     const size = (+size_el.value) | 0;
                     if(size < 8)
                         return;
                     if(size > 72)
                         return;
-                    const select: HTMLSelectElement = get_by_id('text-link-dungeon');
+                    const select = by_id('text-link-dungeon');
                     let map_id = +select.value;
                     // This is annoying otherwise
                     if(map_id == view.map.map_id)
@@ -6708,17 +6705,17 @@ document.addEventListener('DOMContentLoaded', function(){
                     </table>
                 `;
                 make_ok_dialog(html, function(hoverpop){
-                    const text = (document.getElementById('hover-url') as HTMLInputElement).value;
+                    const text = by_id('hover-url').value;
                     if(!text || !text.trim()){
                         return;
                     }
-                    let width = +(document.getElementById('hover-width') as HTMLInputElement).value;
-                    let height = +(document.getElementById('hover-height') as HTMLInputElement).value;
+                    let width = +by_id('hover-width').value;
+                    let height = +by_id('hover-height').value;
                     if(!width)
                         width = 0;
                     if(!height)
                         height = 0;
-                    const round = (document.getElementById('hover-checkbox') as HTMLInputElement).checked;
+                    const round = by_id('hover-checkbox').checked;
                     if(round){
                         width = snap_to_grid(width);
                         height = snap_to_grid(height);
@@ -6753,12 +6750,12 @@ document.addEventListener('DOMContentLoaded', function(){
                         </table>
                     `;
                     make_ok_dialog(html, function(hoverpop){
-                        const text_input = document.getElementById('hover-text') as HTMLInputElement;
+                        const text_input = by_id('hover-text');
                         const text = text_input.value;
                         if(!text || !text.trim())
                             return;
-                        let width = +(document.getElementById('hover-width') as HTMLInputElement).value;
-                        let height = +(document.getElementById('hover-height') as HTMLInputElement).value;
+                        let width = +by_id('hover-width').value;
+                        let height = +by_id('hover-height').value;
                         if(!width)
                             width = 1;
                         if(!height)
@@ -6770,7 +6767,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             case SNAPMODE.QUARTER: width/=4; height/=4; break;
                         }
                         let id = get_new_id();
-                        ez_token_color = (document.getElementById('hover-color') as HTMLInputElement).value;
+                        ez_token_color = by_id('hover-color').value;
                         let snap = get_snap_tl_func();
                         add_ez_token(view.map, id, snap(x0), snap(y0), text, ez_token_color, width, height);
                         publish_obj_by_id(view.map, id);
@@ -6792,8 +6789,8 @@ document.addEventListener('DOMContentLoaded', function(){
                         </table>
                     `;
                     function add_img_buttons(){
-                        const gallery = document.getElementById('token-img-gallery')! as HTMLDivElement;
-                        const url_input = document.getElementById('hover-url')! as HTMLInputElement;
+                        const gallery = by_id('token-img-gallery');
+                        const url_input = by_id('hover-url');
                         for(let path of token_paths){
                             const button = document.createElement('button');
                             const img = document.createElement('img');
@@ -6810,7 +6807,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
                     }
                     make_ok_dialog2(html, add_img_buttons, function(hoverpop:HTMLElement){
-                        const text = (document.getElementById('hover-url') as HTMLInputElement).value;
+                        const text = by_id('hover-url').value;
                         if(!text || !text.trim()){
                             return;
                         }
@@ -7253,9 +7250,9 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 
 document.addEventListener('DOMContentLoaded', function(){
-    const edit_map_button = document.getElementById('edit-map-button')! as HTMLButtonElement;
-    const new_map_button = document.getElementById('new-map-button')! as HTMLButtonElement;
-    const delete_map_button = document.getElementById('delete-map-button')! as HTMLButtonElement;
+    const edit_map_button = by_id('edit-map-button');
+    const new_map_button = by_id('new-map-button');
+    const delete_map_button = by_id('delete-map-button');
     edit_map_button.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
@@ -7294,7 +7291,7 @@ document.addEventListener('DOMContentLoaded', function(){
         </table>
         `;
         function on_ok(unused:any){
-            const name_input = document.getElementById('hover-text')! as HTMLInputElement;
+            const name_input = by_id('hover-text');
             if(!name_input.value)
                 return;
             const name = name_input.value.trim();
@@ -7303,8 +7300,8 @@ document.addEventListener('DOMContentLoaded', function(){
             rename_map(active_view.map, name);
             let msg: NameMapMessage = {map_id:active_view.map.map_id, map_name:name};
             SOCKET.emit(FromClient.CANVAS_NAME_MAP, msg);
-            const hg = document.getElementById('hover-hex-grid')! as HTMLInputElement;
-            const ng = document.getElementById('hover-no-grid')! as HTMLInputElement;
+            const hg = by_id('hover-hex-grid');
+            const ng = by_id('hover-no-grid');
             let gt = hg.checked? GRIDTYPE.HEX : GRIDTYPE.SQUARE;
             if(ng.checked)
                 gt |= GRIDTYPE.NOGRID;
@@ -7312,7 +7309,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 let msg: CanvasGridTypeMsg = {map_id:active_view.map.map_id, grid_type:gt};
                 SOCKET.emit(FromClient.CANVAS_GRID_TYPE, msg);
             }
-            const numbered = (document.getElementById('hover-numbered')! as HTMLInputElement).checked? MapFlags.NUMBERED : 0;
+            const numbered = by_id('hover-numbered').checked? MapFlags.NUMBERED : 0;
             if((active_view.map.flags & MapFlags.NUMBERED) != numbered){
                 let msg : CanvasGridNumberedMsg = {map_id:active_view.map.map_id, numbered:numbered};
                 SOCKET.emit(FromClient.CANVAS_GRID_NUMBERED, msg);
@@ -7345,7 +7342,7 @@ document.addEventListener('DOMContentLoaded', function(){
         `;
         function on_ok(unused:any){
             if(!cant_delete){
-                const delete_checkbox = document.getElementById('hover-delete')! as HTMLInputElement;
+                const delete_checkbox = by_id('hover-delete');
                 const should_delete = delete_checkbox.checked;
                 if(should_delete){
                     SOCKET.emit(FromClient.CANVAS_DELETE_MAP_REQUEST, active_view.map.map_id);
@@ -7376,14 +7373,14 @@ document.addEventListener('DOMContentLoaded', function(){
         </table>
         `;
         function on_ok(unused:any){
-            const text = document.getElementById('hover-text')! as HTMLInputElement;
+            const text = by_id('hover-text');
             const value = text.value;
             if(!value)
                 return;
             if(!value.length)
                 return;
-            const hg = document.getElementById('hover-hex-grid')! as HTMLInputElement;
-            const ng = document.getElementById('hover-no-grid')! as HTMLInputElement;
+            const hg = by_id('hover-hex-grid');
+            const ng = by_id('hover-no-grid');
             let gt = hg.checked? GRIDTYPE.HEX : GRIDTYPE.SQUARE;
             if(ng.checked)
                 gt |= GRIDTYPE.NOGRID;

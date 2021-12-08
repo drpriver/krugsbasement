@@ -27,3 +27,6 @@ tags
 wasm
 messages.ts
 WebDnD/messages.py
+Bin
+*.dsym
+*.o

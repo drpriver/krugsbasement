@@ -94,17 +94,17 @@ const make_dnd_html = (function(){
 })();
 
 document.addEventListener('DOMContentLoaded', function(){
-    const button = document.getElementById('notes-window-button') as HTMLButtonElement;
-    const notes_window = document.getElementById('notes-window') as HTMLDivElement;
+    const button = by_id('notes-window-button');
+    const notes_window = by_id('notes-window');
 
-    const notes_editor_container = document.getElementById('note-view-editor-container') as HTMLDivElement;
-    const move_handle = document.getElementById('notes-window-handle') as HTMLDivElement;
-    const notes_area = document.getElementById('note-view-edit') as HTMLTextAreaElement;
-    const notes_title_area = document.getElementById('note-view-title') as HTMLTextAreaElement;
+    const notes_editor_container = by_id('note-view-editor-container');
+    const move_handle = by_id('notes-window-handle');
+    const notes_area = by_id('note-view-edit');
+    const notes_title_area = by_id('note-view-title');
     const iframe = notes_window.getElementsByTagName('iframe')[0];
-    const editor_log = document.getElementById('note-view-editor-log') as HTMLDivElement;
-    const edit_notes_button = document.getElementById('edit-notes-button') as HTMLButtonElement;
-    const del_note_button = document.getElementById('delete-note') as HTMLButtonElement;
+    const editor_log = by_id('note-view-editor-log');
+    const edit_notes_button = by_id('edit-notes-button');
+    const del_note_button = by_id('delete-note');
     del_note_button.addEventListener('click', function(){
         make_ok_dialog(`
             <h2>Delete Note</h2>
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function(){
             </tr>
             </table>`,
             function (e:HTMLElement){
-                const delete_checkbox = document.getElementById('hover-delete-note')! as HTMLInputElement;
+                const delete_checkbox = by_id('hover-delete-note');
                 const should_delete = delete_checkbox.checked;
                 if(should_delete){
                     SOCKET.emit(FromClient.DELETE_NOTE_REQUEST, current_note_id);
@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function(){
     setup_window_size(notes_window);
     let make_top = setup_zsorted_window(notes_window);
     setup_movable_window(notes_window, move_handle);
-    const notes_close = document.getElementById('notes-close') as HTMLElement;
+    const notes_close = by_id('notes-close');
     setup_closable_window(notes_window, notes_close, function(){
         stop_editing();
         sync_note();
@@ -285,8 +285,8 @@ document.addEventListener('DOMContentLoaded', function(){
         // restore cursor position
         notes_area.selectionStart = notes_area.selectionEnd = start+2;
     });
-    const new_note = document.getElementById('new-note') as HTMLButtonElement;
-    const notes_list = document.getElementById('notes-list') as HTMLDivElement;
+    const new_note = by_id('new-note');
+    const notes_list = by_id('notes-list');
     button.addEventListener('click', function(){
         if(notes_is_open)
             return;

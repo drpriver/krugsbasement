@@ -74,12 +74,12 @@ SOCKET.on(ToClient.CONNECT, () => {
     SOCKET.emit(FromClient.POST_JOIN)
 });
 function clear_disconnected(){
-    const d = document.getElementById('disconnect')!;
+    const d = by_id('disconnect')!;
     if(d)
         d.style.display = 'none';
 }
 function set_disconnected(){
-    const d = document.getElementById('disconnect')!;
+    const d = by_id('disconnect')!;
     if(d)
         d.style.display = 'initial';
 }
@@ -110,7 +110,7 @@ let show_pan = (function(){
     return true;
 })();
 document.addEventListener('DOMContentLoaded', function(){
-    const pan_tool = document.getElementById('pan-tool')!;
+    const pan_tool = by_id('pan-tool');
     pan_tool.style.display = show_pan? 'initial': 'none';
 });
 function change_pan_visibility(visible:boolean){
@@ -119,7 +119,7 @@ function change_pan_visibility(visible:boolean){
         store_global(StorageCategory.SETTINGS, 'showpan', '1');
     else
         store_global(StorageCategory.SETTINGS, 'showpan', '0');
-    const pan_tool = document.getElementById('pan-tool')!;
+    const pan_tool = by_id('pan-tool');
     pan_tool.style.display = visible? 'initial': 'none';
 }
 SOCKET.on(ToClient.SESSION_ID, function(resp:number){

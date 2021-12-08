@@ -50,7 +50,7 @@ function make_ok_dialog2(html:string, after_append:()=>void, on_ok:(_:HTMLElemen
         document.body.removeChild(hoverpop);
         hover_is_open = false;
     }
-    const ok = get_by_id('hoverpop-ok')!;
+    const ok = by_id('hoverpop-ok')!;
     function submit(){
         on_ok(hoverpop);
         remove_hoverpop();
@@ -58,7 +58,7 @@ function make_ok_dialog2(html:string, after_append:()=>void, on_ok:(_:HTMLElemen
     ok.addEventListener('click', function(){
         submit();
     });
-    const cancel = get_by_id('hoverpop-cancel')!;
+    const cancel = by_id('hoverpop-cancel')!;
     cancel.addEventListener('click', function(){
         remove_hoverpop();
     });
@@ -227,7 +227,16 @@ function ensure_window_is_completely_on_screen(win:HTMLElement){
     win.style.left = newx + 'px';
 }
 
+// This function is for when you need a dynamic element with a dynamic
+// id, but you know the type of the element.
+// If the name of the element is known at compiletime, use the generated
+// `by_id` function instead. It knows about all of the ids in the document.
 function get_by_id<T extends HTMLElement >(id:string):T{
     const result = document.getElementById(id) as T;
     return result;
+}
+
+// This gives a compile error if you pass anything to it, with the compile
+// error revealing what the type of the argument is.
+function reveal_type(x:never){
 }

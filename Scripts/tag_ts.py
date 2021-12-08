@@ -24,7 +24,7 @@ class TagLoc(NamedTuple):
     is_global: bool
 
 IDENT = r'\b([A-Za-z0-9_]+)\b'
-RE = re.compile(r'\b(function|type|enum|(^(let|const|var)))\b\s?'+IDENT)
+RE = re.compile(r'\b(const enum|function|type|enum|(^(let|const|var)))\b\s?'+IDENT)
 MATCH_TO_TYPE = {
     'function': TagType.FUNC,
     'type': TagType.TYPE,
@@ -32,7 +32,8 @@ MATCH_TO_TYPE = {
     'const': TagType.GLOBAL,
     'var': TagType.GLOBAL,
     'enum': TagType.ENUM,
-    }
+    'const enum':TagType.ENUM,
+}
 
 def analyze_line(filename:str, lineno:int, line:str) -> List[TagLoc]:
     result = []

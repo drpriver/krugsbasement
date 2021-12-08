@@ -2,9 +2,15 @@ Depends: ; mkdir -p $@
 DEPFILES:= $(wildcard Depends/*.dep)
 include $(DEPFILES)
 TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError
-TSFILES:= toplevel.ts chat.ts canvas.ts notes.ts utils.ts messages.ts interp.ts storage.ts
+TSFILES:= toplevel.ts chat.ts canvas.ts notes.ts utils.ts messages.ts interp.ts storage.ts nodes.ts
+TSC:=/Users/drpriver/External/quickjs-typescript-4.0.0-linux-x86/lib/tsc
+ifneq ($(LOCALTSC),)
+combined.js: $(TSFILES)
+	$(TSC) $^ $(TSCFLAGS) --outFile $@
+else
 combined.js: $(TSFILES)
 	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc $(TSFILES) $(TSCFLAGS) --outFile $@ | cat"
+endif
 
 .PHONY: watcher
 watcher:
@@ -68,3 +74,9 @@ ship-docs: $(DOCS)
 .PHONY: mypy
 mypy:
 	mypy -p WebDnD.app --namespace-packages --ignore-missing-imports
+
+Bin/meta: meta.c
+	$(CC) $< -o $@
+
+nodes.ts: Bin/meta
+	./meta > nodes.ts
