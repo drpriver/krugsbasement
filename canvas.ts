@@ -1,3 +1,6 @@
+const enum FUDGE {
+    _ = 1,
+}
 const enum INDEX {
     TYPE = 0,
     ID = 1,
@@ -146,6 +149,7 @@ type GridLine = {
 //  ---------
 //  An axis-aligned box.
 //  base_x and base_y is the top-left corner of the box.
+//  This is a HOLLOW rectangle
 
 type Rectangle = {
     type: CANVASTYPE.RECT,
@@ -162,6 +166,8 @@ type Rectangle = {
 //  ---------
 //  An axis-aligned box, but the center is filled with 'color2'
 //  base_x and base_y is the top-left corner of the box.
+//
+//  This is a FILLED rectangle
 type FilledRectangle = {
     type: CANVASTYPE.FILLED_RECT,
     id: number,
@@ -179,6 +185,7 @@ type FilledRectangle = {
 //  Same movement restrictions apply to this as apply to the
 //  grid-line.
 //  base_x and base_y is the top-left corner of the box.
+//  This is a SOLID rectangle.
 
 type GridRectangle = {
     type: CANVASTYPE.GRID_RECT,
@@ -247,6 +254,7 @@ type TextObj = {
     lines: Array<string>;
     bboxes: Array<Bbox>;
     alignment: TEXTALIGNMENT;
+    map_id: number; // integer
 }
 
 const STATUSFLAG_NAMES = [
@@ -1030,6 +1038,12 @@ type DungeonMapView = {
         y0: number;
         y1: number;
     };
+    mouse: {
+        x: number;
+        y: number;
+    };
+    hovered_id: number;
+
 }
 let active_map_view_index = 0;
 let dungeon_map_views: Array<DungeonMapView> = [];
@@ -1052,6 +1066,10 @@ function new_map_view(map_id:number): DungeonMapView{
             x0: 0, y0: 0,
             x1: 0, y1: 0,
         },
+        mouse:{
+            x: -1, y:-1,
+        },
+        hovered_id: -1,
     };
     return view;
 }
@@ -1818,7 +1836,7 @@ function add_ellipse(map:DungeonMap, id:number, base_x:number, base_y:number, co
     const obj = make_ellipse(id, base_x, base_y, color, color2, variant);
     add_canv_obj(map, obj);
 }
-function make_text(id:number, base_x:number, base_y:number, text:string, size:number, alignment: TEXTALIGNMENT):TextObj{
+function make_text(id:number, base_x:number, base_y:number, text:string, size:number, alignment: TEXTALIGNMENT, map_id:number):TextObj{
     let snap = get_snap_center_func();
     base_x = snap(base_x);
     base_y = snap(base_y);
@@ -1834,11 +1852,12 @@ function make_text(id:number, base_x:number, base_y:number, text:string, size:nu
         bboxes: [],
         lines: text.split('\n'),
         alignment: alignment,
+        map_id: map_id,
     };
     return obj;
 }
-function add_text(map:DungeonMap, id:number, base_x:number, base_y:number, text:string, size:number, alignment:TEXTALIGNMENT):void{
-    const obj = make_text(id, base_x, base_y, text, size, alignment);
+function add_text(map:DungeonMap, id:number, base_x:number, base_y:number, text:string, size:number, alignment:TEXTALIGNMENT, map_id:number):void{
+    const obj = make_text(id, base_x, base_y, text, size, alignment, map_id);
     add_canv_obj(map, obj);
 }
 function make_ez_token(id:number, base_x:number, base_y:number, text:string, color:string, width:number, height:number):EzToken{
@@ -2661,19 +2680,26 @@ function update_selection(view:DungeonMapView, x0:number, y0:number, x1:number, 
     view.selection_area.y1 = y1;
 }
 // Pray the JIT inlines this call.
-function obj_in_bbox(obj:CanvasObject, bbox:Bbox, selection_type:SELECTTYPE):boolean{
+function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_type:SELECTTYPE):boolean{
     switch(obj.type){
         case CANVASTYPE.FREEHAND_LINE:
         case CANVASTYPE.GRID_LINE:{
             if(!(selection_type & SELECTTYPE.MAP))
                 return false;
+            const th2 = obj.type==CANVASTYPE.FREEHAND_LINE?obj.thickness/2:3;
+            const bb = {
+                x0: bbox.x0-th2,
+                y0: bbox.y0-th2,
+                x1: bbox.x1+th2,
+                y1: bbox.y1+th2,
+            };
             const outer_bbox: Bbox = {
                 x0:obj.bbox.x0 + obj.base_x,
                 y0:obj.bbox.y0 + obj.base_y,
                 x1:obj.bbox.x1 + obj.base_x,
                 y1:obj.bbox.y1 + obj.base_y,
             };
-            if(!bbox_overlaps(outer_bbox, bbox))
+            if(!bbox_overlaps(outer_bbox, bb))
                 return false;
             const b_x = obj.base_x;
             const b_y = obj.base_y;
@@ -2684,16 +2710,75 @@ function obj_in_bbox(obj:CanvasObject, bbox:Bbox, selection_type:SELECTTYPE):boo
             for(let i = 0; i < length; i+= 2){
                 let x1 = points[i]+b_x;
                 let y1 = points[i+1]+b_y;
-                if(line_overlaps_bbox(bbox, x0, y0, x1, y1))
+                if(line_overlaps_bbox(bb, x0, y0, x1, y1))
                     return true;
                 x0 = x1;
                 y0 = y1;
             }
             return false;
         }break;
-        case CANVASTYPE.ELLIPSE: // this is wrong
+        case CANVASTYPE.RECT:{
+            if(!(selection_type & SELECTTYPE.MAP))
+                return false;
+            const th2 = 3;
+            const rect_bbox = {
+                x0:obj.base_x-th2,
+                y0:obj.base_y-th2,
+                x1:obj.base_x+obj.width+th2,
+                y1:obj.base_y+obj.height+th2,
+            };
+            if(!bbox_overlaps(rect_bbox, bbox))
+                return false;
+            // break into four pieces
+            let left = {
+                x0: obj.base_x-th2,
+                y0: obj.base_y-th2,
+                x1: obj.base_x+th2,
+                y1: obj.base_y+obj.height+th2,
+            };
+            let top = {
+                x0: obj.base_x-th2,
+                y0: obj.base_y-th2,
+                x1: obj.base_x+obj.width+th2,
+                y1: obj.base_y+th2,
+            };
+            let right = {
+                x0: obj.base_x+obj.width-th2,
+                y0: obj.base_y+th2,
+                x1: obj.base_x+obj.width+th2,
+                y1: obj.base_y+obj.height+th2,
+            };
+            let bottom = {
+                x0: obj.base_x-th2,
+                y0: obj.base_y+obj.height-th2,
+                x1: obj.base_x+obj.width+th2,
+                y1: obj.base_y+obj.height+th2,
+            };
+            for(let b of [left, top, right, bottom]){
+                if(bbox_overlaps(b, bbox)) return true;
+            }
+            return false;
+        }break;
+        case CANVASTYPE.ELLIPSE:{
+            if(!(selection_type & SELECTTYPE.MAP))
+                return false;
+            // TODO: Use ellipse math instead of rectangle math.
+            switch(obj.variant){
+                case ELLIPSETYPE.HOLLOW:
+                    break;
+                case ELLIPSETYPE.SOLID: // fall-through
+                case ELLIPSETYPE.FILLED:
+                    break;
+            }
+            const rect_bbox = {
+                x0:obj.base_x,
+                y0:obj.base_y,
+                x1:obj.base_x+obj.width,
+                y1:obj.base_y+obj.height,
+            };
+            return bbox_overlaps(bbox, rect_bbox);
+        }// this is wrong
         case CANVASTYPE.FILLED_RECT:
-        case CANVASTYPE.RECT: // fall-through
         case CANVASTYPE.IMAGE: // fall-through
         case CANVASTYPE.GRID_RECT:{
             if(!(selection_type & SELECTTYPE.MAP))
@@ -2749,7 +2834,7 @@ function obj_in_bbox(obj:CanvasObject, bbox:Bbox, selection_type:SELECTTYPE):boo
             if(!(selection_type & SELECTTYPE.MAP))
                 return false;
             const is_vertical = obj.orientation === ORIENTATION.VERTICAL;
-            if(is_vertical){
+            if(!is_vertical){
                 // FIXME: I just hardcoded some random values.
                 const door_bbox = {
                     x0 : obj.base_x - 32 * obj.width,
@@ -2837,6 +2922,25 @@ function obj_in_bbox(obj:CanvasObject, bbox:Bbox, selection_type:SELECTTYPE):boo
             return bbox_overlaps(bbox, ftbbox);
         }
     }
+}
+function obj_at(view:DungeonMapView, x0:number, y0:number, select_type:SELECTTYPE):CanvasObject | null {
+    sort_canv_objs(view.map);
+    const canvas_obj_array = view.map.canvas_obj_array;
+    const length = canvas_obj_array.length;
+    const bbox = {
+        x0:x0-FUDGE._,///view.scale,
+        y0:y0-FUDGE._,///view.scale,
+        x1:x0+FUDGE._,///view.scale,
+        y1:y0+FUDGE._,///view.scale,
+    };
+    for(let i = length-1; i >= 0; --i){
+        const obj = canvas_obj_array[i];
+        if(obj.flags & CANVASFLAG.DELETED)
+            continue;
+        if(obj_in_bbox(obj, bbox, select_type))
+            return obj;
+    }
+    return null;
 }
 function note_selections(view:DungeonMapView):void{
     const canvas_obj_array = view.map.canvas_obj_array;
@@ -2988,7 +3092,7 @@ function add_canv_obj(map:DungeonMap, obj:CanvasObject):void{
 function strip_obj(obj:CanvasObject): StrippedObj{
     switch(obj.type){
         case CANVASTYPE.FREEHAND_LINE:{
-            const stripped_obj: StrippedFreehandLine = 
+            const stripped_obj: StrippedFreehandLine =
                 [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.color, Array.from(obj.points), obj.thickness];
             return stripped_obj;
         }break;
@@ -3017,7 +3121,7 @@ function strip_obj(obj:CanvasObject): StrippedObj{
             return stripped_obj;
         }break;
         case CANVASTYPE.TEXT:{
-            const stripped_obj: StrippedTextObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.text, obj.size, obj.alignment];
+            const stripped_obj: StrippedTextObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.text, obj.size, obj.alignment, obj.map_id];
             return stripped_obj;
         }break;
         case CANVASTYPE.EZ_TOKEN:{
@@ -3180,6 +3284,7 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 bbox:{x0:0, x1:0, y0:0, y1:0},
                 lines: (sobj as StrippedTextObj)[5].split('\n'),
                 bboxes: [],
+                map_id: (sobj as StrippedTextObj)[8],
             };
             return obj;
         }break;
@@ -3434,12 +3539,11 @@ function edit_is_impossible(view:DungeonMapView):boolean{
             return true;
     }
 }
-
 function launch_edit_dialog(view:DungeonMapView):void{
     if(view.selected.size !== 1)
         return;
     const first = view.selected.values().next()!.value;
-    const obj:CanvasObject = view.map.canvas_objs.get(first)!;
+    const obj: CanvasObject = view.map.canvas_objs.get(first)!;
     if(obj.flags & CANVASFLAG.DELETED)
         return;
     switch(obj.type){
@@ -3522,21 +3626,32 @@ function launch_edit_dialog(view:DungeonMapView):void{
                     <td><label for="hover-text">Text:</label>
                     <td><textarea name="hover-text" id="hover-text"  cols="30" rows="5"></textarea>
                 </tr>
+                <tr>
+                    <td>Link To:
+                    <td><select id="text-link-dungeon">
+                        <option value="-1">No Link</option>
+                    ${get_by_id('current-map-name').innerHTML}
+                    }</select>
+                    </td>
+                </tr>
             </table>
             `;
             function insert_obj_text(){
                 const ta = document.getElementById('hover-text')! as HTMLTextAreaElement;
                 ta.textContent = (obj as TextObj).text;
+                const select: HTMLSelectElement = get_by_id('text-link-dungeon');
+                select.value = "" + (obj as TextObj).map_id;
             }
             make_ok_dialog2(html, insert_obj_text, function(hoverpop){
-                const number_input = document.getElementById('text-size')! as HTMLInputElement;
+                const number_input: HTMLInputElement = get_by_id('text-size');
                 const number = +number_input.value;
-                const text_input = document.getElementById('hover-text')! as HTMLTextAreaElement;
+                const text_input: HTMLTextAreaElement = get_by_id('hover-text');
                 const text = text_input.value.trim();
                 if(!text)
                     return;
-                const tac = document.getElementById('text-align-center')! as HTMLInputElement;
-                const tar = document.getElementById('text-align-right')! as HTMLInputElement;
+                const tac: HTMLInputElement = get_by_id('text-align-center');
+                const tar: HTMLInputElement = get_by_id('text-align-right');
+                const select: HTMLSelectElement = get_by_id('text-link-dungeon');
                 if(tac.checked)
                     obj.alignment = TEXTALIGNMENT.CENTER;
                 else if(tar.checked)
@@ -3548,6 +3663,10 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 obj.bbox = {x0:0, y0:0, x1:0, y1:0};
                 obj.bboxes = [];
                 obj.lines = text.split('\n');
+                obj.map_id = +select.value;
+                // This is annoying otherwise
+                if(obj.map_id == view.map.map_id)
+                    obj.map_id = -1;
                 const after = strip_obj(obj);
                 publish_obj_updates(view.map.map_id, [after]);
                 request_render();
@@ -3750,6 +3869,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
     if(DARKMODE)
         background = '#333';
     const SELECTED_COLOR = '#33ffdd';
+    const COULD_SELECT_COLOR = '#aaccaa';
+    const hovered_id = view.hovered_id;
     const canvas_obj_array = map.canvas_obj_array;
     const selected = view.selected;
     const camera_x = Math.round(view.camera_x);
@@ -4017,7 +4138,11 @@ function render(timestamp:DOMHighResTimeStamp):void{
         let obj = canvas_obj_array[i];
         if(obj.flags & CANVASFLAG.DELETED)
             continue;
-        const is_selected = selected.has(obj.id);
+        let is_selected = selected.has(obj.id);
+        const is_hovered = obj.id == hovered_id;
+        const sel_color = is_selected?SELECTED_COLOR:COULD_SELECT_COLOR;
+        if(is_hovered)
+            is_selected = true;
         switch(obj.type){
             case CANVASTYPE.FREEHAND_LINE:{
                 // This works well enough for now.
@@ -4038,7 +4163,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.lineJoin = 'round';
                     if(is_selected){
                         ctx.lineWidth=obj.thickness+4;
-                        ctx.strokeStyle = SELECTED_COLOR;
+                        ctx.strokeStyle = sel_color;
                         ctx.stroke(obj.path);
                     }
                     ctx.lineWidth = obj.thickness;
@@ -4066,7 +4191,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(obj.path){
                     if(is_selected){
                         ctx.lineWidth=12;
-                        ctx.strokeStyle = SELECTED_COLOR;
+                        ctx.strokeStyle = sel_color;
                         ctx.stroke(obj.path);
                     }
                     ctx.lineWidth = 6;
@@ -4090,7 +4215,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(obj.width && obj.height){
                     if(is_selected){
                         ctx.lineWidth=8;
-                        ctx.strokeStyle = SELECTED_COLOR;
+                        ctx.strokeStyle = sel_color;
                         ctx.beginPath();
                         ctx.ellipse(cx, cy, obj.width/2, obj.height/2, 0, 0, Math.PI*2);
                         ctx.stroke();
@@ -4127,7 +4252,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(obj.width && obj.height){
                     if(is_selected){
                         ctx.lineWidth=8;
-                        ctx.strokeStyle = SELECTED_COLOR;
+                        ctx.strokeStyle = sel_color;
                         ctx.strokeRect(obj.base_x-2, obj.base_y-2, obj.width+4, obj.height+4);
                     }
                     ctx.lineWidth=4;
@@ -4151,7 +4276,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(1){
                     if(is_selected){
                         ctx.lineWidth=8;
-                        ctx.strokeStyle = SELECTED_COLOR;
+                        ctx.strokeStyle = sel_color;
                         ctx.strokeRect(obj.base_x-2, obj.base_y-2, obj.width+4, obj.height+4);
                     }
                     ctx.lineWidth=6;
@@ -4171,7 +4296,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
                 if(obj.width && obj.height){
                     if(is_selected){
-                        ctx.fillStyle = SELECTED_COLOR;
+                        ctx.fillStyle = sel_color;
                         ctx.fillRect(obj.base_x-2, obj.base_y-2, obj.width+4, obj.height+4);
                     }
                     ctx.fillStyle = obj.color;
@@ -4235,18 +4360,29 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         };
                         if(bbox_overlaps(text_bbox, canvas_bbox)){
                             if(is_selected){
-                                ctx.fillStyle = SELECTED_COLOR+'aa';
+                                ctx.fillStyle = sel_color+'aa';
                                 const x = obj.base_x+bbox.x0;
                                 const y = obj.base_y+bbox.y0;
                                 const width = bbox.x1-bbox.x0;
                                 const height = bbox.y1-bbox.y0;
                                 ctx.fillRect(x, y, width, height);
                             }
-                            if(DARKMODE)
-                                ctx.fillStyle = '#fff';
-                            else
-                                ctx.fillStyle = '#000';
+                            if(DARKMODE){
+                                if(obj.map_id != -1)
+                                    ctx.fillStyle = '#99f';
+                                else
+                                    ctx.fillStyle = '#fff';
+                            }
+                            else{
+                                if(obj.map_id != -1)
+                                    ctx.fillStyle = '#44f';
+                                else
+                                    ctx.fillStyle = '#000';
+                            }
                             ctx.fillText(line, obj.base_x, obj.base_y+y_off);
+                            if(obj.map_id != -1){
+                                ctx.fillRect(obj.base_x+bbox.x0, obj.base_y+bbox.y1-1, bbox.x1-bbox.x0, 2);
+                            }
                         }
                         y_off += bbox.y1 - bbox.y0;
                     }
@@ -4281,7 +4417,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
                 if(is_selected){
                     ctx.beginPath();
-                    ctx.fillStyle = SELECTED_COLOR;
+                    ctx.fillStyle = sel_color;
                     if(radius_x == radius_y)
                         ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x+4, 0, 2*Math.PI);
                     else
@@ -4320,7 +4456,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     break;
                 }
                 if(is_selected){
-                    ctx.fillStyle = SELECTED_COLOR+'aa';
+                    ctx.fillStyle = sel_color+'aa';
                     ctx.fillRect(obj.base_x-4, obj.base_y-4, obj.width+8, obj.height+8);
                 }
                 if(obj.img)
@@ -4348,7 +4484,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(is_selected){
                     ctx.beginPath();
                     ctx.lineWidth = 4;
-                    ctx.strokeStyle = SELECTED_COLOR;
+                    ctx.strokeStyle = sel_color;
                     ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x+2, 0, 2*Math.PI);
                     ctx.stroke();
                 }
@@ -4398,7 +4534,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 switch(obj.doortype){
                     case DOORTYPE.DOUBLE:{
                         if(is_selected){
-                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.strokeStyle = sel_color;
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
@@ -4475,7 +4611,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     }break;
                     case DOORTYPE.DOOR:{
                         if(is_selected){
-                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.strokeStyle = sel_color;
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
@@ -4542,7 +4678,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     }break;
                     case DOORTYPE.PORTCULLIS:{
                         if(is_selected){
-                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.strokeStyle = sel_color;
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
@@ -4594,7 +4730,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     }break;
                     case DOORTYPE.PORTAL:{
                         if(is_selected){
-                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.strokeStyle = sel_color;
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
@@ -4656,7 +4792,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     }break;
                     case DOORTYPE.HALLWAY:{
                         if(is_selected){
-                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.strokeStyle = sel_color;
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
@@ -4718,7 +4854,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     }break;
                     case DOORTYPE.CURTAINS:{
                         if(is_selected){
-                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.strokeStyle = sel_color;
                             ctx.lineWidth=4;
                             const r = 8;
                             switch(obj.orientation){
@@ -4810,7 +4946,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         }
                         if(is_selected){
                             ctx.font = '56px sans-serif';
-                            ctx.fillStyle = SELECTED_COLOR;
+                            ctx.fillStyle = sel_color;
                             ctx.fillText('S', 0, 0);
                             }
                         ctx.font = '48px sans-serif';
@@ -4823,8 +4959,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     }break;
                     case DOORTYPE.BRICKED_WALL:{
                         if(is_selected){
-                            ctx.strokeStyle = SELECTED_COLOR;
-                            ctx.lineWidth=8;
+                            ctx.strokeStyle = sel_color;
+                            ctx.lineWidth=12;
                             ctx.beginPath();
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
@@ -4885,7 +5021,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
                 if(is_selected){
                     ctx.lineWidth=4;
-                    ctx.strokeStyle = SELECTED_COLOR;
+                    ctx.strokeStyle = sel_color;
                     ctx.strokeRect(obj.base_x, obj.base_y, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH);
                 }
                 ctx.fillStyle = "#000000";
@@ -5008,7 +5144,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         const cy = (bbox.y0+bbox.y1)/2;
                         if(is_selected){
                             ctx.lineWidth=4;
-                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.strokeStyle = sel_color;
                             ctx.beginPath();
                             ctx.ellipse(cx, cy, obj.width/2, obj.height/2, 0, 0, Math.PI*2);
                             ctx.stroke();
@@ -5039,7 +5175,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         let y = obj.base_y + 4;
                         if(is_selected){
                             ctx.lineWidth = 4;
-                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.strokeStyle = sel_color;
                             ctx.strokeRect(x-2,y-2,w+4,h+4);
                         }
                         ctx.lineWidth = 2;
@@ -5068,7 +5204,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     case FIXTURETYPE.RUBBLE:{
                         if(is_selected){
                             ctx.lineWidth = 4;
-                            ctx.strokeStyle = SELECTED_COLOR;
+                            ctx.strokeStyle = sel_color;
                             ctx.strokeRect(obj.base_x, obj.base_y, obj.width, obj.height);
                         }
                         if(RUBBLEIMAGE){
@@ -5086,7 +5222,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
             case CANVASTYPE.ICON_TILE:{
                 const icon = TERRAIN_ICONS.get(obj.terrainicon_id);
                 if(is_selected){
-                    ctx.fillStyle = SELECTED_COLOR+'aa';
+                    ctx.fillStyle = sel_color+'aa';
                     ctx.fillRect(obj.base_x+4, obj.base_y+4, 56, 56);
                 }
                 if(icon)
@@ -6117,10 +6253,19 @@ document.addEventListener('DOMContentLoaded', function(){
         switch(current_tool){
             case TOOLTYPE.SELECT:{
                 let [clicked_x, clicked_y] = event_to_coord(e, view);
-                const fudged_x0 = clicked_x-10/view.scale;
-                const fudged_x1 = clicked_x+10/view.scale;
-                const fudged_y0 = clicked_y-10/view.scale;
-                const fudged_y1 = clicked_y+10/view.scale;
+                {
+                    let o = obj_at(view, clicked_x, clicked_y, select_type);
+                    if(o && o.type == CANVASTYPE.TEXT && o.map_id >= 0){
+                        change_map(o.map_id, false);
+                        view.selected.clear();
+                        canvas.style.cursor = 'initial';
+                        return;
+                    }
+                }
+                const fudged_x0 = clicked_x-FUDGE._;//view.scale;
+                const fudged_x1 = clicked_x+FUDGE._;//view.scale;
+                const fudged_y0 = clicked_y-FUDGE._;//view.scale;
+                const fudged_y1 = clicked_y+FUDGE._;//view.scale;
                 if(view.selected.size && there_are_selected_objs_at(view, fudged_x0, fudged_y0, fudged_x1, fudged_y1)){
                     // handle movement
                     let rawclick_x = e.offsetX;
@@ -6164,7 +6309,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         e.stopPropagation();
                         e.preventDefault();
                         let [select_x, select_y] = event_to_coord(e, view);
-                        if(select_x != clicked_x || select_y != select_y)
+                        if(select_x != clicked_x || select_y != clicked_y)
                             view.selection_area.select_one = false;
                         update_selection(view, clicked_x, clicked_y, select_x, select_y);
                         request_render();
@@ -6500,6 +6645,14 @@ document.addEventListener('DOMContentLoaded', function(){
                         <td><label for="hover-text">Text:</label>
                         <td><textarea name="hover-text" id="hover-text" cols="30" rows="5"></textarea>
                     </tr>
+                    <tr>
+                        <td>Link To:
+                        <td><select id="text-link-dungeon">
+                            <option value="-1">No Link</option>
+                        ${get_by_id('current-map-name').innerHTML}
+                        }</select>
+                        </td>
+                    </tr>
                 </table>
                 `;
                 make_ok_dialog(html, function(hoverpop){
@@ -6523,8 +6676,13 @@ document.addEventListener('DOMContentLoaded', function(){
                         return;
                     if(size > 72)
                         return;
+                    const select: HTMLSelectElement = get_by_id('text-link-dungeon');
+                    let map_id = +select.value;
+                    // This is annoying otherwise
+                    if(map_id == view.map.map_id)
+                        map_id = -1;
                     let id = get_new_id();
-                    add_text(view.map, id, x0, y0, text, size, alignment);
+                    add_text(view.map, id, x0, y0, text, size, alignment, map_id);
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                     request_render();
@@ -6871,6 +7029,38 @@ document.addEventListener('DOMContentLoaded', function(){
             default:{
                 console.log('unknown tool:', current_tool);
             }break;
+        }
+    });
+    let prev_id = -1;
+    canvas.addEventListener('pointermove', function(e:MouseEvent){
+        let view = get_active_view();
+        let [mx, my] = event_to_coord(e, view);
+        view.mouse.x = mx;
+        view.mouse.y = my;
+        let o = obj_at(view, mx, my, select_type);
+        if(o){
+            if(prev_id != o.id){
+                request_render();
+            }
+        }
+        else {
+            if(prev_id != -1){
+                request_render();
+            }
+        }
+        prev_id = o?o.id:-1;
+        if(current_tool == TOOLTYPE.SELECT){
+            if(o && o.type == CANVASTYPE.TEXT && o.map_id > -1){
+                canvas.style.cursor = 'pointer';
+            }
+            else {
+                canvas.style.cursor = 'initial';
+            }
+            view.hovered_id = prev_id;
+        }
+        else {
+            view.hovered_id = -1;
+            canvas.style.cursor = 'initial';
         }
     });
     canvas.addEventListener('dblclick', function(e:MouseEvent){

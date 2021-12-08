@@ -245,15 +245,11 @@ try:
 except:
     SCREEN = None
 def get_html() -> str:
-    if appconfig.DEV or SCREEN is None:
-        import pydndc
-        try:
-            html, _ = pydndc.htmlgen(open('screen.dnd').read(), flags=pydndc.STRIP_WHITESPACE)
-        except:
-            return ''
+    if appconfig.DEV:
+        return open('screen.html').read()
     else:
-        html = SCREEN
-    return html
+        assert SCREEN
+        return SCREEN
 
 @app.route('/')
 def index() -> str:

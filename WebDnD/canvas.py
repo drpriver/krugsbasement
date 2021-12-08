@@ -93,6 +93,10 @@ def load_canvas(data) -> Dict[int, Map]:
         if d['objects'] and isinstance(d['objects'][0], dict):
             d['objects'] = arrayify(d['objects'])
         d['objects'] = [o for o in d['objects'] if o[0] != CANVASTYPE.MEASURE]
+        for o in d['objects']:
+            if o[0] == CANVASTYPE.TEXT:
+                if len(o) != 9:
+                    o.append(-1)
         m = Map(**d)
         result[m.map_id] = m
     return result

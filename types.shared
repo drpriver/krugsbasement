@@ -421,6 +421,7 @@ struct StrippedTextObj: array
     text = str
     size = float
     alignment = TEXTALIGNMENT
+    map_id = int # -1 means no link
 
 // status flags for conditions and status effects
 // Bit flags

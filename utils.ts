@@ -44,14 +44,13 @@ function make_ok_dialog2(html:string, after_append:()=>void, on_ok:(_:HTMLElemen
         </div>
         `;
     hoverpop.innerHTML = html;
-    hoverpop.innerHTML += "<script>alert('hello world')</sc"+"ript>";
     document.body.appendChild(hoverpop);
     after_append();
     function remove_hoverpop(){
         document.body.removeChild(hoverpop);
         hover_is_open = false;
     }
-    const ok = document.getElementById('hoverpop-ok')!;
+    const ok = get_by_id('hoverpop-ok')!;
     function submit(){
         on_ok(hoverpop);
         remove_hoverpop();
@@ -59,7 +58,7 @@ function make_ok_dialog2(html:string, after_append:()=>void, on_ok:(_:HTMLElemen
     ok.addEventListener('click', function(){
         submit();
     });
-    const cancel = document.getElementById('hoverpop-cancel')!;
+    const cancel = get_by_id('hoverpop-cancel')!;
     cancel.addEventListener('click', function(){
         remove_hoverpop();
     });
