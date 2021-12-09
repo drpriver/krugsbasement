@@ -84,7 +84,12 @@ const char*
 get_tag_type(const char* tag, int length){
     switch(length){
         case sizeof("h1")-1:
+        // case sizeof("h2")-1:
+        // case sizeof("td")-1:
             if(eq(tag, "h1", length))     return "HTMLHeadingElement";
+            if(eq(tag, "h2", length))     return "HTMLHeadingElement";
+            if(eq(tag, "td", length))     return "HTMLTableCellElement";
+            if(eq(tag, "tr", length))     return "HTMLTableRowElement";
             break;
         case sizeof("div")-1:
             if(eq(tag, "div", length))    return "HTMLDivElement";
