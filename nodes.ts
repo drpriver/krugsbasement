@@ -57,6 +57,7 @@ interface NodeIdMap {
     'float-variables-container': HTMLDivElement;
     'image-input': HTMLDivElement;
     'image-input-window-handle': HTMLDivElement;
+    'image-input-window-close': HTMLSpanElement;
     'image-input-title': HTMLHeadingElement;
     'image-input-width': HTMLInputElement;
     'image-input-height': HTMLInputElement;
@@ -66,6 +67,7 @@ interface NodeIdMap {
     'image-input-cancel': HTMLButtonElement;
     'text-input': HTMLDivElement;
     'text-input-window-handle': HTMLDivElement;
+    'text-input-window-close': HTMLSpanElement;
     'text-input-title': HTMLHeadingElement;
     'text-input-size': HTMLInputElement;
     'text-input-left': HTMLInputElement;
@@ -77,6 +79,7 @@ interface NodeIdMap {
     'text-input-cancel': HTMLButtonElement;
     'map-input': HTMLDivElement;
     'map-input-window-handle': HTMLDivElement;
+    'map-input-window-close': HTMLSpanElement;
     'map-input-title': HTMLHeadingElement;
     'map-input-name': HTMLInputElement;
     'map-input-hex-grid': HTMLInputElement;
@@ -86,6 +89,7 @@ interface NodeIdMap {
     'map-input-cancel': HTMLButtonElement;
     'map-delete': HTMLDivElement;
     'map-delete-window-handle': HTMLDivElement;
+    'map-delete-window-close': HTMLSpanElement;
     'map-delete-title': HTMLHeadingElement;
     'map-delete-can': HTMLTableRowElement;
     'map-delete-delete': HTMLInputElement;
@@ -94,6 +98,7 @@ interface NodeIdMap {
     'map-delete-cancel': HTMLButtonElement;
     'ez-token': HTMLDivElement;
     'ez-token-window-handle': HTMLDivElement;
+    'ez-token-window-close': HTMLSpanElement;
     'ez-token-title': HTMLHeadingElement;
     'ez-token-color': HTMLInputElement;
     'ez-token-width': HTMLInputElement;
@@ -104,6 +109,7 @@ interface NodeIdMap {
     'ez-token-cancel': HTMLButtonElement;
     'img-token': HTMLDivElement;
     'img-token-window-handle': HTMLDivElement;
+    'img-token-window-close': HTMLSpanElement;
     'img-token-title': HTMLHeadingElement;
     'img-token-gallery': HTMLDivElement;
     'img-token-width': HTMLInputElement;
@@ -114,18 +120,21 @@ interface NodeIdMap {
     'img-token-cancel': HTMLButtonElement;
     'macro-deletion': HTMLDivElement;
     'macro-deletion-window-handle': HTMLDivElement;
+    'macro-deletion-window-close': HTMLSpanElement;
     'macro-deletion-title': HTMLHeadingElement;
     'macro-deletion-checkbox': HTMLInputElement;
     'macro-deletion-ok': HTMLButtonElement;
     'macro-deletion-cancel': HTMLButtonElement;
     'note-deletion': HTMLDivElement;
     'note-deletion-window-handle': HTMLDivElement;
+    'note-deletion-window-close': HTMLSpanElement;
     'note-deletion-title': HTMLHeadingElement;
     'note-deletion-checkbox': HTMLInputElement;
     'note-deletion-ok': HTMLButtonElement;
     'note-deletion-cancel': HTMLButtonElement;
     'options': HTMLDivElement;
     'options-window-handle': HTMLDivElement;
+    'options-window-close': HTMLSpanElement;
     'options-title': HTMLHeadingElement;
     'options-chatname': HTMLInputElement;
     'options-hidepan': HTMLInputElement;

@@ -268,6 +268,7 @@ type Dialog<Key extends keyof DialogIdMap> = {
     // the fields
     f: DialogIdMap[Key];
     title: HTMLHeadingElement;
+    close: HTMLSpanElement;
     ok: HTMLButtonElement;
     cancel: HTMLButtonElement;
     ok_handler?: ()=>void;
@@ -291,6 +292,7 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
     let result:Dialog<Key> = {
         window: get_by_id<HTMLDivElement>(name),
         windowhandle: get_by_id<HTMLDivElement>(name+'-window-handle'),
+        close: get_by_id<HTMLSpanElement>(name+'-window-close'),
         hidden: true,
         ok: get_by_id<HTMLButtonElement>(name+'-ok'),
         cancel: get_by_id<HTMLButtonElement>(name+'-cancel'),
@@ -333,11 +335,13 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
             result.ok_handler();
         result.hide();
     });
-    result.cancel.addEventListener('click', function(){
+    function cancel(){
         if(result.cancel_handler)
             result.cancel_handler();
         result.hide();
-    });
+    }
+    result.cancel.addEventListener('click', cancel);
+    result.close.addEventListener('click', cancel);
     result.clear_handlers = function(){
         result.ok_handler = undefined;
         result.cancel_handler = undefined;

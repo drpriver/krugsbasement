@@ -16,10 +16,8 @@ let CHATNAME = (function(){
     return name;
 })();
 function setchatname(name:string){
-    if(name)
-        name = name.trim();
-    if(!name)
-        name = 'anon';
+    if(name) name = name.trim();
+    if(!name) name = 'anon';
     CHATNAME = name;
     store_local(StorageCategory.CHAT,'name', name);
 }
@@ -488,7 +486,7 @@ function export_settings(e:MouseEvent){
     e.preventDefault();
     const macros = MACROS;
     const settings = {macros:macros, chatname:CHATNAME};
-    const s = JSON.stringify(settings);
+    const s = JSON.stringify(settings, null, 1);
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([s], {type:'text/plain'}));
     a.download = "krugsbasementsettings.json";
@@ -563,7 +561,6 @@ function chat_options_dialog(){
     const is_dev = CHATNAME == 'dev';
     const pan_tool = by_id('pan-tool');
     dialog.f.chatname.value = CHATNAME;
-    dialog.f.hidepan.checked = pan_tool.style.display == 'none';
     dialog.f.dev.style.display = is_dev?'block':'none';
     dialog.f.fps.checked = SHOW_FPS;
     if(!chat_options_init){
@@ -574,6 +571,10 @@ function chat_options_dialog(){
         dialog.f.system.checked = false;
         dialog.f.dark.checked = false;
         dialog.f.light.checked = false;
+        dialog.f.hidepan.checked = pan_tool.style.display == 'none';
+        dialog.f.hidepan.addEventListener('change', function(){
+            change_pan_visibility(!dialog.f.hidepan.checked);
+        });
         switch(current_dark_mode){
             case DarkMode.SYSTEM: dialog.f.system.checked = true; break;
             case DarkMode.DARK:   dialog.f.dark.checked   = true; break;
@@ -605,7 +606,6 @@ function chat_options_dialog(){
             request_render();
         }
         setchatname(dialog.f.chatname.value);
-        change_pan_visibility(!dialog.f.hidepan.checked);
     }
     dialog.show();
 }

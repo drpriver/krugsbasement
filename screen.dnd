@@ -281,6 +281,7 @@ David20::title #hide
     const html =
     `<div id="${prefix}" style="display:none;" class="hover">
     <div id="${prefix}-window-handle" class="window-handle">
+    <span id="${prefix}-window-close" class="window-closer">X</span>
     </div>
     ${content}
     <div class="hover-button-container">
