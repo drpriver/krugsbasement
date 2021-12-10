@@ -300,7 +300,8 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
     result.window.style.transform = 'none';
     setup_movable_window(result.window, result.windowhandle, WINDOWFLAGS.NONE);
     result.make_top = setup_zsorted_window(result.window);
-
+    // The caller of this function should be generated, so this is safe,
+    // despite being based on any.
     for(let field of fields){
         let key = name + '-' + field;
         let el = get_by_id(key) as any;
@@ -314,13 +315,14 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
             result.hide_handler();
     };
     result.show = function(){
-        if(!result.hidden) return false;
+        if(!result.hidden) return;
+        result.hidden = false;
         result.window.style.display = 'initial';
         center_element(result.window);
         result.make_top();
         if(result.show_handler)
             result.show_handler();
-        return true;
+        return;
     };
     result.ok.addEventListener('click', function(){
         if(result.ok_handler)
@@ -345,7 +347,7 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
 // the non-nullness in closures. oh well.
 function get_dialog<Key extends keyof DialogIdMap>(name:Key):Dialog<Key>{
     let dialog = get_or_make_dialog(name);
-    if(dialog.hidden) return null as unknown as any;
+    if(!dialog.hidden) return null as unknown as any;
     dialog.clear_handlers();
     return dialog;
 }
