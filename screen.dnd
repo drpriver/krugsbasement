@@ -400,8 +400,7 @@ David20::title #hide
       </tr>
     </table>
     <div id="conditions">
-    </div>
-    `);
+    </div>`);
   make('img-token',
     `${title('New Token')}
     <div id="gallery">
@@ -419,8 +418,23 @@ David20::title #hide
       </tr>
     </table>
     <div id="conditions">
-    </div>
-    `);
+    </div>`);
+  make('delete-macro',
+    `${title('Delete Macro')}
+    <table class="input-container">
+      <tr>
+        <td>${label('checkbox', 'Delete Macro:')}
+        <td>${checkbox('checkbox')}
+      </tr>
+    </table>`);
+  make('delete-note',
+    `${title('Delete Note')}
+    <table class="input-container">
+      <tr>
+        <td>${label('checkbox', 'Delete Note:')}
+        <td>${checkbox('checkbox')}
+      </tr>
+    </table>`);
 
 ::div #id(editorcontainer)
   ::div #id(views)

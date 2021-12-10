@@ -115,6 +115,16 @@ interface NodeIdMap {
     'img-token-conditions': HTMLDivElement;
     'img-token-ok': HTMLButtonElement;
     'img-token-cancel': HTMLButtonElement;
+    'delete-macro-window-handle': HTMLDivElement;
+    'delete-macro-title': HTMLHeadingElement;
+    'delete-macro-checkbox': HTMLInputElement;
+    'delete-macro-ok': HTMLButtonElement;
+    'delete-macro-cancel': HTMLButtonElement;
+    'delete-note-window-handle': HTMLDivElement;
+    'delete-note-title': HTMLHeadingElement;
+    'delete-note-checkbox': HTMLInputElement;
+    'delete-note-ok': HTMLButtonElement;
+    'delete-note-cancel': HTMLButtonElement;
     'editorcontainer': HTMLDivElement;
     'views': HTMLDivElement;
     'map': HTMLCanvasElement;

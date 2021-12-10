@@ -7131,7 +7131,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
 });
 
-type DialogName = 'image-input' | 'text-input' | 'map-input' | 'map-delete' | 'ez-token' | 'img-token';
+type DialogName = 'image-input' | 'text-input' | 'map-input' | 'map-delete' | 'ez-token' | 'img-token' | 'delete-macro' | 'delete-note';
 
 const DIALOGS: Map<string, Dialog> = new Map();
 
@@ -7155,5 +7155,9 @@ function get_dialog(name:DialogName):Dialog{
             return register(['color', 'width', 'height', 'text', 'conditions']);
         case 'img-token':
             return register(['gallery', 'width', 'height', 'url', 'conditions']);
+        case 'delete-macro':
+            return register(['checkbox']);
+        case 'delete-note':
+            return register(['checkbox']);
     }
 }

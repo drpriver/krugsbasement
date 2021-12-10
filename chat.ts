@@ -271,21 +271,15 @@ document.addEventListener('DOMContentLoaded', function(){
     const macros_list = by_id('macros-list');
     const macros_group_list = by_id('macros-group-list');
     del_macro_button.addEventListener('click', function(){
-        make_ok_dialog(`
-            <h2>Delete Macro</h2>
-            <table class = "input-container">
-            <tr>
-              <td><label for="hover-delete-macro">Delete Macro</label>
-              <td><input name="hover-delete-macro" type="checkbox" id="hover-delete-macro">
-            </tr>
-            </table>`,
-            function (e:HTMLElement){
-                const delete_checkbox = by_id('hover-delete-macro');
-                const should_delete = delete_checkbox.checked;
-                if(should_delete && current_macro !== null){
-                    delete_macro(current_macro);
-                }
-            });
+        let dialog = get_dialog('delete-macro');
+        if(!dialog) return;
+        dialog.f.checkbox.checked = false;
+        dialog.ok_handler = function(){
+            const should_delete = dialog.f.checkbox.checked;
+            if(should_delete && current_macro)
+                delete_macro(current_macro);
+        };
+        dialog.show();
     });
     const macro_close = by_id('macros-close');
     setup_window_size(macros_window);

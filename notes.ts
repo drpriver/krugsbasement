@@ -106,21 +106,15 @@ document.addEventListener('DOMContentLoaded', function(){
     const edit_notes_button = by_id('edit-notes-button');
     const del_note_button = by_id('delete-note');
     del_note_button.addEventListener('click', function(){
-        make_ok_dialog(`
-            <h2>Delete Note</h2>
-            <table class = "input-container">
-            <tr>
-              <td><label for="hover-delete-note">Delete Note</label>
-              <td><input name="hover-delete-note" type="checkbox" id="hover-delete-note">
-            </tr>
-            </table>`,
-            function (e:HTMLElement){
-                const delete_checkbox = by_id('hover-delete-note');
-                const should_delete = delete_checkbox.checked;
-                if(should_delete){
-                    SOCKET.emit(FromClient.DELETE_NOTE_REQUEST, current_note_id);
-                }
-            });
+        let dialog = get_dialog('delete-note');
+        if(!dialog) return;
+        dialog.f.checkbox.checked = false;
+        dialog.ok_handler = function(){
+            if(!dialog.f.checkbox.checked)
+                return;
+            SOCKET.emit(FromClient.DELETE_NOTE_REQUEST, current_note_id);
+        };
+        dialog.show();
     });
     let is_editing = false;
     function stop_editing(){
