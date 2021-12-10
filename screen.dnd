@@ -435,6 +435,38 @@ David20::title #hide
         <td>${checkbox('checkbox')}
       </tr>
     </table>`);
+  make('options',
+    `${title('Options')}
+    <table class="input-container">
+      <tr>
+        <td>${label('chatname', 'Chat Name:')}
+        <td>${textbox('chatname')}
+      </tr>
+    </table>
+    <div class="hover-button-container">
+      ${label('hidepan', 'Hide Pan Tool')}
+      ${checkbox('hidepan')}
+      <br>
+        <span style="font-weight:bold">Dark Mode:</span>
+        ${radio('system')}
+        ${label('system', 'System')}
+        ${radio('dark')}
+        ${label('dark', 'Dark')}
+        ${radio('light')}
+        ${label('light', 'Light')}
+        <br>
+        <span>(might need reload)</span>
+        <br>
+        <button id="export">Export</button>
+        <button id="import">Import</button>
+    </div>
+    <table id="dev" style="display:none;">
+      <tr>
+        <td>${checkbox('fps')} ${label('fps', 'Show FPS')}
+      </tr>
+    </table>
+    `);
+
 
 ::div #id(editorcontainer)
   ::div #id(views)

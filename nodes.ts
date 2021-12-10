@@ -1,16 +1,6 @@
 interface NodeIdMap {
-    'hover-delete-macro': HTMLInputElement;
-    'hover-chatname': HTMLInputElement;
-    'hide-pan': HTMLInputElement;
-    'dark-mode-auto': HTMLInputElement;
-    'dark-mode-dark': HTMLInputElement;
-    'dark-mode-light': HTMLInputElement;
-    'export-settings': HTMLButtonElement;
-    'import-settings': HTMLButtonElement;
     'hoverpop-ok': HTMLButtonElement;
     'hoverpop-cancel': HTMLButtonElement;
-    'show-fps': HTMLInputElement;
-    'hover-delete-note': HTMLInputElement;
     'disconnect': HTMLDivElement;
     'notes-window': HTMLDivElement;
     'notes-window-handle': HTMLDivElement;
@@ -125,6 +115,20 @@ interface NodeIdMap {
     'delete-note-checkbox': HTMLInputElement;
     'delete-note-ok': HTMLButtonElement;
     'delete-note-cancel': HTMLButtonElement;
+    'options': HTMLDivElement;
+    'options-window-handle': HTMLDivElement;
+    'options-title': HTMLHeadingElement;
+    'options-chatname': HTMLInputElement;
+    'options-hidepan': HTMLInputElement;
+    'options-system': HTMLInputElement;
+    'options-dark': HTMLInputElement;
+    'options-light': HTMLInputElement;
+    'options-export': HTMLButtonElement;
+    'options-import': HTMLButtonElement;
+    'options-dev': HTMLTableElement;
+    'options-fps': HTMLInputElement;
+    'options-ok': HTMLButtonElement;
+    'options-cancel': HTMLButtonElement;
     'editorcontainer': HTMLDivElement;
     'views': HTMLDivElement;
     'map': HTMLCanvasElement;

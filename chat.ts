@@ -495,9 +495,7 @@ function export_settings(e:MouseEvent){
     a.click();
 
 }
-function import_settings(e:MouseEvent, remove_hoverpop:()=>void){
-    e.stopPropagation();
-    e.preventDefault();
+function import_settings(finish:()=>void){
     const inp = document.createElement('input');
     inp.type = 'file';
     function show_err(err:any){
@@ -542,15 +540,11 @@ function import_settings(e:MouseEvent, remove_hoverpop:()=>void){
                 }
                 if(new_settings.chatname){
                     setchatname(new_settings.chatname);
-                    const name = by_id('hover-chatname');
-                    if(name){
-                        name.value = new_settings.chatname;
-                    }
                 }
-            remove_hoverpop();
+                finish();
             }
             catch(err) {
-                remove_hoverpop();
+                finish();
                 show_err(err);
                 return;
             }
@@ -561,112 +555,56 @@ function import_settings(e:MouseEvent, remove_hoverpop:()=>void){
     inp.addEventListener('change', handlefiles, false);
     inp.click();
 }
+
+let chat_options_init = false;
 function chat_options_dialog(){
-    if(hover_is_open)
-        return;
-    hover_is_open = true;
-    const hoverpop = elem('section', null, 'hover');
+    let dialog = get_dialog('options');
+    if(!dialog) return;
     const is_dev = CHATNAME == 'dev';
     const pan_tool = by_id('pan-tool');
-    let html = `
-    <h2>Options</h2>
-    <table class="input-container">
-        <tr>
-            <td><label for="hover-chatname">Chat Name:</label>
-            <td><input type="text" id="hover-chatname" value="${CHATNAME}">
-        </tr>
-    </table>
-    </div>
-    <div class="hover-button-container">
-        <label for="hide-pan">Hide Pan Tool</label>
-        <input type="checkbox" name="hide-pan" id="hide-pan" ${pan_tool.style.display == 'none'?'checked':''}>
-        <br>
-        <span style="font-weight:bold">Dark Mode:</span>
-        <input type="radio" id="dark-mode-auto" name="dark-mode" value="auto" ${current_dark_mode == DarkMode.SYSTEM?'checked':''}>
-        <label for="dark-mode-auto">System</label>
-        <input type="radio" id="dark-mode-dark" name="dark-mode" value="dark"${current_dark_mode==DarkMode.DARK?'checked':''}>
-        <label for="dark-mode-dark">Dark</label>
-        <input type="radio" id="dark-mode-light" name="dark-mode" value="light"${current_dark_mode==DarkMode.LIGHT?'checked':''}>
-        <label for="dark-mode-light">Light</label>
-        <br>
-        <span>(might need reload)</span>
-        <br>
-        <button id="export-settings">Export</button>
-        <button id="import-settings">Import</button>
-    </div>
-    <div class="hover-button-container">
-        <button type="button" id="hoverpop-ok">Ok</button>
-        <button type="button" id="hoverpop-cancel">Cancel</button>
-    </div>
-    `;
-    if(is_dev){
-        html += `
-        <table>
-            <tr>
-                <td><input type="checkbox" name="show-fps" id="show-fps" ${SHOW_FPS?'checked':''}>
-                <label for="show-fps">Show FPS</label>
-            </tr>
-        </table>
-        `;
+    dialog.f.chatname.value = CHATNAME;
+    dialog.f.hidepan.checked = pan_tool.style.display == 'none';
+    dialog.f.dev.style.display = is_dev?'block':'none';
+    dialog.f.fps.checked = SHOW_FPS;
+    if(!chat_options_init){
+        chat_options_init = true;
+        dialog.f.system.checked = false;
+        dialog.f.dark.checked = false;
+        dialog.f.light.checked = false;
+        switch(current_dark_mode){
+            case DarkMode.SYSTEM: dialog.f.system.checked = true; break;
+            case DarkMode.DARK:   dialog.f.dark.checked   = true; break;
+            case DarkMode.LIGHT:  dialog.f.light.checked  = true; break;
+        }
+        dialog.f.system.onchange = function(){change_dark_mode(DarkMode.SYSTEM);};
+        dialog.f.dark.onchange   = function(){change_dark_mode(DarkMode.DARK);};
+        dialog.f.light.onchange  = function(){change_dark_mode(DarkMode.LIGHT);};
+        dialog.f.export.addEventListener('click', export_settings);
+        dialog.f.import.addEventListener('click', function(){
+            import_settings(dialog.hide);
+        });
+        dialog.f.chatname.addEventListener('keydown', function(e:KeyboardEvent){
+            let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
+            if(!modified && e.key == "Enter"){
+                e.preventDefault();
+                e.stopPropagation();
+                dialog.ok.click();
+            }
+        });
     }
-    hoverpop.innerHTML = html;
-    document.body.appendChild(hoverpop);
-    {
-    const dark_auto = by_id('dark-mode-auto');
-    dark_auto.addEventListener('change', function(){change_dark_mode(DarkMode.SYSTEM);});
-    const dark_light = by_id('dark-mode-light');
-    dark_light.addEventListener('change', function(){change_dark_mode(DarkMode.LIGHT);});
-    const dark_dark = by_id('dark-mode-dark');
-    dark_dark.addEventListener('change', function(){change_dark_mode(DarkMode.DARK);});
+    dialog.show_handler = function(){
+        dialog.f.chatname.focus();
     }
-
-    function remove_hoverpop(){
-        document.body.removeChild(hoverpop);
-        hover_is_open = false;
-    }
-    by_id('export-settings').addEventListener('click', export_settings);
-    by_id('import-settings').addEventListener('click', function(e:MouseEvent){
-        import_settings(e, remove_hoverpop);
-    });
-    const ok = by_id('hoverpop-ok');
-    function submit(){
+    dialog.ok_handler = function(){
         if(is_dev){
-            const show_fps = by_id('show-fps');
+            const show_fps = dialog.f.fps;
             SHOW_FPS = show_fps.checked;
             request_render();
         }
-        const chatname_el = by_id('hover-chatname');
-        setchatname(chatname_el.value);
-        const hide_pan = by_id('hide-pan');
-        change_pan_visibility(!hide_pan.checked);
-        remove_hoverpop();
+        setchatname(dialog.f.chatname.value);
+        change_pan_visibility(!dialog.f.hidepan.checked);
     }
-    ok.addEventListener('click', function(){
-        submit();
-    });
-    const cancel = by_id('hoverpop-cancel');
-    cancel.addEventListener('click', function(){
-        remove_hoverpop();
-    });
-    const text_inputs = hoverpop.getElementsByTagName('input');
-    let did_focus = false;
-    for(let i = 0; i < text_inputs.length; i++){
-        const text_input = text_inputs[i];
-        if(text_input.type == 'text' || text_input.type == 'url'){
-            if(!did_focus){
-                text_input.focus();
-                did_focus = true;
-            }
-            text_input.addEventListener('keydown', function(e){
-                let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
-                if(!modified && e.key == "Enter"){
-                    e.preventDefault();
-                    e.stopPropagation();
-                    ok.click();
-                }
-            });
-        }
-    }
+    dialog.show();
 }
 
 document.addEventListener('DOMContentLoaded', function(){

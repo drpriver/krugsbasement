@@ -7131,7 +7131,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
 });
 
-type DialogName = 'image-input' | 'text-input' | 'map-input' | 'map-delete' | 'ez-token' | 'img-token' | 'delete-macro' | 'delete-note';
+type DialogName = 'image-input' | 'text-input' | 'map-input' | 'map-delete' | 'ez-token' | 'img-token' | 'delete-macro' | 'delete-note' | 'options';
 
 const DIALOGS: Map<string, Dialog> = new Map();
 
@@ -7159,5 +7159,7 @@ function get_dialog(name:DialogName):Dialog{
             return register(['checkbox']);
         case 'delete-note':
             return register(['checkbox']);
+        case 'options':
+            return register(['chatname', 'hidepan', 'dev', 'system', 'dark', 'light', 'fps', 'export', 'import']);
     }
 }

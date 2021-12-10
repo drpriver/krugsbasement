@@ -299,7 +299,9 @@ function make_dialog(name:string, fields: Array<string>):Dialog{
 
     for(let field of fields){
         let key = name + '-' + field;
-        result.f[field] = get_by_id(key) as any;
+        let el = get_by_id(key) as any;
+        if(!el) throw new Error();
+        result.f[field] = el;
     }
     result.hide = function(){
         result.hidden = true;
