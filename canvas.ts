@@ -7130,36 +7130,3 @@ document.addEventListener('DOMContentLoaded', function(){
         dialog.show();
     });
 });
-
-type DialogName = 'image-input' | 'text-input' | 'map-input' | 'map-delete' | 'ez-token' | 'img-token' | 'delete-macro' | 'delete-note' | 'options';
-
-const DIALOGS: Map<string, Dialog> = new Map();
-
-function get_dialog(name:DialogName):Dialog{
-    if(DIALOGS.has(name)) return DIALOGS.get(name)!;
-    function register(fields: Array<string>){
-        let dialog = make_dialog(name, fields);
-        DIALOGS.set(name, dialog);
-        return dialog;
-    }
-    switch(name){
-        case 'image-input':
-            return register(['width', 'height', 'checkbox', 'url']);
-        case 'text-input':
-            return register(['size', 'left', 'right', 'center', 'text', 'link-dungeon']);
-        case 'map-input':
-            return register(['name', 'hex-grid', 'no-grid', 'numbered']);
-        case 'map-delete':
-            return register(['can', 'cant', 'delete']);
-        case 'ez-token':
-            return register(['color', 'width', 'height', 'text', 'conditions']);
-        case 'img-token':
-            return register(['gallery', 'width', 'height', 'url', 'conditions']);
-        case 'delete-macro':
-            return register(['checkbox']);
-        case 'delete-note':
-            return register(['checkbox']);
-        case 'options':
-            return register(['chatname', 'hidepan', 'dev', 'system', 'dark', 'light', 'fps', 'export', 'import']);
-    }
-}

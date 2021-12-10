@@ -265,7 +265,16 @@ David20::title #hide
 ::js
   let raw = ctx.make_node(NodeType.RAW);
   node.parent.replace_child(node, raw);
-  function make(prefix, content){
+  let current_prefix = '';
+  let items = {};
+  let prefixes = [];
+  function begin(prefix){
+    current_prefix = prefix;
+    items[prefix] = [];
+    prefixes.push(prefix);
+  }
+  function make(content){
+    let prefix = current_prefix;
     content = content.replaceAll('id="', 'id="'+prefix+'-');
     content = content.replaceAll('for="', 'for="'+prefix+'-');
     content = content.replaceAll('name="', 'name="'+prefix+'-');
@@ -285,31 +294,64 @@ David20::title #hide
     return `<label for="${name}">${text}</label>`;
   }
   function numbox(name){
+    items[current_prefix].push([name, 'HTMLInputElement']);
     return `<input type="number" name="${name}" id="${name}" class="numeric-input">`;
   }
   function checkbox(name){
+    items[current_prefix].push([name, 'HTMLInputElement']);
     return `<input type="checkbox" name="${name}" id="${name}" checked>`;
   }
   function urlbox(name){
+    items[current_prefix].push([name, 'HTMLInputElement']);
     return `<input type="url" name="${name}" id="${name}" value="">`;
   }
   function textbox(name){
+    items[current_prefix].push([name, 'HTMLInputElement']);
     return `<input type="text" name="${name}" id="${name}" value="">`;
   }
   function title(text){
+    items[current_prefix].push(['title', 'HTMLHeadingElement']);
     return `<h2 id="title">${text}</h2>`;
   }
   function textarea(name){
+    items[current_prefix].push([name, 'HTMLTextAreaElement']);
     return `<textarea name="${name}" id="${name}"></textarea>`
   }
   function radio(name){
+    items[current_prefix].push([name, 'HTMLInputElement']);
     return `<input type="radio" id="${name}" name="${name}" value="auto">`;
   }
   function colorbox(name){
+    items[current_prefix].push([name, 'HTMLInputElement']);
     return `<input type="color" id="${name}" name="${name}">`;
   }
-  make("image-input",
-  `
+  // for when you just need a placeholder div.
+  function div(name){
+    items[current_prefix].push([name, 'HTMLDivElement']);
+    return `<div id="${name}"></div>`
+  }
+  function selectbegin(name){
+    items[current_prefix].push([name, 'HTMLSelectElement']);
+    return `<select id="${name}">`;
+  }
+  function trbegin(name){
+    items[current_prefix].push([name, 'HTMLTableRowElement']);
+    return `<tr id="${name}">`;
+  }
+  function tablebegin(name){
+    items[current_prefix].push([name, 'HTMLTableElement']);
+    return `<table id="${name}">`;
+  }
+  function button(name, text){
+    items[current_prefix].push([name, 'HTMLButtonElement']);
+    return `<button id="${name}">${text}</button>`;
+  }
+  // We have this stupid begin thing as the function calls
+  // inside the template strings will be evaluated eagerly,
+  // so it is too late to set the current prefix before we
+  // get to them.
+  begin('image-input');
+  make(`
     ${title("Enter Image")}
     <table class="input-container">
       <tr>
@@ -322,8 +364,9 @@ David20::title #hide
       </tr>
     </table>
   `);
-  make("text-input",
-  `
+
+  begin('text-input');
+  make(`
     ${title("Enter Image")}
     <table class="input-container">
       <tr>
@@ -344,14 +387,15 @@ David20::title #hide
         <tr>
           <td>Link To:
           <td>
-            <select id="link-dungeon">
+            ${selectbegin('link-dungeon')}
               <option value="-1">No Link</option>
             </select>
         </tr>
     </table>
   `);
-  make('map-input',
-    `${title('New Map')}
+  begin('map-input');
+  make(`
+    ${title('New Map')}
     <table class='input-container'>
       <tr>
         <td>${label('name', 'Map Name:')}
@@ -370,19 +414,21 @@ David20::title #hide
         <td>${checkbox('numbered')}
       </tr>
     </table>`);
-  make('map-delete',
-    `${title('Delete Map')}
+  begin('map-delete');
+  make(`
+    ${title('Delete Map')}
     <table class="input-container">
-      <tr id="can">
+      ${trbegin('can')}
         <td>${label('delete', 'DeleteMap')}
         <td>${checkbox('delete')}
       </tr>
-      <tr id="cant">
+      ${trbegin('cant')}
         <td >This map can't be deleted.
       </tr>
     </table>`);
-  make('ez-token',
-    `${title('New Token')}
+  begin('ez-token');
+  make(`
+    ${title('New Token')}
     <table class="input-container">
       <tr>
         <td>${label('color', 'Color:')}
@@ -399,12 +445,12 @@ David20::title #hide
         <td colspan="3">${textbox('text')}
       </tr>
     </table>
-    <div id="conditions">
-    </div>`);
-  make('img-token',
-    `${title('New Token')}
-    <div id="gallery">
-    </div>
+    ${div('conditions')}
+    `);
+  begin('img-token');
+  make(`
+    ${title('New Token')}
+    ${div('gallery')}
     <table class="input-container">
       <tr>
         <td>${label('width', 'Width (sq):')}
@@ -417,26 +463,29 @@ David20::title #hide
         <td>${urlbox('url')}
       </tr>
     </table>
-    <div id="conditions">
-    </div>`);
-  make('delete-macro',
-    `${title('Delete Macro')}
+    ${div('conditions')}
+    `);
+  begin('macro-deletion');
+  make(`
+    ${title('Delete Macro')}
     <table class="input-container">
       <tr>
         <td>${label('checkbox', 'Delete Macro:')}
         <td>${checkbox('checkbox')}
       </tr>
     </table>`);
-  make('delete-note',
-    `${title('Delete Note')}
+  begin('note-deletion');
+  make(`
+    ${title('Delete Note')}
     <table class="input-container">
       <tr>
         <td>${label('checkbox', 'Delete Note:')}
         <td>${checkbox('checkbox')}
       </tr>
     </table>`);
-  make('options',
-    `${title('Options')}
+  begin('options');
+  make(`
+    ${title('Options')}
     <table class="input-container">
       <tr>
         <td>${label('chatname', 'Chat Name:')}
@@ -457,15 +506,53 @@ David20::title #hide
         <br>
         <span>(might need reload)</span>
         <br>
-        <button id="export">Export</button>
-        <button id="import">Import</button>
+        ${button('export', 'Export')}
+        ${button('import', 'Import')}
     </div>
-    <table id="dev" style="display:none;">
+    ${tablebegin('dev')}
       <tr>
         <td>${checkbox('fps')} ${label('fps', 'Show FPS')}
       </tr>
     </table>
     `);
+  if(ctx.outpath.includes('temp')){
+    let ts = '// NOTE: this file was generated\n'
+    ts += '// Do NOT edit it. Your edits will be overwritten!\n'
+    ts += '\n';
+    ts += 'interface DialogIdMap {\n';
+    for(let prefix of prefixes){
+      ts += `  '${prefix}': {\n`;
+      for(let pair of items[prefix]){
+        ts += `    "${pair[0]}": ${pair[1]};\n`;
+      }
+      ts += `  };\n`;
+    }
+    ts += '}\n\n';
+    ts += `
+  const DIALOGS: Map<string, any> = new Map();
+
+  function get_or_make_dialog<Key extends keyof DialogIdMap>(name:Key):Dialog<Key>{
+      if(DIALOGS.has(name)) return DIALOGS.get(name)!;
+      function register(fields: Array<string>): any{
+          let dialog = make_dialog(name, fields);
+          DIALOGS.set(name, dialog);
+          return dialog;
+      }
+      switch(name){\n`;
+    for(let prefix of prefixes){
+      ts += `        case '${prefix}':\n`;
+      ts += `            return register([`;
+      for(let pair of items[prefix])
+        ts += `'${pair[0]}', `;
+      ts += `]);\n`
+    }
+    ts+=
+    `   }
+        throw new Error();
+    }
+    `;
+    FileSystem.write_file('dialogs.ts', ts);
+  }
 
 
 ::div #id(editorcontainer)

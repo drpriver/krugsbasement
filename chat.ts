@@ -271,7 +271,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const macros_list = by_id('macros-list');
     const macros_group_list = by_id('macros-group-list');
     del_macro_button.addEventListener('click', function(){
-        let dialog = get_dialog('delete-macro');
+        let dialog = get_dialog('macro-deletion');
         if(!dialog) return;
         dialog.f.checkbox.checked = false;
         dialog.ok_handler = function(){

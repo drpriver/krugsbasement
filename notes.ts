@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const edit_notes_button = by_id('edit-notes-button');
     const del_note_button = by_id('delete-note');
     del_note_button.addEventListener('click', function(){
-        let dialog = get_dialog('delete-note');
+        let dialog = get_dialog('note-deletion');
         if(!dialog) return;
         dialog.f.checkbox.checked = false;
         dialog.ok_handler = function(){
