@@ -290,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const macro_close = by_id('macros-close');
     setup_window_size(macros_window);
     let make_top = setup_zsorted_window(macros_window);
-    setup_movable_window(macros_window, move_handle);
+    setup_movable_window(macros_window, move_handle, WINDOWFLAGS.REMEMBER_POSITION);
     setup_closable_window(macros_window, macro_close, function(){
         save_macros();
         macros_is_open = false;
@@ -1178,7 +1178,7 @@ function tables_button_dialog(){
 document.addEventListener('DOMContentLoaded', function(){
     const container = by_id('tool-container');
     const handle = by_id('tool-container-handle');
-    setup_movable_window(container, handle);
+    setup_movable_window(container, handle, WINDOWFLAGS.REMEMBER_POSITION);
     setup_zsorted_window(container);
     ensure_window_is_completely_on_screen(container);
 });
@@ -1290,7 +1290,7 @@ document.addEventListener('DOMContentLoaded', function(){
         add_table_row(sv);
     });
     const make_top = setup_zsorted_window(var_window);
-    setup_movable_window(var_window, var_handle);
+    setup_movable_window(var_window, var_handle, WINDOWFLAGS.REMEMBER_POSITION);
     let variables_is_open = false;
     let active_group = 'Global';
     var_button.addEventListener('click', function(){
@@ -1583,7 +1583,7 @@ document.addEventListener('DOMContentLoaded', function(){
     function hide_float(){
         float_window.style.display = 'none';
     }
-    setup_movable_window(float_window, float_handle);
+    setup_movable_window(float_window, float_handle, WINDOWFLAGS.REMEMBER_POSITION);
     show_float();
 });
 

@@ -656,13 +656,14 @@ struct NameMapMessage: dict
 struct NewMapRequest: dict
     name = str
     grid_type  = GRIDTYPE
+    flags = MapFlags
 
 struct CanvasGridTypeMsg: dict
     map_id = int
     grid_type = GRIDTYPE
 struct CanvasGridNumberedMsg: dict
     map_id = int
-    numbered = int
+    numbered = MapFlags
 
 struct NoteUpdateTitle: dict
     note_id = int

@@ -3557,35 +3557,21 @@ function launch_edit_dialog(view:DungeonMapView):void{
         case CANVASTYPE.FILLED_RECT:
             return;
         case CANVASTYPE.IMAGE:{
-            const html = `
-                <h2>Edit Image</h2>
-                <table class="input-container">
-                    <tr>
-                        <td><label for="width">Width:</label>
-                        <input type="number" name="width" id="hover-width" min="0" class="numeric-input" value="${obj.width}">
-                        <td><label for="height">Height:</label>
-                        <input type="number" name="height" id="hover-height" min="0" class="numeric-input" value="${obj.height}">
-                        <td><label for="hover-checkbox">Round to Grid</label>
-                        <input name="round" type="checkbox" id="hover-checkbox" checked>
-                    </tr>
-                    <tr>
-                        <td colspan="3"><label for="url">URL:</label>
-                        <input type="url" name="url" id="hover-url" value="${obj.url}">
-                    </tr>
-                </table>
-            `;
-            make_ok_dialog(html, function(hoverpop){
-                const text = by_id('hover-url').value;
-                if(!text || !text.trim()){
+            let dialog = get_dialog('image-input');
+            if(!dialog) return;
+            dialog.title.textContent = 'Edit Image';
+            dialog.f.width.value = ""+obj.width;
+            dialog.f.height.value = ""+obj.height;
+            dialog.f.url.value = obj.url;
+            dialog.ok_handler = function(){
+                const text = dialog.f.url.value.trim();
+                if(!text)
                     return;
-                }
-                let width = +by_id('hover-width').value;
-                let height = +by_id('hover-height').value;
-                if(!width)
-                    width = 0;
-                if(!height)
-                    height = 0;
-                const round = by_id('hover-checkbox').checked;
+                let width = +dialog.f.width.value;
+                let height = +dialog.f.height.value;
+                if(!width || width < 0) width = 0;
+                if(!height || height < 0) height = 0;
+                const round = dialog.f.checkbox.checked;
                 if(round){
                     width = snap_to_grid(width);
                     height = snap_to_grid(height);
@@ -3599,219 +3585,175 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 note_updates_for_undo(view.map,[before], [after]);
                 publish_obj_updates(view.map.map_id, [after]);
                 request_render();
-            });
+            };
+            dialog.show();
         }return;
         case CANVASTYPE.TEXT:{
-            const html = `
-            <h2>Edit Text</h2>
-            <table class="input-container">
-                <tr>
-                    <td><label for="text-size">Size:</label>
-                    <td><input type="number" id="text-size" name="text-size" min="8" max="72" value="${obj.size}" class="numeric-input">
-                </tr>
-                <tr>
-                    <td><span>Alignment:</span>
-                    <td><input type="radio" id="text-align-left" name="text-align" value="auto"  ${obj.alignment == TEXTALIGNMENT.LEFT?'checked':''}>
-                    <label for="text-align-left">Left</label>
-                    <input type="radio" id="text-align-center" name="text-align" value="auto" ${obj.alignment == TEXTALIGNMENT.CENTER?'checked':''}>
-                    <label for="text-align-center">Center</label>
-                    <input type="radio" id="text-align-right" name="text-align" value="auto" ${obj.alignment == TEXTALIGNMENT.RIGHT?'checked':''}>
-                    <label for="text-align-right">Right</label>
-                    </td>
-                </tr>
-                <tr>
-                    <td><label for="hover-text">Text:</label>
-                    <td><textarea name="hover-text" id="hover-text"  cols="30" rows="5"></textarea>
-                </tr>
-                <tr>
-                    <td>Link To:
-                    <td><select id="text-link-dungeon">
-                        <option value="-1">No Link</option>
-                    ${by_id('current-map-name').innerHTML}
-                    }</select>
-                    </td>
-                </tr>
-            </table>
-            `;
-            function insert_obj_text(){
-                const ta = by_id('hover-text');
-                ta.textContent = (obj as TextObj).text;
-                const select = by_id('text-link-dungeon');
-                select.value = "" + (obj as TextObj).map_id;
-            }
-            make_ok_dialog2(html, insert_obj_text, function(hoverpop){
-                const number_input = by_id('text-size');
-                const number = +number_input.value;
-                const text_input = by_id('hover-text');
-                const text = text_input.value.trim();
-                if(!text)
-                    return;
-                const tac = by_id('text-align-center');
-                const tar = by_id('text-align-right');
-                const select = by_id('text-link-dungeon');
-                if(tac.checked)
-                    obj.alignment = TEXTALIGNMENT.CENTER;
-                else if(tar.checked)
-                    obj.alignment = TEXTALIGNMENT.RIGHT;
-                else
-                    obj.alignment = TEXTALIGNMENT.LEFT;
-                obj.size = number;
+            let dialog = get_dialog('text-input');
+            if(!dialog) return;
+            dialog.title.textContent = 'Edit Text';
+            dialog.f.size.value = "" + obj.size;
+            const [l, c, r] = [dialog.f.left, dialog.f.center, dialog.f.right];
+            l.checked = false;
+            c.checked = false;
+            r.checked = false;
+            [l, c, r][obj.alignment].checked = true;
+            dialog.f.text.textContent = obj.text;
+            dialog.f['link-dungeon'].innerHTML = '<option value="-1">No Link</option>'+by_id('current-map-name').innerHTML;
+            dialog.f['link-dungeon'].value = ""+obj.map_id;
+            dialog.show_handler = function(){
+                dialog.f.text.focus();
+            };
+            dialog.ok_handler = function(){
+                const text = dialog.f.text.value.trim();
+                if(!text) return;
+                let alignment = radio_to_value([l,c,r], [TEXTALIGNMENT.LEFT, TEXTALIGNMENT.CENTER, TEXTALIGNMENT.RIGHT]);
+                let textsize = (+dialog.f.size.value) | 0;
+                if(textsize < 8) textsize = 8;
+                if(textsize > 72) textsize = 72;
+                let map_id = +dialog.f['link-dungeon'].value;
+                // This is annoying otherwise
+                if(map_id == view.map.map_id)
+                    map_id = -1;
+                obj.size = textsize;
                 obj.text = text;
                 obj.bbox = {x0:0, y0:0, x1:0, y1:0};
                 obj.bboxes = [];
                 obj.lines = text.split('\n');
-                obj.map_id = +select.value;
-                // This is annoying otherwise
-                if(obj.map_id == view.map.map_id)
-                    obj.map_id = -1;
+                obj.map_id = map_id;
+                obj.alignment = alignment;
                 const after = strip_obj(obj);
                 publish_obj_updates(view.map.map_id, [after]);
                 request_render();
-            });
+            }
+
+            dialog.show();
+
         }return;
         case CANVASTYPE.EZ_TOKEN:{
-            const html = `
-            <h2>Edit Token</h2>
-            <table class="input-container">
-                <tr>
-                    <td><label for="color">Color:</label>
-                    <td><input type="color" id="hover-color" value="${obj.color}">
-                </tr>
-                <tr>
-                    <td><label for="width">Width (sq):</label>
-                    <td><input type="number" name="width" id="hover-width" min="1" max="5" value="${obj.width}" class="numeric-input">
-                    <td><label for="height">Height (sq):</label>
-                    <td><input type="number" name="height" id="hover-height" min="1" max="5" value="${obj.height}" class="numeric-input">
-                </tr>
-                <tr>
-                    <td><label for="text">Text:</label>
-                    <td colspan="3"><input type="text" name="text" id="hover-text" value="${obj.text}">
-                </tr>
-            </table>
-            <div id="hover-conditions">
-            </div>
-            `;
+            let dialog = get_dialog('ez-token');
+            if(!dialog) return;
+            dialog.title.textContent = 'Edit Token';
+            dialog.f.color.value = obj.color;
+            dialog.f.width.value = ""+obj.width;
+            dialog.f.height.value = ""+obj.height;
+            dialog.f.text.value = obj.text;
+            dialog.hide_handler = function(){
+                dialog.f.conditions.innerHTML = '';
+            };
+            const conditions = dialog.f.conditions;
             const flags_before = obj.statusflags;
             let flags_after = flags_before;
-            function inject_checkboxes(){
-                const hover_conditions = by_id('hover-conditions');
-                function make_handler(el: HTMLInputElement, flag:TOKENSTATUSFLAGS){
-                    function onchange(){
-                        if(el.checked)
-                            flags_after |= flag;
-                        else
-                            flags_after &= ~flag;
-                    }
-                    return onchange;
+            function make_handler(el: HTMLInputElement, flag:TOKENSTATUSFLAGS){
+                function onchange(){
+                    if(el.checked)
+                        flags_after |= flag;
+                    else
+                        flags_after &= ~flag;
                 }
-                for(let i = 0; i < STATUSFLAG_NAMES.length; i++){
-                    const flag = 1 << i;
-                    const name = STATUSFLAG_NAMES[i];
-                    const d = document.createElement('div');
-                    const inp = document.createElement('input');
-                    inp.type = 'checkbox';
-                    const fullname = `hover-status-${name}`;
-                    inp.name = fullname;
-                    inp.id = fullname;
-                    if(flags_before & flag)
-                        inp.checked = true;
-                    const label = document.createElement('label');
-                    label.appendChild(STATUSICONS[i]);
-                    label.appendChild(document.createTextNode(name));
-                    label.htmlFor = fullname;
-                    inp.addEventListener('change', make_handler(inp, flag));
-                    d.appendChild(inp);
-                    d.appendChild(label);
-                    hover_conditions.appendChild(d);
-                }
-
+                return onchange;
             }
-            make_ok_dialog2(html, inject_checkboxes, function(hoverpop){
-                const text_input = by_id('hover-text');
-                const text = text_input.value;
-                if(text){
-                    obj.text = text;
-                }
-                let width  = +by_id('hover-width').value;
-                let height = +by_id('hover-height').value;
-                if(!width)
-                    width = 1;
-                if(!height)
-                    height = 1;
+
+            for(let i = 0; i < STATUSFLAG_NAMES.length; i++){
+                const flag = 1 << i;
+                const name = STATUSFLAG_NAMES[i];
+                const d = document.createElement('div');
+                const inp = document.createElement('input');
+                inp.type = 'checkbox';
+                const fullname = `hover-status-${name}`;
+                inp.name = fullname;
+                inp.id = fullname;
+                if(flags_before & flag)
+                    inp.checked = true;
+                const label = document.createElement('label');
+                label.appendChild(STATUSICONS[i]);
+                label.appendChild(document.createTextNode(name));
+                label.htmlFor = fullname;
+                inp.addEventListener('change', make_handler(inp, flag));
+                d.appendChild(inp);
+                d.appendChild(label);
+                conditions.appendChild(d);
+            }
+            dialog.ok_handler = function(){
+                const text = dialog.f.text.value.trim();
+                if(text) obj.text = text;
+                let width  = +dialog.f.width.value;
+                let height = +dialog.f.height.value;
+                if(!width) width = 1;
+                if(!height) height = 1;
+                if(!width || width < 0) width = gridscale == GRIDSCALE.TEN?1:0.5;
+                if(!height || height < 0) height = gridscale == GRIDSCALE.TEN?1:0.5;
                 obj.width = width;
                 obj.height = height;
-                const color =by_id('hover-color').value;
+                const color = dialog.f.color.value;
                 obj.color = color;
                 obj.statusflags = flags_after;
                 const after = strip_obj(obj);
                 publish_obj_updates(view.map.map_id, [after]);
                 request_render();
-            });
+            };
+            dialog.show();
         }return;
         case CANVASTYPE.IMG_TOKEN:{
-            // copy-paste from above
-            const html = `
-            <h2>Edit Token</h2>
-            <table class="input-container">
-                <tr>
-                    <td><label for="width">Width (sq):</label>
-                    <td><input type="number" name="width" id="hover-width" min="1" max="5" value="${obj.width}" class="numeric-input">
-                    <td><label for="height">Height (sq):</label>
-                    <td><input type="number" name="height" id="hover-height" min="1" max="5" value="${obj.height}" class="numeric-input">
-                </tr>
-            </table>
-            <div id="hover-conditions">
-            </div>
-            `;
+            let dialog = get_dialog('img-token');
+            if(!dialog) return;
+            dialog.title.textContent = 'Edit Token';
+            dialog.f.width.value = ""+obj.width;
+            dialog.f.height.value = ""+obj.height;
+            dialog.f.url.value = obj.url;
+            const conditions = dialog.f.conditions;
+            dialog.hide_handler = function(){
+                conditions.innerHTML = '';
+            };
             const flags_before = obj.statusflags;
+            const url_before = obj.url;
             let flags_after = flags_before;
-            function inject_checkboxes(){
-                const hover_conditions = by_id('hover-conditions');
-                function make_handler(el: HTMLInputElement, flag:TOKENSTATUSFLAGS){
-                    function onchange(){
-                        if(el.checked)
-                            flags_after |= flag;
-                        else
-                            flags_after &= ~flag;
-                    }
-                    return onchange;
+            function make_handler(el: HTMLInputElement, flag:TOKENSTATUSFLAGS){
+                function onchange(){
+                    if(el.checked)
+                        flags_after |= flag;
+                    else
+                        flags_after &= ~flag;
                 }
-                for(let i = 0; i < STATUSFLAG_NAMES.length; i++){
-                    const flag = 1 << i;
-                    const name = STATUSFLAG_NAMES[i];
-                    const d = document.createElement('div');
-                    const inp = document.createElement('input');
-                    inp.type = 'checkbox';
-                    const fullname = `hover-status-${name}`;
-                    inp.name = fullname;
-                    inp.id = fullname;
-                    if(flags_before & flag)
-                        inp.checked = true;
-                    const label = document.createElement('label');
-                    label.appendChild(STATUSICONS[i]);
-                    label.appendChild(document.createTextNode(name));
-                    label.htmlFor = fullname;
-                    inp.addEventListener('change', make_handler(inp, flag));
-                    d.appendChild(inp);
-                    d.appendChild(label);
-                    hover_conditions.appendChild(d);
-                }
-
+                return onchange;
             }
-            make_ok_dialog2(html, inject_checkboxes, function(hoverpop){
-                let width = +by_id('hover-width').value;
-                let height = +by_id('hover-height').value;
-                if(!width)
-                    width = 1;
-                if(!height)
-                    height = 1;
+            for(let i = 0; i < STATUSFLAG_NAMES.length; i++){
+                const flag = 1 << i;
+                const name = STATUSFLAG_NAMES[i];
+                const d = document.createElement('div');
+                const inp = document.createElement('input');
+                inp.type = 'checkbox';
+                const fullname = `hover-status-${name}`;
+                inp.name = fullname;
+                inp.id = fullname;
+                if(flags_before & flag)
+                    inp.checked = true;
+                const label = document.createElement('label');
+                label.appendChild(STATUSICONS[i]);
+                label.appendChild(document.createTextNode(name));
+                label.htmlFor = fullname;
+                inp.addEventListener('change', make_handler(inp, flag));
+                d.appendChild(inp);
+                d.appendChild(label);
+                conditions.appendChild(d);
+            }
+            dialog.ok_handler = function(){
+                let width  = +dialog.f.width.value;
+                let height = +dialog.f.height.value;
+                if(!width || width < 0) width = gridscale == GRIDSCALE.TEN?1:0.5;
+                if(!height || height < 0) height = gridscale == GRIDSCALE.TEN?1:0.5;
                 obj.width = width;
                 obj.height = height;
                 obj.statusflags = flags_after;
+                obj.url = dialog.f.url.value.trim();
+                if(obj.url != url_before){
+                    delay_load_obj_image(obj, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH);
+                }
                 const after = strip_obj(obj);
                 publish_obj_updates(view.map.map_id, [after]);
                 request_render();
-            });
+            };
+            dialog.show();
         }return;
         case CANVASTYPE.DOOR:
             return;
@@ -5297,6 +5239,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
         ctx.fillText('max '+ max.toFixed(4)+'ms', 10, 50);
     }
 }
+// NOTE: The 'Help' tool was removed (it was a proto dialog.futton).
+// There is now an empty slot due to this.
 const enum TOOLTYPE {
     PAN     = 0,
     SELECT  = 1,
@@ -5308,7 +5252,7 @@ const enum TOOLTYPE {
     TEXT    = 7,
     TOKEN   = 8,
     IMAGE   = 9,
-    HELP    = 10,
+    // HELP    = 10,
     MEASURE = 11,
     FIXTURE = 12,
     TILE    = 13,
@@ -5326,7 +5270,7 @@ const TOOL_IDS_TO_TOOL = (function(){
     m.set('text-tool',    TOOLTYPE.TEXT);
     m.set('token-tool',   TOOLTYPE.TOKEN);
     m.set('image-tool',   TOOLTYPE.IMAGE);
-    m.set('help-tool',    TOOLTYPE.HELP);
+    // m.set('help-tool',    TOOLTYPE.HELP);
     m.set('measure-tool', TOOLTYPE.MEASURE);
     m.set('fixture-tool', TOOLTYPE.FIXTURE);
     m.set('tile-tool',    TOOLTYPE.TILE);
@@ -5354,7 +5298,7 @@ const TOOL_TO_TOOL_ID = [
     // TOOLTYPE.IMAGE:
     'image-tool',
     // TOOLTYPE.HELP:
-    'help-tool',
+    'help-tool', // unused?
     // TOOLTYPE.MEASURE:
     'measure-tool',
     // TOOLTYPE.FIXTURE:
@@ -5396,8 +5340,9 @@ let current_tool:TOOLTYPE = (function(){
         t = localStorage.getItem('current_tool');
     if(t){
         const result =  TOOL_IDS_TO_TOOL.get(t);
-        if(result !== undefined)
+        if(result !== undefined){
             return result;
+        }
     }
     return show_pan?TOOLTYPE.PAN:TOOLTYPE.SELECT;
     }());
@@ -5559,9 +5504,7 @@ function make_terrain_icon_palette(){
 let tools: Array<HTMLElement> = [];
 function change_tool(tool:TOOLTYPE):void{
     store_global(StorageCategory.CANVAS, 'current_tool', TOOL_TO_TOOL_ID[tool]);
-    let prev = current_tool;
-    if(!tools)
-        return;
+    if(!tools) return;
     current_tool = tool;
     switch(tool){
         case TOOLTYPE.PAN:
@@ -5599,106 +5542,6 @@ function change_tool(tool:TOOLTYPE):void{
         if(toolel.id == tool_id){
             toolel.classList.add('selected');
         }
-    }
-    if(tool == TOOLTYPE.HELP){
-        if(prev != TOOLTYPE.HELP)
-            change_tool(prev);
-        make_ok_dialog(`
-            <h2>Help</h2>
-            <div style="max-height:90%;overflow-y:auto;margin:auto;">
-            <h3 style="text-align:center;">Tips</h3>
-            <div style="margin:auto;max-width:60em;padding:1em;">
-            <p>The Grid/Half/Free buttons affect what the tools will snap to.
-               You can use <b>q</b> to switch to Grid, <b>w</b> to switch to Half
-               and <b>e</b> to switch to Free.
-            <p>You can use <b>s</b> to switch to Select.
-            <p>The <span>☰</span> means there are other options for that tool.
-            <p>Right-clicking on the map shows some more options
-            <p>You can cut, copy, paste things on the map.
-            <p>Click the options button to add macros and change your chat name.
-            <p>Roll a die by typing a dice expression into the chat, like 'd20+4'.
-               Non-dice messages are just sent as text.
-            <h3 style="text-align:center;">Tools</h3>
-            </div>
-            <table id="help-menu">
-                <thead>
-                    <tr><th>Tool</th><th>Hotkey</th><th>Description</th></tr>
-                </thead>
-                <tbody>
-                <tr>
-                    <td>Pan
-                    <td>n
-                    <td>Allows you to click to drag where you are on the map.
-                </tr>
-                <tr>
-                    <td>Select
-                    <td>s
-                    <td>Select things. Select modes change what you can select.
-                        A single click selects one object; dragging will select anything that
-                        overlaps. Clicking on a selected object and dragging will move.
-                </tr>
-                <tr>
-                    <td>Wall
-                    <td>a
-                    <td>Allows you to draw walls. Click and drag between corners of the grid.
-                </tr>
-                <tr>
-                    <td>Door
-                    <td>d
-                    <td>Allows you to draw doors. Click and drag between corners of the grid.
-                        Do this over walls.
-                </tr>
-                <tr>
-                    <td>Fixture
-                    <td>f
-                    <td>Allows you to draw various fixtures, such as stairs.
-                </tr>
-                <tr>
-                    <td>Line
-                    <td>l
-                    <td>A freehand line.
-                </tr>
-                <tr>
-                    <td>Rect
-                    <td>r
-                    <td>A rectangle. Border is primary color.
-                        A solid rectangle is all the border color,
-                        a filled rectangle uses the secondary color for the fill.
-                </tr>
-                <tr>
-                    <td>Ellipse
-                    <td>p
-                    <td>An ellipse. Border is primary color.
-                        A solid ellipse is all the border color,
-                        a filled ellipse uses the secondary color for the fill.
-                </tr>
-                <tr>
-                    <td>Text
-                    <td>t
-                    <td>Allows you to type in some text.
-                        Snaps to the center of the square at first, but you can move it to wherever.
-                </tr>
-                <tr>
-                    <td>Token
-                    <td>o
-                    <td>Ez Token allows you to make a simple token with a label.
-                        Img Token allows you to make a token with an image from a url.
-                </tr>
-                <tr>
-                    <td>Image
-                    <td>i
-                    <td>Allows you to place an image from a url.
-                </tr>
-                <tr>
-                    <td>Measure
-                    <td>m
-                    <td>A tool for measuring distances. Snaps to the center of the square.
-                        In half-grid, snaps to center of the half grid.
-                        With free, can be anywhere.
-                </tbody>
-            </table>
-            </div>
-                   `, function(unused){});
     }
 }
 let has_tri_menu = false;
@@ -6621,101 +6464,58 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case TOOLTYPE.TEXT:{
                 const [x0, y0] = event_to_coord(e, view);
-                const html = `
-                <h2>Enter Text</h2>
-                <table class="input-container">
-                    <tr>
-                        <td><label for="text-size">Size:</label>
-                        <td><input type="number" id="text-size" name="text-size" min="8" max="72" value="18" class="numeric-input">
-                    </tr>
-                    <tr>
-                        <td><span>Alignment:</span>
-                        <td><input type="radio" id="text-align-left" name="text-align" value="auto" checked>
-                        <label for="text-align-left">Left</label>
-                        <input type="radio" id="text-align-center" name="text-align" value="auto">
-                        <label for="text-align-center">Center</label>
-                        <input type="radio" id="text-align-right" name="text-align" value="auto">
-                        <label for="text-align-right">Right</label>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><label for="hover-text">Text:</label>
-                        <td><textarea name="hover-text" id="hover-text" cols="30" rows="5"></textarea>
-                    </tr>
-                    <tr>
-                        <td>Link To:
-                        <td><select id="text-link-dungeon">
-                            <option value="-1">No Link</option>
-                        ${by_id('current-map-name').innerHTML}
-                        }</select>
-                        </td>
-                    </tr>
-                </table>
-                `;
-                make_ok_dialog(html, function(hoverpop){
-                    const text_input = by_id('hover-text');
-                    const text = text_input.value;
-                    if(!text || !text.trim())
-                        return;
-                    // const tal = by_id('text-align-left');
-                    const tac = by_id('text-align-center');
-                    const tar = by_id('text-align-right');
-                    let alignment = TEXTALIGNMENT.LEFT;
-                    if(tac.checked)
-                        alignment = TEXTALIGNMENT.CENTER;
-                    else if(tar.checked)
-                        alignment = TEXTALIGNMENT.RIGHT;
+                let dialog = get_dialog('text-input');
+                if(!dialog) return;
+                dialog.title.textContent = 'Enter Text';
+                dialog.f.size.value = '12';
+                const [l, c, r] = [dialog.f.left, dialog.f.center, dialog.f.right];
+                l.checked = false;
+                c.checked = true;
+                r.checked = false;
+                dialog.f.text.value = '';
+                dialog.f['link-dungeon'].innerHTML = '<option value="-1">No Link</option>'+by_id('current-map-name').innerHTML;
+                dialog.f['link-dungeon'].value = '-1';
+                dialog.ok_handler = function(){
+                    const text = dialog.f.text.value.trim();
+                    if(!text) return;
+                    let alignment = radio_to_value([l, c, r], [TEXTALIGNMENT.LEFT, TEXTALIGNMENT.CENTER, TEXTALIGNMENT.RIGHT]);
 
-
-                    const size_el = by_id('text-size');
-                    const size = (+size_el.value) | 0;
-                    if(size < 8)
-                        return;
-                    if(size > 72)
-                        return;
-                    const select = by_id('text-link-dungeon');
-                    let map_id = +select.value;
+                    let textsize = (+dialog.f.size.value) | 0;
+                    if(textsize < 8) textsize = 8;
+                    if(textsize > 72) textsize = 72;
+                    let map_id = +dialog.f['link-dungeon'].value;
                     // This is annoying otherwise
                     if(map_id == view.map.map_id)
                         map_id = -1;
                     let id = get_new_id();
-                    add_text(view.map, id, x0, y0, text, size, alignment, map_id);
+                    add_text(view.map, id, x0, y0, text, textsize, alignment, map_id);
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                     request_render();
-                });
+                };
+                dialog.show();
+
             }break;
             case TOOLTYPE.IMAGE:{
                 const [x0, y0] = event_to_coord(e, view);
-                const html = `
-                    <h2>Enter Image</h2>
-                    <table class="input-container">
-                        <tr>
-                            <td><label for="width">Width:</label>
-                            <input type="number" name="width" id="hover-width" min="0" class="numeric-input">
-                            <td><label for="height">Height:</label>
-                            <input type="number" name="height" id="hover-height" min="0" class="numeric-input">
-                            <td><label for="hover-checkbox">Round to Grid</label>
-                            <input name="round" type="checkbox" id="hover-checkbox" checked>
-                        </tr>
-                        <tr>
-                            <td colspan="3"><label for="url">URL:</label>
-                            <input type="url" name="url" id="hover-url" value="">
-                        </tr>
-                    </table>
-                `;
-                make_ok_dialog(html, function(hoverpop){
-                    const text = by_id('hover-url').value;
-                    if(!text || !text.trim()){
-                        return;
-                    }
-                    let width = +by_id('hover-width').value;
-                    let height = +by_id('hover-height').value;
-                    if(!width)
-                        width = 0;
-                    if(!height)
-                        height = 0;
-                    const round = by_id('hover-checkbox').checked;
+                let dialog = get_dialog('image-input');
+                if(!dialog) return;
+                dialog.title.textContent = 'Enter Image';
+                dialog.f.width.value = '';
+                dialog.f.height.value = '';
+                dialog.f.url.value = '';
+                dialog.f.checkbox.checked = false;
+                dialog.show_handler = function(){
+                    dialog.f.url.focus();
+                };
+                dialog.ok_handler = function(){
+                    const text = dialog.f.url.value.trim();
+                    if(!text) return;
+                    let width = +dialog.f.width.value;
+                    let height = +dialog.f.height.value;
+                    if(!width || width < 0) width = 0;
+                    if(!height || height < 0) height = 0;
+                    const round = dialog.f.checkbox.checked;
                     if(round){
                         width = snap_to_grid(width);
                         height = snap_to_grid(height);
@@ -6725,72 +6525,60 @@ document.addEventListener('DOMContentLoaded', function(){
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                     request_render();
-                });
+                };
+                dialog.show();
             }break;
             case TOOLTYPE.TOKEN:{
                 if(current_token_type == TOKENTYPE.EZ){
                     const [x0, y0] = event_to_coord(e, view);
-                    const html = `
-                        <h2>Enter Token</h2>
-                        <table class="input-container">
-                            <tr>
-                                <td><label for="color">Color:</label>
-                                <td><input type="color" id="hover-color" value="`+ez_token_color+`">
-                            </tr>
-                            <tr>
-                                <td><label for="width">Width (sq):</label>
-                                <td><input type="number" name="width" id="hover-width" min="1" max="5" value="1" class="numeric-input">
-                                <td><label for="height">Height (sq):</label>
-                                <td><input type="number" name="height" id="hover-height" min="1" max="5" value="1" class="numeric-input">
-                            </tr>
-                            <tr>
-                                <td><label for="text">Text:</label>
-                                <td colspan="3"><input type="text" name="text" id="hover-text" value="">
-                            </tr>
-                        </table>
-                    `;
-                    make_ok_dialog(html, function(hoverpop){
-                        const text_input = by_id('hover-text');
-                        const text = text_input.value;
-                        if(!text || !text.trim())
-                            return;
-                        let width = +by_id('hover-width').value;
-                        let height = +by_id('hover-height').value;
-                        if(!width)
-                            width = 1;
-                        if(!height)
-                            height = 1;
+                    let dialog = get_dialog('ez-token');
+                    if(!dialog) return;
+                    dialog.title.textContent = 'Enter Token';
+                    dialog.f.color.value = ez_token_color;
+                    dialog.f.width.value = gridscale == GRIDSCALE.TEN?'1':'0.5';
+                    dialog.f.height.value = gridscale == GRIDSCALE.TEN?'1':'0.5';
+                    dialog.f.text.value = '';
+                    dialog.show_handler = function(){
+                        dialog.f.text.focus();
+                    };
+                    dialog.ok_handler = function(){
+                        const text = dialog.f.text.value.trim();
+                        if(!text) return;
+                        let width  = +dialog.f.width.value;
+                        let height = +dialog.f.height.value;
+                        if(!width || width < 0) width = gridscale == GRIDSCALE.TEN?1:0.5;
+                        if(!height || height < 0) height = gridscale == GRIDSCALE.TEN?1:0.5;
                         switch(snapmode){
                             case SNAPMODE.FREE: break;
                             case SNAPMODE.GRID: break;
                             case SNAPMODE.HALF: width/=2; height/=2; break;
                             case SNAPMODE.QUARTER: width/=4; height/=4; break;
                         }
+                        const color = dialog.f.color.value;
                         let id = get_new_id();
-                        ez_token_color = by_id('hover-color').value;
+                        ez_token_color = color;
                         let snap = get_snap_tl_func();
-                        add_ez_token(view.map, id, snap(x0), snap(y0), text, ez_token_color, width, height);
+                        add_ez_token(view.map, id, snap(x0), snap(y0), text, color, width, height);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                         request_render();
-                    });
+                    };
+                    dialog.show();
+
                 }
                 else {
                     const [x0, y0] = event_to_coord(e, view);
-                    let html = `
-                        <h2>Enter Image</h2>
-                        <div id="token-img-gallery">
-                        </div>
-                        <table class="input-container">
-                            <tr>
-                                <td><label for="url">Token Image URL:</label>
-                                <td><input type="url" name="url" id="hover-url" value="">
-                            </tr>
-                        </table>
-                    `;
+                    let dialog = get_dialog('img-token');
+                    if(!dialog) return;
+                    dialog.title.textContent = 'Choose Token';
+                    const gallery = dialog.f.gallery;
+                    dialog.hide_handler = function(){
+                        gallery.innerHTML = '';
+                    };
+                    dialog.f.width.value = gridscale == GRIDSCALE.TEN?'1':'0.5';
+                    dialog.f.height.value = gridscale == GRIDSCALE.TEN?'1':'0.5';
+                    dialog.f.url.value = '';
                     function add_img_buttons(){
-                        const gallery = by_id('token-img-gallery');
-                        const url_input = by_id('hover-url');
                         for(let path of token_paths){
                             const button = document.createElement('button');
                             const img = document.createElement('img');
@@ -6801,24 +6589,26 @@ document.addEventListener('DOMContentLoaded', function(){
                             button.appendChild(img);
                             gallery.appendChild(button);
                             button.addEventListener('click', function(){
-                                url_input.value = url;
+                                dialog.f.url.value = url;
                             });
                         }
-
                     }
-                    make_ok_dialog2(html, add_img_buttons, function(hoverpop:HTMLElement){
-                        const text = by_id('hover-url').value;
-                        if(!text || !text.trim()){
-                            return;
-                        }
+                    add_img_buttons();
+                    dialog.ok_handler = function(){
+                        const text = dialog.f.url.value.trim();
+                        if(!text) return;
                         let id = get_new_id();
                         let snap = get_snap_tl_func();
-                        let w = gridscale == GRIDSCALE.TEN?1:0.5;
-                        add_img_token(view.map, id, snap(x0), snap(y0), text, w, w);
+                        let w = +dialog.f.width.value;
+                        let h = +dialog.f.height.value;
+                        if(!w || w < 0) w = gridscale == GRIDSCALE.TEN?1:0.5;
+                        if(!h || h < 0) h = gridscale == GRIDSCALE.TEN?1:0.5;
+                        add_img_token(view.map, id, snap(x0), snap(y0), text, w, h);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                         request_render();
-                    });
+                    };
+                    dialog.show();
                 }
             }break;
             case TOOLTYPE.FIXTURE:{
@@ -7257,136 +7047,113 @@ document.addEventListener('DOMContentLoaded', function(){
         e.stopPropagation();
         e.preventDefault();
         const active_view = get_active_view();
-        let html = `
-        <h2>Edit Map</h2>
-        <table class="input-container">
-            <tr>
-                <td><label for="text">Map Name:</label>
-                <td><input type="text" name="text" id="hover-text" value="${active_view.map.map_name}">
-            </tr>
-            <tr>
-                <td><label for="hover-hex-grid">Hex Grid</label>
-                <td><input name="hover-hex-grid" type="checkbox" id="hover-hex-grid" ${(function(){
-                    if(active_view.map.grid_type & GRIDTYPE.HEX)
-                        return "checked";
-                    return "";
-                }())}>
-            </tr>
-            <tr>
-                <td><label for="hover-no-grid">No Grid</label>
-                <td><input name="hover-no-grid" type="checkbox" id="hover-no-grid"${
-                    (function(){
-                    if(active_view.map.grid_type & GRIDTYPE.NOGRID)
-                        return "checked";
-                    return "";
-                    }())
-                }>
-            </tr>
-            <tr>
-                <td><label for="hover-numbered">Numbered</label>
-                <td><input name="hover-numbered" type="checkbox" id="hover-numbered" ${(active_view.map.flags & MapFlags.NUMBERED)?"checked":""}>
-            </tr>
-        `;
-        html += `
-        </table>
-        `;
-        function on_ok(unused:any){
-            const name_input = by_id('hover-text');
-            if(!name_input.value)
-                return;
-            const name = name_input.value.trim();
-            if(!name.length)
-                return;
-            rename_map(active_view.map, name);
-            let msg: NameMapMessage = {map_id:active_view.map.map_id, map_name:name};
-            SOCKET.emit(FromClient.CANVAS_NAME_MAP, msg);
-            const hg = by_id('hover-hex-grid');
-            const ng = by_id('hover-no-grid');
+        let dialog = get_dialog('map-input');
+        if(!dialog) return;
+        dialog.title.textContent = 'Edit Map';
+        dialog.f.name.value = active_view.map.map_name;
+        const hg = dialog.f['hex-grid'];
+        const ng = dialog.f['no-grid']
+        dialog.f.numbered.checked = !!(active_view.map.flags & MapFlags.NUMBERED);
+        dialog.ok_handler = function(){
+            const value = dialog.f.name.value.trim();
+            if(!value) return;
+            if(value != active_view.map.map_name){
+                rename_map(active_view.map, value);
+                let msg: NameMapMessage = {map_id:active_view.map.map_id, map_name:value};
+                SOCKET.emit(FromClient.CANVAS_NAME_MAP, msg);
+            }
             let gt = hg.checked? GRIDTYPE.HEX : GRIDTYPE.SQUARE;
-            if(ng.checked)
-                gt |= GRIDTYPE.NOGRID;
+            if(ng.checked) gt |= GRIDTYPE.NOGRID;
             if(active_view.map.grid_type != gt){
                 let msg: CanvasGridTypeMsg = {map_id:active_view.map.map_id, grid_type:gt};
                 SOCKET.emit(FromClient.CANVAS_GRID_TYPE, msg);
             }
-            const numbered = by_id('hover-numbered').checked? MapFlags.NUMBERED : 0;
-            if((active_view.map.flags & MapFlags.NUMBERED) != numbered){
-                let msg : CanvasGridNumberedMsg = {map_id:active_view.map.map_id, numbered:numbered};
+            let flags = MapFlags.NONE;
+            if(dialog.f.numbered.checked)
+                flags |= MapFlags.NUMBERED
+            if((active_view.map.flags & MapFlags.NUMBERED) != flags){
+                let msg : CanvasGridNumberedMsg = {map_id:active_view.map.map_id, numbered:flags};
                 SOCKET.emit(FromClient.CANVAS_GRID_NUMBERED, msg);
             }
-        }
-        make_ok_dialog(html, on_ok);
+        };
+        dialog.show();
     });
     delete_map_button.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
         const active_view = get_active_view();
         const cant_delete = active_view.map.flags & MapFlags.CANT_DELETE;
-        let html = `
-        <h2>Delete Map</h2>
-        <table class="input-container">
-        `;
-        if(!cant_delete){
-            html += `
-            <tr>
-                <td><label for="hover-delete">Delete Map</label>
-                <td><input name="hover-delete" type="checkbox" id="hover-delete">
-            </tr>
-            `
+        let dialog = get_dialog('map-delete');
+        if(!dialog) return;
+        dialog.title.innerText = 'Delete Map?';
+        if(cant_delete){
+            dialog.f.can.style.display = 'none';
+            dialog.f.cant.style.display = 'initial';
         }
         else {
-            html += `<tr><td>This map can't be deleted</td></tr>`;
+            dialog.f.can.style.display = 'initial';
+            dialog.f.cant.style.display = 'none';
         }
-        html += `
-        </table>
-        `;
-        function on_ok(unused:any){
-            if(!cant_delete){
-                const delete_checkbox = by_id('hover-delete');
-                const should_delete = delete_checkbox.checked;
-                if(should_delete){
-                    SOCKET.emit(FromClient.CANVAS_DELETE_MAP_REQUEST, active_view.map.map_id);
-                    return;
-                }
-            }
-        }
-        make_ok_dialog(html, on_ok);
+        dialog.f.delete.checked = false;
+        dialog.ok_handler = function(){
+            if(!dialog.f.delete.checked) return;
+            SOCKET.emit(FromClient.CANVAS_DELETE_MAP_REQUEST, active_view.map.map_id);
+        };
+        dialog.show();
     });
     new_map_button.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
-        const html = `
-        <h2>New Map</h2>
-        <table class="input-container">
-            <tr>
-                <td><label for="text">Map Name:</label>
-                <td><input type="text" name="text" id="hover-text" value="">
-            </tr>
-            <tr>
-                <td><label for="hover-hex-grid">Hex Grid</label>
-                <td><input name="hover-hex-grid" type="checkbox" id="hover-hex-grid">
-            </tr>
-            <tr>
-                <td><label for="hover-no-grid">No Grid</label>
-                <td><input name="hover-no-grid" type="checkbox" id="hover-no-grid">
-            </tr>
-        </table>
-        `;
-        function on_ok(unused:any){
-            const text = by_id('hover-text');
-            const value = text.value;
-            if(!value)
-                return;
-            if(!value.length)
-                return;
-            const hg = by_id('hover-hex-grid');
-            const ng = by_id('hover-no-grid');
+        let dialog = get_dialog('map-input');
+        if(!dialog) return;
+        dialog.title.textContent = 'New Map';
+        dialog.f.name.value = '';
+        const hg = dialog.f['hex-grid'];
+        const ng = dialog.f['no-grid']
+        hg.checked = false;
+        ng.checked = false;
+        const numbered = dialog.f.numbered;
+        dialog.show_handler = function(){
+            dialog.f.name.focus();
+        };
+        dialog.ok_handler = function(){
+            const value = dialog.f.name.value.trim();
+            if(!value) return;
             let gt = hg.checked? GRIDTYPE.HEX : GRIDTYPE.SQUARE;
-            if(ng.checked)
-                gt |= GRIDTYPE.NOGRID;
-            let msg: NewMapRequest = {name:value, grid_type:gt};
+            if(ng.checked) gt |= GRIDTYPE.NOGRID;
+            let flags = MapFlags.NONE;
+            if(numbered.checked)
+                flags |= MapFlags.NUMBERED
+            let msg: NewMapRequest = {name:value, grid_type:gt, flags:flags};
             SOCKET.emit(FromClient.CANVAS_NEW_MAP_REQUEST, msg);
-        }
-        make_ok_dialog(html, on_ok);
+        };
+        dialog.show();
     });
 });
+
+type DialogName = 'image-input' | 'text-input' | 'map-input' | 'map-delete' | 'ez-token' | 'img-token';
+
+const DIALOGS: Map<string, Dialog> = new Map();
+
+function get_dialog(name:DialogName):Dialog{
+    if(DIALOGS.has(name)) return DIALOGS.get(name)!;
+    function register(fields: Array<string>){
+        let dialog = make_dialog(name, fields);
+        DIALOGS.set(name, dialog);
+        return dialog;
+    }
+    switch(name){
+        case 'image-input':
+            return register(['width', 'height', 'checkbox', 'url']);
+        case 'text-input':
+            return register(['size', 'left', 'right', 'center', 'text', 'link-dungeon']);
+        case 'map-input':
+            return register(['name', 'hex-grid', 'no-grid', 'numbered']);
+        case 'map-delete':
+            return register(['can', 'cant', 'delete']);
+        case 'ez-token':
+            return register(['color', 'width', 'height', 'text', 'conditions']);
+        case 'img-token':
+            return register(['gallery', 'width', 'height', 'url', 'conditions']);
+    }
+}

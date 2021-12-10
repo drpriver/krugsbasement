@@ -150,12 +150,14 @@ def new_map_request(data:NewMapRequest) -> None:
     data = validate('NewMapRequest', data)
     map_name:str = data['name']
     grid_type = data['grid_type']
+    flags = data['flags']
     room = get_room(request)
-    new_map_id = canvas.new_map_request(room, map_name, grid_type)
+    new_map_id = canvas.new_map_request(room, map_name, grid_type, flags)
     logging.info('new map: %d for room "%s", with name: "%s"', new_map_id, room, map_name)
     emit(ToClient.CANVAS_CREATE_MAP, new_map_id, broadcast=True, include_self=True, to=room)
     emit(ToClient.CANVAS_NAME_MAP, {'map_id':new_map_id, 'map_name':map_name}, broadcast=True, include_self=True, to=room)
     emit(ToClient.CANVAS_GRID_TYPE, {'map_id':new_map_id, 'grid_type':grid_type}, broadcast=True, include_self=True, to=room)
+    emit(ToClient.CANVAS_GRID_NUMBERED, {'map_id':new_map_id, 'numbered':flags}, broadcast=True, include_self=True, to=room)
 
 @socketio.on(FromClient.CANVAS_GRID_TYPE)
 def change_grid_type(data:CanvasGridTypeMsg) -> None:

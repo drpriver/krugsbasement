@@ -107,20 +107,28 @@ function setup_zsorted_window(win:HTMLDivElement):()=>void{
     }
     return make_top;
 }
-function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement){
+
+const enum WINDOWFLAGS {
+    NONE = 1 << 0,
+    REMEMBER_POSITION = 1 << 1,
+}
+function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: WINDOWFLAGS){
     let dragging = false;
     let x = 0;
     let y = 0;
     let xorg = 0;
     let yorg = 0;
     let save_in_flight = false;
-    function save_position(x:number, y:number){
-        if(save_in_flight) return;
-        save_in_flight = true;
-        setTimeout(function(){
-            store_global(StorageCategory.WINDOW, win.id, [x, y]);
-            save_in_flight = false;
-        }, 100);
+    let save_position = function(x:number, y:number){};
+    if(flags &  WINDOWFLAGS.REMEMBER_POSITION){
+        save_position = function (x:number, y:number){
+            if(save_in_flight) return;
+            save_in_flight = true;
+            setTimeout(function(){
+                store_global(StorageCategory.WINDOW, win.id, [x, y]);
+                save_in_flight = false;
+            }, 100);
+        }
     }
     let old_pos = get_global(StorageCategory.WINDOW, win.id);
     if(old_pos !== undefined){
@@ -239,4 +247,90 @@ function get_by_id<T extends HTMLElement >(id:string):T{
 // This gives a compile error if you pass anything to it, with the compile
 // error revealing what the type of the argument is.
 function reveal_type(x:never){
+}
+
+function center_element(el:HTMLElement){
+    el.style.top = ''+(window.innerHeight - el.offsetHeight)/2 + 'px';
+    el.style.left = ''+(window.innerWidth - el.offsetWidth)/2 + 'px';
+}
+
+function radio_to_value<T>(radios:Array<HTMLInputElement>, values:Array<T>):T{
+    for(let i = 0; i < radios.length; i++){
+        if(radios[i].checked) return values[i];
+    }
+    return values[0];
+}
+
+type Dialog = {
+    // the fields
+    f: any;
+    title: HTMLHeadingElement;
+    ok: HTMLButtonElement;
+    cancel: HTMLButtonElement;
+    ok_handler?: ()=>void;
+    cancel_handler?: ()=>void;
+    show_handler?: ()=>void;
+    hide_handler?: ()=>void;
+    hidden: boolean;
+    show: ()=>void;
+    hide: ()=>void;
+    clear_handlers: ()=>void;
+    window: HTMLDivElement;
+    windowhandle: HTMLDivElement;
+    make_top: ()=>void;
+}
+
+function make_dialog(name:string, fields: Array<string>):Dialog{
+    // this is kind of a hack, but I don't know how to do imperative
+    // initialization while satisfying ts.
+    let result:Dialog = {
+        window: get_by_id<HTMLDivElement>(name),
+        windowhandle: get_by_id<HTMLDivElement>(name+'-window-handle'),
+        hidden: true,
+        ok: get_by_id<HTMLButtonElement>(name+'-ok'),
+        cancel: get_by_id<HTMLButtonElement>(name+'-cancel'),
+        title: get_by_id<HTMLHeadingElement>(name+'-title'),
+        f: {},
+    } as Dialog;
+    result.window.style.position = 'fixed';
+    result.window.style.transform = 'none';
+    setup_movable_window(result.window, result.windowhandle, WINDOWFLAGS.NONE);
+    result.make_top = setup_zsorted_window(result.window);
+
+    for(let field of fields){
+        let key = name + '-' + field;
+        result.f[field] = get_by_id(key) as any;
+    }
+    result.hide = function(){
+        result.hidden = true;
+        result.window.style.display = 'none';
+        if(result.hide_handler)
+            result.hide_handler();
+    };
+    result.show = function(){
+        if(!result.hidden) return false;
+        result.window.style.display = 'initial';
+        center_element(result.window);
+        result.make_top();
+        if(result.show_handler)
+            result.show_handler();
+        return true;
+    };
+    result.ok.addEventListener('click', function(){
+        if(result.ok_handler)
+            result.ok_handler();
+        result.hide();
+    });
+    result.cancel.addEventListener('click', function(){
+        if(result.cancel_handler)
+            result.cancel_handler();
+        result.hide();
+    });
+    result.clear_handlers = function(){
+        result.ok_handler = undefined;
+        result.cancel_handler = undefined;
+        result.show_handler = undefined;
+        result.hide_handler = undefined;
+    };
+    return result;
 }

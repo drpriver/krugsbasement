@@ -123,17 +123,17 @@ def change_grid_type(room:str, map_id:int, grid_type:GRIDTYPE) -> None:
     m = MAPS[room][map_id]
     MAPS[room][map_id] = m._replace(grid_type=grid_type)
 
-def set_numbered(room:str, map_id:int, numbered:int) -> None:
+def set_numbered(room:str, map_id:int, numbered:MapFlags) -> None:
     m = MAPS[room][map_id]
-    if numbered:
+    if numbered & MapFlags.NUMBERED:
         flags = m.flags | MapFlags.NUMBERED
     else:
         flags = m.flags & ~(MapFlags.NUMBERED)
     MAPS[room][map_id] = m._replace(flags=flags)
 
-def new_map_request(room:str, map_name:str, grid_type:GRIDTYPE) -> int:
+def new_map_request(room:str, map_name:str, grid_type:GRIDTYPE, flags:MapFlags) -> int:
     new_map_id = max(MAPS[room].keys()) + 1
-    MAPS[room][new_map_id] = Map(new_map_id, [], map_name, grid_type=grid_type)
+    MAPS[room][new_map_id] = Map(new_map_id, [], map_name, grid_type=grid_type, flags=flags)
     MAP_OBJS_BY_ID[room][new_map_id] = {}
     return new_map_id
 
@@ -189,7 +189,7 @@ def handle_update(room:str, data:CanvasUpdateMessage) -> CanvasUpdateMessage:
     for obj_state in obj_states:
         obj_id = obj_state[1]
         # This must mutate the array!
-        OBJS_BY_ID[obj_id][:] = obj_state
+        OBJS_BY_ID[obj_id][:] = obj_state # type: ignore
     return data
 
 def clear(room:str) -> None:

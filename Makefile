@@ -78,6 +78,8 @@ mypy:
 Bin/meta: meta.c
 	$(CC) $< -o $@
 
-.PHONY: nodegen
-nodegen: Bin/meta
+screen.temp.html: screen.dnd
+	dndc $< --output $@ --strip-spaces
+
+nodes.ts: Bin/meta screen.temp.html
 	Bin/meta > nodes.ts

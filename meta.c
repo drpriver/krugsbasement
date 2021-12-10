@@ -127,7 +127,7 @@ typedef struct StringView {
 } StringView;
 
 int main(){
-    TextFileResult fr = read_file("screen.html");
+    TextFileResult fr = read_file("screen.temp.html");
     assert(!fr.errored);
     const char* end = fr.result.text+fr.result.length;
     const char* text = fr.result.text;
@@ -152,6 +152,7 @@ int main(){
         for(int i = 0; i < count; i++){
             if(previous[i].length == sv.length){
                 if(memcmp(previous[i].text, sv.text, sv.length) == 0){
+                    fprintf(stderr, "Duplicate id: '%.*s'\n", (int)sv.length, sv.text);
                     goto Continue;
                 }
             }

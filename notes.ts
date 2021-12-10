@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
     setup_window_size(notes_window);
     let make_top = setup_zsorted_window(notes_window);
-    setup_movable_window(notes_window, move_handle);
+    setup_movable_window(notes_window, move_handle, WINDOWFLAGS.REMEMBER_POSITION);
     const notes_close = by_id('notes-close');
     setup_closable_window(notes_window, notes_close, function(){
         stop_editing();

@@ -262,6 +262,166 @@ David20::title #hide
     <div id="float-variables-container" class="window-container">
     </div>
   </div>
+::js
+  let raw = ctx.make_node(NodeType.RAW);
+  node.parent.replace_child(node, raw);
+  function make(prefix, content){
+    content = content.replaceAll('id="', 'id="'+prefix+'-');
+    content = content.replaceAll('for="', 'for="'+prefix+'-');
+    content = content.replaceAll('name="', 'name="'+prefix+'-');
+    const html =
+    `<div id="${prefix}" style="display:none;" class="hover">
+    <div id="${prefix}-window-handle" class="window-handle">
+    </div>
+    ${content}
+    <div class="hover-button-container">
+      <button type="button" id="${prefix}-ok">Ok</button>
+      <button type="button" id="${prefix}-cancel">Cancel</button>
+    </div>
+    </div>`;
+    raw.add_child(html);
+  }
+  function label(name, text){
+    return `<label for="${name}">${text}</label>`;
+  }
+  function numbox(name){
+    return `<input type="number" name="${name}" id="${name}" class="numeric-input">`;
+  }
+  function checkbox(name){
+    return `<input type="checkbox" name="${name}" id="${name}" checked>`;
+  }
+  function urlbox(name){
+    return `<input type="url" name="${name}" id="${name}" value="">`;
+  }
+  function textbox(name){
+    return `<input type="text" name="${name}" id="${name}" value="">`;
+  }
+  function title(text){
+    return `<h2 id="title">${text}</h2>`;
+  }
+  function textarea(name){
+    return `<textarea name="${name}" id="${name}"></textarea>`
+  }
+  function radio(name){
+    return `<input type="radio" id="${name}" name="${name}" value="auto">`;
+  }
+  function colorbox(name){
+    return `<input type="color" id="${name}" name="${name}">`;
+  }
+  make("image-input",
+  `
+    ${title("Enter Image")}
+    <table class="input-container">
+      <tr>
+        <td>${label("width", "Width:")}${numbox("width")}
+        <td>${label("height", "Height:")}${numbox("height")}
+        <td>${label("checkbox", "Round to Grid:")}${checkbox("checkbox")}
+      </tr>
+      <tr>
+        <td colspan="3">${label("url", "URL:")}${urlbox("url")}
+      </tr>
+    </table>
+  `);
+  make("text-input",
+  `
+    ${title("Enter Image")}
+    <table class="input-container">
+      <tr>
+        <td>${label("size", "Size:")}
+        <td>${numbox("size")}
+        <tr>
+          <td>Alignment:
+          <td>
+              ${radio("left")}${label("left", "Left")}
+              ${radio("right")}${label("right", "Right")}
+              ${radio("center")}${label("center", "Center")}
+          </td>
+        </tr>
+        <tr>
+          <td>${label("text", "Text:")}
+          <td>${textarea("text")}
+        </tr>
+        <tr>
+          <td>Link To:
+          <td>
+            <select id="link-dungeon">
+              <option value="-1">No Link</option>
+            </select>
+        </tr>
+    </table>
+  `);
+  make('map-input',
+    `${title('New Map')}
+    <table class='input-container'>
+      <tr>
+        <td>${label('name', 'Map Name:')}
+        <td>${textbox('name')}
+      </tr>
+      <tr>
+        <td>${label('hex-grid', 'Hex Grid')}
+        <td>${checkbox('hex-grid')}
+      </tr>
+      <tr>
+        <td>${label('no-grid', 'No Grid')}
+        <td>${checkbox('no-grid')}
+      </tr>
+      <tr>
+        <td>${label('numbered', 'Numbered')}
+        <td>${checkbox('numbered')}
+      </tr>
+    </table>`);
+  make('map-delete',
+    `${title('Delete Map')}
+    <table class="input-container">
+      <tr id="can">
+        <td>${label('delete', 'DeleteMap')}
+        <td>${checkbox('delete')}
+      </tr>
+      <tr id="cant">
+        <td >This map can't be deleted.
+      </tr>
+    </table>`);
+  make('ez-token',
+    `${title('New Token')}
+    <table class="input-container">
+      <tr>
+        <td>${label('color', 'Color:')}
+        <td>${colorbox('color')}
+      </tr>
+      <tr>
+        <td>${label('width', 'Width (sq):')}
+        <td>${numbox('width')}
+        <td>${label('height', 'Height (sq):')}
+        <td>${numbox('height')}
+      </tr>
+      <tr>
+        <td>${label('text', 'Text:')}
+        <td colspan="3">${textbox('text')}
+      </tr>
+    </table>
+    <div id="conditions">
+    </div>
+    `);
+  make('img-token',
+    `${title('New Token')}
+    <div id="gallery">
+    </div>
+    <table class="input-container">
+      <tr>
+        <td>${label('width', 'Width (sq):')}
+        <td>${numbox('width')}
+        <td>${label('height', 'Height (sq):')}
+        <td>${numbox('height')}
+      </tr>
+      <tr>
+        <td>${label('url', 'Token Image Url:')}
+        <td>${urlbox('url')}
+      </tr>
+    </table>
+    <div id="conditions">
+    </div>
+    `);
+
 ::div #id(editorcontainer)
   ::div #id(views)
     ::raw
@@ -313,8 +473,6 @@ David20::title #hide
       ☰
     ::div.tool #id(measure-tool)
       <b>M</b>easure
-    ::div.tool #id(help-tool)
-      Help
   ::div #id(stuff)
     ::div #id(colors)
       ::raw
@@ -423,7 +581,7 @@ David20::title #hide
   #help-menu tr {
     border-bottom: 1px solid black;
   }
-  #hover-conditions {
+  #ez-token-conditions, #img-token-conditions {
     display: grid;
     grid-template-rows: repeat(4, 1fr);
     grid-auto-flow: column;
@@ -436,7 +594,7 @@ David20::title #hide
     -webkit-user-select: none;
     user-select: none;
   }
-  #token-img-gallery{
+  #img-token-gallery{
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     max-height: 512px;
@@ -786,18 +944,18 @@ David20::title #hide
     max-height: 90%;
     z-index: 16777216;
   }
-  section.hover input.numeric-input {
+  div.hover input.numeric-input, section.hover input.numeric-input {
     width: 5em;
   }
-  section.hover h2 {
+  div.hover h2, section.hover h2 {
     margin: auto;
     text-align: center;
     padding: 1em 1em 1em 1em;
   }
-  section.hover > table.input-container {
+  div.hover > table.input-container, section.hover > table.input-container {
     margin: auto;
   }
-  section.hover input {
+  div.hover input, section.hover input {
     border: 1px solid gray;
     padding: 4px 4px 4px 4px;
   }
@@ -919,7 +1077,7 @@ David20::title #hide
     body.dark-mode section.menuitem:hover {
       background-color: #666;
     }
-    body.dark-mode section.hover {
+    body.dark-mode div.hover, body.dark-mode section.hover {
       background-color: #666;
     }
     body.dark-mode #hover-tabs > div.active {
@@ -996,7 +1154,7 @@ David20::title #hide
     body > div {
       display: block;
     }
-    section.hover {
+    div.hover, section.hover {
       top: 0;
       left: 0;
       position: initial;
