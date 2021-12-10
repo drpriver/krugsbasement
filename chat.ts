@@ -568,6 +568,9 @@ function chat_options_dialog(){
     dialog.f.fps.checked = SHOW_FPS;
     if(!chat_options_init){
         chat_options_init = true;
+        dialog.f.system.name = 'darkmode';
+        dialog.f.dark.name = 'darkmode';
+        dialog.f.light.name = 'darkmode';
         dialog.f.system.checked = false;
         dialog.f.dark.checked = false;
         dialog.f.light.checked = false;

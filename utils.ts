@@ -283,6 +283,8 @@ type Dialog<Key extends keyof DialogIdMap> = {
     make_top: ()=>void;
 }
 
+
+let OPENDIALOG: Dialog<keyof DialogIdMap> | null;
 function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<string>):Dialog<Key>{
     // this is kind of a hack, but I don't know how to do imperative
     // initialization while satisfying ts.
@@ -310,6 +312,7 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
     }
     result.hide = function(){
         result.hidden = true;
+        OPENDIALOG = null;
         result.window.style.display = 'none';
         if(result.hide_handler)
             result.hide_handler();
@@ -317,6 +320,7 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
     result.show = function(){
         if(!result.hidden) return;
         result.hidden = false;
+        OPENDIALOG = result;
         result.window.style.display = 'initial';
         center_element(result.window);
         result.make_top();
@@ -347,7 +351,8 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
 // the non-nullness in closures. oh well.
 function get_dialog<Key extends keyof DialogIdMap>(name:Key):Dialog<Key>{
     let dialog = get_or_make_dialog(name);
-    if(!dialog.hidden) return null as unknown as any;
+    // if(!dialog.hidden) return null as unknown as any;
+    if(OPENDIALOG) OPENDIALOG.cancel.click();
     dialog.clear_handlers();
     return dialog;
 }

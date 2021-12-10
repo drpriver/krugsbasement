@@ -376,8 +376,8 @@ David20::title #hide
           <td>Alignment:
           <td>
               ${radio("left")}${label("left", "Left")}
-              ${radio("right")}${label("right", "Right")}
               ${radio("center")}${label("center", "Center")}
+              ${radio("right")}${label("right", "Right")}
           </td>
         </tr>
         <tr>

@@ -3594,9 +3594,10 @@ function launch_edit_dialog(view:DungeonMapView):void{
             dialog.title.textContent = 'Edit Text';
             dialog.f.size.value = "" + obj.size;
             const [l, c, r] = [dialog.f.left, dialog.f.center, dialog.f.right];
-            l.checked = false;
-            c.checked = false;
-            r.checked = false;
+            for(let a of [l, c, r]) {
+                a.name = 'text-input-alignment';
+                a.checked = false;
+            }
             [l, c, r][obj.alignment].checked = true;
             dialog.f.text.textContent = obj.text;
             dialog.f['link-dungeon'].innerHTML = '<option value="-1">No Link</option>'+by_id('current-map-name').innerHTML;
@@ -7053,6 +7054,8 @@ document.addEventListener('DOMContentLoaded', function(){
         dialog.f.name.value = active_view.map.map_name;
         const hg = dialog.f['hex-grid'];
         const ng = dialog.f['no-grid']
+        hg.checked = !!(active_view.map.grid_type & GRIDTYPE.HEX);
+        ng.checked = !!(active_view.map.grid_type & GRIDTYPE.NOGRID);
         dialog.f.numbered.checked = !!(active_view.map.flags & MapFlags.NUMBERED);
         dialog.ok_handler = function(){
             const value = dialog.f.name.value.trim();
@@ -7113,6 +7116,7 @@ document.addEventListener('DOMContentLoaded', function(){
         hg.checked = false;
         ng.checked = false;
         const numbered = dialog.f.numbered;
+        numbered.checked = false;
         dialog.show_handler = function(){
             dialog.f.name.focus();
         };
