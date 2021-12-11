@@ -587,14 +587,6 @@ function chat_options_dialog(){
         dialog.f.import.addEventListener('click', function(){
             import_settings(dialog.hide);
         });
-        dialog.f.chatname.addEventListener('keydown', function(e:KeyboardEvent){
-            let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
-            if(!modified && e.key == "Enter"){
-                e.preventDefault();
-                e.stopPropagation();
-                dialog.ok.click();
-            }
-        });
     }
     dialog.show_handler = function(){
         dialog.f.chatname.focus();
@@ -633,42 +625,46 @@ document.addEventListener('DOMContentLoaded', function(){
     ta.addEventListener('keydown', function(e){
         e.stopPropagation();
         let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
-        if(!modified && e.key == "Enter"){
-            e.stopPropagation();
-            e.preventDefault();
-            const value = ta.value;
-            if(value.length){
-                ta.value = "";
-                preprocess_and_send_chat_with_usings(value);
-                if(!(history.length && value == history[history.length-1])){
-                    history.push(value);
+        if(modified) return;
+        switch(e.key){
+            case 'Enter':{
+                e.stopPropagation();
+                e.preventDefault();
+                const value = ta.value;
+                if(value.length){
+                    ta.value = "";
+                    preprocess_and_send_chat_with_usings(value);
+                    if(!(history.length && value == history[history.length-1])){
+                        history.push(value);
+                    }
+                    history_index = history.length;
+                    current_text = "";
                 }
-                history_index = history.length;
-                current_text = "";
             }
-        }
-        else if(!modified && e.key == "ArrowUp"){
-            e.stopPropagation();
-            e.preventDefault();
-            if(history_index > 0 && history_index <= history.length){
-                if(history_index == history.length){
-                    current_text = ta.value;
-                }
-                history_index--;
-                ta.value = history[history_index];
-            }
-        }
-        else if(!modified && e.key == "ArrowDown"){
-            e.stopPropagation();
-            e.preventDefault();
-            if(history_index >= 0 && history_index < history.length){
-                history_index++;
-                if(history_index == history.length){
-                    ta.value = current_text;
-                }
-                else{
+            case 'ArrowUp':{
+                e.stopPropagation();
+                e.preventDefault();
+                if(history_index > 0 && history_index <= history.length){
+                    if(history_index == history.length){
+                        current_text = ta.value;
+                    }
+                    history_index--;
                     ta.value = history[history_index];
                 }
+            }
+            case 'ArrowDown':{
+                e.stopPropagation();
+                e.preventDefault();
+                if(history_index >= 0 && history_index < history.length){
+                    history_index++;
+                    if(history_index == history.length)
+                        ta.value = current_text;
+                    else
+                        ta.value = history[history_index];
+                }
+            }
+            case 'Escape':{
+                ta.blur();
             }
         }
     });

@@ -310,6 +310,24 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
         let key = name + '-' + field;
         let el = get_by_id(key) as any;
         if(!el) throw new Error();
+        if(el.tagName == 'TEXTAREA' || (el.tagName == 'INPUT' && el.type != 'checkbox')){
+            el.addEventListener('keydown', function(e:KeyboardEvent){
+                let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
+                if(modified) return;
+                if(e.key == "Enter"){
+                    e.preventDefault();
+                    e.stopPropagation();
+                    result.ok.click();
+                    return;
+                }
+                if(e.key == 'Escape'){
+                    e.preventDefault();
+                    e.stopPropagation();
+                    el.blur();
+                    return;
+                }
+            });
+        }
         f[field] = el;
     }
     result.hide = function(){
