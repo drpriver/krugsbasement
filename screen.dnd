@@ -179,12 +179,24 @@ David20::title #hide
     margin-left: 35%;
   }
   /*endcss*/
-::raw
-  <div id="notes-window" style="display:none;" class="window">
-    <div id="notes-window-handle" class="window-handle">
-      <span class="window-title">Notes</span>
-      <span id="notes-close" class="window-closer">X</span>
-    </div>
+::js
+  let raw = ctx.make_node(NodeType.RAW);
+  node.parent.replace_child(node, raw);
+  const windows = [];
+  function make_window(prefix, title, content){
+    windows.push(prefix);
+    const inner = `
+      <div id="${prefix}-window" style="display:none" class="window">
+      <div id="${prefix}-window-handle" class="window-handle">
+        <span class="window-title">${title}</span>
+        <span id="${prefix}-close" class="window-closer">X</span>
+      </div>
+      ${content}
+      </div>
+    `;
+    raw.add_child(inner);
+  }
+  make_window('notes', 'Notes', `
     <div id="notes-container" class="window-container">
       <div id="notes-list" class="window-group-list">
         <button id="new-note">
@@ -204,13 +216,8 @@ David20::title #hide
         <div id="note-view-editor-log"></div>
       </div>
     </div>
-  </div>
-::raw
-  <div id="macros-window" style="display:none;" class="window">
-    <div id="macros-window-handle" class="window-handle">
-      <span class="window-title">Macros</span>
-      <span id="macros-close" class="window-closer">X</span>
-    </div>
+  `);
+  make_window('macros', 'Macros', `
     <div id="macros-container" class="window-container">
       <div id="macros-group-list" class="window-group-list">
         <span id="macro-category-label">Category</span>
@@ -234,13 +241,8 @@ David20::title #hide
         <div id="macro-test-log"></div>
       </div>
     </div>
-  </div>
-::raw
-  <div id="variables-window" style="display:none" class="window">
-    <div id="variables-window-handle" class="window-handle">
-      <span class="window-title">Variables</span>
-      <span id="variables-close" class="window-closer">X</span>
-    </div>
+  `);
+  make_window('variables', 'Variables', `
     <div id="variables-container" class="window-container">
       <div id="variables-group-list" class="window-group-list">
         <button id="variables-add-category">+ Add Category</button>
@@ -269,16 +271,23 @@ David20::title #hide
         </div>
       </div>
     </div>
-  </div>
-::raw
-  <div id="float-variables-window" style="display:none;" class="window">
-    <div id="float-variables-window-handle" class="window-handle">
-      <span class="window-title">Quick Vars</span>
-      <span id="float-variables-close" class="window-closer">X</span>
-    </div>
+  `);
+  make_window('float-variables', 'Quick Vars', `
     <div id="float-variables-container" class="window-container">
     </div>
-  </div>
+  `);
+  if(ctx.outpath.includes('temp')){
+    let ts = '// NOTE: this file was generated\n'
+    ts += '// Do NOT edit it. Your edits will be overwritten!\n'
+    ts += '\n';
+    ts += 'interface SubWindowIdMap {\n';
+    for(let prefix of windows){
+      ts += `  '${prefix}': SubWindow;\n`;
+    }
+    ts += '}\n\n';
+    FileSystem.write_file('subwindowdefs.ts', ts);
+  }
+  //endjs
 ::js
   let raw = ctx.make_node(NodeType.RAW);
   node.parent.replace_child(node, raw);
@@ -571,7 +580,7 @@ David20::title #hide
         throw new Error();
     }
     `;
-    FileSystem.write_file('dialogs.ts', ts);
+    FileSystem.write_file('dialogdefs.ts', ts);
   }
 
 
