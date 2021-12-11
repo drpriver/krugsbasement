@@ -5924,8 +5924,12 @@ document.addEventListener('DOMContentLoaded', function(){
                 request_render();
             }break;
             case 'Escape':{
-                view.selected.clear();
-                request_render();
+                if(OPENDIALOG)
+                    OPENDIALOG.close.click();
+                else{
+                    view.selected.clear();
+                    request_render();
+                }
             }break;
             case 'Backspace': // fall-through
             case 'Delete':{
