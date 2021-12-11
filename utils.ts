@@ -122,10 +122,12 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
     let save_position = function(x:number, y:number){};
     if(flags &  WINDOWFLAGS.REMEMBER_POSITION){
         save_position = function (x:number, y:number){
+            x = 100*x/window.innerWidth;
+            y = 100*x/window.innerHeight;
             if(save_in_flight) return;
             save_in_flight = true;
             setTimeout(function(){
-                store_global(StorageCategory.WINDOW, win.id, [x, y]);
+                store_global(StorageCategory.WINDOW, win.id, [x+'%', y+'%']);
                 save_in_flight = false;
             }, 100);
         }
@@ -133,8 +135,14 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
     let old_pos = get_global(StorageCategory.WINDOW, win.id);
     if(old_pos !== undefined){
         const [old_x, old_y] = old_pos;
-        win.style.top = old_y + 'px';
-        win.style.left = old_x + 'px';
+        if(typeof old_x === 'string'){
+            win.style.top = old_x;
+            win.style.left = old_y;
+        }
+        else {
+            win.style.top = 100*old_y/window.innerHeight + '%';
+            win.style.left = 100*old_x/window.innerWidth + '%';
+        }
         win.style.bottom = 'initial';
         win.style.right = 'initial';
     }
@@ -145,8 +153,8 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
         dragging = true;
         handle.style.cursor = 'grabbing';
         let r = win.getBoundingClientRect();
-        win.style.top = r.top + 'px';
-        win.style.left = r.left + 'px';
+        win.style.top = 100*r.top/window.innerHeight + '%';
+        win.style.left = 100*r.left/window.innerWidth + '%';
         x = e.screenX;
         y = e.screenY;
         xorg = r.left;
@@ -183,8 +191,8 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
             newy = window.innerHeight - ymarg;
         if(newy < 0) newy = 0;
         if(newx < 0) newx = 0;
-        win.style.top = newy + 'px';
-        win.style.left = newx + 'px';
+        win.style.top = 100*newy/window.innerHeight + '%';
+        win.style.left = 100*newx/window.innerWidth + '%';
         r = win.getBoundingClientRect();
         xorg = r.left;
         yorg = r.top;
