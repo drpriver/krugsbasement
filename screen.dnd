@@ -30,7 +30,8 @@ David20::title #hide
     cursor: grab;
     background-color: rgb(221,221,221);
     border-radius: 8px 8px 0px 0px;
-    display: flex;
+    display: grid;
+    grid-template-columns: 48px auto 48px;
     height: 32px;
     min-width: 32px;
   }
@@ -141,9 +142,20 @@ David20::title #hide
     padding: 4px 12px;
     cursor: pointer;
     height: 32px;
+    grid-row: 1;
   }
   .window-closer:hover {
     background-color: rgba(0, 0, 0, 0.1);
+  }
+  .window-title {
+    text-align: center;
+    font-size: 24px;
+    padding: 4px 12px;
+    cursor: pointer;
+    height: 32px;
+    grid-column: 2;
+    grid-row: 1;
+    pointer-events: none;
   }
   #macro-category-label {
     text-align: center;
@@ -170,7 +182,8 @@ David20::title #hide
 ::raw
   <div id="notes-window" style="display:none;" class="window">
     <div id="notes-window-handle" class="window-handle">
-    <span id="notes-close" class="window-closer">X</span>
+      <span class="window-title">Notes</span>
+      <span id="notes-close" class="window-closer">X</span>
     </div>
     <div id="notes-container" class="window-container">
       <div id="notes-list" class="window-group-list">
@@ -195,6 +208,7 @@ David20::title #hide
 ::raw
   <div id="macros-window" style="display:none;" class="window">
     <div id="macros-window-handle" class="window-handle">
+      <span class="window-title">Macros</span>
       <span id="macros-close" class="window-closer">X</span>
     </div>
     <div id="macros-container" class="window-container">
@@ -224,7 +238,8 @@ David20::title #hide
 ::raw
   <div id="variables-window" style="display:none" class="window">
     <div id="variables-window-handle" class="window-handle">
-    <span id="variables-close" class="window-closer">X</span>
+      <span class="window-title">Variables</span>
+      <span id="variables-close" class="window-closer">X</span>
     </div>
     <div id="variables-container" class="window-container">
       <div id="variables-group-list" class="window-group-list">
@@ -258,6 +273,8 @@ David20::title #hide
 ::raw
   <div id="float-variables-window" style="display:none;" class="window">
     <div id="float-variables-window-handle" class="window-handle">
+      <span class="window-title">Quick Vars</span>
+      <span id="float-variables-close" class="window-closer">X</span>
     </div>
     <div id="float-variables-container" class="window-container">
     </div>
@@ -496,6 +513,8 @@ David20::title #hide
     <div class="hover-button-container">
       ${label('hidepan', 'Hide Pan Tool')}
       ${checkbox('hidepan')}
+      ${label('quickvar', 'Hide Quick Variables')}
+      ${checkbox('quickvar')}
       <br>
         <span style="font-weight:bold">Dark Mode:</span>
         ${radio('system')}
@@ -635,25 +654,23 @@ David20::title #hide
 ::div.chat #id(chat)
   ::div #id(tree)
     ::raw
-      <table id="views-buttons-container" style="border-collapse: collapse">
-        <tr style="border-bottom: 1px solid grey; max-width: 100%;">
-          <td><span style="font-size:0.8rem;">Map</span>
-          <td><select style="width: 60%; text-overflow:ellipsis;" name="current-map-name" id="current-map-name"></select>
-            <button style="margin:0;" id="new-map-button"><span>+</style></button>
-            <button style="margin:0;" id="edit-map-button">✎</button>
-            <button style="margin:0;" id="delete-map-button">✘</button>
-          </td>
-        </tr>
-        <tr>
-          <td><button id="notes-window-button">Notes…</button></td>
-          <td><button id="tables-button">Tables…</button></td>
-        </tr>
-      </table>
+      <div>
+        <span style="font-size:0.8rem;">Map</span>
+        <select style="width: 50%; text-overflow:ellipsis;" name="current-map-name" id="current-map-name"></select>
+          <button style="margin:0;" id="new-map-button">+</button>
+          <button style="margin:0;" id="edit-map-button">✎</button>
+          <button style="margin:0;" id="delete-map-button">✘</button>
+      </div>
+      <div class="three-buttons">
+        <button id="notes-window-button">Notes…</button>
+        <button id="tables-button">Tables…</button>
+        <button id="quickvar-button">QuickVar…</button>
+      </div>
   ::div.log #id(chat-history)
   ::div #id(macros)
     ::div #id(macro-tabs)
     ::div #id(macro-buttons)
-    ::div #id(chat-buttons)
+    ::div #id(chat-buttons) .three-buttons
       ::raw
         <button id="chat-options">Options…</button>
         <button id="macros-button">Macros…</button>
@@ -736,9 +753,6 @@ David20::title #hide
   }
   #views-buttons-container {
     width: 100%;
-  }
-  .view-buttons-separator {
-    border-bottom: 1px solid gray;
   }
 
   #tree select{
@@ -1023,6 +1037,11 @@ David20::title #hide
     white-space: nowrap;
     -webkit-user-select: none;
     user-select: none;
+  }
+  .three-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 2px;
   }
   #chat-buttons{
     display: grid;

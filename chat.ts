@@ -553,7 +553,6 @@ function import_settings(finish:()=>void){
     inp.addEventListener('change', handlefiles, false);
     inp.click();
 }
-
 let chat_options_init = false;
 function chat_options_dialog(){
     let dialog = get_dialog('options');
@@ -640,7 +639,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     history_index = history.length;
                     current_text = "";
                 }
-            }
+            }break;
             case 'ArrowUp':{
                 e.stopPropagation();
                 e.preventDefault();
@@ -651,7 +650,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     history_index--;
                     ta.value = history[history_index];
                 }
-            }
+            }break;
             case 'ArrowDown':{
                 e.stopPropagation();
                 e.preventDefault();
@@ -662,10 +661,10 @@ document.addEventListener('DOMContentLoaded', function(){
                     else
                         ta.value = history[history_index];
                 }
-            }
+            }break;
             case 'Escape':{
                 ta.blur();
-            }
+            }break;
         }
     });
 });
@@ -1187,9 +1186,8 @@ function get_script_variables():Map<string, Map<string, number|string>>{
 
 document.addEventListener('DOMContentLoaded', function(){
     const var_button = by_id('variables-button');
-    const var_window = by_id('variables-window');
-    const var_handle = by_id('variables-window-handle');
-    const var_close  = by_id('variables-close');
+    let variables = get_window('variables');
+    const floater = get_window('float-variables');
     const var_groups = by_id('variables-group-list');
     const var_table  = by_id('variables-table');
     const var_group_name = by_id('variable-group-name');
@@ -1220,24 +1218,22 @@ document.addEventListener('DOMContentLoaded', function(){
         SCRIPTVARIABLES.push(sv);
         add_table_row(sv);
     });
-    const make_top = setup_zsorted_window(var_window);
-    setup_movable_window(var_window, var_handle, WINDOWFLAGS.REMEMBER_POSITION);
-    let variables_is_open = false;
     let active_group = 'Global';
     var_button.addEventListener('click', function(){
-        if(variables_is_open) return;
-        variables_is_open = true;
-        hide_float();
+        if(!variables.hidden) return;
+        variables.show();
         setup();
-        make_top();
-        var_window.style.display = 'block';
-        ensure_window_is_completely_on_screen(var_window);
     });
-    setup_closable_window(var_window, var_close, function(){
-        variables_is_open = false;
-        show_float();
+    let floater_was_visible = false;;
+    variables.hide_handler = function(){
+        if(floater_was_visible)
+            floater.show();
         actually_save_the_variables();
-    });
+    };
+    variables.show_handler = function(){
+        floater_was_visible = !floater.hidden;
+        floater.hide();
+    };
     function add_table_row(sv:ScriptVariable){
         let row = elem_with_parent(var_table, 'div', null, 'variables-row');
         row.classList.add('variable-table-row');
@@ -1402,11 +1398,8 @@ document.addEventListener('DOMContentLoaded', function(){
         if(a > b) return 1;
         return 0;
     }
-    const float_window = by_id('float-variables-window');
-    const float_handle = by_id('float-variables-window-handle');
     const float_container = by_id('float-variables-container');
-    let float_top = setup_zsorted_window(float_window);
-    function show_float(){
+    floater.show_handler = function(){
         SCRIPTVARIABLES.sort((a, b) =>{
             if(a.group == b.group) return 0;
             if(a.group == 'Global') return -1;
@@ -1503,19 +1496,18 @@ document.addEventListener('DOMContentLoaded', function(){
                 break;
             }
         }
+        if(!has_any){
+        }
         USED_VARIABLE_GROUPS = new_used_groups;
         store_local(StorageCategory.MACROS, 'used-variables', Array.from(USED_VARIABLE_GROUPS));
-        if(has_any){
-            float_window.style.display = 'block';
-            float_top();
-            ensure_window_is_completely_on_screen(float_window);
-        }
-    }
-    function hide_float(){
-        float_window.style.display = 'none';
-    }
-    setup_movable_window(float_window, float_handle, WINDOWFLAGS.REMEMBER_POSITION);
-    show_float();
+    };
+    floater.hide_handler = function(){
+    };
+    const quickvar_button = by_id('quickvar-button');
+    quickvar_button.addEventListener('click', function(){
+        if(variables.hidden)
+            floater.show();
+    });
 });
 
 let USED_VARIABLE_GROUPS: Set<string> = (function():Set<string>{

@@ -54,6 +54,7 @@ interface NodeIdMap {
     'variables-table-header': HTMLDivElement;
     'float-variables-window': HTMLDivElement;
     'float-variables-window-handle': HTMLDivElement;
+    'float-variables-close': HTMLSpanElement;
     'float-variables-container': HTMLDivElement;
     'image-input': HTMLDivElement;
     'image-input-window-handle': HTMLDivElement;
@@ -138,6 +139,7 @@ interface NodeIdMap {
     'options-title': HTMLHeadingElement;
     'options-chatname': HTMLInputElement;
     'options-hidepan': HTMLInputElement;
+    'options-quickvar': HTMLInputElement;
     'options-system': HTMLInputElement;
     'options-dark': HTMLInputElement;
     'options-light': HTMLInputElement;
@@ -190,13 +192,13 @@ interface NodeIdMap {
     'palette': HTMLDivElement;
     'chat': HTMLDivElement;
     'tree': HTMLDivElement;
-    'views-buttons-container': HTMLTableElement;
     'current-map-name': HTMLSelectElement;
     'new-map-button': HTMLButtonElement;
     'edit-map-button': HTMLButtonElement;
     'delete-map-button': HTMLButtonElement;
     'notes-window-button': HTMLButtonElement;
     'tables-button': HTMLButtonElement;
+    'quickvar-button': HTMLButtonElement;
     'chat-history': HTMLDivElement;
     'macros': HTMLDivElement;
     'macro-tabs': HTMLDivElement;
