@@ -217,7 +217,6 @@ def note_update_body(data:NoteUpdateBody) -> None:
     room = get_room(request)
     # logging.info('Updating note body. Note: %s. Room: %s', data['note_id'], room)
     notes.note_update_body(room, data['note_id'], data['body'])
-    # emit('note-update-body', data, broadcast=True, include_self=False, to=room)
     emit(ToClient.NOTE_DIRTY, data['note_id'], broadcast=True, include_self=False, to=room)
 
 @socketio.on(FromClient.DELETE_NOTE_REQUEST)

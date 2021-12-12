@@ -287,12 +287,18 @@ type ListView<K> = {
     rename:(text:string, v:K)=>void;
     activate_handler?:(k:K|undefined)=>void;
     active?: K;
+    clear: ()=>void;
 };
 function make_list_view<K>(listcontainer:HTMLDivElement):ListView<K>{
     let result: ListView<K> = {
         active: undefined,
         column: listcontainer,
         items: [],
+        clear:function(){
+            for(let [_, el] of result.items)
+                el.remove();
+            result.active = undefined;
+        },
         make_active: function(key:K | undefined){
             for(let [v, el] of result.items){
                 el.classList.remove('active');
@@ -318,12 +324,15 @@ function make_list_view<K>(listcontainer:HTMLDivElement):ListView<K>{
                 let [v, el] = result.items[i]
                 if(v === key){
                     el.remove();
-                    if(i < result.items.length)
-                        result.make_active(result.items[i][0]);
-                    else if(i)
-                        result.make_active(result.items[i-1][0]);
-                    else
-                        result.make_active(undefined);
+                    result.items.splice(i, 1);
+                    if(key == result.active){
+                        if(i < result.items.length)
+                            result.make_active(result.items[i][0]);
+                        else if(i)
+                            result.make_active(result.items[i-1][0]);
+                        else
+                            result.make_active(undefined);
+                    }
                     return;
                 }
             }
