@@ -96,22 +96,33 @@ function resize_chat(){
     hist.scrollTo({top:hist.scrollHeight});
 }
 
-type Macro = {
+type SavedMacro = {
     group: string;
     name: string;
     body: string;
     id: number;
 };
-let macro_id = 0;
-function get_macro_groups():Set<string>{
-    let result:Set<string> = new Set();
-    for(let m of MACROS)
-        result.add(m.group);
-    return result;
+type Macro = {
+    groupid: number;
+    name: string;
+    body: string;
+    id: number;
+};
+let macrogroupid = 0;
+const MACROGROUPIDS: Map<number, string> = new Map();
+function macro_group_id(g: string): number{
+    for(let [k, v] of MACROGROUPIDS.entries()){
+        if(v == g) return k;
+    }
+    let id = ++macrogroupid;
+    MACROGROUPIDS.set(id, g);
+    return id;
 }
+
+let macro_id = 0;
 const MACROS: Array<Macro> = (function(){
-    let result:Array<Macro> = get_local(StorageCategory.MACROS, 'macros');
-    if(!result){
+    let saved:Array<SavedMacro> = get_local(StorageCategory.MACROS, 'macros');
+    if(!saved){
         // legacy macros
         let macros_string = localStorage.getItem(`${THISPAGE}/MACROS`);
         if(!macros_string){
@@ -123,14 +134,14 @@ const MACROS: Array<Macro> = (function(){
         if(macros_string)
             macros = JSON.parse(macros_string);
         // handle old macros
-        result = [];
+        saved = [];
         if(!Array.isArray(macros)){
             for(let [key, value] of Object.entries(macros)){
                 if(typeof key !== "string")
                     continue;
                 if(typeof value !== "string")
                     continue
-                result.push({name:key, body:value, group:"", id:0});
+                saved.push({name:key, body:value, group:"", id:0});
             }
         }
         else {
@@ -139,29 +150,46 @@ const MACROS: Array<Macro> = (function(){
                     continue;
                 if(!m.body)
                     continue;
-                result.push({name:m.name, body:m.body, group:m.group?m.group:"", id:0});
+                saved.push({name:m.name, body:m.body, group:m.group?m.group:"", id:0});
             }
         }
-        store_local(StorageCategory.MACROS, 'macros', result);
+        store_local(StorageCategory.MACROS, 'macros', saved);
     }
-    for(let i = 0; i < result.length; i++){
-        result[i].id = i;
+    for(let i = 0; i < saved.length; i++){
+        saved[i].id = i;
     }
-    macro_id = result.length;
+    macro_id = saved.length;
+    let result: Array<Macro> = [];
+    for(let sm of saved){
+        result.push({
+            groupid: macro_group_id(sm.group),
+            name: sm.name,
+            body: sm.body,
+            id: sm.id,
+        });
+    }
     return result;
 }());
 const MACROGROUPS: Map<string, HTMLDivElement> = new Map();
 document.addEventListener('DOMContentLoaded', function(){
     for(let i = 0; i < MACROS.length; i++){
         const m = MACROS[i];
-        add_macro_button(m.name, m.group, i);
+        add_macro_button(m.name, MACROGROUPIDS.get(m.groupid)!, i);
     }
 });
 
 function save_macros(){
-    store_local(StorageCategory.MACROS, 'macros', MACROS);
+    let to_save: Array<SavedMacro> = [];
+    for(let m of MACROS){
+        to_save.push({
+            group: MACROGROUPIDS.get(m.groupid)!,
+            name: m.name,
+            body: m.body,
+            id: m.id,
+        });
+    }
+    store_local(StorageCategory.MACROS, 'macros', to_save);
 }
-// window.addEventListener('beforeunload',  save_macros, false);
 
 function add_macro(m:Macro){
     MACROS.push(m);
@@ -184,74 +212,104 @@ function preprocess_and_send_chat_with_usings(text:string){
     SOCKET.emit(FromClient.CHAT_STRUCTURED_INPUT, to_send);
 }
 
-document.addEventListener('DOMContentLoaded', function(){
-    let current_macro: Macro | null = null;
-    let displayed_group = "";
-    function delete_macro(m:Macro){
-        const index = MACROS.indexOf(m);
-        MACROS.splice(index, 1);
-        save_macros();
-        if(MACROS.length){
-            current_macro = MACROS[0];
-            displayed_group = current_macro.group;
-        }
-        update_list();
-        make_active(current_macro);
+function macro_by_id(id:number):Macro{
+    for(let m of MACROS){
+        if(m.id == id) return m;
     }
+    throw new Error();
+}
+
+
+document.addEventListener('DOMContentLoaded', function(){
+    let win = get_window('macros');
     const button = by_id('macros-button');
-    const label = by_id('macro-category-label');
-    let macros_is_open = false;
     button.addEventListener('click', function(){
-        if(macros_is_open) return;
-        make_top();
-        macros_is_open = true;
-        macros_window.style.display = 'block';
-        label.style.height = '' + new_macro.clientHeight + 'px';
-        if(MACROS.length){
-            current_macro = MACROS[0];
-            displayed_group = current_macro.group;
-        }
-        update_list();
-        make_active(current_macro);
-        ensure_window_is_completely_on_screen(macros_window);
+        win.show();
     });
-    const macros_window    = by_id('macros-window');
-    const editor_container = by_id('macro-editor');
-    const move_handle      = by_id('macros-window-handle');
+    let col1 = by_id('macros-group-list');
+    let col2 = by_id('macros-list');
+    let dualview = make_dual_list_view<number, number>(col1, col2);
+    for(let macro of MACROS){
+        let gn = MACROGROUPIDS.get(macro.groupid);
+        dualview.add_item1(gn?gn:"General", macro.groupid);
+        dualview.add_item2(macro.name, macro.groupid, macro.id);
+    }
     const macro_area       = by_id('macro-view-edit');
-    const macro_group_area = by_id('macro-view-group');
+    const editor_container = by_id('macro-editor');
     const macro_title_area = by_id('macro-view-title');
     const del_macro_button = by_id('delete-macro');
     const new_macro        = by_id('new-macro');
+    const new_category     = by_id('new-macro-group');
     const log              = by_id('macro-test-log');
+    const test_button = by_id('test-macro');
+    const use_button = by_id('use-macro');
+    let m: Macro | undefined;
+    function delete_macro(ma:Macro){
+        const index = MACROS.indexOf(ma);
+        MACROS.splice(index, 1);
+        m = undefined;
+        dualview.remove2(ma.groupid, ma.id);
+        save_macros();
+    }
+    dualview.activate2_handler = function(groupid:number, id:number){
+        m = macro_by_id(id);
+        (log as any).replaceChildren();
+        editor_container.style.visibility = 'visible';
+        macro_area.value = m.body;
+        macro_title_area.value = m.name;
+    };
+    dualview.activate1_handler = function(groupid: number){
+        m = undefined;
+        editor_container.style.visibility = 'hidden';
+        macro_area.value = ''
+        macro_title_area.value = '';
+    };
     new_macro.addEventListener('click', function(){
         let new_macro: Macro;
-        if(current_macro){
+        if(m){
             new_macro = {
-                group: current_macro.group,
+                groupid: m.groupid,
+                id: macro_id++,
+                name: 'Untitled',
+                body: '',
+            };
+        }
+        else if(dualview.active1 !== undefined){
+            new_macro = {
+                groupid: dualview.active1,
                 id: macro_id++,
                 name: 'Untitled',
                 body: '',
             };
         }
         else {
-            new_macro = {
-                group: "",
-                id: macro_id++,
-                name: 'Untitled',
-                body: '',
-            };
+            return;
         }
-        current_macro = new_macro;
-        displayed_group = current_macro.group;
         add_macro(new_macro);
-        update_list();
-        make_active(new_macro);
+        dualview.add_item2(new_macro.name, new_macro.groupid, new_macro.id);
+        dualview.make_active2(new_macro.groupid, new_macro.id);
     });
-    const test_button = by_id('test-macro');
+    new_category.addEventListener('click', function(){
+        let dialog = get_dialog('simple-text');
+        if(!dialog) return;
+        dialog.title.textContent = 'Category Name';
+        dialog.ok_handler = function(){
+            let text = dialog.f.text.value.trim();
+            if(!text) return;
+            let beforeid = macrogroupid;
+            let id = macro_group_id(text);
+            if(id == beforeid) return;
+            dualview.add_item1(text, id);
+            dualview.make_active1(id);
+        };
+        dialog.show_handler = function(){
+            dialog.f.text.focus();
+        };
+        dialog.show();
+    });
     test_button.addEventListener('click', function(){
-        if(!current_macro) return;
-        let commands = evaluate(current_macro.body, EvaluateFlags.NONE);
+        if(!m) return;
+        let commands = evaluate(m.body, EvaluateFlags.NONE);
         (log as any).replaceChildren();
         if(commands.length){
             let to_send: ChatCommandMessage = {chatname:CHATNAME, commands:commands};
@@ -260,149 +318,36 @@ document.addEventListener('DOMContentLoaded', function(){
             });
         }
     });
-    const use_button = by_id('use-macro');
     use_button.addEventListener('click', function(){
-        if(!current_macro) return;
-        preprocess_and_send_chat(current_macro.body);
+        if(!m) return;
+        preprocess_and_send_chat(m.body);
     });
-
-    const macros_list = by_id('macros-list');
-    const macros_group_list = by_id('macros-group-list');
     del_macro_button.addEventListener('click', function(){
         let dialog = get_dialog('macro-deletion');
         if(!dialog) return;
+        if(!m) return;
         dialog.f.checkbox.checked = false;
         dialog.ok_handler = function(){
             const should_delete = dialog.f.checkbox.checked;
-            if(should_delete && current_macro)
-                delete_macro(current_macro);
+            if(should_delete && m)
+                delete_macro(m);
         };
         dialog.show();
     });
-    const macro_close = by_id('macros-close');
-    setup_window_size(macros_window);
-    let make_top = setup_zsorted_window(macros_window);
-    setup_movable_window(macros_window, move_handle, WINDOWFLAGS.REMEMBER_POSITION);
-    setup_closable_window(macros_window, macro_close, function(){
-        save_macros();
-        macros_is_open = false;
-        do_macro_buttons();
-    });
-    function make_active(m:Macro | null){
-        (log as any).replaceChildren();
-        let mid;
-        let group = "";
-        if(!m){
-            editor_container.style.display = 'none';
-            mid = -1;
-        }
-        else {
-            editor_container.style.display = 'block';
-            mid = m.id;
-            group = m.group;
-        }
-        for(let ml of macros_list.getElementsByTagName('div')){
-            ml.classList.remove('active');
-            // @ts-ignore
-            if(+ml.dataset.id==mid)
-                ml.classList.add('active');
-        }
-        for(let gl of macros_group_list.getElementsByTagName('div')){
-            gl.classList.remove('active');
-            // @ts-ignore
-            if(+gl.dataset.group==group){
-                gl.classList.add('active');
-            }
-        }
-        if(m){
-            macro_area.value = m.body;
-            macro_title_area.value = m.name;
-            macro_group_area.value = m.group;
-        }
-    }
-    function update_list(){
-        for(let ml of Array.from(macros_list.getElementsByTagName('div'))){
-            ml.parentNode!.removeChild(ml);
-        }
-        for(let ml of Array.from(macros_group_list.getElementsByTagName('div'))){
-            ml.parentNode!.removeChild(ml);
-        }
-        function make_click_handler(group:string){
-            return function(){
-                if(displayed_group == group){
-                    return;
-                }
-                for(let m of Array.from(MACROS).sort((a, b) => { return (a.group < b.group)?-1:(a.group>b.group)?1:0})){
-                    if(m.group == group){
-                        current_macro = m;
-                        displayed_group = m.group;
-                        update_list();
-                        make_active(m);
-                        return;
-                    }
-                }
-            };
-        }
-        let groups = Array.from(get_macro_groups());
-        groups.sort();
-        for(let group of groups){
-            const d = document.createElement('div');
-            d.dataset.group = group;
-            d.innerText = group.length?group:"General";
-            d.addEventListener('click', make_click_handler(group));
-            macros_group_list.appendChild(d);
-        }
-        function make_mclick_handler(m:Macro){
-            return function(){
-                current_macro = m;
-                make_active(m);
-            };
-        }
-        for(let m of MACROS.sort((a, b) => {
-            if(a.group < b.group)
-                return -1;
-            if(a.group > b.group)
-                return 1;
-            if(a.name < b.name)
-                return -1;
-            if(a.name > b.name)
-                return 1;
-            if(a.id < b.id)
-                return -1;
-            if(a.id > b.id)
-                return 1;
-            return 0;
-        })){
-            if(m.group !== displayed_group)
-                continue;
-            const d = document.createElement('div');
-            d.dataset.id = ""+m.id;
-            d.innerText = m.name;
-            d.addEventListener('click', make_mclick_handler(m));
-            macros_list.appendChild(d);
-        }
-
-    }
     macro_area.addEventListener('input', function(){
-        if(!current_macro) return;
-        current_macro.body = macro_area.value;
+        if(!m) return;
+        m.body = macro_area.value;
+        save_macros();
     });
     macro_title_area.addEventListener('input', function(){
-        if(!current_macro) return;
-        current_macro.name = macro_title_area.value;
-        update_list();
-        make_active(current_macro);
+        if(!m) return;
+        m.name = macro_title_area.value;
+        dualview.rename2(m.name, m.groupid, m.id);
+        save_macros();
     });
-    macro_group_area.addEventListener('input', function(){
-        if(!current_macro) return;
-        let new_value = macro_group_area.value;
-        if(new_value != current_macro.group){
-            current_macro.group = new_value;
-            displayed_group = new_value;
-            update_list();
-            make_active(current_macro);
-        }
-    });
+    if(MACROS.length)
+        dualview.make_active2(MACROS[0].groupid, MACROS[0].id);
+
 });
 
 function add_macro_button(name:string, group:string, macro_index:number){
@@ -465,20 +410,20 @@ function clear_macro_buttons(){
 
 function add_macro_and_button(m:Macro){
     add_macro(m);
-    add_macro_button(m.name, m.group, MACROS.length-1);
+    add_macro_button(m.name, MACROGROUPIDS.get(m.groupid)!, MACROS.length-1);
 }
 function add_macros_and_buttons(macros:Array<Macro>){
     let start = MACROS.length;
     add_macros(macros);
     for(let m of macros){
-        add_macro_button(m.name, m.group, start++);
+        add_macro_button(m.name, MACROGROUPIDS.get(m.groupid)!, start++);
     }
 }
 function do_macro_buttons(){
     clear_macro_buttons();
     let i = 0;
     for(let m of MACROS)
-        add_macro_button(m.name, m.group, i++);
+        add_macro_button(m.name, MACROGROUPIDS.get(m.groupid)!, i++);
 }
 
 function export_settings(e:MouseEvent){

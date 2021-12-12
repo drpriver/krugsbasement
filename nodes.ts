@@ -29,7 +29,7 @@ interface NodeIdMap {
     'macros-close': HTMLSpanElement;
     'macros-container': HTMLDivElement;
     'macros-group-list': HTMLDivElement;
-    'macro-category-label': HTMLSpanElement;
+    'new-macro-group': HTMLButtonElement;
     'macros-list': HTMLDivElement;
     'new-macro': HTMLButtonElement;
     'macro-editor': HTMLDivElement;
@@ -38,7 +38,6 @@ interface NodeIdMap {
     'test-macro': HTMLButtonElement;
     'use-macro': HTMLButtonElement;
     'macro-view-title': HTMLTextAreaElement;
-    'macro-view-group': HTMLTextAreaElement;
     'macro-view-edit': HTMLTextAreaElement;
     'macro-test-log': HTMLDivElement;
     'variables-window': HTMLDivElement;
@@ -139,7 +138,6 @@ interface NodeIdMap {
     'options-title': HTMLHeadingElement;
     'options-chatname': HTMLInputElement;
     'options-hidepan': HTMLInputElement;
-    'options-quickvar': HTMLInputElement;
     'options-system': HTMLInputElement;
     'options-dark': HTMLInputElement;
     'options-light': HTMLInputElement;
@@ -149,6 +147,13 @@ interface NodeIdMap {
     'options-fps': HTMLInputElement;
     'options-ok': HTMLButtonElement;
     'options-cancel': HTMLButtonElement;
+    'simple-text': HTMLDivElement;
+    'simple-text-window-handle': HTMLDivElement;
+    'simple-text-window-close': HTMLSpanElement;
+    'simple-text-title': HTMLHeadingElement;
+    'simple-text-text': HTMLInputElement;
+    'simple-text-ok': HTMLButtonElement;
+    'simple-text-cancel': HTMLButtonElement;
     'editorcontainer': HTMLDivElement;
     'views': HTMLDivElement;
     'map': HTMLCanvasElement;

@@ -27,6 +27,13 @@ function elem_with_parent<K extends keyof HTMLElementTagNameMap>(parent:HTMLElem
     return el;
 }
 
+function elem_parent_text<K extends keyof HTMLElementTagNameMap>(parent:HTMLElement, tag:K, text:string){
+    const el = document.createElement(tag);
+    el.appendChild(document.createTextNode(text));
+    parent.appendChild(el);
+    return el;
+}
+
 let hover_is_open = false;
 function make_ok_dialog(html:string, on_ok:(_:HTMLElement)=>void){
     make_ok_dialog2(html, function(){}, on_ok);
@@ -268,4 +275,208 @@ function radio_to_value<T>(radios:Array<HTMLInputElement>, values:Array<T>):T{
         if(radios[i].checked) return values[i];
     }
     return values[0];
+}
+
+
+type ListView = {
+    clear: ()=>void;
+    add_item: (_:string, v:any)=>void;
+    remove:(v:any) => void;
+    click_handler?:(v:any) => void;
+    items: Array<[any, HTMLDivElement]>;
+    container: HTMLDivElement;
+    make_active:(v:any) => void;
+};
+function make_list_view(listcontainer:HTMLDivElement):ListView{
+    let result: ListView = {
+        items: [],
+        container: listcontainer,
+        clear: function(){
+            for(let [_, el] of result.items){
+                el.remove();
+            }
+            result.items = [];
+        },
+        make_active: function(key:any){
+            for(let [v, el] of result.items){
+                el.classList.remove('active');
+                if(v === key)
+                    el.classList.add('active');
+            }
+        },
+        add_item: function(text:string, v:any){
+            const el = elem_with_text('div', text);
+            el.addEventListener('click', function(e:MouseEvent){
+                e.preventDefault();
+                e.stopPropagation();
+                result.make_active(v);
+                if(result.click_handler)
+                    result.click_handler(v);
+            });
+            result.items.push([v, el]);
+        },
+        remove: function(key:any){
+            for(let [v, el] of result.items){
+                if(v === key){
+                    el.remove();
+                    return;
+                }
+            }
+        },
+        click_handler: undefined,
+    };
+    return result;
+}
+
+type DualListView<K1, K2> = {
+    column1: HTMLDivElement;
+    column2: HTMLDivElement;
+    remove2:(k1:K1, k2:K2)=>void;
+    // should there be a remove handler?
+    items1: Array<[K1, HTMLDivElement]>;
+    items2: Map<K1, Array<[K2, HTMLDivElement]> >;
+    add_item1:(text:string, k1:K1) =>void;
+    add_item2:(text:string, k1:K1, k2:K2) =>void;
+    make_active1:(k1:K1) => void;
+    make_active2:(k1:K1, k2:K2) => void;
+    rename1:(text:string, k1:K1) => void;
+    rename2:(text:string, k1:K1, k2:K2) => void;
+    // Called when there are no elements at all.
+    activate0_handler?:()=>void;
+    // activate1_handler is only called if k2 is not found during
+    // a call to make_active1
+    activate1_handler?:(k1:K1)=>void;
+    activate2_handler?:(k1:K1, k2:K2)=>void;
+    active1: K1 | undefined;
+    active2: Map<K1, K2>;
+};
+
+function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement):DualListView<K1, K2> {
+    let result:DualListView<K1,K2> = {
+        column1: col1,
+        column2: col2,
+        items1: [],
+        items2: new Map(),
+        activate0_handler: undefined,
+        activate1_handler: undefined,
+        activate2_handler: undefined,
+        active1: undefined,
+        active2: new Map(),
+        make_active1: function(k1:K1){
+            for(let [k, el] of result.items1){
+                el.classList.remove('active');
+                if(k === k1)
+                    el.classList.add('active');
+            }
+            let prev = result.active1;
+            result.active1 = k1;
+            if(prev !== undefined){
+                let olditems = result.items2.get(prev);
+                if(olditems !== undefined){
+                    for(let [_, el] of olditems){
+                        el.remove();
+                    }
+                }
+            }
+            let items = result.items2.get(result.active1);
+            if(items !== undefined){
+                for(let [_, el] of items){
+                    result.column2.appendChild(el);
+                }
+            }
+            let k2 = result.active2.get(k1);
+            if(k2 !== undefined)
+                result.make_active2(k1, k2);
+            else if(result.activate1_handler)
+                result.activate1_handler(k1);
+        },
+        make_active2: function(k1: K1, k2:K2){
+            if(result.active1 !== k1){
+                result.active2.set(k1, k2);
+                result.make_active1(k1);
+                return;
+            }
+            let items = result.items2.get(k1)!;
+            for(let [k, el] of items){
+                el.classList.remove('active');
+                if(k === k2)
+                    el.classList.add('active');
+            }
+            result.active2.set(k1, k2);
+            if(result.activate2_handler)
+                result.activate2_handler(k1, k2);
+        },
+        add_item1: function(text:string, k1:K1){
+            for(let [k, el] of result.items1){
+                if(k === k1){
+                    el.firstChild!.textContent = text;
+                    return;
+                }
+            }
+            let item = elem_parent_text(result.column1, 'div', text);
+            item.addEventListener('click', function(){
+                result.make_active1(k1);
+            });
+            result.items1.push([k1, item]);
+            result.items2.set(k1, []);
+        },
+        add_item2:function(text:string, k1:K1, k2:K2){
+            let item = elem_with_text('div', text);
+            item.addEventListener('click', function(){
+                result.make_active2(k1, k2);
+            });
+            let items = result.items2.get(k1);
+            if(items === undefined){
+                items = [];
+                result.items2.set(k1, items);
+            }
+            items.push([k2, item]);
+            if(k1 === result.active1){
+                result.column2.appendChild(item);
+            }
+        },
+        rename1:function(text:string, k1:K1){
+            for(let [k, el] of result.items1){
+                if(k === k1){
+                    el.firstChild!.textContent = text;
+                    return;
+                }
+            }
+        },
+        rename2:function(text:string, k1:K1, k2:K2){
+            let items = result.items2.get(k1);
+            if(items === undefined) return;
+            for(let [k, el] of items){
+                if(k === k2){
+                    el.firstChild!.textContent = text;
+                    return;
+                }
+            }
+        },
+        remove2:function(k1:K1, k2:K2){
+            let items = result.items2.get(k1);
+            if(items === undefined) return;
+            for(let i = 0; i < items.length; i++){
+                let [k, el] = items[i];
+                if(k === k2){
+                    el.remove();
+                    items.splice(i, 1);
+                    if(k1 === result.active1){
+                        if(k2 === result.active2.get(k1)){
+                            if(i < items.length)
+                                result.make_active2(k1, items[i][0]);
+                            else if(i)
+                                result.make_active2(k1, items[i-1][0]);
+                            else
+                                result.make_active1(k1);
+                        }
+                    }
+                    return;
+                }
+            }
+        },
+
+
+    };
+    return result;
 }
