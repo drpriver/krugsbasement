@@ -223,6 +223,9 @@ function macro_by_id(id:number):Macro{
 document.addEventListener('DOMContentLoaded', function(){
     let win = get_window('macros');
     const button = by_id('macros-button');
+    win.hide_handler = function(){
+        do_macro_buttons();
+    };
     button.addEventListener('click', function(){
         win.show();
     });

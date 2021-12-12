@@ -329,9 +329,13 @@ function make_list_view(listcontainer:HTMLDivElement):ListView{
 }
 
 type DualListView<K1, K2> = {
+    // K1 and K2 are things you use to uniquely identify
+    // the entries in the lists. They need to give
+    // sane results for '===' and when put in a Map.
     column1: HTMLDivElement;
     column2: HTMLDivElement;
     remove2:(k1:K1, k2:K2)=>void;
+    // remove1: (k1:K1)=>void;
     // should there be a remove handler?
     items1: Array<[K1, HTMLDivElement]>;
     items2: Map<K1, Array<[K2, HTMLDivElement]> >;
@@ -467,8 +471,10 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement):D
                                 result.make_active2(k1, items[i][0]);
                             else if(i)
                                 result.make_active2(k1, items[i-1][0]);
-                            else
+                            else{
+                                result.active2.delete(k1);
                                 result.make_active1(k1);
+                            }
                         }
                     }
                     return;
