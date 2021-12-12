@@ -1,8 +1,11 @@
 Depends: ; mkdir -p $@
+Generated: ; mkdir -p $@
 DEPFILES:= $(wildcard Depends/*.dep)
 include $(DEPFILES)
 TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError
-TSFILES:= toplevel.ts chat.ts canvas.ts notes.ts utils.ts messages.ts interp.ts storage.ts nodes.ts dialogs.ts dialogdefs.ts subwindows.ts subwindowdefs.ts
+TSFILES:= toplevel.ts chat.ts canvas.ts notes.ts utils.ts messages.ts \
+	  interp.ts storage.ts Generated/nodes.ts dialogs.ts \
+	  Generated/dialogdefs.ts subwindows.ts Generated/subwindowdefs.ts
 TSC:=/Users/drpriver/External/quickjs-typescript-4.0.0-linux-x86/lib/tsc
 ifneq ($(LOCALTSC),)
 combined.js: $(TSFILES)
@@ -78,8 +81,8 @@ mypy:
 Bin/meta: meta.c
 	$(CC) $< -o $@
 # there should be a rule that this generates dialogdefs.ts
-screen.temp.html: screen.dnd
-	dndc $< --output $@ --strip-spaces --allow-js-write
+Generated/subwindowdefs.ts Generated/dialogdefs.ts Generated/screen.temp.html: screen.dnd | Generated
+	dndc $< --output Generated/screen.temp.html --strip-spaces --allow-js-write
 
-nodes.ts: Bin/meta screen.temp.html
-	Bin/meta > nodes.ts
+Generated/nodes.ts: Bin/meta Generated/screen.temp.html | Generated
+	Bin/meta > $@

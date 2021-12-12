@@ -30,3 +30,4 @@ WebDnD/messages.py
 Bin
 *.dsym
 *.o
+Generated

@@ -127,7 +127,11 @@ typedef struct StringView {
 } StringView;
 
 int main(){
-    TextFileResult fr = read_file("screen.temp.html");
+    TextFileResult fr = read_file("Generated/screen.temp.html");
+    if(fr.errored){
+        perror("open Generated/screen.temp.html");
+        return fr.errored;
+    }
     assert(!fr.errored);
     const char* end = fr.result.text+fr.result.length;
     const char* text = fr.result.text;

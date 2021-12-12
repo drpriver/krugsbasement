@@ -281,7 +281,7 @@ David20::title #hide
       ts += `  '${prefix}': SubWindow;\n`;
     }
     ts += '}\n\n';
-    FileSystem.write_file('subwindowdefs.ts', ts);
+    FileSystem.write_file('Generated/subwindowdefs.ts', ts);
   }
   //endjs
 ::js
@@ -584,7 +584,7 @@ David20::title #hide
         throw new Error();
     }
     `;
-    FileSystem.write_file('dialogdefs.ts', ts);
+    FileSystem.write_file('Generated/dialogdefs.ts', ts);
   }
 
 
