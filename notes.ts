@@ -94,7 +94,6 @@ const make_dnd_html = (function(){
 })();
 
 document.addEventListener('DOMContentLoaded', function(){
-    const button = by_id('notes-window-button');
     const notes_window = get_window('notes');
     const notes_editor_container = by_id('note-view-editor-container');
     const notes_area = by_id('note-view-edit');
@@ -102,10 +101,8 @@ document.addEventListener('DOMContentLoaded', function(){
     const iframe = by_id('current-note-view');
     const editor_log = by_id('note-view-editor-log');
     const edit_notes_button = by_id('edit-notes-button');
-    const del_note_button = by_id('delete-note');
-    const new_note = by_id('new-note');
     let listview = make_list_view<number>(by_id('notes-list'));
-    del_note_button.addEventListener('click', function(){
+    by_id('delete-note').addEventListener('click', function(){
         let dialog = get_dialog('note-deletion');
         if(!dialog) return;
         dialog.f.checkbox.checked = false;
@@ -302,7 +299,7 @@ document.addEventListener('DOMContentLoaded', function(){
     notes_window.show_handler = function(){
         listview.make_active(current_note_id);
     }
-    button.addEventListener('click', function(){
+    by_id('notes-window-button').addEventListener('click', function(){
         notes_window.show();
     });
     SOCKET.on(ToClient.NOTE_DIRTY, function(note_id:number){
@@ -345,7 +342,7 @@ document.addEventListener('DOMContentLoaded', function(){
     SOCKET.on(ToClient.NEW_NOTE, function(note_id:number){
         add_note(note_id, {flags:0, title:'Untitled', body:'', id:note_id, need_send:false, need_receive:false});
     });
-    new_note.addEventListener('click', function(e:MouseEvent){
+    by_id('new-note').addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
         let id: number;
