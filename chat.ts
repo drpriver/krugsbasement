@@ -1079,9 +1079,11 @@ type ScriptVariable = {
     type: ScriptVariableType;
     value: number | string;
     id: number; // gets reset on load time, this is just for across rename consistency.
+    groupid: number;
     flags: ScriptVariableFlags;
 }
 let current_script_variable_id = 0;
+let scriptgroups: Array<string> = [];
 const SCRIPTVARIABLES: Array<ScriptVariable> = (function(){
     const result:Array<ScriptVariable> = [];
     let variables: Array<ScriptVariable>|undefined = get_local(StorageCategory.MACROS, 'variables');
@@ -1092,6 +1094,11 @@ const SCRIPTVARIABLES: Array<ScriptVariable> = (function(){
         if(sv.flags & ScriptVariableFlags.DELETED)
             continue;
         sv.id = current_script_variable_id++;
+        sv.groupid = scriptgroups.indexOf(sv.group);
+        if(sv.groupid == -1){
+            sv.groupid = scriptgroups.length;
+            scriptgroups.push(sv.group);
+        }
         result.push(sv);
     }
     return result;
@@ -1137,26 +1144,38 @@ document.addEventListener('DOMContentLoaded', function(){
     let variables = get_window('variables');
     const floater = get_window('float-variables');
     const var_groups = by_id('variables-group-list');
-    const var_table  = by_id('variables-table');
-    const var_group_name = by_id('variable-group-name');
-    var_group_name.addEventListener('input', function(){
-        let new_group = var_group_name.value;
-        for(let sv of SCRIPTVARIABLES){
-            if(sv.group == active_group)
-                sv.group = new_group;
+    let listview = make_list_view<number>(var_groups);
+    listview.activate_handler = function(groupid:number|undefined){
+        if(groupid === undefined){
+            groupid = 0;
+            listview.active = 0;
         }
-        active_group = new_group;
+        active_group = scriptgroups[groupid];
         setup();
-    });
+    };
+    const var_table = by_id('variables-table');
     const var_add_group = by_id('variables-add-category');
     var_add_group.addEventListener('click', function(){
-        active_group = 'Untitled';
-        setup();
-    })
+        let dialog = get_dialog('simple-text');
+        if(!dialog) return;
+        dialog.title.textContent = 'Category Name';
+        dialog.show_handler = function(){
+            dialog.f.text.focus();
+        };
+        dialog.ok_handler = function(){
+            let text = dialog.f.text.value.trim();
+            if(!text) return;
+            scriptgroups.push(text);
+            listview.add_item(text, scriptgroups.length-1);
+            listview.make_active(scriptgroups.length-1);
+        };
+        dialog.show();
+    });
     const var_add_var = by_id('variable-add-variable');
     var_add_var.addEventListener('click', function(){
         let sv = {
             group: active_group,
+            groupid: scriptgroups.indexOf(active_group),
             name: '',
             type: ScriptVariableType.NUMBER,
             id: current_script_variable_id++,
@@ -1166,7 +1185,12 @@ document.addEventListener('DOMContentLoaded', function(){
         SCRIPTVARIABLES.push(sv);
         add_table_row(sv);
     });
-    let active_group = 'Global';
+    if(!scriptgroups.length)
+        scriptgroups.push('Global');
+    let active_group = scriptgroups[0];
+    for(let i = 0; i < scriptgroups.length; i++){
+        listview.add_item(scriptgroups[i], i);
+    }
     var_button.addEventListener('click', function(){
         if(!variables.hidden) return;
         variables.show();
@@ -1294,39 +1318,7 @@ document.addEventListener('DOMContentLoaded', function(){
             save_variables();
         });
     }
-    function group_click(group:string){
-        return function(){
-            active_group = group;
-            setup();
-        };
-    }
     function setup(){
-        for(let gd of Array.from(var_groups.getElementsByTagName('div')))
-            gd.remove();
-
-        let groups_: Set<string> = new Set();
-        for(let sv of SCRIPTVARIABLES){
-            if(sv.flags & ScriptVariableFlags.DELETED)
-                continue;
-            groups_.add(sv.group);
-        }
-        let groups = Array.from(groups_);
-        groups.sort();
-        if(!groups_.has(active_group)){
-            const d = document.createElement('div');
-            d.innerText = active_group;
-            d.classList.add('active');
-            d.addEventListener('click', group_click(active_group));
-            var_groups.appendChild(d);
-        }
-        for(let g of groups){
-            const d = document.createElement('div');
-            d.innerText = g;
-            if(g == active_group)
-                d.classList.add('active');
-            d.addEventListener('click', group_click(g));
-            var_groups.appendChild(d);
-        }
         for(let vr of Array.from(var_table.getElementsByClassName('variables-row'))){
             if(vr.id == 'variables-table-header')
                 continue
@@ -1338,8 +1330,8 @@ document.addEventListener('DOMContentLoaded', function(){
             if(sv.group != active_group) continue;
             add_table_row(sv);
         }
-        if(var_group_name.value != active_group)
-            var_group_name.value = active_group;
+        // if(var_group_name.value != active_group)
+            // var_group_name.value = active_group;
     }
     function strcmp(a:string, b:string){
         if(a < b) return -1;
@@ -1451,6 +1443,7 @@ document.addEventListener('DOMContentLoaded', function(){
     };
     floater.hide_handler = function(){
     };
+    listview.make_active(0);
     const quickvar_button = by_id('quickvar-button');
     quickvar_button.addEventListener('click', function(){
         if(variables.hidden)

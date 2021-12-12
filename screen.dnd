@@ -242,18 +242,16 @@ David20::title #hide
     <div id="variables-container" class="window-container">
       <div id="variables-group-list" class="window-group-list">
         <button id="variables-add-category">+ Add Category</button>
-        <div class="active">Global</div>
       </div>
       <div id="variables-editor">
-        <input id="variable-group-name" value="Global"></input><br/>
         <button id="variable-add-variable">+ Add Variable</button>
         <div style="display:table;" id="variables-table">
           <div style="display:table-row;" class="variables-row variable-table-row" id="variables-table-header">
-            <div><b>Type</b></div>
-            <div><b>Name</b></div>
-            <div><b>Value</b></div>
-            <div><b>UI</b></div>
-            <div><b>Delete</b></div>
+            <div style="display:table-cell;"><b>Type</b></div>
+            <div style="display:table-cell;"><b>Name</b></div>
+            <div style="display:table-cell;"><b>Value</b></div>
+            <div style="display:table-cell;"><b>UI</b></div>
+            <div style="display:table-cell;"><b>Delete</b></div>
           </div>
           <div style="display:table-row;" class="variables-row">
             <input style="display:table-cell;" value="Str"></input>

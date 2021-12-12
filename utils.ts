@@ -278,52 +278,65 @@ function radio_to_value<T>(radios:Array<HTMLInputElement>, values:Array<T>):T{
 }
 
 
-type ListView = {
-    clear: ()=>void;
-    add_item: (_:string, v:any)=>void;
-    remove:(v:any) => void;
-    click_handler?:(v:any) => void;
+type ListView<K> = {
+    column: HTMLDivElement;
     items: Array<[any, HTMLDivElement]>;
-    container: HTMLDivElement;
-    make_active:(v:any) => void;
+    remove:(v:K) => void;
+    add_item: (_:string, v:K)=>void;
+    make_active:(v:K | undefined) => void;
+    rename:(text:string, v:K)=>void;
+    activate_handler?:(k:K|undefined)=>void;
+    active?: K;
 };
-function make_list_view(listcontainer:HTMLDivElement):ListView{
-    let result: ListView = {
+function make_list_view<K>(listcontainer:HTMLDivElement):ListView<K>{
+    let result: ListView<K> = {
+        active: undefined,
+        column: listcontainer,
         items: [],
-        container: listcontainer,
-        clear: function(){
-            for(let [_, el] of result.items){
-                el.remove();
-            }
-            result.items = [];
-        },
-        make_active: function(key:any){
+        make_active: function(key:K | undefined){
             for(let [v, el] of result.items){
                 el.classList.remove('active');
                 if(v === key)
                     el.classList.add('active');
             }
+            result.active = key;
+            if(result.activate_handler)
+                result.activate_handler(key);
         },
-        add_item: function(text:string, v:any){
+        add_item: function(text:string, key:K){
             const el = elem_with_text('div', text);
             el.addEventListener('click', function(e:MouseEvent){
                 e.preventDefault();
                 e.stopPropagation();
-                result.make_active(v);
-                if(result.click_handler)
-                    result.click_handler(v);
+                result.make_active(key);
             });
-            result.items.push([v, el]);
+            result.items.push([key, el]);
+            result.column.appendChild(el);
         },
-        remove: function(key:any){
-            for(let [v, el] of result.items){
+        remove: function(key:K){
+            for(let i = 0; i < result.items.length; i++){
+                let [v, el] = result.items[i]
                 if(v === key){
                     el.remove();
+                    if(i < result.items.length)
+                        result.make_active(result.items[i][0]);
+                    else if(i)
+                        result.make_active(result.items[i-1][0]);
+                    else
+                        result.make_active(undefined);
                     return;
                 }
             }
         },
-        click_handler: undefined,
+        rename: function(text:string, key:K){
+            for(let [v, el] of result.items){
+                if(v === key){
+                    el.firstChild!.textContent = text;
+                    return;
+                }
+            }
+        },
+        activate_handler: undefined,
     };
     return result;
 }
