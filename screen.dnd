@@ -22,9 +22,6 @@ David20::title #hide
     -webkit-user-select: none;
     user-select: none;
   }
-  #macros-window {
-    z-index: 3;
-  }
   .window-handle {
     grid-row: 1;
     cursor: grab;
@@ -586,11 +583,8 @@ David20::title #hide
   }
 
 
-::div #id(editorcontainer)
-  ::div #id(views)
-    ::raw
-      <canvas id="map"></canvas>
-      <div id="right-split" style="display:none;"></div>
+::raw
+  <canvas id="map"></canvas>
 
 ::div #id(tool-container)
   ::div #id(tool-container-handle)
@@ -664,28 +658,27 @@ David20::title #hide
 ::div #id(palette)
 ::div.chat #id(chat)
   ::div #id(tree)
-    ::raw
-      <div>
+    ::div
+      ::raw
         <span style="font-size:0.8rem;">Map</span>
         <select style="width: 50%; text-overflow:ellipsis;" name="current-map-name" id="current-map-name"></select>
           <button style="margin:0;" id="new-map-button">+</button>
           <button style="margin:0;" id="edit-map-button">✎</button>
           <button style="margin:0;" id="delete-map-button">✘</button>
-      </div>
-      <div class="three-buttons">
+    ::div.three-buttons
+      ::raw
         <button id="notes-window-button">Notes…</button>
         <button id="tables-button">Tables…</button>
+        <button id="chat-options">Options…</button>
+    ::div.three-buttons
+      ::raw
+        <button id="macros-button">Macros…</button>
+        <button id="variables-button">Variables…</button>
         <button id="quickvar-button">QuickVar…</button>
-      </div>
   ::div.log #id(chat-history)
   ::div #id(macros)
     ::div #id(macro-tabs)
     ::div #id(macro-buttons)
-    ::div #id(chat-buttons) .three-buttons
-      ::raw
-        <button id="chat-options">Options…</button>
-        <button id="macros-button">Macros…</button>
-        <button id="variables-button">Variables…</button>
   ::raw
     <textarea spellcheck="false" id="chatinput" rows="4"></textarea>
 
@@ -768,14 +761,6 @@ David20::title #hide
 
   #tree select{
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-  }
-  #right-split{
-    display: flex;
-    flex-direction: column;
-    justify-content: stretch;
-    align-items: center;
-    width: 300px;
-    box-sizing: border-box;
   }
   #note-input{
     height: auto;
@@ -967,17 +952,6 @@ David20::title #hide
     height: 100%;
     margin: 0;
   }
-  #editorcontainer {
-    grid-column: 1;
-    grid-row: 1;
-    height: 100%;
-    display: grid;
-  }
-  #views {
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-end;
-  }
   #chat {
     grid-column: 2;
     grid-row: 1;
@@ -1053,11 +1027,7 @@ David20::title #hide
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-gap: 2px;
-  }
-  #chat-buttons{
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-gap: 2px;
+    width: 100%;
   }
   .chat > textarea {
     min-height: 4em;
@@ -1303,9 +1273,6 @@ David20::title #hide
     #tools, #stuff{
       display: none;
     }
-    #editorcontainer {
-      display:none;
-    }
     #chat {
       width: 100%;
     }
@@ -1336,7 +1303,7 @@ David20::title #hide
       padding: 0px !important;
     }
   }
-  #editorcontainer, #tool-container, #palette{
+  #tool-container, #palette{
     touch-action: none;
   }
   /*endcss*/
