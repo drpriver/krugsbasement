@@ -445,15 +445,10 @@ function err_dialog(html:string){
         `;
     errpop.innerHTML = html;
     document.body.appendChild(errpop);
-    function remove_errpop(){
-        document.body.removeChild(errpop);
-    }
-    const oks = document.getElementsByClassName('errpop-ok');
-    if(oks.length){
-        oks[oks.length-1].addEventListener('click', function(){
-            remove_errpop();
-        });
-    }
+    const oks = errpop.getElementsByClassName('errpop-ok');
+    oks[0]!.addEventListener('click', function(){
+        errpop.remove();
+    });
 }
 
 function tables_button_dialog(){
