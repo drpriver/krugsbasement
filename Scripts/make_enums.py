@@ -331,7 +331,7 @@ def make_python(infos: List[Info]) -> None:
     fp.close()
 
 def make_ts(infos:List[Info]) -> None:
-    fp = open('messages.ts', 'w', encoding='utf-8')
+    fp = open('Generated/messages.ts', 'w', encoding='utf-8')
     def p(*args, **kwargs):
         print(*args, **kwargs, file=fp)
     p('// Generated via', os.path.relpath(__file__))
@@ -414,7 +414,7 @@ def make_ts(infos:List[Info]) -> None:
     fp.close();
 
 def make_c(infos:List[Info]) -> None:
-    fp = open('messages.h', 'w', encoding='utf-8')
+    fp = open('Generated/messages.h', 'w', encoding='utf-8')
     def p(*args, **kwargs):
         print(*args, **kwargs, file=fp)
     p('#ifndef WEBDND_MESSAGES_H')

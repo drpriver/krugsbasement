@@ -1,9 +1,10 @@
 Depends: ; mkdir -p $@
 Generated: ; mkdir -p $@
+Bin: ; mkdir -p @
 DEPFILES:= $(wildcard Depends/*.dep)
 include $(DEPFILES)
 TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError
-TSFILES:= toplevel.ts chat.ts canvas.ts notes.ts utils.ts messages.ts \
+TSFILES:= toplevel.ts chat.ts canvas.ts notes.ts utils.ts Generated/messages.ts \
 	  interp.ts storage.ts Generated/nodes.ts dialogs.ts \
 	  Generated/dialogdefs.ts subwindows.ts Generated/subwindowdefs.ts
 TSC:=/Users/drpriver/External/quickjs-typescript-4.0.0-linux-x86/lib/tsc
@@ -30,7 +31,7 @@ screen.html: screen.dnd combined.js | Depends
 macro-doc.html: Docs/macro-doc.dnd
 	dndc $< --output $@
 
-messages.ts WebDnD/messages.py: types.shared Scripts/make_enums.py
+Generated/messages.ts WebDnD/messages.py: types.shared Scripts/make_enums.py | Generated
 	python3 Scripts/make_enums.py
 
 .PHONY: dist.zip
@@ -78,7 +79,7 @@ ship-docs: $(DOCS)
 mypy:
 	mypy -p WebDnD.app --namespace-packages --ignore-missing-imports
 
-Bin/meta: meta.c
+Bin/meta: meta.c | Bin
 	$(CC) $< -o $@
 # there should be a rule that this generates dialogdefs.ts
 Generated/subwindowdefs.ts Generated/dialogdefs.ts Generated/screen.temp.html: screen.dnd | Generated
