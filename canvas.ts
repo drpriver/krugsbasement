@@ -5240,6 +5240,14 @@ function render(timestamp:DOMHighResTimeStamp):void{
         ctx.fillText('max '+ max.toFixed(4)+'ms', 10, 50);
     }
 }
+document.addEventListener('DOMContentLoaded', function(){
+    const container = by_id('tool-container');
+    const handle = by_id('tool-container-handle');
+    setup_movable_window(container, handle, WINDOWFLAGS.REMEMBER_POSITION);
+    setup_zsorted_window(container);
+    ensure_window_is_completely_on_screen(container);
+});
+
 // NOTE: The 'Help' tool was removed (it was a proto dialog.futton).
 // There is now an empty slot due to this.
 const enum TOOLTYPE {

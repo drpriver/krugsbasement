@@ -6,7 +6,7 @@ include $(DEPFILES)
 TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError
 TSFILES:= toplevel.ts chat.ts canvas.ts notes.ts utils.ts Generated/messages.ts \
 	  interp.ts storage.ts Generated/nodes.ts dialogs.ts \
-	  Generated/dialogdefs.ts subwindows.ts Generated/subwindowdefs.ts
+	  Generated/dialogdefs.ts subwindows.ts Generated/subwindowdefs.ts macros.ts
 TSC:=/Users/drpriver/External/quickjs-typescript-4.0.0-linux-x86/lib/tsc
 ifneq ($(LOCALTSC),)
 combined.js: $(TSFILES)
