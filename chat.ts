@@ -87,6 +87,7 @@ function clear_chat(){
     const log = by_id('chat-history');
     log.innerHTML = '';
 }
+
 SOCKET.on(ToClient.CHAT_CLEAR, function(){
     clear_chat();
 });
@@ -96,12 +97,12 @@ function resize_chat(){
     hist.scrollTo({top:hist.scrollHeight});
 }
 
-
 function preprocess_and_send_chat(text:string){
     let commands = preprocess_command(text, EvaluateFlags.NONE);
     let to_send: ChatCommandMessage = {chatname:CHATNAME, commands:commands};
     SOCKET.emit(FromClient.CHAT_STRUCTURED_INPUT, to_send);
 }
+
 function preprocess_and_send_chat_with_usings(text:string){
     let commands = preprocess_command(text, EvaluateFlags.USE_USINGS);
     let to_send: ChatCommandMessage = {chatname:CHATNAME, commands:commands};
@@ -118,8 +119,8 @@ function export_settings(e:MouseEvent){
     a.href = URL.createObjectURL(new Blob([s], {type:'text/plain'}));
     a.download = "krugsbasementsettings.json";
     a.click();
-
 }
+
 function import_settings(finish:()=>void){
     const inp = document.createElement('input');
     inp.type = 'file';
@@ -180,6 +181,7 @@ function import_settings(finish:()=>void){
     inp.addEventListener('change', handlefiles, false);
     inp.click();
 }
+
 let chat_options_init = false;
 function chat_options_dialog(){
     let dialog = get_dialog('options');
@@ -232,6 +234,7 @@ document.addEventListener('DOMContentLoaded', function(){
     resize_chat();
 
     by_id('tables-button').addEventListener('click', tables_button_dialog);
+    by_id('tables2-button').addEventListener('click', tables2_button_dialog);
     by_id('chat-options').addEventListener('click', chat_options_dialog);
 
     window.addEventListener('resize', resize_chat);
@@ -716,4 +719,9 @@ function tables_button_dialog(){
         }
         document.body.appendChild(hoverpop);
     });
+}
+
+function tables2_button_dialog(){
+    let tablewindow = get_window('rolltable');
+    tablewindow.show();
 }

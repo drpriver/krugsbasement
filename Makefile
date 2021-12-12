@@ -86,4 +86,4 @@ Generated/subwindowdefs.ts Generated/dialogdefs.ts Generated/screen.temp.html: s
 	dndc $< --output Generated/screen.temp.html --strip-spaces --allow-js-write
 
 Generated/nodes.ts: Bin/meta Generated/screen.temp.html | Generated
-	Bin/meta > $@
+	Bin/meta $@

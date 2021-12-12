@@ -267,6 +267,37 @@ David20::title #hide
     <div id="float-variables-container" class="window-container">
     </div>
   `);
+  make_window('rolltable', 'Roll Tables',
+  `
+    <div id="rolltable-container" class="window-container">
+      <div id="rolltable-group-list" class="window-group-list">
+        <button id="rolltable-add-table">+ New Table</button>
+      </div>
+      <div id="rolltable-table-container">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Weight</th>
+              <th>Value</th>
+              <th>Table?</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="rolltable-body">
+          </tbody>
+        </table>
+        <div class="hover-button-container">
+          <button id="rolltable-add-row">Add Row</button>
+        </div>
+        <div class="hover-button-container">
+          <button id="rolltable-import">Import Table</button>
+          <button id="rolltable-ok">Ok</button>
+          <button id="rolltable-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+  `);
   if(ctx.outpath.includes('temp')){
     let ts = '// NOTE: this file was generated\n'
     ts += '// Do NOT edit it. Your edits will be overwritten!\n'
@@ -675,6 +706,8 @@ David20::title #hide
         <button id="macros-button">Macros…</button>
         <button id="variables-button">Variables…</button>
         <button id="quickvar-button">QuickVar…</button>
+    ::raw
+      <button id="tables2-button">Tables…</button>
   ::div.log #id(chat-history)
   ::div #id(macros)
     ::div #id(macro-tabs)

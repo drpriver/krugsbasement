@@ -58,6 +58,7 @@ def get_tags(filename:str) -> List[TagLoc]:
 
 def get_all_tags() -> List[TagLoc]:
     tsfiles = glob.glob('*.ts')
+    tsfiles.extend(glob.glob('Generated/*.ts'))
     tags = []
     for filename in tsfiles:
         tags.extend(get_tags(filename))
