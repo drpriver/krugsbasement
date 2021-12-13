@@ -146,7 +146,7 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
     if(flags &  WINDOWFLAGS.REMEMBER_POSITION){
         save_position = function (x:number, y:number){
             x = 100*x/window.innerWidth;
-            y = 100*x/window.innerHeight;
+            y = 100*y/window.innerHeight;
             if(save_in_flight) return;
             save_in_flight = true;
             setTimeout(function(){
@@ -265,8 +265,8 @@ function ensure_window_is_completely_on_screen(win:HTMLElement){
         newy = window.innerHeight - ymarg;
     if(newy < 0) newy = 0;
     if(newx < 0) newx = 0;
-    win.style.top = newy + 'px';
-    win.style.left = newx + 'px';
+    win.style.top = 100*newy/window.innerHeight + '%';
+    win.style.left = 100*newx/window.innerWidth + '%';
 }
 
 // This function is for when you need a dynamic element with a dynamic
