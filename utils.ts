@@ -169,7 +169,7 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
         win.style.bottom = 'initial';
         win.style.right = 'initial';
     }
-    // win.style.border = '1px solid black';
+    win.style.border = '1px solid black';
     handle.addEventListener('pointerdown', function(e:PointerEvent){
         if(e.target !== handle)
             return;
@@ -348,8 +348,10 @@ function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):Li
                     e.stopPropagation();
                     let dialog = get_dialog('simple-text');
                     if(!dialog) return;
-                    dialog.title.innerText = 'Rename '+el.firstChild!.textContent;
-                    dialog.f.text.value = '';
+                    let t = el.firstChild!.textContent;
+                    if(!t) t = "";
+                    dialog.title.innerText = 'Rename '+t;
+                    dialog.f.text.value = t;
                     dialog.show_handler = function(){
                         dialog.f.text.focus();
                     };

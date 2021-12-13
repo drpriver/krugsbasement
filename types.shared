@@ -68,7 +68,7 @@ enum ToClient: str
     NOTE_UPDATE_TITLE = nut
     NOTE_DIRTY = nd
     NOTE_DELETE = ndel
-    
+
 
 # Commands. These are sent from the client to the server
 enum ChatCommand: int

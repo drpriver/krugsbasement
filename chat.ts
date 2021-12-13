@@ -485,19 +485,23 @@ document.addEventListener('DOMContentLoaded',function(){
         });
     };
     listview.activate_handler = function(id:number | undefined){
+        let parenttable = tableview.tbody.parentNode! as HTMLTableElement;
         if(id === undefined){
             tableview.clear();
+            parenttable.style.visibility = 'hidden';
             current_table = undefined;
             return;
         }
         for(let rt of rolltables){
             if(rt.id == id){
                 current_table = rt;
+                parenttable.style.visibility = 'initial';
                 show_table(rt);
                 return;
             }
         }
         tableview.clear();
+        parenttable.style.visibility = 'hidden';
     }
     listview.user_rename_handler = function(id:number, name:string){
         for(let rt of rolltables){
