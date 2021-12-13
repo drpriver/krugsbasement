@@ -470,8 +470,8 @@ document.addEventListener('DOMContentLoaded', function(){
         listview.add_item(scriptgroups[i], i);
     }
     var_button.addEventListener('click', function(){
-        if(!variables.hidden) return;
         variables.show();
+        if(!variables.hidden) return;
         setup();
     });
     let floater_was_visible = false;;

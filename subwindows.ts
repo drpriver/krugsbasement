@@ -39,10 +39,10 @@ function make_window(name:keyof SubWindowIdMap): SubWindow {
         hide_handler:undefined,
         make_top: setup_zsorted_window(outer),
         show: function(){
+            result.make_top();
             if(!result.hidden) return;
             result.hidden = false;
             outer.style.display = 'block';
-            result.make_top();
             ensure_window_is_completely_on_screen(outer);
             if(result.show_handler)
                 result.show_handler();
