@@ -1,6 +1,6 @@
 import io
 import shlex
-from typing import List, Dict, Union, Any, Tuple
+from typing import List, Dict, Union, Any, Tuple, Optional
 import random
 from .dice import dice_from_string, roll_dice
 from .persist import Persister
@@ -28,7 +28,8 @@ def get_roll_tables(room:str) -> List[RollTable]:
     return ROLLTABLES[room]
 
 def update_roll_tables(room:str, data:List[RollTable]) -> None:
-    highest = max(t['id'] for t in ROLLTABLES[room]) if ROLLTABLES[room] else 0
+    tables = get_roll_tables(room)
+    highest = max(t['id'] for t in tables) if tables else 0
     if highest < 0:
         highest = 1
     for d in data:
@@ -41,6 +42,15 @@ def update_roll_tables(room:str, data:List[RollTable]) -> None:
             if entry['weight'] > 1e8:
                 raise Exception
     ROLLTABLES[room] = data
+
+def upload_roll_table(room:str, data:RollTable) -> Optional[RollTable]:
+    tables = get_roll_tables(room)
+    highest = max(t['id'] for t in tables) if tables else 0
+    data['id'] = highest + 1
+    tables.append(data)
+    return data
+    
+
 
 def create_chat(room:str) -> None:
     if room in HISTORY:

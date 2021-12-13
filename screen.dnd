@@ -296,6 +296,8 @@ David20::title #hide
         <div class="hover-button-container">
           <button id="rolltable-add-row">Add Row</button>
           <button id="rolltable-submit">Submit</button>
+          <button id="rolltable-upload">Upload</button>
+          <button id="rolltable-export">Export</button>
         </div>
       </div>
     </div>

@@ -242,6 +242,15 @@ def update_roll_tables(tables:List[RollTable]) -> None:
     # logging.info('%s', tables);
     chat.update_roll_tables(room, tables)
 
+@socketio.on(FromClient.UPLOAD_ROLL_TABLE)
+def upload_table(table:RollTable) -> str:
+    table = validate('RollTable', table)
+    room = get_room(request)
+    response = chat.upload_roll_table(room, table)
+    if response:
+        emit(ToClient.NEW_ROLL_TABLE, response, broadcast=False, to=room)
+
+
 try:
     SCREEN: Optional[str] = open('screen.html').read()
 except:

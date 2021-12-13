@@ -660,6 +660,48 @@ document.addEventListener('DOMContentLoaded',function(){
         SOCKET.emit(FromClient.UPDATE_ROLL_TABLES, rolltables);
     }
     by_id('tables-button').addEventListener('click', tablewindow.show);
+    by_id('rolltable-export').addEventListener('click', function(){
+        if(!current_table) return;
+        const s = JSON.stringify(current_table, null, 1);
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([s], {type:'text/plain'}));
+        a.download = current_table.name + ".json";
+        a.click();
+    });
+    by_id('rolltable-upload').addEventListener('click', function(){
+        const inp = document.createElement('input');
+        inp.type = 'file';
+        function handlefile(){
+            const files = inp.files;
+            if(!files) return;
+            if(!files.length) return;
+            const file = files[0];
+            const fr = new FileReader();
+            fr.addEventListener('load', function(){
+                try {
+                    if(!fr.result) return;
+                    const newtable = JSON.parse(fr.result as string);
+                    SOCKET.emit(FromClient.UPLOAD_ROLL_TABLE, newtable);
+                } catch(err){
+                    err_dialog(`
+                        <p> There was a problem uploading the table.
+                        <br>
+                        <code>
+                        ${err}
+                        </code>
+                        `);
+                }
+            });
+            fr.readAsText(file);
+        }
+        inp.addEventListener('change', handlefile, false);
+        inp.click();
+    });
+    SOCKET.on(ToClient.NEW_ROLL_TABLE, function(rt:RollTable){
+        rolltables.push(rt);
+        listview.add_item(rt.name, rt.id);
+        listview.make_active(rt.id);
+    });
 });
 
 type TableView<K> = {
