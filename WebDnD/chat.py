@@ -49,7 +49,7 @@ def upload_roll_table(room:str, data:RollTable) -> Optional[RollTable]:
     data['id'] = highest + 1
     tables.append(data)
     return data
-    
+
 
 
 def create_chat(room:str) -> None:
