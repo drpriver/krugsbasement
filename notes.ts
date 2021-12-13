@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const iframe = by_id('current-note-view');
     const editor_log = by_id('note-view-editor-log');
     const edit_notes_button = by_id('edit-notes-button');
-    let listview = make_list_view<number>(by_id('notes-list'));
+    let listview = make_list_view<number>(by_id('notes-list'), 0);
     by_id('delete-note').addEventListener('click', function(){
         let dialog = get_dialog('note-deletion');
         if(!dialog) return;

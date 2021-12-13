@@ -239,6 +239,7 @@ def update_roll_tables(tables:List[RollTable]) -> None:
     tables = validate('[RollTable]', tables)
     room = get_room(request)
     logging.info('Setting roll tables for room "%s"', room)
+    # logging.info('%s', tables);
     chat.update_roll_tables(room, tables)
 
 try:

@@ -403,13 +403,32 @@ document.addEventListener('DOMContentLoaded', function(){
     let variables = get_window('variables');
     const floater = get_window('float-variables');
     const var_groups = by_id('variables-group-list');
-    let listview = make_list_view<number>(var_groups);
+    let listview = make_list_view<number>(var_groups, ListViewFlags.USER_RENAMABLE|ListViewFlags.USER_DELETABLE);
     listview.activate_handler = function(groupid:number|undefined){
         if(groupid === undefined){
             groupid = 0;
             listview.active = 0;
         }
+        actually_save_the_variables();
         active_group = scriptgroups[groupid];
+        setup();
+    };
+    listview.user_rename_handler = function(groupid:number, name:string){
+        scriptgroups[groupid] = name;
+        for(let sv of SCRIPTVARIABLES){
+            if(sv.groupid == groupid){
+                sv.group = name;
+            }
+        }
+        actually_save_the_variables();
+    };
+    listview.user_remove_handler = function(groupid:number){
+        for(let sv of SCRIPTVARIABLES){
+            if(sv.groupid == groupid){
+                sv.flags |= ScriptVariableFlags.DELETED;
+            }
+        }
+        actually_save_the_variables();
         setup();
     };
     const var_table = by_id('variables-table');

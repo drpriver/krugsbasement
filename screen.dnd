@@ -51,6 +51,11 @@ David20::title #hide
   #float-variables-container {
     flex-direction: column;
   }
+  #rolltable-table-container {
+    min-width: 400px;
+    height: calc(100% - 128px);
+    overflow-y: scroll;
+  }
   #notes-window-iframe-container {
     margin: auto;
     border: none;
@@ -119,10 +124,9 @@ David20::title #hide
     padding: 8px;
     border-bottom: 1px solid black;
     cursor: pointer;
-    display: flex;
-    flex-direction: row;
     -webkit-user-select: none;
     user-select: none;
+    display: grid;
   }
   .window-group-list div:hover {
     background-color: #f8f8f8;
@@ -273,27 +277,25 @@ David20::title #hide
       <div id="rolltable-group-list" class="window-group-list">
         <button id="rolltable-add-table">+ New Table</button>
       </div>
-      <div id="rolltable-table-container">
-        <table>
-          <thead>
-            <tr>
-              <th></th>
-              <th>Weight</th>
-              <th>Value</th>
-              <th>Table?</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="rolltable-body">
-          </tbody>
-        </table>
-        <div class="hover-button-container">
-          <button id="rolltable-add-row">Add Row</button>
+      <div style="height:100%;">
+        <div id="rolltable-table-container">
+          <table style="width: 100%;">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Weight</th>
+                <th>Value</th>
+                <th>Table?</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="rolltable-body">
+            </tbody>
+          </table>
         </div>
         <div class="hover-button-container">
-          <button id="rolltable-import">Import Table</button>
-          <button id="rolltable-ok">Ok</button>
-          <button id="rolltable-cancel">Cancel</button>
+          <button id="rolltable-add-row">Add Row</button>
+          <button id="rolltable-submit">Submit</button>
         </div>
       </div>
     </div>
@@ -574,6 +576,15 @@ David20::title #hide
       </tr>
     </table>
     `);
+  begin('simple-delete');
+  make(`
+    ${title('Delete')}
+    <table class="input-container">
+      ${trbegin('can')}
+        <td>${label('delete', 'Delete?')}
+        <td>${checkbox('delete')}
+      </tr>
+    </table>`);
   if(ctx.outpath.includes('temp')){
     let ts = '// NOTE: this file was generated\n'
     ts += '// Do NOT edit it. Your edits will be overwritten!\n'

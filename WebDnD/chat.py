@@ -28,7 +28,13 @@ def get_roll_tables(room:str) -> List[RollTable]:
     return ROLLTABLES[room]
 
 def update_roll_tables(room:str, data:List[RollTable]) -> None:
+    highest = max(t['id'] for t in ROLLTABLES[room]) if ROLLTABLES[room] else 0
+    if highest < 0:
+        highest = 1
     for d in data:
+        if d['id'] < 0:
+            highest += 1
+            d['id'] = highest
         for entry in d['entries']:
             if entry['weight'] < 0.5:
                 raise Exception

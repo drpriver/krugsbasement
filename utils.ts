@@ -27,8 +27,10 @@ function elem_with_parent<K extends keyof HTMLElementTagNameMap>(parent:HTMLElem
     return el;
 }
 
-function elem_parent_text<K extends keyof HTMLElementTagNameMap>(parent:HTMLElement, tag:K, text:string){
+function elem_parent_text<K extends keyof HTMLElementTagNameMap>(parent:HTMLElement, tag:K, text:string, id?:string|null, class_?:string|null){
     const el = document.createElement(tag);
+    if(id) el.id = id;
+    if(class_) el.classList.add(class_);
     el.appendChild(document.createTextNode(text));
     parent.appendChild(el);
     return el;
@@ -304,8 +306,19 @@ type ListView<K> = {
     activate_handler?:(k:K|undefined)=>void;
     active?: K;
     clear: ()=>void;
+    // this is called after removing via the user clicking the icon.
+    user_remove_handler?:(k:K)=>void;
+    // this is called after renaming via the user clicking the icon.
+    user_rename_handler?:(k:K, text:string)=>void;
 };
-function make_list_view<K>(listcontainer:HTMLDivElement):ListView<K>{
+
+const enum ListViewFlags {
+    NONE = 0,
+    // Can be renamed via the list view itself, handler will be called
+    USER_RENAMABLE = 1 << 0,
+    USER_DELETABLE = 1 << 1,
+}
+function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):ListView<K>{
     let result: ListView<K> = {
         active: undefined,
         column: listcontainer,
@@ -327,6 +340,48 @@ function make_list_view<K>(listcontainer:HTMLDivElement):ListView<K>{
         },
         add_item: function(text:string, key:K){
             const el = elem_with_text('div', text);
+            let style = 'auto';
+            if(flags & ListViewFlags.USER_RENAMABLE){
+                style += ' 32px';
+                const rename = elem_parent_text(el, 'button', '✎');
+                rename.addEventListener('click', function(e:MouseEvent){
+                    e.stopPropagation();
+                    let dialog = get_dialog('simple-text');
+                    if(!dialog) return;
+                    dialog.title.innerText = 'Rename '+el.firstChild!.textContent;
+                    dialog.f.text.value = '';
+                    dialog.show_handler = function(){
+                        dialog.f.text.focus();
+                    };
+                    dialog.ok_handler = function(){
+                        let text = dialog.f.text.value.trim();
+                        if(!text) return;
+                        result.rename(text, key);
+                        if(result.user_rename_handler)
+                            result.user_rename_handler(key, text);
+                    };
+                    dialog.show();
+                });
+            }
+            if(flags & ListViewFlags.USER_DELETABLE){
+                style += ' 32px';
+                const del = elem_parent_text(el, 'button', '✘');
+                del.addEventListener('click', function(e:MouseEvent){
+                    e.stopPropagation();
+                    let dialog = get_dialog('simple-delete');
+                    if(!dialog) return;
+                    dialog.title.innerText = 'Delete '+el.firstChild!.textContent;
+                    dialog.f.delete.checked = false;
+                    dialog.ok_handler = function(){
+                        if(!dialog.f.delete.checked) return;
+                        result.remove(key);
+                        if(result.user_remove_handler)
+                            result.user_remove_handler(key);
+                    };
+                    dialog.show();
+                });
+            }
+            el.style.gridTemplateColumns = style;
             el.addEventListener('click', function(e:MouseEvent){
                 e.preventDefault();
                 e.stopPropagation();

@@ -234,7 +234,6 @@ document.addEventListener('DOMContentLoaded', function(){
     resize_chat();
 
     by_id('tables-button').addEventListener('click', tables_button_dialog);
-    by_id('tables2-button').addEventListener('click', tables2_button_dialog);
     by_id('chat-options').addEventListener('click', chat_options_dialog);
 
     window.addEventListener('resize', resize_chat);
@@ -721,7 +720,284 @@ function tables_button_dialog(){
     });
 }
 
-function tables2_button_dialog(){
+document.addEventListener('DOMContentLoaded',function(){
     let tablewindow = get_window('rolltable');
-    tablewindow.show();
+    let tbody = by_id('rolltable-body');
+    let listview = make_list_view<number>(by_id('rolltable-group-list'), ListViewFlags.USER_RENAMABLE|ListViewFlags.USER_DELETABLE);
+    let tableview = make_table_view<number>(tbody);
+    let rolltables: Array<RollTable>;
+    let current_table: RollTable | undefined;
+    let rowid = 0;
+    let newtableid = -1;
+    tablewindow.hide_handler = function(){
+        submit_tables();
+    };
+    tablewindow.show_handler = function(){
+        rolltables = [];
+        current_table = undefined;
+        rowid = 0;
+        newtableid = -1;
+        listview.clear();
+        tableview.clear();
+        SOCKET.emit(FromClient.RETRIEVE_ROLL_TABLES, function(rts:Array<RollTable>){
+            listview.clear();
+            for(let rt of rts){
+                listview.add_item(rt.name, rt.id);
+            }
+            rolltables = rts;
+            if(!rts.length){
+                listview.make_active(undefined);
+            }
+            else
+                listview.make_active(rolltables[0].id);
+        });
+    };
+    listview.activate_handler = function(id:number | undefined){
+        if(id === undefined){
+            tableview.clear();
+            current_table = undefined;
+            return;
+        }
+        for(let rt of rolltables){
+            if(rt.id == id){
+                current_table = rt;
+                show_table(rt);
+                return;
+            }
+        }
+        tableview.clear();
+    }
+    listview.user_rename_handler = function(id:number, name:string){
+        for(let rt of rolltables){
+            if(rt.id == id){
+                rt.name = name;
+                return;
+            }
+        }
+    };
+    listview.user_remove_handler = function(id:number){
+        for(let i = 0; i < rolltables.length; i++){
+            if(rolltables[i].id == id){
+                rolltables.splice(i, 1);
+                return;
+            }
+        }
+    }
+    function show_table(table:RollTable){
+        tableview.clear();
+        let length = table.entries.length;
+        for(let i = 0; i < length; i++){
+            const entry = table.entries[i];
+            let id = rowid++;
+            const row = make_row(id, entry, table.entries);
+            tableview.add_row(row, id);
+        }
+    }
+    function make_row(key:number, entry:RollTableEntry, entries:Array<RollTableEntry>):HTMLTableRowElement{
+        let weight = entry.weight;
+        let text = entry.value;
+        let is_table = !!(entry.flags & ROLLTABLEFLAGS.IS_TABLE);
+        const tr = elem('tr');
+        function append(el:HTMLElement){
+            const td = elem_with_parent(tr, 'td');
+            td.appendChild(el);
+        }
+
+        const ud = elem('div', null, 'up-down');
+        const up = elem_parent_text(ud, 'button', '▲', null, 'up');
+        const down = elem_parent_text(ud, 'button', '▼', null, 'down');
+        up.addEventListener('click', function(){
+            for(let i = 0; i < entries.length; i++){
+                if(entries[i] === entry){
+                    if(i != 0){
+                        let tmp = entries[i-1];
+                        entries[i-1] = entries[i];
+                        entries[i] = tmp;
+                    }
+                    break;
+                }
+            }
+            tableview.move_row_by(key, -1);
+        });
+        down.addEventListener('click', function(){
+            for(let i = 0; i < entries.length; i++){
+                if(entries[i] == entry){
+                    if(i != entries.length-1){
+                        let tmp = entries[i+1];
+                        entries[i+1] = entries[i];
+                        entries[i] = tmp;
+                    }
+                    break;
+                }
+            }
+            tableview.move_row_by(key, +1);
+        });
+        append(ud);
+
+        const weightinp = elem('input');
+        weightinp.value = ''+weight;
+        weightinp.type = 'number';
+        weightinp.addEventListener('change', function(){
+            let w = +weightinp.value;
+            if(!w) w = 1;
+            entry.weight = w;
+        });
+        append(weightinp);
+
+        const valinp = elem('input');
+        valinp.type = 'text';
+        valinp.value = text;
+        valinp.addEventListener('change', function(){
+            let v = valinp.value;
+            if(!v) v = 'Untitled';
+            entry.value = v;
+        });
+        valinp.addEventListener('keydown', function(e){
+            if(e.key == 'Enter') {
+                add_row.click();
+                return;
+            }
+        });
+        append(valinp);
+
+        const tablecheck = elem('input');
+        tablecheck.type = 'checkbox';
+        tablecheck.checked = is_table;
+        tablecheck.addEventListener('change', function(){
+            if(tablecheck.checked)
+                entry.flags |= ROLLTABLEFLAGS.IS_TABLE;
+            else
+                entry.flags &= ~ROLLTABLEFLAGS.IS_TABLE;
+        });
+        append(tablecheck);
+
+        const del = elem_with_text('button', 'Delete');
+        append(del);
+        del.addEventListener('click', function(){
+            tableview.remove_row(key);
+            for(let i = 0; i < entries.length; i++){
+                if(entries[i] === entry){// comparing for identity here. js sucks
+                    entries.splice(i, 1);
+                    return;
+                }
+            }
+        });
+        return tr;
+    }
+    const add_row = by_id('rolltable-add-row');
+    add_row.addEventListener('click', function(){
+        if(current_table === undefined) return;
+        const entry: RollTableEntry = {
+            weight: 1,
+            value: '',
+            flags: 0,
+        };
+        let id = rowid++;
+        const row = make_row(id, entry, current_table.entries);
+        current_table.entries.push(entry);
+        tableview.add_row(row, id);
+        (row.children[2].children[0] as any).focus();
+    });
+    const submit = by_id('rolltable-submit');
+    submit.addEventListener('click', submit_tables);
+    by_id('rolltable-add-table').addEventListener('click', function(){
+        let dialog = get_dialog('simple-text');
+        if(!dialog) return;
+        dialog.title.textContent = 'Table Name';
+        dialog.f.text.value = '';
+        dialog.ok_handler = function(){
+            let text = dialog.f.text.value.trim();
+            if(!text) return;
+            let id = --newtableid;
+            const table = {
+                name:text,
+                id: id, // sending <0 to the server means the server should assign a new id
+                entries: [{weight:1, value:"", flags:0}]
+            };
+            rolltables.push(table);
+            listview.add_item(table.name, table.id);
+            listview.make_active(table.id);
+        };
+        dialog.show_handler = function(){
+            dialog.f.text.focus();
+        };
+        dialog.show();
+    });
+
+    function submit_tables(){
+        SOCKET.emit(FromClient.UPDATE_ROLL_TABLES, rolltables);
+    }
+    by_id('tables2-button').addEventListener('click', tablewindow.show);
+});
+
+type TableView<K> = {
+    // thead: HTMLTableSectionElement;
+    tbody: HTMLTableSectionElement;
+    add_row:(row:HTMLTableRowElement, key:K)=>void;
+    clear:()=>void;
+    remove_row:(key:K) =>void;
+    get_row:(key:K) => HTMLTableRowElement|null;
+    move_row_by:(key:K, dy:number)=>void;
+    rows: Array<[K, HTMLTableRowElement]>;
+}
+
+function make_table_view<K>(tbody:HTMLTableSectionElement): TableView<K>{
+    let result: TableView<K> = {
+        tbody: tbody,
+        add_row: function(row:HTMLTableRowElement, key:K){
+            result.tbody.appendChild(row);
+            result.rows.push([key, row]);
+        },
+        clear: function(){
+            for(let [_, row] of result.rows){
+                row.remove();
+            }
+            result.rows = [];
+        },
+        remove_row:function(key:K){
+            for(let i = 0; i < result.rows.length; i++){
+                let [k, row] = result.rows[i];
+                if(k === key){
+                    row.remove();
+                    result.rows.splice(i, 1);
+                    return;
+                }
+            }
+        },
+        get_row:function(key:K){
+            for(let [k, row] of result.rows){
+                if(k === key){
+                    return row;
+                }
+            }
+            return null;
+        },
+        move_row_by:function(key:K, dy:number){
+            if(dy !== -1 && dy !== 1) throw new Error("unimplemented");
+            let length = result.rows.length;
+            for(let i = 0; i < length; i++){
+                let [k, row] = result.rows[i];
+                if(k === key){
+                    // this code seems janky as fuck?
+                    if(dy == -1 && i == 0) return;
+                    if(dy == +1 && i == length-1) return;
+                    if(dy == -1 && row.previousElementSibling){
+                        let tmp = result.rows[i];
+                        result.rows[i] = result.rows[i-1];
+                        result.rows[i-1] = tmp;
+                        result.tbody.insertBefore(row, row.previousElementSibling);
+                    }
+                    else if(dy == 1 && row.nextElementSibling){
+                        let tmp = result.rows[i];
+                        result.rows[i] = result.rows[i+1];
+                        result.rows[i+1] = tmp;
+                        result.tbody.insertBefore(row, row.nextElementSibling.nextElementSibling);
+                    }
+                    return;
+                }
+            }
+        },
+        rows: [],
+    };
+    return result;
 }

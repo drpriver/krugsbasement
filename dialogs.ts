@@ -70,6 +70,12 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
         result.window.style.display = 'none';
         if(result.hide_handler)
             result.hide_handler();
+        if(document.activeElement){
+            try{
+                (document.activeElement as any).blur();
+            }catch(e){
+            }
+        }
     };
     result.show = function(){
         if(!result.hidden) return;
