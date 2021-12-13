@@ -103,7 +103,6 @@ David20::title #hide
   }
   #note-view-editor-log, #macro-test-log {
     height: 20%;
-    color: #800;
     border: 1px solid grey;
     overflow-y: auto;
   }
