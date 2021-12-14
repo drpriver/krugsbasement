@@ -21,6 +21,7 @@ David20::title #hide
     background-color: white;
     -webkit-user-select: none;
     user-select: none;
+    border: 1px solid black;
   }
   .window-handle {
     grid-row: 1;
@@ -168,12 +169,17 @@ David20::title #hide
   .variable-table-row > div > input {
     width: 8em;
   }
-  .variable-table-row > div > input[type="numeric"] {
+  .variable-table-row > div > input[type="number"] {
     width: 4em;
   }
   .variable-table-row > div> input[type="checkbox"] {
     width: 4em;
     margin-left: 35%;
+  }
+  span.color-picker-dropdown {
+    cursor: pointer;
+    width: 2em;
+    text-align: center;
   }
   /*endcss*/
 ::js
@@ -254,13 +260,13 @@ David20::title #hide
             <div style="display:table-cell;"><b>Delete</b></div>
           </div>
           <div style="display:table-row;" class="variables-row">
-            <input style="display:table-cell;" value="Str"></input>
+            <input style="display:table-cell;" value="Str">
             <select style="display:table-cell;">
               <option value="number">Number</option>
               <option value="boolean">Boolean</option>
             </select>
-            <input style="display: table-cell;" type="numeric" value="0"></input>
-            <input style="display:table-cell;" type="checkbox"></input>
+            <input style="display: table-cell;" type="number" value="0">
+            <input style="display:table-cell;" type="checkbox">
           </div>
         </div>
       </div>
@@ -475,7 +481,7 @@ David20::title #hide
         <td>${checkbox('delete')}
       </tr>
       ${trbegin('cant')}
-        <td >This map can't be deleted.
+        <td colspan=2>This map can't be deleted.
       </tr>
     </table>`);
   begin('ez-token');
@@ -485,6 +491,8 @@ David20::title #hide
       <tr>
         <td>${label('color', 'Color:')}
         <td>${colorbox('color')}
+        <td>
+        <td>
       </tr>
       <tr>
         <td>${label('width', 'Width (sq):')}
@@ -512,7 +520,7 @@ David20::title #hide
       </tr>
       <tr>
         <td>${label('url', 'Token Image Url:')}
-        <td>${urlbox('url')}
+        <td colspan=3>${urlbox('url')}
       </tr>
     </table>
     ${div('conditions')}
@@ -677,8 +685,10 @@ David20::title #hide
   ::div #id(stuff)
     ::div #id(colors)
       ::raw
-        <input type="color" id="color-picker" value="#000000"><span id="color-picker-dropdown" style="cursor:pointer;width:2em;text-align:center;">▼</span>
-        <input type="color" id="color-picker2" value="#ffffff"><span id="color-picker2-dropdown" style="cursor:pointer;width:2em;text-align:center;">▼</span>
+        <input type="color" id="color-picker" value="#000000">
+        <span id="color-picker-dropdown" class="color-picker-dropwdown">▼</span>
+        <input type="color" id="color-picker2" value="#ffffff">
+        <span id="color-picker2-dropdown" class="color-picker-dropdown">▼</span>
     ::div.scale
       ::raw
         <div>Scale:</div>
@@ -698,6 +708,7 @@ David20::title #hide
         <label for="grid-snap-quarter">2½' </label>
         <input type="radio" id="grid-snap-free" name="snap-to-grid" value="FREE">
         <label for="grid-snap-free">Free</label>
+
 ::div #id(palette)
 ::div.chat #id(chat)
   ::div #id(tree)
@@ -1183,6 +1194,11 @@ David20::title #hide
   div.up-down {
     display: grid;
     grid-template-rows: repeat(2, 1fr);
+  }
+  div.up-down button {
+    font-size: 15%;
+    padding: 0 3px;
+    margin: 0;
   }
   div.dice-roll-msg{
   }

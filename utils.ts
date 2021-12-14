@@ -169,7 +169,6 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
         win.style.bottom = 'initial';
         win.style.right = 'initial';
     }
-    win.style.border = '1px solid black';
     handle.addEventListener('pointerdown', function(e:PointerEvent){
         if(e.target !== handle)
             return;
