@@ -32,6 +32,7 @@ David20::title #hide
     grid-template-columns: 48px auto 48px;
     height: 32px;
     min-width: 32px;
+    background: linear-gradient(#fff, 30%, #ddd);
   }
   #tool-container-handle {
     cursor: grab;
@@ -42,6 +43,8 @@ David20::title #hide
     pointer-events: initial;
     width: 64px;
     margin-left: 24px;
+    background: linear-gradient(#eee, 30%, #ddd);
+    border: 1px solid #888;
   }
   .window-container {
     grid-row: 2;
@@ -1304,6 +1307,7 @@ David20::title #hide
     }
     body.dark-mode .window-handle, body.dark-mode #tool-container-handle {
       background-color: #444;
+      background: linear-gradient(#444444, 30%, #222222);
     }
     body.dark-mode .window-group-list div {
       color: #aaa;

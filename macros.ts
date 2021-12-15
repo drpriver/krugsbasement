@@ -437,6 +437,7 @@ document.addEventListener('DOMContentLoaded', function(){
         let dialog = get_dialog('simple-text');
         if(!dialog) return;
         dialog.title.textContent = 'Category Name';
+        dialog.f.text.value = '';
         dialog.show_handler = function(){
             dialog.f.text.focus();
         };
