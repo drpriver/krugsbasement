@@ -1,63 +1,3 @@
-::css @inline
-  body > div {
-    margin: auto;
-    width: 40em;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-  }
-  pre {
-    width: 42em;
-    padding: 0.0em 1em;
-    font-family: ui-monospace, "Cascadia Mono", Consolas, monaco, monospace;
-  }
-  .macro {
-    border: 1px solid black;
-  }
-  .indented p {
-    margin-left: 3em;
-  }
-  .left {
-    position: fixed;
-    left: 0;
-    top: 0;
-  }
-  .command h3:before {
-    content: " - ";
-  }
-  .command h3:after {
-    content: " Command:";
-  }
-  h2:hover {
-    cursor: pointer;
-  }
-  h3:hover {
-    cursor: pointer;
-  }
-  @media only screen and (max-width: 66em) {
-    .left {
-      display: none;
-    }
-  }
-
-  /*endcss*/
-::script
-  document.addEventListener('DOMContentLoaded', function(){
-    console.log('wtf');
-    const h2s = Array.from(document.getElementsByTagName('h2'));
-    const h3s = Array.from(document.getElementsByTagName('h3'));
-    function add_clicker(elem){
-      elem.onclick = function(){
-        location.hash = '#' + elem.id;
-        console.log(elem.id);
-      }
-    }
-    for(let h of h2s)
-      add_clicker(h);
-    for(let h of h3s){
-      add_clicker(h);
-      console.log(h)
-    }
-  });
-  //endjs
 ::nav.left
 Expanded Macro Processor::title
 ::div
@@ -343,3 +283,15 @@ Expanded Macro Processor::title
 
         The roll command has to succesfully parse as a dice expression in order for
         substitution to get involved, so this is a pretty rare occurrence.
+::css #import
+  docs.css
+::css
+  .macro {
+    border: 1px solid black;
+  }
+  .command h3:before {
+    content: " - ";
+  }
+  /*endcss*/
+::script #import
+  anchors.js

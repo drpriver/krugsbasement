@@ -28,7 +28,7 @@ run: combined.js token-list WebDnD/messages.py
 screen.html: screen.dnd combined.js | Depends
 	dndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
 
-macro-doc.html: Docs/macro-doc.dnd
+Generated/%.html: Docs/%.dnd | Generated
 	dndc $< --output $@
 
 Generated/messages.ts WebDnD/messages.py: types.shared Scripts/make_enums.py | Generated
@@ -69,7 +69,7 @@ backup:
 tags: *.ts Scripts/tag_ts.py
 	python3 -m Scripts.tag_ts
 
-DOCS=macro-doc.html
+DOCS=Generated/macro-doc.html Generated/tables.html
 
 .PHONY: ship-docs
 ship-docs: $(DOCS)

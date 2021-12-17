@@ -92,7 +92,12 @@ get_tag_type(const char* tag, int length){
         // case sizeof("tr")-1:
             if(eq(tag, "h1", length))     return "HTMLHeadingElement";
             if(eq(tag, "h2", length))     return "HTMLHeadingElement";
+            if(eq(tag, "h3", length))     return "HTMLHeadingElement";
+            if(eq(tag, "h4", length))     return "HTMLHeadingElement";
+            if(eq(tag, "h5", length))     return "HTMLHeadingElement";
+            if(eq(tag, "h6", length))     return "HTMLHeadingElement";
             if(eq(tag, "td", length))     return "HTMLTableCellElement";
+            if(eq(tag, "th", length))     return "HTMLTableCellElement";
             if(eq(tag, "tr", length))     return "HTMLTableRowElement";
             break;
         case sizeof("div")-1:
