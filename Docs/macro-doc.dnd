@@ -39,7 +39,10 @@ Expanded Macro Processor::title
             <code>table, /table</code> tablename
 
             The named table is looked up and rolled on (which can trigger a roll
-            on a different table). The result is then sent back.
+            on a different table). The result is then sent back. See
+            [tables. | tablesweb]
+            ::links
+              tablesweb = tables.html
 
         Name::md.indented .command
             <code>/name</code> some name
@@ -114,8 +117,8 @@ Expanded Macro Processor::title
         /roll Attack
 
       Expressions::md.comment
-        To understand how the system works, it is important to understand what is an expression
-        for a roll command, in descending precedence.
+        To understand how the system works, it is important to understand what
+        is an expression for a roll command, in descending precedence.
         1. Dice literal, for example "<code>3d6</code>" or "<code>d20</code>".
         2. Integer literal, for example "<code>3</code>" or "<code>42</code>".
         3. Variable, such as "attack" above.
@@ -124,11 +127,15 @@ Expanded Macro Processor::title
            unary operations are "<code>!</code>" (not, turns 0 to 1 and all other
            values to 0), "<code>-</code>" (negative), and "<code>+</code>" (which
            does nothing).
-        4. Multiplication and division, like "<code>3 * 3d6</code>", or "<code>attack/2</code>".
+        4. Multiplication and division, like "<code>3 * 3d6</code>",
+           or "<code>attack/2</code>".
         5. Addition and subtraction, like "<code>d20+4</code>", or "<code>d6 - 1</code>".
-        6. Comparisons, like "<code>d6 == 1</code>" or "<code>d10 <= 2</code>". The comparison operatiors are "<code>=</code>", "<code><</code>", "<code><=</code>", "<code>></code>", <code>>=</code>", "<code>!=</code>".
+        6. Comparisons, like "<code>d6 == 1</code>" or "<code>d10 <= 2</code>".
+           The comparison operatiors are "<code>=</code>", "<code><</code>",
+           "<code><=</code>", "<code>></code>", <code>>=</code>", "<code>!=</code>".
 
-        When substituted, variables are implicitly grouped. This means that something like:
+        When substituted, variables are implicitly grouped. This means that
+        something like:
         ::pre.macro
           x = 3 + 2
           /roll 3*x
@@ -170,9 +177,10 @@ Expanded Macro Processor::title
         number of variables defined in it.
 
         To actually access a variable in a macro, you need to bring it into the
-        local context. To do that, we have the <code>use</code> statement. Imagine you have a
-        variable group where you have defined <code>bab</code> to be 3 and <code>dex</code> to be 2,
-        named <code>Yowa</code>. You can then do this:
+        local context. To do that, we have the <code>use</code> statement.
+        Imagine you have a variable group where you have defined <code>bab</code>
+        to be 3 and <code>dex</code> to be 2, named <code>Yowa</code>.
+        You can then do this:
       ::pre.macro
         use Yowa
         attack = d20 + bab + dex
@@ -205,8 +213,9 @@ Expanded Macro Processor::title
         Expression Variables::md.comment
           These variables are stored as strings, but they must succesfully
           parse as an expression in order to be used. You can still take
-          advantage of lazy evaluation of variables.  For example, "<code>d20 + attack</code>"
-          is a legal expression, but "<code>d20 +</code>" is not as there is no
+          advantage of lazy evaluation of variables.  For example,
+          "<code>d20 + attack</code>" is a legal expression, but
+          "<code>d20 +</code>" is not as there is no
           postfix "<code>+</code>" operator and so it is an incomplete add
           expression, missing the right hand side.
 
@@ -217,8 +226,8 @@ Expanded Macro Processor::title
           You can think of these variables as formulas.
 
       If Statements::md.comment
-        The last major feature is conditional execution. This is done using <code>if</code>
-        and <code>else</code>. An example:
+        The last major feature is conditional execution. This is done
+        using <code>if</code> and <code>else</code>. An example:
       ::pre.macro
         rapid = 1
         if rapid:
@@ -235,9 +244,10 @@ Expanded Macro Processor::title
         and if the result is non-zero, it is considered "true". If it's true, then
         the indented statements after the if are evaluated.
 
-        An <code>if</code> can have an <code>else</code>, which looks like in the above example. The
-        indented statements after the else are run if the expression turned out to
-        be false (0). An <code>if</code> doesn't have to have an <code>else</code>. There's also <code>else if</code>.
+        An <code>if</code> can have an <code>else</code>, which looks like in
+        the above example. The indented statements after the else are run if
+        the expression turned out to be false (0). An <code>if</code> doesn't
+        have to have an <code>else</code>. There's also <code>else if</code>.
 
         With the if you can conditionally send roll commands and also conditionally
         set variables. For example:
@@ -270,10 +280,12 @@ Expanded Macro Processor::title
         To roll a strength check, type:
         Roll d20 + str
       ::md.comment
-        Variable substitution and expression evaluation will be attempted on this, which would be confusing as
-        it would come out as "Roll d20 + 3" if you had a str variable set to 3, which would then get rolled! To avoid this, you can prefix with a "/say " which will cause the rest
-        to be processed as literal text. You can also use a leading backtick (`) to
-        the same effect. Do not use a trailing backtick.
+        Variable substitution and expression evaluation will be attempted on this,
+        which would be confusing as it would come out as "Roll d20 + 3" if you had
+        a str variable set to 3, which would then get rolled! To avoid this, you
+        can prefix with a "/say " which will cause the rest to be processed as
+        literal text. You can also use a leading backtick (`) to the same effect.
+        Do not use a trailing backtick.
       ::pre.macro
         /say Roll d20 + str
         `Roll d20 + str
