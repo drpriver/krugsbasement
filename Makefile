@@ -73,7 +73,7 @@ DOCS=Generated/macro-doc.html Generated/tables.html
 
 .PHONY: ship-docs
 ship-docs: $(DOCS)
-	scp $< david@droplet:/home/david/docs/docs
+	scp $(DOCS) david@droplet:/home/david/docs/docs
 
 .PHONY: mypy
 mypy:
