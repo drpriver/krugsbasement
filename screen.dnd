@@ -636,7 +636,6 @@ David20::title #hide
     FileSystem.write_file('Generated/dialogdefs.ts', ts);
   }
 
-
 ::raw
   <canvas id="map"></canvas>
 
@@ -762,6 +761,7 @@ David20::title #hide
     position: fixed;
     left: 0;
     top: 0;
+    z-index: 0;
   }
   #disconnect {
     background-color: red;
@@ -1003,20 +1003,19 @@ David20::title #hide
   html, body {
     /*overflow: hidden;*/
   }
-  body > div {
-    display: grid;
-    grid-template-columns: auto 17em;
-    height: 100%;
-    margin: 0;
-  }
   #chat {
-    grid-column: 2;
-    grid-row: 1;
+    position: fixed;
+    right: 0;
+    top: 0;
     height: 100vh;
     display: flex;
     flex-direction: column;
     border-left: 1px solid black;
     overflow-wrap: break-word;
+    z-index: 1;
+    /* This thing is the bane of my existence on windows*/
+    /* Just overflow: hidden it */
+    /*overflow: hidden;*/
   }
   #chat-history {
     overflow-y: scroll;
@@ -1104,6 +1103,7 @@ David20::title #hide
     margin: 0;
     -webkit-user-select: none;
     user-select: none;
+    z-index: 2;
   }
   section.menuitem, section.color-menuitem {
     padding: 4px 4px 4px 4px;
@@ -1327,8 +1327,15 @@ David20::title #hide
     }
     @supports (-moz-appearance:none) {
       body.dark-mode textarea {
-        color: #aaa;
-        background-color: #333;
+        color: #eee;
+        background-color: #1e1e1e;
+      }
+      body.dark-mode .window {
+        color: #fff;
+      }
+      body.dark-mode input {
+        color: #eee;
+        background-color: #1e1e1e;
       }
     }
   /*}*/
@@ -1342,9 +1349,6 @@ David20::title #hide
     }
     #chat-history {
       width: 100%;
-    }
-    body > div {
-      display: block;
     }
     div.hover, section.hover {
       top: 0;

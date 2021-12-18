@@ -2027,7 +2027,9 @@ function make_fixture(id:number, x:number, y:number, ftype:FIXTURETYPE):FixtureO
     return obj;
 }
 
-document.addEventListener('DOMContentLoaded', function(){resize_canvas();resize_canvas();});
+document.addEventListener('DOMContentLoaded', function(){resize_canvas();resize_canvas();
+document.body.addEventListener('load', resize_canvas);
+});
 window.addEventListener('resize', resize_canvas);
 function clear_canvas(map:DungeonMap):void{
     map.canvas_obj_array.length = 0;
@@ -2586,6 +2588,7 @@ SOCKET.on(ToClient.CANVAS_INITIALIZE_MAPS, function(msgs:Array<{map_id:number; m
         if(old_idx < dungeon_map_views.length && old_idx >= 0)
             change_active_map_view(old_idx, false, false);
     }
+    resize_canvas();
     request_render();
 });
 SOCKET.on(ToClient.CANVAS_CREATE_OBJECTS, function(msgs:Array<CreateObjectsMessage>){
