@@ -6082,7 +6082,7 @@ document.addEventListener('DOMContentLoaded', function(){
     // this state variable is kind of janky.
     let ctxmenu_is_active = 0;
     let ez_token_color = '#ff3333';
-    canvas.addEventListener('pointerdown', function(e:MouseEvent){
+    canvas.addEventListener('pointerdown', function(e:PointerEvent){
         if(gesturing) return;
         if(e.button !== 0 && e.button !== 1){ //0 is the 'primary' button
             return;

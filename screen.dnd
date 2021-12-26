@@ -762,6 +762,7 @@ David20::title #hide
     left: 0;
     top: 0;
     z-index: 0;
+    touch-action: none;
   }
   #disconnect {
     background-color: red;
