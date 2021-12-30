@@ -6837,7 +6837,7 @@ document.addEventListener('DOMContentLoaded', function(){
         }
     });
     let prev_id = -1;
-    canvas.addEventListener('pointermove', function(e:MouseEvent){
+    canvas.addEventListener('pointermove', function(e:PointerEvent){
         let view = get_active_view();
         let [mx, my] = event_to_coord(e, view);
         view.mouse.x = mx;

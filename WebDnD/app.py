@@ -8,7 +8,7 @@ from .persist import Persister, RepeatTimer
 from. import appconfig
 import os
 import logging
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg
 from .validator import validate, register_list
 
 from typing import List, Dict, Optional, Set, Union
@@ -295,6 +295,10 @@ if appconfig.DEV:
     def log_debug(msg:str) -> None:
         room = get_room(request)
         logging.info('room: %s - %s', room, msg)
+        msg: ChatPlainMsg = [ 0, '', str(msg), ]
+        emit(ToClient.CHAT_STRUCTURED_MSG, [msg])
+
+
 
 if False:
     @app.route('/state', methods=['GET'])
