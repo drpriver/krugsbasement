@@ -1,1 +1,4 @@
 So boxes are all treated as filled, which is really annoying. It should check if we intersect the walls.
+
+Update:
+This was fixed for rectangles. It is still broken for ellipses.
