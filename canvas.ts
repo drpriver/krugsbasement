@@ -62,6 +62,9 @@ function line_overlaps_bbox(bbox:Bbox, x0:number, y0:number, x1:number, y1:numbe
     return true;
 }
 
+function bbox_overlaps_ellipse_edge(bbox:Bbox, cx:number, cy:number, rx:number, ry:number):boolean{
+}
+
 // High numbers go on top.
 const SORTORDER = [
     9999, // Nothing
@@ -2760,23 +2763,29 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
             return false;
         }break;
         case CANVASTYPE.ELLIPSE:{
-            if(!(selection_type & SELECTTYPE.MAP))
-                return false;
-            // TODO: Use ellipse math instead of rectangle math.
-            switch(obj.variant){
-                case ELLIPSETYPE.HOLLOW:
-                    break;
-                case ELLIPSETYPE.SOLID: // fall-through
-                case ELLIPSETYPE.FILLED:
-                    break;
-            }
             const rect_bbox = {
                 x0:obj.base_x,
                 y0:obj.base_y,
                 x1:obj.base_x+obj.width,
                 y1:obj.base_y+obj.height,
             };
-            return bbox_overlaps(bbox, rect_bbox);
+            if(!(selection_type & SELECTTYPE.MAP))
+                return false;
+            if(!bbox_overlaps(bbox, rect_bbox))
+                return false;
+            // TODO: Use ellipse math instead of rectangle math.
+            const cx = obj.base_x+obj.width/2;
+            const cy = obj.base_y+obj.height/2;
+            switch(obj.variant){
+                case ELLIPSETYPE.HOLLOW:
+                    return bbox_overlaps_ellipse_edge(bbox, cx, cy, obj.width/2, obj.height/2);
+                    break;
+                case ELLIPSETYPE.SOLID: // fall-through
+                case ELLIPSETYPE.FILLED:
+                    return true;
+                    break;
+            }
+            return true;
         }// this is wrong
         case CANVASTYPE.FILLED_RECT:
         case CANVASTYPE.IMAGE: // fall-through
