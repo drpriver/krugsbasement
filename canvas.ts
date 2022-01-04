@@ -24,6 +24,12 @@ function bbox_overlaps(bbox1:Bbox, bbox2:Bbox){
     const y1 = Math.min(bbox1.y1, bbox2.y1);
     return x0 <= x1 && y0 <= y1;
 }
+function bbox_inside(container:Bbox, needle:Bbox):boolean{
+    return container.x0 <= needle.x0
+            && container.x1 >= needle.x1
+            && container.y0 <= needle.y0
+            && container.y1 >= needle.y1;
+}
 function point_in_rect(x:number, y:number, x0:number, y0:number, x1:number, y1:number):boolean{
     return (x >= x0) && (x <= x1) && (y >= y0) && (y <= y1);
 }
@@ -61,8 +67,95 @@ function line_overlaps_bbox(bbox:Bbox, x0:number, y0:number, x1:number, y1:numbe
         return false;
     return true;
 }
+// precondition: bbox
+function bbox_overlaps_ellipse(bbox:Bbox, cx:number, cy:number, rx:number, ry:number):boolean {
+    // strategy: since we know the bbox doesn't entirely contain the ellipse,
+    // check if one of the corners is in the ellipse.
+    const x0 = bbox.x0-cx;
+    const x1 = bbox.x1-cx;
+    const y0 = bbox.y0-cy;
+    const y1 = bbox.y1-cy;
+    return point_in_ellipse(x0, y0, rx, ry)
+        || point_in_ellipse(x0, y1, rx, ry)
+        || point_in_ellipse(x1, y0, rx, ry)
+        || point_in_ellipse(x1, y1, rx, ry);
+}
+function point_in_ellipse(x:number, y:number, rx:number, ry:number): boolean {
+    // ellipse formula (for around origin) is:
+    //
+    // x^2/rx^2 + y^2/ry^2 == 1
+    //
+    // Inside is:
+    // x^2/rx^2 + y^2/ry^2 <= 1
+    //
+    // Rewrite to:
+    // x^2*ry^2 + y^2*rx^2 <= rx^2*ry^2
+    const ry2 = ry*ry;
+    const rx2 = rx*rx;
+    return x*x*ry2 + y*y*rx2 <= rx2*ry2;
+}
 
 function bbox_overlaps_ellipse_edge(bbox:Bbox, cx:number, cy:number, rx:number, ry:number):boolean{
+    if(!ry || !rx) return false;
+    const x0 = bbox.x0-cx;
+    const x1 = bbox.x1-cx;
+    const y0 = bbox.y0-cy;
+    const y1 = bbox.y1-cy;
+
+    // x = [x0, x1], y=y0
+    // x^2*ry^2 + y^2*rx^2 = rx^2*ry^2
+    // y = y0
+    // x^2*ry^2 = rx^2*ry^2 - y0^2*rx^2
+    // x^2 = (rx^2*ry^2 - y0^2*rx^2)/ry2
+    // x = sqrt((rx^2*ry^2 - y0^2*rx^2)/ry2)
+    // x = x0 + dx*t
+    // dx*t = sqrt((rx^2*ry^2 - y0^2*rx^2)/ry2) - x0
+    const rx2 = rx*rx;
+    const ry2 = ry*ry;
+    const rr2 = rx2*ry2;
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    // top
+    let inner = (rr2 - y0*y0*rx2)/ry2;
+    if(inner >= 0){
+        let inn = Math.sqrt(inner);
+        if( ((inn - x0) <= dx && (inn - x0) >= 0)
+            || ((-inn - x0) <= dx && (-inn - x0) >= 0))
+            return true;
+    }
+    // bottom
+    inner = (rr2 - y1*y1*rx2)/ry2;
+    if(inner >= 0){
+        let inn = Math.sqrt(inner);
+        if(((inn - x0) <= dx && (inn - x0) >= 0)
+            || ((-inn - x0) <= dx && (-inn - x0) >= 0))
+            return true;
+    }
+    // x=x0, y = [y0, y1]
+    // x^2*ry^2 + y^2*rx^2 = rx^2*ry^2
+    // x = x0
+    // y^2*rx^2 = rx^2*ry^2-x0^2*ry^2
+    // y^2 = (rx^2*ry^2 - x0^2*ry2)/rx2
+    // y = sqrt((rx^2*ry^2 - x0^2*ry^2)/rx2)
+    // y = y0 + dy*t
+    // dy*t = sqrt((rx^2*ry^2 - x0^2*ry^2)/rx2) - y0
+    // left
+    inner = (rr2 - x0*x0*ry2)/rx2;
+    if(inner >= 0){
+        let inn = Math.sqrt(inner);
+        if(((inn - y0) <= dy && (inn - y0) >= 0)
+            || ((-inn - y0) <= dy && (-inn - y0) >= 0))
+            return true;
+    }
+    // right
+    inner = (rr2 - x1*x1*ry2)/rx2;
+    if(inner >= 0){
+        let inn = Math.sqrt(inner);
+        if(((inn - y0) <= dy && (inn - y0) >= 0)
+            || ((-inn - y0) <= dy && (-inn - y0) >= 0))
+            return true;
+    }
+    return false;
 }
 
 // High numbers go on top.
@@ -2773,20 +2866,23 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
                 return false;
             if(!bbox_overlaps(bbox, rect_bbox))
                 return false;
-            // TODO: Use ellipse math instead of rectangle math.
-            const cx = obj.base_x+obj.width/2;
-            const cy = obj.base_y+obj.height/2;
+            const rx = obj.width /2;
+            const ry = obj.height/2;
+            const cx = obj.base_x+rx;
+            const cy = obj.base_y+ry;
+            // if ellipse is inside our selection, return true
+            if(bbox_inside(bbox, rect_bbox)) return true;
             switch(obj.variant){
                 case ELLIPSETYPE.HOLLOW:
-                    return bbox_overlaps_ellipse_edge(bbox, cx, cy, obj.width/2, obj.height/2);
+                    return bbox_overlaps_ellipse_edge(bbox, cx, cy, rx, ry);
                     break;
                 case ELLIPSETYPE.SOLID: // fall-through
                 case ELLIPSETYPE.FILLED:
-                    return true;
+                    return bbox_overlaps_ellipse(bbox, cx, cy, rx, ry)
+                        || bbox_overlaps_ellipse_edge(bbox, cx, cy, rx, ry);
                     break;
             }
-            return true;
-        }// this is wrong
+        }
         case CANVASTYPE.FILLED_RECT:
         case CANVASTYPE.IMAGE: // fall-through
         case CANVASTYPE.GRID_RECT:{

@@ -1,5 +1,10 @@
+resolved: 2022-01-03T22:52:11.696068
+bugmagic^^^^
 Summary::md.summary
   So boxes are all treated as filled, which is really annoying. It should check if we intersect the walls.
 
 Update::md.update
   This was fixed for rectangles. It is still broken for ellipses.
+
+Resolved Jan 03, 2022, 10:52PM::md.update
+  This was implemented. We can now click on the edge of the ellipse.
