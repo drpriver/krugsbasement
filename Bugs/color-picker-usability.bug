@@ -1,10 +1,11 @@
-Windows color input is fucked.
+Summary::md.summary
+  Windows color input is fucked.
 
-When you click on it, it always appears in the top left of the window, so you get
-the annoying experience of clicking on the bottom, then the color picker appears
-and you have to move your mouse across the screen.
+  When you click on it, it always appears in the top left of the window, so you get
+  the annoying experience of clicking on the bottom, then the color picker appears
+  and you have to move your mouse across the screen.
 
-Separately from windows, a list of recently used colors would be useful for when you
-want to swap back and forth between different colors.
+  Separately from windows, a list of recently used colors would be useful for when you
+  want to swap back and forth between different colors.
 
-You would always want black and white to be on this list.
+  You would always want black and white to be on this list.

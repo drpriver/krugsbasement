@@ -1,2 +1,3 @@
-The error reporting just says one group that had a duplicate variable. It
-should say all of the groups that had that duplicate variable.
+Summary::md.summary
+  The error reporting just says one group that had a duplicate variable. It
+  should say all of the groups that had that duplicate variable.

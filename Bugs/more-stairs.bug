@@ -1,5 +1,6 @@
-* [ ] Wide stairs
-* [ ] Diagonal stairs
+Summary::md.summary
+  * [ ] Wide stairs
+  * [ ] Diagonal stairs
 
-These were from a collection of bugs reported by Jeff, but they are low
-prio and so should be tracked separately.
+  These were from a collection of bugs reported by Jeff, but they are low
+  prio and so should be tracked separately.

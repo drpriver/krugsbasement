@@ -1,1 +1,2 @@
-If you define the same variable twice, there is no error checking for this.
+Summary::md.summary
+  If you define the same variable twice, there is no error checking for this.

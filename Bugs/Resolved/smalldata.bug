@@ -1,0 +1,7 @@
+resolved: 2021-12-30T18:49:16.057211
+bugmagic^^^^
+JSON is very verbose (repeating the keys over and over again for identical objects). It'd be way more efficient to store everything as arrays.
+
+Resolved Dec 30, 2021, 06:49PM
+------------------------------
+This was previously implemented.
