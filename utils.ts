@@ -159,8 +159,8 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
     if(old_pos !== undefined){
         const [old_x, old_y] = old_pos;
         if(typeof old_x === 'string'){
-            win.style.top = old_x;
-            win.style.left = old_y;
+            win.style.left = old_x;
+            win.style.top = old_y;
         }
         else {
             win.style.top = 100*old_y/window.innerHeight + '%';
