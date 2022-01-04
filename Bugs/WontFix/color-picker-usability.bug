@@ -1,3 +1,5 @@
+wontfix: 2022-01-03T23:13:05.933179
+bugmagic^^^^
 Summary::md.summary
   Windows color input is fucked.
 
@@ -9,3 +11,6 @@ Summary::md.summary
   want to swap back and forth between different colors.
 
   You would always want black and white to be on this list.
+
+WONTFIX Jan 03, 2022, 11:13PM::md.update
+  With floating windows I am punting this one.

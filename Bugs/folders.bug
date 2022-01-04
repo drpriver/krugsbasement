@@ -1,5 +1,10 @@
+updated: 2022-01-04T00:04:57.549187
+bugmagic^^^^
 Summary::md.summary
   Maps will get out of hand. Probably want to implement folders so they can be organized.
 
 Update::md.update
   Fuck this is hard.
+
+Updated Jan 04, 2022, 12:04AM::md.update
+  I probably just want to use the double list view abstraction.
