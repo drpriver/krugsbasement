@@ -769,12 +769,15 @@ div.rolltable table{
       color: #eee;
       background-color: #1e1e1e;
     }
-    body.dark-mode .window {
+    body.dark-mode .window, body.dark-mode .hover {
       color: #fff;
     }
     body.dark-mode input {
       color: #eee;
       background-color: #1e1e1e;
+    }
+    body.dark-mode label {
+      color: #fff;
     }
   }
 /*}*/
