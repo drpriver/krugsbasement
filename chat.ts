@@ -345,14 +345,14 @@ function evaluate(text:string, flags:EvaluateFlags):Array<Command>{
             if(!more) continue;
             for(let k of more.keys()){
                 if(vars.has(k)){
-                    err_dialog(`
-                    <div style="max-width: 30em; margin:auto; padding: 1em;">
-                    <h2>Error when processing commands</h2>
-                    <p>A duplicate variable has been encountered:</p>
-                    <p style="text-align:center;"><code>${k}</code></p>
-                    <p>This is due to having multiple groups checked, where more than one group has the same variable defined. This error was detected for group <code>${g}</code>. Uncheck one of your groups to resolve this error.</p>
-                    </div>
-                    `);
+                    const errmess: ChatErrorMsg = [
+                        Msg.ERROR,
+                        '',
+                        `Duplicate variable: '${k}'. This error was detected for group '${g}'. Uncheck one of your groups to resolve this error`,
+                    ];
+                    const log = by_id('chat-history');
+                    add_chat_msgs(log, [errmess]);
+                    log.scrollTo({behavior:'smooth', top:log.scrollHeight});
                     return [];
                 }
             }
