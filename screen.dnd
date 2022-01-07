@@ -390,6 +390,7 @@ David20::title #hide
         <br>
         <span>(might need reload)</span>
         <br>
+        ${button('fullscreen', 'Toggle Full Screen')}
         ${button('export', 'Export')}
         ${button('import', 'Import')}
     </div>

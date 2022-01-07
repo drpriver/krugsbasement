@@ -193,6 +193,15 @@ function chat_options_dialog(){
     dialog.f.fps.checked = SHOW_FPS;
     if(!chat_options_init){
         chat_options_init = true;
+        dialog.f.fullscreen.addEventListener('click', function(){
+            if(!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        });
         dialog.f.system.name = 'darkmode';
         dialog.f.dark.name = 'darkmode';
         dialog.f.light.name = 'darkmode';
