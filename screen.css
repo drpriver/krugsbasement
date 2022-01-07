@@ -459,7 +459,7 @@ html, body {
 #chat-history {
   overflow-y: scroll;
   /*height: 800px;*/
-  /*width: 17em;*/
+  width: 17em;
 }
 #chat-history div {
   border: 1px dotted gray;
