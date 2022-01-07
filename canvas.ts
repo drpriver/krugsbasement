@@ -5575,15 +5575,15 @@ function hide_palette(){
     palette.style.display = 'none';
 }
 function make_terrain_palette(){
-    const palette = by_id('palette');
-    (palette as any).replaceChildren();
+    const icons = by_id('palette-icons');
+    (icons as any).replaceChildren();
     function make_cb(id:number){
         function cb(){
             current_terrain_id = id;
         }
         return cb;
     }
-    palette.style.display = 'grid';
+    by_id('palette').style.display = 'block';
     for(const [id, ti] of TERRAIN_INFOS.entries()){
         const inp = document.createElement('input');
         inp.type = 'radio';
@@ -5594,25 +5594,26 @@ function make_terrain_palette(){
         label.style.backgroundColor = ti.color;
         if(ti.img)
             label.appendChild(ti.img);
-        palette.appendChild(inp);
-        palette.appendChild(label);
+        icons.appendChild(inp);
+        icons.appendChild(label);
         label.addEventListener('pointerdown', make_cb(id));
         if(id == current_terrain_id){
             label.click();
             label.scrollIntoView();
         }
     }
+    palette_top();
 }
 function make_terrain_icon_palette(){
-    const palette = by_id('palette');
-    (palette as any).replaceChildren();
+    const icons = by_id('palette-icons');
+    (icons as any).replaceChildren();
     function make_cb(id:number){
         function cb(){
             current_terrain_icon_id = id;
         }
         return cb;
     }
-    palette.style.display = 'grid';
+    by_id('palette').style.display = 'block';
     for(const [id, img] of TERRAIN_ICONS.entries()){
         const inp = document.createElement('input');
         inp.type = 'radio';
@@ -5622,15 +5623,24 @@ function make_terrain_icon_palette(){
         label.htmlFor = inp.id;
         label.style.backgroundColor = '#e7f79c';
         label.appendChild(img);
-        palette.appendChild(inp);
-        palette.appendChild(label);
+        icons.appendChild(inp);
+        icons.appendChild(label);
         label.addEventListener('pointerdown', make_cb(id));
         if(id == current_terrain_icon_id){
             label.click();
             label.scrollIntoView();
         }
     }
+    palette_top();
 }
+let palette_top = function(){};
+document.addEventListener('DOMContentLoaded', function(){
+    const palette = by_id('palette');
+    const handle = by_id('palette-window-handle');
+    setup_movable_window(palette, handle, WINDOWFLAGS.REMEMBER_POSITION);
+    palette_top = setup_zsorted_window(palette);
+    ensure_window_is_completely_on_screen(palette);
+});
 let tools: Array<HTMLElement> = [];
 function change_tool(tool:TOOLTYPE):void{
     store_global(StorageCategory.CANVAS, 'current_tool', TOOL_TO_TOOL_ID[tool]);

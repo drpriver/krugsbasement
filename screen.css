@@ -286,18 +286,24 @@ button {
   position: fixed;
   top: 5px;
   left: 5px;
-  min-height: 200px;
-  min-width: 200px;
-  overflow-y: auto;
+  height: 240px;
+  width: 272px;
   border: 2px solid black;
   padding: 4px;
   background-color: #fff;
   -webkit-user-select: none;
   user-select: none;
+  display: none;
+}
+#palette-icons {
   display: grid;
-  grid-template-columns: repeat(6, auto);
-  grid-column-gap: 4px;
-  grid-row-gap: 4px;
+  grid-template-columns: repeat(auto-fill, 40px);
+  overflow-y: auto;
+  height: calc(100% - 32px);
+  justify-content: center;
+  align-items: center;
+  align-content: start;
+  gap: 4px;
 }
 #palette img {
   width: 25px;

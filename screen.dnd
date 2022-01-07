@@ -543,7 +543,13 @@ David20::title #hide
         <input type="radio" id="grid-snap-free" name="snap-to-grid" value="FREE">
         <label for="grid-snap-free">Free</label>
 
-::div #id(palette)
+::raw
+  <div id="palette" class="window">
+    <div id="palette-window-handle" class="window-handle">
+    </div>
+    <div id="palette-icons">
+    </div>
+  </div>
 ::div.chat #id(chat)
   ::div #id(tree)
     ::div
