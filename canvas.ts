@@ -1075,6 +1075,19 @@ document.addEventListener('DOMContentLoaded', function(){
     do_it('grid-snap-free',    SNAPMODE.FREE);
 });
 
+document.addEventListener('DOMContentLoaded', function(){
+    const zoom_in_b = by_id('zoom-in');
+    const zoom_out_b = by_id('zoom-out');
+    zoom_in_b.addEventListener('click', function(){
+        const view = get_active_view();
+        zoom_in(view);
+    });
+    zoom_out_b.addEventListener('click', function(){
+        const view = get_active_view();
+        zoom_out(view);
+    });
+});
+
 const MAPS:Map<number,DungeonMap> = new Map();
 const MapOptionElements: Map<number, HTMLOptionElement> = new Map();
 

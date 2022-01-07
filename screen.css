@@ -177,7 +177,6 @@ span.color-picker-dropdown {
   width: 2em;
   text-align: center;
 }
-/*endcss*/
 :root {
   color-scheme: light dark; /* both supported */
 }
@@ -344,7 +343,7 @@ button {
   font-size: 10px;
   pointer-events: none;
 }
-#colors {
+#colors, #zoomers {
   display: flex;
   gap: 5px;
   align-content:center;
@@ -368,7 +367,7 @@ button {
   bottom: 2px;
   left: 5px;
 }
-#tool-container label {
+#tool-container label, #tool-container button {
   pointer-events:auto;
 }
 div.tool-menu{
@@ -739,7 +738,7 @@ div.rolltable table{
   body.dark-mode #palette {
     background-color: #333;
   }
-  body.dark-mode #colors {
+  body.dark-mode #colors, body.dark-mode #zoomers {
     background-color: #333;
   }
   body.dark-mode .window {
@@ -814,4 +813,17 @@ div.rolltable table{
 #tool-container, #palette{
   touch-action: none;
 }
-/*endcss*/
+
+#zoomers {
+  display: none;
+}
+/*@media screen and (max-width: 767px) {*/
+body.mobile textarea,
+body.mobile input[type="text"],
+body.mobile input[type="number"],
+body.mobile input[type="email"],
+body.mobile input[type="tel"],
+body.mobile input[type="password"] {
+    font-size: 16px;
+  }
+/*}*/

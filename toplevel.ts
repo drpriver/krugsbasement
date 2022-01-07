@@ -63,6 +63,18 @@ function change_dark_mode(mode:DarkMode){
         mode = 0;
     change_dark_mode(mode);
 }());
+// idk where to put this
+let SHOW_ZOOMERS = false;
+function set_zoomers(show:boolean){
+    by_id('zoomers').style.display = show?'block':'none';
+    store_global(StorageCategory.SETTINGS, 'showzoomers', show);
+    SHOW_ZOOMERS = show;
+}
+document.addEventListener('DOMContentLoaded', function(){
+    // want boolean, not undefined or null
+    let show = !!get_global(StorageCategory.SETTINGS, 'showzoomers');
+    set_zoomers(show);
+});
 
 let SOCKET = io({transports:["websocket"]});
 SOCKET.on(ToClient.CONNECT, () => {
@@ -157,3 +169,8 @@ function upload():void{
     inp.addEventListener("change", handlefiles, false);
     inp.click();
 }
+
+document.addEventListener('DOMContentLoaded', function(){
+    if(navigator.userAgent.includes('Mobile'))
+        document.body.classList.add('mobile');
+});

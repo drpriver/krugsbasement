@@ -16,7 +16,7 @@ David20::title #hide
       <div id="${prefix}-window" style="display:none" class="window">
       <div id="${prefix}-window-handle" class="window-handle">
         <span class="window-title">${title}</span>
-        <span id="${prefix}-close" class="window-closer">X</span>
+        <span id="${prefix}-close" class="window-closer">×</span>
       </div>
       ${content}
       </div>
@@ -380,6 +380,9 @@ David20::title #hide
       ${label('hidepan', 'Hide Pan Tool')}
       ${checkbox('hidepan')}
       <br>
+      ${label('showzoom', 'Show Zoom Buttons')}
+      ${checkbox('showzoom')}
+      <br>
         <span style="font-weight:bold">Dark Mode:</span>
         ${radio('system')}
         ${label('system', 'System')}
@@ -391,6 +394,7 @@ David20::title #hide
         <span>(might need reload)</span>
         <br>
         ${button('fullscreen', 'Toggle Full Screen')}
+        <br>
         ${button('export', 'Export')}
         ${button('import', 'Import')}
     </div>
@@ -513,6 +517,10 @@ David20::title #hide
         <span id="color-picker-dropdown" class="color-picker-dropwdown">▼</span>
         <input type="color" id="color-picker2" value="#ffffff">
         <span id="color-picker2-dropdown" class="color-picker-dropdown">▼</span>
+    ::div #id(zoomers)
+      ::raw
+        <button id="zoom-out">Zoom -</button>
+        <button id="zoom-in">Zoom +</button>
     ::div.scale
       ::raw
         <div>Scale:</div>

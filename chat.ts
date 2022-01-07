@@ -194,11 +194,22 @@ function chat_options_dialog(){
     if(!chat_options_init){
         chat_options_init = true;
         dialog.f.fullscreen.addEventListener('click', function(){
-            if(!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
+            // @ts-ignore
+            if(!document.fullscreenElement && ! document.webkitFullscreenElement) {
+                if(document.documentElement.requestFullscreen)
+                    document.documentElement.requestFullscreen();
+                // @ts-ignore
+                else if(document.documentElement.webkitRequestFullscreen)
+                    // @ts-ignore
+                    document.documentElement.webkitRequestFullscreen();
             } else {
                 if (document.exitFullscreen) {
                     document.exitFullscreen();
+                }
+                // @ts-ignore
+                else if(document.webkitExitFullscreen){
+                    // @ts-ignore
+                    document.webkitExitFullscreen();
                 }
             }
         });
@@ -211,6 +222,10 @@ function chat_options_dialog(){
         dialog.f.hidepan.checked = pan_tool.style.display == 'none';
         dialog.f.hidepan.addEventListener('change', function(){
             change_pan_visibility(!dialog.f.hidepan.checked);
+        });
+        dialog.f.showzoom.checked = SHOW_ZOOMERS;
+        dialog.f.showzoom.addEventListener('change', function(){
+            set_zoomers(dialog.f.showzoom.checked);
         });
         switch(current_dark_mode){
             case DarkMode.SYSTEM: dialog.f.system.checked = true; break;
