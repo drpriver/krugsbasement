@@ -1,4 +1,6 @@
 David20::title #hide
+::meta
+  name="apple-mobile-web-app-capable" content="yes"
 ::raw
   <div id="disconnect" style="display:none;">
   You are currently not connected. Inputs will be buffered and sent upon
