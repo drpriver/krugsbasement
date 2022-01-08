@@ -345,13 +345,33 @@ function evaluate(text:string, flags:EvaluateFlags):Array<Command>{
             if(!more) continue;
             for(let k of more.keys()){
                 if(vars.has(k)){
-                    const errmess: ChatErrorMsg = [
-                        Msg.ERROR,
-                        '',
-                        `Duplicate variable: '${k}'. This error was detected for group '${g}'. Uncheck one of your groups to resolve this error`,
+                    const conflictingroups = [];
+                    for(let g2 of Array.from(USED_VARIABLE_GROUPS).sort()){
+                        let more2 = ns.get(g2.toLowerCase());
+                        if(!more2) continue;
+                        if(more2.has(k))
+                            conflictingroups.push(g2);
+                    }
+                    const gs = conflictingroups.join("', '");
+                    const errmess: Array<ChatErrorMsg> = [
+                        [
+                            Msg.ERROR,
+                            '',
+                            `Duplicate variable: '${k}'.`
+                        ],
+                        [
+                            Msg.ERROR,
+                            '',
+                            `This error was detected for groups: '${gs}'.`
+                        ],
+                        [
+                            Msg.ERROR,
+                            '',
+                            'Uncheck one of these groups to resolve this error.',
+                        ]
                     ];
                     const log = by_id('chat-history');
-                    add_chat_msgs(log, [errmess]);
+                    add_chat_msgs(log, errmess);
                     log.scrollTo({behavior:'smooth', top:log.scrollHeight});
                     return [];
                 }

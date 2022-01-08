@@ -1,0 +1,8 @@
+resolved: 2022-01-08T00:32:01.738132
+bugmagic^^^^
+Summary::md.summary
+  The error reporting just says one group that had a duplicate variable. It
+  should say all of the groups that had that duplicate variable.
+
+Resolved Jan 08, 2022, 12:32AM::md.update
+  It now says which groups are the problem groups instead of just the first one.
