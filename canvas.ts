@@ -893,7 +893,13 @@ const TERRAINS = [
         id: 60,
         path: "swamp.png",
         bg_color: "#addea5ff"
-    }
+    },
+    {
+        name:"Broken",
+	    id: 61,
+	    path: "brokenlands.png",
+	    bg_color: "#c59d34ff",
+    },
 ]
 const TERRAIN_INFOS: Map<number, TerrainInfo> = (function(){
     const m: Map<number, TerrainInfo> = new Map();
@@ -933,6 +939,7 @@ const TERRAIN_ICONS_ = [
     {id: 20, path:"church.png"},
     {id: 21, path:"crossbones.png"},
     {id: 22, path:"dungeon.png"},
+    {id: 23, path:"windmill.png"},
 ];
 const TERRAIN_ICONS: Map<number, HTMLImageElement> = (function(){
     const m = new Map();

@@ -21,5 +21,6 @@
     {"id": 19, "path":"camp.png"},
     {"id": 20, "path":"church.png"},
     {"id": 21, "path":"crossbones.png"},
-    {"id": 22, "path":"dungeon.png"}
+    {"id": 22, "path":"dungeon.png"},
+    {"id": 23, "path":"windmill.png"}
 ]

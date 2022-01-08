@@ -100,6 +100,12 @@
         "bg_color": "#879233ff"
     },
     {
+        "name": "Cultivated Farmland",
+        "id": 17,
+        "bg_color": "#a0d867",
+        "path": "cultivatedfarmland.png"
+    },
+    {
         "name": "Forest Wetlands",
         "id": 18,
         "path": "forestwetlands.png",
@@ -332,5 +338,11 @@
         "id": 60,
         "path": "swamp.png",
         "bg_color": "#addea5ff"
+    },
+    {
+        "name":"Broken",
+	"id": 61,
+	"path": "brokenlands.png",
+	"bg_color": "#c59d34ff"
     }
 ]
