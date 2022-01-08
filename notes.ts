@@ -187,7 +187,10 @@ document.addEventListener('DOMContentLoaded', function(){
         }
         current_note_id = id;
         let note = NOTES.get(id);
-        if(!note) return;
+        if(!note) {
+            update_iframe();
+            return;
+        }
         if(note.need_receive){
             SOCKET.emit(FromClient.GET_NOTE, id, onget);
         }
@@ -198,10 +201,35 @@ document.addEventListener('DOMContentLoaded', function(){
         }
 
     }
+    if(DARKMODE){
+        // Chromium-based browsers won't inherit
+        // the colorScheme for empty iframes,
+        // so set them here.
+        // Firefox and Safari don't need this hack, but
+        // it doesn't hurt.
+        //
+        // Do it before activation to avoid flicker.
+        //
+        // Will look weird if the user changes
+        // colorscheme, but if they change colorscheme,
+        // they will understand why something flickers.
+        iframe.srcdoc = `<scr` + `ipt>
+            document.documentElement.style.colorScheme = 'dark';
+            </sc` + `ript>`;
+    }
     function update_iframe(){
         let note = NOTES.get(current_note_id);
         if(!note){
-            iframe.srcdoc = '';
+            if(DARKMODE){
+                // Chromium-based browsers won't inherit
+                // the colorScheme for empty iframes,
+                // so set them here.
+                iframe.srcdoc = `<scr` + `ipt>
+                    document.documentElement.style.colorScheme = 'dark';
+                    </sc` + `ript>`;
+            }
+            else
+                iframe.srcdoc = '';
             return;
         }
         let title = notes_title_area.value;

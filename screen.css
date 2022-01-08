@@ -26,7 +26,14 @@
   height: 32px;
   min-width: 32px;
   background: linear-gradient(#fff, 30%, #ddd);
+  -webkit-user-select: none;
+  user-select: none;
 }
+#options, #tree{
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 #tool-container-handle {
   cursor: grab;
   background-color: rgb(221,221,221);
