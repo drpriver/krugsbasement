@@ -682,7 +682,11 @@ struct GatherMessage: dict
     y = int
     map_id = int
 
-struct PingMessage: dict
+struct PingData: dict
     cx = float
     cy = float
     color = str
+
+struct PingMessage: dict
+    ping = PingData
+    map_id = int

@@ -133,10 +133,10 @@ def canvas_create_map(data:int) -> None:
     emit(ToClient.CANVAS_CREATE_MAP, data, broadcast=True, include_self=False, to=room)
 
 @socketio.on(FromClient.CANVAS_PING)
-def canvas_ping(data:PingMessage) -> None:
+def canvas_ping(data:dict) -> None:
     data = validate('PingMessage', data)
     room = get_room(request)
-    emit(ToClient.CANVAS_PING, data, broadcast=True, include_self=False, to=room) # type: ignore
+    emit(ToClient.CANVAS_PING, data, broadcast=True, include_self=True, to=room) # type: ignore
 
 @socketio.on(FromClient.CANVAS_NAME_MAP)
 def canvas_name_map(data:NameMapMessage) -> None:

@@ -1117,12 +1117,15 @@ type Ping = {
     color: string;
 };
 function ping_at(map:DungeonMap, x:number, y:number){
-    const ping: PingMessage = {cx:x, cy:y, color:'#ff3300'};
-    map.pings.push(ping);
-    SOCKET.emit(FromClient.CANVAS_PING, {ping:ping, map_id:map.map_id});
+    const ping: PingMessage = {
+        ping: {cx:x, cy:y, color:'#ff3300'},
+        map_id:map.map_id,
+    };;
+    // map.pings.push(ping);
+    SOCKET.emit(FromClient.CANVAS_PING, ping);
     request_render();
 }
-SOCKET.on(ToClient.CANVAS_PING, function(data:{ping:PingMessage, map_id:number}){
+SOCKET.on(ToClient.CANVAS_PING, function(data:PingMessage){
     const map = get_map(data.map_id);
     map.pings.push(data.ping);
     request_render();
