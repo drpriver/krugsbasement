@@ -573,6 +573,7 @@ David20::title #hide
   ::div #id(macros)
     ::div #id(macro-tabs)
     ::div #id(macro-buttons)
+  ::div.log #id(dice-history)
   ::raw
     <textarea spellcheck="false" id="chatinput" rows="4"></textarea>
 

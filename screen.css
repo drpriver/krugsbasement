@@ -460,11 +460,13 @@ html, body {
   right: 0;
   top: 0;
   height: 100vh;
-  display: flex;
+  display: grid;
   flex-direction: column;
   border-left: 1px solid black;
   overflow-wrap: break-word;
   z-index: 1;
+  grid-template-rows: max-content auto-fit max-content max-content max-content;
+  grid-template-columns: 17em;
   /* This thing is the bane of my existence on windows*/
   /* Just overflow: hidden it */
   /*overflow: hidden;*/
@@ -474,11 +476,18 @@ html, body {
   /*height: 800px;*/
   width: 17em;
 }
-#chat-history div {
+#chat-history div, #dice-history div {
   border: 1px dotted gray;
   margin:-1px 0 0 -1px;
   padding: 2px 12px;
   font-family: "Helvetica Neue", "Segoe UI", sans-serif;
+}
+#dice-history {
+  overflow-y: scroll;
+  border-top: 1px solid black;
+  width: 17em;
+  line-height: 2.5ex;
+  height: 12.5ex;
 }
 #macros{
   margin-top: auto;
@@ -514,7 +523,7 @@ html, body {
 #macro-buttons {
   border-top: 1px solid black;
   border-bottom: 1px solid black;
-  height: 4em;
+  height: 10ex;
   overflow-y: auto;
 }
 .macro-group {
@@ -539,7 +548,7 @@ html, body {
   width: 100%;
 }
 .chat > textarea {
-  min-height: 4em;
+  height: 10ex;
   resize: none;
 }
 canvas {

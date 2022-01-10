@@ -97,15 +97,87 @@ function resize_chat(){
     hist.scrollTo({top:hist.scrollHeight});
 }
 
+const enum RECENT_DIEROLLS {
+    MAX = 4,
+}
+
+const DIEROLL_HISTORY:Array<string> = [];
+document.addEventListener('DOMContentLoaded', function(){
+    let pastrolls = get_local(StorageCategory.MACROS, 'dieroll-history');
+    if(!pastrolls) pastrolls = [];
+    else pastrolls = JSON.parse(pastrolls);
+    const log = by_id('dice-history');
+    for(let dieroll of pastrolls){
+        add_dice_history_command(log, dieroll);
+    }
+});
+
+
+function add_dice_history_command(log:HTMLDivElement, text:string):number {
+    for(let prev of DIEROLL_HISTORY){
+        if(prev == text) return 0;
+    }
+    DIEROLL_HISTORY.push(text);
+    const entry = elem_with_parent(log, 'div');
+    entry.style.width = '100%';
+    entry.style.display = 'flex';
+    const span = elem_with_text('span', text);
+    span.style.cursor = 'pointer';
+    entry.appendChild(span);
+    span.addEventListener('click', function(e){
+        e.stopPropagation();
+        e.preventDefault();
+        preprocess_and_send_chat(text);
+    });
+    span.addEventListener('contextmenu', function(e){
+        e.stopPropagation();
+        e.preventDefault();
+        by_id('chatinput').value = text;
+    });
+    const button = elem_with_parent(entry, 'button');
+    button.textContent = 'X';
+    button.style.marginLeft = 'auto';
+    button.addEventListener('click', function(){
+        entry.remove();
+        const index = DIEROLL_HISTORY.indexOf(text);
+        if(index !== -1){
+            DIEROLL_HISTORY.splice(index, 1)
+            store_local(StorageCategory.MACROS, 'dieroll-history', JSON.stringify(DIEROLL_HISTORY));
+        }
+    });
+    while(log.children.length > RECENT_DIEROLLS.MAX){
+        log.children[0].remove()
+        DIEROLL_HISTORY.shift();
+    }
+    return 1;
+}
+
+function add_dice_history_commands(commands: Array<Command>){
+    const log = by_id('dice-history');
+    let added = 0;
+    for(let command of commands){
+        if(command[0] != ChatCommand.ROLL)
+            continue;
+        let original = command[1].replaceAll(' ', '');
+        added += add_dice_history_command(log, original);
+    }
+    if(added){
+        log.scrollTo({top:log.scrollHeight});
+        store_local(StorageCategory.MACROS, 'dieroll-history', JSON.stringify(DIEROLL_HISTORY));
+    }
+}
+
 function preprocess_and_send_chat(text:string){
     let commands = preprocess_command(text, EvaluateFlags.NONE);
     let to_send: ChatCommandMessage = {chatname:CHATNAME, commands:commands};
+    add_dice_history_commands(commands);
     SOCKET.emit(FromClient.CHAT_STRUCTURED_INPUT, to_send);
 }
 
 function preprocess_and_send_chat_with_usings(text:string){
     let commands = preprocess_command(text, EvaluateFlags.USE_USINGS);
     let to_send: ChatCommandMessage = {chatname:CHATNAME, commands:commands};
+    add_dice_history_commands(commands);
     SOCKET.emit(FromClient.CHAT_STRUCTURED_INPUT, to_send);
 }
 
