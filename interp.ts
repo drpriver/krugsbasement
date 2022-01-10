@@ -354,7 +354,7 @@ const evaluate_script = (function(){
             let c;
             if(c = match([TokenKind.PLUS, TokenKind.BANG, TokenKind.MINUS])){
                 skip_spaces();
-                let expr = parse_comparison();
+                let expr = parse_unary();
                 if(!expr) return null;
                 return {
                     type: EXPR.UNARY,
