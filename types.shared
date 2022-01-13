@@ -1,73 +1,73 @@
 # Defines messages sent from the client to the server
-enum FromClient: str
+enum FromClient: int
     # builtin
-    CONNECT = connect
+    # CONNECT = connect
     # Core messages
-    JOIN = j
-    POST_JOIN = pj
+    JOIN = 1
+    POST_JOIN = 2
     # Chat messages
-    CHAT_STRUCTURED_INPUT = csi
-    CHAT_TEST_STRUCTURED_INPUT = ctsi
+    CHAT_STRUCTURED_INPUT = 3
+    CHAT_TEST_STRUCTURED_INPUT = 4
     # Roll Tables
-    RETRIEVE_ROLL_TABLES = rrt
-    UPDATE_ROLL_TABLES = urt
-    UPLOAD_ROLL_TABLE = uprt
+    RETRIEVE_ROLL_TABLES = 5
+    UPDATE_ROLL_TABLES = 6
+    UPLOAD_ROLL_TABLE = 7
     # Canvas Messages
-    CANVAS_CREATE_OBJECTS = cco
-    CANVAS_DELETE = cd
-    CANVAS_UPDATE = cu
-    CANVAS_GATHER = cg
-    CANVAS_CREATE_MAP = ccm
-    CANVAS_PING = cp
-    CANVAS_NAME_MAP = cnm
-    CANVAS_NEW_MAP_REQUEST = nnmr
-    CANVAS_GRID_TYPE = cgt
-    CANVAS_GRID_NUMBERED = cgn
-    CANVAS_DELETE_MAP_REQUEST = cdmr
-    CANVAS_BATTLE = cb
-    CANVAS_DUNGEON_MODE = cdmo
+    CANVAS_CREATE_OBJECTS = 8
+    CANVAS_DELETE = 9
+    CANVAS_UPDATE = 10
+    CANVAS_GATHER = 11
+    CANVAS_CREATE_MAP = 12
+    CANVAS_PING = 13
+    CANVAS_NAME_MAP = 14
+    CANVAS_NEW_MAP_REQUEST = 15
+    CANVAS_GRID_TYPE = 16
+    CANVAS_GRID_NUMBERED = 17
+    CANVAS_DELETE_MAP_REQUEST = 18
+    CANVAS_BATTLE = 19
+    CANVAS_DUNGEON_MODE = 20
     # Note messages
-    GET_NOTE = gn
-    NEW_NOTE_REQUEST = nnr
-    NOTE_UPDATE_TITLE = nut
-    NOTE_UPDATE_BODY = nub
-    DELETE_NOTE_REQUEST = dnr
+    GET_NOTE = 21
+    NEW_NOTE_REQUEST = 22
+    NOTE_UPDATE_TITLE = 23
+    NOTE_UPDATE_BODY = 24
+    DELETE_NOTE_REQUEST = 25
     # debugging
-    DEBUG = d
+    DEBUG = 26
 # Defines messages sent from the server to the client
-enum ToClient: str
+enum ToClient: int
     # builtin
-    CONNECT = connect
-    DISCONNECT = disconnect
+    # CONNECT = connect
+    # DISCONNECT = disconnect
     # Core messages
-    SESSION_ID = si
-    TOKEN_PATHS = tp
+    SESSION_ID = 1
+    TOKEN_PATHS = 2
     # Chat messages
-    CHAT_CLEAR = ccl
-    CHAT_CREATE = ccr
-    CHAT_STRUCTURED_MSG = csm
+    CHAT_CLEAR = 3
+    CHAT_CREATE = 4
+    CHAT_STRUCTURED_MSG = 5
     # Roll messages
-    NEW_ROLL_TABLE = nrt
+    NEW_ROLL_TABLE = 6
     # Canvas
-    CANVAS_INITIALIZE_MAPS = cim
-    CANVAS_CREATE_OBJECTS = cco
-    CANVAS_DELETE = cd
-    CANVAS_UPDATE = cu
-    CANVAS_GATHER = cg
-    CANVAS_CREATE_MAP = ccm
-    CANVAS_PING = cp
-    CANVAS_NAME_MAP = cnm
-    CANVAS_GRID_TYPE = cgt
-    CANVAS_GRID_NUMBERED = cgn
-    CANVAS_DELETE_MAP = cdm
-    CANVAS_BATTLE = cb
-    CANVAS_DUNGEON_MODE = cdmo
+    CANVAS_INITIALIZE_MAPS = 7
+    CANVAS_CREATE_OBJECTS = 8
+    CANVAS_DELETE = 9
+    CANVAS_UPDATE = 10
+    CANVAS_GATHER = 11
+    CANVAS_CREATE_MAP = 12
+    CANVAS_PING = 13
+    CANVAS_NAME_MAP = 14
+    CANVAS_GRID_TYPE = 15
+    CANVAS_GRID_NUMBERED = 16
+    CANVAS_DELETE_MAP = 17
+    CANVAS_BATTLE = 18
+    CANVAS_DUNGEON_MODE = 19
     # Notes
-    NOTES_INITIALIZE = ni
-    NEW_NOTE = nn
-    NOTE_UPDATE_TITLE = nut
-    NOTE_DIRTY = nd
-    NOTE_DELETE = ndel
+    NOTES_INITIALIZE = 20
+    NEW_NOTE = 21
+    NOTE_UPDATE_TITLE = 22
+    NOTE_DIRTY = 23
+    NOTE_DELETE = 24
 
 
 # Commands. These are sent from the client to the server
@@ -607,8 +607,8 @@ union StrippedObj: array
     StrippedFreehandLine
     StrippedGridLine
     StrippedRectangle
-    StrippedFilledRectangle
     StrippedGridRectangle
+    StrippedFilledRectangle
     StrippedEllipse
     StrippedImageObj
     StrippedTextObj
@@ -690,3 +690,75 @@ struct PingData: dict
 struct PingMessage: dict
     ping = PingData
     map_id = int
+
+struct InitializeMap: dict
+    map_id = number
+    map_name = str
+    objects = [StrippedObj]
+    flags = MapFlags
+    grid_type = GRIDTYPE
+
+enum NOTEFLAGS: int flag
+    NONE = 0
+    DELETED = 1
+
+struct Note: dict
+    title = str
+    body = str
+    flags = NOTEFLAGS
+    id = int
+
+
+message ToClientMsg: ToClient
+    CANVAS_CREATE_OBJECTS = [CreateObjectsMessage]
+    CANVAS_PING = PingMessage
+    CANVAS_CREATE_MAP = int
+    CANVAS_NAME_MAP = NameMapMessage
+    CANVAS_GRID_TYPE = CanvasGridTypeMsg
+    CANVAS_GRID_NUMBERED = CanvasGridNumberedMsg
+    CANVAS_GATHER = GatherMessage
+    CANVAS_BATTLE = GatherMessage
+    CANVAS_DUNGEON_MODE = void
+    CANVAS_DELETE_MAP = int
+    CANVAS_INITIALIZE_MAPS = [InitializeMap]
+    CANVAS_CREATE_OBJECTS = [CreateObjectsMessage]
+    CANVAS_DELETE = CanvasDeleteMessage
+    CANVAS_UPDATE = CanvasUpdateMessage
+    TOKEN_PATHS = [str]
+    CHAT_STRUCTURED_MSG = [ChatMsg]
+    CHAT_CREATE = [ChatMsg]
+    CHAT_CLEAR = void
+    NEW_ROLL_TABLE = RollTable
+    NOTE_DIRTY = int
+    NOTE_DELETE = int
+    NOTES_INITIALIZE = [Note]
+    NEW_NOTE = int
+    NOTE_UPDATE_TITLE = NoteUpdateTitle
+    SESSION_ID = int
+
+message FromClientMsg: FromClient
+    CANVAS_PING = PingMessage
+    CANVAS_CREATE_MAP = int
+    CANVAS_DELETE = CanvasDeleteMessage
+    CANVAS_CREATE_OBJECTS = CreateObjectMessage
+    CANVAS_UPDATE = CanvasUpdateMessage
+    CANVAS_GATHER = GatherMessage
+    CANVAS_BATTLE = GatherMessage
+    CANVAS_DUNGEON_MODE = void
+    CANVAS_NAME_MAP = NameMapMessage
+    CANVAS_GRID_TYPE = CanvasGridTypeMsg
+    CANVAS_GRID_NUMBERED = CanvasGridNumberedMsg
+    CANVAS_DELETE_MAP_REQUEST = int
+    CANVAS_NEW_MAP_REQUEST = NewMapRequest
+    CHAT_STRUCTURED_INPUT = ChatCommandMessage
+    RETRIEVE_ROLL_TABLES = void, cb([RollTable])
+    UPDATE_ROLL_TABLES = [RollTable]
+    UPLOAD_ROLL_TABLE = RollTable
+    CHAT_TEST_STRUCTURED_INPUT = ChatCommandMessage, cb([ChatMsg])
+    DELETE_NOTE_REQUEST = int
+    GET_NOTE = int, cb(Note)
+    NOTE_UPDATE_BODY = NoteUpdateBody
+    NEW_NOTE_REQUEST = void, cb(int)
+    JOIN = str
+    POST_JOIN = void
+    NOTE_UPDATE_TITLE = NoteUpdateTitle

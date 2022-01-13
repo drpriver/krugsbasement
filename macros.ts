@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function(){
         (log as any).replaceChildren();
         if(commands.length){
             let to_send: ChatCommandMessage = {chatname:CHATNAME, commands:commands};
-            SOCKET.emit(FromClient.CHAT_TEST_STRUCTURED_INPUT, to_send, function(response:Array<ChatMsg>){
+            EMIT(FromClient.CHAT_TEST_STRUCTURED_INPUT, to_send, function(response:Array<ChatMsg>){
                 add_chat_msgs(log, response);
             });
         }

@@ -57,7 +57,7 @@ def get_token_paths():
 
 TOKEN_PATH_LIST = get_token_paths()
 
-@socketio.on(FromClient.CONNECT)
+@socketio.on('connect')
 def handle_connection() -> None:
     global session_id
     session_id += 1

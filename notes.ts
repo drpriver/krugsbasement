@@ -1,8 +1,4 @@
-const enum NOTEFLAGS {
-    NONE = 0,
-    DELETED = 1 << 0,
-}
-type Note = {
+type Note_ = {
     title: string;
     body: string;
     flags: NOTEFLAGS;
@@ -10,7 +6,7 @@ type Note = {
     need_send: boolean;
     need_receive: boolean;
 }
-const NOTES: Map<number, Note> = new Map();
+const NOTES: Map<number, Note_> = new Map();
 // We need this so we can update the option's text when the note's title changes.
 
 const make_dnd_html = (function(){
@@ -109,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function(){
         dialog.ok_handler = function(){
             if(!dialog.f.checkbox.checked)
                 return;
-            SOCKET.emit(FromClient.DELETE_NOTE_REQUEST, current_note_id);
+            EMIT(FromClient.DELETE_NOTE_REQUEST, current_note_id);
         };
         dialog.show();
     });
@@ -126,7 +122,7 @@ document.addEventListener('DOMContentLoaded', function(){
         is_editing = true;
         if(current_note_id == -1){
             // this was copy-pasted from the new note button.
-            SOCKET.emit(FromClient.NEW_NOTE_REQUEST, function(new_id:number){
+            EMIT(FromClient.NEW_NOTE_REQUEST, function(new_id:number){
                 let id = new_id;
                 add_note(id, {id:id, title:'Untitled', body:'', flags:0, need_send:false,  need_receive:false});
                 listview.make_active(id);
@@ -165,7 +161,8 @@ document.addEventListener('DOMContentLoaded', function(){
         +'    max-width: 40em;\n'
         +'  }\n');
     let current_note_id = -1;
-    function onget(n:Note){
+    function onget(n_:Note){
+	const n: Note_ = n_ as Note_;
         n.need_receive = false;
         n.need_send = false;
         NOTES.set(n.id, n);
@@ -192,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function(){
             return;
         }
         if(note.need_receive){
-            SOCKET.emit(FromClient.GET_NOTE, id, onget);
+            EMIT(FromClient.GET_NOTE, id, onget);
         }
         else {
             notes_area.value = note.body;
@@ -307,7 +304,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if(!note) return;
         note.title = notes_title_area.value;
         let msg:NoteUpdateTitle = {note_id:note.id, title:note.title};
-        SOCKET.emit(FromClient.NOTE_UPDATE_TITLE, msg);
+        EMIT(FromClient.NOTE_UPDATE_TITLE, msg);
         listview.rename(note.title, note.id);
     });
     notes_area.addEventListener('keydown', function(e){
@@ -330,12 +327,12 @@ document.addEventListener('DOMContentLoaded', function(){
     by_id('notes-window-button').addEventListener('click', function(){
         notes_window.show();
     });
-    SOCKET.on(ToClient.NOTE_DIRTY, function(note_id:number){
+    ONRECV(ToClient.NOTE_DIRTY, function(note_id:number){
         let note = NOTES.get(note_id);
         if(!note) return;
         note.need_receive = true;
         if(note_id == current_note_id){
-            SOCKET.emit(FromClient.GET_NOTE, note_id, onget);
+            EMIT(FromClient.GET_NOTE, note_id, onget);
         }
     });
     function sync_note(){
@@ -343,31 +340,31 @@ document.addEventListener('DOMContentLoaded', function(){
         if(!note) return;
         if(note.need_send){
             let msg: NoteUpdateBody = {note_id:note.id, body:note.body};
-            SOCKET.emit(FromClient.NOTE_UPDATE_BODY, msg);
+            EMIT(FromClient.NOTE_UPDATE_BODY, msg);
             note.need_send = false;
         }
     }
-    function add_note(id:number, note:Note){
+    function add_note(id:number, note:Note_){
         listview.add_item(note.title, note.id);
         NOTES.set(id, note);
     }
-    SOCKET.on(ToClient.NOTE_DELETE, function(id:number){
+    ONRECV(ToClient.NOTE_DELETE, function(id:number){
         const note = NOTES.get(id);
         if(!note) return;
         listview.remove(id);
         note.flags |= NOTEFLAGS.DELETED;
     });
-    SOCKET.on(ToClient.NOTES_INITIALIZE, function(notes:Array<Note>){
+    ONRECV(ToClient.NOTES_INITIALIZE, function(notes:Array<Note>){
         listview.clear();
         NOTES.clear();
-        for(let note of notes){
+        for(let note of (notes as Array<Note_>)){
             note.need_receive = false;
             note.need_send = false;
             add_note(note.id, note);
         }
         if(notes.length)listview.make_active(notes[0].id);
     });
-    SOCKET.on(ToClient.NEW_NOTE, function(note_id:number){
+    ONRECV(ToClient.NEW_NOTE, function(note_id:number){
         add_note(note_id, {flags:0, title:'Untitled', body:'', id:note_id, need_send:false, need_receive:false});
     });
     by_id('new-note').addEventListener('click', function(e:MouseEvent){
@@ -375,13 +372,13 @@ document.addEventListener('DOMContentLoaded', function(){
         e.preventDefault();
         let id: number;
         stop_editing();
-        SOCKET.emit(FromClient.NEW_NOTE_REQUEST, function(new_id:number){
+        EMIT(FromClient.NEW_NOTE_REQUEST, function(new_id:number){
             id = new_id;
             add_note(id, {id:id, title:'Untitled', body:'', flags:0, need_send:false,  need_receive:false});
             listview.make_active(id);
         });
     });
-    SOCKET.on(ToClient.NOTE_UPDATE_TITLE, function(data:NoteUpdateTitle){
+    ONRECV(ToClient.NOTE_UPDATE_TITLE, function(data:NoteUpdateTitle){
         let note = NOTES.get(data.note_id);
         if(!note) return;
         note.title = data.title;

@@ -1122,10 +1122,10 @@ function ping_at(map:DungeonMap, x:number, y:number){
         map_id:map.map_id,
     };;
     // map.pings.push(ping);
-    SOCKET.emit(FromClient.CANVAS_PING, ping);
+    EMIT(FromClient.CANVAS_PING, ping);
     request_render();
 }
-SOCKET.on(ToClient.CANVAS_PING, function(data:PingMessage){
+ONRECV(ToClient.CANVAS_PING, function(data:PingMessage){
     const map = get_map(data.map_id);
     map.pings.push(data.ping);
     request_render();
@@ -1242,7 +1242,7 @@ function get_map(map_id:number): DungeonMap {
 
         pings: [],
     };
-    SOCKET.emit(FromClient.CANVAS_CREATE_MAP, map_id);
+    EMIT(FromClient.CANVAS_CREATE_MAP, map_id);
     MAPS.set(map_id, new_map);
     const option = document.createElement('option');
     option.innerText = 'Untitled';
@@ -1270,7 +1270,7 @@ function sort_canv_objs(map:DungeonMap){
     });
     map.is_sorted = true;
 }
-SOCKET.on(ToClient.CANVAS_CREATE_MAP, function(map_id:number){
+ONRECV(ToClient.CANVAS_CREATE_MAP, function(map_id:number){
     if(MAPS.has(map_id))
         return;
     dungeon_map_views.push(new_map_view(map_id));
@@ -1281,16 +1281,16 @@ function rename_map(map:DungeonMap, name:string){
     const opt = MapOptionElements.get(map.map_id)!;
     opt.innerText = name;
 }
-SOCKET.on(ToClient.CANVAS_NAME_MAP, function(data:NameMapMessage){
+ONRECV(ToClient.CANVAS_NAME_MAP, function(data:NameMapMessage){
     const map = get_map(data.map_id);
     rename_map(map, data.map_name);
 });
-SOCKET.on(ToClient.CANVAS_GRID_TYPE, function(data:CanvasGridTypeMsg){
+ONRECV(ToClient.CANVAS_GRID_TYPE, function(data:CanvasGridTypeMsg){
     const map = get_map(data.map_id);
     map.grid_type = data.grid_type;
     request_render();
 });
-SOCKET.on(ToClient.CANVAS_GRID_NUMBERED, function(data:CanvasGridNumberedMsg){
+ONRECV(ToClient.CANVAS_GRID_NUMBERED, function(data:CanvasGridNumberedMsg){
     const map = get_map(data.map_id);
     if(data.numbered)
         map.flags |= MapFlags.NUMBERED
@@ -1306,14 +1306,14 @@ const REFERENCE_WIDTH = 64; // the size of a square at scale = 1.
 // The main canvas and its context. These are set once the content loads.
 let canvas:HTMLCanvasElement;
 let ctx:CanvasRenderingContext2D;
-SOCKET.on(ToClient.CANVAS_GATHER, function(where:GatherMessage): void{
+ONRECV(ToClient.CANVAS_GATHER, function(where:GatherMessage): void{
     change_map(where.map_id, false);
     const view = get_active_view();
     view.camera_x = where.x;
     view.camera_y = where.y;
     request_render();
 });
-SOCKET.on(ToClient.CANVAS_BATTLE, function(where:GatherMessage): void{
+ONRECV(ToClient.CANVAS_BATTLE, function(where:GatherMessage): void{
     change_map(where.map_id, false);
     const view = get_active_view();
     view.camera_x = where.x;
@@ -1321,7 +1321,7 @@ SOCKET.on(ToClient.CANVAS_BATTLE, function(where:GatherMessage): void{
     visually_set_gridscale(GRIDSCALE.FIVE);
     request_render();
 });
-SOCKET.on(ToClient.CANVAS_DUNGEON_MODE, function():void{
+ONRECV(ToClient.CANVAS_DUNGEON_MODE, function():void{
     visually_set_gridscale(GRIDSCALE.TEN);
     request_render();
 });
@@ -2623,7 +2623,7 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
     request_render();
 }
 
-SOCKET.on(ToClient.CANVAS_DELETE_MAP, function(map_id:number){
+ONRECV(ToClient.CANVAS_DELETE_MAP, function(map_id:number){
     delete_map(map_id);
 });
 
@@ -2658,7 +2658,7 @@ function delete_map(map_id:number){
 
 // cutnpaste from below. TODO: factor these.
 
-SOCKET.on(ToClient.CANVAS_INITIALIZE_MAPS, function(msgs:Array<{map_id:number; map_name:string; objects:Array<StrippedObj>; flags:MapFlags; grid_type:GRIDTYPE}>){
+ONRECV(ToClient.CANVAS_INITIALIZE_MAPS, function(msgs:Array<{map_id:number; map_name:string; objects:Array<StrippedObj>; flags:MapFlags; grid_type:GRIDTYPE}>){
     // Clear
     {
         for(let m of MAPS.values())
@@ -2710,7 +2710,7 @@ SOCKET.on(ToClient.CANVAS_INITIALIZE_MAPS, function(msgs:Array<{map_id:number; m
     resize_canvas();
     request_render();
 });
-SOCKET.on(ToClient.CANVAS_CREATE_OBJECTS, function(msgs:Array<CreateObjectsMessage>){
+ONRECV(ToClient.CANVAS_CREATE_OBJECTS, function(msgs:Array<CreateObjectsMessage>){
     for(let msg of msgs){
         const map_id = msg.map_id;
         if(!MAPS.has(map_id)){
@@ -2732,7 +2732,7 @@ SOCKET.on(ToClient.CANVAS_CREATE_OBJECTS, function(msgs:Array<CreateObjectsMessa
     }
     request_render();
 });
-SOCKET.on(ToClient.CANVAS_DELETE, function(msg:CanvasDeleteMessage){
+ONRECV(ToClient.CANVAS_DELETE, function(msg:CanvasDeleteMessage){
     const map_id = msg.map_id;
     const map = get_map(map_id);
     const obj_ids = msg.ids;
@@ -2751,7 +2751,7 @@ SOCKET.on(ToClient.CANVAS_DELETE, function(msg:CanvasDeleteMessage){
 });
 
 
-SOCKET.on(ToClient.CANVAS_UPDATE, function(msg:CanvasUpdateMessage){
+ONRECV(ToClient.CANVAS_UPDATE, function(msg:CanvasUpdateMessage){
     const map_id = msg.map_id;
     const map = get_map(map_id);
     const obj_states = msg.obj_states;
@@ -2887,22 +2887,29 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
             };
             if(!(selection_type & SELECTTYPE.MAP))
                 return false;
-            if(!bbox_overlaps(bbox, rect_bbox))
+	    // Ellipses are a little hard to click, fudge their size a bit.
+	    const fudged = {
+		    x0: bbox.x0-2,
+		    x1: bbox.x1+2,
+		    y0: bbox.y0-2,
+		    y1: bbox.y1+2,
+	    };
+            if(!bbox_overlaps(fudged, rect_bbox))
                 return false;
             const rx = obj.width /2;
             const ry = obj.height/2;
             const cx = obj.base_x+rx;
             const cy = obj.base_y+ry;
             // if ellipse is inside our selection, return true
-            if(bbox_inside(bbox, rect_bbox)) return true;
+            if(bbox_inside(fudged, rect_bbox)) return true;
             switch(obj.variant){
                 case ELLIPSETYPE.HOLLOW:
-                    return bbox_overlaps_ellipse_edge(bbox, cx, cy, rx, ry);
+                    return bbox_overlaps_ellipse_edge(fudged, cx, cy, rx, ry);
                     break;
                 case ELLIPSETYPE.SOLID: // fall-through
                 case ELLIPSETYPE.FILLED:
-                    return bbox_overlaps_ellipse(bbox, cx, cy, rx, ry)
-                        || bbox_overlaps_ellipse_edge(bbox, cx, cy, rx, ry);
+                    return bbox_overlaps_ellipse(fudged, cx, cy, rx, ry)
+                        || bbox_overlaps_ellipse_edge(fudged, cx, cy, rx, ry);
                     break;
             }
         }
@@ -3591,7 +3598,7 @@ function set_obj_from_stripped(obj: CanvasObject, state:StrippedObj){
 }
 function publish_delete_by_ids(map_id:number, ids:Array<number>):void{
     let msg: CanvasDeleteMessage = {map_id:map_id, ids:ids};
-    SOCKET.emit(FromClient.CANVAS_DELETE, msg);
+    EMIT(FromClient.CANVAS_DELETE, msg);
 }
 function publish_obj_by_id(map:DungeonMap, id:number):void{
     const obj = map.canvas_objs.get(id);
@@ -3601,7 +3608,7 @@ function publish_obj_by_id(map:DungeonMap, id:number):void{
     }
     const stripped_obj = strip_obj(obj);
     let msg: CreateObjectMessage = {map_id:map.map_id, object:stripped_obj};
-    SOCKET.emit(FromClient.CANVAS_CREATE_OBJECTS, msg);
+    EMIT(FromClient.CANVAS_CREATE_OBJECTS, msg);
 }
 function get_stripped_state_by_id(map:DungeonMap, ids:Array<number>):Array<StrippedObj>{
     const length = ids.length;
@@ -3620,7 +3627,7 @@ function get_stripped_state_by_id(map:DungeonMap, ids:Array<number>):Array<Strip
 }
 function publish_obj_updates(map_id:number, updates:Array<StrippedObj>){
     let msg:CanvasUpdateMessage = {map_id:map_id, obj_states:updates};
-    SOCKET.emit(FromClient.CANVAS_UPDATE, msg);
+    EMIT(FromClient.CANVAS_UPDATE, msg);
 }
 
 function edit_is_impossible(view:DungeonMapView):boolean{
@@ -5915,7 +5922,7 @@ const DEFAULT_NUMERIC_HOT_KEY = {
 let numeric_hot_key = DEFAULT_NUMERIC_HOT_KEY;
 let numeric_hot_keys:Map<TOOLTYPE, NumericHotKey> = new Map();
 let token_paths: Array<string> = [];
-SOCKET.on(ToClient.TOKEN_PATHS, function(paths:Array<string>){
+ONRECV(ToClient.TOKEN_PATHS, function(paths:Array<string>){
     token_paths = paths;
 });
 function maybe_move_selection_one_unit(view:DungeonMapView, dx:number, dy:number):boolean{
@@ -7085,7 +7092,7 @@ document.addEventListener('DOMContentLoaded', function(){
             {
                 label: 'Gather Party',
                 func: function(){
-                    SOCKET.emit(FromClient.CANVAS_GATHER, {x:-x, y:-y, map_id:view.map.map_id});
+                    EMIT(FromClient.CANVAS_GATHER, {x:-x, y:-y, map_id:view.map.map_id});
                     remove_menu();
                 },
                 disabled: false,
@@ -7094,7 +7101,7 @@ document.addEventListener('DOMContentLoaded', function(){
             {
                 label: 'Battlemode',
                 func: function(){
-                    SOCKET.emit(FromClient.CANVAS_BATTLE, {x:-x, y:-y, map_id:view.map.map_id});
+                    EMIT(FromClient.CANVAS_BATTLE, {x:-x, y:-y, map_id:view.map.map_id});
                     remove_menu();
                 },
                 disabled: false,
@@ -7103,7 +7110,7 @@ document.addEventListener('DOMContentLoaded', function(){
             {
                 label: 'Dungeonmode',
                 func: function(){
-                    SOCKET.emit(FromClient.CANVAS_DUNGEON_MODE);
+                    EMIT(FromClient.CANVAS_DUNGEON_MODE);
                     remove_menu();
                 },
                 disabled: false,
@@ -7218,20 +7225,20 @@ document.addEventListener('DOMContentLoaded', function(){
             if(value != active_view.map.map_name){
                 rename_map(active_view.map, value);
                 let msg: NameMapMessage = {map_id:active_view.map.map_id, map_name:value};
-                SOCKET.emit(FromClient.CANVAS_NAME_MAP, msg);
+                EMIT(FromClient.CANVAS_NAME_MAP, msg);
             }
             let gt = hg.checked? GRIDTYPE.HEX : GRIDTYPE.SQUARE;
             if(ng.checked) gt |= GRIDTYPE.NOGRID;
             if(active_view.map.grid_type != gt){
                 let msg: CanvasGridTypeMsg = {map_id:active_view.map.map_id, grid_type:gt};
-                SOCKET.emit(FromClient.CANVAS_GRID_TYPE, msg);
+                EMIT(FromClient.CANVAS_GRID_TYPE, msg);
             }
             let flags = MapFlags.NONE;
             if(dialog.f.numbered.checked)
                 flags |= MapFlags.NUMBERED
             if((active_view.map.flags & MapFlags.NUMBERED) != flags){
                 let msg : CanvasGridNumberedMsg = {map_id:active_view.map.map_id, numbered:flags};
-                SOCKET.emit(FromClient.CANVAS_GRID_NUMBERED, msg);
+                EMIT(FromClient.CANVAS_GRID_NUMBERED, msg);
             }
         };
         dialog.show();
@@ -7255,7 +7262,7 @@ document.addEventListener('DOMContentLoaded', function(){
         dialog.f.delete.checked = false;
         dialog.ok_handler = function(){
             if(!dialog.f.delete.checked) return;
-            SOCKET.emit(FromClient.CANVAS_DELETE_MAP_REQUEST, active_view.map.map_id);
+            EMIT(FromClient.CANVAS_DELETE_MAP_REQUEST, active_view.map.map_id);
         };
         dialog.show();
     });
@@ -7284,7 +7291,7 @@ document.addEventListener('DOMContentLoaded', function(){
             if(numbered.checked)
                 flags |= MapFlags.NUMBERED
             let msg: NewMapRequest = {name:value, grid_type:gt, flags:flags};
-            SOCKET.emit(FromClient.CANVAS_NEW_MAP_REQUEST, msg);
+            EMIT(FromClient.CANVAS_NEW_MAP_REQUEST, msg);
         };
         dialog.show();
     });

@@ -71,13 +71,13 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>){
     }
 }
 
-SOCKET.on(ToClient.CHAT_STRUCTURED_MSG, function(msgs:Array<ChatMsg>){
+ONRECV(ToClient.CHAT_STRUCTURED_MSG, function(msgs:Array<ChatMsg>){
     const log = by_id('chat-history');
     add_chat_msgs(log, msgs);
     log.scrollTo({behavior:'smooth', top:log.scrollHeight});
 });
 
-SOCKET.on(ToClient.CHAT_CREATE, function(msgs:Array<ChatMsg>){
+ONRECV(ToClient.CHAT_CREATE, function(msgs:Array<ChatMsg>){
     const log = by_id('chat-history');
     add_chat_msgs(log, msgs);
     log.scrollTop = log.scrollHeight;
@@ -88,7 +88,7 @@ function clear_chat(){
     log.innerHTML = '';
 }
 
-SOCKET.on(ToClient.CHAT_CLEAR, function(){
+ONRECV(ToClient.CHAT_CLEAR, function(){
     clear_chat();
 });
 
@@ -158,7 +158,8 @@ function add_dice_history_commands(commands: Array<Command>){
     for(let command of commands){
         if(command[0] != ChatCommand.ROLL)
             continue;
-        let original = command[1].replaceAll(' ', '');
+        // hack...
+        let original = command[1].replace(/\s/g, '');
         added += add_dice_history_command(log, original);
     }
     if(added){
@@ -171,14 +172,14 @@ function preprocess_and_send_chat(text:string){
     let commands = preprocess_command(text, EvaluateFlags.NONE);
     let to_send: ChatCommandMessage = {chatname:CHATNAME, commands:commands};
     add_dice_history_commands(commands);
-    SOCKET.emit(FromClient.CHAT_STRUCTURED_INPUT, to_send);
+    EMIT(FromClient.CHAT_STRUCTURED_INPUT, to_send);
 }
 
 function preprocess_and_send_chat_with_usings(text:string){
     let commands = preprocess_command(text, EvaluateFlags.USE_USINGS);
     let to_send: ChatCommandMessage = {chatname:CHATNAME, commands:commands};
     add_dice_history_commands(commands);
-    SOCKET.emit(FromClient.CHAT_STRUCTURED_INPUT, to_send);
+    EMIT(FromClient.CHAT_STRUCTURED_INPUT, to_send);
 }
 
 function export_settings(e:MouseEvent){
@@ -587,7 +588,7 @@ document.addEventListener('DOMContentLoaded',function(){
         newtableid = -1;
         listview.clear();
         tableview.clear();
-        SOCKET.emit(FromClient.RETRIEVE_ROLL_TABLES, function(rts:Array<RollTable>){
+        EMIT(FromClient.RETRIEVE_ROLL_TABLES, function(rts:Array<RollTable>){
             listview.clear();
             for(let rt of rts){
                 listview.add_item(rt.name, rt.id);
@@ -777,7 +778,7 @@ document.addEventListener('DOMContentLoaded',function(){
     });
 
     function submit_tables(){
-        SOCKET.emit(FromClient.UPDATE_ROLL_TABLES, rolltables);
+        EMIT(FromClient.UPDATE_ROLL_TABLES, rolltables);
     }
     by_id('tables-button').addEventListener('click', tablewindow.show);
     by_id('rolltable-export').addEventListener('click', function(){
@@ -801,7 +802,7 @@ document.addEventListener('DOMContentLoaded',function(){
                 try {
                     if(!fr.result) return;
                     const newtable = JSON.parse(fr.result as string);
-                    SOCKET.emit(FromClient.UPLOAD_ROLL_TABLE, newtable);
+                    EMIT(FromClient.UPLOAD_ROLL_TABLE, newtable);
                 } catch(err){
                     err_dialog(`
                         <p> There was a problem uploading the table.
@@ -817,7 +818,7 @@ document.addEventListener('DOMContentLoaded',function(){
         inp.addEventListener('change', handlefile, false);
         inp.click();
     });
-    SOCKET.on(ToClient.NEW_ROLL_TABLE, function(rt:RollTable){
+    ONRECV(ToClient.NEW_ROLL_TABLE, function(rt:RollTable){
         rolltables.push(rt);
         listview.add_item(rt.name, rt.id);
         listview.make_active(rt.id);

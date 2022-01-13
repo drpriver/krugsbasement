@@ -77,13 +77,13 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 
 let SOCKET = io({transports:["websocket"]});
-SOCKET.on(ToClient.CONNECT, () => {
+SOCKET.on('connect', () => {
     clear_disconnected();
-    SOCKET.emit(FromClient.JOIN, window.location.pathname)
+    EMIT(FromClient.JOIN, window.location.pathname);
     SOCKET.emitBuffered();
     // Flush the buffer here so that the post-join gives us
     // our own objects.
-    SOCKET.emit(FromClient.POST_JOIN)
+    EMIT(FromClient.POST_JOIN);
 });
 function clear_disconnected(){
     const d = by_id('disconnect')!;
@@ -95,7 +95,7 @@ function set_disconnected(){
     if(d)
         d.style.display = 'initial';
 }
-SOCKET.on(ToClient.DISCONNECT, function(reason:string){
+SOCKET.on('disconnect', function(reason:string){
     switch(reason){
         case 'io server disconnect':
         case 'io client disconnect':
@@ -134,7 +134,7 @@ function change_pan_visibility(visible:boolean){
     const pan_tool = by_id('pan-tool');
     pan_tool.style.display = visible? 'initial': 'none';
 }
-SOCKET.on(ToClient.SESSION_ID, function(resp:number){
+ONRECV(ToClient.SESSION_ID, function(resp:number){
     session_id = resp;
 });
 

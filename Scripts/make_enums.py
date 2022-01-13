@@ -1,4 +1,5 @@
 import os
+import textwrap
 from typing import List, Tuple, Union, Optional, Set
 INPUT = 'types.shared'
 Comment = str
@@ -116,7 +117,34 @@ class UnionInfo:
         self.variant_types.add(type)
         self.variants.append((type, comment))
 
-Info = Union[EnumInfo, StructInfo, UnionInfo , CommentInfo]
+class MsgInfo:
+    def __init__(self, name:str, enu:str) -> None:
+        self.name = name
+        self.enu = enu
+        self.items:List[Union[Comment, Tuple[str, str, Optional[str], Optional[Comment]]]] = []
+    def add_line(self, line:str) -> None:
+        k, v = line.split('=', 1)
+        comment = None
+        cb = None
+        if '#' in v:
+            v, comment = v.split('#', 1)
+        elif '//' in v:
+            v, comment = v.split('//', 1)
+        if ',' in v:
+            v, cb = v.split(',')
+        self.append(k, v, cb, comment)
+    def add_comment(self, comment:Comment) -> None:
+        self.items.append(comment.strip())
+    def append(self, k:str, v:str, cb:Optional[str], comment:Optional[Comment]) -> None:
+        k = k.strip()
+        v = v.strip()
+        if cb:
+            cb = cb.strip()
+        if comment:
+            comment = comment.strip()
+        self.items.append((k, v, cb, comment))
+
+Info = Union[EnumInfo, StructInfo, UnionInfo , CommentInfo, MsgInfo]
 
 def get_values() -> List[Info]:
     fp = open(INPUT, encoding='utf-8')
@@ -157,6 +185,10 @@ def get_values() -> List[Info]:
             elif line.startswith('union'):
                 line = line[len('union'):].strip()
                 current_info = UnionInfo(line)
+            elif line.startswith('message'):
+                line = line[len('message'):].strip()
+                name, enu = line.split(':')
+                current_info = MsgInfo(name.strip(), enu.strip())
             else:
                 raise Exception('Unrecognized type', line)
             result.append(current_info)
@@ -410,6 +442,54 @@ def make_ts(infos:List[Info]) -> None:
                     p(f'{typename}', end='')
             p(';')
             p('')
+        elif isinstance(info, MsgInfo):
+            if 'FromClient' in info.name:
+                for ty, arg, cb, comment in info.items:
+                    if arg == 'void':
+                        arg = None
+                    if cb:
+                        cb = cb[3:-1]
+                    if arg and cb:
+                        p(f'function EMIT(type:{info.enu}.{ty}, arg:{convert_type(arg)}, cb:(_:{convert_type(cb)})=>void):void;')
+                    elif arg:
+                        p(f'function EMIT(type:{info.enu}.{ty}, arg:{convert_type(arg)}):void;')
+                    elif cb:
+                        p(f'function EMIT(type:{info.enu}.{ty}, cb:(_:{convert_type(cb)})=>void):void;')
+                    else:
+                        p(f'function EMIT(type:{info.enu}.{ty}):void;')
+                p(textwrap.dedent('''
+                  function EMIT(type:FromClient, arg?:any, cb?:any):void{
+                      if(arg && cb){
+                          SOCKET.emit(type, arg, cb);
+                          return;
+                      }
+                      if(arg !== undefined){
+                          SOCKET.emit(type, arg);
+                          return;
+                      }
+                      if(cb !== undefined){
+                          SOCKET.emit(type, cb);
+                          return;
+                      }
+                      SOCKET.emit(type);
+                  }
+                        '''))
+            else:
+                assert 'ToClient' in info.name
+                for ty, arg, cb, comment in info.items:
+                    assert not cb
+                    if arg == 'void':
+                        arg = None
+                    if arg:
+                        p(f'function ONRECV(type:{info.enu}.{ty}, cb:(arg:{convert_type(arg)})=>void):void;')
+                    else:
+                        p(f'function ONRECV(type:{info.enu}.{ty}, cb:()=>void):void;')
+                p(textwrap.dedent('''
+                  function ONRECV(type:ToClient, cb:any):void{
+                    SOCKET.on(type, cb);
+                  }'''))
+
+
     fp.flush()
     fp.close();
 
@@ -503,8 +583,6 @@ def make_c(infos:List[Info]) -> None:
                 p('   ', typename, typename+'_;')
             p('};')
             p('')
-
-
 
     p('#endif')
 
