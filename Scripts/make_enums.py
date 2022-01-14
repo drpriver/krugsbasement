@@ -226,6 +226,8 @@ def make_python(infos: List[Info]) -> None:
         'register_list')
     p('')
     def convert_type(t:str) -> str:
+        if '[' in t[1:]:
+            t = t[:1+t[1:].index('[')]
         if t.startswith('['):
             inner = t[1:-1]
             inner = convert_type(inner.strip())
@@ -377,6 +379,8 @@ def make_ts(infos:List[Info]) -> None:
             'bool': 'boolean',
             }
     def convert_type(t:str) -> str:
+        if '[' in t[1:]:
+            t = t[:1+t[1:].index('[')]
         if t in TsTypes:
             return TsTypes[t]
         if t.startswith('['):
@@ -518,17 +522,26 @@ def make_c(infos:List[Info]) -> None:
         elif isinstance(info, UnionInfo):
             p('typedef union', info.name, info.name+';')
             unions[info.name] = info
+        elif isinstance(info, MsgInfo):
+            p(f'typedef union {info.name} {info.name};')
     p('')
     def fix_type(t):
+        if '[' in t[1:]:
+            t, n = t.split('[')
+            n = '[' + n
+        else:
+            n = ''
+        if t == 'str' and n:
+            return 'char', n
         typenames = {
             'str': 'String',
             'int': 'int64_t',
         }
         if t in typenames:
-            return typenames[t]
+            return typenames[t], n
         if t in unions:
-            return t+'*'
-        return t
+            return t+'*', n
+        return t, n
     for info in infos:
         if isinstance(info, EnumInfo):
             p('enum', info.name, '{')
@@ -557,18 +570,19 @@ def make_c(infos:List[Info]) -> None:
                     type = type.split('.')[0]
                 if type[0] == '[':
                     type = type[1:-1]
-                    type = fix_type(type)
+                    type, n = fix_type(type)
                     p('    struct {')
                     if type.endswith('*'):
-                        p(f'        {type} data;')
+                        p(f'        {type} data{n};')
                     else:
-                        p(f'        {type}* data;')
+                        p(f'        {type}* data{n};')
                     # int is justified by the fact we're not
                     # going to receive 2 billion items as json
                     p(f'        int count, capacity;')
                     p('    }', name+';')
                 else:
-                    p('   ', fix_type(type), name+';')
+                    type, n = fix_type(type)
+                    p('   ', type, name+n+';')
             p('};')
             p('')
         elif isinstance(info, UnionInfo):
@@ -583,6 +597,32 @@ def make_c(infos:List[Info]) -> None:
                 p('   ', typename, typename+'_;')
             p('};')
             p('')
+        elif isinstance(info, MsgInfo):
+            p('union', info.name, '{')
+            p('  struct {', info.enu, 'type; } discrim;')
+            i = 1
+            for item in info.items:
+                if isinstance(item, Comment):
+                    p('//', item)
+                    continue
+                ty, arg, cb, comment = item
+                p('  _Static_assert(', f'{info.enu}_{ty}', '==', i, ', "Bad enum");')
+                if arg == 'void':
+                    p('  struct {', info.enu, f'_type;', '}', ty, ';')
+                elif arg[0] == '[':
+                    arg = arg[1:-1]
+                    arg, n = fix_type(arg)
+                    if not arg.endswith('*'): arg += '*'
+                    p('  struct {',end ='')
+                    p(info.enu, f'_type;',end='')
+                    p(' struct {', arg+' data'+n+';', end='')
+                    p(' int count, capacity;', end='')
+                    p(' }', 'data'+'; }', ty, ';')
+                else:
+                    arg,n = fix_type(arg)
+                    p('  struct {', info.enu, f'_type;', arg, 'data'+n+'; }', ty, ';')
+                i += 1
+            p('};')
 
     p('#endif')
 

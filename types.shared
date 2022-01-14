@@ -307,7 +307,7 @@ struct StrippedFreehandLine: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
-    color = str
+    color = str[8]
     # points are just raw x,y pairs in a flat array.
     points = [float]
     thickness = float
@@ -326,7 +326,7 @@ struct StrippedGridLine: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
-    color = str
+    color = str[8]
     # points are just raw x,y pairs in a flat array.
     points = [float]
 
@@ -340,7 +340,7 @@ struct StrippedRectangle: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
-    color = str
+    color = str[8]
     width = float
     height = float
 
@@ -354,8 +354,8 @@ struct StrippedFilledRectangle: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
-    color = str
-    color2 = str
+    color = str[8]
+    color2 = str[8]
     width = float
     height = float
 
@@ -371,7 +371,7 @@ struct StrippedGridRectangle: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
-    color = str
+    color = str[8]
     width = float
     height = float
 
@@ -391,8 +391,8 @@ struct StrippedEllipse: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
-    color = str
-    color2 = str
+    color = str[8]
+    color2 = str[8]
     width = float
     height = float
     variant = ELLIPSETYPE
@@ -458,7 +458,7 @@ struct StrippedEzToken: array
     base_y = float
     flags = CANVASFLAG
     text = str
-    color = str
+    color = str[8]
     width = float # in squares (?)
     height = float # in squares (?)
     statusflags = TOKENSTATUSFLAGS
@@ -503,7 +503,7 @@ struct StrippedDoorObj: array
     base_y = float
     flags = CANVASFLAG
     doortype = DOORTYPE
-    color = str
+    color = str[8]
     width = float # in squares (?)
     orientation = ORIENTATION
 
@@ -533,7 +533,7 @@ struct StrippedMeasureObj: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
-    color = str
+    color = str[8]
     x1 = float
     y1 = float
 
@@ -569,7 +569,7 @@ struct StrippedFilledTile: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
-    color = str
+    color = str[8]
     size = float
 
 // TerrainTile
@@ -685,14 +685,14 @@ struct GatherMessage: dict
 struct PingData: dict
     cx = float
     cy = float
-    color = str
+    color = str[8]
 
 struct PingMessage: dict
     ping = PingData
     map_id = int
 
 struct InitializeMap: dict
-    map_id = number
+    map_id = int
     map_name = str
     objects = [StrippedObj]
     flags = MapFlags
@@ -710,55 +710,55 @@ struct Note: dict
 
 
 message ToClientMsg: ToClient
-    CANVAS_CREATE_OBJECTS = [CreateObjectsMessage]
-    CANVAS_PING = PingMessage
-    CANVAS_CREATE_MAP = int
-    CANVAS_NAME_MAP = NameMapMessage
-    CANVAS_GRID_TYPE = CanvasGridTypeMsg
-    CANVAS_GRID_NUMBERED = CanvasGridNumberedMsg
-    CANVAS_GATHER = GatherMessage
-    CANVAS_BATTLE = GatherMessage
-    CANVAS_DUNGEON_MODE = void
-    CANVAS_DELETE_MAP = int
+    SESSION_ID = int
+    TOKEN_PATHS = [str]
+    CHAT_CLEAR = void
+    CHAT_CREATE = [ChatMsg]
+    CHAT_STRUCTURED_MSG = [ChatMsg]
+    NEW_ROLL_TABLE = RollTable
     CANVAS_INITIALIZE_MAPS = [InitializeMap]
     CANVAS_CREATE_OBJECTS = [CreateObjectsMessage]
     CANVAS_DELETE = CanvasDeleteMessage
     CANVAS_UPDATE = CanvasUpdateMessage
-    TOKEN_PATHS = [str]
-    CHAT_STRUCTURED_MSG = [ChatMsg]
-    CHAT_CREATE = [ChatMsg]
-    CHAT_CLEAR = void
-    NEW_ROLL_TABLE = RollTable
-    NOTE_DIRTY = int
-    NOTE_DELETE = int
-    NOTES_INITIALIZE = [Note]
-    NEW_NOTE = int
-    NOTE_UPDATE_TITLE = NoteUpdateTitle
-    SESSION_ID = int
-
-message FromClientMsg: FromClient
-    CANVAS_PING = PingMessage
-    CANVAS_CREATE_MAP = int
-    CANVAS_DELETE = CanvasDeleteMessage
-    CANVAS_CREATE_OBJECTS = CreateObjectMessage
-    CANVAS_UPDATE = CanvasUpdateMessage
     CANVAS_GATHER = GatherMessage
-    CANVAS_BATTLE = GatherMessage
-    CANVAS_DUNGEON_MODE = void
+    CANVAS_CREATE_MAP = int
+    CANVAS_PING = PingMessage
     CANVAS_NAME_MAP = NameMapMessage
     CANVAS_GRID_TYPE = CanvasGridTypeMsg
     CANVAS_GRID_NUMBERED = CanvasGridNumberedMsg
-    CANVAS_DELETE_MAP_REQUEST = int
-    CANVAS_NEW_MAP_REQUEST = NewMapRequest
+    CANVAS_DELETE_MAP = int
+    CANVAS_BATTLE = GatherMessage
+    CANVAS_DUNGEON_MODE = void
+    NOTES_INITIALIZE = [Note]
+    NEW_NOTE = int
+    NOTE_UPDATE_TITLE = NoteUpdateTitle
+    NOTE_DIRTY = int
+    NOTE_DELETE = int
+
+message FromClientMsg: FromClient
+    JOIN = str
+    POST_JOIN = void
     CHAT_STRUCTURED_INPUT = ChatCommandMessage
+    CHAT_TEST_STRUCTURED_INPUT = ChatCommandMessage, cb([ChatMsg])
     RETRIEVE_ROLL_TABLES = void, cb([RollTable])
     UPDATE_ROLL_TABLES = [RollTable]
     UPLOAD_ROLL_TABLE = RollTable
-    CHAT_TEST_STRUCTURED_INPUT = ChatCommandMessage, cb([ChatMsg])
-    DELETE_NOTE_REQUEST = int
+    CANVAS_CREATE_OBJECTS = CreateObjectMessage
+    CANVAS_DELETE = CanvasDeleteMessage
+    CANVAS_UPDATE = CanvasUpdateMessage
+    CANVAS_GATHER = GatherMessage
+    CANVAS_CREATE_MAP = int
+    CANVAS_PING = PingMessage
+    CANVAS_NAME_MAP = NameMapMessage
+    CANVAS_NEW_MAP_REQUEST = NewMapRequest
+    CANVAS_GRID_TYPE = CanvasGridTypeMsg
+    CANVAS_GRID_NUMBERED = CanvasGridNumberedMsg
+    CANVAS_DELETE_MAP_REQUEST = int
+    CANVAS_BATTLE = GatherMessage
+    CANVAS_DUNGEON_MODE = void
     GET_NOTE = int, cb(Note)
-    NOTE_UPDATE_BODY = NoteUpdateBody
     NEW_NOTE_REQUEST = void, cb(int)
-    JOIN = str
-    POST_JOIN = void
     NOTE_UPDATE_TITLE = NoteUpdateTitle
+    NOTE_UPDATE_BODY = NoteUpdateBody
+    DELETE_NOTE_REQUEST = int
+    DEBUG = str
