@@ -337,6 +337,8 @@ def make_python(infos: List[Info]) -> None:
                     if typename.startswith('['):
                         inner = typename[1:-1] # hack, only strip one layer off
                         p(f"register_list('{typename}', '{inner}')")
+                    if '[' in typename[1:]:
+                        typename = typename[:1+typename[1:].index('[')]
                     if '.' in typename: # assume it's an enum, hack
                         p(f"register_arraystruct_field('{info.name}', {typename})")
                     else:
@@ -348,6 +350,8 @@ def make_python(infos: List[Info]) -> None:
                     if typename.startswith('['):
                         inner = typename[1:-1] # hack, only strip one layer off
                         p(f"register_list('{typename}', '{inner}')")
+                    if '[' in typename[1:]:
+                        typename = typename[:1+typename[1:].index('[')]
                     if '.' in typename: # assume it's an enum, hack
                         p(f"register_dictstruct_field('{info.name}', '{name}', {typename})")
                     else:
