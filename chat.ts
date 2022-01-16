@@ -159,7 +159,11 @@ function add_dice_history_commands(commands: Array<Command>){
         if(command[0] != ChatCommand.ROLL)
             continue;
         // hack...
-        let original = command[1].replace(/\s/g, '');
+        let original = command[1];
+        original = original.replace(/^\//, '');
+        original = original.replace(/^roll/,'')
+        original = original.replace(/^r/,'')
+        original = original.replace(/\s/g, '');
         added += add_dice_history_command(log, original);
     }
     if(added){
