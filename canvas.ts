@@ -6711,12 +6711,6 @@ document.addEventListener('DOMContentLoaded', function(){
                         let height = +dialog.f.height.value;
                         if(!width || width < 0) width = gridscale == GRIDSCALE.TEN?1:0.5;
                         if(!height || height < 0) height = gridscale == GRIDSCALE.TEN?1:0.5;
-                        switch(snapmode){
-                            case SNAPMODE.FREE: break;
-                            case SNAPMODE.GRID: break;
-                            case SNAPMODE.HALF: width/=2; height/=2; break;
-                            case SNAPMODE.QUARTER: width/=4; height/=4; break;
-                        }
                         const color = dialog.f.color.value;
                         let id = get_new_id();
                         ez_token_color = color;
