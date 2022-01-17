@@ -24,7 +24,7 @@ watcher:
 run: combined.js token-list WebDnD/messages.py
 	. venv/bin/activate && python3 -m WebDnD.app
 
-screen.html: screen.dnd combined.js | Depends
+screen.html: client.dnd combined.js | Depends
 	dndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
 
 Generated/%.html: Docs/%.dnd | Generated

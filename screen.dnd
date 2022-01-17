@@ -579,5 +579,3 @@ David20::title #hide
 
 ::script #noinline
   https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js
-::script #import
-  combined.js
