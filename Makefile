@@ -8,23 +8,23 @@ TSFILES:= toplevel.ts chat.ts canvas.ts notes.ts utils.ts Generated/messages.ts 
 	  interp.ts storage.ts Generated/nodes.ts dialogs.ts \
 	  Generated/dialogdefs.ts subwindows.ts Generated/subwindowdefs.ts macros.ts
 ifneq ($(LOCALTSC),)
-combined.js: $(TSFILES)
+Generated/combined.js: $(TSFILES) | Generated
 	$(LOCALTSC) $^ $(TSCFLAGS) --outFile $@
 else
-combined.js: $(TSFILES)
+Generated/combined.js: $(TSFILES) | Generated
 	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc $(TSFILES) $(TSCFLAGS) --outFile $@ | cat"
 endif
 
 .PHONY: watcher
 watcher:
-	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc -w $(TSFILES) $(TSCFLAGS) --outFile combined.js"
-.DEFAULT_GOAL:=combined.js
+	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc -w $(TSFILES) $(TSCFLAGS) --outFile Generated/combined.js"
+.DEFAULT_GOAL:=screen.html
 
 .PHONY: run
-run: combined.js token-list WebDnD/messages.py
+run: screen.html token-list WebDnD/messages.py
 	. venv/bin/activate && python3 -m WebDnD.app
 
-screen.html: client.dnd combined.js | Depends
+screen.html: client.dnd Generated/combined.js | Depends
 	dndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
 
 Generated/%.html: Docs/%.dnd | Generated
@@ -86,3 +86,6 @@ Generated/subwindowdefs.ts Generated/dialogdefs.ts Generated/screen.temp.html: s
 
 Generated/nodes.ts: Bin/meta Generated/screen.temp.html | Generated
 	Bin/meta $@
+.PHONY: clean
+clean:
+	$(RM) $(wildcard Generated/*) screen.html
