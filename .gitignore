@@ -22,7 +22,6 @@ hexmapdata.json
 tags
 *.json
 *.gz
-*.vim
 *.bak
 wasm
 messages.ts
