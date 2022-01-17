@@ -59,7 +59,7 @@ function make_ok_dialog2(html:string, after_append:()=>void, on_ok:(_:HTMLElemen
         document.body.removeChild(hoverpop);
         hover_is_open = false;
     }
-    const ok = by_id('hoverpop-ok')!;
+    const ok: HTMLButtonElement = get_by_id('hoverpop-ok')!;
     function submit(){
         on_ok(hoverpop);
         remove_hoverpop();
@@ -67,7 +67,7 @@ function make_ok_dialog2(html:string, after_append:()=>void, on_ok:(_:HTMLElemen
     ok.addEventListener('click', function(){
         submit();
     });
-    const cancel = by_id('hoverpop-cancel')!;
+    const cancel: HTMLButtonElement = get_by_id('hoverpop-cancel')!;
     cancel.addEventListener('click', function(){
         remove_hoverpop();
     });
