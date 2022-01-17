@@ -4782,18 +4782,19 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                     break;
                             }
                         }
+                        const length = REFERENCE_WIDTH*w;
                         ctx.strokeStyle = BACKGROUND;
                         ctx.lineWidth=12;
                         ctx.setLineDash([6, 4]);
                         ctx.beginPath();
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.moveTo(obj.base_x, obj.base_y-20*th);
-                                ctx.lineTo(obj.base_x, obj.base_y+28*w);
+                                ctx.moveTo(obj.base_x, obj.base_y-length/2+8);
+                                ctx.lineTo(obj.base_x, obj.base_y+length/2-6);
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.moveTo(obj.base_x-20*th, obj.base_y);
-                                ctx.lineTo(obj.base_x+28*w, obj.base_y);
+                                ctx.moveTo(obj.base_x-length/2+8, obj.base_y);
+                                ctx.lineTo(obj.base_x+length/2-6, obj.base_y);
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                 ctx.moveTo(obj.base_x-16*w, obj.base_y-16*w)
