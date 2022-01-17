@@ -4585,6 +4585,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
             case CANVASTYPE.DOOR:{
                 const is_vertical = obj.orientation === ORIENTATION.VERTICAL;
                 const w = obj.width;
+                const th = obj.width < 1.0? 0.5 : 1.0;
                 if(!is_vertical){
                     // FIXME: I just hardcoded some random values.
                     const bbox = {
@@ -4616,10 +4617,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    ctx.strokeRect(obj.base_x-10*w, obj.base_y-24*w, 20*w, 48*w);
+                                    ctx.strokeRect(obj.base_x-10*th, obj.base_y-24*w, 20*th, 48*w);
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    ctx.strokeRect(obj.base_x-24*w, obj.base_y-10*w, 48*w, 20*w);
+                                    ctx.strokeRect(obj.base_x-24*w, obj.base_y-10*th, 48*w, 20*th);
                                     break;
                                 case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
@@ -4642,14 +4643,14 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.lineWidth=4;
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.fillRect(obj.base_x-10*w, obj.base_y-24*w, 20*w, 48*w);
-                                ctx.strokeRect(obj.base_x-10*w, obj.base_y-24*w, 20*w, 48*w);
-                                ctx.strokeRect(obj.base_x-10*w, obj.base_y, 20*w, 1);
+                                ctx.fillRect(obj.base_x-10*th, obj.base_y-24*w, 20*th, 48*w);
+                                ctx.strokeRect(obj.base_x-10*th, obj.base_y-24*w, 20*th, 48*w);
+                                ctx.strokeRect(obj.base_x-10*th, obj.base_y, 20*th, 1);
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.fillRect(obj.base_x-24*w, obj.base_y-10*w, 48*w, 20*w);
-                                ctx.strokeRect(obj.base_x-24*w, obj.base_y-10*w, 48*w, 20*w);
-                                ctx.strokeRect(obj.base_x, obj.base_y-10*w, 1, 20*w);
+                                ctx.fillRect(obj.base_x-24*w, obj.base_y-10*th, 48*w, 20*th);
+                                ctx.strokeRect(obj.base_x-24*w, obj.base_y-10*th, 48*w, 20*th);
+                                ctx.strokeRect(obj.base_x, obj.base_y-10*th, 1, 20*th);
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                 ctx.lineWidth=18;
@@ -4693,10 +4694,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    ctx.strokeRect(obj.base_x-10*w, obj.base_y-24*w, 20*w, 48*w);
+                                    ctx.strokeRect(obj.base_x-10*th, obj.base_y-24*w, 20*th, 48*w);
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    ctx.strokeRect(obj.base_x-24*w, obj.base_y-10*w, 48*w, 20*w);
+                                    ctx.strokeRect(obj.base_x-24*w, obj.base_y-10*th, 48*w, 20*th);
                                     break;
                                 case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
@@ -4719,12 +4720,12 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.lineWidth=4;
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.fillRect(obj.base_x-10*w, obj.base_y-24*w, 20*w, 48*w);
-                                ctx.strokeRect(obj.base_x-10*w, obj.base_y-24*w, 20*w, 48*w);
+                                ctx.fillRect(obj.base_x-10*th, obj.base_y-24*w, 20*th, 48*w);
+                                ctx.strokeRect(obj.base_x-10*th, obj.base_y-24*w, 20*th, 48*w);
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.fillRect(obj.base_x-24*w, obj.base_y-10*w, 48*w, 20*w);
-                                ctx.strokeRect(obj.base_x-24*w, obj.base_y-10*w, 48*w, 20*w);
+                                ctx.fillRect(obj.base_x-24*w, obj.base_y-10*th, 48*w, 20*th);
+                                ctx.strokeRect(obj.base_x-24*w, obj.base_y-10*th, 48*w, 20*th);
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                 ctx.lineWidth=18;
@@ -4760,10 +4761,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    ctx.strokeRect(obj.base_x-10*w, obj.base_y-16*w, 20*w, 32*w);
+                                    ctx.strokeRect(obj.base_x-10*th, obj.base_y-16*w, 20*th, 32*w);
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    ctx.strokeRect(obj.base_x-16*w, obj.base_y-10*w, 32*w, 20*w);
+                                    ctx.strokeRect(obj.base_x-16*w, obj.base_y-10*th, 32*w, 20*th);
                                     break;
                                 case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
@@ -4787,11 +4788,11 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.beginPath();
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.moveTo(obj.base_x, obj.base_y-20*w);
+                                ctx.moveTo(obj.base_x, obj.base_y-20*th);
                                 ctx.lineTo(obj.base_x, obj.base_y+28*w);
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.moveTo(obj.base_x-20*w, obj.base_y);
+                                ctx.moveTo(obj.base_x-20*th, obj.base_y);
                                 ctx.lineTo(obj.base_x+28*w, obj.base_y);
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
@@ -4812,50 +4813,52 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    ctx.strokeRect(obj.base_x-10*w, obj.base_y-16*w, 20*w, 32*w);
+                                    ctx.strokeRect(obj.base_x-10, obj.base_y-16*th, 20, 32*th);
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    ctx.strokeRect(obj.base_x-16*w, obj.base_y-10*w, 32*w, 20*w);
+                                    ctx.strokeRect(obj.base_x-16*th, obj.base_y-10, 32*th, 20);
                                     break;
                                 case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x-22*w, obj.base_y-22*w)
-                                    ctx.lineTo(obj.base_x+22*w, obj.base_y+22*w);
+                                    ctx.moveTo(obj.base_x-22*th, obj.base_y-22*th)
+                                    ctx.lineTo(obj.base_x+22*th, obj.base_y+22*th);
                                     ctx.stroke();
                                     break;
                                 case ORIENTATION.TOPRIGHT_DOWNLEFT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x+22*w, obj.base_y-22*w)
-                                    ctx.lineTo(obj.base_x-22*w, obj.base_y+22*w);
+                                    ctx.moveTo(obj.base_x+22*th, obj.base_y-22*th)
+                                    ctx.lineTo(obj.base_x-22*th, obj.base_y+22*th);
                                     ctx.stroke();
                                     break;
                             }
                         }
+                        const thingy = th * 13;
+                        const length = 64*w-thingy*2;
                         ctx.fillStyle = BACKGROUND;
                         ctx.lineWidth=4;
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.fillRect(obj.base_x-5, obj.base_y-16*w, 10, 32*w);
+                                ctx.fillRect(obj.base_x-5, obj.base_y-length/2, 10, length);
                                 if((obj.base_x & (REFERENCE_WIDTH-1)) == 0){
                                     ctx.fillStyle = 'rgb(150, 150, 150)';
-                                    ctx.fillRect(obj.base_x, obj.base_y-16*w, 1/SCALE, 32*w);
+                                    ctx.fillRect(obj.base_x, obj.base_y-length/2, 1/SCALE, length);
                                 }
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.fillRect(obj.base_x-16*w, obj.base_y-5, 32*w, 10);
+                                ctx.fillRect(obj.base_x-length/2, obj.base_y-5, length, 10);
                                 if((obj.base_y & (REFERENCE_WIDTH-1)) == 0){
                                     ctx.fillStyle = 'rgb(150, 150, 150)';
-                                    ctx.fillRect(obj.base_x-16*w, obj.base_y, 32*w, 1/SCALE);
+                                    ctx.fillRect(obj.base_x-length/2, obj.base_y, length, 1/SCALE);
                                 }
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                 ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x-16*w, obj.base_y-16*w)
-                                ctx.lineTo(obj.base_x+16*w, obj.base_y+16*w);
+                                ctx.moveTo(obj.base_x-24*w, obj.base_y-24*w)
+                                ctx.lineTo(obj.base_x+24*w, obj.base_y+24*w);
                                 ctx.stroke();
                                 break;
                             case ORIENTATION.TOPRIGHT_DOWNLEFT:
@@ -4874,10 +4877,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    ctx.strokeRect(obj.base_x-10*w, obj.base_y-32*w, 20*w, 64*w);
+                                    ctx.strokeRect(obj.base_x-10, obj.base_y-32*w, 20, 64*w);
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    ctx.strokeRect(obj.base_x-32*w, obj.base_y-10*w, 64*w, 20*w);
+                                    ctx.strokeRect(obj.base_x-32*w, obj.base_y-10, 64*w, 20);
                                     break;
                                 case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
@@ -6441,14 +6444,6 @@ document.addEventListener('DOMContentLoaded', function(){
                     e.stopPropagation();
                     e.preventDefault();
                     [x1, y1] = event_to_coord_snapped(e, view, snap);
-                    if(x1 > x0 + REFERENCE_WIDTH)
-                        x1 = x0 + REFERENCE_WIDTH;
-                    if(x1 < x0 - REFERENCE_WIDTH)
-                        x1 = x0 - REFERENCE_WIDTH;
-                    if(y1 > y0 + REFERENCE_WIDTH)
-                        y1 = y0 + REFERENCE_WIDTH;
-                    if(y1 < y0 - REFERENCE_WIDTH)
-                        y1 = y0 - REFERENCE_WIDTH;
                     view.placing_area.x0 = x0;
                     view.placing_area.y0 = y0;
                     view.placing_area.x1 = x1;
