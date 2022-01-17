@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 #include <assert.h>
 #include <stdarg.h>
 extern void*memmem(const void*, size_t, const void*, size_t);
@@ -255,7 +256,7 @@ int main(int argc, char** argv){
             return 1;
         }
         ((StringView*)previous.pointer)[previous.count++] = sv;
-        sb_printf(&sb, "    '%.*s': %*s%s;\n", (int)(idend-id), id, 30-(int)(idend-id), "", get_tag_type(tag, (int)(tagend-tag)));
+        sb_printf(&sb, "    '%.*s': %*s%s;\n", (int)(idend-id), id, 32-(int)(idend-id), "", get_tag_type(tag, (int)(tagend-tag)));
         Continue:
         text = idend;
     }
