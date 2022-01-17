@@ -4612,15 +4612,17 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
                 switch(obj.doortype){
                     case DOORTYPE.DOUBLE:{
+                        const length = REFERENCE_WIDTH*w - 16*th;
+                        const off = length/2;
                         if(is_selected){
                             ctx.strokeStyle = sel_color;
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    ctx.strokeRect(obj.base_x-10*th, obj.base_y-24*w, 20*th, 48*w);
+                                    ctx.strokeRect(obj.base_x-10*th, obj.base_y-off, 20*th, length);
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    ctx.strokeRect(obj.base_x-24*w, obj.base_y-10*th, 48*w, 20*th);
+                                    ctx.strokeRect(obj.base_x-off, obj.base_y-10*th, length, 20*th);
                                     break;
                                 case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
@@ -4643,13 +4645,13 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.lineWidth=4;
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.fillRect(obj.base_x-10*th, obj.base_y-24*w, 20*th, 48*w);
-                                ctx.strokeRect(obj.base_x-10*th, obj.base_y-24*w, 20*th, 48*w);
+                                ctx.fillRect(obj.base_x-10*th, obj.base_y-off, 20*th, length);
+                                ctx.strokeRect(obj.base_x-10*th, obj.base_y-off, 20*th, length);
                                 ctx.strokeRect(obj.base_x-10*th, obj.base_y, 20*th, 1);
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.fillRect(obj.base_x-24*w, obj.base_y-10*th, 48*w, 20*th);
-                                ctx.strokeRect(obj.base_x-24*w, obj.base_y-10*th, 48*w, 20*th);
+                                ctx.fillRect(obj.base_x-off, obj.base_y-10*th, length, 20*th);
+                                ctx.strokeRect(obj.base_x-off, obj.base_y-10*th, length, 20*th);
                                 ctx.strokeRect(obj.base_x, obj.base_y-10*th, 1, 20*th);
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
@@ -4689,15 +4691,17 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         }
                     }break;
                     case DOORTYPE.DOOR:{
+                        const length = REFERENCE_WIDTH*w - 16*th;
+                        const off = length/2;
                         if(is_selected){
                             ctx.strokeStyle = sel_color;
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    ctx.strokeRect(obj.base_x-10*th, obj.base_y-24*w, 20*th, 48*w);
+                                    ctx.strokeRect(obj.base_x-10*th, obj.base_y-off, 20*th, length);
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    ctx.strokeRect(obj.base_x-24*w, obj.base_y-10*th, 48*w, 20*th);
+                                    ctx.strokeRect(obj.base_x-off, obj.base_y-10*th, length, 20*th);
                                     break;
                                 case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
@@ -4720,12 +4724,12 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.lineWidth=4;
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.fillRect(obj.base_x-10*th, obj.base_y-24*w, 20*th, 48*w);
-                                ctx.strokeRect(obj.base_x-10*th, obj.base_y-24*w, 20*th, 48*w);
+                                ctx.fillRect(obj.base_x-10*th, obj.base_y-off, 20*th, length);
+                                ctx.strokeRect(obj.base_x-10*th, obj.base_y-off, 20*th, length);
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.fillRect(obj.base_x-24*w, obj.base_y-10*th, 48*w, 20*th);
-                                ctx.strokeRect(obj.base_x-24*w, obj.base_y-10*th, 48*w, 20*th);
+                                ctx.fillRect(obj.base_x-off, obj.base_y-10*th, length, 20*th);
+                                ctx.strokeRect(obj.base_x-off, obj.base_y-10*th, length, 20*th);
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                 ctx.lineWidth=18;
