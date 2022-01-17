@@ -1,0 +1,7 @@
+bug.py: v0.0.1
+created: 2022-01-17T01:02:44.327408
+bugmagic^^^^
+Summary::md.summary
+  More intuitive selection
+
+  If you click on something, that shouldn’t initiate a drag, it should instead initiate a move.
