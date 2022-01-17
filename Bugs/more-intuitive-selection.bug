@@ -1,7 +1,14 @@
 bug.py: v0.0.1
 created: 2022-01-17T01:02:44.327408
+updated: 2022-01-17T02:29:01.284492
 bugmagic^^^^
 Summary::md.summary
   More intuitive selection
 
   If you click on something, that shouldn’t initiate a drag, it should instead initiate a move.
+Updated Jan 17, 2022, 02:29AM::md.update
+  You need to have some way to force selection mode though, as otherwise a map that is completely covered becomes impossible to do specific multi selections.
+
+  <hr>
+
+  Also, you might want things like non-contiguous selections with things like shift-click. Idk if that actually will matter.
