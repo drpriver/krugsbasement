@@ -1,6 +1,7 @@
 bug.py: v0.0.1
 created: 2022-01-17T01:02:44.327408
 updated: 2022-01-17T02:29:01.284492
+resolved: 2022-01-19T18:15:55.340933
 bugmagic^^^^
 Summary::md.summary
   More intuitive selection
@@ -12,3 +13,10 @@ Updated Jan 17, 2022, 02:29AM::md.update
   <hr>
 
   Also, you might want things like non-contiguous selections with things like shift-click. Idk if that actually will matter.
+
+Resolved Jan 19, 2022, 06:15PM::md.update
+  Shift-click was already taken for pings. You can hold alt/option to force rectangle select mode.
+
+  <hr>
+
+  You no longer need to do two clicks to both select and move something.

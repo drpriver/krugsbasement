@@ -14,6 +14,7 @@ const enum DarkMode {
 function system_prefers_darkmode():boolean{
     return window.matchMedia('(prefers-color-scheme: dark)').matches
 }
+
 let current_dark_mode:DarkMode = DarkMode.SYSTEM;
 let DARKMODE = false;
 function change_dark_mode(mode:DarkMode){

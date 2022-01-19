@@ -2887,13 +2887,13 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
             };
             if(!(selection_type & SELECTTYPE.MAP))
                 return false;
-	    // Ellipses are a little hard to click, fudge their size a bit.
-	    const fudged = {
-		    x0: bbox.x0-2,
-		    x1: bbox.x1+2,
-		    y0: bbox.y0-2,
-		    y1: bbox.y1+2,
-	    };
+	        // Ellipses are a little hard to click, fudge their size a bit.
+            const fudged = {
+                x0: bbox.x0-2,
+                x1: bbox.x1+2,
+                y0: bbox.y0-2,
+                y1: bbox.y1+2,
+            };
             if(!bbox_overlaps(fudged, rect_bbox))
                 return false;
             const rx = obj.width /2;
@@ -6277,6 +6277,18 @@ document.addEventListener('DOMContentLoaded', function(){
                 const fudged_x1 = clicked_x+FUDGE._;//view.scale;
                 const fudged_y0 = clicked_y-FUDGE._;//view.scale;
                 const fudged_y1 = clicked_y+FUDGE._;//view.scale;
+                // Simulate doing a single item click so that you can immediately
+                // start moving it.
+                // There's probably a more efficient/clear way to do this,
+                // but this works.
+                if(!e.altKey && !view.selection_area.is_selecting){
+                    sort_canv_objs(view.map);
+                    view.selection_area.select_one = true;
+                    view.selection_area.is_selecting = true;
+                    update_selection(view, fudged_x0, fudged_y0, fudged_x1, fudged_y1);
+                    finalize_selection(view);
+                    request_render();
+                }
                 if(view.selected.size && there_are_selected_objs_at(view, fudged_x0, fudged_y0, fudged_x1, fudged_y1)){
                     // handle movement
                     let rawclick_x = e.offsetX;
