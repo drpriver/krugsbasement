@@ -311,7 +311,7 @@ struct StrippedFreehandLine: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
-    color = str[8]
+    color = color
     # points are just raw x,y pairs in a flat array.
     points = [float]
     thickness = float
@@ -330,7 +330,7 @@ struct StrippedGridLine: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
-    color = str[8]
+    color = color
     # points are just raw x,y pairs in a flat array.
     points = [float]
 
@@ -344,7 +344,7 @@ struct StrippedRectangle: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
-    color = str[8]
+    color = color
     width = float
     height = float
 
@@ -358,8 +358,8 @@ struct StrippedFilledRectangle: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
-    color = str[8]
-    color2 = str[8]
+    color = color
+    color2 = color
     width = float
     height = float
 
@@ -375,7 +375,7 @@ struct StrippedGridRectangle: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
-    color = str[8]
+    color = color
     width = float
     height = float
 
@@ -395,8 +395,8 @@ struct StrippedEllipse: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
-    color = str[8]
-    color2 = str[8]
+    color = color
+    color2 = color
     width = float
     height = float
     variant = ELLIPSETYPE
@@ -462,7 +462,7 @@ struct StrippedEzToken: array
     base_y = float
     flags = CANVASFLAG
     text = str
-    color = str[8]
+    color = color
     width = float # in squares (?)
     height = float # in squares (?)
     statusflags = TOKENSTATUSFLAGS
@@ -507,7 +507,7 @@ struct StrippedDoorObj: array
     base_y = float
     flags = CANVASFLAG
     doortype = DOORTYPE
-    color = str[8]
+    color = color
     width = float # in squares (?)
     orientation = ORIENTATION
 
@@ -537,7 +537,7 @@ struct StrippedMeasureObj: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
-    color = str[8]
+    color = color
     x1 = float
     y1 = float
 
@@ -573,7 +573,7 @@ struct StrippedFilledTile: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
-    color = str[8]
+    color = color
     size = float
 
 // TerrainTile
@@ -689,7 +689,7 @@ struct GatherMessage: dict
 struct PingData: dict
     cx = float
     cy = float
-    color = str[8]
+    color = color
 
 struct PingMessage: dict
     ping = PingData

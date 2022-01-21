@@ -234,6 +234,7 @@ def make_python(infos: List[Info]) -> None:
             return f'List[{inner}]'
         if '.' in t: # hack
             return f'Literal[{t}]'
+        if t == 'color': return 'str'
         if t not in {'str', 'int', 'float'}:
             return f"'{t}'"
         return t
@@ -381,6 +382,7 @@ def make_ts(infos:List[Info]) -> None:
             'double': 'number',
             'str': 'string',
             'bool': 'boolean',
+            'color': 'string',
             }
     def convert_type(t:str) -> str:
         if '[' in t[1:]:
@@ -501,7 +503,7 @@ def make_ts(infos:List[Info]) -> None:
     fp.flush()
     fp.close();
 
-def make_c(infos:List[Info]) -> None:
+def make_c(infos:List[Info], cf=False) -> None:
     fp = open('Generated/messages.h', 'w', encoding='utf-8')
     def p(*args, **kwargs):
         print(*args, **kwargs, file=fp)
@@ -509,10 +511,15 @@ def make_c(infos:List[Info]) -> None:
     p('#define WEBDND_MESSAGES_H')
     p('#include <stdint.h> // integer types')
     p('#include <stddef.h> // size_t')
-    p('typedef struct String {')
-    p('    const char* text;')
-    p('    size_t length;')
-    p('} String;')
+    if cf:
+        p('#import <CoreFoundation/CFString.h>')
+        p('typedef CFStringRef String;')
+    else:
+        p('typedef struct String {')
+        p('    const char* text;')
+        p('    size_t length;')
+        p('} String;')
+    p('typedef float Color[4];')
     enums = {}
     structs = {}
     unions = {}
@@ -540,6 +547,7 @@ def make_c(infos:List[Info]) -> None:
         typenames = {
             'str': 'String',
             'int': 'int64_t',
+            'color': 'Color',
         }
         if t in typenames:
             return typenames[t], n
@@ -654,3 +662,4 @@ if __name__ == '__main__':
     make_python(infos)
     make_ts(infos)
     make_c(infos)
+    make_c(infos, cf=True)
