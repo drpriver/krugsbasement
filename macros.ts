@@ -276,15 +276,16 @@ document.addEventListener('DOMContentLoaded', function(){
         };
         dialog.show();
     });
+    ONRECV(ToClient.CHAT_TEST_STRUCTURED_RESPONSE, function(response:Array<ChatMsg>){
+        (log as any).replaceChildren();
+        add_chat_msgs(log, response);
+    });
     test_button.addEventListener('click', function(){
         if(!m) return;
         let commands = evaluate(m.body, EvaluateFlags.NONE);
-        (log as any).replaceChildren();
         if(commands.length){
             let to_send: ChatCommandMessage = {chatname:CHATNAME, commands:commands};
-            EMIT(FromClient.CHAT_TEST_STRUCTURED_INPUT, to_send, function(response:Array<ChatMsg>){
-                add_chat_msgs(log, response);
-            });
+            EMIT(FromClient.CHAT_TEST_STRUCTURED_INPUT, to_send);
         }
     });
     use_button.addEventListener('click', function(){

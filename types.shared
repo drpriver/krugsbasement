@@ -46,8 +46,10 @@ enum ToClient: int
     CHAT_CLEAR = 3
     CHAT_CREATE = 4
     CHAT_STRUCTURED_MSG = 5
+    CHAT_TEST_STRUCTURED_RESPONSE = 25
     # Roll messages
     NEW_ROLL_TABLE = 6
+    ROLL_TABLES = 26
     # Canvas
     CANVAS_INITIALIZE_MAPS = 7
     CANVAS_CREATE_OBJECTS = 8
@@ -68,6 +70,8 @@ enum ToClient: int
     NOTE_UPDATE_TITLE = 22
     NOTE_DIRTY = 23
     NOTE_DELETE = 24
+    GOT_NOTE = 27
+    NEW_NOTE_RESPONSE = 28
 
 
 # Commands. These are sent from the client to the server
@@ -493,9 +497,9 @@ enum ORIENTATION: int
     TOPLEFT_DOWNRIGHT = 2
     TOPRIGHT_DOWNLEFT = 3
 
-//  door
-//  ----
-//  A door.
+// door
+// ----
+// A door.
 struct StrippedDoorObj: array
     type = CANVASTYPE.DOOR
     id = int
@@ -715,6 +719,7 @@ message ToClientMsg: ToClient
     CHAT_CLEAR = void
     CHAT_CREATE = [ChatMsg]
     CHAT_STRUCTURED_MSG = [ChatMsg]
+    CHAT_TEST_STRUCTURED_RESPONSE = [ChatMsg]
     NEW_ROLL_TABLE = RollTable
     CANVAS_INITIALIZE_MAPS = [InitializeMap]
     CANVAS_CREATE_OBJECTS = [CreateObjectsMessage]
@@ -734,13 +739,16 @@ message ToClientMsg: ToClient
     NOTE_UPDATE_TITLE = NoteUpdateTitle
     NOTE_DIRTY = int
     NOTE_DELETE = int
+    ROLL_TABLES = [RollTable]
+    GOT_NOTE = Note
+    NEW_NOTE_RESPONSE = int
 
 message FromClientMsg: FromClient
     JOIN = str
     POST_JOIN = void
     CHAT_STRUCTURED_INPUT = ChatCommandMessage
-    CHAT_TEST_STRUCTURED_INPUT = ChatCommandMessage, cb([ChatMsg])
-    RETRIEVE_ROLL_TABLES = void, cb([RollTable])
+    CHAT_TEST_STRUCTURED_INPUT = ChatCommandMessage
+    RETRIEVE_ROLL_TABLES = void
     UPDATE_ROLL_TABLES = [RollTable]
     UPLOAD_ROLL_TABLE = RollTable
     CANVAS_CREATE_OBJECTS = CreateObjectMessage
@@ -756,8 +764,8 @@ message FromClientMsg: FromClient
     CANVAS_DELETE_MAP_REQUEST = int
     CANVAS_BATTLE = GatherMessage
     CANVAS_DUNGEON_MODE = void
-    GET_NOTE = int, cb(Note)
-    NEW_NOTE_REQUEST = void, cb(int)
+    GET_NOTE = int
+    NEW_NOTE_REQUEST = void
     NOTE_UPDATE_TITLE = NoteUpdateTitle
     NOTE_UPDATE_BODY = NoteUpdateBody
     DELETE_NOTE_REQUEST = int

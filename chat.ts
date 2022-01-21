@@ -585,6 +585,18 @@ document.addEventListener('DOMContentLoaded',function(){
     tablewindow.hide_handler = function(){
         submit_tables();
     };
+    ONRECV(ToClient.ROLL_TABLES, function(rts:Array<RollTable>){
+        listview.clear();
+        for(let rt of rts){
+            listview.add_item(rt.name, rt.id);
+        }
+        rolltables = rts;
+        if(!rts.length){
+            listview.make_active(undefined);
+        }
+        else
+            listview.make_active(rolltables[0].id);
+    });
     tablewindow.show_handler = function(){
         rolltables = [];
         current_table = undefined;
@@ -592,18 +604,7 @@ document.addEventListener('DOMContentLoaded',function(){
         newtableid = -1;
         listview.clear();
         tableview.clear();
-        EMIT(FromClient.RETRIEVE_ROLL_TABLES, function(rts:Array<RollTable>){
-            listview.clear();
-            for(let rt of rts){
-                listview.add_item(rt.name, rt.id);
-            }
-            rolltables = rts;
-            if(!rts.length){
-                listview.make_active(undefined);
-            }
-            else
-                listview.make_active(rolltables[0].id);
-        });
+        EMIT(FromClient.RETRIEVE_ROLL_TABLES); 
     };
     listview.activate_handler = function(id:number | undefined){
         let parenttable = tableview.tbody.parentNode! as HTMLTableElement;

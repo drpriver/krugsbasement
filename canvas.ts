@@ -177,7 +177,7 @@ const SORTORDER = [
        4, // FIXTURE
        1, // FILLED_TILE
        1, // TERRAIN_TILE
-       1, // TERRAIN_ICON
+       1, // TERRAIN_ICON ??? doesn't exist ???
        1, // ICON_TILE
 ];
 //

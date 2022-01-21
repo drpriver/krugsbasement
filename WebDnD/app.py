@@ -192,15 +192,17 @@ def delete_map_request(map_id:int) -> None:
 def note_get(note_id: int):
     assert isinstance(note_id, int)
     room = get_room(request)
-    return notes.get_note(room, note_id)
+    emit(ToClient.GOT_NOTE, notes.get_note(room, note_id))
+    # return notes.get_note(room, note_id)
 
 @socketio.on(FromClient.NEW_NOTE_REQUEST)
-def new_note_request() -> int:
+def new_note_request() -> None:
     room = get_room(request)
     note_id = notes.new_note_request(room)
     logging.info('new note: %d for room "%s"', note_id, room)
     emit(ToClient.NEW_NOTE, note_id, broadcast=True, include_self=False, to=room)
-    return note_id
+    emit(ToClient.NEW_NOTE_RESPONSE, note_id)
+    # return note_id
 
 @socketio.on(FromClient.NOTE_UPDATE_TITLE)
 def note_update_title(data:NoteUpdateTitle) -> None:
@@ -228,10 +230,10 @@ def note_delete(note_id:int) -> None:
     emit(ToClient.NOTE_DELETE, note_id, broadcast=True, include_self=True, to=room)
 
 @socketio.on(FromClient.RETRIEVE_ROLL_TABLES)
-def retrieve_roll_tables() -> list:
+def retrieve_roll_tables() -> None:
     room = get_room(request)
     logging.info('retrieving roll tables for room "%s"', room)
-    return chat.get_roll_tables(room)
+    emit(ToClient.ROLL_TABLES, chat.get_roll_tables(room))
 
 register_list('[RollTable]', 'RollTable')
 @socketio.on(FromClient.UPDATE_ROLL_TABLES)

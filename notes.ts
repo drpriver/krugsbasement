@@ -121,12 +121,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if(is_editing) return;
         is_editing = true;
         if(current_note_id == -1){
-            // this was copy-pasted from the new note button.
-            EMIT(FromClient.NEW_NOTE_REQUEST, function(new_id:number){
-                let id = new_id;
-                add_note(id, {id:id, title:'Untitled', body:'', flags:0, need_send:false,  need_receive:false});
-                listview.make_active(id);
-            });
+            EMIT(FromClient.NEW_NOTE_REQUEST);
         }
         edit_notes_button.innerText = 'Done';
         notes_editor_container.style.display = 'block';
@@ -173,6 +168,7 @@ document.addEventListener('DOMContentLoaded', function(){
             update_iframe();
         }
     }
+    ONRECV(ToClient.GOT_NOTE, onget);
     listview.activate_handler = function(id:number|undefined){
         sync_note();
         if(id === undefined){
@@ -189,7 +185,7 @@ document.addEventListener('DOMContentLoaded', function(){
             return;
         }
         if(note.need_receive){
-            EMIT(FromClient.GET_NOTE, id, onget);
+            EMIT(FromClient.GET_NOTE, id);
         }
         else {
             notes_area.value = note.body;
@@ -332,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if(!note) return;
         note.need_receive = true;
         if(note_id == current_note_id){
-            EMIT(FromClient.GET_NOTE, note_id, onget);
+            EMIT(FromClient.GET_NOTE, note_id);
         }
     });
     function sync_note(){
@@ -367,16 +363,15 @@ document.addEventListener('DOMContentLoaded', function(){
     ONRECV(ToClient.NEW_NOTE, function(note_id:number){
         add_note(note_id, {flags:0, title:'Untitled', body:'', id:note_id, need_send:false, need_receive:false});
     });
+    ONRECV(ToClient.NEW_NOTE_RESPONSE, function(id:number){
+        add_note(id, {id:id, title:'Untitled', body:'', flags:0, need_send:false,  need_receive:false});
+        listview.make_active(id);
+    });
     by_id('new-note').addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
-        let id: number;
         stop_editing();
-        EMIT(FromClient.NEW_NOTE_REQUEST, function(new_id:number){
-            id = new_id;
-            add_note(id, {id:id, title:'Untitled', body:'', flags:0, need_send:false,  need_receive:false});
-            listview.make_active(id);
-        });
+        EMIT(FromClient.NEW_NOTE_REQUEST);
     });
     ONRECV(ToClient.NOTE_UPDATE_TITLE, function(data:NoteUpdateTitle){
         let note = NOTES.get(data.note_id);
