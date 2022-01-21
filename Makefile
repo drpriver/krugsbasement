@@ -1,6 +1,6 @@
 Depends: ; mkdir -p $@
 Generated: ; mkdir -p $@
-Bin: ; mkdir -p @
+Bin: ; mkdir -p $@
 DEPFILES:= $(wildcard Depends/*.dep)
 include $(DEPFILES)
 TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError

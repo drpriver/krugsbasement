@@ -335,6 +335,7 @@ def make_python(infos: List[Info]) -> None:
                 for member in info.members:
                     if isinstance(member, Comment): continue
                     name, typename, _ = member
+                    if typename == 'color': typename = 'str'
                     if typename.startswith('['):
                         inner = typename[1:-1] # hack, only strip one layer off
                         p(f"register_list('{typename}', '{inner}')")
@@ -348,6 +349,7 @@ def make_python(infos: List[Info]) -> None:
                 for member in info.members:
                     if isinstance(member, Comment): continue
                     name, typename, _ = member
+                    if typename == 'color': typename = 'str'
                     if typename.startswith('['):
                         inner = typename[1:-1] # hack, only strip one layer off
                         p(f"register_list('{typename}', '{inner}')")
