@@ -551,6 +551,7 @@ def make_c(infos:List[Info]) -> None:
             p('enum', info.name, '{')
             for item in info.items:
                 if isinstance(item, Comment):
+                    p('    //', item)
                     continue
                 if info.type == 'str':
                     p('   ', f'{info.name}_{item[0]},')
@@ -561,6 +562,7 @@ def make_c(infos:List[Info]) -> None:
                 p('static const String', info.name+'_Strings[] = {')
                 for item in info.items:
                     if isinstance(item, Comment):
+                        p('    //', item)
                         continue
                     p('    {.text=', f'"{item[1]}", .length=sizeof("{item[1]}")-1', '},')
                 p('};')
@@ -568,8 +570,11 @@ def make_c(infos:List[Info]) -> None:
             p('struct', info.name, '{')
             for member in info.members:
                 if isinstance(member, Comment):
+                    p('    //', member)
                     continue
-                name, type, _ = member
+                name, type, comment = member
+                if comment:
+                    p('    //', comment)
                 if '.' in type:
                     type = type.split('.')[0]
                 if type[0] == '[':
@@ -596,7 +601,9 @@ def make_c(infos:List[Info]) -> None:
             discrimtype = first[1].split('.')[0]
             p('    struct {', discrimtype, 'type; } discrim;')
             for variant in info.variants:
-                if isinstance(variant, Comment): continue
+                if isinstance(variant, Comment): 
+                    p('    //', variant)
+                    continue
                 typename, _ = variant
                 p('   ', typename, typename+'_;')
             p('};')
@@ -607,12 +614,15 @@ def make_c(infos:List[Info]) -> None:
             i = 1
             for item in info.items:
                 if isinstance(item, Comment):
-                    p('//', item)
+                    p('    //', item)
                     continue
                 ty, arg, cb, comment = item
-                p('  _Static_assert(', f'{info.enu}_{ty}', '==', i, ', "Bad enum");')
+                # p('  _Static_assert(', f'{info.enu}_{ty}', '==', i, ', "Bad enum");')
+                if comment:
+                    p('     //', comment)
                 if arg == 'void':
-                    p('  struct {', info.enu, f'_type;', '}', ty, ';')
+                    continue
+                    p('  struct {', info.enu, f'_type;', '}', ty+ ';')
                 elif arg[0] == '[':
                     arg = arg[1:-1]
                     arg, n = fix_type(arg)
@@ -621,12 +631,18 @@ def make_c(infos:List[Info]) -> None:
                     p(info.enu, f'_type;',end='')
                     p(' struct {', arg+' data'+n+';', end='')
                     p(' int count, capacity;', end='')
-                    p(' }', 'data'+'; }', ty, ';')
+                    p(' }', 'data'+'; }', ty+ ';')
                 else:
                     arg,n = fix_type(arg)
-                    p('  struct {', info.enu, f'_type;', arg, 'data'+n+'; }', ty, ';')
+                    p('  struct {', info.enu, f'_type;', arg, 'data'+n+'; }', ty+ ';')
                 i += 1
             p('};')
+        elif isinstance(info, CommentInfo):
+            if info.comments:
+                p('')
+            for comment in info.comments:
+                p(f'//{comment}')
+
 
     p('#endif')
 
