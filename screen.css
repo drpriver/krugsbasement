@@ -465,7 +465,7 @@ html, body {
   border-left: 1px solid black;
   overflow-wrap: break-word;
   z-index: 1;
-  grid-template-rows: max-content auto-fit max-content max-content max-content;
+  grid-template-rows: max-content auto max-content max-content max-content;
   grid-template-columns: 17em;
   /* This thing is the bane of my existence on windows*/
   /* Just overflow: hidden it */

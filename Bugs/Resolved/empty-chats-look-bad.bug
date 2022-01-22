@@ -1,0 +1,10 @@
+bug.py: v0.0.1
+created: 2022-01-22T17:30:16.290343
+resolved: 2022-01-22T18:21:52.281333
+bugmagic^^^^
+Summary::md.summary
+  Empty chats look bad
+
+  The size of the chat elements with an empty chat is goofy.
+Resolved Jan 22, 2022, 06:21PM::md.update
+  I think I fixed this? Apparently it was just a bad grid-template-rows value name? Idk, will have to see.
