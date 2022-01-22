@@ -576,6 +576,3 @@ David20::title #hide
   ::div.log #id(dice-history)
   ::raw
     <textarea spellcheck="false" id="chatinput" rows="4"></textarea>
-
-::script #noinline
-  https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js
