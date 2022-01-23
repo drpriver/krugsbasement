@@ -2,7 +2,6 @@ import io
 import shlex
 from typing import List, Dict, Union, Any, Tuple, Optional
 import random
-from .dice import dice_from_string, roll_dice
 from .persist import Persister
 from flask_socketio import emit
 from .logs import logging
