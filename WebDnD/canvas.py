@@ -3,11 +3,12 @@ if TYPE_CHECKING:
     from typing import TypedDict
 else:
     TypedDict = object
-from .persist import Persister
+from .persist import Persister, Dummy
 from enum import IntFlag, IntEnum
 from .logs import logging
 from .messages import CANVASTYPE, CreateObjectMessage, StrippedObj, CANVASFLAG, MapFlags, GRIDTYPE, CanvasDeleteMessage, CanvasUpdateMessage, CreateObjectsMessage
 from . import db
+from. import appconfig
 
 class MapDict(TypedDict):
     map_id: int
@@ -27,139 +28,86 @@ class Map(NamedTuple):
         md['objects'] = [o for o in md['objects'] if not (o[4] & CANVASFLAG.DELETED)]
         return md
 
-class MapPersister(Persister[Dict[int, Map]]):
-    def read_obj(self, obj):
-        o = db.get_maps(self.campaign_id)
-        result = o if o is not None else obj
-        return load_canvas(result)
+def load_maps(campaign:str, dont_persist=False) -> Dict[int, Dummy[Map]]:
+    campaign_id = db.lookup_campaign(campaign)
+    assert campaign_id is not None
+    o = db.get_maps(campaign_id)
+    if not o:
+        o = [{'map_id':0, 'objects':[], 'map_name':'Untitled'}]
+    maps = load_canvas(o)
+    result = {}
+    for k, m in maps.items():
+        result[k] = SingleMapPersister(campaign, m, dont_persist=dont_persist).obj
+        # result[k].dirty = False
+    return result
 
-    def write_obj(self, obj):
-        db.save_maps(self.campaign_id, save_canvas(obj))
+class SingleMapPersister(Persister[Map]):
+    def read_obj(self, obj:Map):
+        o = Dummy(obj)
+        return o
+    def write_obj(self, obj:Dummy[Map]):
+        db.save_map(self.campaign_id, **obj.value.with_live_objs())
+    def __init__(self, campaign:str, obj:Map, dont_persist=False):
+        campaign_id = db.lookup_campaign(campaign)
+        assert campaign_id is not None
+        self.campaign_id =  campaign_id 
+        name = f'{campaign!r}/maps/{obj.map_name!r}'
+        super().__init__(obj, name, dont_persist=dont_persist)
 
-    def __init__(self, campaign:str, dont_persist=False):
-        name = f'{campaign}/maps'
-        self.campaign_id = db.lookup_campaign(campaign)
-        assert self.campaign_id is not None
-        super().__init__(load_canvas([{'map_id':0, 'objects':[], 'map_name':'Untitled'}]), name, dont_persist=dont_persist)
 
 def save_canvas(maps:Dict[int, Map]) -> List[MapDict]:
     return [v.with_live_objs() for v in maps.values() if not (v.flags & MapFlags.DELETED)]
 
-def arrayify(objects):
-    result = []
-    def get(*args):
-        try:
-            obj.extend([o[a] for a in args])
-        except Exception as e:
-            print('------->', e)
-    for o in objects:
-        t = o['type']
-        obj = [o['type'], o['id'], o['base_x'], o['base_y'], o['flags']]
-        if t == CANVASTYPE.FREEHAND_LINE:
-            get('color', 'points', 'thickness')
-        elif t == CANVASTYPE.GRID_LINE:
-            get('color', 'points')
-        elif t == CANVASTYPE.RECT:
-            get('color', 'width', 'height')
-        elif t == CANVASTYPE.FILLED_RECT:
-            get('color', 'color2', 'width', 'height')
-        elif t == CANVASTYPE.GRID_RECT:
-            get('color', 'width', 'height')
-        elif t == CANVASTYPE.ELLIPSE:
-            get('color', 'color2', 'width', 'height', 'variant')
-        elif t == CANVASTYPE.IMAGE:
-            get('width', 'height', 'url')
-        elif t == CANVASTYPE.TEXT:
-            get('text', 'size')
-            alignment = o.get('alignment', 1)
-            obj.append(alignment)
-        elif t == CANVASTYPE.EZ_TOKEN:
-            get('text', 'color', 'width',  'height', 'statusflags')
-        elif t == CANVASTYPE.IMG_TOKEN:
-            get('url', 'width', 'height', 'statusflags')
-        elif t == CANVASTYPE.DOOR:
-            get('doortype', 'color', 'width', 'orientation')
-        elif t == CANVASTYPE.STAIRS:
-            get('width', 'height', 'rotation')
-        elif t == CANVASTYPE.MEASURE:
-            continue
-        elif t == CANVASTYPE.FIXTURE:
-            get('width', 'height', 'ftype')
-        elif t == CANVASTYPE.FILLED_TILE:
-            get('color')
-            size = o.get('size', 1)
-            obj.append(size)
-        elif t == CANVASTYPE.TERRAIN_TILE:
-            get('terrain_id')
-        elif t == CANVASTYPE.ICON_TILE:
-            get('terrainicon_id')
-        else:
-            raise AssertionError
-        result.append(obj)
-    return result # type: ignore
-
-
 def load_canvas(data) -> Dict[int, Map]:
     result = {}
     for d in data:
-        if 'map_name' not in d:
-            d['map_name'] = 'Untitled'
-        if d['objects'] and isinstance(d['objects'][0], dict):
-            d['objects'] = arrayify(d['objects'])
-        d['objects'] = [o for o in d['objects'] if o[0] != CANVASTYPE.MEASURE]
-        for o in d['objects']:
-            if o[0] == CANVASTYPE.TEXT:
-                if len(o) != 9:
-                    o.append(-1)
         m = Map(**d)
         result[m.map_id] = m
     return result
-
-
 
 def create_maps(room:str) -> None:
     # FIXME: do room to campaign parsing in app.py
     campaign  = room.split('/')[-1] if '/' in room else ''
     if campaign in MAPS:
         return
-    MAPS[campaign] = MapPersister(campaign).obj
-    MAP_OBJS_BY_ID[campaign] = {k:{o[1]:o for o in v.objects} for k,v in MAPS[campaign].items()}
+    MAPS[campaign] = load_maps(campaign)
+    MAP_OBJS_BY_ID[campaign] = {k:{o[1]:o for o in v.value.objects} for k,v in MAPS[campaign].items()}
 
 def create_map(room:str, map_id:int) -> None:
     # FIXME: do room to campaign parsing in app.py
     campaign  = room.split('/')[-1] if '/' in room else ''
     if campaign in MAPS and map_id in MAPS[campaign]:
         return
-    MAPS[campaign][map_id] = Map(map_id, [], 'Untitled')
+    MAPS[campaign][map_id] = SingleMapPersister(campaign, Map(map_id, [], 'Untitled')).obj
     MAP_OBJS_BY_ID[campaign][map_id] = {}
 
 def name_map(room:str, map_id: int, map_name:str) -> None:
     # FIXME: do room to campaign parsing in app.py
     campaign  = room.split('/')[-1] if '/' in room else ''
     m = MAPS[campaign][map_id]
-    MAPS[campaign][map_id] = m._replace(map_name=map_name)
+    MAPS[campaign][map_id].value = m.value._replace(map_name=map_name)
 
 def change_grid_type(room:str, map_id:int, grid_type:GRIDTYPE) -> None:
     # FIXME: do room to campaign parsing in app.py
     campaign  = room.split('/')[-1] if '/' in room else ''
     m = MAPS[campaign][map_id]
-    MAPS[campaign][map_id] = m._replace(grid_type=grid_type)
+    MAPS[campaign][map_id].value = m.value._replace(grid_type=grid_type)
 
 def set_numbered(room:str, map_id:int, numbered:MapFlags) -> None:
     # FIXME: do room to campaign parsing in app.py
     campaign  = room.split('/')[-1] if '/' in room else ''
     m = MAPS[campaign][map_id]
     if numbered & MapFlags.NUMBERED:
-        flags = m.flags | MapFlags.NUMBERED
+        flags = m.value.flags | MapFlags.NUMBERED
     else:
-        flags = m.flags & ~(MapFlags.NUMBERED)
-    MAPS[campaign][map_id] = m._replace(flags=flags)
+        flags = m.value.flags & ~(MapFlags.NUMBERED)
+    MAPS[campaign][map_id].value = m.value._replace(flags=flags)
 
 def new_map_request(room:str, map_name:str, grid_type:GRIDTYPE, flags:MapFlags) -> int:
     # FIXME: do room to campaign parsing in app.py
     campaign  = room.split('/')[-1] if '/' in room else ''
     new_map_id = max(MAPS[campaign].keys()) + 1
-    MAPS[campaign][new_map_id] = Map(new_map_id, [], map_name, grid_type=grid_type, flags=flags)
+    MAPS[campaign][new_map_id] = SingleMapPersister(campaign, Map(new_map_id, [], map_name, grid_type=grid_type, flags=flags)).obj
     MAP_OBJS_BY_ID[campaign][new_map_id] = {}
     return new_map_id
 
@@ -167,22 +115,23 @@ def delete_map(room:str, map_id:int) -> bool:
     # FIXME: do room to campaign parsing in app.py
     campaign  = room.split('/')[-1] if '/' in room else ''
     m = MAPS[campaign][map_id]
-    if m.flags & MapFlags.DELETED:
+    if m.value.flags & MapFlags.DELETED:
         return False
-    if m.flags & MapFlags.CANT_DELETE:
+    if m.value.flags & MapFlags.CANT_DELETE:
         return False
     # Check that we will have at least one map after the deletion.
     # If we won't then reject the request.
     for m in MAPS[campaign].values():
-        if m.map_id == map_id:
+        if m.value.map_id == map_id:
             continue
-        if m.flags & MapFlags.DELETED:
+        if m.value.flags & MapFlags.DELETED:
             continue
         break
     else:
         return False
 
-    MAPS[campaign][map_id] = m._replace(flags=m.flags | MapFlags.DELETED)
+    m = MAPS[campaign][map_id]
+    MAPS[campaign][map_id].value = m.value._replace(flags=m.value.flags | MapFlags.DELETED)
     return True
 
 def handle_create(room:str, data:CreateObjectMessage) -> List[CreateObjectsMessage]:
@@ -194,8 +143,9 @@ def handle_create(room:str, data:CreateObjectMessage) -> List[CreateObjectsMessa
     map_id = data['map_id']
     obj_id = data['object'][1]
     obj = data['object']
-    MAPS[campaign][map_id].objects.append(obj)
+    MAPS[campaign][map_id].value.objects.append(obj)
     MAP_OBJS_BY_ID[campaign][map_id][obj_id] = obj
+    MAPS[campaign][map_id].dirty = True
     return [{'map_id':data['map_id'], 'objects':[data['object']]}]
 
 def handle_delete(room:str, data:CanvasDeleteMessage) -> CanvasDeleteMessage:
@@ -209,6 +159,7 @@ def handle_delete(room:str, data:CanvasDeleteMessage) -> CanvasDeleteMessage:
     obj_ids = data['ids']
     for obj_id in obj_ids:
         OBJS_BY_ID[obj_id][4] |= CANVASFLAG.DELETED # type: ignore
+    MAPS[campaign][map_id].dirty = True
     return data
 
 def handle_update(room:str, data:CanvasUpdateMessage) -> CanvasUpdateMessage:
@@ -224,26 +175,13 @@ def handle_update(room:str, data:CanvasUpdateMessage) -> CanvasUpdateMessage:
         obj_id = obj_state[1]
         # This must mutate the array!
         OBJS_BY_ID[obj_id][:] = obj_state # type: ignore
+    MAPS[campaign][map_id].dirty = True
     return data
-
-def clear(room:str) -> None:
-    # FIXME: do room to campaign parsing in app.py
-    campaign  = room.split('/')[-1] if '/' in room else ''
-    MAPS[campaign].clear()
-    MAP_OBJS_BY_ID[campaign].clear()
 
 def get_state(room:str) -> list:
     # FIXME: do room to campaign parsing in app.py
     campaign  = room.split('/')[-1] if '/' in room else ''
-    return save_canvas(MAPS[campaign])
+    return save_canvas({k:v.value for k, v in MAPS[campaign].items()})
 
-def set_state(room:str, state:list) -> None:
-    # FIXME: do room to campaign parsing in app.py
-    campaign  = room.split('/')[-1] if '/' in room else ''
-    MAPS[campaign].clear()
-    MAPS[campaign].update(load_canvas(state))
-    global MAP_OBJS_BY_ID
-    MAP_OBJS_BY_ID[campaign] = {k:{o[1]:o for o in v.objects} for k,v in MAPS[campaign].items()}
-
-MAPS = {'':MapPersister('', dont_persist=True).obj}
-MAP_OBJS_BY_ID = {'':{k:{o[1]:o for o in v.objects} for k,v in MAPS[''].items()}} # type: Dict[str,Dict[int, Dict[int, StrippedObj]]]
+MAPS = {'':load_maps('', dont_persist=not appconfig.DEV)}
+MAP_OBJS_BY_ID = {'':{k:{o[1]:o for o in v.value.objects} for k,v in MAPS[''].items()}} # type: Dict[str,Dict[int, Dict[int, StrippedObj]]]

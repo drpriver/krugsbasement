@@ -11,31 +11,15 @@ from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg
 
 from enum import IntEnum, IntFlag
 
-def load_chat(data) -> List[ChatMsg]:
-    assert isinstance(data, list)
-    return data
-class ChatPersister(Persister[List[ChatMsg]]):
-    def read_obj(self, obj):
-        o = db.get_chat(self.campaign_id)
-        return o if o is not None else obj
-    def write_obj(self, obj):
-        db.save_chat(self.campaign_id, obj)
-    def __init__(self, campaign:str, dont_persist=False):
-        name = f'{campaign}/chat'
-        self.campaign_id = db.lookup_campaign(campaign)
-        assert self.campaign_id is not None
-        super().__init__([], name, dont_persist=dont_persist)
-HISTORY = {'':ChatPersister('', dont_persist=True).obj}
-
 class RollTablePersister(Persister[List[RollTable]]):
     def read_obj(self, obj):
         o = db.get_rolltable(self.campaign_id)
         return o if o is not None else obj
     def write_obj(self, obj):
-        logging.info('write roll table: %s', obj)
+        logging.info('write roll table: %r', obj)
         db.save_rolltable(self.campaign_id, obj)
     def __init__(self, campaign:str, dont_persist=False):
-        name = f'{campaign}/rolltables'
+        name = f'{campaign!r}/rolltables'
         self.campaign_id = db.lookup_campaign(campaign)
         assert self.campaign_id is not None
         super().__init__([], name, dont_persist=dont_persist)
@@ -66,7 +50,7 @@ def update_roll_tables(room:str, data:List[RollTable]) -> None:
                 raise Exception
     tables.clear()
     tables.extend(data)
-    logging.info('tables: %s', tables)
+    logging.info('tables: %r', tables)
 
 def upload_roll_table(room:str, data:RollTable) -> Optional[RollTable]:
     tables = get_roll_tables(room)
@@ -74,14 +58,6 @@ def upload_roll_table(room:str, data:RollTable) -> Optional[RollTable]:
     data['id'] = highest + 1
     tables.append(data)
     return data
-
-def create_chat(room:str) -> None:
-    logging.info('room: "%s"', room)
-    # FIXME: do room to campaign parsing in app.py
-    campaign  = room.split('/')[-1] if '/' in room else ''
-    if campaign in HISTORY:
-        return
-    HISTORY[campaign] = ChatPersister(campaign).obj
 
 def parse_and_roll_table(room:str, line:str) -> Tuple[str, str]:
     line = line.strip()
@@ -113,17 +89,10 @@ def parse_and_roll_table_inner(mapping:Dict[str, RollTable], key:str, path:str, 
 def get_history(room:str) -> List[ChatMsg]:
     # FIXME: do room to campaign parsing in app.py
     campaign  = room.split('/')[-1] if '/' in room else ''
-    return HISTORY[campaign][-100:]
-
-def clear(campaign:str) -> None:
-    HISTORY[campaign].clear()
-
-def set_state(room:str, state:List[ChatMsg]) -> None:
-    # FIXME: do room to campaign parsing in app.py
-    campaign  = room.split('/')[-1] if '/' in room else ''
-    clear(campaign)
-    HISTORY[campaign].extend(state)
-
+    campaign_id = db.lookup_campaign(campaign)
+    if campaign_id is None:
+        return []
+    return db.get_chat(campaign_id)
 
 def handle_structured_input(room:str, user:str, commands:List[Command], test:bool) -> List[ChatMsg]:
     # FIXME: do room to campaign parsing in app.py
@@ -178,7 +147,10 @@ def handle_structured_input(room:str, user:str, commands:List[Command], test:boo
             raise Exception(cc)
 
     if not test:
-        HISTORY[campaign].extend(result)
+        campaign_id = db.lookup_campaign(campaign)
+        assert campaign_id
+        for msg in result:
+            db.save_chat_msg(campaign_id, msg[0], msg[1], msg[2])
     return result
 
 def structured_roll_die(die:UnrolledDiceExpr) -> None:

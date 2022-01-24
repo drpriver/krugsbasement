@@ -2325,9 +2325,11 @@ function redo_is_impossible(map:DungeonMap):boolean{
 let localid = 0;
 // Combines the session id with the local id to create a
 // unique id for an object
+// If you get more up to more than 1,048,576 objects in a single session we'll be in trouble.
+// That's actually kind of a FIXME...
 function get_new_id(): number{
     ++localid;
-    let id = (session_id << 20) + localid;
+    let id = (session_id << 20) | localid;
     return id;
 }
 // Needs to be global as it's shared between buffers.

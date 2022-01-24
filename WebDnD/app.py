@@ -39,7 +39,7 @@ def chat_test_structured_input(data:ChatCommandMessage):
     return responses
 
 session_id = AppKVPersister('session_id', 0).obj
-logging.info('session_id: %s', session_id.value)
+logging.info('session_id: %r', session_id.value)
 
 sid_to_room = {} # type: Dict[str, str]
 def get_room(req) -> str:
@@ -65,11 +65,11 @@ def handle_connection() -> None:
 @socketio.on(FromClient.JOIN)
 def join(room:str) -> None:
     record_room(request, room)
-    logging.info("Someone joining room: '%s'", room);
+    logging.info("Someone joining room: %r", room);
     join_room(room)
-    chat.create_chat(room)
+    # chat.create_chat(room)
     canvas.create_maps(room)
-    notes.create_notes_for_room(room)
+    # notes.create_notes_for_room(room)
 
 @socketio.on(FromClient.POST_JOIN)
 def post_join():
@@ -149,7 +149,7 @@ def new_map_request(data:NewMapRequest) -> None:
     flags = data['flags']
     room = get_room(request)
     new_map_id = canvas.new_map_request(room, map_name, grid_type, flags)
-    logging.info('new map: %d for room "%s", with name: "%s"', new_map_id, room, map_name)
+    logging.info('new map: %r for room %r, with name: %r', new_map_id, room, map_name)
     emit(ToClient.CANVAS_CREATE_MAP, new_map_id, broadcast=True, include_self=True, to=room)
     emit(ToClient.CANVAS_NAME_MAP, {'map_id':new_map_id, 'map_name':map_name}, broadcast=True, include_self=True, to=room)
     emit(ToClient.CANVAS_GRID_TYPE, {'map_id':new_map_id, 'grid_type':grid_type}, broadcast=True, include_self=True, to=room)
@@ -161,7 +161,7 @@ def change_grid_type(data:CanvasGridTypeMsg) -> None:
     map_id = data['map_id']
     gt = data['grid_type']
     room = get_room(request)
-    logging.info('Changing grid type to %s for map %s in room %s', gt, map_id, room)
+    logging.info('Changing grid type to %r for map %r in room %r', gt, map_id, room)
     canvas.change_grid_type(room, map_id, gt)
     emit(ToClient.CANVAS_GRID_TYPE, {'map_id':map_id, 'grid_type':gt}, broadcast=True, include_self=True, to=room)
 
@@ -179,7 +179,7 @@ def change_grid_numbered(data:CanvasGridNumberedMsg) -> None:
 def delete_map_request(map_id:int) -> None:
     assert isinstance(map_id, int)
     room = get_room(request)
-    logging.info('delete map: %d for room "%s"', map_id, room)
+    logging.info('delete map: %r for room %r', map_id, room)
     was_deleted = canvas.delete_map(room, map_id)
     if was_deleted:
         emit(ToClient.CANVAS_DELETE_MAP, map_id, broadcast=True, include_self=True, to=room)
@@ -197,7 +197,7 @@ def note_get(note_id: int):
 def new_note_request() -> None:
     room = get_room(request)
     note_id = notes.new_note_request(room)
-    logging.info('new note: %d for room "%s"', note_id, room)
+    logging.info('new note: %r for room %r', note_id, room)
     emit(ToClient.NEW_NOTE, note_id, broadcast=True, include_self=False, to=room)
     emit(ToClient.NEW_NOTE_RESPONSE, note_id)
     # return note_id
@@ -207,7 +207,7 @@ def note_update_title(data:NoteUpdateTitle) -> None:
     data = validate('NoteUpdateTitle', data)
     room = get_room(request)
     notes.note_update_title(room, data['note_id'], data['title'])
-    # logging.info('Updating note title. Note: %s. Room: %s. Title: %s', data['note_id'], room, data['title'])
+    # logging.info('Updating note title. Note: %r. Room: %r. Title: %r', data['note_id'], room, data['title'])
     emit(ToClient.NOTE_UPDATE_TITLE, data, broadcast=True, include_self=False, to=room) # type: ignore
     # emit(ToClient.NOTE_DIRTY, data['note_id'], broadcast=True, include_self=False, to=room)
 
@@ -215,7 +215,7 @@ def note_update_title(data:NoteUpdateTitle) -> None:
 def note_update_body(data:NoteUpdateBody) -> None:
     data = validate('NoteUpdateBody', data)
     room = get_room(request)
-    # logging.info('Updating note body. Note: %s. Room: %s', data['note_id'], room)
+    # logging.info('Updating note body. Note: %r. Room: %r', data['note_id'], room)
     notes.note_update_body(room, data['note_id'], data['body'])
     emit(ToClient.NOTE_DIRTY, data['note_id'], broadcast=True, include_self=False, to=room)
 
@@ -223,14 +223,14 @@ def note_update_body(data:NoteUpdateBody) -> None:
 def note_delete(note_id:int) -> None:
     assert isinstance(note_id, int)
     room = get_room(request)
-    logging.info('delete note: %d for room "%s"', note_id, room)
+    logging.info('delete note: %r for room %r', note_id, room)
     notes.note_delete(room, note_id)
     emit(ToClient.NOTE_DELETE, note_id, broadcast=True, include_self=True, to=room)
 
 @socketio.on(FromClient.RETRIEVE_ROLL_TABLES)
 def retrieve_roll_tables() -> None:
     room = get_room(request)
-    logging.info('retrieving roll tables for room "%s"', room)
+    logging.info('retrieving roll tables for room %r', room)
     emit(ToClient.ROLL_TABLES, chat.get_roll_tables(room))
 
 register_list('[RollTable]', 'RollTable')
@@ -238,8 +238,8 @@ register_list('[RollTable]', 'RollTable')
 def update_roll_tables(tables:List[RollTable]) -> None:
     tables = validate('[RollTable]', tables)
     room = get_room(request)
-    logging.info('Setting roll tables for room "%s"', room)
-    # logging.info('%s', tables);
+    logging.info('Setting roll tables for room %r', room)
+    # logging.info('%r', tables);
     chat.update_roll_tables(room, tables)
 
 @socketio.on(FromClient.UPLOAD_ROLL_TABLE)
@@ -286,7 +286,7 @@ if appconfig.DEV:
         return send_from_directory('tiles', tile)
     @app.route('/wasm/<wasm>')
     def get_wasm(wasm:str):
-        logging.info('wasm: %s', wasm)
+        logging.info('wasm: %r', wasm)
         return send_from_directory('wasm', wasm)
     @app.route('/favicon.ico')
     def get_favicon():
@@ -294,7 +294,7 @@ if appconfig.DEV:
     @socketio.on(FromClient.DEBUG)
     def log_debug(msg:str) -> None:
         room = get_room(request)
-        logging.info('room: %s - %s', room, msg)
+        logging.info('room: %r - %r', room, msg)
         msg: ChatPlainMsg = (Msg.PLAIN, '', str(msg), )
         emit(ToClient.CHAT_STRUCTURED_MSG, [msg])
 
@@ -304,8 +304,8 @@ if False:
     @app.route('/state', methods=['GET'])
     @app.route('/campaigns/<campaign>/state', methods=['GET', 'POST', 'DELETE'])
     def app_state(campaign:str='/') -> str:
-        logging.info('request: %s', request)
-        logging.info('campaign: %s',  campaign)
+        logging.info('request: %r', request)
+        logging.info('campaign: %r',  campaign)
         query = f'/campaigns/{campaign}' if campaign != '/' else '/'
         if request.method == 'GET':
             args = request.args

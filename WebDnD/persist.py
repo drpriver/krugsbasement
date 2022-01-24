@@ -33,37 +33,45 @@ class Persister(Generic[T]):
     @abstractmethod
     def write_obj(self, obj):
         raise NotImplementedError
-    def __init__(self, obj:T, name:str, save_func:Optional[Callable[[T], JsType]]=None, load_func:Optional[Callable]=None, dont_persist=False) -> None:
+    def __init__(self, obj:T, name:str, dont_persist=False) -> None:
         '''
         obj: the obj to be persisted.
-        filepath: where to save/load the object.
-        save_func: if given, a function that converts the object into something
-                   that can be json serialized.
-        load_func: if given, a function that converts the json object into the
-                   real object.
+        name: the name of the object for logging purposes
         dont_persist: don't save
         '''
         self.name = name
-        self.save_func = save_func
         logging.info('loading %s', name)
         self.obj = self.read_obj(obj)
         if dont_persist:
             return
         atexit.register(self.save)
-        RepeatTimer(6000, self.save).start()
+        # RepeatTimer(6000, self.save).start()
+        RepeatTimer(60, self.save).start()
     def save(self) -> None:
+        if hasattr(self.obj, 'dirty') and not self.obj.dirty:
+            return
         t0 = time.time()
         self.write_obj(self.obj)
         t1 = time.time()
         logging.info('Saving %s took %.3fms', self.name, (t1-t0)*1000)
+        if hasattr(self.obj, 'dirty'):
+            self.obj.dirty = False
 
 class Dummy(Generic[T]):
     def __init__(self, value:T) -> None:
-        self.value = value
+        self._value = value
+        self.dirty = True
+    @property
+    def value(self) -> T:
+        return self._value
+    @value.setter
+    def value(self, val:T) -> None:
+        self._value = val
+        self.dirty = True
 
 class AppKVPersister(Persister[Dummy[T]]):
     def read_obj(self, default:Dummy[T]) -> Dummy[T]:
-        val = db.get_app_kv(self.name, default)
+        val = db.get_app_kv(self.name, default.value)
         return Dummy(val) if val is not None else default
     def write_obj(self, obj:Dummy[T]):
         db.store_app_kv(self.name, obj.value)
