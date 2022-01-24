@@ -1,6 +1,7 @@
 from typing import List, Dict, Union, NamedTuple, Optional
 from .persist import Persister, JsType
 from enum import IntFlag
+from . import db
 import logging
 logging.basicConfig(level=logging.INFO,format='[%(asctime)s][%(levelname)s] - %(funcName)s: %(message)s')
 
@@ -35,16 +36,29 @@ def save_notes(notes:Dict[int, Dict[str, JsType]]) -> List[Dict[str, JsType]]:
         result.append({
             'id': note_id,
             **note,
-            })
+        })
     return result
 
-NOTES = {'/':{}} # type: Dict[str, Dict[int, Dict[str, JsType]]]
-NOTES['/'] = Persister(NOTES['/'], 'BadDb/notes.json', dont_persist=True, load_func=load_notes, save_func=save_notes).obj
+class NotesPersister(Persister[Dict[str, dict]]):
+    def read_obj(self, obj):
+        o = db.get_notes(self.campaign_id)
+        return load_notes(o) if o is not None else obj
+    def write_obj(self, obj):
+        db.save_notes(self.campaign_id, save_notes(obj))
+    def __init__(self, campaign:str, dont_persist=False):
+        name = f'{campaign}/notes'
+        self.campaign_id = db.lookup_campaign(campaign)
+        assert self.campaign_id is not None
+        super().__init__({}, name, dont_persist=dont_persist)
+
+NOTES = {'':NotesPersister('', True).obj}
 
 def new_note_request(room:str) -> int:
-    if room not in NOTES:
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    if campaign not in NOTES:
         create_notes_for_room(room)
-    notes = NOTES[room]
+    notes = NOTES[campaign]
     if not notes:
         result = 1
     else:
@@ -56,21 +70,27 @@ def new_note_request(room:str) -> int:
     return result
 
 def create_notes_for_room(room:str) -> None:
-    if room in NOTES:
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    if campaign in NOTES:
         return
     empty_notes = {} # type: Dict[int, Dict[str, JsType]]
-    NOTES[room] = Persister(empty_notes, 'BadDb'+room+'/notes.json', save_func=save_notes, load_func=load_notes).obj
+    NOTES[campaign] = NotesPersister(campaign).obj
 
 def get_notes_for_room(room:str) -> List[Dict[str, JsType]]:
-    return save_notes(NOTES[room])
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    return save_notes(NOTES[campaign])
 
 def get_note(room:str, note_id:int) -> Optional[dict]:
-    if room not in NOTES:
-        logging.error("Updating a note for a room that doesn't exist: %s", room)
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    if campaign not in NOTES:
+        logging.error("Updating a note for a campaign that doesn't exist: %s", campaign)
         return None
-    notes = NOTES[room]
+    notes = NOTES[campaign]
     if note_id not in notes:
-        logging.error("Updating a note that doesn't exist: %s (room: %s)", note_id, room)
+        logging.error("Updating a note that doesn't exist: %s (campaign: %s)", note_id, campaign)
         return None
     note = notes[note_id]
     return note

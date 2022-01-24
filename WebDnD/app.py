@@ -4,12 +4,13 @@ from .logs import logging
 from . import chat
 from . import canvas
 from . import notes
-from .persist import Persister, RepeatTimer
+from .persist import Persister, RepeatTimer, AppKVPersister
 from. import appconfig
 import os
 import logging
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg
 from .validator import validate, register_list
+from . import db
 
 from typing import List, Dict, Optional, Set, Union
 
@@ -37,18 +38,16 @@ def chat_test_structured_input(data:ChatCommandMessage):
     responses = chat.handle_structured_input(room, data['chatname'], data['commands'], test=True)
     return responses
 
-def save_session_id(unused) -> int:
-    return session_id
-
-session_id = Persister(0, 'BadDb/app.json', save_func=save_session_id).obj
+session_id = AppKVPersister('session_id', 0).obj
+logging.info('session_id: %s', session_id.value)
 
 sid_to_room = {} # type: Dict[str, str]
 def get_room(req) -> str:
     return sid_to_room[req.sid]
 def record_room(req, room:str) -> None:
     sid_to_room[req.sid] = room
-ALLOWED_CAMPAIGNS:Set[str] = set()
-ALLOWED_CAMPAIGNS = Persister(ALLOWED_CAMPAIGNS, 'BadDb/campaigns.json', save_func=list, load_func=set).obj # type: ignore
+
+ALLOWED_CAMPAIGNS = db.get_campaigns()
 
 def get_token_paths():
     with open('token-list.txt', 'r') as fp:
@@ -59,9 +58,8 @@ TOKEN_PATH_LIST = get_token_paths()
 
 @socketio.on('connect')
 def handle_connection() -> None:
-    global session_id
-    session_id += 1
-    emit(ToClient.SESSION_ID, session_id)
+    session_id.value += 1
+    emit(ToClient.SESSION_ID, session_id.value)
     emit(ToClient.TOKEN_PATHS, TOKEN_PATH_LIST)
 
 @socketio.on(FromClient.JOIN)
@@ -69,8 +67,6 @@ def join(room:str) -> None:
     record_room(request, room)
     logging.info("Someone joining room: '%s'", room);
     join_room(room)
-    path = 'BadDb' + room
-    os.makedirs(path, exist_ok=True)
     chat.create_chat(room)
     canvas.create_maps(room)
     notes.create_notes_for_room(room)
@@ -192,7 +188,9 @@ def delete_map_request(map_id:int) -> None:
 def note_get(note_id: int):
     assert isinstance(note_id, int)
     room = get_room(request)
-    emit(ToClient.GOT_NOTE, notes.get_note(room, note_id))
+    note = notes.get_note(room, note_id)
+    if note is not None:
+        emit(ToClient.GOT_NOTE, note)
     # return notes.get_note(room, note_id)
 
 @socketio.on(FromClient.NEW_NOTE_REQUEST)
@@ -297,7 +295,7 @@ if appconfig.DEV:
     def log_debug(msg:str) -> None:
         room = get_room(request)
         logging.info('room: %s - %s', room, msg)
-        msg: ChatPlainMsg = [ 0, '', str(msg), ]
+        msg: ChatPlainMsg = (Msg.PLAIN, '', str(msg), )
         emit(ToClient.CHAT_STRUCTURED_MSG, [msg])
 
 
@@ -314,7 +312,7 @@ if False:
             state = {
                 'chat':chat.get_history(query),
                 'canvas': canvas.get_state(query),
-                'app':{'session_id':session_id},
+                'app':{'session_id':session_id.value},
                 'notes':notes.get_notes_for_room(query),
                 'tables': chat.get_roll_tables(query),
                 }

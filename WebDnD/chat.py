@@ -5,6 +5,7 @@ import random
 from .persist import Persister
 from flask_socketio import emit
 from .logs import logging
+from . import db
 
 from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg, UnrolledDiceExpr, BINARY, UNARY, RolledExpr, ROLLTABLEFLAGS, RollTable
 
@@ -13,18 +14,41 @@ from enum import IntEnum, IntFlag
 def load_chat(data) -> List[ChatMsg]:
     assert isinstance(data, list)
     return data
+class ChatPersister(Persister[List[ChatMsg]]):
+    def read_obj(self, obj):
+        o = db.get_chat(self.campaign_id)
+        return o if o is not None else obj
+    def write_obj(self, obj):
+        db.save_chat(self.campaign_id, obj)
+    def __init__(self, campaign:str, dont_persist=False):
+        name = f'{campaign}/chat'
+        self.campaign_id = db.lookup_campaign(campaign)
+        assert self.campaign_id is not None
+        super().__init__([], name, dont_persist=dont_persist)
+HISTORY = {'':ChatPersister('', dont_persist=True).obj}
 
-HISTORY = {'/':[]}  # type: Dict[str, List[ChatMsg]]
-HISTORY['/'] = Persister(HISTORY['/'], 'BadDb/chat.json', dont_persist=True, load_func=load_chat).obj
+class RollTablePersister(Persister[List[RollTable]]):
+    def read_obj(self, obj):
+        o = db.get_rolltable(self.campaign_id)
+        return o if o is not None else obj
+    def write_obj(self, obj):
+        logging.info('write roll table: %s', obj)
+        db.save_rolltable(self.campaign_id, obj)
+    def __init__(self, campaign:str, dont_persist=False):
+        name = f'{campaign}/rolltables'
+        self.campaign_id = db.lookup_campaign(campaign)
+        assert self.campaign_id is not None
+        super().__init__([], name, dont_persist=dont_persist)
 
-ROLLTABLES = {'/':[]}  # type: Dict[str, List[RollTable]]
-ROLLTABLES['/'] = Persister(ROLLTABLES['/'], 'BadDb/tables.json', dont_persist=True).obj
+ROLLTABLES = {'': RollTablePersister('', dont_persist=True).obj}
 
 def get_roll_tables(room:str) -> List[RollTable]:
-    if room in ROLLTABLES:
-        return ROLLTABLES[room]
-    ROLLTABLES[room] = Persister([], 'BadDb'+room+'/tables.json').obj # type: ignore
-    return ROLLTABLES[room]
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    if campaign in ROLLTABLES:
+        return ROLLTABLES[campaign]
+    ROLLTABLES[campaign] = RollTablePersister(campaign).obj
+    return ROLLTABLES[campaign]
 
 def update_roll_tables(room:str, data:List[RollTable]) -> None:
     tables = get_roll_tables(room)
@@ -40,7 +64,9 @@ def update_roll_tables(room:str, data:List[RollTable]) -> None:
                 raise Exception
             if entry['weight'] > 1e8:
                 raise Exception
-    ROLLTABLES[room] = data
+    tables.clear()
+    tables.extend(data)
+    logging.info('tables: %s', tables)
 
 def upload_roll_table(room:str, data:RollTable) -> Optional[RollTable]:
     tables = get_roll_tables(room)
@@ -49,12 +75,13 @@ def upload_roll_table(room:str, data:RollTable) -> Optional[RollTable]:
     tables.append(data)
     return data
 
-
-
 def create_chat(room:str) -> None:
-    if room in HISTORY:
+    logging.info('room: "%s"', room)
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    if campaign in HISTORY:
         return
-    HISTORY[room] = Persister([], 'BadDb'+room+'/chat.json', load_func=load_chat).obj  # type: ignore
+    HISTORY[campaign] = ChatPersister(campaign).obj
 
 def parse_and_roll_table(room:str, line:str) -> Tuple[str, str]:
     line = line.strip()
@@ -84,17 +111,23 @@ def parse_and_roll_table_inner(mapping:Dict[str, RollTable], key:str, path:str, 
 
 
 def get_history(room:str) -> List[ChatMsg]:
-    return HISTORY[room][-100:]
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    return HISTORY[campaign][-100:]
 
-def clear(room:str) -> None:
-    HISTORY[room].clear()
+def clear(campaign:str) -> None:
+    HISTORY[campaign].clear()
 
 def set_state(room:str, state:List[ChatMsg]) -> None:
-    clear(room)
-    HISTORY[room].extend(state)
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    clear(campaign)
+    HISTORY[campaign].extend(state)
 
 
 def handle_structured_input(room:str, user:str, commands:List[Command], test:bool) -> List[ChatMsg]:
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
     def echo(user:str, text:str) -> ChatMsg:
         return (Msg.ECHOABLE_TEXT, user, text) # type: ignore
     def plain(user:str, text:str) -> ChatMsg:
@@ -145,7 +178,7 @@ def handle_structured_input(room:str, user:str, commands:List[Command], test:boo
             raise Exception(cc)
 
     if not test:
-        HISTORY[room].extend(result)
+        HISTORY[campaign].extend(result)
     return result
 
 def structured_roll_die(die:UnrolledDiceExpr) -> None:

@@ -6,6 +6,8 @@ from . import appconfig
 import threading
 import time
 from .logs import logging
+from . import db
+from abc import abstractmethod
 
 T = TypeVar('T')
 JsType = Union[str, dict, list, int, float]
@@ -15,7 +17,6 @@ class RepeatTimer(threading.Timer):
     def run(self):
         while not self.finished.wait(self.interval):
             self.function(*self.args, **self.kwargs)
-
 class Persister(Generic[T]):
     '''
     An object that handles saving and loading mutable objects.
@@ -26,7 +27,13 @@ class Persister(Generic[T]):
     So, it doesn't work on like ints and shit, but works with
     dicts and lists.
     '''
-    def __init__(self, obj:T, filepath:str, save_func:Optional[Callable[[T], JsType]]=None, load_func:Optional[Callable[[JsType], T]]=None, dont_persist=False) -> None:
+    @abstractmethod
+    def read_obj(self, obj):
+        raise NotImplementedError
+    @abstractmethod
+    def write_obj(self, obj):
+        raise NotImplementedError
+    def __init__(self, obj:T, name:str, save_func:Optional[Callable[[T], JsType]]=None, load_func:Optional[Callable]=None, dont_persist=False) -> None:
         '''
         obj: the obj to be persisted.
         filepath: where to save/load the object.
@@ -36,34 +43,31 @@ class Persister(Generic[T]):
                    real object.
         dont_persist: don't save
         '''
-        self.obj = obj
-        self.filepath = filepath
+        self.name = name
         self.save_func = save_func
-        logging.info(f'loading from {filepath}')
-        try:
-            with open(filepath, 'r') as fp:
-                jsobj = json.load(fp)
-                if load_func:
-                    self.obj = load_func(jsobj)
-                else:
-                    self.obj = jsobj
-        except Exception as e:
-            logging.error(e)
+        logging.info('loading %s', name)
+        self.obj = self.read_obj(obj)
         if dont_persist:
             return
         atexit.register(self.save)
         RepeatTimer(6000, self.save).start()
     def save(self) -> None:
         t0 = time.time()
-        dirname = os.path.dirname(self.filepath)
-        if dirname and dirname != '.':
-            os.makedirs(dirname, exist_ok=True)
-        try:
-            obj = self.save_func(self.obj) if self.save_func else self.obj
-            with open(self.filepath+'_', 'w') as fp:
-                fp.write(json.dumps(obj, separators=(',',':')))
-            os.rename(self.filepath+'_', self.filepath)
-        except Exception as e:
-            logging.error(e)
+        self.write_obj(self.obj)
         t1 = time.time()
-        logging.info(f'Saving {self.filepath} took {(t1-t0)*1000:.3}ms')
+        logging.info('Saving %s took %.3fms', self.name, (t1-t0)*1000)
+
+class Dummy(Generic[T]):
+    def __init__(self, value:T) -> None:
+        self.value = value
+
+class AppKVPersister(Persister[Dummy[T]]):
+    def read_obj(self, default:Dummy[T]) -> Dummy[T]:
+        val = db.get_app_kv(self.name, default)
+        return Dummy(val) if val is not None else default
+    def write_obj(self, obj:Dummy[T]):
+        db.store_app_kv(self.name, obj.value)
+    def __init__(self, name:str, default:T):
+        super().__init__(Dummy(default), name)
+
+

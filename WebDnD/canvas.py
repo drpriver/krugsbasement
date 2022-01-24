@@ -7,6 +7,7 @@ from .persist import Persister
 from enum import IntFlag, IntEnum
 from .logs import logging
 from .messages import CANVASTYPE, CreateObjectMessage, StrippedObj, CANVASFLAG, MapFlags, GRIDTYPE, CanvasDeleteMessage, CanvasUpdateMessage, CreateObjectsMessage
+from . import db
 
 class MapDict(TypedDict):
     map_id: int
@@ -26,7 +27,20 @@ class Map(NamedTuple):
         md['objects'] = [o for o in md['objects'] if not (o[4] & CANVASFLAG.DELETED)]
         return md
 
-MAPS = {'/':{0:Map(0, [], 'Untitled')}}
+class MapPersister(Persister[Dict[int, Map]]):
+    def read_obj(self, obj):
+        o = db.get_maps(self.campaign_id)
+        result = o if o is not None else obj
+        return load_canvas(result)
+
+    def write_obj(self, obj):
+        db.save_maps(self.campaign_id, save_canvas(obj))
+
+    def __init__(self, campaign:str, dont_persist=False):
+        name = f'{campaign}/maps'
+        self.campaign_id = db.lookup_campaign(campaign)
+        assert self.campaign_id is not None
+        super().__init__(load_canvas([{'map_id':0, 'objects':[], 'map_name':'Untitled'}]), name, dont_persist=dont_persist)
 
 def save_canvas(maps:Dict[int, Map]) -> List[MapDict]:
     return [v.with_live_objs() for v in maps.values() if not (v.flags & MapFlags.DELETED)]
@@ -104,48 +118,62 @@ def load_canvas(data) -> Dict[int, Map]:
 
 
 def create_maps(room:str) -> None:
-    if room in MAPS:
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    if campaign in MAPS:
         return
-    MAPS[room] = Persister({0:Map(0, [], 'Untitled')}, 'BadDb'+room+'/canvas.json', save_func=save_canvas, load_func=load_canvas).obj
-    MAP_OBJS_BY_ID[room] = {k:{o[1]:o for o in v.objects} for k,v in MAPS[room].items()}
+    MAPS[campaign] = MapPersister(campaign).obj
+    MAP_OBJS_BY_ID[campaign] = {k:{o[1]:o for o in v.objects} for k,v in MAPS[campaign].items()}
 
 def create_map(room:str, map_id:int) -> None:
-    if room in MAPS and map_id in MAPS[room]:
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    if campaign in MAPS and map_id in MAPS[campaign]:
         return
-    MAPS[room][map_id] = Map(map_id, [], 'Untitled')
-    MAP_OBJS_BY_ID[room][map_id] = {}
+    MAPS[campaign][map_id] = Map(map_id, [], 'Untitled')
+    MAP_OBJS_BY_ID[campaign][map_id] = {}
 
 def name_map(room:str, map_id: int, map_name:str) -> None:
-    m = MAPS[room][map_id]
-    MAPS[room][map_id] = m._replace(map_name=map_name)
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    m = MAPS[campaign][map_id]
+    MAPS[campaign][map_id] = m._replace(map_name=map_name)
 
 def change_grid_type(room:str, map_id:int, grid_type:GRIDTYPE) -> None:
-    m = MAPS[room][map_id]
-    MAPS[room][map_id] = m._replace(grid_type=grid_type)
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    m = MAPS[campaign][map_id]
+    MAPS[campaign][map_id] = m._replace(grid_type=grid_type)
 
 def set_numbered(room:str, map_id:int, numbered:MapFlags) -> None:
-    m = MAPS[room][map_id]
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    m = MAPS[campaign][map_id]
     if numbered & MapFlags.NUMBERED:
         flags = m.flags | MapFlags.NUMBERED
     else:
         flags = m.flags & ~(MapFlags.NUMBERED)
-    MAPS[room][map_id] = m._replace(flags=flags)
+    MAPS[campaign][map_id] = m._replace(flags=flags)
 
 def new_map_request(room:str, map_name:str, grid_type:GRIDTYPE, flags:MapFlags) -> int:
-    new_map_id = max(MAPS[room].keys()) + 1
-    MAPS[room][new_map_id] = Map(new_map_id, [], map_name, grid_type=grid_type, flags=flags)
-    MAP_OBJS_BY_ID[room][new_map_id] = {}
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    new_map_id = max(MAPS[campaign].keys()) + 1
+    MAPS[campaign][new_map_id] = Map(new_map_id, [], map_name, grid_type=grid_type, flags=flags)
+    MAP_OBJS_BY_ID[campaign][new_map_id] = {}
     return new_map_id
 
 def delete_map(room:str, map_id:int) -> bool:
-    m = MAPS[room][map_id]
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    m = MAPS[campaign][map_id]
     if m.flags & MapFlags.DELETED:
         return False
     if m.flags & MapFlags.CANT_DELETE:
         return False
     # Check that we will have at least one map after the deletion.
     # If we won't then reject the request.
-    for m in MAPS[room].values():
+    for m in MAPS[campaign].values():
         if m.map_id == map_id:
             continue
         if m.flags & MapFlags.DELETED:
@@ -154,37 +182,43 @@ def delete_map(room:str, map_id:int) -> bool:
     else:
         return False
 
-    MAPS[room][map_id] = m._replace(flags=m.flags | MapFlags.DELETED)
+    MAPS[campaign][map_id] = m._replace(flags=m.flags | MapFlags.DELETED)
     return True
 
 def handle_create(room:str, data:CreateObjectMessage) -> List[CreateObjectsMessage]:
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
     '''
     { map_id: 0, object:{...}, }
     '''
     map_id = data['map_id']
     obj_id = data['object'][1]
     obj = data['object']
-    MAPS[room][map_id].objects.append(obj)
-    MAP_OBJS_BY_ID[room][map_id][obj_id] = obj
+    MAPS[campaign][map_id].objects.append(obj)
+    MAP_OBJS_BY_ID[campaign][map_id][obj_id] = obj
     return [{'map_id':data['map_id'], 'objects':[data['object']]}]
 
 def handle_delete(room:str, data:CanvasDeleteMessage) -> CanvasDeleteMessage:
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
     '''
     {map_id: 0, ids:[1,23]}
     '''
     map_id = data['map_id']
-    OBJS_BY_ID = MAP_OBJS_BY_ID[room][map_id]
+    OBJS_BY_ID = MAP_OBJS_BY_ID[campaign][map_id]
     obj_ids = data['ids']
     for obj_id in obj_ids:
         OBJS_BY_ID[obj_id][4] |= CANVASFLAG.DELETED # type: ignore
     return data
 
 def handle_update(room:str, data:CanvasUpdateMessage) -> CanvasUpdateMessage:
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
     '''
     {map_id:0, obj_states: {...}}
     '''
     map_id = data['map_id']
-    OBJS_BY_ID = MAP_OBJS_BY_ID[room][map_id]
+    OBJS_BY_ID = MAP_OBJS_BY_ID[campaign][map_id]
     obj_states = data['obj_states']
     for obj_state in obj_states:
         obj_id = obj_state[1]
@@ -193,17 +227,23 @@ def handle_update(room:str, data:CanvasUpdateMessage) -> CanvasUpdateMessage:
     return data
 
 def clear(room:str) -> None:
-    MAPS[room].clear()
-    MAP_OBJS_BY_ID[room].clear()
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    MAPS[campaign].clear()
+    MAP_OBJS_BY_ID[campaign].clear()
 
 def get_state(room:str) -> list:
-    return save_canvas(MAPS[room])
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    return save_canvas(MAPS[campaign])
 
 def set_state(room:str, state:list) -> None:
-    MAPS[room].clear()
-    MAPS[room].update(load_canvas(state))
+    # FIXME: do room to campaign parsing in app.py
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    MAPS[campaign].clear()
+    MAPS[campaign].update(load_canvas(state))
     global MAP_OBJS_BY_ID
-    MAP_OBJS_BY_ID[room] = {k:{o[1]:o for o in v.objects} for k,v in MAPS[room].items()}
+    MAP_OBJS_BY_ID[campaign] = {k:{o[1]:o for o in v.objects} for k,v in MAPS[campaign].items()}
 
-MAPS['/'] = Persister(MAPS['/'], 'BadDb/canvas.json', save_func=save_canvas, load_func=load_canvas, dont_persist=True).obj
-MAP_OBJS_BY_ID = {'/':{k:{o[1]:o for o in v.objects} for k,v in MAPS['/'].items()}} # type: Dict[str,Dict[int, Dict[int, StrippedObj]]]
+MAPS = {'':MapPersister('', dont_persist=True).obj}
+MAP_OBJS_BY_ID = {'':{k:{o[1]:o for o in v.objects} for k,v in MAPS[''].items()}} # type: Dict[str,Dict[int, Dict[int, StrippedObj]]]
