@@ -6,6 +6,7 @@ from .persist import Persister
 from flask_socketio import emit
 from .logs import logging
 from . import db
+import datetime
 
 from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg, UnrolledDiceExpr, BINARY, UNARY, RolledExpr, ROLLTABLEFLAGS, RollTable
 
@@ -149,8 +150,10 @@ def handle_structured_input(room:str, user:str, commands:List[Command], test:boo
     if not test:
         campaign_id = db.lookup_campaign(campaign)
         assert campaign_id
+        userid = None
+        ts = datetime.datetime.utcnow()
         for msg in result:
-            db.save_chat_msg(campaign_id, msg[0], msg[1], msg[2])
+            db.save_chat_msg(campaign_id, msg[0], msg[1], msg[2], timestamp=ts, userid=userid)
     return result
 
 def structured_roll_die(die:UnrolledDiceExpr) -> None:

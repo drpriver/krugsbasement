@@ -1,3 +1,4 @@
+import os
 import threading
 import sqlite3
 from typing import Optional, Dict
@@ -23,12 +24,42 @@ with conn:
         );
     ''')
     conn.execute('''
-        CREATE TABLE IF NOT EXISTS campaigns (
-            id INTEGER PRIMARY KEY NOT NULL,
-            name TEXT NOT NULL,
-            owner INTEGER  /* unused, in future will be userid */
+        CREATE TABLE IF NOT EXISTS users (
+            userid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            name TEXT NOT NULL UNIQUE, /* must be unique, but allowed to change */
+            passhash TEXT NOT NULL,
+            email TEXT /* may be null */
         );
     ''')
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS campaigns (
+            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            name TEXT NOT NULL,
+            owner INTEGER,  /* unused, in future will be userid */
+            deleted INTEGER DEFAULT 0,
+            public INTEGER DEFAULT 0,
+            FOREIGN KEY(owner) REFERENCES users(userid)
+        );
+    ''')
+    # What campaigns a user has joined
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS joinedcampaigns (
+            userid INTEGER NOT NULL,
+            campaignid INTEGER NOT NULL,
+            FOREIGN KEY(userid) REFERENCES users(userid),
+            FOREIGN KEY(campaignid) REFERENCES campaigns(id)
+        );
+    ''')
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS magicinvitations (
+            campaignid INTEGER NOT NULL,
+            magic INTEGER NOT NULL,
+            created TEXT,
+            FOREIGN KEY(campaignid) REFERENCES campaigns(id),
+            PRIMARY KEY(campaignid, magic)
+        );
+    ''')
+    # What private campaigns a user is allowed to join
     # key-value store for random campaign data
     conn.execute('''
         CREATE TABLE IF NOT EXISTS campkv (
@@ -60,12 +91,14 @@ with conn:
     # Chats are append only.
     conn.execute('''
         CREATE TABLE IF NOT EXISTS chats (
-            msgid INTEGER NOT NULL PRIMARY KEY,
+            msgid INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
             campaignid INTEGER NOT NULL,
             type INTEGER NOT NULL,
             chatname TEXT, /* display name, not unique identifier */
-            timestamp REAL, /* seconds utc timestamp */
+            timestamp TEXT, /* UTC datetime */
             data BLOB, /* json dump */
+            userid INTEGER, /* often NULL */
+            FOREIGN KEY(userid) REFERENCES users(userid),
             FOREIGN KEY(campaignid) REFERENCES campaigns(id)
         );
     ''')
@@ -102,17 +135,16 @@ def get_campaigns() -> Dict[str, int]:
     return result
 
 def store_app_kv(key:str, value) -> None:
-    with DBLOCK:
-        with conn:
-            conn.execute('''
-            INSERT INTO
-                appdata(key, value)
-            VALUES
-                (?, ?)
-            ON CONFLICT(key)
-                DO UPDATE SET value=excluded.value
-            ;
-            ''', (key, value))
+    with DBLOCK, conn:
+        conn.execute('''
+        INSERT INTO
+            appdata(key, value)
+        VALUES
+            (?, ?)
+        ON CONFLICT(key)
+            DO UPDATE SET value=excluded.value
+        ;
+        ''', (key, value))
 def get_app_kv(key:str, default=None):
     with DBLOCK:
         cur = conn.execute('''
@@ -137,17 +169,16 @@ def get_app_kv(key:str, default=None):
             return default
     return row[0] if row else None
 def store_campaign_kv(id: int, key:str, value) -> None:
-    with DBLOCK:
-        with conn:
-            conn.execute('''
-            INSERT INTO
-                campkv(campaignid, key, value)
-            VALUES
-                (?, ?, ?)
-            ON CONFLICT(campaignid, key)
-                DO UPDATE SET value=excluded.value
-            ;
-            ''', (id, key, value))
+    with DBLOCK, conn:
+        conn.execute('''
+        INSERT INTO
+            campkv(campaignid, key, value)
+        VALUES
+            (?, ?, ?)
+        ON CONFLICT(campaignid, key)
+            DO UPDATE SET value=excluded.value
+        ;
+        ''', (id, key, value))
 def get_campaign_kv(id:int, key:str, default=None):
     with DBLOCK:
         cur = conn.execute('''
@@ -176,36 +207,33 @@ def get_campaign_kv(id:int, key:str, default=None):
 # if it is safe to execute this code concurrently.
 # Definitely isn't safe for writes, unclear for reads.
 # Also unclear if the conn object itself is thread-safe.
-def save_chat_msg(campaignid:int, msgtype:int, chatname:str, data) -> None:
+def save_chat_msg(campaignid:int, msgtype:int, chatname:str, data, timestamp=None, userid:int=None) -> None:
     data = json.dumps(data, separators=(',',':'))
-    timestamp = datetime.datetime.utcnow().timestamp()
-    with DBLOCK:
-        with conn:
-            conn.execute('''
-            INSERT INTO
-                chats(campaignid, type, chatname, timestamp, data)
-            VALUES
-                (?, ?, ?, ?, ?)
-            ;
-            ''', (campaignid, msgtype, chatname, timestamp, data))
+    with DBLOCK, conn:
+        conn.execute('''
+        INSERT INTO
+            chats(campaignid, type, chatname, timestamp, data, userid)
+        VALUES
+            (?, ?, ?, ?, ?, ?)
+        ;
+        ''', (campaignid, msgtype, chatname, timestamp, data, userid))
 
 def save_map(id:int, map_id:int, map_name:str, objects:list, flags:int, grid_type:int):
     blob = json.dumps(objects, separators=(',',':'))
-    with DBLOCK:
-        with conn:
-            conn.execute('''
-                INSERT INTO
-                    maps(campaignid, mapid, name, objects, flags, grid_type)
-                VALUES
-                    (?, ?, ?, ?, ?, ?)
-                ON CONFLICT(campaignid, mapid)
-                DO UPDATE SET
-                    name      = excluded.name,
-                    objects   = excluded.objects,
-                    flags     = excluded.flags,
-                    grid_type = excluded.grid_type
-                ;
-            ''', (id, map_id, map_name, blob, flags, grid_type))
+    with DBLOCK, conn:
+        conn.execute('''
+            INSERT INTO
+                maps(campaignid, mapid, name, objects, flags, grid_type)
+            VALUES
+                (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(campaignid, mapid)
+            DO UPDATE SET
+                name      = excluded.name,
+                objects   = excluded.objects,
+                flags     = excluded.flags,
+                grid_type = excluded.grid_type
+            ;
+        ''', (id, map_id, map_name, blob, flags, grid_type))
 def map_convert(row):
     return dict(
         map_id = row[1],
@@ -217,46 +245,43 @@ def map_convert(row):
 
 def get_map(id:int, mapid:int):
     with DBLOCK:
-        with conn:
-            cur = conn.execute('''
-                SELECT
-                    *
-                FROM
-                    maps
-                WHERE
-                    campaignid = ? AND mapid = ?
-                ;
-            ''', (id, mapid))
+        cur = conn.execute('''
+            SELECT
+                *
+            FROM
+                maps
+            WHERE
+                campaignid = ? AND mapid = ?
+            ;
+        ''', (id, mapid))
         row = cur.fetchone()
         return map_convert(row) if row is not None else None
 def get_maps(id:int):
-    with DBLOCK:
-        with conn:
-            cur = conn.execute('''
-                SELECT
-                    *
-                FROM
-                    maps
-                WHERE
-                    campaignid = ?
-                ;
-            ''', (id, ))
-            return [map_convert(row) for row in cur.fetchall()]
+    with DBLOCK, conn:
+        cur = conn.execute('''
+            SELECT
+                *
+            FROM
+                maps
+            WHERE
+                campaignid = ?
+            ;
+        ''', (id, ))
+        return [map_convert(row) for row in cur.fetchall()]
 
 def save_rolltable(id:int, data) -> None:
     if not isinstance(data, str):
         data = json.dumps(data, separators=(',',':'))
-    with DBLOCK:
-        with conn:
-            conn.execute('''
-            INSERT INTO
-                rolltables(campaignid, data)
-            VALUES
-                (?, ?)
-            ON CONFLICT(campaignid)
-                DO UPDATE SET data=excluded.data
-            ;
-            ''', (id, data))
+    with DBLOCK, conn:
+        conn.execute('''
+        INSERT INTO
+            rolltables(campaignid, data)
+        VALUES
+            (?, ?)
+        ON CONFLICT(campaignid)
+            DO UPDATE SET data=excluded.data
+        ;
+        ''', (id, data))
 def lookup_campaign(name:str) -> Optional[int]:
     with DBLOCK:
         cur = conn.execute('''
@@ -273,16 +298,15 @@ def lookup_campaign(name:str) -> Optional[int]:
     return None
 
 def create_campaign(name:str) -> int:
-    with DBLOCK:
-        with conn:
-            cur = conn.execute('''
-            INSERT INTO
-                campaigns(name)
-            VALUES
-                (?)
-            ;
-            ''', (name,))
-            return cur.lastrowid
+    with DBLOCK, conn:
+        cur = conn.execute('''
+        INSERT INTO
+            campaigns(name)
+        VALUES
+            (?)
+        ;
+        ''', (name,))
+        return cur.lastrowid
 
 
 def get_chat(id:int) -> list:
@@ -295,30 +319,29 @@ def get_chat(id:int) -> list:
             WHERE
                 campaignid = ?
             ORDER BY
-                timestamp DESC
+                msgid DESC
             LIMIT 100;
         ''', (id,))
         rows = cur.fetchall()
     result = [[row[2], row[3], json.loads(row[5])] for row in rows]
     result.reverse()
-    return result;
+    return result
 
 def save_note(campaignid:int, title:str, body:str, flags:int, noteid:int):
     # logging.info('saving note: %r/%r noteid: %r', campaignid, title, noteid)
-    with DBLOCK:
-        with conn:
-            conn.execute('''
-            INSERT INTO
-                notes(campaignid, title, body, flags, noteid)
-            VALUES
-                (?, ?, ?, ?, ?)
-            ON CONFLICT(campaignid, noteid)
-                DO UPDATE SET
-                    title = excluded.title,
-                    body = excluded.body,
-                    flags = excluded.flags
-            ;
-            ''', (campaignid, title, body, flags, noteid))
+    with DBLOCK, conn:
+        conn.execute('''
+        INSERT INTO
+            notes(campaignid, title, body, flags, noteid)
+        VALUES
+            (?, ?, ?, ?, ?)
+        ON CONFLICT(campaignid, noteid)
+            DO UPDATE SET
+                title = excluded.title,
+                body = excluded.body,
+                flags = excluded.flags
+        ;
+        ''', (campaignid, title, body, flags, noteid))
 
 def get_notes(id:int) -> list:
     with DBLOCK:
@@ -351,3 +374,37 @@ def get_rolltable(id:int) -> Optional[list]:
         ''', (id,))
         row = cur.fetchone()
     return json.loads(row[0]) if row else None
+
+def make_invite_link(campaignid:int) -> int:
+    with DBLOCK, conn:
+        magic = int.from_bytes(os.urandom(8), 'little', signed=False)
+        now = datetime.datetime.utcnow()
+        cur = conn.execute('''
+            INSERT INTO
+                magicinvitations(campaignid, magic, created)
+            VALUES
+                (?, ?, ?)
+            ;
+        ''', (campaignid, magic, now))
+    return magic
+
+def check_invite_link(campaignid:int, magic:int) -> bool:
+    with DBLOCK:
+        cur = conn.execute('''
+        SELECT
+            *
+        FROM
+            magicinvitations
+        WHERE
+            campaignid = ? AND magic = ?
+        ;''', (campaignid, magic))
+        return cur.fetchone() is not None
+
+def revoke_invite_link(campaignid:int, magic:int) -> None:
+    with DBLOCK, conn:
+        conn.execute('''
+        DELETE FROM
+            magicinvitations
+        WHERE
+            campaignid = ? AND magic = ?
+        ;''', (campaignid, magic))
