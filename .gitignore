@@ -30,3 +30,4 @@ Bin
 *.dsym
 *.o
 Generated
+appconfig.py

@@ -8,7 +8,7 @@ from enum import IntFlag, IntEnum
 from .logs import logging
 from .messages import CANVASTYPE, CreateObjectMessage, StrippedObj, CANVASFLAG, MapFlags, GRIDTYPE, CanvasDeleteMessage, CanvasUpdateMessage, CreateObjectsMessage
 from . import db
-from. import appconfig
+import appconfig
 
 class MapDict(TypedDict):
     map_id: int

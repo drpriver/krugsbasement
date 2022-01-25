@@ -5,7 +5,7 @@ from . import chat
 from . import canvas
 from . import notes
 from .persist import Persister, RepeatTimer, AppKVPersister
-from. import appconfig
+import appconfig
 import os
 import logging
 from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg

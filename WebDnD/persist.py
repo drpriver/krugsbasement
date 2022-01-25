@@ -2,7 +2,7 @@ import json
 import atexit
 import os
 from typing import Generic, TypeVar, Callable, Optional, Union, Any
-from . import appconfig
+import appconfig
 import threading
 import time
 from .logs import logging

@@ -20,8 +20,17 @@ watcher:
 	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc -w $(TSFILES) $(TSCFLAGS) --outFile Generated/combined.js"
 .DEFAULT_GOAL:=screen.html
 
+appconfig.py:
+	echo "# this config is for development." > appconfig.py
+	@echo "# Use different settings on the server" >> appconfig.py
+	@echo "# This should be False on the server" >> appconfig.py
+	@echo "DEV = True " >> appconfig.py
+	@echo "# Where the database is" >> appconfig.py
+	@echo "DBNAME = 'campaigns.db'" >> appconfig.py
+
+
 .PHONY: run
-run: screen.html token-list WebDnD/messages.py
+run: screen.html token-list WebDnD/messages.py | appconfig.py
 	. venv/bin/activate && python3 -m WebDnD.app
 
 screen.html: client.dnd Generated/combined.js | Depends

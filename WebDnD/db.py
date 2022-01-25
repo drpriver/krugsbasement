@@ -6,7 +6,7 @@ import json
 import datetime
 from .logs import logging
 import atexit
-DBNAME = 'campaigns.db'
+from appconfig import DBNAME
 conn = sqlite3.connect(DBNAME, check_same_thread=False)
 atexit.register(lambda: (logging.info('closing db'), conn.close())) # type: ignore
 # Make it threadsafe
