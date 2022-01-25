@@ -38,7 +38,7 @@ def load_maps(campaign:str, dont_persist=False) -> Dict[int, Dummy[Map]]:
     result = {}
     for k, m in maps.items():
         result[k] = SingleMapPersister(campaign, m, dont_persist=dont_persist).obj
-        # result[k].dirty = False
+        result[k].dirty = False
     return result
 
 class SingleMapPersister(Persister[Map]):

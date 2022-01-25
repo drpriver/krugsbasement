@@ -51,7 +51,11 @@ class Persister(Generic[T]):
         if hasattr(self.obj, 'dirty') and not self.obj.dirty:
             return
         t0 = time.time()
-        self.write_obj(self.obj)
+        try:
+            self.write_obj(self.obj)
+        except Exception as e:
+            logging.error('Error saving %r: %s', self.name, e)
+            return
         t1 = time.time()
         logging.info('Saving %s took %.3fms', self.name, (t1-t0)*1000)
         if hasattr(self.obj, 'dirty'):
