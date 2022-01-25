@@ -1,7 +1,8 @@
 Depends: ; mkdir -p $@
+Depends/Generated: ; mkdir -p $@
 Generated: ; mkdir -p $@
 Bin: ; mkdir -p $@
-DEPFILES:= $(wildcard Depends/*.dep)
+DEPFILES:= $(wildcard Depends/*.dep Depends/Generated/*.dep)
 include $(DEPFILES)
 TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError
 TSFILES:= toplevel.ts chat.ts canvas.ts notes.ts utils.ts Generated/messages.ts \
@@ -18,22 +19,24 @@ endif
 .PHONY: watcher
 watcher:
 	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc -w $(TSFILES) $(TSCFLAGS) --outFile Generated/combined.js"
-.DEFAULT_GOAL:=screen.html
+.DEFAULT_GOAL:=Generated/dungeon.html
 
 appconfig.py:
-	echo "# this config is for development." > appconfig.py
+	@echo "# this config is for development." > appconfig.py
 	@echo "# Use different settings on the server" >> appconfig.py
 	@echo "# This should be False on the server" >> appconfig.py
 	@echo "DEV = True " >> appconfig.py
 	@echo "# Where the database is" >> appconfig.py
 	@echo "DBNAME = 'campaigns.db'" >> appconfig.py
+	@echo "# Where static files are" >> appconfig.py
+	@echo "STATICDIR = 'Generated'" >> appconfig.py
 
 
 .PHONY: run
-run: screen.html token-list WebDnD/messages.py | appconfig.py
+run: Generated/dungeon.html token-list WebDnD/messages.py | appconfig.py
 	. venv/bin/activate && python3 -m WebDnD.app
 
-screen.html: client.dnd Generated/combined.js | Depends
+Generated/dungeon.html: client.dnd Generated/combined.js | Depends Depends/Generated
 	dndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
 
 Generated/%.html: Docs/%.dnd | Generated
@@ -43,33 +46,33 @@ Generated/messages.ts WebDnD/messages.py: types.shared Scripts/make_enums.py | G
 	python3 Scripts/make_enums.py
 
 .PHONY: dist.zip
-dist.zip: screen.html
+dist.zip: Generated/dungeon.html
 	rm -rf dist dist.zip
 	mkdir -p dist
-	cp screen.html dist
+	cp server.mak dist
+	cp Generated/dungeon.html dist
 	mkdir -p dist/WebDnD
 	cp WebDnD/*.py dist/WebDnD
 	cp requirements.txt dist
 	cp setup.py dist
-	echo "DEV=False" > dist/WebDnD/appconfig.py
 	zip -r dist dist
 	rm -rf dist
 
 .PHONY: token-list
 token-list:
-	ls tokens > token-list.txt
+	ls tokens > Generated/token-list.txt
 .PHONY: shrink-tokens
 shrink-tokens:
 	python3 shrink_tokens.py
 
 ship-it: dist.zip
-	scp dist.zip david@droplet:/home/david
-	ssh david@droplet "make backup && rm -rf dist && unzip dist && make restore && make token-list"
+	scp dist.zip david@droplet:/home/david/dist.zip
+	ssh david@droplet "cd ~webdnd && bash unpack.sh"
 .PHONY: backup
 backup:
-	ssh david@droplet "make backup"
+	ssh david@droplet "cd ~webdnd && bash backup.sh"
 	-mv campaigns.db campaigns.db.bak
-	scp "david@droplet:/home/david/campaigns.db" .
+	scp "david@droplet:~webdnd/data/campaigns.db.bak" campaigns.db
 tags: *.ts Scripts/tag_ts.py
 	python3 -m Scripts.tag_ts
 
@@ -86,11 +89,11 @@ mypy:
 Bin/meta: meta.c | Bin
 	$(CC) $< -o $@
 # there should be a rule that this generates dialogdefs.ts
-Generated/subwindowdefs.ts Generated/dialogdefs.ts Generated/screen.temp.html: screen.dnd | Generated
-	dndc $< --output Generated/screen.temp.html --strip-spaces --allow-js-write
+Generated/subwindowdefs.ts Generated/dialogdefs.ts Generated/dungeon.temp.html: dungeon.dnd | Generated
+	dndc $< --output Generated/dungeon.temp.html --strip-spaces --allow-js-write
 
-Generated/nodes.ts: Bin/meta Generated/screen.temp.html | Generated
+Generated/nodes.ts: Bin/meta Generated/dungeon.temp.html | Generated
 	Bin/meta $@
 .PHONY: clean
 clean:
-	$(RM) $(wildcard Generated/*) screen.html
+	$(RM) $(wildcard Generated/*) Generated/dungeon.html

@@ -1,0 +1,7 @@
+bug.py: v0.0.1
+created: 2022-01-25T04:16:12.207999
+bugmagic^^^^
+Summary::md.summary
+  Move Data out of Code
+
+  These should really be in separate places so I can ship code and data as separate updates.

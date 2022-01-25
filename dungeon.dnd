@@ -7,7 +7,7 @@ David20::title #hide
   reconnect.
   </div>
 ::css #import
-  screen.css
+  dungeon.css
 ::js
   let raw = ctx.make_node(NodeType.RAW);
   node.parent.replace_child(node, raw);

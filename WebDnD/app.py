@@ -50,7 +50,7 @@ def record_room(req, room:str) -> None:
 ALLOWED_CAMPAIGNS = db.get_campaigns()
 
 def get_token_paths():
-    with open('token-list.txt', 'r') as fp:
+    with open(os.path.join(appconfig.STATICDIR, 'token-list.txt'), 'r') as fp:
         tokens = [l.strip() for l in fp if l.strip()]
     return tokens
 
@@ -250,14 +250,16 @@ def upload_table(table:RollTable) -> None:
     if response:
         emit(ToClient.NEW_ROLL_TABLE, response, broadcast=False, to=room) # type: ignore
 
+htmlpath = os.path.join(appconfig.STATICDIR, 'dungeon.html')
+logging.info('htmlpath: %r', htmlpath)
 
 try:
-    SCREEN: Optional[str] = open('screen.html').read()
+    SCREEN: Optional[str] = open(htmlpath).read()
 except:
     SCREEN = None
 def get_html() -> str:
     if appconfig.DEV:
-        return open('screen.html').read()
+        return open(htmlpath).read()
     else:
         assert SCREEN
         return SCREEN
@@ -340,7 +342,6 @@ def log_connections() -> None:
     nsids = len(manager.rooms['/'][None])
     logging.info('Active connections: %s', nsids)
 rt = RepeatTimer(600, log_connections)
-rt.daemon = True
 rt.start()
 
 if __name__ == '__main__':
