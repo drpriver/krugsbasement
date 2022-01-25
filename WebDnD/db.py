@@ -8,7 +8,7 @@ from .logs import logging
 import atexit
 DBNAME = 'campaigns.db'
 conn = sqlite3.connect(DBNAME, check_same_thread=False)
-atexit.register(lambda: (logging.info('closing db'), conn.close()))
+atexit.register(lambda: (logging.info('closing db'), conn.close())) # type: ignore
 # Make it threadsafe
 # The R is for re-entrant
 DBLOCK = threading.RLock()

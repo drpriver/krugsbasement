@@ -39,9 +39,7 @@ dist.zip: screen.html
 	mkdir -p dist
 	cp screen.html dist
 	mkdir -p dist/WebDnD
-	mkdir -p dist/BadDb
 	cp WebDnD/*.py dist/WebDnD
-	cp DemoDb/*.json dist/BadDb
 	cp requirements.txt dist
 	cp setup.py dist
 	echo "DEV=False" > dist/WebDnD/appconfig.py
@@ -61,10 +59,8 @@ ship-it: dist.zip
 .PHONY: backup
 backup:
 	ssh david@droplet "make backup"
-	-mv BadDb.tar.gz BadDb.tar.gz.bak
-	scp "david@droplet:/home/david/BadDb.tar.gz" .
-	rm -rf BadDb
-	tar xzf BadDb.tar.gz
+	-mv campaigns.db campaigns.db.bak
+	scp "david@droplet:/home/david/campaigns.db" .
 tags: *.ts Scripts/tag_ts.py
 	python3 -m Scripts.tag_ts
 
