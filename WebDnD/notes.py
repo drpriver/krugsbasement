@@ -32,7 +32,9 @@ def save_queued_notes():
         with noteslock:
             title, body, flags, id = note['title'], note['body'], note['flags'], note['id']
         db.save_note(campaign_id, title, body, flags, id)
-RepeatTimer(6, save_queued_notes).start()
+rt = RepeatTimer(60, save_queued_notes)
+rt.daemon = True
+rt.start()
 atexit.register(save_queued_notes)
 
 

@@ -46,7 +46,9 @@ class Persister(Generic[T]):
             return
         atexit.register(self.save)
         # RepeatTimer(6000, self.save).start()
-        RepeatTimer(60, self.save).start()
+        rt = RepeatTimer(60, self.save)
+        rt.daemon = True
+        rt.start()
     def save(self) -> None:
         if hasattr(self.obj, 'dirty') and not self.obj.dirty:
             return
