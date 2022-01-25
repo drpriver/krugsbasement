@@ -64,6 +64,7 @@ def arrayify(objects):
 
 
 def load_canvas(data):
+    objid = 1
     for d in data:
         if 'map_name' not in d:
             d['map_name'] = 'Untitled'
@@ -71,6 +72,8 @@ def load_canvas(data):
             d['objects'] = arrayify(d['objects'])
         d['objects'] = [o for o in d['objects'] if o[0] != CANVASTYPE.MEASURE]
         for o in d['objects']:
+            o[1] = objid
+            objid += 1
             if o[0] == CANVASTYPE.TEXT:
                 if len(o) != 9:
                     o.append(-1)

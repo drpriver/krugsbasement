@@ -151,9 +151,9 @@ def handle_structured_input(room:str, user:str, commands:List[Command], test:boo
         campaign_id = db.lookup_campaign(campaign)
         assert campaign_id
         userid = None
-        ts = datetime.datetime.utcnow()
+        utcnow = datetime.datetime.utcnow()
         for msg in result:
-            db.save_chat_msg(campaign_id, msg[0], msg[1], msg[2], timestamp=ts, userid=userid)
+            db.save_chat_msg(campaign_id, msg[0], msg[1], msg[2], created=utcnow, userid=userid)
     return result
 
 def structured_roll_die(die:UnrolledDiceExpr) -> None:

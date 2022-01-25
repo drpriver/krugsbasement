@@ -5,121 +5,164 @@ from typing import Optional, Dict
 import json
 import datetime
 from .logs import logging
+import atexit
 DBNAME = 'campaigns.db'
 conn = sqlite3.connect(DBNAME, check_same_thread=False)
+atexit.register(lambda: (logging.info('closing db'), conn.close()))
 # Make it threadsafe
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
+DBVERSION = 2
 with conn:
     conn.execute("PRAGMA encoding = 'UTF-8';")
     conn.execute('PRAGMA foreign_keys = ON;')
     conn.execute('PRAGMA synchronous = NORMAL;')
     conn.execute('PRAGMA journal_mode = WAL;')
-    # Key-value store for random app data
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS appdata (
-            key STRING PRIMARY KEY UNIQUE,
-            value ANY
-        );
-    ''')
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            userid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-            name TEXT NOT NULL UNIQUE, /* must be unique, but allowed to change */
-            passhash TEXT NOT NULL,
-            email TEXT /* may be null */
-        );
-    ''')
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS campaigns (
-            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-            name TEXT NOT NULL,
-            owner INTEGER,  /* unused, in future will be userid */
-            deleted INTEGER DEFAULT 0,
-            public INTEGER DEFAULT 0,
-            FOREIGN KEY(owner) REFERENCES users(userid)
-        );
-    ''')
-    # What campaigns a user has joined
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS joinedcampaigns (
-            userid INTEGER NOT NULL,
-            campaignid INTEGER NOT NULL,
-            FOREIGN KEY(userid) REFERENCES users(userid),
-            FOREIGN KEY(campaignid) REFERENCES campaigns(id)
-        );
-    ''')
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS magicinvitations (
-            campaignid INTEGER NOT NULL,
-            magic INTEGER NOT NULL,
-            created TEXT,
-            FOREIGN KEY(campaignid) REFERENCES campaigns(id),
-            PRIMARY KEY(campaignid, magic)
-        );
-    ''')
-    # What private campaigns a user is allowed to join
-    # key-value store for random campaign data
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS campkv (
-            campaignid INTEGER NOT NULL,
-            key STRING,
-            value ANY,
-            FOREIGN KEY(campaignid) REFERENCES campaigns(id),
-            PRIMARY KEY(campaignid, key)
-        );
-    ''')
-    # Each map is its own row. The objects on
-    # that map are just stored as a json blob
-    # for now. Idk if there should be a
-    # separate table just for canvas objs.
-    # My intuition about what is fast or slow
-    # is lacking and this avoids extra selects?
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS maps (
-            campaignid INTEGER NOT NULL,
-            mapid INTEGER NOT NULL, /* generated in app layer */
-            name TEXT NOT NULL,
-            objects BLOB NOT NULL, /* json dump */
-            flags INTEGER NOT NULL,
-            grid_type INTEGER NOT NULL,
-            FOREIGN KEY(campaignid) REFERENCES campaigns(id),
-            PRIMARY KEY(campaignid, mapid)
-        );
-    ''')
-    # Chats are append only.
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS chats (
-            msgid INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-            campaignid INTEGER NOT NULL,
-            type INTEGER NOT NULL,
-            chatname TEXT, /* display name, not unique identifier */
-            timestamp TEXT, /* UTC datetime */
-            data BLOB, /* json dump */
-            userid INTEGER, /* often NULL */
-            FOREIGN KEY(userid) REFERENCES users(userid),
-            FOREIGN KEY(campaignid) REFERENCES campaigns(id)
-        );
-    ''')
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS notes (
-            campaignid INTEGER NOT NULL,
-            title TEXT NOT NULL,
-            body TEXT NOT NULL,
-            flags INTEGER NOT NULL,
-            noteid INTEGER NOT NULL,
-            FOREIGN KEY(campaignid) REFERENCES campaigns(id),
-            PRIMARY KEY(campaignid, noteid)
-        );
-    ''')
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS rolltables (
-            campaignid INTEGER NOT NULL UNIQUE,
-            data BLOB, /* json dump */
-            FOREIGN KEY(campaignid) REFERENCES campaigns(id)
-        );
-    ''')
+def setup_tables():
+    version = conn.execute('PRAGMA user_version;').fetchone()[0]
+    if version == DBVERSION:
+        return
+    conn.execute(f'PRAGMA user_version = {DBVERSION};')
+    # empty db
+    if version == 0:
+        # Key-value store for random app data
+        conn.execute('''
+            CREATE TABLE appdata (
+                key STRING PRIMARY KEY UNIQUE,
+                value ANY
+            );
+        ''')
+        conn.execute('''
+            CREATE TABLE users (
+                userid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                name TEXT NOT NULL UNIQUE, /* must be unique, but allowed to change */
+                passhash TEXT NOT NULL,
+                email TEXT /* may be null */
+            );
+        ''')
+        conn.execute('''
+            CREATE TABLE usercampprefs (
+                userid INTEGER NOT NULL,
+                campaignid INTEGER NOT NULL,
+                data BLOB, /* json blob */
+                PRIMARY KEY(userid, campaignid),
+                FOREIGN KEY(campaignid) REFERENCES campaigns(id),
+                FOREIGN KEY(userid) REFERENCES users(usereid)
+            );
+        ''')
+        conn.execute('''
+            CREATE TABLE userglobprefs (
+                userid INTEGER NOT NULL UNIQUE,
+                data BLOB, /* json blob */
+                FOREIGN KEY(userid) REFERENCES users(userid)
+            );
+        ''')
+        conn.execute('''
+            CREATE TABLE campaigns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                name TEXT NOT NULL,
+                owner INTEGER,  /* unused, in future will be userid */
+                deleted INTEGER DEFAULT 0,
+                public INTEGER DEFAULT 0,
+                FOREIGN KEY(owner) REFERENCES users(userid)
+            );
+        ''')
+        # What campaigns a user has joined
+        conn.execute('''
+            CREATE TABLE joinedcampaigns (
+                userid INTEGER NOT NULL,
+                campaignid INTEGER NOT NULL,
+                FOREIGN KEY(userid) REFERENCES users(userid),
+                FOREIGN KEY(campaignid) REFERENCES campaigns(id)
+            );
+        ''')
+        conn.execute('''
+            CREATE TABLE magicinvitations (
+                campaignid INTEGER NOT NULL,
+                magic INTEGER NOT NULL,
+                created TEXT,
+                FOREIGN KEY(campaignid) REFERENCES campaigns(id),
+                PRIMARY KEY(campaignid, magic)
+            );
+        ''')
+        # What private campaigns a user is allowed to join
+        # key-value store for random campaign data
+        conn.execute('''
+            CREATE TABLE campkv (
+                campaignid INTEGER NOT NULL,
+                key STRING,
+                value ANY,
+                FOREIGN KEY(campaignid) REFERENCES campaigns(id),
+                PRIMARY KEY(campaignid, key)
+            );
+        ''')
+        # Each map is its own row. The objects on
+        # that map are just stored as a json blob
+        # for now. Idk if there should be a
+        # separate table just for canvas objs.
+        # My intuition about what is fast or slow
+        # is lacking and this avoids extra selects?
+        conn.execute('''
+            CREATE TABLE maps (
+                campaignid INTEGER NOT NULL,
+                mapid INTEGER NOT NULL, /* generated in app layer */
+                name TEXT NOT NULL,
+                objects BLOB NOT NULL, /* json dump */
+                flags INTEGER NOT NULL,
+                grid_type INTEGER NOT NULL,
+                FOREIGN KEY(campaignid) REFERENCES campaigns(id),
+                PRIMARY KEY(campaignid, mapid)
+            );
+        ''')
+        # Chats are append only.
+        conn.execute('''
+            CREATE TABLE chats (
+                msgid INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                campaignid INTEGER NOT NULL,
+                type INTEGER NOT NULL,
+                chatname TEXT, /* display name, not unique identifier */
+                created TEXT, /* UTC datetime */
+                data BLOB, /* json dump */
+                userid INTEGER, /* often NULL */
+                FOREIGN KEY(userid) REFERENCES users(userid),
+                FOREIGN KEY(campaignid) REFERENCES campaigns(id)
+            );
+        ''')
+        conn.execute('''
+            CREATE TABLE notes (
+                campaignid INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                body TEXT NOT NULL,
+                flags INTEGER NOT NULL,
+                noteid INTEGER NOT NULL,
+                FOREIGN KEY(campaignid) REFERENCES campaigns(id),
+                PRIMARY KEY(campaignid, noteid)
+            );
+        ''')
+        conn.execute('''
+            CREATE TABLE rolltables (
+                campaignid INTEGER NOT NULL UNIQUE,
+                data BLOB, /* json dump */
+                FOREIGN KEY(campaignid) REFERENCES campaigns(id)
+            );
+        ''')
+    if version < 2:
+        conn.execute('''
+            ALTER TABLE
+                usercampprefs
+            ADD COLUMN
+                macros BLOB; /* json array blob */
+        ''')
+        conn.execute('''
+            ALTER TABLE
+                usercampprefs
+            ADD COLUMN
+                variables BLOB; /* json array blob */
+        ''')
+
+with conn:
+    setup_tables()
 
 def get_campaigns() -> Dict[str, int]:
     result = {}
@@ -207,16 +250,16 @@ def get_campaign_kv(id:int, key:str, default=None):
 # if it is safe to execute this code concurrently.
 # Definitely isn't safe for writes, unclear for reads.
 # Also unclear if the conn object itself is thread-safe.
-def save_chat_msg(campaignid:int, msgtype:int, chatname:str, data, timestamp=None, userid:int=None) -> None:
+def save_chat_msg(campaignid:int, msgtype:int, chatname:str, data, created=None, userid:int=None) -> None:
     data = json.dumps(data, separators=(',',':'))
     with DBLOCK, conn:
         conn.execute('''
         INSERT INTO
-            chats(campaignid, type, chatname, timestamp, data, userid)
+            chats(campaignid, type, chatname, created, data, userid)
         VALUES
             (?, ?, ?, ?, ?, ?)
         ;
-        ''', (campaignid, msgtype, chatname, timestamp, data, userid))
+        ''', (campaignid, msgtype, chatname, created, data, userid))
 
 def save_map(id:int, map_id:int, map_name:str, objects:list, flags:int, grid_type:int):
     blob = json.dumps(objects, separators=(',',':'))
@@ -313,7 +356,7 @@ def get_chat(id:int) -> list:
     with DBLOCK:
         cur = conn.execute('''
             SELECT
-                *
+                type, chatname, data
             FROM
                 chats
             WHERE
@@ -323,7 +366,7 @@ def get_chat(id:int) -> list:
             LIMIT 100;
         ''', (id,))
         rows = cur.fetchall()
-    result = [[row[2], row[3], json.loads(row[5])] for row in rows]
+    result = [[row[0], row[1], json.loads(row[2])] for row in rows]
     result.reverse()
     return result
 
@@ -377,6 +420,7 @@ def get_rolltable(id:int) -> Optional[list]:
 
 def make_invite_link(campaignid:int) -> int:
     with DBLOCK, conn:
+        # using urandom for this might be overkill, but whatever.
         magic = int.from_bytes(os.urandom(8), 'little', signed=False)
         now = datetime.datetime.utcnow()
         cur = conn.execute('''
