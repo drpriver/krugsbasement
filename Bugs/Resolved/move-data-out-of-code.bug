@@ -1,0 +1,10 @@
+bug.py: v0.0.1
+created: 2022-01-25T04:16:12.207999
+resolved: 2022-01-25T18:20:45.524900
+bugmagic^^^^
+Summary::md.summary
+  Move Data out of Code
+
+  These should really be in separate places so I can ship code and data as separate updates.
+Resolved Jan 25, 2022, 06:20PM::md.update
+  This was done. The db is now not in the code and assets folders, so I can ship the update more seamlessly.

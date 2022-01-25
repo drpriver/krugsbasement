@@ -251,7 +251,7 @@ def upload_table(table:RollTable) -> None:
         emit(ToClient.NEW_ROLL_TABLE, response, broadcast=False, to=room) # type: ignore
 
 htmlpath = os.path.join(appconfig.STATICDIR, 'dungeon.html')
-logging.info('htmlpath: %r', htmlpath)
+# logging.info('htmlpath: %r', htmlpath)
 
 try:
     SCREEN: Optional[str] = open(htmlpath).read()
