@@ -1,0 +1,93 @@
+::div.login
+  ::md.centered
+    Have an account? [Login] now!
+    ::js
+      ctx.add_link('login', VARS.next_page?`/login?${VARS.next_page}`:'/login');
+  Register::title
+  ::raw
+    <form action="" method="post">
+  ::js
+    node.parent.children[2].add_child(VARS.hidden);
+  ::div.error-item
+    ::js
+      if(VARS.messages.length){
+        let raw = node.parent.make_child(NodeType.RAW);
+        raw.add_child('<ul class="error">');
+        for(let mess of VARS.messages)
+          raw.add_child(`<li class="error">${mess}</li>`);
+        raw.add_child('</ul>');
+      }
+      if(VARS.username.errors.length){
+        let raw = node.parent.make_child(NodeType.RAW);
+        raw.add_child('<ul class="error">');
+        for(let err of VARS.username.errors)
+          raw.add_child(`<li class="error">${err}</li>`);
+        raw.add_child('</ul>');
+      }
+  ::div.login-item .hint
+    ::raw
+      <span>Between 5 and 32 characters</span>
+  ::div.login-item
+    ::raw
+      <label for="username">Username</label>
+      <input id="username" maxlength="32" minlength="5" name="username" required="" size="32" type="text" value="">
+  ::div.error-item
+    ::js
+      if(VARS.email.errors.length){
+        let raw = node.parent.make_child(NodeType.RAW);
+        raw.add_child('<ul class="error">');
+        for(let err of VARS.email.errors)
+          raw.add_child(`<li class="error">${err}</li>`);
+        raw.add_child('</ul>');
+      }
+  ::div.login-item
+    ::raw
+      <label for="email">Email</label>
+      <input id="email" name="email" required size="32" type="email" value="">
+  ::div.error-item
+    ::js
+      if(VARS.password.errors.length){
+        let raw = node.parent.make_child(NodeType.RAW);
+        raw.add_child('<ul class="error">');
+        for(let err of VARS.password.errors)
+          raw.add_child(`<li class="error">${err}</li>`);
+        raw.add_child('</ul>');
+      }
+  ::div.login-item .hint
+    ::raw
+      <span>Greater than 7 characters.</span>
+  ::div.login-item
+    ::raw
+      <label for="password">Password</label>
+      <input id="password" minlength="8" name="password" required="" size="32" type="password" value="">
+  ::div.error-item
+    ::js
+      if(VARS.password2.errors.length){
+        let raw = node.parent.make_child(NodeType.RAW);
+        raw.add_child('<ul class="error">');
+        for(let err of VARS.password2.errors)
+          raw.add_child(`<li class="error">${err}</li>`);
+        raw.add_child('</ul>');
+      }
+  ::div.login-item
+    ::raw
+      <label for="password2">Repeat Password</label>
+      <input id="password2" name="password2" required="" size="32" type="password" value="">
+  ::div.login-item .hint
+    ::raw
+      <span>Special invitation code.</span>
+  ::div.login-item
+    ::raw
+      <label for="magic">Magic Code</label>
+      <input id="magic" name="magic" required="" value="" size="32">
+  ::div.login-item
+    ::raw
+      <label for="remember_me">Remember Me</label>
+      <input checked="" id="remember_me" name="remember_me" type="checkbox" value="y">
+      <input id="register" name="register" type="submit" value="Register">
+  ::raw
+    </form>
+::css #import
+  login.css
+::script #import
+  darkmode.js

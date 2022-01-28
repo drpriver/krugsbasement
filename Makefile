@@ -47,6 +47,10 @@ Generated/%.html: Docs/%.dnd | Generated
 
 Generated/%.dnd: %.dnd
 	cp $< $@
+Generated/%.css: %.css
+	cp $< $@
+Generated/%.js: %.js
+	cp $< $@
 
 Generated/messages.ts WebDnD/messages.py: types.shared Scripts/make_enums.py | Generated
 	python3 Scripts/make_enums.py

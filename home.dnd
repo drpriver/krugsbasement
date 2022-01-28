@@ -1,0 +1,74 @@
+::md.right
+  [Logout]
+::md.center
+  Home::title
+  ::md
+    ::js
+      node.parent.parse(`Welcome ${VARS.name}, this is your home`);
+
+  There's not much here yet, but it is something.
+  Your Campaigns::md
+    Go to a campaign:
+    ::js
+      let s = '';
+      let i = 0;
+      for(let campaign of VARS.campaigns){
+        s += `* [${campaign?campaign: 'Demo'} | ${i}]\n`;
+        ctx.add_link(''+i, campaign?'/campaigns/'+campaign : '/');
+        i++;
+      }
+      node.parent.parse(s);
+  Settings::md
+    ::raw
+      <b>Dark Mode</b>:<br>
+      <input id="darkmode-sys" name="darkmode" type="radio" value="auto">
+      <label for="darkmode-sys">System</label>
+      <br>
+      <input id="darkmode-dark" name="darkmode" type="radio" value="auto">
+      <label for="darkmode-dark">Dark</label>
+      <br>
+      <input id="darkmode-light" name="darkmode" type="radio" value="auto">
+      <label for="darkmode-light">Light</label>
+      <br>
+::css #import
+  login.css
+::script #import
+  darkmode.js
+::script
+  document.addEventListener('DOMContentLoaded', function(){
+    const dark_sys = document.getElementById('darkmode-sys');
+    const dark_dark = document.getElementById('darkmode-dark');
+    const dark_light = document.getElementById('darkmode-light');
+    fetch('/settings')
+    .then(response => response.json())
+    .then(settings => {
+        let mode = settings.darkmode | 0;
+        if(mode < 0 || mode > 2) mode = 0;
+        set_darkmode(mode);
+      switch(current_dark_mode){
+        case 0:
+          dark_sys.checked = true;
+          break;
+        case 1:
+          dark_dark.checked = true;
+          break;
+        case 2:
+          dark_light.checked = true;
+          break;
+      }
+      function post_mode(mode){
+        set_darkmode(mode);
+        localStorage.setItem('settings.darkmode', ''+mode);
+        fetch('/settings', {
+            method: 'POST',
+            headers: {
+                "Content-Type": "text/plain",
+            },
+            body: JSON.stringify({darkmode:mode})
+        });
+      }
+      dark_sys.addEventListener('change', function(){ post_mode(0); });
+      dark_dark.addEventListener('change', function(){ post_mode(1); });
+      dark_light.addEventListener('change', function(){ post_mode(2); });
+    });
+  });

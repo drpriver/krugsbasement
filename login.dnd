@@ -1,0 +1,54 @@
+::div.login
+  ::md.centered
+    No account? [Register] now!
+    ::js
+      ctx.add_link('register', VARS.next_page?`/register?${VARS.next_page}`:'/register');
+  Log In::title
+  ::raw
+    <form action="" method="post">
+  ::js
+    node.parent.children[2].add_child(VARS.hidden);
+  ::div.error-item
+    ::js
+      if(VARS.messages.length){
+        let raw = node.parent.make_child(NodeType.RAW);
+        raw.add_child('<ul class="error">');
+        for(let mess of VARS.messages)
+          raw.add_child(`<li class="error">${mess}</li>`);
+        raw.add_child('</ul>');
+      }
+      if(VARS.username.errors.length){
+        let raw = node.parent.make_child(NodeType.RAW);
+        raw.add_child('<ul class="error">');
+        for(let err of VARS.username.errors)
+          raw.add_child(`<li class="error">${err}</li>`);
+        raw.add_child('</ul>');
+      }
+  ::div.login-item
+    ::raw
+      <label for="username">Username</label>
+      <input id="username" name="username" required="" size="32" type="text" value="">
+  ::div.error-item
+    ::js
+      if(VARS.password.errors.length){
+        let raw = node.parent.make_child(NodeType.RAW);
+        raw.add_child('<ul class="error">');
+        for(let err of VARS.password.errors)
+          raw.add_child(`<li class="error">${err}</li>`);
+        raw.add_child('</ul>');
+      }
+  ::div.login-item
+    ::raw
+      <label for="password">Password</label>
+      <input id="password" name="password" required="" size="32" type="password" value="">
+  ::div.login-item
+    ::raw
+      <label for="remember_me">Remember Me</label>
+      <input checked="" id="remember_me" name="remember_me" type="checkbox" value="y">
+      <input id="login" name="login" type="submit" value="Sign In">
+  ::raw
+    </form>
+::css #import
+  login.css
+::script #import
+  darkmode.js
