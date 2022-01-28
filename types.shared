@@ -770,3 +770,9 @@ message FromClientMsg: FromClient
     NOTE_UPDATE_BODY = NoteUpdateBody
     DELETE_NOTE_REQUEST = int
     DEBUG = str
+
+enum DarkMode: int
+    SYSTEM = 0
+    DARK = 1
+    LIGHT = 2
+

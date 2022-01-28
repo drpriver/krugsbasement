@@ -1,7 +1,7 @@
 import os
 import threading
 import sqlite3
-from typing import Optional, Dict
+from typing import Optional, Dict, Tuple, List
 import json
 import datetime
 from .logs import logging
@@ -48,7 +48,7 @@ def setup_tables():
                 data BLOB, /* json blob */
                 PRIMARY KEY(userid, campaignid),
                 FOREIGN KEY(campaignid) REFERENCES campaigns(id),
-                FOREIGN KEY(userid) REFERENCES users(usereid)
+                FOREIGN KEY(userid) REFERENCES users(userid)
             );
         ''')
         conn.execute('''
@@ -176,6 +176,33 @@ def get_campaigns() -> Dict[str, int]:
             '''):
             result[row[1]] = row[0]
     return result
+
+def get_users_campaigns(userid:int) -> List[Tuple[int, str]]:
+    with DBLOCK:
+        return conn.execute('''
+        SELECT
+            id, name
+        FROM
+            campaigns
+        JOIN
+            (SELECT
+                campaignid
+            FROM
+                joinedcampaigns
+            WHERE
+                userid = ?
+            )
+        ON
+            campaigns.id = campaignid
+        UNION
+            SELECT
+                id, name
+            FROM
+                campaigns
+            WHERE
+                public = 1
+            ;
+        ''', (userid,)).fetchall()
 
 def store_app_kv(key:str, value) -> None:
     with DBLOCK, conn:
@@ -340,15 +367,15 @@ def lookup_campaign(name:str) -> Optional[int]:
     if row: return row[0]
     return None
 
-def create_campaign(name:str) -> int:
+def create_campaign(name:str, owner:int=None) -> int:
     with DBLOCK, conn:
         cur = conn.execute('''
         INSERT INTO
-            campaigns(name)
+            campaigns(name, owner)
         VALUES
-            (?)
+            (?, ?)
         ;
-        ''', (name,))
+        ''', (name, owner))
         return cur.lastrowid
 
 
@@ -452,3 +479,74 @@ def revoke_invite_link(campaignid:int, magic:int) -> None:
         WHERE
             campaignid = ? AND magic = ?
         ;''', (campaignid, magic))
+
+def lookup_user_by_id(userid:int) -> Optional[Tuple[str, str]]:
+    with DBLOCK:
+        return conn.execute('''
+            SELECT
+                name, passhash
+            FROM
+                users
+            WHERE
+                userid = ?
+            ;
+        ''', (userid,)).fetchone()
+
+def lookup_user_by_name(name:str) -> Optional[Tuple[int, str]]:
+    with DBLOCK:
+        return conn.execute('''
+            SELECT
+                userid, passhash
+            FROM
+                users
+            WHERE
+                name = ?
+            ;
+        ''', (name,)).fetchone()
+
+def create_user(name:str, passhash:str, email:str) -> Optional[int]:
+    with DBLOCK, conn:
+        try:
+            cur = conn.execute('''
+            INSERT INTO
+                users(name, passhash, email)
+            VALUES
+                (?, ?, ?)
+            ;
+            ''', (name, passhash, email))
+            return cur.lastrowid
+        except sqlite3.DatabaseError:
+            return None
+
+def join_campaign(userid:int, campaignid:int) -> None:
+    with DBLOCK, conn:
+        conn.execute('''
+        INSERT INTO
+            joinedcampaigns(userid, campaignid)
+        VALUES
+            (?, ?)
+        ;
+        ''', (userid, campaignid))
+
+def get_global_settings(userid:int) -> Optional[str]:
+    with DBLOCK:
+        row = conn.execute('''
+            SELECT
+                data
+            FROM
+                userglobprefs
+            WHERE
+                userid = ?
+            ;''', (userid,)).fetchone()
+        return row[0] if row else None
+
+def store_global_settings(userid:int, data:str) -> None:
+    with DBLOCK, conn:
+        row = conn.execute('''
+            INSERT INTO
+                userglobprefs(userid, data)
+            VALUES
+                (?, ?)
+            ON CONFLICT(userid)
+                DO UPDATE SET data = excluded.data
+            ;''', (userid, data))

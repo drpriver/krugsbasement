@@ -1,25 +1,219 @@
+import os
+import logging
+from typing import List, Dict, Optional, Set, Union
+
 from flask import Flask, jsonify, request, Response, send_from_directory, session, abort
+import flask
 from flask_socketio import SocketIO, emit, join_room
+from flask_login import LoginManager, current_user, login_user, logout_user, login_required
+from werkzeug.urls import url_parse, url_encode
+
+import appconfig
 from .logs import logging
 from . import chat
 from . import canvas
 from . import notes
 from .persist import Persister, RepeatTimer, AppKVPersister
-import appconfig
-import os
-import logging
 from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg
 from .validator import validate, register_list
 from . import db
+from .users import User
+from .forms import LoginForm, RegisterForm, CampaignForm
 
-from typing import List, Dict, Optional, Set, Union
+import pydndc
+import time
+import json
 
 app = Flask('WebDnd')
-# app.config['SECRET_KEY'] = 'secret!'
+app.config['SECRET_KEY'] = appconfig.SECRET_KEY or 'dev'
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'Strict'
+app.config['REMEMBER_COOKIE_SECURE'] = not appconfig.DEV
+app.config['SESSION_COOKIE_SECURE'] = not appconfig.DEV
+app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'
 if appconfig.DEV:
     socketio = SocketIO(app, logger=False)
 else:
     socketio = SocketIO(app, logger=False, cors_allowed_origins="https://krugsbasement.com")
+
+login = LoginManager(app)
+login.login_view = 'login'
+
+@login.user_loader
+def load_user(id:str) -> User:
+    return User.lookup_by_id(int(id))
+
+def r(f:str) -> str:
+    p = os.path.join(appconfig.STATICDIR, f)
+    if appconfig.DEV:
+        os.system('make ' + p)
+    with open(p) as fp:
+        return fp.read()
+
+REGISTER_d = r('register.dnd')
+LOGIN_d    = r('login.dnd')
+HOME_d     = r('home.dnd')
+ip_ban_list = {}
+ip_bad_attempts = {}
+
+def bad_attempt() -> None:
+    ip = request.environ.get('REMOTE_ADDR')
+    now = time.time()
+    badtimes = [
+        b for b in ip_bad_attempts.get(ip, []) 
+        if now - b < 60*5
+    ]
+    badtimes.append(now)
+    ip_bad_attempts[ip] = badtimes
+    if len(badtimes) >= 2:
+        ip_ban_list[ip] = now
+        logging.info('Banning ip %r', ip)
+    else:
+        logging.info('Bad access attempt by %r: %d attempts', ip, len(badtimes))
+
+
+@app.before_request
+def block_method():
+    ip = request.remote_addr
+    # logging.info('ip: %r', ip)
+    if ip in ip_ban_list:
+        badtime = ip_ban_list[ip]
+        if time.time() - badtime > 60*60:
+            del ip_ban_list[ip]
+            return
+        ip_ban_list[ip] += 30
+        flask.abort(404)
+
+@app.route('/register', methods=['GET', 'POST'])
+def register() -> object:
+    global REGISTER_d
+    if current_user.is_authenticated:
+        return flask.redirect('/home')
+    form = RegisterForm()
+    if form.validate_on_submit():
+        if form.magic.data != 'blackberry':
+            bad_attempt()
+            flask.flash('Invalid Magic Code')
+            return flask.redirect(request.path)
+        user = User.create(form.username.data, form.password.data, form.email.data)
+        if user is None:
+            flask.flash('Invalid username or password')
+            return flask.redirect(request.path)
+        logging.info('register user: %r', user)
+        for campid in db.get_campaigns().values():
+            db.join_campaign(user.userid, campid)
+        login_user(user, remember=form.remember_me.data)
+        next_page = request.args.get('next')
+        if not next_page or url_parse(next_page).netloc != '':
+            return flask.redirect('/home')
+        return flask.redirect(next_page)
+    if appconfig.DEV:
+        os.system('make Generated/register.dnd')
+        REGISTER_d = r('register.dnd')
+    t0 = time.time()
+    next_page = request.args.get('next')
+    jsvars = form.dictify()
+    jsvars['messages'] = flask.get_flashed_messages()
+    jsvars['next_page'] = url_encode({'next':next_page}) if next_page else ''
+    html = pydndc.htmlgen(REGISTER_d, jsvars=jsvars, error_reporter = lambda x, y, z, q, w: logging.error('%r:%r:%r:%r:%r', x, y, z, q, w))[0]
+    t1 = time.time()
+    logging.info('register rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
+    return html
+
+@app.route('/login', methods=['GET', 'POST'])
+def login() -> object:
+    global LOGIN_d
+    if current_user.is_authenticated:
+        next_page = request.args.get('next')
+        if not next_page or url_parse(next_page).netloc != '':
+            return flask.redirect('/home')
+        return flask.redirect(next_page)
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.lookup_by_name(form.username.data)
+        if user is None or not user.check_password(form.password.data):
+            bad_attempt()
+            flask.flash('Invalid username or password')
+            return flask.redirect('/login')
+        login_user(user, remember=form.remember_me.data)
+        logging.info('logged in user: %r', user)
+        next_page = request.args.get('next')
+        if not next_page or url_parse(next_page).netloc != '':
+            return flask.redirect('/home')
+        return flask.redirect(next_page)
+    if appconfig.DEV:
+        os.system('make Generated/login.dnd')
+        LOGIN_d = r('login.dnd')
+    t0 = time.time()
+    next_page = request.args.get('next')
+    jsvars = form.dictify()
+    jsvars['messages'] = flask.get_flashed_messages()
+    jsvars['next_page'] = url_encode({'next':next_page}) if next_page else ''
+    html = pydndc.htmlgen(LOGIN_d, jsvars=jsvars, error_reporter = lambda x, y, z, q, w: logging.error('%r:%r:%r:%r:%r', x, y, z, q, w))[0]
+    t1 = time.time()
+    logging.info('login rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
+    return html
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return flask.redirect('/login')
+
+
+@app.route('/campaigns')
+def campa():
+    return flask.redirect('/home')
+
+@app.route('/settings', methods=['GET'])
+@login_required
+def get_settings():
+    settings = db.get_global_settings(current_user.userid)
+    logging.info('Get settings for %r: %r', current_user.userid, settings)
+    if settings is None:
+        settings = '{}'
+    response = app.response_class(
+        response=settings,
+        status=200,
+        mimetype='application/json'
+    )
+    return response
+
+@app.route('/settings', methods=['POST'])
+@login_required
+def post_settings():
+    logging.info('Settings for %r: %r', current_user.userid, request.data)
+    db.store_global_settings(current_user.userid, request.data)
+    return {}
+
+@app.route('/home')
+@login_required
+def home():
+    campaigns = []
+    if current_user.is_authenticated:
+        campaigns =  db.get_users_campaigns(current_user.userid)
+    global HOME_d
+    if appconfig.DEV:
+        HOME_d = r('home.dnd')
+    name = current_user.name if current_user.is_authenticated else 'Guest User'
+    t0 = time.time()
+    jsvars = dict(
+            name = name,
+            campaigns = [c[1] for c in campaigns],
+            )
+    html = pydndc.htmlgen(HOME_d, jsvars=jsvars)[0]
+    t1 = time.time()
+    logging.info('Took %.3fµs to render dnd', (t1-t0)*1000*1000)
+    return html
+
+if appconfig.DEV:
+    @app.route('/createcampaign', methods=['POST'])
+    @login_required
+    def createcampaign():
+        form = CampaignForm()
+        if form.validate_on_submit():
+            campid = db.create_campaign(form.campaignname.data, current_user.userid)
+        else:
+            return flask.jsonify(form.errors)
+
 
 @socketio.on(FromClient.CHAT_STRUCTURED_INPUT)
 def chat_structured_input(data:ChatCommandMessage):
@@ -267,7 +461,9 @@ def get_html() -> str:
 @app.route('/')
 def index() -> str:
     return get_html()
+
 @app.route('/campaigns/<campaign>')
+@login_required
 def get_campaign(campaign:str) -> str:
     if campaign not in ALLOWED_CAMPAIGNS:
         abort(404)

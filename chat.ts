@@ -309,9 +309,9 @@ function chat_options_dialog(){
             case DarkMode.DARK:   dialog.f.dark.checked   = true; break;
             case DarkMode.LIGHT:  dialog.f.light.checked  = true; break;
         }
-        dialog.f.system.onchange = function(){change_dark_mode(DarkMode.SYSTEM);};
-        dialog.f.dark.onchange   = function(){change_dark_mode(DarkMode.DARK);};
-        dialog.f.light.onchange  = function(){change_dark_mode(DarkMode.LIGHT);};
+        dialog.f.system.onchange = function(){change_dark_mode(DarkMode.SYSTEM, 1);};
+        dialog.f.dark.onchange   = function(){change_dark_mode(DarkMode.DARK, 1);};
+        dialog.f.light.onchange  = function(){change_dark_mode(DarkMode.LIGHT, 1);};
         dialog.f.export.addEventListener('click', export_settings);
         dialog.f.import.addEventListener('click', function(){
             import_settings(dialog.hide);

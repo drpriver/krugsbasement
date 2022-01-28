@@ -30,6 +30,9 @@ appconfig.py:
 	@echo "DBNAME = 'campaigns.db'" >> appconfig.py
 	@echo "# Where static files are" >> appconfig.py
 	@echo "STATICDIR = 'Generated'" >> appconfig.py
+	@echo "# DON'T USE THIS ON THE HOST. SET IT TO AN ACTUAL RANDOM KEY"
+	@echo "# VIA os.urandom."
+	@echo "SECRET_KEY = 'dev'"
 
 
 .PHONY: run
@@ -41,6 +44,9 @@ Generated/dungeon.html: client.dnd Generated/combined.js | Depends Depends/Gener
 
 Generated/%.html: Docs/%.dnd | Generated
 	dndc $< --output $@
+
+Generated/%.dnd: %.dnd
+	cp $< $@
 
 Generated/messages.ts WebDnD/messages.py: types.shared Scripts/make_enums.py | Generated
 	python3 Scripts/make_enums.py

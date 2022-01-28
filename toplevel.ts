@@ -6,18 +6,13 @@ let SHOW_FPS = false;
 // For some enums, we maintain a separate reversing mapping of enum value to string
 // as we want the ability to change the strings without changing the code.
 
-const enum DarkMode {
-    SYSTEM = 0,
-    DARK = 1,
-    LIGHT = 2,
-}
 function system_prefers_darkmode():boolean{
     return window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
 let current_dark_mode:DarkMode = DarkMode.SYSTEM;
 let DARKMODE = false;
-function change_dark_mode(mode:DarkMode){
+function change_dark_mode(mode:DarkMode, postit:number){
     switch(mode){
         case DarkMode.DARK:
             DARKMODE = true;
@@ -38,7 +33,7 @@ function change_dark_mode(mode:DarkMode){
     }
     current_dark_mode = mode;
     store_global(StorageCategory.SETTINGS, 'darkmode', mode);
-    if(document.readyState === "complete"){
+    if(document.readyState === "complete" || document.readyState === 'interactive'){
         request_render();
         if(DARKMODE)
             document.body.classList.add('dark-mode');
@@ -47,23 +42,44 @@ function change_dark_mode(mode:DarkMode){
     }
     else {
         document.addEventListener('DOMContentLoaded',function(){
+            request_render();
             if(DARKMODE)
                 document.body.classList.add('dark-mode');
             else
                 document.body.classList.remove('dark-mode');
         });
     }
-
+    if(postit){
+        fetch('/settings', {
+            method: 'POST',
+            headers: {
+                "Content-Type": "text/plain",
+            },
+            body: JSON.stringify({darkmode:mode})
+        });
+    }
 }
 (function(){
+    // Use settings from localstorage to avoid flicker on first load.
     let mode = get_global(StorageCategory.SETTINGS, 'darkmode');
     if(mode === undefined)
         mode = +(localStorage.getItem('darkmode') || 0);
     mode |= 0;
     if(mode < 0 || mode > 2)
         mode = 0;
-    change_dark_mode(mode);
+    change_dark_mode(mode, 0);
+    fetch('/settings')
+    .then(response => response.json())
+    .then(settings => {
+        if(settings.darkmode !== undefined){
+            let mode = settings.darkmode | 0;
+            if(mode < 0 || mode > 2) mode = 0;
+            change_dark_mode(mode, 0);
+        }
+    });
 }());
+
+
 // idk where to put this
 let SHOW_ZOOMERS = false;
 function set_zoomers(show:boolean){
