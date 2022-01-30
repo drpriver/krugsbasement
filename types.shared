@@ -1,18 +1,26 @@
+# FromClient
+# ----------
 # Defines messages sent from the client to the server
 enum FromClient: int
     # builtin
+    # -------
     # CONNECT = connect
+
     # Core messages
+    # -------------
     JOIN = 1
     POST_JOIN = 2
     # Chat messages
+    # -------------
     CHAT_STRUCTURED_INPUT = 3
     CHAT_TEST_STRUCTURED_INPUT = 4
     # Roll Tables
+    # -----------
     RETRIEVE_ROLL_TABLES = 5
     UPDATE_ROLL_TABLES = 6
     UPLOAD_ROLL_TABLE = 7
     # Canvas Messages
+    # ---------------
     CANVAS_CREATE_OBJECTS = 8
     CANVAS_DELETE = 9
     CANVAS_UPDATE = 10
@@ -27,30 +35,40 @@ enum FromClient: int
     CANVAS_BATTLE = 19
     CANVAS_DUNGEON_MODE = 20
     # Note messages
+    # -------------
     GET_NOTE = 21
     NEW_NOTE_REQUEST = 22
     NOTE_UPDATE_TITLE = 23
     NOTE_UPDATE_BODY = 24
     DELETE_NOTE_REQUEST = 25
     # debugging
+    # ---------
     DEBUG = 26
+# ToClient
+# --------
 # Defines messages sent from the server to the client
 enum ToClient: int
     # builtin
+    # -------
     # CONNECT = connect
     # DISCONNECT = disconnect
+
     # Core messages
+    # -------------
     SESSION_ID = 1
     TOKEN_PATHS = 2
     # Chat messages
+    # -------------
     CHAT_CLEAR = 3
     CHAT_CREATE = 4
     CHAT_STRUCTURED_MSG = 5
     CHAT_TEST_STRUCTURED_RESPONSE = 25
     # Roll messages
+    # -------------
     NEW_ROLL_TABLE = 6
     ROLL_TABLES = 26
     # Canvas
+    # ------
     CANVAS_INITIALIZE_MAPS = 7
     CANVAS_CREATE_OBJECTS = 8
     CANVAS_DELETE = 9
@@ -74,6 +92,8 @@ enum ToClient: int
     NEW_NOTE_RESPONSE = 28
 
 
+# ChatCommand
+# -----------
 # Commands. These are sent from the client to the server
 enum ChatCommand: int
     ROLL = 0
@@ -86,21 +106,26 @@ enum ChatCommand: int
 struct NameCommand: array
     type = ChatCommand.NAME
     name = str
+
 struct RollCommand: array
     type = ChatCommand.ROLL
     original = str
     expr = UnrolledDiceExpr
+
 struct SayCommand: array
     type = ChatCommand.SAY
     text = str
+
 struct ShuffleCommand: array
     type = ChatCommand.SHUFFLE
     original = str
     items = [str]
+
 struct ChooseCommand: array
     type = ChatCommand.CHOOSE
     original = str
     items = [str]
+
 struct TableCommand: array
     type = ChatCommand.TABLE
     original = str
@@ -118,13 +143,16 @@ struct ChatCommandMessage: dict
     chatname = str
     commands = [Command]
 
-# Dice stuff
+# DieExprTypes
+# ------------
+# Dice stuff. The different kinds of die
+# groupings.
 enum DieExprTypes: int
-    NUMBER = 0 # 4
-    DICE = 1 # 2d6
-    GROUP = 2 # (2d6+4)
-    UNARY = 3 # -3
-    BINARY = 4 # d6*2
+    NUMBER = 0 # Example: 4
+    DICE   = 1 # Example: 2d6
+    GROUP  = 2 # Example: (2d6+4)
+    UNARY  = 3 # Example: -3
+    BINARY = 4 # Example: d6*2
 
 enum UNARY: int
     PLUS = 0 # +
@@ -143,6 +171,8 @@ enum BINARY: int
     LT = 8  # <
     LE = 9  # <=
 
+# RolledNumber
+# ------------
 # Server responds with rolled dice.
 struct RolledNumber: array
     type = DieExprTypes.NUMBER
@@ -169,6 +199,8 @@ struct RolledBinary: array
     left = RolledExpr
     right = RolledExpr
 
+# RolledExpr
+# ----------
 # Use the type field to discriminate
 union RolledExpr: array
     RolledNumber
@@ -198,6 +230,8 @@ struct UnrolledBinary: array
     left = UnrolledDiceExpr
     right = UnrolledDiceExpr
 
+# UnrolledDiceExpr
+# ----------------
 # Use the type field to discriminate
 union UnrolledDiceExpr: array
     RolledNumber
@@ -206,12 +240,16 @@ union UnrolledDiceExpr: array
     UnrolledUnary
     UnrolledBinary
 
+# Msg
+# ---
 # Chat messages sent from the server to the client.
 # These are in response to Commands
 enum Msg: int
     PLAIN = 0
+    # note:
     # Used to be DICEROLL = 1
     ERROR = 2
+    # note:
     # used to be called DICEROLL_NEW
     DICEROLL = 3
     ECHOABLE_TEXT = 4
@@ -236,6 +274,8 @@ struct ChatEchoableMsg: array
     user = str
     data = str
 
+# ChatMsg
+# -------
 # The actual chat message union. Use the type field to discriminate.
 union ChatMsg: array
     ChatPlainMsg
@@ -289,15 +329,6 @@ enum CANVASFLAG: int flag
     NONE = 0
     DELETED = 1 << 0
     ALL = 1 << 0
-
-//
-//  Each object also has a "stripped" representation, which is
-//  the minimal amount of information for that object. For several types
-//  this is the same as the regular one, but for others the unstripped
-//  representation would include things like an HTMLImageElement.
-//  Furthermore, the "stripped" representation can be converted to and from json,
-//  so it can be shipped to and from the server.
-//
 
 //  freehand-line
 //  -------------
@@ -431,6 +462,8 @@ struct StrippedTextObj: array
     alignment = TEXTALIGNMENT
     map_id = int # -1 means no link
 
+// TOKENSTATUSFLAGS
+// ----------------
 // status flags for conditions and status effects
 // Bit flags
 enum TOKENSTATUSFLAGS: int flag
@@ -512,6 +545,7 @@ struct StrippedDoorObj: array
     orientation = ORIENTATION
 
 enum ROTATION: int
+    # note: 
     # we might add the diagonals
     UP    = 0
     RIGHT = 2
@@ -596,8 +630,18 @@ struct StrippedIconTile: array
     flags = CANVASFLAG
     terrainicon_id = int
 
-// Intersection of all of the above types. They should share the following
-// fields:
+// StrippedObj
+// -----------
+//  Each object has a "stripped" representation, which is
+//  the minimal amount of information for that object. For several types
+//  this is the same as the regular one, but for others the unstripped
+//  representation would include things like an HTMLImageElement.
+//  Furthermore, the "stripped" representation can be converted to and from json,
+//  so it can be shipped to and from the server.
+//
+// Intersection of all of the above types. They
+// should share the following fields
+//
 //    type = CANVASTYPE
 //    id = int
 //    base_x = float
@@ -627,13 +671,12 @@ union StrippedObj: array
     StrippedIconTile
 
 
+// GridType
+// --------
 enum GRIDTYPE: int flag
-    # square is default
-    SQUARE = 0
-    # Hexes are drawn "odd-q" vertical layout
-    HEX = 1 << 0
-    # NOGRID just means don't draw the grid.
-    NOGRID = 1 << 1
+    SQUARE = 0 # square is default
+    HEX = 1 << 0 # Hexes are drawn "odd-q" vertical layout
+    NOGRID = 1 << 1 # NOGRID just means don't draw the grid.
 
 enum MapFlags: int flag
     NONE = 0

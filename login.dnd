@@ -2,25 +2,25 @@
   ::md.centered
     No account? [Register] now!
     ::js
-      ctx.add_link('register', VARS.next_page?`/register?${VARS.next_page}`:'/register');
+      ctx.add_link('register', Args.next_page?`/register?${Args.next_page}`:'/register');
   Log In::title
   ::raw
     <form action="" method="post">
   ::js
-    node.parent.children[2].add_child(VARS.hidden);
+    node.parent.children[2].add_child(Args.hidden);
   ::div.error-item
     ::js
-      if(VARS.messages.length){
+      if(Args.messages.length){
         let raw = node.parent.make_child(NodeType.RAW);
         raw.add_child('<ul class="error">');
-        for(let mess of VARS.messages)
+        for(let mess of Args.messages)
           raw.add_child(`<li class="error">${mess}</li>`);
         raw.add_child('</ul>');
       }
-      if(VARS.username.errors.length){
+      if(Args.username.errors.length){
         let raw = node.parent.make_child(NodeType.RAW);
         raw.add_child('<ul class="error">');
-        for(let err of VARS.username.errors)
+        for(let err of Args.username.errors)
           raw.add_child(`<li class="error">${err}</li>`);
         raw.add_child('</ul>');
       }
@@ -30,10 +30,10 @@
       <input id="username" name="username" required="" size="32" type="text" value="">
   ::div.error-item
     ::js
-      if(VARS.password.errors.length){
+      if(Args.password.errors.length){
         let raw = node.parent.make_child(NodeType.RAW);
         raw.add_child('<ul class="error">');
-        for(let err of VARS.password.errors)
+        for(let err of Args.password.errors)
           raw.add_child(`<li class="error">${err}</li>`);
         raw.add_child('</ul>');
       }

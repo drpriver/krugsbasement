@@ -53,7 +53,7 @@ function change_dark_mode(mode:DarkMode, postit:number){
         fetch('/settings', {
             method: 'POST',
             headers: {
-                "Content-Type": "text/plain",
+                "Content-Type": "application/json",
             },
             body: JSON.stringify({darkmode:mode})
         });

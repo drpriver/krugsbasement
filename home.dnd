@@ -4,7 +4,7 @@
   Home::title
   ::md
     ::js
-      node.parent.parse(`Welcome ${VARS.name}, this is your home`);
+      node.parent.parse(`Welcome ${Args.name}, this is your home`);
 
   There's not much here yet, but it is something.
   Your Campaigns::md
@@ -12,7 +12,7 @@
     ::js
       let s = '';
       let i = 0;
-      for(let campaign of VARS.campaigns){
+      for(let campaign of Args.campaigns){
         s += `* [${campaign?campaign: 'Demo'} | ${i}]\n`;
         ctx.add_link(''+i, campaign?'/campaigns/'+campaign : '/');
         i++;
@@ -62,7 +62,7 @@
         fetch('/settings', {
             method: 'POST',
             headers: {
-                "Content-Type": "text/plain",
+                "Content-Type": "application/json",
             },
             body: JSON.stringify({darkmode:mode})
         });

@@ -13,7 +13,7 @@ atexit.register(lambda: (logging.info('closing db'), conn.close())) # type: igno
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 2
+DBVERSION = 5
 with conn:
     conn.execute("PRAGMA encoding = 'UTF-8';")
     conn.execute('PRAGMA foreign_keys = ON;')
@@ -159,6 +159,19 @@ def setup_tables():
                 usercampprefs
             ADD COLUMN
                 variables BLOB; /* json array blob */
+        ''')
+    if version < 5:
+        # unreleased, so whatever
+        # conn.execute(''' DROP TABLE userglobprefs;''')
+        conn.execute('''
+        CREATE TABLE
+            userglobprefs(
+                userid INTEGER NOT NULL,
+                key TEXT NOT NULL,
+                value ANY,
+                PRIMARY KEY(userid, key),
+                FOREIGN KEY(userid) REFERENCES users(userid)
+            );
         ''')
 
 with conn:
@@ -528,25 +541,25 @@ def join_campaign(userid:int, campaignid:int) -> None:
         ;
         ''', (userid, campaignid))
 
-def get_global_settings(userid:int) -> Optional[str]:
+def get_global_settings(userid:int) -> Dict[str, object]:
     with DBLOCK:
-        row = conn.execute('''
+        rows = conn.execute('''
             SELECT
-                data
+                key, value
             FROM
                 userglobprefs
             WHERE
                 userid = ?
-            ;''', (userid,)).fetchone()
-        return row[0] if row else None
+            ;''', (userid,)).fetchall()
+        return dict(rows)
 
-def store_global_settings(userid:int, data:str) -> None:
+def store_global_settings(userid:int, key:str, value) -> None:
     with DBLOCK, conn:
         row = conn.execute('''
             INSERT INTO
-                userglobprefs(userid, data)
+                userglobprefs(userid, key, value)
             VALUES
-                (?, ?)
-            ON CONFLICT(userid)
-                DO UPDATE SET data = excluded.data
-            ;''', (userid, data))
+                (?, ?, ?)
+            ON CONFLICT(userid, key)
+                DO UPDATE SET value = excluded.value
+            ;''', (userid, key, value))

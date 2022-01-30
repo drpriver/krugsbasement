@@ -111,10 +111,10 @@ def register() -> object:
         REGISTER_d = r('register.dnd')
     t0 = time.time()
     next_page = request.args.get('next')
-    jsvars = form.dictify()
-    jsvars['messages'] = flask.get_flashed_messages()
-    jsvars['next_page'] = url_encode({'next':next_page}) if next_page else ''
-    html = pydndc.htmlgen(REGISTER_d, jsvars=jsvars, error_reporter = lambda x, y, z, q, w: logging.error('%r:%r:%r:%r:%r', x, y, z, q, w))[0]
+    jsargs = form.dictify()
+    jsargs['messages'] = flask.get_flashed_messages()
+    jsargs['next_page'] = url_encode({'next':next_page}) if next_page else ''
+    html = pydndc.htmlgen(REGISTER_d, jsargs=jsargs, error_reporter = lambda x, y, z, q, w: logging.error('%r:%r:%r:%r:%r', x, y, z, q, w))[0]
     t1 = time.time()
     logging.info('register rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
     return html
@@ -145,10 +145,10 @@ def login() -> object:
         LOGIN_d = r('login.dnd')
     t0 = time.time()
     next_page = request.args.get('next')
-    jsvars = form.dictify()
-    jsvars['messages'] = flask.get_flashed_messages()
-    jsvars['next_page'] = url_encode({'next':next_page}) if next_page else ''
-    html = pydndc.htmlgen(LOGIN_d, jsvars=jsvars, error_reporter = lambda x, y, z, q, w: logging.error('%r:%r:%r:%r:%r', x, y, z, q, w))[0]
+    jsargs = form.dictify()
+    jsargs['messages'] = flask.get_flashed_messages()
+    jsargs['next_page'] = url_encode({'next':next_page}) if next_page else ''
+    html = pydndc.htmlgen(LOGIN_d, jsargs=jsargs, error_reporter = lambda x, y, z, q, w: logging.error('%r:%r:%r:%r:%r', x, y, z, q, w))[0]
     t1 = time.time()
     logging.info('login rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
     return html
@@ -164,24 +164,21 @@ def campa():
     return flask.redirect('/home')
 
 @app.route('/settings', methods=['GET'])
-@login_required
 def get_settings():
+    if not current_user.is_authenticated:
+        return flask.jsonify({})
     settings = db.get_global_settings(current_user.userid)
-    logging.info('Get settings for %r: %r', current_user.userid, settings)
-    if settings is None:
-        settings = '{}'
-    response = app.response_class(
-        response=settings,
-        status=200,
-        mimetype='application/json'
-    )
-    return response
+    logging.debug('Get settings for %r: %r', current_user.userid, settings)
+    return flask.jsonify(settings)
 
 @app.route('/settings', methods=['POST'])
-@login_required
 def post_settings():
-    logging.info('Settings for %r: %r', current_user.userid, request.data)
-    db.store_global_settings(current_user.userid, request.data)
+    if not current_user.is_authenticated:
+        return {}
+    logging.debug('Settings for %r: %r', current_user.userid, request.json)
+    settings = request.json
+    for k, v in settings.items():
+        db.store_global_settings(current_user.userid, k, v)
     return {}
 
 @app.route('/home')
@@ -195,11 +192,11 @@ def home():
         HOME_d = r('home.dnd')
     name = current_user.name if current_user.is_authenticated else 'Guest User'
     t0 = time.time()
-    jsvars = dict(
+    jsargs = dict(
             name = name,
             campaigns = [c[1] for c in campaigns],
             )
-    html = pydndc.htmlgen(HOME_d, jsvars=jsvars)[0]
+    html = pydndc.htmlgen(HOME_d, jsargs=jsargs)[0]
     t1 = time.time()
     logging.info('Took %.3fµs to render dnd', (t1-t0)*1000*1000)
     return html
@@ -213,7 +210,6 @@ if appconfig.DEV:
             campid = db.create_campaign(form.campaignname.data, current_user.userid)
         else:
             return flask.jsonify(form.errors)
-
 
 @socketio.on(FromClient.CHAT_STRUCTURED_INPUT)
 def chat_structured_input(data:ChatCommandMessage):
