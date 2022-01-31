@@ -54,12 +54,15 @@ LOGIN_d    = r('login.dnd')
 HOME_d     = r('home.dnd')
 ip_ban_list = {}
 ip_bad_attempts = {}
+FCACHE = pydndc.FileCache()
+FCACHE.store('login.css', r('login.css'))
+FCACHE.store('darkmode.js', r('darkmode.js'))
 
 def bad_attempt() -> None:
     ip = request.environ.get('REMOTE_ADDR')
     now = time.time()
     badtimes = [
-        b for b in ip_bad_attempts.get(ip, []) 
+        b for b in ip_bad_attempts.get(ip, [])
         if now - b < 60*5
     ]
     badtimes.append(now)
@@ -84,7 +87,7 @@ def block_method():
         flask.abort(404)
 
 def pydndclog(kind, filename, line, col, mes):
-    logging.debug('%d:%d: %r', line, col, mes)
+    logging.warn('%d:%d: %r', line+1, col, mes)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register() -> object:
@@ -93,7 +96,7 @@ def register() -> object:
         return flask.redirect('/home')
     form = RegisterForm()
     if form.validate_on_submit():
-        if form.magic.data != 'blackberry':
+        if form.magic.data != 'balsamic':
             bad_attempt()
             flask.flash('Invalid Magic Code')
             return flask.redirect(request.path)
@@ -117,9 +120,9 @@ def register() -> object:
     jsargs = form.dictify()
     jsargs['messages'] = flask.get_flashed_messages()
     jsargs['next_page'] = url_encode({'next':next_page}) if next_page else ''
-    html = pydndc.htmlgen(REGISTER_d, jsargs=jsargs, error_reporter=pydndclog)[0]
+    html = pydndc.htmlgen(REGISTER_d, jsargs=jsargs, error_reporter=pydndclog, file_cache=FCACHE)[0]
     t1 = time.time()
-    logging.info('register rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
+    logging.debug('register rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
     return html
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -151,9 +154,9 @@ def login() -> object:
     jsargs = form.dictify()
     jsargs['messages'] = flask.get_flashed_messages()
     jsargs['next_page'] = url_encode({'next':next_page}) if next_page else ''
-    html = pydndc.htmlgen(LOGIN_d, jsargs=jsargs, error_reporter = pydndclog)[0]
+    html = pydndc.htmlgen(LOGIN_d, jsargs=jsargs, error_reporter = pydndclog, file_cache=FCACHE)[0]
     t1 = time.time()
-    logging.info('login rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
+    logging.debug('login rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
     return html
 
 @app.route('/logout')
@@ -199,9 +202,9 @@ def home():
             name = name,
             campaigns = [c[1] for c in campaigns],
             )
-    html = pydndc.htmlgen(HOME_d, jsargs=jsargs)[0]
+    html = pydndc.htmlgen(HOME_d, jsargs=jsargs, error_reporter=pydndclog, file_cache=FCACHE)[0]
     t1 = time.time()
-    logging.info('Took %.3fµs to render dnd', (t1-t0)*1000*1000)
+    logging.debug('Took %.3fµs to render dnd', (t1-t0)*1000*1000)
     return html
 
 if appconfig.DEV:

@@ -62,6 +62,9 @@ dist.zip: Generated/dungeon.html
 	mkdir -p dist
 	cp server.mak dist
 	cp Generated/dungeon.html dist
+	cp Generated/*.dnd dist
+	cp login.css dist
+	cp darkmode.js dist
 	mkdir -p dist/WebDnD
 	cp WebDnD/*.py dist/WebDnD
 	cp requirements.txt dist

@@ -18,6 +18,9 @@ static/token-list:
 .PHONY: static/dungeon.html
 static/dungeon.html:
 	cp dist/dungeon.html static/dungeon.html
+	cp dist/*.dnd static
+	cp dist/*.css static
+	cp dist/*.js static
 
 .PHONY: WebDnD
 WebDnD:
