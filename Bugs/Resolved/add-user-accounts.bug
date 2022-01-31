@@ -1,0 +1,8 @@
+bug.py: v0.0.1
+created: 2022-01-22T20:25:24.932478
+resolved: 2022-01-30T23:35:41.606315
+bugmagic^^^^
+Summary::md.summary
+  Add user accounts
+Resolved Jan 30, 2022, 11:35PM::md.update
+  Accounts are in, although they don’t store campaign-local settings yet.
