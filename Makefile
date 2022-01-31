@@ -60,6 +60,7 @@ Generated/messages.ts WebDnD/messages.py: types.shared Scripts/make_enums.py | G
 dist.zip: Generated/dungeon.html
 	rm -rf dist dist.zip
 	mkdir -p dist
+	cp pydndc.cpython-38-x86_64-linux-gnu.so dist
 	cp server.mak dist
 	cp Generated/dungeon.html dist
 	cp Generated/*.dnd dist
