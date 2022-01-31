@@ -63,7 +63,9 @@ dist.zip: Generated/dungeon.html
 	cp pydndc.cpython-38-x86_64-linux-gnu.so dist
 	cp server.mak dist
 	cp Generated/dungeon.html dist
-	cp Generated/*.dnd dist
+	cp register.dnd dist
+	cp home.dnd dist
+	cp login.dnd dist
 	cp login.css dist
 	cp darkmode.js dist
 	mkdir -p dist/WebDnD

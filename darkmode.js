@@ -20,14 +20,17 @@ function set_darkmode(mode){
             break;
     }
     if(darkmode){
-        document.body.classList.add('darkmode');
+        if(document.readyState === "complete" || document.readyState === 'interactive')
+            document.body.classList.add('darkmode');
         document.documentElement.style.colorScheme = 'dark';
     }
     else {
-        document.body.classList.remove('darkmode');
+        if(document.readyState === "complete" || document.readyState === 'interactive')
+            document.body.classList.remove('darkmode');
         document.documentElement.style.colorScheme = 'light';
     }
 }
+set_darkmode(current_dark_mode);
 document.addEventListener('DOMContentLoaded', function(){
     set_darkmode(current_dark_mode);
 });

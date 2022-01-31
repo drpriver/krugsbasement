@@ -58,6 +58,7 @@
           dark_light.checked = true;
           break;
       }
+      localStorage.setItem('settings.darkmode', ''+mode);
       function post_mode(mode){
         set_darkmode(mode);
         localStorage.setItem('settings.darkmode', ''+mode);
