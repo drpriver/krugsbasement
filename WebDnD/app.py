@@ -87,7 +87,7 @@ def block_method():
         flask.abort(404)
 
 def pydndclog(kind, filename, line, col, mes):
-    logging.warn('%d:%d: %r', line+1, col, mes)
+    logging.warning('%r:%d:%d: %r', filename, line+1, col, mes)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register() -> object:

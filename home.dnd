@@ -1,5 +1,7 @@
 ::md.right
   [Logout]
+  ::links
+    logout = /logout
 ::md.center
   Home::title
   ::md
