@@ -162,7 +162,10 @@ def setup_tables():
         ''')
     if version < 5:
         # unreleased, so whatever
-        # conn.execute(''' DROP TABLE userglobprefs;''')
+        try:
+            conn.execute(''' DROP TABLE userglobprefs;''')
+        except Exception as e:
+            print(e)
         conn.execute('''
         CREATE TABLE
             userglobprefs(

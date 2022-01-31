@@ -83,6 +83,9 @@ def block_method():
         ip_ban_list[ip] += 30
         flask.abort(404)
 
+def pydndclog(kind, filename, line, col, mes):
+    logging.debug('%d:%d: %r', line, col, mes)
+
 @app.route('/register', methods=['GET', 'POST'])
 def register() -> object:
     global REGISTER_d
@@ -114,7 +117,7 @@ def register() -> object:
     jsargs = form.dictify()
     jsargs['messages'] = flask.get_flashed_messages()
     jsargs['next_page'] = url_encode({'next':next_page}) if next_page else ''
-    html = pydndc.htmlgen(REGISTER_d, jsargs=jsargs, error_reporter = lambda x, y, z, q, w: logging.error('%r:%r:%r:%r:%r', x, y, z, q, w))[0]
+    html = pydndc.htmlgen(REGISTER_d, jsargs=jsargs, error_reporter=pydndclog)[0]
     t1 = time.time()
     logging.info('register rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
     return html
@@ -148,7 +151,7 @@ def login() -> object:
     jsargs = form.dictify()
     jsargs['messages'] = flask.get_flashed_messages()
     jsargs['next_page'] = url_encode({'next':next_page}) if next_page else ''
-    html = pydndc.htmlgen(LOGIN_d, jsargs=jsargs, error_reporter = lambda x, y, z, q, w: logging.error('%r:%r:%r:%r:%r', x, y, z, q, w))[0]
+    html = pydndc.htmlgen(LOGIN_d, jsargs=jsargs, error_reporter = pydndclog)[0]
     t1 = time.time()
     logging.info('login rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
     return html

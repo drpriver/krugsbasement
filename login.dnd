@@ -27,7 +27,7 @@
   ::div.login-item
     ::raw
       <label for="username">Username</label>
-      <input id="username" name="username" required="" size="32" type="text" value="">
+      <input id="username" name="username" required="" size="32" type="text" value="" autocomplete="username">
   ::div.error-item
     ::js
       if(Args.password.errors.length){
@@ -40,7 +40,7 @@
   ::div.login-item
     ::raw
       <label for="password">Password</label>
-      <input id="password" name="password" required="" size="32" type="password" value="">
+      <input id="password" name="password" required="" size="32" type="password" value="" autocomplete="current-password">
   ::div.login-item
     ::raw
       <label for="remember_me">Remember Me</label>

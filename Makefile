@@ -2,6 +2,7 @@ Depends: ; mkdir -p $@
 Depends/Generated: ; mkdir -p $@
 Generated: ; mkdir -p $@
 Bin: ; mkdir -p $@
+Archives: ; mkdir -p $@
 DEPFILES:= $(wildcard Depends/*.dep Depends/Generated/*.dep)
 include $(DEPFILES)
 TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError
@@ -30,9 +31,9 @@ appconfig.py:
 	@echo "DBNAME = 'campaigns.db'" >> appconfig.py
 	@echo "# Where static files are" >> appconfig.py
 	@echo "STATICDIR = 'Generated'" >> appconfig.py
-	@echo "# DON'T USE THIS ON THE HOST. SET IT TO AN ACTUAL RANDOM KEY"
-	@echo "# VIA os.urandom."
-	@echo "SECRET_KEY = 'dev'"
+	@echo "# DON'T USE THIS ON THE HOST. SET IT TO AN ACTUAL RANDOM KEY" >> appconfig.py
+	@echo "# VIA os.urandom." >> appconfig.py
+	@echo "SECRET_KEY = 'dev'" >> appconfig.py
 
 
 .PHONY: run
@@ -79,9 +80,9 @@ ship-it: dist.zip
 	scp dist.zip david@droplet:/home/david/dist.zip
 	ssh david@droplet "cd ~webdnd && bash unpack.sh"
 .PHONY: backup
-backup:
+backup: | Archives
 	ssh david@droplet "cd ~webdnd && bash backup.sh"
-	-mv campaigns.db campaigns.db.bak
+	-mv campaigns.db Archives/campaigns.db.$$(date '+%Y-%m-%d-%T').bak
 	scp "david@droplet:~webdnd/data/campaigns.db.bak" campaigns.db
 tags: *.ts Scripts/tag_ts.py
 	python3 -m Scripts.tag_ts
