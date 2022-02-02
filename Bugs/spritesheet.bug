@@ -1,0 +1,8 @@
+bug.py: v0.0.1
+created: 2022-02-02T13:34:41.674889
+updated: 2022-02-02T13:35:22.202527
+bugmagic^^^^
+Summary::md.summary
+  Spritesheet
+Updated Feb 02, 2022, 01:35PM::md.update
+  Icons and tiles can be in a sprite sheet to reduce the number of server requests.
