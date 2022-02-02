@@ -1,3 +1,10 @@
+::meta
+  property="og:title" content="Register"
+  property="og:type" content="website"
+  property="og:image" content="https://krugsbasement.com/favicon.ico"
+  property="og:url" content="https://krugsbasement.com/login"
+  property="og:description" content="Play rpgs with your friends!"
+  property="og:site_name" content="Krug's Basement"
 ::div.login
   ::md.centered
     No account? [Register] now!
