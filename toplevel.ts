@@ -1,4 +1,19 @@
 declare let io: any;
+type Settings = {
+    darkmode?: DarkMode;
+    chat?:{name?: string;};
+    macros?: {
+        dieroll_history?: Array<any>;
+        macros?: Array<any>;
+        variables?: Array<any>;
+        used_variables?: Array<any>;
+    };
+}
+declare let SETTINGS: Settings;
+// This silly magic string gets replaced with user-specific settings server-side;
+"let SETTINGS = SETTINGS";
+let local_sync_in_flight = false;
+let local_needs_sync:Array<[string, string]> = [];
 let SHOW_FPS = false;
 //
 // Misc notes
@@ -49,6 +64,8 @@ function change_dark_mode(mode:DarkMode, postit:number){
                 document.body.classList.remove('dark-mode');
         });
     }
+    // This is weird to use fetch when I use websockets everywhere
+    // else.
     if(postit){
         fetch('/settings', {
             method: 'POST',
@@ -61,22 +78,15 @@ function change_dark_mode(mode:DarkMode, postit:number){
 }
 (function(){
     // Use settings from localstorage to avoid flicker on first load.
-    let mode = get_global(StorageCategory.SETTINGS, 'darkmode');
+    let mode = SETTINGS.darkmode;
+    if(mode === undefined)
+        mode = get_global(StorageCategory.SETTINGS, 'darkmode');
     if(mode === undefined)
         mode = +(localStorage.getItem('darkmode') || 0);
     mode |= 0;
     if(mode < 0 || mode > 2)
         mode = 0;
     change_dark_mode(mode, 0);
-    fetch('/settings')
-    .then(response => response.json())
-    .then(settings => {
-        if(settings.darkmode !== undefined){
-            let mode = settings.darkmode | 0;
-            if(mode < 0 || mode > 2) mode = 0;
-            change_dark_mode(mode, 0);
-        }
-    });
 }());
 
 

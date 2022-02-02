@@ -40,7 +40,7 @@ class Persister(Generic[T]):
         dont_persist: don't save
         '''
         self.name = name
-        logging.info('loading %s', name)
+        logging.info('loading %r', name)
         self.obj = self.read_obj(obj)
         if dont_persist:
             return

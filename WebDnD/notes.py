@@ -1,5 +1,5 @@
 from typing import List, Dict, Union, NamedTuple, Optional
-from .persist import Persister, JsType, RepeatTimer
+from .persist import JsType, RepeatTimer
 from enum import IntFlag
 from . import db
 import logging
@@ -19,15 +19,16 @@ savelock = threading.RLock()
 noteslock = threading.RLock()
 
 
-def queue_save(campaign, campaign_id, noteid):
+def queue_save(campaign_id, noteid):
     with savelock:
-        savequeue.add((campaign, campaign_id, noteid))
+        savequeue.add((campaign_id, noteid))
 
 def save_queued_notes():
     while True:
         with savelock:
             if not savequeue: break
-            campaign, campaign_id, noteid = savequeue.pop()
+            campaign_id, noteid = savequeue.pop()
+        if campaign_id == 1: continue
         note = NOTES[campaign][noteid]
         with noteslock:
             title, body, flags, id = note['title'], note['body'], note['flags'], note['id']
@@ -42,16 +43,13 @@ def load_the_notes(campaign_id:int) -> Dict[int, Note]:
     notes = db.get_notes(campaign_id)
     return {n['id']:n for n in notes}
 
-NOTES = {} # type: Dict[str, Dict[int, Note]]
+NOTES = {} # type: Dict[int, Dict[int, Note]]
 
-def new_note_request(room:str) -> int:
-    # FIXME: do room to campaign parsing in app.py
-    campaign  = room.split('/')[-1] if '/' in room else ''
-    campaign_id = db.lookup_campaign(campaign)
-    assert campaign_id is not None
+def new_note_request(campaign:int) -> int:
+    assert campaign is not None
     with noteslock:
         if campaign not in NOTES:
-            NOTES[campaign] = load_the_notes(campaign_id)
+            NOTES[campaign] = load_the_notes(campaign)
         notes = NOTES[campaign]
         if not notes:
             result = 1
@@ -65,68 +63,54 @@ def new_note_request(room:str) -> int:
                 )
     return result
 
-def get_notes_for_room(room:str) -> List[Note]:
-    # FIXME: do room to campaign parsing in app.py
-    campaign  = room.split('/')[-1] if '/' in room else ''
-    campaign_id = db.lookup_campaign(campaign)
-    assert campaign_id is not None
+def get_notes_for_room(campaign:int) -> List[Note]:
+    assert campaign is not None
     with noteslock:
         if campaign not in NOTES:
-            NOTES[campaign] = load_the_notes(campaign_id)
+            NOTES[campaign] = load_the_notes(campaign)
         notes = NOTES[campaign]
         return list(notes.values())
 
-def get_note(room:str, note_id:int) -> Optional[Note]:
-    # FIXME: do room to campaign parsing in app.py
-    campaign  = room.split('/')[-1] if '/' in room else ''
+def get_note(campaign:int, note_id:int) -> Optional[Note]:
     with noteslock:
         if campaign not in NOTES:
-            logging.error("Updating a note for a campaign that doesn't exist: %s", campaign)
+            logging.error("Updating a note for a campaign that doesn't exist: %r", campaign)
             return None
         notes = NOTES[campaign]
         if note_id not in notes:
-            logging.error("Updating a note that doesn't exist: %s (campaign: %s)", note_id, campaign)
+            logging.error("Updating a note that doesn't exist: %r (campaign: %r)", note_id, campaign)
             return None
         note = notes[note_id]
         return note
 
-def note_update_title(room:str, note_id:int, title:str) -> None:
-    note = get_note(room, note_id)
+def note_update_title(campaign:int, note_id:int, title:str) -> None:
+    note = get_note(campaign, note_id)
     if note is None:
         return
     with noteslock:
         note['title'] = title
     noteid = note['id']
-    # FIXME: do room to campaign parsing in app.py
-    campaign  = room.split('/')[-1] if '/' in room else ''
-    campaign_id = db.lookup_campaign(campaign)
-    assert campaign_id is not None
-    queue_save(campaign, campaign_id, noteid)
+    assert campaign is not None
+    queue_save(campaign, noteid)
     # db.save_note(campaign_id, note['title'], note['body'], note['flags'], note['id'])
 
-def note_update_body(room:str, note_id:int, body:str) -> None:
-    note = get_note(room, note_id)
+def note_update_body(campaign:int, note_id:int, body:str) -> None:
+    note = get_note(campaign, note_id)
     if note is None:
         return
     with noteslock:
         note['body'] = body
     noteid = note['id']
-    # FIXME: do room to campaign parsing in app.py
-    campaign  = room.split('/')[-1] if '/' in room else ''
-    campaign_id = db.lookup_campaign(campaign)
-    assert campaign_id is not None
-    queue_save(campaign, campaign_id, noteid)
+    assert campaign is not None
+    queue_save(campaign, noteid)
     # db.save_note(campaign_id, note['title'], note['body'], note['flags'], note['id'])
 
-def note_delete(room:str, note_id:int) -> None:
-    note = get_note(room, note_id)
+def note_delete(campaign:int, note_id:int) -> None:
+    note = get_note(campaign, note_id)
     if note is None:
         return
     with noteslock:
         note['flags'] |= NOTEFLAGS.DELETED
     noteid = note['id']
-    # FIXME: do room to campaign parsing in app.py
-    campaign  = room.split('/')[-1] if '/' in room else ''
-    campaign_id = db.lookup_campaign(campaign)
-    assert campaign_id is not None
-    queue_save(campaign, campaign_id, noteid)
+    assert campaign is not None
+    queue_save(campaign, noteid)

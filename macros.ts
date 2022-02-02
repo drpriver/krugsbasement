@@ -85,6 +85,7 @@ function save_macros(){
         });
     }
     store_local(StorageCategory.MACROS, 'macros', to_save);
+    sync_local(StorageCategory.MACROS, 'macros', to_save);
 }
 
 function add_macro(m:Macro){
@@ -373,6 +374,7 @@ function actually_save_the_variables(){
         to_save.push(sv);
     }
     store_local(StorageCategory.MACROS,'variables', to_save);
+    sync_local(StorageCategory.MACROS,'variables', to_save);
 }
 // window.addEventListener('beforeunload', actually_save_the_variables, false);
 function save_variables(){
@@ -410,7 +412,7 @@ document.addEventListener('DOMContentLoaded', function(){
             groupid = 0;
             listview.active = 0;
         }
-        actually_save_the_variables();
+        // actually_save_the_variables();
         active_group = scriptgroups[groupid];
         setup();
     };

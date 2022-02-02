@@ -13,6 +13,43 @@ const enum StorageCategory {
     SETTINGS = 'settings',
     WINDOW = 'window',
 }
+
+function sync_the_local_settings(){
+    let emitted:Map<string, Set<string>> = new Map();
+    for (let [c, k] of local_needs_sync){
+        // @ts-ignore
+        if(emitted.has(c) && emitted.get(c).has(k))
+            continue;
+        if(!emitted.has(c))
+            emitted.set(c, new Set());
+        // @ts-ignore
+        emitted.get(c).add(k);
+        // @ts-ignore
+        EMIT(FromClient.STORE_LOCAL_SETTING, [c, k, JSON.stringify(SETTINGS[c][k])]);
+    }
+    local_needs_sync = [];
+    local_sync_in_flight = false;
+}
+
+function queue_sync_the_local_settings(){
+    if(local_sync_in_flight)
+        return;
+    local_sync_in_flight = true;
+    setTimeout(sync_the_local_settings, 1000);
+}
+
+function sync_local(category:StorageCategory, key:string, obj:any){
+    // @ts-ignore
+    if(SETTINGS[category] === undefined){
+    // @ts-ignore
+        SETTINGS[category] = {};
+    }
+    // @ts-ignore
+    SETTINGS[category][key] = obj;
+    local_needs_sync.push([category, key]);
+    queue_sync_the_local_settings();
+}
+
 function store_local(category:StorageCategory, key:string, obj:any){
     let value = JSON.stringify(obj);
     let k = `${THISPAGE}/${category}.${key}`;
@@ -20,10 +57,22 @@ function store_local(category:StorageCategory, key:string, obj:any){
 }
 
 function get_local(category:StorageCategory, key:string):any | undefined {
+    // @ts-ignore
+    if(SETTINGS[category] !== undefined){
+        // @ts-ignore
+        let v = SETTINGS[category][key];
+        if(v !== undefined) return v;
+    }
+    // legacy stuff, it shouldn't happen that it is not on the server but is in local storage.
     let k = `${THISPAGE}/${category}.${key}`;
     let value = localStorage.getItem(k);
     if(!value) return undefined;
-    return JSON.parse(value);
+    let result = JSON.parse(value);
+    // Can't do this because it will then fire on everything, even
+    // if it is not a server-side setting.
+    // Implement for each one instead.
+    // sync_local(category, key, result);
+    return result;
 }
 
 function store_global(category:StorageCategory, key:string, obj:any){

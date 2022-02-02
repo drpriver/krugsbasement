@@ -1,9 +1,6 @@
-import io
-import shlex
 from typing import List, Dict, Union, Any, Tuple, Optional
 import random
 from .persist import Persister
-from flask_socketio import emit
 from .logs import logging
 from . import db
 import datetime
@@ -17,26 +14,25 @@ class RollTablePersister(Persister[List[RollTable]]):
         o = db.get_rolltable(self.campaign_id)
         return o if o is not None else obj
     def write_obj(self, obj):
-        logging.info('write roll table: %r', obj)
+        # logging.info('write roll table: %r', obj)
         db.save_rolltable(self.campaign_id, obj)
-    def __init__(self, campaign:str, dont_persist=False):
-        name = f'{campaign!r}/rolltables'
-        self.campaign_id = db.lookup_campaign(campaign)
+    def __init__(self, campaignid:int):
+        name = f'{campaignid!r}/rolltables'
+        self.campaign_id = campaignid
         assert self.campaign_id is not None
+        dont_persist = campaignid == 1
         super().__init__([], name, dont_persist=dont_persist)
 
-ROLLTABLES = {'': RollTablePersister('', dont_persist=True).obj}
+ROLLTABLES = {} # type: Dict[int, List[RollTable]]
 
-def get_roll_tables(room:str) -> List[RollTable]:
-    # FIXME: do room to campaign parsing in app.py
-    campaign  = room.split('/')[-1] if '/' in room else ''
+def get_roll_tables(campaign:int) -> List[RollTable]:
     if campaign in ROLLTABLES:
         return ROLLTABLES[campaign]
     ROLLTABLES[campaign] = RollTablePersister(campaign).obj
     return ROLLTABLES[campaign]
 
-def update_roll_tables(room:str, data:List[RollTable]) -> None:
-    tables = get_roll_tables(room)
+def update_roll_tables(campaign:int, data:List[RollTable]) -> None:
+    tables = get_roll_tables(campaign)
     highest = max(t['id'] for t in tables) if tables else 0
     if highest < 0:
         highest = 1
@@ -51,18 +47,18 @@ def update_roll_tables(room:str, data:List[RollTable]) -> None:
                 raise Exception
     tables.clear()
     tables.extend(data)
-    logging.info('tables: %r', tables)
+    # logging.info('tables: %r', tables)
 
-def upload_roll_table(room:str, data:RollTable) -> Optional[RollTable]:
-    tables = get_roll_tables(room)
+def upload_roll_table(campaign:int, data:RollTable) -> Optional[RollTable]:
+    tables = get_roll_tables(campaign)
     highest = max(t['id'] for t in tables) if tables else 0
     data['id'] = highest + 1
     tables.append(data)
     return data
 
-def parse_and_roll_table(room:str, line:str) -> Tuple[str, str]:
+def parse_and_roll_table(campaign:int, line:str) -> Tuple[str, str]:
     line = line.strip()
-    tables = get_roll_tables(room)
+    tables = get_roll_tables(campaign)
     mapping = {d['name'].lower(): d for d in tables}
     return parse_and_roll_table_inner(mapping, line, line, 0)
 
@@ -87,17 +83,12 @@ def parse_and_roll_table_inner(mapping:Dict[str, RollTable], key:str, path:str, 
     return value, path
 
 
-def get_history(room:str) -> List[ChatMsg]:
-    # FIXME: do room to campaign parsing in app.py
-    campaign  = room.split('/')[-1] if '/' in room else ''
-    campaign_id = db.lookup_campaign(campaign)
-    if campaign_id is None:
+def get_history(campaign:int) -> List[ChatMsg]:
+    if campaign is None:
         return []
-    return db.get_chat(campaign_id)
+    return db.get_chat(campaign)
 
-def handle_structured_input(room:str, user:str, commands:List[Command], test:bool) -> List[ChatMsg]:
-    # FIXME: do room to campaign parsing in app.py
-    campaign  = room.split('/')[-1] if '/' in room else ''
+def handle_structured_input(campaign:int, user:str, commands:List[Command], test:bool) -> List[ChatMsg]:
     def echo(user:str, text:str) -> ChatMsg:
         return (Msg.ECHOABLE_TEXT, user, text) # type: ignore
     def plain(user:str, text:str) -> ChatMsg:
@@ -137,7 +128,7 @@ def handle_structured_input(room:str, user:str, commands:List[Command], test:boo
         elif cc == ChatCommand.TABLE:
             table: str = command[2] # type: ignore
             try:
-                table_result, path = parse_and_roll_table(room, table)
+                table_result, path = parse_and_roll_table(campaign, table)
             except Exception as e:
                 result.append(error(str(e)))
             else:
@@ -148,12 +139,10 @@ def handle_structured_input(room:str, user:str, commands:List[Command], test:boo
             raise Exception(cc)
 
     if not test:
-        campaign_id = db.lookup_campaign(campaign)
-        assert campaign_id
         userid = None
         utcnow = datetime.datetime.utcnow()
         for msg in result:
-            db.save_chat_msg(campaign_id, msg[0], msg[1], msg[2], created=utcnow, userid=userid)
+            db.save_chat_msg(campaign, msg[0], msg[1], msg[2], created=utcnow, userid=userid)
     return result
 
 def structured_roll_die(die:UnrolledDiceExpr) -> None:

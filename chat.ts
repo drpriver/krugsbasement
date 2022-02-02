@@ -12,7 +12,7 @@ let CHATNAME = (function(){
     // default name
     if(!name)
         name = 'anon';
-    store_local(StorageCategory.CHAT, 'name', name);
+    // store_local(StorageCategory.CHAT, 'name', name);
     return name;
 })();
 function setchatname(name:string){
@@ -21,6 +21,7 @@ function setchatname(name:string){
     CHATNAME = name;
     store_local(StorageCategory.CHAT,'name', name);
 }
+// @ts-ignore
 
 function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>){
     for(let i = 0; i < msgs.length; i++){
@@ -186,79 +187,6 @@ function preprocess_and_send_chat_with_usings(text:string){
     EMIT(FromClient.CHAT_STRUCTURED_INPUT, to_send);
 }
 
-function export_settings(e:MouseEvent){
-    e.stopPropagation();
-    e.preventDefault();
-    const macros = MACROS;
-    const settings = {macros:macros, chatname:CHATNAME};
-    const s = JSON.stringify(settings, null, 1);
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([s], {type:'text/plain'}));
-    a.download = "krugsbasementsettings.json";
-    a.click();
-}
-
-function import_settings(finish:()=>void){
-    const inp = document.createElement('input');
-    inp.type = 'file';
-    function show_err(err:any){
-        err_dialog(
-            `
-            <div style="max-width:600px; margin:auto; padding:2em;">
-            <h1>Unable to Load Settings</h1>
-            <p> There was a problem loading the settings. Good luck!
-            <br>
-            <code>
-            ${err}
-            </code>
-            </div>
-            `);
-    }
-    function handlefiles(){
-        const files = inp.files;
-        if(!files)
-            return;
-        if(!files.length)
-            return;
-        const file = files[0];
-        const fr = new FileReader();
-        fr.addEventListener('load', function(){
-            try {
-                if(!fr.result)
-                    return;
-                const new_settings = JSON.parse(fr.result as string);
-                // look before you leap
-                if(new_settings.chatname && typeof new_settings.chatname !== 'string'){
-                show_err('Non string chatname.');
-                    return;
-                }
-                if(new_settings.macros){
-                    // TODO: validate macros
-                }
-
-                if(new_settings.macros){
-                    clear_macro_buttons();
-                    MACROS.length = 0;
-                    add_macros_and_buttons(new_settings.macros);
-                }
-                if(new_settings.chatname){
-                    setchatname(new_settings.chatname);
-                }
-                finish();
-            }
-            catch(err) {
-                finish();
-                show_err(err);
-                return;
-            }
-
-        });
-        fr.readAsText(file);
-    }
-    inp.addEventListener('change', handlefiles, false);
-    inp.click();
-}
-
 let chat_options_init = false;
 function chat_options_dialog(){
     let dialog = get_dialog('options');
@@ -312,10 +240,6 @@ function chat_options_dialog(){
         dialog.f.system.onchange = function(){change_dark_mode(DarkMode.SYSTEM, 1);};
         dialog.f.dark.onchange   = function(){change_dark_mode(DarkMode.DARK, 1);};
         dialog.f.light.onchange  = function(){change_dark_mode(DarkMode.LIGHT, 1);};
-        dialog.f.export.addEventListener('click', export_settings);
-        dialog.f.import.addEventListener('click', function(){
-            import_settings(dialog.hide);
-        });
     }
     dialog.show_handler = function(){
         dialog.f.chatname.focus();
@@ -326,7 +250,10 @@ function chat_options_dialog(){
             SHOW_FPS = show_fps.checked;
             request_render();
         }
-        setchatname(dialog.f.chatname.value);
+        if(CHATNAME != dialog.f.chatname.value.trim()){
+            setchatname(dialog.f.chatname.value);
+            sync_local(StorageCategory.CHAT, 'name', dialog.f.chatname.value);
+        }
     }
     dialog.show();
 }

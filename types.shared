@@ -44,6 +44,10 @@ enum FromClient: int
     # debugging
     # ---------
     DEBUG = 26
+    # Settings
+    # --------
+    STORE_LOCAL_SETTING = 27
+
 # ToClient
 # --------
 # Defines messages sent from the server to the client
@@ -755,6 +759,10 @@ struct Note: dict
     flags = NOTEFLAGS
     id = int
 
+struct LocalSetting: array
+    category = str
+    key = str
+    value = str
 
 message ToClientMsg: ToClient
     SESSION_ID = int
@@ -813,6 +821,7 @@ message FromClientMsg: FromClient
     NOTE_UPDATE_BODY = NoteUpdateBody
     DELETE_NOTE_REQUEST = int
     DEBUG = str
+    STORE_LOCAL_SETTING = LocalSetting
 
 enum DarkMode: int
     SYSTEM = 0

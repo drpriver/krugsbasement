@@ -1,7 +1,7 @@
 import os
 import threading
 import sqlite3
-from typing import Optional, Dict, Tuple, List
+from typing import Optional, Dict, Tuple, List, Any
 import json
 import datetime
 from .logs import logging
@@ -13,7 +13,7 @@ atexit.register(lambda: (logging.info('closing db'), conn.close())) # type: igno
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 5
+DBVERSION = 6
 with conn:
     conn.execute("PRAGMA encoding = 'UTF-8';")
     conn.execute('PRAGMA foreign_keys = ON;')
@@ -173,6 +173,22 @@ def setup_tables():
                 key TEXT NOT NULL,
                 value ANY,
                 PRIMARY KEY(userid, key),
+                FOREIGN KEY(userid) REFERENCES users(userid)
+            );
+        ''')
+    if version < 6:
+        conn.execute('''
+            DROP TABLE usercampprefs;
+        ''')
+        conn.execute('''
+            CREATE TABLE usercampprefs (
+                userid INTEGER NOT NULL,
+                campaignid INTEGER NOT NULL,
+                category TEXT NOT NULL,
+                key TEXT NOT NULL,
+                value BLOB, /* json blob */
+                PRIMARY KEY(userid, campaignid, category, key),
+                FOREIGN KEY(campaignid) REFERENCES campaigns(id),
                 FOREIGN KEY(userid) REFERENCES users(userid)
             );
         ''')
@@ -380,6 +396,7 @@ def lookup_campaign(name:str) -> Optional[int]:
             ;
         ''', (name,))
         row = cur.fetchone()
+    # logging.info('campaign: %r, row: %r', name, row)
     if row: return row[0]
     return None
 
@@ -566,3 +583,31 @@ def store_global_settings(userid:int, key:str, value) -> None:
             ON CONFLICT(userid, key)
                 DO UPDATE SET value = excluded.value
             ;''', (userid, key, value))
+def store_local_setting(userid:int, campaign:int, category:str, key:str, value:str) -> None:
+    with DBLOCK, conn:
+        conn.execute('''
+            INSERT INTO
+                usercampprefs(userid, campaignid, category, key, value)
+            VALUES
+                (?, ?, ?, ?, ?)
+            ON CONFLICT(userid, campaignid, category, key)
+                DO UPDATE SET value = excluded.value
+            ;''', (userid, campaign, category, key, value))
+
+def get_local_settings(userid:int, campaign:int) -> dict:
+    with DBLOCK:
+        rows = conn.execute('''
+        SELECT
+            category, key, value
+        FROM
+            usercampprefs
+        WHERE
+            userid = ? AND campaignid = ?
+        ;''', (userid, campaign)).fetchall()
+    result = {} # type: Dict[str, Dict[str, Any]]
+    for c, k, v in rows:
+        if c not in result:
+            result[c] = {}
+        result[c][k] = json.loads(v)
+    # logging.info('rows: %r, result: %r', rows, result)
+    return result

@@ -14,15 +14,22 @@ from . import chat
 from . import canvas
 from . import notes
 from .persist import Persister, RepeatTimer, AppKVPersister
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting
 from .validator import validate, register_list
 from . import db
 from .users import User
 from .forms import LoginForm, RegisterForm, CampaignForm
+from . import settings
 
 import pydndc
 import time
 import json
+if appconfig.DEV:
+    dlog = logging.info
+else:
+    def dlog(*args): # type: ignore
+        return
+
 
 app = Flask('WebDnd')
 app.config['SECRET_KEY'] = appconfig.SECRET_KEY or 'dev'
@@ -39,7 +46,7 @@ login = LoginManager(app)
 login.login_view = 'login'
 
 @login.user_loader
-def load_user(id:str) -> User:
+def load_user(id:str) -> Optional[User]:
     return User.lookup_by_id(int(id))
 
 def r(f:str) -> str:
@@ -52,14 +59,17 @@ def r(f:str) -> str:
 REGISTER_d = r('register.dnd')
 LOGIN_d    = r('login.dnd')
 HOME_d     = r('home.dnd')
-ip_ban_list = {}
-ip_bad_attempts = {}
+SCREEN     = r('dungeon.html')
+ip_ban_list = {} # type: Dict[str, float]
+ip_bad_attempts = {} # type: Dict[str, List[float]]
 FCACHE = pydndc.FileCache()
 FCACHE.store('login.css', r('login.css'))
 FCACHE.store('darkmode.js', r('darkmode.js'))
 
 def bad_attempt() -> None:
     ip = request.environ.get('REMOTE_ADDR')
+    if ip is None:
+        return
     now = time.time()
     badtimes = [
         b for b in ip_bad_attempts.get(ip, [])
@@ -67,7 +77,7 @@ def bad_attempt() -> None:
     ]
     badtimes.append(now)
     ip_bad_attempts[ip] = badtimes
-    if len(badtimes) >= 2:
+    if len(badtimes) >= 5:
         ip_ban_list[ip] = now
         logging.info('Banning ip %r', ip)
     else:
@@ -126,7 +136,7 @@ def register() -> object:
     return html
 
 @app.route('/login', methods=['GET', 'POST'])
-def login() -> object:
+def login_page() -> object:
     global LOGIN_d
     if current_user.is_authenticated:
         next_page = request.args.get('next')
@@ -173,19 +183,28 @@ def campa():
 def get_settings():
     if not current_user.is_authenticated:
         return flask.jsonify({})
-    settings = db.get_global_settings(current_user.userid)
-    logging.debug('Get settings for %r: %r', current_user.userid, settings)
-    return flask.jsonify(settings)
+    return flask.jsonify(settings.get_global(current_user.userid))
 
 @app.route('/settings', methods=['POST'])
 def post_settings():
     if not current_user.is_authenticated:
         return {}
-    logging.debug('Settings for %r: %r', current_user.userid, request.json)
-    settings = request.json
-    for k, v in settings.items():
-        db.store_global_settings(current_user.userid, k, v)
+    dlog('Settings for %r: %r', current_user.userid, request.json)
+    for k, v in request.json.items():
+        settings.set_global(current_user.userid, k, v)
     return {}
+
+@socketio.on(FromClient.STORE_LOCAL_SETTING)
+def store_campaign_setting(data: LocalSetting) -> None:
+    if not current_user.is_authenticated:
+        return
+    data = validate('LocalSetting', data)
+    campaign = get_campaign(request)
+    userid = current_user.userid
+    if campaign is None:
+        return
+    logging.info('sid: %r storing campaign setting for %r: %r', request.sid, current_user, data[:2])
+    settings.set_local(userid, campaign, *data)
 
 @app.route('/home')
 @login_required
@@ -220,30 +239,34 @@ if appconfig.DEV:
 @socketio.on(FromClient.CHAT_STRUCTURED_INPUT)
 def chat_structured_input(data:ChatCommandMessage):
     data = validate('ChatCommandMessage', data)
-    room = get_room(request)
-    responses = chat.handle_structured_input(room, data['chatname'], data['commands'], test=False)
+    campaign = get_campaign(request)
+    responses = chat.handle_structured_input(campaign, data['chatname'], data['commands'], test=False)
     if responses:
-        emit(ToClient.CHAT_STRUCTURED_MSG, responses, broadcast=True, to=room)
+        emit(ToClient.CHAT_STRUCTURED_MSG, responses, broadcast=True, to=str(campaign))
 
 @socketio.on(FromClient.CHAT_TEST_STRUCTURED_INPUT)
 def chat_test_structured_input(data:ChatCommandMessage):
     data = validate('ChatCommandMessage', data)
-    room = get_room(request)
+    campaign = get_campaign(request)
     if not data:
         return
-    responses = chat.handle_structured_input(room, data['chatname'], data['commands'], test=True)
-    return responses
+    responses = chat.handle_structured_input(campaign, data['chatname'], data['commands'], test=True)
+    emit(ToClient.CHAT_TEST_STRUCTURED_RESPONSE, responses, to=str(campaign))
 
 session_id = AppKVPersister('session_id', 0).obj
 logging.info('session_id: %r', session_id.value)
 
-sid_to_room = {} # type: Dict[str, str]
-def get_room(req) -> str:
-    return sid_to_room[req.sid]
-def record_room(req, room:str) -> None:
-    sid_to_room[req.sid] = room
+sid_to_campaign = {} # type: Dict[str, int]
+user_id_to_sids = {} # type: Dict[int, list]
+def get_campaign(req) -> int:
+    return sid_to_campaign[req.sid]
 
-ALLOWED_CAMPAIGNS = db.get_campaigns()
+def record_campaign(req, campaign:int) -> None:
+    sid_to_campaign[req.sid] = campaign
+    if current_user.is_authenticated:
+        if current_user.userid not in user_id_to_sids:
+            user_id_to_sids[current_user.userid] = []
+        user_id_to_sids[current_user.userid].append(req.sid)
 
 def get_token_paths():
     with open(os.path.join(appconfig.STATICDIR, 'token-list.txt'), 'r') as fp:
@@ -258,84 +281,101 @@ def handle_connection() -> None:
     emit(ToClient.SESSION_ID, session_id.value)
     emit(ToClient.TOKEN_PATHS, TOKEN_PATH_LIST)
 
+@socketio.on('disconnect')
+def handle_disconnect() -> None:
+    if request.sid in sid_to_campaign:
+        del sid_to_campaign[request.sid]
+    if current_user.is_authenticated:
+        id = current_user.userid
+        try:
+            user_id_to_sids[id].remove(request.sid)
+            if not user_id_to_sids[id]:
+                del user_id_to_sids[id]
+        except Exception:
+            pass
+
+
 @socketio.on(FromClient.JOIN)
 def join(room:str) -> None:
-    record_room(request, room)
-    logging.info("Someone joining room: %r", room);
-    join_room(room)
+    campaign  = room.split('/')[-1] if '/' in room else ''
+    campaignid = db.lookup_campaign(campaign)
+    assert campaignid is not None
+    record_campaign(request, campaignid)
+    logging.info("Someone joining room (campaignid): %r, %r", room, campaignid);
+    join_room(str(campaignid))
     # chat.create_chat(room)
-    canvas.create_maps(room)
+    canvas.create_maps(campaignid)
     # notes.create_notes_for_room(room)
 
 @socketio.on(FromClient.POST_JOIN)
 def post_join():
-    room = get_room(request)
+    campaign = get_campaign(request)
     emit(ToClient.CHAT_CLEAR)
-    emit(ToClient.CHAT_CREATE, chat.get_history(room))
-    emit(ToClient.CANVAS_INITIALIZE_MAPS, canvas.get_state(room))
-    emit(ToClient.NOTES_INITIALIZE, notes.get_notes_for_room(room))
+    emit(ToClient.CHAT_CREATE, chat.get_history(campaign))
+    emit(ToClient.CANVAS_INITIALIZE_MAPS, canvas.get_state(campaign))
+    emit(ToClient.NOTES_INITIALIZE, notes.get_notes_for_room(campaign))
 
 @socketio.on(FromClient.CANVAS_CREATE_OBJECTS)
 def handle_canvas_create(data:CreateObjectMessage) -> None:
     data = validate('CreateObjectMessage', data)
-    room = get_room(request)
-    response = canvas.handle_create(room, data)
+    campaign = get_campaign(request)
+    response = canvas.handle_create(campaign, data)
     if response:
-        emit(ToClient.CANVAS_CREATE_OBJECTS, response, broadcast=True, include_self=False, to=room)
+        emit(ToClient.CANVAS_CREATE_OBJECTS, response, broadcast=True, include_self=False, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_DELETE)
 def handle_canvas_delete(data:CanvasDeleteMessage) -> None:
     data = validate('CanvasDeleteMessage', data)
-    room = get_room(request)
-    response = canvas.handle_delete(room, data)
+    campaign = get_campaign(request)
+    response = canvas.handle_delete(campaign, data)
     if response:
-        emit(ToClient.CANVAS_DELETE, response, broadcast=True, include_self=False, to=room) # type: ignore
+        emit(ToClient.CANVAS_DELETE, response, broadcast=True, include_self=False, to=str(campaign)) # type: ignore
 
 @socketio.on(FromClient.CANVAS_UPDATE)
 def handle_canvas_update(data:CanvasUpdateMessage) -> None:
     data = validate('CanvasUpdateMessage', data)
-    room = get_room(request)
-    response = canvas.handle_update(room, data)
+    campaign = get_campaign(request)
+    response = canvas.handle_update(campaign, data)
     if response:
-        emit(ToClient.CANVAS_UPDATE, response, broadcast=True, include_self=False, to=room) # type: ignore
+        emit(ToClient.CANVAS_UPDATE, response, broadcast=True, include_self=False, to=str(campaign)) # type: ignore
 
 @socketio.on(FromClient.CANVAS_GATHER)
 def canvas_gather(where:GatherMessage) -> None:
     where = validate('GatherMessage', where)
-    room = get_room(request)
-    emit(ToClient.CANVAS_GATHER, where, broadcast=True, to=room) # type: ignore
+    campaign = get_campaign(request)
+    emit(ToClient.CANVAS_GATHER, where, broadcast=True, to=str(campaign)) # type: ignore
 
 @socketio.on(FromClient.CANVAS_BATTLE)
 def canvas_battle(where:GatherMessage) -> None:
     where = validate('GatherMessage', where)
-    room = get_room(request)
-    emit(ToClient.CANVAS_BATTLE, where, broadcast=True, to=room) # type: ignore
+    campaign = get_campaign(request)
+    emit(ToClient.CANVAS_BATTLE, where, broadcast=True, to=str(campaign)) # type: ignore
 
 @socketio.on(FromClient.CANVAS_DUNGEON_MODE)
 def canvas_dungeon_mode() -> None:
-    room = get_room(request)
-    emit(ToClient.CANVAS_DUNGEON_MODE, broadcast=True, to=room)
+    campaign = get_campaign(request)
+    emit(ToClient.CANVAS_DUNGEON_MODE, broadcast=True, to=str(campaign))
 
 
 @socketio.on(FromClient.CANVAS_CREATE_MAP)
 def canvas_create_map(data:int) -> None:
     assert isinstance(data, int)
-    room = get_room(request)
-    canvas.create_map(room, data)
-    emit(ToClient.CANVAS_CREATE_MAP, data, broadcast=True, include_self=False, to=room)
+    campaign = get_campaign(request)
+    canvas.create_map(campaign, data)
+    emit(ToClient.CANVAS_CREATE_MAP, data, broadcast=True, include_self=False, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_PING)
 def canvas_ping(data:dict) -> None:
     data = validate('PingMessage', data)
-    room = get_room(request)
-    emit(ToClient.CANVAS_PING, data, broadcast=True, include_self=True, to=room) # type: ignore
+    campaign = get_campaign(request)
+    emit(ToClient.CANVAS_PING, data, broadcast=True, include_self=True, to=str(campaign)) # type: ignore
 
 @socketio.on(FromClient.CANVAS_NAME_MAP)
 def canvas_name_map(data:NameMapMessage) -> None:
     data = validate('NameMapMessage', data)
-    room = get_room(request)
-    canvas.name_map(room, **data)
-    emit(ToClient.CANVAS_NAME_MAP, data, broadcast=True, include_self=False, to=room) # type: ignore
+    campaign = get_campaign(request)
+    canvas.name_map(campaign, **data)
+    emit(ToClient.CANVAS_NAME_MAP, data, broadcast=True, include_self=False, to=str(campaign)) # type: ignore
 
 @socketio.on(FromClient.CANVAS_NEW_MAP_REQUEST)
 def new_map_request(data:NewMapRequest) -> None:
@@ -343,133 +383,138 @@ def new_map_request(data:NewMapRequest) -> None:
     map_name:str = data['name']
     grid_type = data['grid_type']
     flags = data['flags']
-    room = get_room(request)
-    new_map_id = canvas.new_map_request(room, map_name, grid_type, flags)
-    logging.info('new map: %r for room %r, with name: %r', new_map_id, room, map_name)
-    emit(ToClient.CANVAS_CREATE_MAP, new_map_id, broadcast=True, include_self=True, to=room)
-    emit(ToClient.CANVAS_NAME_MAP, {'map_id':new_map_id, 'map_name':map_name}, broadcast=True, include_self=True, to=room)
-    emit(ToClient.CANVAS_GRID_TYPE, {'map_id':new_map_id, 'grid_type':grid_type}, broadcast=True, include_self=True, to=room)
-    emit(ToClient.CANVAS_GRID_NUMBERED, {'map_id':new_map_id, 'numbered':flags}, broadcast=True, include_self=True, to=room)
+    campaign = get_campaign(request)
+    new_map_id = canvas.new_map_request(campaign, map_name, grid_type, flags)
+    logging.info('new map: %r for campaign %r, with name: %r', new_map_id, campaign, map_name)
+    emit(ToClient.CANVAS_CREATE_MAP, new_map_id, broadcast=True, include_self=True, to=str(campaign))
+    emit(ToClient.CANVAS_NAME_MAP, {'map_id':new_map_id, 'map_name':map_name}, broadcast=True, include_self=True, to=str(campaign))
+    emit(ToClient.CANVAS_GRID_TYPE, {'map_id':new_map_id, 'grid_type':grid_type}, broadcast=True, include_self=True, to=str(campaign))
+    emit(ToClient.CANVAS_GRID_NUMBERED, {'map_id':new_map_id, 'numbered':flags}, broadcast=True, include_self=True, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_GRID_TYPE)
 def change_grid_type(data:CanvasGridTypeMsg) -> None:
     data = validate('CanvasGridTypeMsg', data)
     map_id = data['map_id']
     gt = data['grid_type']
-    room = get_room(request)
-    logging.info('Changing grid type to %r for map %r in room %r', gt, map_id, room)
-    canvas.change_grid_type(room, map_id, gt)
-    emit(ToClient.CANVAS_GRID_TYPE, {'map_id':map_id, 'grid_type':gt}, broadcast=True, include_self=True, to=room)
+    campaign = get_campaign(request)
+    logging.info('Changing grid type to %r for map %r in campaign %r', gt, map_id, campaign)
+    canvas.change_grid_type(campaign, map_id, gt)
+    emit(ToClient.CANVAS_GRID_TYPE, {'map_id':map_id, 'grid_type':gt}, broadcast=True, include_self=True, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_GRID_NUMBERED)
 def change_grid_numbered(data:CanvasGridNumberedMsg) -> None:
     data = validate('CanvaGridNumberedMsg', data)
     map_id = data['map_id']
     numbered = data['numbered']
-    room = get_room(request)
-    canvas.set_numbered(room, map_id, numbered)
-    emit(ToClient.CANVAS_GRID_NUMBERED, {'map_id':map_id, 'numbered':numbered}, broadcast=True, include_self=True, to=room)
+    campaign = get_campaign(request)
+    canvas.set_numbered(campaign, map_id, numbered)
+    emit(ToClient.CANVAS_GRID_NUMBERED, {'map_id':map_id, 'numbered':numbered}, broadcast=True, include_self=True, to=str(campaign))
 
 
 @socketio.on(FromClient.CANVAS_DELETE_MAP_REQUEST)
 def delete_map_request(map_id:int) -> None:
     assert isinstance(map_id, int)
-    room = get_room(request)
-    logging.info('delete map: %r for room %r', map_id, room)
-    was_deleted = canvas.delete_map(room, map_id)
+    campaign = get_campaign(request)
+    logging.info('delete map: %r for campaign %r', map_id, campaign)
+    was_deleted = canvas.delete_map(campaign, map_id)
     if was_deleted:
-        emit(ToClient.CANVAS_DELETE_MAP, map_id, broadcast=True, include_self=True, to=room)
+        emit(ToClient.CANVAS_DELETE_MAP, map_id, broadcast=True, include_self=True, to=str(campaign))
 
 @socketio.on(FromClient.GET_NOTE)
 def note_get(note_id: int):
     assert isinstance(note_id, int)
-    room = get_room(request)
-    note = notes.get_note(room, note_id)
+    campaign = get_campaign(request)
+    note = notes.get_note(campaign, note_id)
     if note is not None:
         emit(ToClient.GOT_NOTE, note)
-    # return notes.get_note(room, note_id)
+    # return notes.get_note(campaign, note_id)
 
 @socketio.on(FromClient.NEW_NOTE_REQUEST)
 def new_note_request() -> None:
-    room = get_room(request)
-    note_id = notes.new_note_request(room)
-    logging.info('new note: %r for room %r', note_id, room)
-    emit(ToClient.NEW_NOTE, note_id, broadcast=True, include_self=False, to=room)
+    campaign = get_campaign(request)
+    note_id = notes.new_note_request(campaign)
+    logging.info('new note: %r for campaign %r', note_id, campaign)
+    emit(ToClient.NEW_NOTE, note_id, broadcast=True, include_self=False, to=str(campaign))
     emit(ToClient.NEW_NOTE_RESPONSE, note_id)
     # return note_id
 
 @socketio.on(FromClient.NOTE_UPDATE_TITLE)
 def note_update_title(data:NoteUpdateTitle) -> None:
     data = validate('NoteUpdateTitle', data)
-    room = get_room(request)
-    notes.note_update_title(room, data['note_id'], data['title'])
-    # logging.info('Updating note title. Note: %r. Room: %r. Title: %r', data['note_id'], room, data['title'])
-    emit(ToClient.NOTE_UPDATE_TITLE, data, broadcast=True, include_self=False, to=room) # type: ignore
-    # emit(ToClient.NOTE_DIRTY, data['note_id'], broadcast=True, include_self=False, to=room)
+    campaign = get_campaign(request)
+    notes.note_update_title(campaign, data['note_id'], data['title'])
+    dlog('Updating note title. Note: %r. Room: %r. Title: %r', data['note_id'], campaign, data['title'])
+    emit(ToClient.NOTE_UPDATE_TITLE, data, broadcast=True, include_self=False, to=str(campaign)) # type: ignore
+    # emit(ToClient.NOTE_DIRTY, data['note_id'], broadcast=True, include_self=False, to=str(campaign))
 
 @socketio.on(FromClient.NOTE_UPDATE_BODY)
 def note_update_body(data:NoteUpdateBody) -> None:
     data = validate('NoteUpdateBody', data)
-    room = get_room(request)
-    # logging.info('Updating note body. Note: %r. Room: %r', data['note_id'], room)
-    notes.note_update_body(room, data['note_id'], data['body'])
-    emit(ToClient.NOTE_DIRTY, data['note_id'], broadcast=True, include_self=False, to=room)
+    campaign = get_campaign(request)
+    dlog('Updating note body. Note: %r. Room: %r', data['note_id'], campaign)
+    notes.note_update_body(campaign, data['note_id'], data['body'])
+    emit(ToClient.NOTE_DIRTY, data['note_id'], broadcast=True, include_self=False, to=str(campaign))
 
 @socketio.on(FromClient.DELETE_NOTE_REQUEST)
 def note_delete(note_id:int) -> None:
     assert isinstance(note_id, int)
-    room = get_room(request)
-    logging.info('delete note: %r for room %r', note_id, room)
-    notes.note_delete(room, note_id)
-    emit(ToClient.NOTE_DELETE, note_id, broadcast=True, include_self=True, to=room)
+    campaign = get_campaign(request)
+    logging.info('delete note: %r for campaign %r', note_id, campaign)
+    notes.note_delete(campaign, note_id)
+    emit(ToClient.NOTE_DELETE, note_id, broadcast=True, include_self=True, to=str(campaign))
 
 @socketio.on(FromClient.RETRIEVE_ROLL_TABLES)
 def retrieve_roll_tables() -> None:
-    room = get_room(request)
-    logging.info('retrieving roll tables for room %r', room)
-    emit(ToClient.ROLL_TABLES, chat.get_roll_tables(room))
+    campaign = get_campaign(request)
+    logging.info('retrieving roll tables for campaign %r', campaign)
+    emit(ToClient.ROLL_TABLES, chat.get_roll_tables(campaign))
 
 register_list('[RollTable]', 'RollTable')
 @socketio.on(FromClient.UPDATE_ROLL_TABLES)
 def update_roll_tables(tables:List[RollTable]) -> None:
     tables = validate('[RollTable]', tables)
-    room = get_room(request)
-    logging.info('Setting roll tables for room %r', room)
+    campaign = get_campaign(request)
+    logging.info('Setting roll tables for campaign %r', campaign)
     # logging.info('%r', tables);
-    chat.update_roll_tables(room, tables)
+    chat.update_roll_tables(campaign, tables)
 
 @socketio.on(FromClient.UPLOAD_ROLL_TABLE)
 def upload_table(table:RollTable) -> None:
     table = validate('RollTable', table)
-    room = get_room(request)
-    response = chat.upload_roll_table(room, table)
+    campaign = get_campaign(request)
+    response = chat.upload_roll_table(campaign, table)
     if response:
-        emit(ToClient.NEW_ROLL_TABLE, response, broadcast=False, to=room) # type: ignore
+        emit(ToClient.NEW_ROLL_TABLE, response, broadcast=False, to=str(campaign)) # type: ignore
 
-htmlpath = os.path.join(appconfig.STATICDIR, 'dungeon.html')
-# logging.info('htmlpath: %r', htmlpath)
 
-try:
-    SCREEN: Optional[str] = open(htmlpath).read()
-except:
-    SCREEN = None
-def get_html() -> str:
+def get_html(campaign_id:int) -> str:
+    global SCREEN
     if appconfig.DEV:
-        return open(htmlpath).read()
+        SCREEN = r('dungeon.html')
+    if current_user.is_authenticated:
+        vals = settings.get_global(current_user.userid)
+        vals.update(settings.get_local(current_user.userid, campaign_id))
+        dlog('get settings: %r', vals)
     else:
-        assert SCREEN
-        return SCREEN
+        vals = {}
+    result = SCREEN.replace('"let SETTINGS = SETTINGS";', 'let SETTINGS = ' +json.dumps(vals)+';', 1)
+    return result
 
 @app.route('/')
 def index() -> str:
-    return get_html()
+    campaign_id = db.lookup_campaign('')
+    if not campaign_id:
+        abort(404)
+    return get_html(campaign_id)
 
 @app.route('/campaigns/<campaign>')
 @login_required
-def get_campaign(campaign:str) -> str:
-    if campaign not in ALLOWED_CAMPAIGNS:
+def get_campaign_request(campaign:str) -> str:
+    campaign_id = db.lookup_campaign(campaign)
+    if campaign_id is None:
         abort(404)
-    return get_html()
+    logging.info('campaign: %r, campaign_id: %r', campaign, campaign_id)
+    return get_html(campaign_id)
 
 if appconfig.DEV:
     @app.route('/imgs/<img>')
@@ -493,8 +538,8 @@ if appconfig.DEV:
         return send_from_directory('.', 'favicon.ico')
     @socketio.on(FromClient.DEBUG)
     def log_debug(msg:str) -> None:
-        room = get_room(request)
-        logging.info('room: %r - %r', room, msg)
+        campaign = get_campaign(request)
+        logging.info('campaign: %r - %r', campaign, msg)
         msg: ChatPlainMsg = (Msg.PLAIN, '', str(msg), )
         emit(ToClient.CHAT_STRUCTURED_MSG, [msg])
 
@@ -530,17 +575,29 @@ if False:
         else:
             abort(404)
             return ''
-
+_last_log_num = 0
 def log_connections() -> None:
     server = socketio.server
     manager = server.manager
+    global _last_log_num
     if '/' not in manager.rooms:
+        if _last_log_num == 0:
+            return
+        _last_log_num = 0
         logging.info('No users are connected')
         return
     nsids = len(manager.rooms['/'][None])
+    if nsids == _last_log_num:
+        return
+    _last_log_num = nsids
     logging.info('Active connections: %s', nsids)
 rt = RepeatTimer(600, log_connections)
 rt.start()
+
+def alive() -> None:
+    logging.info('Alive...')
+rt2 = RepeatTimer(6000, alive)
+rt2.start()
 
 if __name__ == '__main__':
     if appconfig.DEV:

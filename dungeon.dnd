@@ -397,8 +397,6 @@ David20::title #hide
         <br>
         ${button('fullscreen', 'Toggle Full Screen')}
         <br>
-        ${button('export', 'Export')}
-        ${button('import', 'Import')}
     </div>
     ${tablebegin('dev')}
       <tr>
