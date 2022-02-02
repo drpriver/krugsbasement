@@ -7,6 +7,7 @@ import flask
 from flask_socketio import SocketIO, emit, join_room
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse, url_encode
+import werkzeug.utils
 
 import appconfig
 from .logs import logging
@@ -497,7 +498,13 @@ def get_html(campaign_id:int) -> str:
         dlog('get settings: %r', vals)
     else:
         vals = {}
-    result = SCREEN.replace('"let SETTINGS = SETTINGS";', 'let SETTINGS = ' +json.dumps(vals)+';', 1)
+    info = db.campaign_info(campaign_id)
+    assert info is not None
+    result = SCREEN
+    title = info.name.replace('-', ' ').replace('_', ' ').title()
+    title = werkzeug.utils.escape(title)
+    result = result.replace('<title>David20</title>', f'<title>David20 - {title}</title>', 1)
+    result = result.replace('"let SETTINGS = SETTINGS";', 'let SETTINGS = ' +json.dumps(vals)+';', 1)
     return result
 
 @app.route('/')

@@ -1,7 +1,7 @@
 import os
 import threading
 import sqlite3
-from typing import Optional, Dict, Tuple, List, Any
+from typing import Optional, Dict, Tuple, List, Any, NamedTuple
 import json
 import datetime
 from .logs import logging
@@ -62,7 +62,7 @@ def setup_tables():
             CREATE TABLE campaigns (
                 id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 name TEXT NOT NULL,
-                owner INTEGER,  /* unused, in future will be userid */
+                owner INTEGER,
                 deleted INTEGER DEFAULT 0,
                 public INTEGER DEFAULT 0,
                 FOREIGN KEY(owner) REFERENCES users(userid)
@@ -398,6 +398,29 @@ def lookup_campaign(name:str) -> Optional[int]:
         row = cur.fetchone()
     # logging.info('campaign: %r, row: %r', name, row)
     if row: return row[0]
+    return None
+
+class CampaignInfo(NamedTuple):
+    id: int
+    name: str
+    owner: int
+    deleted: int
+    public: int
+
+
+def campaign_info(campaignid:int) -> Optional[CampaignInfo]:
+    with DBLOCK:
+        row = conn.execute('''
+        SELECT
+            *
+        FROM
+            campaigns
+        WHERE
+            id = ?
+        ;
+        ''', (campaignid,)).fetchone()
+    if row is not None:
+        return CampaignInfo(*row)
     return None
 
 def create_campaign(name:str, owner:int=None) -> int:
