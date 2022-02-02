@@ -37,7 +37,7 @@ class Settings:
             self.local_settings[campaignid] = db.get_local_settings(self.userid, campaignid)
         return self.local_settings[campaignid]
 
-    def set_local(self, campaignid:int, category:str, key:str, value:Any):
+    def set_local(self, campaignid:int, category:str, key:str, value:str):
         self.last_access = time.time()
         if campaignid not in self.local_settings:
             self.local_settings[campaignid] = db.get_local_settings(self.userid, campaignid)
@@ -45,6 +45,7 @@ class Settings:
         if category not in local:
             local[category] = {}
         cat = local[category]
+        value = json.loads(value)
         if key in cat and value == cat[key]:
             return
         cat[key] = value
