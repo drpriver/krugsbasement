@@ -1363,7 +1363,7 @@ function zoom_out(view:DungeonMapView):void{
 
 //
 function resize_canvas():void{
-    canvas = document.getElementsByTagName('canvas')[0]!;
+    canvas = by_id('map');
     ctx = canvas.getContext('2d')!;
     const chat_rect = by_id('chat').getBoundingClientRect();
     const ww = window.innerWidth;
