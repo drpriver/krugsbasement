@@ -88,8 +88,8 @@ ship-it: dist.zip
 .PHONY: backup
 backup: | Archives
 	ssh david@droplet "cd ~webdnd && bash backup.sh"
-	-mv campaigns.db Archives/campaigns.db.$$(date '+%Y-%m-%d-%T').bak
 	scp "david@droplet:~webdnd/data/campaigns.db.bak" campaigns.db
+	cp campaigns.db Archives/campaigns.db.$$(date '+%Y-%m-%d-%T').bak
 tags: *.ts Scripts/tag_ts.py
 	python3 -m Scripts.tag_ts
 
