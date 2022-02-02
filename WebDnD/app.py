@@ -43,7 +43,7 @@ else:
     socketio = SocketIO(app, logger=False, cors_allowed_origins="https://krugsbasement.com")
 
 login = LoginManager(app)
-login.login_view = 'login'
+login.login_view = 'login_page'
 
 @login.user_loader
 def load_user(id:str) -> Optional[User]:
