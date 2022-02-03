@@ -236,6 +236,33 @@ def get_users_campaigns(userid:int) -> List[Tuple[int, str]]:
             ;
         ''', (userid,)).fetchall()
 
+def user_has_joined(userid:int, campaignid:int) -> bool:
+    with DBLOCK:
+        return conn.execute('''
+        SELECT 1
+        FROM joinedcampaigns
+        WHERE
+            userid = ? and campaignid = ?
+        ;
+        ''', (userid, campaignid)).fetchone() is not None
+
+def user_may_access_campaign(userid:int, campaignid:int) -> bool:
+    with DBLOCK:
+        return conn.execute('''
+            SELECT 1
+            FROM joinedcampaigns
+            WHERE
+                userid = ? and campaignid = ?
+        UNION
+            SELECT 1
+            FROM campaigns
+            WHERE
+                public = 1
+            AND
+                id = ?
+        ;
+        ''', (userid, campaignid, campaignid)).fetchone() is not None
+
 def store_app_kv(key:str, value) -> None:
     with DBLOCK, conn:
         conn.execute('''

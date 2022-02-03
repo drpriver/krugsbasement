@@ -4,10 +4,10 @@ from typing import List, Dict, Optional, Set, Union
 
 from flask import Flask, jsonify, request, Response, send_from_directory, session, abort
 import flask
-from flask_socketio import SocketIO, emit, join_room
+from flask_socketio import SocketIO, emit, join_room, disconnect
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required
 from werkzeug.urls import url_parse, url_encode
-import werkzeug.utils
+import markupsafe
 
 import appconfig
 from .logs import logging
@@ -304,7 +304,8 @@ def join(room:str) -> None:
         campaignid = int(campaign)
     except ValueError:
         campaignid  = LEGACY_CAMPAIGNS[campaign]
-    # FIXME: access needs to be checked here
+    if not db.user_may_access_campaign(current_user.userid, campaignid):
+        return disconnect()
     record_campaign(request, campaignid)
     logging.info("Someone joining room (campaignid): %r, %r", room, campaignid);
     join_room(str(campaignid))
@@ -504,7 +505,7 @@ def get_html(info:db.CampaignInfo) -> str:
         vals = {}
     result = SCREEN
     title = info.name.replace('-', ' ').replace('_', ' ').title()
-    title = werkzeug.utils.escape(title)
+    title = markupsafe.escape(title)
     result = result.replace('<title>David20</title>', f'<title>David20 - {title}</title>', 1)
     result = result.replace('"let SETTINGS = SETTINGS";', 'let SETTINGS = ' +json.dumps(vals)+';', 1)
     return result
@@ -530,10 +531,22 @@ def get_campaign_request(campaign:str) -> str:
     info = db.campaign_info(campaign_id)
     if info is None:
         return abort(404)
-    users_campaigns = db.get_users_campaigns(current_user.userid)
-    for cid, _ in users_campaigns:
-        if cid == campaign_id: break
-    else:
+    magic = request.args.get('magic')
+    if magic is not None:
+        logging.info('magic: %r', magic)
+        try:
+            magic = int(magic)
+        except ValueError:
+            pass
+        else:
+            if db.check_invite_link(campaign_id, magic):
+                try:
+                    db.join_campaign(current_user.userid, campaign_id)
+                except Exception as e:
+                    logging.info('Probably already joined campaign: %r', e)
+            else:
+                logging.info('bad magic value for %r: %r', campaign_id, magic)
+    if not db.user_may_access_campaign(current_user.userid, campaign_id):
         return abort(404)
     logging.info('campaign: %r, campaign_id: %r', campaign, campaign_id)
     return get_html(info)

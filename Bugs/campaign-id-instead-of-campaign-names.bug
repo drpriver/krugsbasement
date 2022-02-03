@@ -1,5 +1,0 @@
-bug.py: v0.0.1
-created: 2022-02-01T00:20:25.885581
-bugmagic^^^^
-Summary::md.summary
-  Move campaign urls to be campaign ids instead of campaign names
