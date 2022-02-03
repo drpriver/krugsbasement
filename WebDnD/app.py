@@ -295,12 +295,16 @@ def handle_disconnect() -> None:
         except Exception:
             pass
 
+LEGACY_CAMPAIGNS = {'':1, 'candyland':2, 'horror_on_the_moors':3, 'test':3, 'greenskins1':4}
 
 @socketio.on(FromClient.JOIN)
 def join(room:str) -> None:
     campaign  = room.split('/')[-1] if '/' in room else ''
-    campaignid = db.lookup_campaign(campaign)
-    assert campaignid is not None
+    try:
+        campaignid = int(campaign)
+    except ValueError:
+        campaignid  = LEGACY_CAMPAIGNS[campaign]
+    # FIXME: access needs to be checked here
     record_campaign(request, campaignid)
     logging.info("Someone joining room (campaignid): %r, %r", room, campaignid);
     join_room(str(campaignid))
@@ -488,18 +492,16 @@ def upload_table(table:RollTable) -> None:
         emit(ToClient.NEW_ROLL_TABLE, response, broadcast=False, to=str(campaign)) # type: ignore
 
 
-def get_html(campaign_id:int) -> str:
+def get_html(info:db.CampaignInfo) -> str:
     global SCREEN
     if appconfig.DEV:
         SCREEN = r('dungeon.html')
     if current_user.is_authenticated:
         vals = settings.get_global(current_user.userid)
-        vals.update(settings.get_local(current_user.userid, campaign_id))
+        vals.update(settings.get_local(current_user.userid, info.id))
         dlog('get settings: %r', vals)
     else:
         vals = {}
-    info = db.campaign_info(campaign_id)
-    assert info is not None
     result = SCREEN
     title = info.name.replace('-', ' ').replace('_', ' ').title()
     title = werkzeug.utils.escape(title)
@@ -509,19 +511,32 @@ def get_html(campaign_id:int) -> str:
 
 @app.route('/')
 def index() -> str:
-    campaign_id = db.lookup_campaign('')
-    if not campaign_id:
-        abort(404)
-    return get_html(campaign_id)
+    info = db.campaign_info(1)
+    assert info
+    return get_html(info)
 
 @app.route('/campaigns/<campaign>')
 @login_required
 def get_campaign_request(campaign:str) -> str:
-    campaign_id = db.lookup_campaign(campaign)
+    campaign_id: Optional[int]
+    try:
+        campaign_id = int(campaign)
+    except ValueError:
+        # TODO: do a redirect instead once peoples macros and stuff are on
+        # the server.
+        campaign_id = LEGACY_CAMPAIGNS.get(campaign)
     if campaign_id is None:
-        abort(404)
+        return abort(404)
+    info = db.campaign_info(campaign_id)
+    if info is None:
+        return abort(404)
+    users_campaigns = db.get_users_campaigns(current_user.userid)
+    for cid, _ in users_campaigns:
+        if cid == campaign_id: break
+    else:
+        return abort(404)
     logging.info('campaign: %r, campaign_id: %r', campaign, campaign_id)
-    return get_html(campaign_id)
+    return get_html(info)
 
 if appconfig.DEV:
     @app.route('/imgs/<img>')
