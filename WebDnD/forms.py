@@ -37,3 +37,10 @@ class RegisterForm(FlaskForm):
 
 class CampaignForm(FlaskForm):
     campaignname = StringField('Name', validators=[DataRequired(), Length(min=1, max=128)])
+    submit = SubmitField('Create')
+    def dictify(self) -> dict:
+        return dict(
+                hidden = self.hidden_tag(),
+                campaignname = dict(errors=self.campaignname.errors),
+                submit = self.submit(),
+                )

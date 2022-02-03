@@ -176,9 +176,36 @@ def logout():
     return flask.redirect('/login')
 
 
-@app.route('/campaigns')
+@app.route('/campaigns', methods=['GET', 'POST'])
+@login_required
 def campa():
-    return flask.redirect('/home')
+    if request.method == 'GET':
+        return flask.redirect('/home')
+    try:
+        body = request.json
+        action = body['action']
+        if action == 'createmagic':
+            uid = current_user.userid
+            cid = body['campaign']
+            cid = int(cid)
+            if not db.user_owns_campaign(uid, cid):
+                return abort(400)
+            magic = db.make_invite_link(cid)
+            return flask.jsonify({'magic': magic})
+        if action == 'revokemagic':
+            uid = current_user.userid
+            cid = body['campaign']
+            cid = int(cid)
+            if not db.user_owns_campaign(uid, cid):
+                return abort(400)
+            magic = body['magic']
+            magic = int(magic)
+            db.revoke_invite_link(cid, magic)
+            return flask.jsonify({})
+    except Exception as e:
+        logging.info('Bad request: %r', e)
+    return abort(400)
+
 
 @app.route('/settings', methods=['GET'])
 def get_settings():
@@ -207,12 +234,23 @@ def store_campaign_setting(data: LocalSetting) -> None:
     logging.info('sid: %r storing campaign setting for %r: %r', request.sid, current_user, data[:2])
     settings.set_local(userid, campaign, *data)
 
-@app.route('/home')
+@app.route('/home', methods=['GET','POST'])
 @login_required
 def home():
+    form = CampaignForm()
+    if form.validate_on_submit():
+        campaignid = db.create_campaign(form.campaignname.data, current_user.userid)
+        db.join_campaign(current_user.userid, campaignid)
+        magic = db.make_invite_link(campaignid)
+        logging.info('campaignid: %r, magic:%r', campaignid, magic)
+        return flask.redirect('/home')
     campaigns = []
+    ownedcampaigns = []
     if current_user.is_authenticated:
         campaigns =  db.get_users_campaigns(current_user.userid)
+        ownedcampaigns = db.get_owned_campaigns(current_user.userid)
+        # javascript can't handle large integers, so convert to string
+        ownedcampaigns = [(a, b, str(c) if c is not None else '') for a, b, c in ownedcampaigns]
     global HOME_d
     if appconfig.DEV:
         HOME_d = r('home.dnd')
@@ -220,11 +258,13 @@ def home():
     t0 = time.time()
     jsargs = dict(
             name = name,
-            campaigns = [c[1] for c in campaigns],
+            campaigns = campaigns,
+            ownedcampaigns = ownedcampaigns,
+            form=form.dictify(),
             )
     html = pydndc.htmlgen(HOME_d, jsargs=jsargs, error_reporter=pydndclog, file_cache=FCACHE)[0]
     t1 = time.time()
-    logging.debug('Took %.3fµs to render dnd', (t1-t0)*1000*1000)
+    # logging.info('Took %.3fµs to render dnd', (t1-t0)*1000*1000)
     return html
 
 if appconfig.DEV:
@@ -519,6 +559,7 @@ def index() -> str:
 @app.route('/campaigns/<campaign>')
 @login_required
 def get_campaign_request(campaign:str) -> str:
+    # logging.info('campaign: %r', campaign)
     campaign_id: Optional[int]
     try:
         campaign_id = int(campaign)
@@ -526,12 +567,15 @@ def get_campaign_request(campaign:str) -> str:
         # TODO: do a redirect instead once peoples macros and stuff are on
         # the server.
         campaign_id = LEGACY_CAMPAIGNS.get(campaign)
+    # logging.info('campaign_id: %r', campaign_id)
     if campaign_id is None:
         return abort(404)
     info = db.campaign_info(campaign_id)
+    # logging.info('info: %r', info)
     if info is None:
         return abort(404)
     magic = request.args.get('magic')
+    # logging.info('magic: %r', magic)
     if magic is not None:
         logging.info('magic: %r', magic)
         try:
@@ -548,7 +592,7 @@ def get_campaign_request(campaign:str) -> str:
                 logging.info('bad magic value for %r: %r', campaign_id, magic)
     if not db.user_may_access_campaign(current_user.userid, campaign_id):
         return abort(404)
-    logging.info('campaign: %r, campaign_id: %r', campaign, campaign_id)
+    # logging.info('campaign: %r, campaign_id: %r', campaign, campaign_id)
     return get_html(info)
 
 if appconfig.DEV:

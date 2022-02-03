@@ -236,6 +236,34 @@ def get_users_campaigns(userid:int) -> List[Tuple[int, str]]:
             ;
         ''', (userid,)).fetchall()
 
+def get_owned_campaigns(userid:int) -> List[Tuple[int, str]]:
+    with DBLOCK:
+        rows = conn.execute('''
+        SELECT id, name, magic
+        FROM
+            campaigns
+        LEFT JOIN
+           magicinvitations
+        ON
+            campaigns.id = magicinvitations.campaignid
+        WHERE
+            owner = ?
+        ;
+        ''', (userid,)).fetchall()
+        # logging.info('%r owns %r', userid, rows)
+        return rows
+
+def user_owns_campaign(userid:int, campaignid:int) -> bool:
+    with DBLOCK:
+        row = conn.execute('''
+        SELECT 1
+        FROM campaigns
+        WHERE
+            owner = ? AND id = ?
+        ;
+        ''', (userid, campaignid)).fetchone()
+        return row is not None
+
 def user_has_joined(userid:int, campaignid:int) -> bool:
     with DBLOCK:
         return conn.execute('''
@@ -532,6 +560,8 @@ def make_invite_link(campaignid:int) -> int:
     with DBLOCK, conn:
         # using urandom for this might be overkill, but whatever.
         magic = int.from_bytes(os.urandom(8), 'little', signed=False)
+        # sqlite can't handle 64 bit unsigned, so just shift to 63 bits
+        magic >>= 1
         now = datetime.datetime.utcnow()
         cur = conn.execute('''
             INSERT INTO
