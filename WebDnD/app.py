@@ -344,7 +344,14 @@ def join(room:str) -> None:
         campaignid = int(campaign)
     except ValueError:
         campaignid  = LEGACY_CAMPAIGNS[campaign]
-    if not db.user_may_access_campaign(current_user.userid, campaignid):
+    may_access = False
+    if campaignid == 1:
+        may_access = True
+    elif current_user.is_anonymous:
+        may_access = False
+    elif db.user_may_access_campaign(current_user.userid, campaignid):
+        may_access = True
+    if not may_access:
         return disconnect()
     record_campaign(request, campaignid)
     logging.info("Someone joining room (campaignid): %r, %r", room, campaignid);
