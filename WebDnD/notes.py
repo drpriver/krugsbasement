@@ -19,17 +19,17 @@ savelock = threading.RLock()
 noteslock = threading.RLock()
 
 
-def queue_save(campaign_id, noteid):
+def queue_save(campaign_id:int, noteid:int) -> None:
     with savelock:
         savequeue.add((campaign_id, noteid))
 
-def save_queued_notes():
+def save_queued_notes() -> None:
     while True:
         with savelock:
             if not savequeue: break
             campaign_id, noteid = savequeue.pop()
         if campaign_id == 1: continue
-        note = NOTES[campaign][noteid]
+        note = NOTES[campaign_id][noteid]
         with noteslock:
             title, body, flags, id = note['title'], note['body'], note['flags'], note['id']
         db.save_note(campaign_id, title, body, flags, id)
