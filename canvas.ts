@@ -6283,7 +6283,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 // start moving it.
                 // There's probably a more efficient/clear way to do this,
                 // but this works.
-                if(!e.altKey && !view.selection_area.is_selecting){
+                if(!e.altKey && !view.selection_area.is_selecting && !view.selected.size){
                     sort_canv_objs(view.map);
                     view.selection_area.select_one = true;
                     view.selection_area.is_selecting = true;
