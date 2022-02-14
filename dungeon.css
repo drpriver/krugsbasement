@@ -471,12 +471,18 @@ html, body {
   /* Just overflow: hidden it */
   /*overflow: hidden;*/
 }
-#chat-history {
+#privateroll-container {
+  display: grid;
+  grid-template-rows: auto max-content;
+  grid-template-columns: 17em;
+}
+#chat-history, #privateroll-history {
   overflow-y: scroll;
   /*height: 800px;*/
   width: 17em;
 }
-#chat-history div, #dice-history div {
+
+#chat-history div, #dice-history div, #privateroll-history div {
   border: 1px dotted gray;
   margin:-1px 0 0 -1px;
   padding: 2px 12px;

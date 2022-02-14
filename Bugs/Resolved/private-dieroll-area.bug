@@ -1,0 +1,11 @@
+bug.py: v0.0.1
+created: 2022-02-13T02:52:58.725570
+resolved: 2022-02-14T02:57:32.061835
+bugmagic^^^^
+Summary::md.summary
+  Private dice roll area for rolling dice that only  you can see (would be useful for DMs)
+
+  Make it a floating window probably.
+
+Resolved Feb 14, 2022, 02:57AM::md.update
+  This was implemented.

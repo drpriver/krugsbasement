@@ -23,7 +23,7 @@ function setchatname(name:string){
 }
 // @ts-ignore
 
-function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>){
+function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:string)=>void){
     for(let i = 0; i < msgs.length; i++){
         const msg = msgs[i];
         const entry = elem_with_parent(log, 'div');
@@ -52,7 +52,8 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>){
                 span.addEventListener('click', function(e){
                     e.stopPropagation();
                     e.preventDefault();
-                    preprocess_and_send_chat(msg_data);
+                    if(label_target)
+                        label_target(msg_data);
                 });
             }break;
             case Msg.ERROR:{
@@ -74,13 +75,13 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>){
 
 ONRECV(ToClient.CHAT_STRUCTURED_MSG, function(msgs:Array<ChatMsg>){
     const log = by_id('chat-history');
-    add_chat_msgs(log, msgs);
+    add_chat_msgs(log, msgs, preprocess_and_send_chat);
     log.scrollTo({behavior:'smooth', top:log.scrollHeight});
 });
 
 ONRECV(ToClient.CHAT_CREATE, function(msgs:Array<ChatMsg>){
     const log = by_id('chat-history');
-    add_chat_msgs(log, msgs);
+    add_chat_msgs(log, msgs, preprocess_and_send_chat);
     log.scrollTop = log.scrollHeight;
 });
 
@@ -178,6 +179,11 @@ function preprocess_and_send_chat(text:string){
     let to_send: ChatCommandMessage = {chatname:CHATNAME, commands:commands};
     add_dice_history_commands(commands);
     EMIT(FromClient.CHAT_STRUCTURED_INPUT, to_send);
+}
+function preprocess_and_send_chat_private(text:string){
+    let commands = preprocess_command(text, EvaluateFlags.NONE);
+    let to_send: ChatCommandMessage = {chatname:CHATNAME, commands:commands};
+    EMIT(FromClient.CHAT_PRIVATE_INPUT, to_send);
 }
 
 function preprocess_and_send_chat_with_usings(text:string){
@@ -375,7 +381,7 @@ function evaluate(text:string, flags:EvaluateFlags):Array<Command>{
                         ]
                     ];
                     const log = by_id('chat-history');
-                    add_chat_msgs(log, errmess);
+                    add_chat_msgs(log, errmess, preprocess_and_send_chat);
                     log.scrollTo({behavior:'smooth', top:log.scrollHeight});
                     return [];
                 }
@@ -531,7 +537,7 @@ document.addEventListener('DOMContentLoaded',function(){
         newtableid = -1;
         listview.clear();
         tableview.clear();
-        EMIT(FromClient.RETRIEVE_ROLL_TABLES); 
+        EMIT(FromClient.RETRIEVE_ROLL_TABLES);
     };
     listview.activate_handler = function(id:number | undefined){
         let parenttable = tableview.tbody.parentNode! as HTMLTableElement;
@@ -755,6 +761,78 @@ document.addEventListener('DOMContentLoaded',function(){
         listview.add_item(rt.name, rt.id);
         listview.make_active(rt.id);
     });
+});
+
+document.addEventListener('DOMContentLoaded', function(){
+    let privateroll = get_window('privateroll');
+    by_id('privateroll-button').addEventListener('click', function(){
+        privateroll.show();
+    });
+    privateroll.outer.style.width = '17em';
+    privateroll.outer.style.height = '400px';
+    let log = by_id('privateroll-history');
+    ONRECV(ToClient.CHAT_PRIVATE_STRUCTURED_MSG, function(response:Array<ChatMsg>){
+        add_chat_msgs(log, response, preprocess_and_send_chat_private);
+        log.scrollTo({behavior:'smooth', top:log.scrollHeight});
+    });
+
+    // TODO: chat abstraction
+    const history: Array<string> = [];
+    let history_index = 0;
+    let current_text = "";
+    let chat = by_id('privateroll-input');
+    privateroll.show_handler = function(){
+        chat.focus();
+    };
+    chat.addEventListener('keydown', function(e){
+        e.stopPropagation();
+        let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
+        if(modified) return;
+        switch(e.key){
+            case 'Enter':{
+                e.stopPropagation();
+                e.preventDefault();
+                const value = chat.value;
+                if(value.length){
+                    chat.value = "";
+                    // preprocess_and_send_chat_with_usings(value);
+                    // inline this call instead
+                    preprocess_and_send_chat_private(value);
+                    if(!(history.length && value == history[history.length-1])){
+                        history.push(value);
+                    }
+                    history_index = history.length;
+                    current_text = "";
+                }
+            }break;
+            case 'ArrowUp':{
+                e.stopPropagation();
+                e.preventDefault();
+                if(history_index > 0 && history_index <= history.length){
+                    if(history_index == history.length){
+                        current_text = chat.value;
+                    }
+                    history_index--;
+                    chat.value = history[history_index];
+                }
+            }break;
+            case 'ArrowDown':{
+                e.stopPropagation();
+                e.preventDefault();
+                if(history_index >= 0 && history_index < history.length){
+                    history_index++;
+                    if(history_index == history.length)
+                        chat.value = current_text;
+                    else
+                        chat.value = history[history_index];
+                }
+            }break;
+            case 'Escape':{
+                chat.blur();
+            }break;
+        }
+    });
+    // let privatechat = by_id
 });
 
 type TableView<K> = {

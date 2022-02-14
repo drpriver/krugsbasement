@@ -294,6 +294,15 @@ def chat_test_structured_input(data:ChatCommandMessage):
     responses = chat.handle_structured_input(campaign, data['chatname'], data['commands'], test=True)
     emit(ToClient.CHAT_TEST_STRUCTURED_RESPONSE, responses, to=str(campaign))
 
+@socketio.on(FromClient.CHAT_PRIVATE_INPUT)
+def chat_private_input(data:ChatCommandMessage):
+    data = validate('ChatCommandMessage', data)
+    campaign = get_campaign(request)
+    if not data:
+        return
+    responses = chat.handle_structured_input(campaign, data['chatname'], data['commands'], test=True)
+    emit(ToClient.CHAT_PRIVATE_STRUCTURED_MSG, responses, to=str(campaign))
+
 session_id = AppKVPersister('session_id', 0).obj
 logging.info('session_id: %r', session_id.value)
 

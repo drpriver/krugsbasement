@@ -279,7 +279,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     ONRECV(ToClient.CHAT_TEST_STRUCTURED_RESPONSE, function(response:Array<ChatMsg>){
         (log as any).replaceChildren();
-        add_chat_msgs(log, response);
+        add_chat_msgs(log, response, undefined);
     });
     test_button.addEventListener('click', function(){
         if(!m) return;

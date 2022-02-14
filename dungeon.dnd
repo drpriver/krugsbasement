@@ -133,6 +133,14 @@ David20::title #hide
       </div>
     </div>
   `);
+  make_window('privateroll', 'Private Rolls',
+  `
+    <div id="privateroll-container" class="window-container">
+      <div class="log" id="privateroll-history">
+      </div>
+      <textarea spellcheck="false" id="privateroll-input" rows="4"></textarea>
+    </div>
+  `);
   if(ctx.outpath.includes('temp')){
     let ts = '// NOTE: this file was generated\n'
     ts += '// Do NOT edit it. Your edits will be overwritten!\n'
@@ -567,6 +575,9 @@ David20::title #hide
         <button id="macros-button">Macros…</button>
         <button id="variables-button">Variables…</button>
         <button id="quickvar-button">QuickVar…</button>
+    ::div.three-buttons
+      ::raw
+        <button id="privateroll-button">Private Rolls</button>
   ::div.log #id(chat-history)
   ::div #id(macros)
     ::div #id(macro-tabs)
