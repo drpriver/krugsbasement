@@ -4282,6 +4282,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
         const sel_color = is_selected?SELECTED_COLOR:COULD_SELECT_COLOR;
         if(is_hovered)
             is_selected = true;
+        if(obj.hidinguser)
+            ctx.globalAlpha = 0.5;
+        else
+            ctx.globalAlpha = 1;
         switch(obj.type){
             case CANVASTYPE.FREEHAND_LINE:{
                 // This works well enough for now.
@@ -5377,6 +5381,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
             }break;
         }
     }
+    ctx.globalAlpha = 1;
     if(view.selection_area.is_selecting){
         ctx.fillStyle = '#55555555';
         const a = view.selection_area;
