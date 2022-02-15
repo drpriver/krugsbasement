@@ -556,9 +556,11 @@ def get_html(info:db.CampaignInfo) -> str:
     if current_user.is_authenticated:
         vals = settings.get_global(current_user.userid)
         vals.update(settings.get_local(current_user.userid, info.id))
+        vals['userid'] = current_user.userid
         dlog('get settings: %r', vals)
     else:
         vals = {}
+        vals['userid'] = 0
     result = SCREEN
     title = info.name.replace('-', ' ').replace('_', ' ').title()
     title = markupsafe.escape(title)

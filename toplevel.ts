@@ -1,5 +1,6 @@
 declare let io: any;
 type Settings = {
+    userid: number;
     darkmode?: DarkMode;
     chat?:{name?: string;};
     macros?: {
