@@ -348,6 +348,7 @@ struct StrippedFreehandLine: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
+    hidinguser = int # userid
     color = color
     # points are just raw x,y pairs in a flat array.
     points = [float]
@@ -367,6 +368,7 @@ struct StrippedGridLine: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
+    hidinguser = int # userid
     color = color
     # points are just raw x,y pairs in a flat array.
     points = [float]
@@ -381,6 +383,7 @@ struct StrippedRectangle: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
+    hidinguser = int # userid
     color = color
     width = float
     height = float
@@ -395,6 +398,7 @@ struct StrippedFilledRectangle: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
+    hidinguser = int # userid
     color = color
     color2 = color
     width = float
@@ -412,6 +416,7 @@ struct StrippedGridRectangle: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
+    hidinguser = int # userid
     color = color
     width = float
     height = float
@@ -432,6 +437,7 @@ struct StrippedEllipse: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
+    hidinguser = int # userid
     color = color
     color2 = color
     width = float
@@ -446,6 +452,7 @@ struct StrippedImageObj: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
+    hidinguser = int # userid
     width = float
     height = float
     url = str
@@ -463,6 +470,7 @@ struct StrippedTextObj: array
     base_x = float
     base_y = float
     flags =  CANVASFLAG
+    hidinguser = int # userid
     text = str
     size = float
     alignment = TEXTALIGNMENT
@@ -500,6 +508,7 @@ struct StrippedEzToken: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
+    hidinguser = int # userid
     text = str
     color = color
     width = float # in squares (?)
@@ -515,6 +524,7 @@ struct StrippedImgToken: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
+    hidinguser = int # userid
     url = str
     width = float # in squares (?)
     height = float # in squares (?)
@@ -545,6 +555,7 @@ struct StrippedDoorObj: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
+    hidinguser = int # userid
     doortype = DOORTYPE
     color = color
     width = float # in squares (?)
@@ -564,6 +575,7 @@ struct StrippedStairs: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
+    hidinguser = int # userid
     width = float # in squares
     height = float # in squares
     rotation = ROTATION
@@ -577,6 +589,7 @@ struct StrippedMeasureObj: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
+    hidinguser = int # userid
     color = color
     x1 = float
     y1 = float
@@ -596,6 +609,7 @@ struct StrippedFixtureObj: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
+    hidinguser = int # userid
     width = float
     height = float
     ftype = FIXTURETYPE
@@ -613,6 +627,7 @@ struct StrippedFilledTile: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
+    hidinguser = int # userid
     color = color
     size = float
 
@@ -624,6 +639,7 @@ struct StrippedTerrainTile: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
+    hidinguser = int # userid
     terrain_id = int
 
 // IconTile
@@ -634,6 +650,7 @@ struct StrippedIconTile: array
     base_x = float
     base_y = float
     flags = CANVASFLAG
+    hidinguser = int # userid
     terrainicon_id = int
 
 // StrippedObj
@@ -653,6 +670,7 @@ struct StrippedIconTile: array
 //    base_x = float
 //    base_y = float
 //    flags = CANVASFLAG
+//    hidinguser = int # userid
 //
 // This allows most handling of the objects to work on the generic shared
 // subset (like translating x pixels or setting a flag).

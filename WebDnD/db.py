@@ -13,7 +13,7 @@ atexit.register(lambda: (logging.info('closing db'), conn.close())) # type: igno
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 6
+DBVERSION = 7
 with conn:
     conn.execute("PRAGMA encoding = 'UTF-8';")
     conn.execute('PRAGMA foreign_keys = ON;')
@@ -192,6 +192,24 @@ def setup_tables():
                 FOREIGN KEY(userid) REFERENCES users(userid)
             );
         ''')
+    if version < 7:
+        maps = conn.execute('''
+        SELECT * FROM maps;
+        ''').fetchall()
+        for m in maps:
+            campid, mapid, name, objects, flags, grid_type = m
+            objs = json.loads(objects)
+            for o in objs:
+                o: list
+                o.insert(5, 0)
+            objs = json.dumps(objs)
+            conn.execute('''
+            UPDATE maps
+            SET objects = ?
+            WHERE campaignid = ? AND mapid = ?;
+            ''',(objs, campid, mapid))
+
+
 
 with conn:
     setup_tables()
@@ -392,13 +410,14 @@ def save_map(id:int, map_id:int, map_name:str, objects:list, flags:int, grid_typ
             ;
         ''', (id, map_id, map_name, blob, flags, grid_type))
 def map_convert(row):
-    return dict(
+    result = dict(
         map_id = row[1],
         map_name = row[2],
         objects = json.loads(row[3]),
         flags = row[4],
         grid_type = row[5],
     )
+    return result
 
 def get_map(id:int, mapid:int):
     with DBLOCK:

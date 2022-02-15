@@ -522,9 +522,11 @@ David20::title #hide
     ::div #id(colors)
       ::raw
         <input type="color" id="color-picker" value="#000000">
-        <span id="color-picker-dropdown" class="color-picker-dropwdown">▼</span>
+        <span id="color-picker-dropdown" class="color-picker-dropdown">▼</span>
         <input type="color" id="color-picker2" value="#ffffff">
         <span id="color-picker2-dropdown" class="color-picker-dropdown">▼</span>
+        <label for="hidden-checkbox">Place<br>Hidden</label>
+        <input type="checkbox" id="hidden-checkbox" name="hidden-checkbox">
     ::div #id(zoomers)
       ::raw
         <button id="zoom-out">Zoom -</button>

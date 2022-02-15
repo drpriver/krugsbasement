@@ -7,6 +7,7 @@ const enum INDEX {
     BASE_X = 2,
     BASE_Y = 3,
     FLAGS = 4,
+    HIDINGUSER = 5,
 }
 interface Bbox {
     // These are relative to some base_x, base_y.
@@ -214,6 +215,7 @@ type FreehandLine = {
     base_x: number;
     base_y: number;
     flags: CANVASFLAG;
+    hidinguser: number;
     color: string;
     // points are just raw x,y pairs in a flat array.
     points: Array<number>;
@@ -235,6 +237,7 @@ type GridLine = {
     base_x: number;
     base_y: number;
     flags: CANVASFLAG;
+    hidinguser: number;
     color: string;
     // points are just raw x,y pairs in a flat array.
     points: Array<number>;
@@ -253,6 +256,7 @@ type Rectangle = {
     base_x: number,
     base_y: number,
     flags: CANVASFLAG,
+    hidinguser: number;
     color: string,
     width: number,
     height: number,
@@ -270,6 +274,7 @@ type FilledRectangle = {
     base_x: number,
     base_y: number,
     flags: CANVASFLAG,
+    hidinguser: number;
     color: string,
     color2: string,
     width: number,
@@ -289,6 +294,7 @@ type GridRectangle = {
     base_x: number,
     base_y: number,
     flags: CANVASFLAG,
+    hidinguser: number;
     color: string,
     width: number,
     height: number,
@@ -315,6 +321,7 @@ type Ellipse = {
     base_x: number,
     base_y: number,
     flags: CANVASFLAG,
+    hidinguser: number;
     color: string,
     color2: string,
     width: number,
@@ -330,6 +337,7 @@ type ImageObj = {
     base_x: number;
     base_y: number;
     flags: CANVASFLAG;
+    hidinguser: number;
     width: number;
     height: number;
     url: string;
@@ -344,6 +352,7 @@ type TextObj = {
     base_x: number;
     base_y: number;
     flags: CANVASFLAG;
+    hidinguser: number;
     text: string;
     size: number;
     bbox: Bbox;
@@ -393,6 +402,7 @@ type EzToken = {
     base_x: number,
     base_y: number,
     flags: CANVASFLAG
+    hidinguser: number;
     text: string,
     color: string,
     width: number, // in squares (?)
@@ -409,6 +419,7 @@ type ImgToken = {
     base_x: number;
     base_y: number;
     flags: CANVASFLAG;
+    hidinguser: number;
     url: string;
     img?: HTMLImageElement,
     width: number; // in squares (?)
@@ -425,6 +436,7 @@ type DoorObj = {
     base_x: number,
     base_y: number,
     flags: CANVASFLAG
+    hidinguser: number;
     doortype: DOORTYPE
     color: string,
     width: number, // in squares (?)
@@ -439,6 +451,7 @@ type Stairs = {
     base_x: number,
     base_y: number,
     flags: CANVASFLAG,
+    hidinguser: number;
     width: number, // in squares
     height: number, // in squares
     rotation: ROTATION,
@@ -454,6 +467,7 @@ type MeasureObj = {
     base_x: number,
     base_y: number,
     flags: CANVASFLAG
+    hidinguser: number;
     color: string,
     x1: number,
     y1: number,
@@ -482,6 +496,7 @@ type FixtureObj = {
     base_x: number,
     base_y: number,
     flags: CANVASFLAG,
+    hidinguser: number;
     width: number,
     height: number,
     ftype: FIXTURETYPE,
@@ -508,6 +523,7 @@ type FilledTile = {
     base_x: number,
     base_y: number,
     flags: CANVASFLAG,
+    hidinguser: number;
     color: string,
     size: number,
 }
@@ -520,6 +536,7 @@ type TerrainTile = {
     base_x: number;
     base_y: number;
     flags: CANVASFLAG;
+    hidinguser: number;
     terrain_id: number;
 }
 
@@ -538,6 +555,7 @@ type IconTile = {
     base_x: number;
     base_y: number;
     flags: CANVASFLAG;
+    hidinguser: number;
     terrainicon_id: number;
 }
 
@@ -1391,6 +1409,7 @@ function make_freehand_line(id:number, base_x:number, base_y:number, color:strin
         base_x: base_x,
         base_y: base_y,
         flags: CANVASFLAG.NONE,
+        hidinguser: hiddenid(),
         points: [],
         color: color,
         path: undefined,
@@ -1675,6 +1694,7 @@ function make_gridline(id:number, base_x:number, base_y:number, color:string):Gr
         base_x: base_x,
         base_y: base_y,
         flags: CANVASFLAG.NONE,
+        hidinguser: hiddenid(),
         points: [],
         color: color,
         path: undefined,
@@ -1807,6 +1827,7 @@ function make_gridrect(id:number, base_x:number, base_y:number, color:string):Gr
         base_x: base_x,
         base_y: base_y,
         flags: CANVASFLAG.NONE,
+        hidinguser: hiddenid(),
         color: color,
         width: 0,
         height: 0,
@@ -1845,6 +1866,7 @@ function make_door(id:number, x:number, y:number, doortype:DOORTYPE, color:strin
         base_x: x,
         base_y: y,
         flags: CANVASFLAG.NONE,
+        hidinguser: hiddenid(),
         doortype: doortype,
         color: color,
         width: width,
@@ -1863,6 +1885,7 @@ function make_rect(id:number, base_x:number, base_y:number, color:string):Rectan
         base_x: base_x,
         base_y: base_y,
         flags: CANVASFLAG.NONE,
+        hidinguser: hiddenid(),
         color: color,
         width: 0,
         height: 0,
@@ -1901,6 +1924,7 @@ function make_filled_rect(id:number, base_x:number, base_y:number, color:string,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
         flags: CANVASFLAG.NONE,
+        hidinguser: hiddenid(),
         color: color,
         color2: color2,
         width: 0,
@@ -1940,6 +1964,7 @@ function make_ellipse(id:number, base_x:number, base_y:number, color:string, col
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
         flags: CANVASFLAG.NONE,
+        hidinguser: hiddenid(),
         color: color,
         color2: color2,
         width: 0,
@@ -1962,6 +1987,7 @@ function make_text(id:number, base_x:number, base_y:number, text:string, size:nu
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
         flags: CANVASFLAG.NONE,
+        hidinguser: hiddenid(),
         text: text,
         size: size,
         bbox: {x0:0, y0:0, x1:0, y1:0},
@@ -1983,6 +2009,7 @@ function make_ez_token(id:number, base_x:number, base_y:number, text:string, col
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
         flags: CANVASFLAG.NONE,
+        hidinguser: hiddenid(),
         text: text,
         color:color,
         width: width,
@@ -2002,6 +2029,7 @@ function make_img_token(id:number, base_x:number, base_y:number, url:string, wid
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
         flags: CANVASFLAG.NONE,
+        hidinguser: hiddenid(),
         url: url,
         img: undefined,
         width: width,
@@ -2048,6 +2076,7 @@ function make_image(id:number, base_x:number, base_y:number, width:number, heigh
         base_x: base_x,
         base_y: base_y,
         flags: CANVASFLAG.NONE,
+        hidinguser: hiddenid(),
         width: width,
         height: height,
         url: url,
@@ -2070,6 +2099,7 @@ function make_stairs(id:number, base_x:number, base_y:number): Stairs{
         base_x:base_x,
         base_y:base_y,
         flags: CANVASFLAG.NONE,
+        hidinguser: hiddenid(),
         width: 0,
         height: 0,
         rotation: ROTATION.UP,
@@ -2126,6 +2156,7 @@ function make_measure(id:number, x:number, y:number, color:string):MeasureObj{
         base_x:x,
         base_y:y,
         flags: CANVASFLAG.NONE,
+        hidinguser: hiddenid(),
         color:color,
         x1:x,
         y1:y,
@@ -2139,6 +2170,7 @@ function make_fixture(id:number, x:number, y:number, ftype:FIXTURETYPE):FixtureO
         base_x:x,
         base_y:y,
         flags: CANVASFLAG.NONE,
+        hidinguser: hiddenid(),
         width:0,
         height:0,
         ftype:ftype,
@@ -3074,6 +3106,8 @@ function obj_at(view:DungeonMapView, x0:number, y0:number, select_type:SELECTTYP
         const obj = canvas_obj_array[i];
         if(obj.flags & CANVASFLAG.DELETED)
             continue;
+        if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
+            continue;
         if(obj_in_bbox(obj, bbox, select_type))
             return obj;
     }
@@ -3094,6 +3128,8 @@ function note_selections(view:DungeonMapView):void{
             const obj = canvas_obj_array[i];
             if(obj.flags & CANVASFLAG.DELETED)
                 continue;
+            if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
+                continue;
             if(obj_in_bbox(obj, selection_bbox, selection_type)){
                 selected.add(obj.id);
                 break;
@@ -3104,6 +3140,8 @@ function note_selections(view:DungeonMapView):void{
         for(let i = 0; i < length; ++i){
             const obj = canvas_obj_array[i];
             if(obj.flags & CANVASFLAG.DELETED)
+                continue;
+            if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
                 continue;
             if(obj_in_bbox(obj, selection_bbox, selection_type)){
                 selected.add(obj.id);
@@ -3230,71 +3268,71 @@ function strip_obj(obj:CanvasObject): StrippedObj{
     switch(obj.type){
         case CANVASTYPE.FREEHAND_LINE:{
             const stripped_obj: StrippedFreehandLine =
-                [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.color, Array.from(obj.points), obj.thickness];
+                [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, Array.from(obj.points), obj.thickness];
             return stripped_obj;
         }break;
         case CANVASTYPE.GRID_LINE:{
-            const stripped_obj: StrippedGridLine = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.color, Array.from(obj.points)];
+            const stripped_obj: StrippedGridLine = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, Array.from(obj.points)];
             return stripped_obj;
         }break;
         case CANVASTYPE.RECT:{
-            const stripped_obj: StrippedRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.color, obj.width, obj.height];
+            const stripped_obj: StrippedRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.width, obj.height];
             return stripped_obj;
         }break;
         case CANVASTYPE.FILLED_RECT:{
-            const stripped_obj: StrippedFilledRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.color, obj.color2, obj.width, obj.height];
+            const stripped_obj: StrippedFilledRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.color2, obj.width, obj.height];
             return stripped_obj;
         }break;
         case CANVASTYPE.GRID_RECT:{
-            const stripped_obj: StrippedGridRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.color, obj.width, obj.height];
+            const stripped_obj: StrippedGridRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.width, obj.height];
             return stripped_obj;
         }break;
         case CANVASTYPE.ELLIPSE:{
-            const stripped_obj: StrippedEllipse = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.color, obj.color2, obj.width, obj.height, obj.variant];
+            const stripped_obj: StrippedEllipse = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.color2, obj.width, obj.height, obj.variant];
             return stripped_obj;
         }break;
         case CANVASTYPE.IMAGE:{
-            const stripped_obj: StrippedImageObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.width, obj.height, obj.url];
+            const stripped_obj: StrippedImageObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.width, obj.height, obj.url];
             return stripped_obj;
         }break;
         case CANVASTYPE.TEXT:{
-            const stripped_obj: StrippedTextObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.text, obj.size, obj.alignment, obj.map_id];
+            const stripped_obj: StrippedTextObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.text, obj.size, obj.alignment, obj.map_id];
             return stripped_obj;
         }break;
         case CANVASTYPE.EZ_TOKEN:{
-            const stripped_obj: StrippedEzToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.text, obj.color, obj.width, obj.height, obj.statusflags];
+            const stripped_obj: StrippedEzToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.text, obj.color, obj.width, obj.height, obj.statusflags];
             return stripped_obj;
         }break;
         case CANVASTYPE.IMG_TOKEN:{
-            const stripped_obj: StrippedImgToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.url, obj.width, obj.height, obj.statusflags];
+            const stripped_obj: StrippedImgToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.url, obj.width, obj.height, obj.statusflags];
             return stripped_obj;
         }break;
         case CANVASTYPE.DOOR:{
-            const stripped_obj: StrippedDoorObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.doortype, obj.color, obj.width, obj.orientation];
+            const stripped_obj: StrippedDoorObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.doortype, obj.color, obj.width, obj.orientation];
             return stripped_obj;
         }break;
         case CANVASTYPE.STAIRS:{
-            const stripped_obj: StrippedStairs = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.width, obj.height, obj.rotation];
+            const stripped_obj: StrippedStairs = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.width, obj.height, obj.rotation];
             return stripped_obj;
         }break;
         case CANVASTYPE.MEASURE:{
-            const stripped_obj: StrippedMeasureObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.color, obj.x1, obj.y1];
+            const stripped_obj: StrippedMeasureObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.x1, obj.y1];
             return stripped_obj;
         }break;
         case CANVASTYPE.FIXTURE:{
-            const stripped_obj: StrippedFixtureObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.width, obj.height, obj.ftype];
+            const stripped_obj: StrippedFixtureObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.width, obj.height, obj.ftype];
             return stripped_obj;
         }break;
         case CANVASTYPE.FILLED_TILE:{
-            const stripped_obj: StrippedFilledTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.color, obj.size];
+            const stripped_obj: StrippedFilledTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.size];
             return stripped_obj;
         }break;
         case CANVASTYPE.TERRAIN_TILE:{
-            const stripped_obj: StrippedTerrainTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.terrain_id];
+            const stripped_obj: StrippedTerrainTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.terrain_id];
             return stripped_obj;
         }break;
         case CANVASTYPE.ICON_TILE:{
-            const stripped_obj: StrippedIconTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.terrainicon_id];
+            const stripped_obj: StrippedIconTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.terrainicon_id];
             return stripped_obj;
         }break;
     }
@@ -3312,10 +3350,11 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
+                hidinguser: sobj[INDEX.HIDINGUSER],
                 // typescript  is being dumb here
-                color: (sobj as StrippedFreehandLine)[5],
-                points: (sobj as StrippedFreehandLine)[6],
-                thickness: (sobj as StrippedFreehandLine)[7],
+                color: (sobj as StrippedFreehandLine)[6],
+                points: (sobj as StrippedFreehandLine)[7],
+                thickness: (sobj as StrippedFreehandLine)[8],
                 bbox:{x0:0, x1:0, y0:0, y1:0}
             };
             obj.points = Array.from(obj.points),
@@ -3330,8 +3369,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
-                color:  (sobj as StrippedGridLine)[5],
-                points: (sobj as StrippedGridLine)[6],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                color:  (sobj as StrippedGridLine)[6],
+                points: (sobj as StrippedGridLine)[7],
                 bbox:{x0:0, x1:0, y0:0, y1:0},
             };
             obj.points = Array.from(obj.points),
@@ -3346,9 +3386,10 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
-                color: (sobj as StrippedRectangle)[5],
-                width: (sobj as StrippedRectangle)[6],
-                height: (sobj as StrippedRectangle)[7],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                color: (sobj as StrippedRectangle)[6],
+                width: (sobj as StrippedRectangle)[7],
+                height: (sobj as StrippedRectangle)[8],
             };
             return obj;
         }break;
@@ -3359,10 +3400,11 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
-                color  : (sobj as StrippedFilledRectangle)[5],
-                color2 : (sobj as StrippedFilledRectangle)[6],
-                width  : (sobj as StrippedFilledRectangle)[7],
-                height : (sobj as StrippedFilledRectangle)[8],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                color  : (sobj as StrippedFilledRectangle)[6],
+                color2 : (sobj as StrippedFilledRectangle)[7],
+                width  : (sobj as StrippedFilledRectangle)[8],
+                height : (sobj as StrippedFilledRectangle)[9],
             };
             return obj;
         }break;
@@ -3373,9 +3415,10 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
-                color  : (sobj as StrippedGridRectangle)[5],
-                width  : (sobj as StrippedGridRectangle)[6],
-                height : (sobj as StrippedGridRectangle)[7],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                color  : (sobj as StrippedGridRectangle)[6],
+                width  : (sobj as StrippedGridRectangle)[7],
+                height : (sobj as StrippedGridRectangle)[8],
             };
             return obj;
         }break;
@@ -3386,11 +3429,12 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
-                color   : (sobj as StrippedEllipse)[5],
-                color2  : (sobj as StrippedEllipse)[6],
-                width   : (sobj as StrippedEllipse)[7],
-                height  : (sobj as StrippedEllipse)[8],
-                variant : (sobj as StrippedEllipse)[9],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                color   : (sobj as StrippedEllipse)[6],
+                color2  : (sobj as StrippedEllipse)[7],
+                width   : (sobj as StrippedEllipse)[8],
+                height  : (sobj as StrippedEllipse)[9],
+                variant : (sobj as StrippedEllipse)[10],
             };
             return obj;
         }break;
@@ -3401,9 +3445,10 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
-                width  : (sobj as StrippedImageObj)[5],
-                height : (sobj as StrippedImageObj)[6],
-                url    : (sobj as StrippedImageObj)[7],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                width  : (sobj as StrippedImageObj)[6],
+                height : (sobj as StrippedImageObj)[7],
+                url    : (sobj as StrippedImageObj)[8],
             };
             delay_load_obj_image(obj, obj.width, obj.height, obj.width?obj.width:64, obj.height?obj.height:64);
             return obj;
@@ -3415,13 +3460,14 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
-                text      : (sobj as StrippedTextObj)[5],
-                size      : (sobj as StrippedTextObj)[6],
-                alignment : (sobj as StrippedTextObj)[7],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                text      : (sobj as StrippedTextObj)[6],
+                size      : (sobj as StrippedTextObj)[7],
+                alignment : (sobj as StrippedTextObj)[8],
                 bbox:{x0:0, x1:0, y0:0, y1:0},
-                lines: (sobj as StrippedTextObj)[5].split('\n'),
+                lines: (sobj as StrippedTextObj)[6].split('\n'),
                 bboxes: [],
-                map_id: (sobj as StrippedTextObj)[8],
+                map_id: (sobj as StrippedTextObj)[9],
             };
             return obj;
         }break;
@@ -3432,11 +3478,12 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
-                text        : (sobj as StrippedEzToken)[5],
-                color       : (sobj as StrippedEzToken)[6],
-                width       : (sobj as StrippedEzToken)[7],
-                height      : (sobj as StrippedEzToken)[8],
-                statusflags : (sobj as StrippedEzToken)[9],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                text        : (sobj as StrippedEzToken)[6],
+                color       : (sobj as StrippedEzToken)[7],
+                width       : (sobj as StrippedEzToken)[8],
+                height      : (sobj as StrippedEzToken)[9],
+                statusflags : (sobj as StrippedEzToken)[10],
             };
             return obj;
         }break;
@@ -3447,10 +3494,11 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
-                url         : (sobj as StrippedImgToken)[5],
-                width       : (sobj as StrippedImgToken)[6],
-                height      : (sobj as StrippedImgToken)[7],
-                statusflags : (sobj as StrippedImgToken)[8],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                url         : (sobj as StrippedImgToken)[6],
+                width       : (sobj as StrippedImgToken)[7],
+                height      : (sobj as StrippedImgToken)[8],
+                statusflags : (sobj as StrippedImgToken)[9],
             };
             delay_load_obj_image(obj, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH, obj.width, obj.width);
             return obj;
@@ -3462,10 +3510,11 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
-                doortype    : (sobj as StrippedDoorObj)[5],
-                color       : (sobj as StrippedDoorObj)[6],
-                width       : (sobj as StrippedDoorObj)[7],
-                orientation : (sobj as StrippedDoorObj)[8],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                doortype    : (sobj as StrippedDoorObj)[6],
+                color       : (sobj as StrippedDoorObj)[7],
+                width       : (sobj as StrippedDoorObj)[8],
+                orientation : (sobj as StrippedDoorObj)[9],
             };
             return obj;
         }break;
@@ -3476,9 +3525,10 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
-                width    : (sobj as StrippedStairs)[5],
-                height   : (sobj as StrippedStairs)[6],
-                rotation : (sobj as StrippedStairs)[7],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                width    : (sobj as StrippedStairs)[6],
+                height   : (sobj as StrippedStairs)[7],
+                rotation : (sobj as StrippedStairs)[8],
             };
             return obj;
         }break;
@@ -3489,9 +3539,10 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
-                color : (sobj as StrippedMeasureObj)[5],
-                x1    : (sobj as StrippedMeasureObj)[6],
-                y1    : (sobj as StrippedMeasureObj)[7],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                color : (sobj as StrippedMeasureObj)[6],
+                x1    : (sobj as StrippedMeasureObj)[7],
+                y1    : (sobj as StrippedMeasureObj)[8],
             };
             return obj;
             // all fields are good
@@ -3503,9 +3554,10 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
-                width  : (sobj as StrippedFixtureObj)[5],
-                height : (sobj as StrippedFixtureObj)[6],
-                ftype  : (sobj as StrippedFixtureObj)[7],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                width  : (sobj as StrippedFixtureObj)[6],
+                height : (sobj as StrippedFixtureObj)[7],
+                ftype  : (sobj as StrippedFixtureObj)[8],
             };
             return obj;
         }break;
@@ -3516,8 +3568,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
-                color : (sobj as StrippedFilledTile)[5],
-                size  : (sobj as StrippedFilledTile)[6],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                color : (sobj as StrippedFilledTile)[6],
+                size  : (sobj as StrippedFilledTile)[7],
             };
             return obj;
         }break;
@@ -3528,7 +3581,8 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
-                terrain_id: (sobj as StrippedTerrainTile)[5],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                terrain_id: (sobj as StrippedTerrainTile)[6],
             };
             return obj;
         }break;
@@ -3539,7 +3593,8 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
-                terrainicon_id: (sobj as StrippedIconTile)[5],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                terrainicon_id: (sobj as StrippedIconTile)[6],
             };
             return obj;
         }break;
@@ -3981,6 +4036,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
             const obj = canvas_obj_array[i];
             if(obj.flags & CANVASFLAG.DELETED)
                 continue;
+            if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
+                continue;
             if(obj.type == CANVASTYPE.FILLED_TILE){
                 bgtiles.push(obj);
                 continue;
@@ -4217,6 +4274,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
     for(let i = 0; i < length; ++i){
         let obj = canvas_obj_array[i];
         if(obj.flags & CANVASFLAG.DELETED)
+            continue;
+        if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
             continue;
         let is_selected = selected.has(obj.id);
         const is_hovered = obj.id == hovered_id;
@@ -5984,6 +6043,13 @@ function event_to_coord_snapped(e:MouseEvent, view:DungeonMapView, snap:(x:numbe
     return [snap(x),snap(y)];
 }
 
+function hiddenid():number {
+    // This is pretty gross, but like who cares man.
+    if(by_id('hidden-checkbox').checked)
+        return SETTINGS.userid?SETTINGS.userid:0;
+    return 0;
+}
+
 document.addEventListener('DOMContentLoaded', function(){
     canvas = document.getElementsByTagName('canvas')[0]!;
     let gesturing = false;
@@ -6218,6 +6284,35 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
                 else
                     return;
+                break;
+            case 'h':
+                if(modified) return;
+                {
+                    if(!view.selected.size) break;
+                    let nhidden = 0;
+                    for(let obj_id of view.selected){
+                        let o = view.map.canvas_objs.get(obj_id)!;
+                        if(o.hidinguser) nhidden++;
+                    }
+                    let changed = false;
+                    let before = [];
+                    let after = [];
+                    for(let obj_id of view.selected){
+                        let o = view.map.canvas_objs.get(obj_id)!;
+                        before.push(strip_obj(o));
+                        if(nhidden != view.selected.size)
+                            o.hidinguser = SETTINGS.userid;
+                        else
+                            o.hidinguser = 0;
+                        after.push(strip_obj(o));
+                        changed = true;
+                    }
+                    if(changed){
+                        note_updates_for_undo(view.map, before, after);
+                        publish_obj_updates(view.map.map_id, after);
+                        request_render();
+                    }
+                }
                 break;
             case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':{
                 if(ctrl_or_cmd_is_pressed)
@@ -6950,6 +7045,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             base_x: x,
                             base_y: y,
                             flags: CANVASFLAG.NONE,
+                            hidinguser: hiddenid(),
                             color: get_primary_color(),
                             size: gridscale == GRIDSCALE.TEN?1:0.5,
                         };
@@ -6962,6 +7058,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             base_x: x,
                             base_y: y,
                             flags: CANVASFLAG.NONE,
+                            hidinguser: hiddenid(),
                             terrain_id: current_terrain_id,
                         };
                         add_canv_obj(view.map, terrain);
@@ -6973,6 +7070,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             base_x: x,
                             base_y: y,
                             flags: CANVASFLAG.NONE,
+                            hidinguser: hiddenid(),
                             terrainicon_id: current_terrain_icon_id,
                         };
                         add_canv_obj(view.map, icon);
@@ -7129,6 +7227,56 @@ document.addEventListener('DOMContentLoaded', function(){
                 func: function(){rotate_everything_90(view);remove_menu();},
                 disabled: false,
                 whenflags: CONTEXTMENUWHENFLAGS.NO_SELECTION,
+            },
+            {
+                label: 'Hide',
+                func: function(){
+                    let changed = false;;
+                    let before = [];
+                    let after = [];
+                    for(let obj_id of view.selected){
+                        let o = view.map.canvas_objs.get(obj_id)!;
+                        if(o.hidinguser == SETTINGS.userid)
+                            continue;
+                        before.push(strip_obj(o));
+                        o.hidinguser = SETTINGS.userid;
+                        after.push(strip_obj(o));
+                        changed = true;
+                    }
+                    if(changed){
+                        note_updates_for_undo(view.map, before, after);
+                        publish_obj_updates(view.map.map_id, after);
+                        request_render();
+                    }
+                    remove_menu();
+                },
+                disabled: false,
+                whenflags: CONTEXTMENUWHENFLAGS.ANY_SELECTED,
+            },
+            {
+                label: 'Unhide',
+                func: function(){
+                    let changed = false;;
+                    let before = [];
+                    let after = [];
+                    for(let obj_id of view.selected){
+                        let o = view.map.canvas_objs.get(obj_id)!;
+                        if(o.hidinguser == 0)
+                            continue;
+                        before.push(strip_obj(o));
+                        o.hidinguser = 0;
+                        after.push(strip_obj(o));
+                        changed = true;
+                    }
+                    if(changed){
+                        note_updates_for_undo(view.map, before, after);
+                        publish_obj_updates(view.map.map_id, after);
+                        request_render();
+                    }
+                    remove_menu();
+                },
+                disabled: false,
+                whenflags: CONTEXTMENUWHENFLAGS.ANY_SELECTED,
             },
             {
                 label: 'Edit',
