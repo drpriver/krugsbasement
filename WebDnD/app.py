@@ -552,7 +552,8 @@ def get_html(info:db.CampaignInfo) -> str:
     result = SCREEN
     title = info.name.replace('-', ' ').replace('_', ' ').title()
     title = markupsafe.escape(title)
-    result = result.replace('<title>David20</title>', f'<title>David20 - {title}</title>', 1)
+    if title:
+        result = result.replace('<title>David20</title>', f'<title>David20 - {title}</title>', 1)
     result = result.replace('"let SETTINGS = SETTINGS";', 'let SETTINGS = ' +json.dumps(vals)+';', 1)
     return result
 
