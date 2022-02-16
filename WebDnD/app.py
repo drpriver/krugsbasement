@@ -86,7 +86,7 @@ def bad_attempt() -> None:
 
 
 @app.before_request
-def block_method():
+def block_method() -> None:
     ip = request.remote_addr
     # logging.info('ip: %r', ip)
     if ip in ip_ban_list:
@@ -97,7 +97,7 @@ def block_method():
         ip_ban_list[ip] += 30
         flask.abort(404)
 
-def pydndclog(kind, filename, line, col, mes):
+def pydndclog(kind, filename, line, col, mes) -> None:
     logging.warning('%r:%d:%d: %r', filename, line+1, col, mes)
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -116,15 +116,12 @@ def register() -> object:
             flask.flash('Invalid username or password')
             return flask.redirect(request.path)
         logging.info('register user: %r', user)
-        for campid in db.get_campaigns().values():
-            db.join_campaign(user.userid, campid)
         login_user(user, remember=form.remember_me.data)
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':
             return flask.redirect('/home')
         return flask.redirect(next_page)
     if appconfig.DEV:
-        os.system('make Generated/register.dnd')
         REGISTER_d = r('register.dnd')
     t0 = time.time()
     next_page = request.args.get('next')
@@ -171,14 +168,14 @@ def login_page() -> object:
     return html
 
 @app.route('/logout')
-def logout():
+def logout() -> object:
     logout_user()
     return flask.redirect('/login')
 
 
 @app.route('/campaigns', methods=['GET', 'POST'])
 @login_required
-def campa():
+def campa() -> object:
     if request.method == 'GET':
         return flask.redirect('/home')
     try:
@@ -208,13 +205,13 @@ def campa():
 
 
 @app.route('/settings', methods=['GET'])
-def get_settings():
+def get_settings() -> object:
     if not current_user.is_authenticated:
         return flask.jsonify({})
     return flask.jsonify(settings.get_global(current_user.userid))
 
 @app.route('/settings', methods=['POST'])
-def post_settings():
+def post_settings() -> object:
     if not current_user.is_authenticated:
         return {}
     dlog('Settings for %r: %r', current_user.userid, request.json)
@@ -236,7 +233,7 @@ def store_campaign_setting(data: LocalSetting) -> None:
 
 @app.route('/home', methods=['GET','POST'])
 @login_required
-def home():
+def home() -> object:
     form = CampaignForm()
     if form.validate_on_submit():
         campaignid = db.create_campaign(form.campaignname.data, current_user.userid)
@@ -267,18 +264,9 @@ def home():
     # logging.info('Took %.3fµs to render dnd', (t1-t0)*1000*1000)
     return html
 
-if appconfig.DEV:
-    @app.route('/createcampaign', methods=['POST'])
-    @login_required
-    def createcampaign():
-        form = CampaignForm()
-        if form.validate_on_submit():
-            campid = db.create_campaign(form.campaignname.data, current_user.userid)
-        else:
-            return flask.jsonify(form.errors)
 
 @socketio.on(FromClient.CHAT_STRUCTURED_INPUT)
-def chat_structured_input(data:ChatCommandMessage):
+def chat_structured_input(data:ChatCommandMessage)->None:
     data = validate('ChatCommandMessage', data)
     campaign = get_campaign(request)
     responses = chat.handle_structured_input(campaign, data['chatname'], data['commands'], test=False)
@@ -286,7 +274,7 @@ def chat_structured_input(data:ChatCommandMessage):
         emit(ToClient.CHAT_STRUCTURED_MSG, responses, broadcast=True, to=str(campaign))
 
 @socketio.on(FromClient.CHAT_TEST_STRUCTURED_INPUT)
-def chat_test_structured_input(data:ChatCommandMessage):
+def chat_test_structured_input(data:ChatCommandMessage)->None:
     data = validate('ChatCommandMessage', data)
     campaign = get_campaign(request)
     if not data:
@@ -295,7 +283,7 @@ def chat_test_structured_input(data:ChatCommandMessage):
     emit(ToClient.CHAT_TEST_STRUCTURED_RESPONSE, responses, to=str(campaign))
 
 @socketio.on(FromClient.CHAT_PRIVATE_INPUT)
-def chat_private_input(data:ChatCommandMessage):
+def chat_private_input(data:ChatCommandMessage)->None:
     data = validate('ChatCommandMessage', data)
     campaign = get_campaign(request)
     if not data:
@@ -318,7 +306,7 @@ def record_campaign(req, campaign:int) -> None:
             user_id_to_sids[current_user.userid] = []
         user_id_to_sids[current_user.userid].append(req.sid)
 
-def get_token_paths():
+def get_token_paths()->List[str]:
     with open(os.path.join(appconfig.STATICDIR, 'token-list.txt'), 'r') as fp:
         tokens = [l.strip() for l in fp if l.strip()]
     return tokens
@@ -370,7 +358,7 @@ def join(room:str) -> None:
     # notes.create_notes_for_room(room)
 
 @socketio.on(FromClient.POST_JOIN)
-def post_join():
+def post_join() -> None:
     campaign = get_campaign(request)
     emit(ToClient.CHAT_CLEAR)
     emit(ToClient.CHAT_CREATE, chat.get_history(campaign))
@@ -483,7 +471,7 @@ def delete_map_request(map_id:int) -> None:
         emit(ToClient.CANVAS_DELETE_MAP, map_id, broadcast=True, include_self=True, to=str(campaign))
 
 @socketio.on(FromClient.GET_NOTE)
-def note_get(note_id: int):
+def note_get(note_id: int) -> None:
     assert isinstance(note_id, int)
     campaign = get_campaign(request)
     note = notes.get_note(campaign, note_id)
@@ -585,6 +573,8 @@ def get_campaign_request(campaign:str) -> str:
         # TODO: do a redirect instead once peoples macros and stuff are on
         # the server.
         campaign_id = LEGACY_CAMPAIGNS.get(campaign)
+        if campaign_id is not None:
+            return flask.redirect(f'/campaigns/{campaign_id}')
     # logging.info('campaign_id: %r', campaign_id)
     if campaign_id is None:
         return abort(404)
@@ -615,23 +605,23 @@ def get_campaign_request(campaign:str) -> str:
 
 if appconfig.DEV:
     @app.route('/imgs/<img>')
-    def get_img(img:str):
+    def get_img(img:str) -> object:
         return send_from_directory('imgs', img)
     @app.route('/tokens/<token>')
-    def get_token(token:str):
+    def get_token(token:str) -> object:
         return send_from_directory('tokens', token)
     @app.route('/icons/<icon>')
-    def get_icon(icon:str):
+    def get_icon(icon:str) -> object:
         return send_from_directory('icons', icon)
     @app.route('/tiles/<tile>')
-    def get_tile(tile:str):
+    def get_tile(tile:str) -> object:
         return send_from_directory('tiles', tile)
     @app.route('/wasm/<wasm>')
-    def get_wasm(wasm:str):
+    def get_wasm(wasm:str) -> object:
         logging.info('wasm: %r', wasm)
         return send_from_directory('wasm', wasm)
     @app.route('/favicon.ico')
-    def get_favicon():
+    def get_favicon() -> object:
         return send_from_directory('.', 'favicon.ico')
     @socketio.on(FromClient.DEBUG)
     def log_debug(msg:str) -> None:
@@ -640,38 +630,6 @@ if appconfig.DEV:
         msg: ChatPlainMsg = (Msg.PLAIN, '', str(msg), )
         emit(ToClient.CHAT_STRUCTURED_MSG, [msg])
 
-
-
-if False:
-    @app.route('/state', methods=['GET'])
-    @app.route('/campaigns/<campaign>/state', methods=['GET', 'POST', 'DELETE'])
-    def app_state(campaign:str='/') -> str:
-        logging.info('request: %r', request)
-        logging.info('campaign: %r',  campaign)
-        query = f'/campaigns/{campaign}' if campaign != '/' else '/'
-        if request.method == 'GET':
-            args = request.args
-            state = {
-                'chat':chat.get_history(query),
-                'canvas': canvas.get_state(query),
-                'app':{'session_id':session_id.value},
-                'notes':notes.get_notes_for_room(query),
-                'tables': chat.get_roll_tables(query),
-                }
-            if 'which' in args:
-                try:
-                    substate = state[args['which']]
-                    return jsonify(substate)
-                except:
-                    abort(404)
-            return jsonify(state)
-        elif request.method == 'POST':
-            abort(404)
-            return ''
-            # data should be in request.json?
-        else:
-            abort(404)
-            return ''
 _last_log_num = 0
 def log_connections() -> None:
     server = socketio.server

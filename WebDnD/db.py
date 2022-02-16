@@ -254,7 +254,7 @@ def get_users_campaigns(userid:int) -> List[Tuple[int, str]]:
             ;
         ''', (userid,)).fetchall()
 
-def get_owned_campaigns(userid:int) -> List[Tuple[int, str]]:
+def get_owned_campaigns(userid:int) -> List[Tuple[int, str, str]]:
     with DBLOCK:
         rows = conn.execute('''
         SELECT id, name, magic
