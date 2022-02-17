@@ -1,13 +1,12 @@
 declare let io: any;
 type Settings = {
     userid: number;
-    darkmode?: DarkMode;
-    chat?:{name?: string;};
-    macros?: {
-        dieroll_history?: Array<any>;
-        macros?: Array<any>;
-        variables?: Array<any>;
-        used_variables?: Array<any>;
+    darkmode: DarkMode;
+    chat:{name: string;};
+    macros: {
+        macros: Array<SavedMacro>;
+        variables: Array<ScriptVariable>;
+        used_variables: Array<string>;
     };
 }
 declare let SETTINGS: Settings;
@@ -26,7 +25,6 @@ function system_prefers_darkmode():boolean{
     return window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
-let current_dark_mode:DarkMode = DarkMode.SYSTEM;
 let DARKMODE = false;
 function change_dark_mode(mode:DarkMode, postit:number){
     switch(mode){
@@ -47,8 +45,7 @@ function change_dark_mode(mode:DarkMode, postit:number){
                 (document.documentElement.style as any).colorScheme = 'light';
             break;
     }
-    current_dark_mode = mode;
-    store_global(StorageCategory.SETTINGS, 'darkmode', mode);
+    SETTINGS.darkmode = mode;
     if(document.readyState === "complete" || document.readyState === 'interactive'){
         request_render();
         if(DARKMODE)
@@ -77,18 +74,7 @@ function change_dark_mode(mode:DarkMode, postit:number){
         });
     }
 }
-(function(){
-    // Use settings from localstorage to avoid flicker on first load.
-    let mode = SETTINGS.darkmode;
-    if(mode === undefined)
-        mode = get_global(StorageCategory.SETTINGS, 'darkmode');
-    if(mode === undefined)
-        mode = +(localStorage.getItem('darkmode') || 0);
-    mode |= 0;
-    if(mode < 0 || mode > 2)
-        mode = 0;
-    change_dark_mode(mode, 0);
-}());
+change_dark_mode(SETTINGS.darkmode, 0);
 
 
 // idk where to put this

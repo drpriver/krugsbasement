@@ -23,40 +23,7 @@ function macro_group_id(g: string): number{
 
 let macro_id = 0;
 const MACROS: Array<Macro> = (function(){
-    let saved:Array<SavedMacro> = get_local(StorageCategory.MACROS, 'macros');
-    if(!saved){
-        // legacy macros
-        let macros_string = localStorage.getItem(`${THISPAGE}/MACROS`);
-        if(!macros_string){
-            // for backwards compat with unnamespaced macro storage.
-            // Delete this in a few weeks when we've all played.
-            macros_string = localStorage.getItem('MACROS');
-        }
-        let macros = [];
-        if(macros_string)
-            macros = JSON.parse(macros_string);
-        // handle old macros
-        saved = [];
-        if(!Array.isArray(macros)){
-            for(let [key, value] of Object.entries(macros)){
-                if(typeof key !== "string")
-                    continue;
-                if(typeof value !== "string")
-                    continue
-                saved.push({name:key, body:value, group:"", id:0});
-            }
-        }
-        else {
-            for(let m of macros){
-                if(!m.name)
-                    continue;
-                if(!m.body)
-                    continue;
-                saved.push({name:m.name, body:m.body, group:m.group?m.group:"", id:0});
-            }
-        }
-        store_local(StorageCategory.MACROS, 'macros', saved);
-    }
+    let saved:Array<SavedMacro> = SETTINGS.macros.macros;
     for(let i = 0; i < saved.length; i++){
         saved[i].id = i;
     }
@@ -84,7 +51,6 @@ function save_macros(){
             id: m.id,
         });
     }
-    store_local(StorageCategory.MACROS, 'macros', to_save);
     sync_local(StorageCategory.MACROS, 'macros', to_save);
 }
 
@@ -285,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if(!m) return;
         let commands = evaluate(m.body, EvaluateFlags.NONE);
         if(commands.length){
-            let to_send: ChatCommandMessage = {chatname:CHATNAME, commands:commands};
+            let to_send: ChatCommandMessage = {chatname:SETTINGS.chat.name, commands:commands};
             EMIT(FromClient.CHAT_TEST_STRUCTURED_INPUT, to_send);
         }
     });
@@ -347,13 +313,8 @@ let current_script_variable_id = 0;
 let scriptgroups: Array<string> = [];
 const SCRIPTVARIABLES: Array<ScriptVariable> = (function(){
     const result:Array<ScriptVariable> = [];
-    let variables: Array<ScriptVariable>|undefined = get_local(StorageCategory.MACROS, 'variables');
-    if(variables === undefined){
-        return result;
-    }
+    let variables: Array<ScriptVariable> = SETTINGS.macros.variables;
     for(let sv of variables){
-        if(sv.flags & ScriptVariableFlags.DELETED)
-            continue;
         sv.id = current_script_variable_id++;
         sv.groupid = scriptgroups.indexOf(sv.group);
         if(sv.groupid == -1){
@@ -373,7 +334,6 @@ function actually_save_the_variables(){
             continue;
         to_save.push(sv);
     }
-    store_local(StorageCategory.MACROS,'variables', to_save);
     sync_local(StorageCategory.MACROS,'variables', to_save);
 }
 // window.addEventListener('beforeunload', actually_save_the_variables, false);
@@ -669,7 +629,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         }
                         else
                             USED_VARIABLE_GROUPS.delete(sv.group);
-                        store_local(StorageCategory.MACROS, 'used-variables', Array.from(USED_VARIABLE_GROUPS));
+                        sync_local(StorageCategory.MACROS, 'used_variables', Array.from(USED_VARIABLE_GROUPS));
                     });
                 }
                 last_group = sv.group;
@@ -721,7 +681,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if(!has_any){
         }
         USED_VARIABLE_GROUPS = new_used_groups;
-        store_local(StorageCategory.MACROS, 'used-variables', Array.from(USED_VARIABLE_GROUPS));
+        sync_local(StorageCategory.MACROS, 'used_variables', Array.from(USED_VARIABLE_GROUPS));
     };
     floater.hide_handler = function(){
     };
@@ -734,9 +694,7 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 
 let USED_VARIABLE_GROUPS: Set<string> = (function():Set<string>{
-    let result = get_local(StorageCategory.MACROS, 'used-variables');
-    if(result === undefined) return new Set();
-    return new Set(result as Array<string>);
+    return new Set(SETTINGS.macros.used_variables);
 })();
 
 function add_to_used_variable_group_consistently(group:string){

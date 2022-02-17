@@ -40,11 +40,6 @@ function queue_sync_the_local_settings(){
 
 function sync_local(category:StorageCategory, key:string, obj:any){
     // @ts-ignore
-    if(SETTINGS[category] === undefined){
-    // @ts-ignore
-        SETTINGS[category] = {};
-    }
-    // @ts-ignore
     SETTINGS[category][key] = obj;
     local_needs_sync.push([category, key]);
     queue_sync_the_local_settings();
@@ -57,21 +52,10 @@ function store_local(category:StorageCategory, key:string, obj:any){
 }
 
 function get_local(category:StorageCategory, key:string):any | undefined {
-    // @ts-ignore
-    if(SETTINGS[category] !== undefined){
-        // @ts-ignore
-        let v = SETTINGS[category][key];
-        if(v !== undefined) return v;
-    }
-    // legacy stuff, it shouldn't happen that it is not on the server but is in local storage.
     let k = `${THISPAGE}/${category}.${key}`;
     let value = localStorage.getItem(k);
     if(!value) return undefined;
     let result = JSON.parse(value);
-    // Can't do this because it will then fire on everything, even
-    // if it is not a server-side setting.
-    // Implement for each one instead.
-    // sync_local(category, key, result);
     return result;
 }
 

@@ -541,14 +541,29 @@ def get_html(info:db.CampaignInfo) -> str:
     global SCREEN
     if appconfig.DEV:
         SCREEN = r('dungeon.html')
+    vals = {
+        'userid':0,
+        'darkmode': 0,
+        'chat': {'name':'anon'},
+        'macros':{
+            'macros':[],
+            'variables':[],
+            'used_variables':[],
+        }
+    }
+    def update_vals(orig:dict, to_update:dict) -> None:
+        for k in orig:
+            if k not in to_update:
+                continue
+            if isinstance(orig[k], dict):
+                update_vals(orig[k], to_update[k])
+            else:
+                orig[k] = to_update[k]
     if current_user.is_authenticated:
-        vals = settings.get_global(current_user.userid)
-        vals.update(settings.get_local(current_user.userid, info.id))
+        update_vals(vals, settings.get_global(current_user.userid))
+        update_vals(vals, settings.get_local(current_user.userid, info.id))
         vals['userid'] = current_user.userid
         dlog('get settings: %r', vals)
-    else:
-        vals = {}
-        vals['userid'] = 0
     result = SCREEN
     title = info.name.replace('-', ' ').replace('_', ' ').title()
     title = markupsafe.escape(title)

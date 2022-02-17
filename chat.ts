@@ -1,25 +1,10 @@
 
 const THISPAGE = window.location.pathname;
 
-let CHATNAME = (function(){
-    let name = get_local(StorageCategory.CHAT, 'name');
-    // legacy
-    if(!name)
-        name = localStorage.getItem(`${THISPAGE}/chatname`);
-    // also legacy
-    if(!name)
-        name = localStorage.getItem('chatname');
-    // default name
-    if(!name)
-        name = 'anon';
-    // store_local(StorageCategory.CHAT, 'name', name);
-    return name;
-})();
 function setchatname(name:string){
     if(name) name = name.trim();
     if(!name) name = 'anon';
-    CHATNAME = name;
-    store_local(StorageCategory.CHAT,'name', name);
+    sync_local(StorageCategory.CHAT, 'name', name);
 }
 // @ts-ignore
 
@@ -176,19 +161,19 @@ function add_dice_history_commands(commands: Array<Command>){
 
 function preprocess_and_send_chat(text:string){
     let commands = preprocess_command(text, EvaluateFlags.NONE);
-    let to_send: ChatCommandMessage = {chatname:CHATNAME, commands:commands};
+    let to_send: ChatCommandMessage = {chatname:SETTINGS.chat.name, commands:commands};
     add_dice_history_commands(commands);
     EMIT(FromClient.CHAT_STRUCTURED_INPUT, to_send);
 }
 function preprocess_and_send_chat_private(text:string){
     let commands = preprocess_command(text, EvaluateFlags.NONE);
-    let to_send: ChatCommandMessage = {chatname:CHATNAME, commands:commands};
+    let to_send: ChatCommandMessage = {chatname:SETTINGS.chat.name, commands:commands};
     EMIT(FromClient.CHAT_PRIVATE_INPUT, to_send);
 }
 
 function preprocess_and_send_chat_with_usings(text:string){
     let commands = preprocess_command(text, EvaluateFlags.USE_USINGS);
-    let to_send: ChatCommandMessage = {chatname:CHATNAME, commands:commands};
+    let to_send: ChatCommandMessage = {chatname:SETTINGS.chat.name, commands:commands};
     add_dice_history_commands(commands);
     EMIT(FromClient.CHAT_STRUCTURED_INPUT, to_send);
 }
@@ -197,9 +182,9 @@ let chat_options_init = false;
 function chat_options_dialog(){
     let dialog = get_dialog('options');
     if(!dialog) return;
-    const is_dev = CHATNAME == 'dev';
+    const is_dev = SETTINGS.chat.name == 'dev';
     const pan_tool = by_id('pan-tool');
-    dialog.f.chatname.value = CHATNAME;
+    dialog.f.chatname.value = SETTINGS.chat.name;
     dialog.f.dev.style.display = is_dev?'block':'none';
     dialog.f.fps.checked = SHOW_FPS;
     if(!chat_options_init){
@@ -238,7 +223,7 @@ function chat_options_dialog(){
         dialog.f.showzoom.addEventListener('change', function(){
             set_zoomers(dialog.f.showzoom.checked);
         });
-        switch(current_dark_mode){
+        switch(SETTINGS.darkmode){
             case DarkMode.SYSTEM: dialog.f.system.checked = true; break;
             case DarkMode.DARK:   dialog.f.dark.checked   = true; break;
             case DarkMode.LIGHT:  dialog.f.light.checked  = true; break;
@@ -256,7 +241,7 @@ function chat_options_dialog(){
             SHOW_FPS = show_fps.checked;
             request_render();
         }
-        if(CHATNAME != dialog.f.chatname.value.trim()){
+        if(SETTINGS.chat.name != dialog.f.chatname.value.trim()){
             setchatname(dialog.f.chatname.value);
             sync_local(StorageCategory.CHAT, 'name', dialog.f.chatname.value);
         }
