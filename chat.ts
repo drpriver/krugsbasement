@@ -256,55 +256,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
     window.addEventListener('resize', resize_chat);
     const ta = by_id('chatinput');
-    const history: Array<string> = [];
-    let history_index = 0;
-    let current_text = "";
-    ta.addEventListener('keydown', function(e){
-        e.stopPropagation();
-        let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
-        if(modified) return;
-        switch(e.key){
-            case 'Enter':{
-                e.stopPropagation();
-                e.preventDefault();
-                const value = ta.value;
-                if(value.length){
-                    ta.value = "";
-                    preprocess_and_send_chat_with_usings(value);
-                    if(!(history.length && value == history[history.length-1])){
-                        history.push(value);
-                    }
-                    history_index = history.length;
-                    current_text = "";
-                }
-            }break;
-            case 'ArrowUp':{
-                e.stopPropagation();
-                e.preventDefault();
-                if(history_index > 0 && history_index <= history.length){
-                    if(history_index == history.length){
-                        current_text = ta.value;
-                    }
-                    history_index--;
-                    ta.value = history[history_index];
-                }
-            }break;
-            case 'ArrowDown':{
-                e.stopPropagation();
-                e.preventDefault();
-                if(history_index >= 0 && history_index < history.length){
-                    history_index++;
-                    if(history_index == history.length)
-                        ta.value = current_text;
-                    else
-                        ta.value = history[history_index];
-                }
-            }break;
-            case 'Escape':{
-                ta.blur();
-            }break;
-        }
-    });
+    setup_chat(ta, preprocess_and_send_chat_with_usings);
 });
 
 function preprocess_command(value:string, flags:EvaluateFlags):Array<Command> {
@@ -761,63 +713,11 @@ document.addEventListener('DOMContentLoaded', function(){
         log.scrollTo({behavior:'smooth', top:log.scrollHeight});
     });
 
-    // TODO: chat abstraction
-    const history: Array<string> = [];
-    let history_index = 0;
-    let current_text = "";
     let chat = by_id('privateroll-input');
     privateroll.show_handler = function(){
         chat.focus();
     };
-    chat.addEventListener('keydown', function(e){
-        e.stopPropagation();
-        let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
-        if(modified) return;
-        switch(e.key){
-            case 'Enter':{
-                e.stopPropagation();
-                e.preventDefault();
-                const value = chat.value;
-                if(value.length){
-                    chat.value = "";
-                    // preprocess_and_send_chat_with_usings(value);
-                    // inline this call instead
-                    preprocess_and_send_chat_private(value);
-                    if(!(history.length && value == history[history.length-1])){
-                        history.push(value);
-                    }
-                    history_index = history.length;
-                    current_text = "";
-                }
-            }break;
-            case 'ArrowUp':{
-                e.stopPropagation();
-                e.preventDefault();
-                if(history_index > 0 && history_index <= history.length){
-                    if(history_index == history.length){
-                        current_text = chat.value;
-                    }
-                    history_index--;
-                    chat.value = history[history_index];
-                }
-            }break;
-            case 'ArrowDown':{
-                e.stopPropagation();
-                e.preventDefault();
-                if(history_index >= 0 && history_index < history.length){
-                    history_index++;
-                    if(history_index == history.length)
-                        chat.value = current_text;
-                    else
-                        chat.value = history[history_index];
-                }
-            }break;
-            case 'Escape':{
-                chat.blur();
-            }break;
-        }
-    });
-    // let privatechat = by_id
+    setup_chat(chat, preprocess_and_send_chat_private);
 });
 
 type TableView<K> = {

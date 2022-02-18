@@ -580,3 +580,52 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement):D
     };
     return result;
 }
+
+function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string)=>void){
+    const history: Array<string> = [];
+    let history_index = 0;
+    let current_text = "";
+    chat.addEventListener('keydown', function(e){
+        e.stopPropagation();
+        let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
+        if(modified) return;
+        switch(e.key){
+            case 'Enter':{
+                e.preventDefault();
+                const value = chat.value;
+                if(value.length){
+                    chat.value = "";
+                    enter_func(value);
+                    if(!(history.length && value == history[history.length-1])){
+                        history.push(value);
+                    }
+                    history_index = history.length;
+                    current_text = "";
+                }
+            }break;
+            case 'ArrowUp':{
+                e.preventDefault();
+                if(history_index > 0 && history_index <= history.length){
+                    if(history_index == history.length){
+                        current_text = chat.value;
+                    }
+                    history_index--;
+                    chat.value = history[history_index];
+                }
+            }break;
+            case 'ArrowDown':{
+                e.preventDefault();
+                if(history_index >= 0 && history_index < history.length){
+                    history_index++;
+                    if(history_index == history.length)
+                        chat.value = current_text;
+                    else
+                        chat.value = history[history_index];
+                }
+            }break;
+            case 'Escape':{
+                chat.blur();
+            }break;
+        }
+    });
+}
