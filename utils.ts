@@ -585,6 +585,7 @@ function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string)=>void){
     const history: Array<string> = [];
     let history_index = 0;
     let current_text = "";
+    let set_text = "";
     chat.addEventListener('keydown', function(e){
         e.stopPropagation();
         let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
@@ -601,9 +602,11 @@ function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string)=>void){
                     }
                     history_index = history.length;
                     current_text = "";
+                    set_text = "";
                 }
             }break;
             case 'ArrowUp':{
+                if(chat.value && chat.value != set_text) break;
                 e.preventDefault();
                 if(history_index > 0 && history_index <= history.length){
                     if(history_index == history.length){
@@ -611,9 +614,11 @@ function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string)=>void){
                     }
                     history_index--;
                     chat.value = history[history_index];
+                    set_text = chat.value;
                 }
             }break;
             case 'ArrowDown':{
+                if(chat.value && chat.value != set_text) break;
                 e.preventDefault();
                 if(history_index >= 0 && history_index < history.length){
                     history_index++;
@@ -621,6 +626,7 @@ function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string)=>void){
                         chat.value = current_text;
                     else
                         chat.value = history[history_index];
+                    set_text = chat.value;
                 }
             }break;
             case 'Escape':{
