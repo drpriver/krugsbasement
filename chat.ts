@@ -449,6 +449,8 @@ document.addEventListener('DOMContentLoaded',function(){
     let listview = make_list_view<number>(by_id('rolltable-group-list'), ListViewFlags.USER_RENAMABLE|ListViewFlags.USER_DELETABLE);
     let tableview = make_table_view<number>(tbody);
     let rolltables: Array<RollTable>;
+    // let sharedtables: Array<RollTable>;
+    // let privtables: Array<RollTable>;
     let current_table: RollTable | undefined;
     let rowid = 0;
     let newtableid = -1;

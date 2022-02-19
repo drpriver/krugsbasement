@@ -105,6 +105,7 @@ David20::title #hide
   make_window('rolltable', 'Roll Tables',
   `
     <div id="rolltable-container" class="window-container">
+      <div class="window-tab"><span>Shared Tables</span><span>My Tables</span></div>
       <div id="rolltable-group-list" class="window-group-list">
         <button id="rolltable-add-table">+ New Table</button>
       </div>
