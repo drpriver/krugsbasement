@@ -1,6 +1,6 @@
 from typing import List, Dict, Union, Any, Tuple, Optional
 import random
-from .persist import Persister
+from .persist import Persister, Dummy
 from .logs import logging
 from . import db
 import datetime
@@ -9,23 +9,23 @@ from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg
 
 from enum import IntEnum, IntFlag
 
-class RollTablePersister(Persister[List[RollTable]]):
-    def read_obj(self, obj):
+class RollTablePersister(Persister[Dummy[List[RollTable]]]):
+    def read_obj(self, obj:Dummy[list])->Dummy[list]:
         o = db.get_rolltable(self.campaign_id)
-        return o if o is not None else obj
-    def write_obj(self, obj):
+        return Dummy(o) if o is not None else obj
+    def write_obj(self, obj:Dummy[list])->None:
         # logging.info('write roll table: %r', obj)
-        db.save_rolltable(self.campaign_id, obj)
-    def __init__(self, campaignid:int):
+        db.save_rolltable(self.campaign_id, obj.value)
+    def __init__(self, campaignid:int)->None:
         name = f'{campaignid!r}/rolltables'
         self.campaign_id = campaignid
         assert self.campaign_id is not None
         dont_persist = campaignid == 1
-        super().__init__([], name, dont_persist=dont_persist)
+        super().__init__(Dummy([]), name, dont_persist=dont_persist)
 
-ROLLTABLES = {} # type: Dict[int, List[RollTable]]
+ROLLTABLES = {} # type: Dict[int, Dummy[List[RollTable]]]
 
-def get_roll_tables(campaign:int) -> List[RollTable]:
+def get_roll_tables(campaign:int) -> Dummy[List[RollTable]]:
     if campaign in ROLLTABLES:
         return ROLLTABLES[campaign]
     ROLLTABLES[campaign] = RollTablePersister(campaign).obj
@@ -33,7 +33,7 @@ def get_roll_tables(campaign:int) -> List[RollTable]:
 
 def update_roll_tables(campaign:int, data:List[RollTable]) -> None:
     tables = get_roll_tables(campaign)
-    highest = max(t['id'] for t in tables) if tables else 0
+    highest = max(t['id'] for t in tables.value) if tables.value else 0
     if highest < 0:
         highest = 1
     for d in data:
@@ -45,20 +45,22 @@ def update_roll_tables(campaign:int, data:List[RollTable]) -> None:
                 raise Exception
             if entry['weight'] > 1e8:
                 raise Exception
-    tables.clear()
-    tables.extend(data)
+    tables.value.clear()
+    tables.value.extend(data)
+    tables.dirty = True
     # logging.info('tables: %r', tables)
 
-def upload_roll_table(campaign:int, data:RollTable) -> Optional[RollTable]:
+def upload_roll_table(campaign:int, data:RollTable) -> RollTable:
     tables = get_roll_tables(campaign)
-    highest = max(t['id'] for t in tables) if tables else 0
+    highest = max(t['id'] for t in tables.value) if tables.value else 0
     data['id'] = highest + 1
-    tables.append(data)
+    tables.value.append(data)
+    tables.dirty = True
     return data
 
 def parse_and_roll_table(campaign:int, line:str) -> Tuple[str, str]:
     line = line.strip()
-    tables = get_roll_tables(campaign)
+    tables = get_roll_tables(campaign).value
     mapping = {d['name'].lower(): d for d in tables}
     return parse_and_roll_table_inner(mapping, line, line, 0)
 

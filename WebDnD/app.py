@@ -517,7 +517,7 @@ def note_delete(note_id:int) -> None:
 def retrieve_roll_tables() -> None:
     campaign = get_campaign(request)
     logging.info('retrieving roll tables for campaign %r', campaign)
-    emit(ToClient.ROLL_TABLES, chat.get_roll_tables(campaign))
+    emit(ToClient.ROLL_TABLES, chat.get_roll_tables(campaign).value)
 
 register_list('[RollTable]', 'RollTable')
 @socketio.on(FromClient.UPDATE_ROLL_TABLES)

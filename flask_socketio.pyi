@@ -1,6 +1,6 @@
-from typing import Callable, Union, Dict, Type, Optional, Any
-JSType = Union[str, int, float, dict, list]
-def emit(event:Union[str|int], *args:Any, **kwargs) -> None:
+from typing import Callable, Union, Dict, Type, Optional, Any, Mapping
+JSType = Union[str, int, float, dict, list, tuple, Mapping]
+def emit(event:Union[str|int], *args:JSType, **kwargs:JSType) -> None:
     ...
 SocketIO: Type
 def join_room(room:str, sid:Optional[str]=None, namespace:Optional[str]=None): ...

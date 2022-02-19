@@ -635,3 +635,41 @@ function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string)=>void){
         }
     });
 }
+
+type TabView = {
+    active_tab_idx: number;
+    tabs: Array<HTMLElement>;
+    views: Array<HTMLElement>;
+    on_change_handler?:(old_idx:number, new_idx:number)=>void;
+    change_tab:(_:number) => void;
+};
+
+function make_tab_view(tabs:Array<HTMLElement>, views:Array<HTMLElement>):TabView {
+    let tv: TabView = {
+        active_tab_idx: 0,
+        tabs: tabs,
+        views: views,
+        on_change_handler:undefined,
+        change_tab:function(idx:number){
+            if(idx >= tv.tabs.length) return;
+            if(idx == tv.active_tab_idx) return;
+            tv.tabs[tv.active_tab_idx].classList.remove('active-tab');
+            tv.views[tv.active_tab_idx].style.display = 'none';
+            if(tv.on_change_handler)
+                tv.on_change_handler(tv.active_tab_idx, idx);
+            tv.active_tab_idx = idx;
+            tv.tabs[tv.active_tab_idx].classList.add('active-tab');
+            tv.views[tv.active_tab_idx].style.display = 'initial';
+        },
+    };
+    for(let i = 0; i < tabs.length; i++){
+        tabs[i].addEventListener('click', function(e){
+            e.stopPropagation();
+            e.preventDefault();
+            tv.change_tab(i);
+        });
+        views[i].style.display = 'none';
+    }
+    tv.change_tab(0);
+    return tv;
+}
