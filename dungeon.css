@@ -623,44 +623,6 @@ div.hover-button-container {
   text-align: center;
   padding: 8px 16px 8px 16px;
 }
-#hover-tab-container {
-}
-#hover-tabs{
-  display: flex;
-  margin: 0 0.5em;
-  align-items: stretch;
-}
-#hover-tabs > div {
-  background-color: lightgray;
-  border-top: 1px solid black;
-  border-left: 1px solid black;
-  border-right: 1px solid black;
-  border-bottom: 1px solid black;
-  padding: 0 1em;
-  margin-bottom: -1px;
-  margin-right: -1px;
-  -webkit-user-select: none;
-  user-select: none;
-  cursor: pointer;
-  text-align: center;
-}
-#hover-tabs > div.active {
-  background-color: initial;
-  border-bottom: 1px solid white;
-  z-index: 1;
-}
-#hover-tab-contents {
-  border-bottom: 1px solid black;
-  border-left: 1px solid black;
-  border-right: 1px solid black;
-  border-top: 1px solid black;
-  margin: 0 0.5em;
-  height: 50vh;
-  overflow-y: scroll;
-}
-#new-tab-input:not(:focus){
-  background-color: lightgray;
-}
 div.up-down {
   display: grid;
   grid-template-rows: repeat(2, 1fr);
@@ -743,14 +705,6 @@ div.rolltable table{
   }
   body.dark-mode div.hover, body.dark-mode section.hover {
     background-color: #666;
-  }
-  body.dark-mode #hover-tabs > div.active {
-    border-bottom: 1px solid #666;
-    background-color: #666;
-  }
-  body.dark-mode #hover-tabs > div {
-    background-color: #505050;
-    color: white;
   }
   body.dark-mode #macro-tabs > div.active {
     border-bottom: 1px solid #666;
