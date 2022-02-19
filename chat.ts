@@ -582,7 +582,7 @@ document.addEventListener('DOMContentLoaded',function(){
         });
         valinp.addEventListener('keydown', function(e){
             if(e.key == 'Enter') {
-                add_row.click();
+                add_row();
                 return;
             }
         });
@@ -606,14 +606,16 @@ document.addEventListener('DOMContentLoaded',function(){
             for(let i = 0; i < entries.length; i++){
                 if(entries[i] === entry){// comparing for identity here. js sucks
                     entries.splice(i, 1);
+                    if(entries.length == 0)
+                        add_row();
                     return;
                 }
             }
         });
         return tr;
     }
-    const add_row = by_id('rolltable-add-row');
-    add_row.addEventListener('click', function(){
+    // const add_row = by_id('rolltable-add-row');
+    function add_row(){
         if(current_table === undefined) return;
         const entry: RollTableEntry = {
             weight: 1,
@@ -625,9 +627,9 @@ document.addEventListener('DOMContentLoaded',function(){
         current_table.entries.push(entry);
         tableview.add_row(row, id);
         (row.children[2].children[0] as any).focus();
-    });
-    const submit = by_id('rolltable-submit');
-    submit.addEventListener('click', submit_tables);
+    }
+    // add_row.addEventListener('click', function(){
+    // });
     by_id('rolltable-add-table').addEventListener('click', function(){
         let dialog = get_dialog('simple-text');
         if(!dialog) return;
@@ -656,43 +658,6 @@ document.addEventListener('DOMContentLoaded',function(){
         EMIT(FromClient.UPDATE_ROLL_TABLES, rolltables);
     }
     by_id('tables-button').addEventListener('click', tablewindow.show);
-    by_id('rolltable-export').addEventListener('click', function(){
-        if(!current_table) return;
-        const s = JSON.stringify(current_table, null, 1);
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([s], {type:'text/plain'}));
-        a.download = current_table.name + ".json";
-        a.click();
-    });
-    by_id('rolltable-upload').addEventListener('click', function(){
-        const inp = document.createElement('input');
-        inp.type = 'file';
-        function handlefile(){
-            const files = inp.files;
-            if(!files) return;
-            if(!files.length) return;
-            const file = files[0];
-            const fr = new FileReader();
-            fr.addEventListener('load', function(){
-                try {
-                    if(!fr.result) return;
-                    const newtable = JSON.parse(fr.result as string);
-                    EMIT(FromClient.UPLOAD_ROLL_TABLE, newtable);
-                } catch(err){
-                    err_dialog(`
-                        <p> There was a problem uploading the table.
-                        <br>
-                        <code>
-                        ${err}
-                        </code>
-                        `);
-                }
-            });
-            fr.readAsText(file);
-        }
-        inp.addEventListener('change', handlefile, false);
-        inp.click();
-    });
     ONRECV(ToClient.NEW_ROLL_TABLE, function(rt:RollTable){
         rolltables.push(rt);
         listview.add_item(rt.name, rt.id);
