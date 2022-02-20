@@ -116,7 +116,7 @@ def get_history(campaign:int) -> List[ChatMsg]:
         return []
     return db.get_chat(campaign)
 
-def handle_structured_input(userid:int, campaign:int, user:str, commands:List[Command], test:bool) -> List[ChatMsg]:
+def handle_structured_input(userid:int, campaign:int, user:str, commands:List[Command], private:bool) -> List[ChatMsg]:
     def echo(user:str, text:str) -> ChatMsg:
         return (Msg.ECHOABLE_TEXT, user, text) # type: ignore
     def plain(user:str, text:str) -> ChatMsg:
@@ -176,8 +176,7 @@ def handle_structured_input(userid:int, campaign:int, user:str, commands:List[Co
         else:
             raise Exception(cc)
 
-    if not test:
-        userid = None
+    if not private:
         utcnow = datetime.datetime.utcnow()
         for msg in result:
             db.save_chat_msg(campaign, msg[0], msg[1], msg[2], created=utcnow, userid=userid)
