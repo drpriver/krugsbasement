@@ -6,8 +6,6 @@ David20::title #hide
   You are currently not connected. Inputs will be buffered and sent upon
   reconnect.
   </div>
-::css #import
-  dungeon.css
 ::js
   let raw = ctx.make_node(NodeType.RAW);
   node.parent.replace_child(node, raw);
@@ -105,11 +103,13 @@ David20::title #hide
   make_window('rolltable', 'Roll Tables',
   `
     <div id="rolltable-container" class="window-container">
-      <div class="window-tab"><span>Shared Tables</span><span>My Tables</span></div>
+      <div class="window-tab">
+        <span id="rolltable-shared" class="active-tab">Shared Tables</span>
+        <span id="rolltable-private">My Tables</span>
+      </div>
       <div id="rolltable-group-list" class="window-group-list">
         <button id="rolltable-add-table">+ New Table</button>
       </div>
-      <div style="height:100%; width:100%;">
         <div id="rolltable-table-container">
           <table>
             <thead>
@@ -125,7 +125,6 @@ David20::title #hide
             </tbody>
           </table>
         </div>
-      </div>
     </div>
   `);
   make_window('privateroll', 'Private Rolls',

@@ -448,29 +448,65 @@ document.addEventListener('DOMContentLoaded',function(){
     let tbody = by_id('rolltable-body');
     let listview = make_list_view<number>(by_id('rolltable-group-list'), ListViewFlags.USER_RENAMABLE|ListViewFlags.USER_DELETABLE);
     let tableview = make_table_view<number>(tbody);
-    let rolltables: Array<RollTable>;
-    // let sharedtables: Array<RollTable>;
-    // let privtables: Array<RollTable>;
+    let sharedtables: Array<RollTable> = [];
+    let privtables: Array<RollTable> = [];
+    let rolltables: Array<RollTable> = [];
     let current_table: RollTable | undefined;
     let rowid = 0;
     let newtableid = -1;
     tablewindow.hide_handler = function(){
         submit_tables();
     };
-    ONRECV(ToClient.ROLL_TABLES, function(rts:Array<RollTable>){
+    let sh_tab = by_id('rolltable-shared');
+    let pr_tab = by_id('rolltable-private');
+    function switch_to(tbs:Array<RollTable>){
+        if(tbs === sharedtables){
+            sh_tab.classList.add('active-tab');
+            pr_tab.classList.remove('active-tab');
+        }
+        else {
+            pr_tab.classList.add('active-tab');
+            sh_tab.classList.remove('active-tab');
+        }
+        if(rolltables === tbs)
+            return;
+        rolltables = tbs;
+        setup_listview();
+    }
+
+    sh_tab.addEventListener('click', function(e:MouseEvent){
+        e.stopPropagation();
+        e.preventDefault();
+        switch_to(sharedtables);
+    });
+
+    pr_tab.addEventListener('click', function(e:MouseEvent){
+        e.stopPropagation();
+        e.preventDefault();
+        switch_to(privtables);
+    });
+
+    function setup_listview(){
         listview.clear();
-        for(let rt of rts){
+        for(let rt of rolltables){
             listview.add_item(rt.name, rt.id);
         }
-        rolltables = rts;
-        if(!rts.length){
+        if(!rolltables.length){
             listview.make_active(undefined);
         }
         else
             listview.make_active(rolltables[0].id);
+    }
+
+    ONRECV(ToClient.ROLL_TABLES, function(tables:RollTables){
+        sharedtables = tables[0];
+        privtables = tables[1];
+        switch_to(sharedtables);
     });
     tablewindow.show_handler = function(){
+        sharedtables = [];
         rolltables = [];
+        privtables = [];
         current_table = undefined;
         rowid = 0;
         newtableid = -1;
@@ -516,12 +552,15 @@ document.addEventListener('DOMContentLoaded',function(){
     function show_table(table:RollTable){
         tableview.clear();
         let length = table.entries.length;
+        let row: HTMLTableRowElement | undefined = undefined;
         for(let i = 0; i < length; i++){
             const entry = table.entries[i];
             let id = rowid++;
-            const row = make_row(id, entry, table.entries);
+            row = make_row(id, entry, table.entries);
             tableview.add_row(row, id);
         }
+        if(row)
+            (row.children[2].children[0] as any).focus();
     }
     function make_row(key:number, entry:RollTableEntry, entries:Array<RollTableEntry>):HTMLTableRowElement{
         let weight = entry.weight;
@@ -616,7 +655,6 @@ document.addEventListener('DOMContentLoaded',function(){
         });
         return tr;
     }
-    // const add_row = by_id('rolltable-add-row');
     function add_row(){
         if(current_table === undefined) return;
         const entry: RollTableEntry = {
@@ -630,8 +668,6 @@ document.addEventListener('DOMContentLoaded',function(){
         tableview.add_row(row, id);
         (row.children[2].children[0] as any).focus();
     }
-    // add_row.addEventListener('click', function(){
-    // });
     by_id('rolltable-add-table').addEventListener('click', function(){
         let dialog = get_dialog('simple-text');
         if(!dialog) return;
@@ -657,14 +693,29 @@ document.addEventListener('DOMContentLoaded',function(){
     });
 
     function submit_tables(){
-        EMIT(FromClient.UPDATE_ROLL_TABLES, rolltables);
+        EMIT(FromClient.UPDATE_ROLL_TABLES, [sharedtables, privtables]);
     }
     by_id('tables-button').addEventListener('click', tablewindow.show);
-    ONRECV(ToClient.NEW_ROLL_TABLE, function(rt:RollTable){
-        rolltables.push(rt);
-        listview.add_item(rt.name, rt.id);
-        listview.make_active(rt.id);
+    /*
+    ONRECV(ToClient.NEW_ROLL_TABLE, function(rts:RollTables){
+        if(rts[0]){
+            let rt = rts[0][0];
+            sharedtables.push(rt)
+            if(rolltables === sharedtables){
+                listview.add_item(rt.name, rt.id);
+                listview.make_active(rt.id);
+            }
+        }
+        else{
+            let rt = rts[1][0];
+            privtables.push(rt);
+            if(rolltables === privtables){
+                listview.add_item(rt.name, rt.id);
+                listview.make_active(rt.id);
+            }
+        }
     });
+    */
 });
 
 document.addEventListener('DOMContentLoaded', function(){

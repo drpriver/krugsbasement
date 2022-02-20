@@ -14,9 +14,9 @@ JsType = Union[str, dict, list, int, float]
 
 
 class RepeatTimer(threading.Timer):
-    def run(self):
-        while not self.finished.wait(self.interval):
-            self.function(*self.args, **self.kwargs)
+    def run(self) -> None:
+        while not self.finished.wait(self.interval): # type: ignore
+            self.function(*self.args, **self.kwargs) # type: ignore
 class Persister(Generic[T]):
     '''
     An object that handles saving and loading mutable objects.
@@ -28,12 +28,12 @@ class Persister(Generic[T]):
     dicts and lists.
     '''
     @abstractmethod
-    def read_obj(self, obj):
+    def read_obj(self, obj:T) -> T:
         raise NotImplementedError
     @abstractmethod
-    def write_obj(self, obj):
+    def write_obj(self, obj:T)->None:
         raise NotImplementedError
-    def __init__(self, obj:T, name:str, dont_persist=False) -> None:
+    def __init__(self, obj:T, name:str, dont_persist:bool=False) -> None:
         '''
         obj: the obj to be persisted.
         name: the name of the object for logging purposes
@@ -49,7 +49,7 @@ class Persister(Generic[T]):
         rt = RepeatTimer(60, self.save)
         rt.start()
     def save(self) -> None:
-        if hasattr(self.obj, 'dirty') and not self.obj.dirty:
+        if hasattr(self.obj, 'dirty') and not self.obj.dirty: # type: ignore
             return
         t0 = time.time()
         try:
@@ -60,7 +60,7 @@ class Persister(Generic[T]):
         t1 = time.time()
         logging.info('Saving %s took %.3fms', self.name, (t1-t0)*1000)
         if hasattr(self.obj, 'dirty'):
-            self.obj.dirty = False
+            self.obj.dirty = False # type: ignore
 
 class Dummy(Generic[T]):
     def __init__(self, value:T) -> None:
@@ -78,9 +78,9 @@ class AppKVPersister(Persister[Dummy[T]]):
     def read_obj(self, default:Dummy[T]) -> Dummy[T]:
         val = db.get_app_kv(self.name, default.value)
         return Dummy(val) if val is not None else default
-    def write_obj(self, obj:Dummy[T]):
+    def write_obj(self, obj:Dummy[T]) -> None:
         db.store_app_kv(self.name, obj.value)
-    def __init__(self, name:str, default:T):
+    def __init__(self, name:str, default:T) -> None:
         super().__init__(Dummy(default), name)
 
 

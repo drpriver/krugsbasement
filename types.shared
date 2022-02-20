@@ -108,6 +108,7 @@ enum ChatCommand: int
     SHUFFLE = 3
     CHOOSE = 4
     TABLE = 5
+    MYTABLE = 6
 
 struct NameCommand: array
     type = ChatCommand.NAME
@@ -137,6 +138,11 @@ struct TableCommand: array
     original = str
     table = str
 
+struct MyTableCommand: array
+    type = ChatCommand.MYTABLE
+    original = str
+    table = str
+
 union Command: array
     NameCommand
     RollCommand
@@ -144,6 +150,7 @@ union Command: array
     ShuffleCommand
     ChooseCommand
     TableCommand
+    MyTableCommand
 
 struct ChatCommandMessage: dict
     chatname = str
@@ -304,6 +311,10 @@ struct RollTable: dict
     name = str
     id = int
     entries = [RollTableEntry]
+
+struct RollTables: array
+    shared = [RollTable]
+    private = [RollTable]
 
 # Canvas stuff
 
@@ -792,7 +803,7 @@ message ToClientMsg: ToClient
     CHAT_STRUCTURED_MSG = [ChatMsg]
     CHAT_TEST_STRUCTURED_RESPONSE = [ChatMsg]
     CHAT_PRIVATE_STRUCTURED_MSG = [ChatMsg]
-    NEW_ROLL_TABLE = RollTable
+    # NEW_ROLL_TABLE = RollTables
     CANVAS_INITIALIZE_MAPS = [InitializeMap]
     CANVAS_CREATE_OBJECTS = [CreateObjectsMessage]
     CANVAS_DELETE = CanvasDeleteMessage
@@ -811,7 +822,7 @@ message ToClientMsg: ToClient
     NOTE_UPDATE_TITLE = NoteUpdateTitle
     NOTE_DIRTY = int
     NOTE_DELETE = int
-    ROLL_TABLES = [RollTable]
+    ROLL_TABLES = RollTables
     GOT_NOTE = Note
     NEW_NOTE_RESPONSE = int
 
@@ -822,8 +833,8 @@ message FromClientMsg: FromClient
     CHAT_TEST_STRUCTURED_INPUT = ChatCommandMessage
     CHAT_PRIVATE_INPUT = ChatCommandMessage
     RETRIEVE_ROLL_TABLES = void
-    UPDATE_ROLL_TABLES = [RollTable]
-    UPLOAD_ROLL_TABLE = RollTable
+    UPDATE_ROLL_TABLES = RollTables
+    # UPLOAD_ROLL_TABLE = RollTable
     CANVAS_CREATE_OBJECTS = CreateObjectMessage
     CANVAS_DELETE = CanvasDeleteMessage
     CANVAS_UPDATE = CanvasUpdateMessage

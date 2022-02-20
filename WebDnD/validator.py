@@ -4,54 +4,54 @@ import enum
 
 class DictStructTypeInfo(NamedTuple):
     items: List[Tuple[str, Callable]]
-    def parse(self, obj:Any):
+    def parse(self, obj:Any) -> dict:
         result = {}
         for key, converter in self.items:
             result[key] = converter(obj[key])
         return result
-    def __call__(self, obj):
+    def __call__(self, obj:Any) -> dict:
         return self.parse(obj)
 
 class ArrayStructTypeInfo(NamedTuple):
     items: List[Callable]
-    def parse(self, obj:Any):
+    def parse(self, obj:Any) -> list:
         result = []
         if len(obj) != len(self.items):
             raise TypeError
         for o, item in zip(obj, self.items):
             result.append(item(o))
         return result
-    def __call__(self, obj):
+    def __call__(self, obj:Any) -> list:
         return self.parse(obj)
 
 class UnionArrayTypeInfo(NamedTuple):
     validators: Dict[Any, Callable]
-    def parse(self, obj: Any):
+    def parse(self, obj: Any)->tuple:
         which = obj[0]
         return self.validators[which](obj)
-    def __call__(self, obj):
+    def __call__(self, obj:Any)->tuple:
         return self.parse(obj)
 
 class UnionDictTypeInfo(NamedTuple):
     validators: Dict[Any, Callable]
-    def parse(self, obj:Any):
+    def parse(self, obj:Any) -> dict:
         which = obj['type']
         return self.validators[which](obj)
-    def __call__(self, obj):
+    def __call__(self, obj:Any) -> dict:
         return self.parse(obj)
 class ListTypeInfo(NamedTuple):
     validator: Callable
-    def parse(self, obj:Any):
+    def parse(self, obj:Any) -> list:
         return [self.validator(o) for o in obj]
-    def __call__(self, obj):
+    def __call__(self, obj:Any) -> list:
         return self.parse(obj)
 
-def Float(o):
+def Float(o:Any) -> float:
     if isinstance(o, int):
         return o
     return float(o)
 
-def Str(o):
+def Str(o:Any) -> str:
     if not isinstance(o, str):
         raise TypeError
     return str(o)
@@ -66,11 +66,11 @@ def register_enum(name: str, enum: type) -> None:
     assert name not in TYPES
     TYPES[name] = enum
 
-def register_dictstruct(name:str):
+def register_dictstruct(name:str) -> None:
     assert name not in TYPES
     TYPES[name] = DictStructTypeInfo([]) # type: ignore
 
-def register_dictstruct_field(structname:str, fieldname:str, fieldtypename):
+def register_dictstruct_field(structname:str, fieldname:str, fieldtypename:Any) -> None:
     if isinstance(fieldtypename, enum.Enum):
         fieldtype = type(fieldtypename)
     else:
@@ -78,11 +78,11 @@ def register_dictstruct_field(structname:str, fieldname:str, fieldtypename):
     structtype = TYPES[structname]
     structtype.items.append((fieldname, fieldtype)) # type: ignore
 
-def register_arraystruct(name:str):
+def register_arraystruct(name:str) -> None:
     assert name not in TYPES
     TYPES[name] = ArrayStructTypeInfo([]) # type: ignore
 
-def register_arraystruct_field(structname:str, fieldtypename):
+def register_arraystruct_field(structname:str, fieldtypename:Any) -> None:
     if isinstance(fieldtypename, enum.Enum):
         fieldtype = type(fieldtypename)
     else:
@@ -90,20 +90,20 @@ def register_arraystruct_field(structname:str, fieldtypename):
     structtype = TYPES[structname]
     structtype.items.append(fieldtype) # type: ignore
 
-def register_unionarray(name:str):
+def register_unionarray(name:str) -> None:
     assert name not in TYPES
     TYPES[name] = UnionArrayTypeInfo({}) # type: ignore
 
-def register_uniondict(name:str):
+def register_uniondict(name:str) -> None:
     assert name not in TYPES
     TYPES[name] = UnionDictTypeInfo({}) # type: ignore
 
-def register_union_variant(unionname:str, discriminant:Any, variantname:str):
+def register_union_variant(unionname:str, discriminant:Any, variantname:str) -> None:
     varianttype = TYPES[variantname]
     uniontype = TYPES[unionname]
     uniontype.validators[discriminant] = varianttype # type: ignore
 
-def register_list(arrayname:str, typename:str):
+def register_list(arrayname:str, typename:str) -> None:
     if arrayname in TYPES:
         return
     t = TYPES[typename]

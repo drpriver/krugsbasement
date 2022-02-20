@@ -40,23 +40,22 @@ def load_maps(campaign_id:int) -> Dict[int, Dummy[Map]]:
         result[k].dirty = False
     return result
 
-class SingleMapPersister(Persister[Map]):
-    def read_obj(self, obj:Map):
-        o = Dummy(obj)
-        return o
-    def write_obj(self, obj:Dummy[Map]):
+class SingleMapPersister(Persister[Dummy[Map]]):
+    def read_obj(self, obj:Dummy[Map]) -> Dummy[Map]:
+        return obj
+    def write_obj(self, obj:Dummy[Map]) -> None:
         db.save_map(self.campaign_id, **obj.value.with_live_objs())
-    def __init__(self, campaign_id:int, obj:Map):
+    def __init__(self, campaign_id:int, obj:Map) -> None:
         assert campaign_id is not None
         self.campaign_id =  campaign_id 
         name = f'{campaign_id!r}/maps/{obj.map_name!r}'
-        super().__init__(obj, name, dont_persist=campaign_id==1)
+        super().__init__(Dummy(obj), name, dont_persist=campaign_id==1)
 
 
 def save_canvas(maps:Dict[int, Map]) -> List[MapDict]:
     return [v.with_live_objs() for v in maps.values() if not (v.flags & MapFlags.DELETED)]
 
-def load_canvas(data) -> Dict[int, Map]:
+def load_canvas(data:list) -> Dict[int, Map]:
     result = {}
     for d in data:
         m = Map(**d)

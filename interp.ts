@@ -50,7 +50,7 @@ const evaluate_script = (function(){
     type RawStatement = {
         kind: StatementKind.RAW,
         content: string,
-        command: ChatCommand.TABLE | ChatCommand.SAY | ChatCommand.NAME,
+        command: ChatCommand.TABLE | ChatCommand.SAY | ChatCommand.NAME | ChatCommand.MYTABLE,
         original: string, // for table
     }
 
@@ -563,6 +563,8 @@ const evaluate_script = (function(){
                             return parse_list(ChatCommand.CHOOSE, 1);
                         case 'table':
                             return parse_raw(ChatCommand.TABLE, 1);
+                        case 'mytable':
+                            return parse_raw(ChatCommand.MYTABLE, 1);
                         case 'say':
                             return parse_raw(ChatCommand.SAY, 1);
 
@@ -598,6 +600,8 @@ const evaluate_script = (function(){
                             return parse_list(ChatCommand.CHOOSE, 2);
                         case 't': case 'tab': case 'table':
                             return parse_raw(ChatCommand.TABLE, 2);
+                        case 'mytable':
+                            return parse_raw(ChatCommand.MYTABLE, 2);
                         case 's': case 'say':
                             return parse_raw(ChatCommand.SAY, 2);
 
@@ -855,7 +859,7 @@ const evaluate_script = (function(){
             };
             currentblock.statements.push(usestatement);
         }
-        function parse_raw(command:ChatCommand.SAY | ChatCommand.TABLE | ChatCommand.NAME, nskip:number){
+        function parse_raw(command:ChatCommand.SAY | ChatCommand.TABLE | ChatCommand.MYTABLE | ChatCommand.NAME, nskip:number){
             let raw: RawStatement = {
                 kind: StatementKind.RAW,
                 content: '',
@@ -985,6 +989,10 @@ const evaluate_script = (function(){
             case StatementKind.RAW:{
                 if(statement.command == ChatCommand.TABLE){
                     outcommands.push([ChatCommand.TABLE, statement.original, statement.content.trim()]);
+                    return "";
+                }
+                if(statement.command == ChatCommand.MYTABLE){
+                    outcommands.push([ChatCommand.MYTABLE, statement.original, statement.content.trim()]);
                     return "";
                 }
                 outcommands.push([statement.command, statement.content.trim()]);

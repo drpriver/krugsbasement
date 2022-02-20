@@ -458,7 +458,10 @@ def make_ts(infos:List[Info]) -> None:
             p('')
         elif isinstance(info, MsgInfo):
             if 'FromClient' in info.name:
-                for ty, arg, cb, comment in info.items:
+                for it in info.items:
+                    if isinstance(it, Comment):
+                        continue
+                    ty, arg, cb, comment = it
                     if arg == 'void':
                         arg = None
                     if cb:
@@ -490,7 +493,10 @@ def make_ts(infos:List[Info]) -> None:
                         '''))
             else:
                 assert 'ToClient' in info.name
-                for ty, arg, cb, comment in info.items:
+                for it in info.items:
+                    if isinstance(it, Comment):
+                        continue
+                    ty, arg, cb, comment = it
                     assert not cb
                     if arg == 'void':
                         arg = None

@@ -37,7 +37,7 @@ class Settings:
             self.local_settings[campaignid] = db.get_local_settings(self.userid, campaignid)
         return self.local_settings[campaignid]
 
-    def set_local(self, campaignid:int, category:str, key:str, value:str):
+    def set_local(self, campaignid:int, category:str, key:str, value:str) -> None:
         self.last_access = time.time()
         if campaignid not in self.local_settings:
             self.local_settings[campaignid] = db.get_local_settings(self.userid, campaignid)
@@ -51,7 +51,7 @@ class Settings:
         cat[key] = value
         self.local_dirty.add((campaignid, category, key))
 
-    def set_global(self, key:str, value:Any):
+    def set_global(self, key:str, value:Any) -> None:
         self.last_access = time.time()
         if self.global_settings is None:
             self.global_settings = db.get_global_settings(self.userid)

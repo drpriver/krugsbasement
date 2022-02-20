@@ -101,7 +101,7 @@ ship-docs: $(DOCS)
 
 .PHONY: mypy
 mypy:
-	mypy -p WebDnD.app --namespace-packages --ignore-missing-imports
+	mypy -p WebDnD.app --namespace-packages --ignore-missing-imports --disallow-untyped-defs
 
 Bin/meta: meta.c | Bin
 	$(CC) $< -o $@

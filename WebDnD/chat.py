@@ -5,7 +5,7 @@ from .logs import logging
 from . import db
 import datetime
 
-from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg, UnrolledDiceExpr, BINARY, UNARY, RolledExpr, ROLLTABLEFLAGS, RollTable
+from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg, UnrolledDiceExpr, BINARY, UNARY, RolledExpr, ROLLTABLEFLAGS, RollTable, RollTables
 
 from enum import IntEnum, IntFlag
 
@@ -23,7 +23,23 @@ class RollTablePersister(Persister[Dummy[List[RollTable]]]):
         dont_persist = campaignid == 1
         super().__init__(Dummy([]), name, dont_persist=dont_persist)
 
+class PrivateRollTablePersister(Persister[Dummy[List[RollTable]]]):
+    def read_obj(self, obj:Dummy[list])->Dummy[list]:
+        o = db.get_private_rolltable(self.userid, self.campaign_id)
+        return Dummy(o) if o is not None else obj
+    def write_obj(self, obj:Dummy[list])->None:
+        # logging.info('write roll table: %r', obj)
+        db.save_private_rolltable(self.userid, self.campaign_id, obj.value)
+    def __init__(self, userid:int, campaignid:int)->None:
+        name = f'{userid!r}:{campaignid!r}/rolltables'
+        self.campaign_id = campaignid
+        self.userid = userid
+        assert self.campaign_id is not None
+        dont_persist = campaignid == 1
+        super().__init__(Dummy([]), name, dont_persist=dont_persist)
+
 ROLLTABLES = {} # type: Dict[int, Dummy[List[RollTable]]]
+PRIVATEROLLTABLES = {} # type: Dict[Tuple[int, int], Dummy[List[RollTable]]]
 
 def get_roll_tables(campaign:int) -> Dummy[List[RollTable]]:
     if campaign in ROLLTABLES:
@@ -31,8 +47,16 @@ def get_roll_tables(campaign:int) -> Dummy[List[RollTable]]:
     ROLLTABLES[campaign] = RollTablePersister(campaign).obj
     return ROLLTABLES[campaign]
 
-def update_roll_tables(campaign:int, data:List[RollTable]) -> None:
-    tables = get_roll_tables(campaign)
+def get_private_tables(user:int, campaign:int) -> Dummy[List[RollTable]]:
+    if (user, campaign) in PRIVATEROLLTABLES:
+        return PRIVATEROLLTABLES[(user, campaign)]
+    PRIVATEROLLTABLES[(user, campaign)] = PrivateRollTablePersister(user, campaign).obj
+    return PRIVATEROLLTABLES[(user, campaign)]
+
+def get_both_tables(user:int, campaign:int) -> RollTables:
+    return (get_roll_tables(campaign).value, get_private_tables(user, campaign).value)
+
+def update_roll_table(tables:Dummy[List[RollTable]], data:List[RollTable]) -> None:
     highest = max(t['id'] for t in tables.value) if tables.value else 0
     if highest < 0:
         highest = 1
@@ -48,19 +72,21 @@ def update_roll_tables(campaign:int, data:List[RollTable]) -> None:
     tables.value.clear()
     tables.value.extend(data)
     tables.dirty = True
-    # logging.info('tables: %r', tables)
-
-def upload_roll_table(campaign:int, data:RollTable) -> RollTable:
+def update_roll_tables(user:int, campaign:int, data:RollTables) -> None:
     tables = get_roll_tables(campaign)
-    highest = max(t['id'] for t in tables.value) if tables.value else 0
-    data['id'] = highest + 1
-    tables.value.append(data)
-    tables.dirty = True
-    return data
+    update_roll_table(get_roll_tables(campaign), data[0])
+    update_roll_table(get_private_tables(user, campaign), data[1])
+    # logging.info('tables: %r', tables)
 
 def parse_and_roll_table(campaign:int, line:str) -> Tuple[str, str]:
     line = line.strip()
     tables = get_roll_tables(campaign).value
+    mapping = {d['name'].lower(): d for d in tables}
+    return parse_and_roll_table_inner(mapping, line, line, 0)
+
+def parse_and_roll_private_table(user:int, campaign:int, line:str) -> Tuple[str, str]:
+    line = line.strip()
+    tables = get_private_tables(user, campaign).value
     mapping = {d['name'].lower(): d for d in tables}
     return parse_and_roll_table_inner(mapping, line, line, 0)
 
@@ -90,12 +116,12 @@ def get_history(campaign:int) -> List[ChatMsg]:
         return []
     return db.get_chat(campaign)
 
-def handle_structured_input(campaign:int, user:str, commands:List[Command], test:bool) -> List[ChatMsg]:
+def handle_structured_input(userid:int, campaign:int, user:str, commands:List[Command], test:bool) -> List[ChatMsg]:
     def echo(user:str, text:str) -> ChatMsg:
         return (Msg.ECHOABLE_TEXT, user, text) # type: ignore
     def plain(user:str, text:str) -> ChatMsg:
         return (Msg.PLAIN, user, text) # type: ignore
-    def dieroll(dice) -> ChatMsg:
+    def dieroll(dice:Any) -> ChatMsg:
         return (Msg.DICEROLL, '', dice) # type: ignore
     def error(e:str) -> ChatMsg:
         return (Msg.ERROR, '', e) # type: ignore
@@ -131,6 +157,16 @@ def handle_structured_input(campaign:int, user:str, commands:List[Command], test
             table: str = command[2] # type: ignore
             try:
                 table_result, path = parse_and_roll_table(campaign, table)
+            except Exception as e:
+                result.append(error(str(e)))
+            else:
+                if not table_result:
+                    table_result = '(No entry)'
+                result.append(plain('', path + ': '+table_result))
+        elif cc == ChatCommand.MYTABLE:
+            table: str = command[2] # type: ignore
+            try:
+                table_result, path = parse_and_roll_private_table(userid, campaign, table)
             except Exception as e:
                 result.append(error(str(e)))
             else:

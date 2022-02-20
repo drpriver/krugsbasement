@@ -13,13 +13,13 @@ atexit.register(lambda: (logging.info('closing db'), conn.close())) # type: igno
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 7
+DBVERSION = 8
 with conn:
     conn.execute("PRAGMA encoding = 'UTF-8';")
     conn.execute('PRAGMA foreign_keys = ON;')
     conn.execute('PRAGMA synchronous = NORMAL;')
     conn.execute('PRAGMA journal_mode = WAL;')
-def setup_tables():
+def setup_tables() -> None:
     version = conn.execute('PRAGMA user_version;').fetchone()[0]
     if version == DBVERSION:
         return
@@ -199,8 +199,8 @@ def setup_tables():
         for m in maps:
             campid, mapid, name, objects, flags, grid_type = m
             objs = json.loads(objects)
+            o: list
             for o in objs:
-                o: list
                 o.insert(5, 0)
             objs = json.dumps(objs)
             conn.execute('''
@@ -208,6 +208,17 @@ def setup_tables():
             SET objects = ?
             WHERE campaignid = ? AND mapid = ?;
             ''',(objs, campid, mapid))
+    if version < 8:
+        conn.execute('''
+            CREATE TABLE privaterolltables (
+                userid INTEGER NOT NULL,
+                campaignid INTEGER NOT NULL,
+                data BLOB, /* json dump */
+                PRIMARY KEY(userid, campaignid),
+                FOREIGN KEY(campaignid) REFERENCES campaigns(id),
+                FOREIGN KEY(userid) REFERENCES users(userid)
+            );
+        ''')
 
 
 
@@ -309,7 +320,7 @@ def user_may_access_campaign(userid:int, campaignid:int) -> bool:
         ;
         ''', (userid, campaignid, campaignid)).fetchone() is not None
 
-def store_app_kv(key:str, value) -> None:
+def store_app_kv(key:str, value:Any) -> None:
     with DBLOCK, conn:
         conn.execute('''
         INSERT INTO
@@ -320,7 +331,7 @@ def store_app_kv(key:str, value) -> None:
             DO UPDATE SET value=excluded.value
         ;
         ''', (key, value))
-def get_app_kv(key:str, default=None):
+def get_app_kv(key:str, default:Any=None) -> Optional[Any]:
     with DBLOCK:
         cur = conn.execute('''
         SELECT
@@ -343,7 +354,7 @@ def get_app_kv(key:str, default=None):
                 ''', (key, default))
             return default
     return row[0] if row else None
-def store_campaign_kv(id: int, key:str, value) -> None:
+def store_campaign_kv(id: int, key:str, value:Any) -> None:
     with DBLOCK, conn:
         conn.execute('''
         INSERT INTO
@@ -354,7 +365,7 @@ def store_campaign_kv(id: int, key:str, value) -> None:
             DO UPDATE SET value=excluded.value
         ;
         ''', (id, key, value))
-def get_campaign_kv(id:int, key:str, default=None):
+def get_campaign_kv(id:int, key:str, default:Any=None)->Optional[Any]:
     with DBLOCK:
         cur = conn.execute('''
         SELECT
@@ -382,7 +393,7 @@ def get_campaign_kv(id:int, key:str, default=None):
 # if it is safe to execute this code concurrently.
 # Definitely isn't safe for writes, unclear for reads.
 # Also unclear if the conn object itself is thread-safe.
-def save_chat_msg(campaignid:int, msgtype:int, chatname:str, data, created=None, userid:int=None) -> None:
+def save_chat_msg(campaignid:int, msgtype:int, chatname:str, data:Any, created:Any=None, userid:int=None) -> None:
     data = json.dumps(data, separators=(',',':'))
     with DBLOCK, conn:
         conn.execute('''
@@ -393,7 +404,7 @@ def save_chat_msg(campaignid:int, msgtype:int, chatname:str, data, created=None,
         ;
         ''', (campaignid, msgtype, chatname, created, data, userid))
 
-def save_map(id:int, map_id:int, map_name:str, objects:list, flags:int, grid_type:int):
+def save_map(id:int, map_id:int, map_name:str, objects:list, flags:int, grid_type:int) -> None:
     blob = json.dumps(objects, separators=(',',':'))
     with DBLOCK, conn:
         conn.execute('''
@@ -409,7 +420,7 @@ def save_map(id:int, map_id:int, map_name:str, objects:list, flags:int, grid_typ
                 grid_type = excluded.grid_type
             ;
         ''', (id, map_id, map_name, blob, flags, grid_type))
-def map_convert(row):
+def map_convert(row:tuple) -> dict:
     result = dict(
         map_id = row[1],
         map_name = row[2],
@@ -419,7 +430,7 @@ def map_convert(row):
     )
     return result
 
-def get_map(id:int, mapid:int):
+def get_map(id:int, mapid:int) -> Optional[dict]:
     with DBLOCK:
         cur = conn.execute('''
             SELECT
@@ -432,7 +443,7 @@ def get_map(id:int, mapid:int):
         ''', (id, mapid))
         row = cur.fetchone()
         return map_convert(row) if row is not None else None
-def get_maps(id:int):
+def get_maps(id:int) -> List[dict]:
     with DBLOCK, conn:
         cur = conn.execute('''
             SELECT
@@ -445,9 +456,34 @@ def get_maps(id:int):
         ''', (id, ))
         return [map_convert(row) for row in cur.fetchall()]
 
-def save_rolltable(id:int, data) -> None:
-    if not isinstance(data, str):
-        data = json.dumps(data, separators=(',',':'))
+def get_rolltable(id:int) -> Optional[list]:
+    with DBLOCK:
+        cur = conn.execute('''
+            SELECT
+                data
+            FROM
+                rolltables
+            WHERE
+                campaignid = ?
+        ''', (id,))
+        row = cur.fetchone()
+    return json.loads(row[0]) if row else None
+
+def get_private_rolltable(userid:int, campaignid:int) -> Optional[list]:
+    with DBLOCK:
+        cur = conn.execute('''
+            SELECT
+                data
+            FROM
+                privaterolltables
+            WHERE
+                userid = ? AND campaignid = ?
+        ''', (userid,campaignid))
+        row = cur.fetchone()
+    return json.loads(row[0]) if row else None
+
+def save_rolltable(id:int, data:list) -> None:
+    data_ = json.dumps(data, separators=(',',':'))
     with DBLOCK, conn:
         conn.execute('''
         INSERT INTO
@@ -457,7 +493,21 @@ def save_rolltable(id:int, data) -> None:
         ON CONFLICT(campaignid)
             DO UPDATE SET data=excluded.data
         ;
-        ''', (id, data))
+        ''', (id, data_))
+
+def save_private_rolltable(userid:int, campaignid:int, data:list) -> None:
+    data_ = json.dumps(data, separators=(',',':'))
+    with DBLOCK, conn:
+        conn.execute('''
+        INSERT INTO
+            privaterolltables(userid, campaignid, data)
+        VALUES
+            (?, ?, ?)
+        ON CONFLICT(userid,campaignid)
+            DO UPDATE SET data=excluded.data
+        ;
+        ''', (userid, campaignid, data_))
+
 def lookup_campaign(name:str) -> Optional[int]:
     with DBLOCK:
         cur = conn.execute('''
@@ -527,7 +577,7 @@ def get_chat(id:int) -> list:
     result.reverse()
     return result
 
-def save_note(campaignid:int, title:str, body:str, flags:int, noteid:int):
+def save_note(campaignid:int, title:str, body:str, flags:int, noteid:int) -> None:
     # logging.info('saving note: %r/%r noteid: %r', campaignid, title, noteid)
     with DBLOCK, conn:
         conn.execute('''
@@ -562,18 +612,6 @@ def get_notes(id:int) -> list:
                 id = row[4],
                 ) for row in rows
             ]
-def get_rolltable(id:int) -> Optional[list]:
-    with DBLOCK:
-        cur = conn.execute('''
-            SELECT
-                data
-            FROM
-                rolltables
-            WHERE
-                campaignid = ?
-        ''', (id,))
-        row = cur.fetchone()
-    return json.loads(row[0]) if row else None
 
 def make_invite_link(campaignid:int) -> int:
     with DBLOCK, conn:
@@ -672,7 +710,7 @@ def get_global_settings(userid:int) -> Dict[str, object]:
             ;''', (userid,)).fetchall()
         return dict(rows)
 
-def store_global_settings(userid:int, key:str, value) -> None:
+def store_global_settings(userid:int, key:str, value:str) -> None:
     with DBLOCK, conn:
         row = conn.execute('''
             INSERT INTO

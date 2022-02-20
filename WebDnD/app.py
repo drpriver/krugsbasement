@@ -1,6 +1,6 @@
 import os
 import logging
-from typing import List, Dict, Optional, Set, Union
+from typing import List, Dict, Optional, Set, Union, Any
 
 from flask import Flask, jsonify, request, Response, send_from_directory, session, abort
 import flask
@@ -15,7 +15,7 @@ from . import chat
 from . import canvas
 from . import notes
 from .persist import Persister, RepeatTimer, AppKVPersister
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables
 from .validator import validate, register_list
 from . import db
 from .users import User
@@ -97,7 +97,7 @@ def block_method() -> None:
         ip_ban_list[ip] += 30
         flask.abort(404)
 
-def pydndclog(kind, filename, line, col, mes) -> None:
+def pydndclog(kind, filename, line, col, mes) -> None: # type: ignore
     logging.warning('%r:%d:%d: %r', filename, line+1, col, mes)
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -117,6 +117,9 @@ def register() -> object:
             return flask.redirect(request.path)
         logging.info('register user: %r', user)
         login_user(user, remember=form.remember_me.data)
+        if appconfig.DEV:
+            for c in db.get_campaigns().values():
+                db.join_campaign(user.userid, c)
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':
             return flask.redirect('/home')
@@ -269,7 +272,7 @@ def home() -> object:
 def chat_structured_input(data:ChatCommandMessage)->None:
     data = validate('ChatCommandMessage', data)
     campaign = get_campaign(request)
-    responses = chat.handle_structured_input(campaign, data['chatname'], data['commands'], test=False)
+    responses = chat.handle_structured_input(current_user.userid, campaign, data['chatname'], data['commands'], test=False)
     if responses:
         emit(ToClient.CHAT_STRUCTURED_MSG, responses, broadcast=True, to=str(campaign))
 
@@ -279,7 +282,7 @@ def chat_test_structured_input(data:ChatCommandMessage)->None:
     campaign = get_campaign(request)
     if not data:
         return
-    responses = chat.handle_structured_input(campaign, data['chatname'], data['commands'], test=True)
+    responses = chat.handle_structured_input(current_user.userid, campaign, data['chatname'], data['commands'], test=True)
     emit(ToClient.CHAT_TEST_STRUCTURED_RESPONSE, responses, to=str(campaign))
 
 @socketio.on(FromClient.CHAT_PRIVATE_INPUT)
@@ -288,7 +291,7 @@ def chat_private_input(data:ChatCommandMessage)->None:
     campaign = get_campaign(request)
     if not data:
         return
-    responses = chat.handle_structured_input(campaign, data['chatname'], data['commands'], test=True)
+    responses = chat.handle_structured_input(current_user.userid, campaign, data['chatname'], data['commands'], test=True)
     emit(ToClient.CHAT_PRIVATE_STRUCTURED_MSG, responses, to=str(campaign))
 
 session_id = AppKVPersister('session_id', 0).obj
@@ -296,10 +299,10 @@ logging.info('session_id: %r', session_id.value)
 
 sid_to_campaign = {} # type: Dict[str, int]
 user_id_to_sids = {} # type: Dict[int, list]
-def get_campaign(req) -> int:
+def get_campaign(req:Any) -> int:
     return sid_to_campaign[req.sid]
 
-def record_campaign(req, campaign:int) -> None:
+def record_campaign(req:Any, campaign:int) -> None:
     sid_to_campaign[req.sid] = campaign
     if current_user.is_authenticated:
         if current_user.userid not in user_id_to_sids:
@@ -517,25 +520,18 @@ def note_delete(note_id:int) -> None:
 def retrieve_roll_tables() -> None:
     campaign = get_campaign(request)
     logging.info('retrieving roll tables for campaign %r', campaign)
-    emit(ToClient.ROLL_TABLES, chat.get_roll_tables(campaign).value)
+    tables = chat.get_both_tables(current_user.userid, campaign)
+    tables = list(tables)
+    dlog('tables: %r', tables)
+    emit(ToClient.ROLL_TABLES, tables)
 
-register_list('[RollTable]', 'RollTable')
 @socketio.on(FromClient.UPDATE_ROLL_TABLES)
-def update_roll_tables(tables:List[RollTable]) -> None:
-    tables = validate('[RollTable]', tables)
+def update_roll_tables(tables:RollTables) -> None:
+    tables = validate('RollTables', tables)
     campaign = get_campaign(request)
     logging.info('Setting roll tables for campaign %r', campaign)
     # logging.info('%r', tables);
-    chat.update_roll_tables(campaign, tables)
-
-@socketio.on(FromClient.UPLOAD_ROLL_TABLE)
-def upload_table(table:RollTable) -> None:
-    table = validate('RollTable', table)
-    campaign = get_campaign(request)
-    response = chat.upload_roll_table(campaign, table)
-    if response:
-        emit(ToClient.NEW_ROLL_TABLE, response, broadcast=False, to=str(campaign)) # type: ignore
-
+    chat.update_roll_tables(current_user.userid, campaign, tables)
 
 def get_html(info:db.CampaignInfo) -> str:
     global SCREEN
