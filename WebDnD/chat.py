@@ -189,7 +189,11 @@ def structured_roll_die(die:UnrolledDiceExpr) -> None:
     if t == DieExprTypes.DICE:
         vals = []
         for _ in range(die[1]):
-            vals.append(random.randint(1, die[2])) # type: ignore
+            hi = die[2]
+            if hi < 1:
+                vals.append(0)
+            else:
+                vals.append(random.randint(1, die[2])) # type: ignore
         die.append(vals) # type: ignore
         return
     if t == DieExprTypes.GROUP:
