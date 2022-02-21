@@ -64,7 +64,8 @@ class Settings:
         return t > self.last_access + 60*10
 
     def commit(self) -> None:
-        dlog('Committing settings for %r', self.userid)
+        if self.local_dirty or self.global_dirty:
+            dlog('Committing settings for %r', self.userid)
         for campaignid, category, key in self.local_dirty:
             value = self.local_settings[campaignid][category][key]
             js = json.dumps(value)
