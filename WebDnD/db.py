@@ -748,3 +748,15 @@ def get_local_settings(userid:int, campaign:int) -> dict:
         result[c][k] = json.loads(v)
     # logging.info('rows: %r, result: %r', rows, result)
     return result
+
+def get_users_in_campaign(campaign:int) -> List[int]:
+    with DBLOCK:
+        rows = conn.execute('''
+        SELECT userid
+        FROM joinedcampaigns
+        WHERE campaignid = ?
+        ;
+        ''', (campaign,)).fetchall()
+        return [r[0] for r in rows]
+
+

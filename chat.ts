@@ -1,4 +1,3 @@
-
 const THISPAGE = window.location.pathname;
 
 function setchatname(name:string){
@@ -719,23 +718,69 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 document.addEventListener('DOMContentLoaded', function(){
+    // let USERS: Array<number> = [];
     let privateroll = get_window('privateroll');
+    let targets = by_id('privateroll-targets');
+    let lv = make_list_view<number>(targets, ListViewFlags.NONE);
     by_id('privateroll-button').addEventListener('click', function(){
         privateroll.show();
     });
-    privateroll.outer.style.width = '17em';
+    privateroll.outer.style.width = '30em';
     privateroll.outer.style.height = '400px';
     let log = by_id('privateroll-history');
-    ONRECV(ToClient.CHAT_PRIVATE_STRUCTURED_MSG, function(response:Array<ChatMsg>){
-        add_chat_msgs(log, response, preprocess_and_send_chat_private);
+    let chats: Map<number, Array<ChatMsg>> = new Map();
+    let histories: Map<number, Array<string>> = new Map();
+    function preproc_func(text:string){
+        let commands = preprocess_command(text, EvaluateFlags.NONE);
+        let to_send: ChatDirectCommandMessage = {chatname:SETTINGS.chat.name, to:lv.active?lv.active:SETTINGS.userid, commands:commands};
+        EMIT(FromClient.CHAT_DM, to_send);
+    }
+    lv.activate_handler = function(k:number|undefined){
+        if(k === undefined) return;
+        log.innerHTML = '';
+        let msgs = chats.get(k);
+        if(msgs){
+            add_chat_msgs(log, msgs, preproc_func);
+            log.scrollTo({behavior:'smooth', top:log.scrollHeight});
+        }
+        let h = histories.get(k);
+        hist.set_history(h?h:[]);
+        chat.focus();
+    };
+    ONRECV(ToClient.CHAT_DIRECT_MSG, function(msg:ChatDirectResponse){
+        let from = msg.users[0];
+        let to   = msg.users[1];
+        let user = (from == SETTINGS.userid)? to : from;
+        if(lv.active !== user)
+            lv.make_active(user);
+        if(msg.msgs){
+            let prev = chats.get(user);
+            if(prev !== undefined){
+                for(let m of msg.msgs)
+                    prev.push(m);
+            }
+        }
+        add_chat_msgs(log, msg.msgs, preproc_func);
         log.scrollTo({behavior:'smooth', top:log.scrollHeight});
     });
-
     let chat = by_id('privateroll-input');
     privateroll.show_handler = function(){
         chat.focus();
     };
-    setup_chat(chat, preprocess_and_send_chat_private);
+    let hist = setup_chat(chat, preproc_func);
+    ONRECV(ToClient.USER_LIST, function(users:Array<number>){
+        lv.clear();
+        log.innerHTML = '';
+        for(let uid of users){
+            chats.set(uid, []);
+            histories.set(uid, []);
+        }
+        for(let user of users){
+            lv.add_item(user == SETTINGS.userid?`${user} (Me)` : `${user}`, user);
+        }
+        lv.make_active(users[0]);
+        // USERS = users;
+    });
 });
 
 type TableView<K> = {

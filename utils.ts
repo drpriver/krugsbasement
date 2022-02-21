@@ -581,11 +581,29 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement):D
     return result;
 }
 
+type ChatHistory = {
+    index: number;
+    current_text: string
+    set_text: string;
+    history: Array<string>;
+    enter_func: (_:string)=>void;
+    set_history: (_:Array<string>)=>void;
+};
 function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string)=>void){
-    const history: Array<string> = [];
-    let history_index = 0;
-    let current_text = "";
-    let set_text = "";
+    const hist: ChatHistory = {
+        index: 0,
+        current_text: "",
+        set_text: "",
+        history: [],
+        enter_func:enter_func,
+        set_history: function(newhistory:Array<string>){
+            hist.history = newhistory;
+            hist.index = newhistory.length;
+            hist.current_text = "";
+            hist.set_text = "";
+            chat.value = "";
+        },
+    };
     chat.addEventListener('keydown', function(e){
         e.stopPropagation();
         let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
@@ -596,37 +614,37 @@ function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string)=>void){
                 const value = chat.value;
                 if(value.length){
                     chat.value = "";
-                    enter_func(value);
-                    if(!(history.length && value == history[history.length-1])){
-                        history.push(value);
+                    hist.enter_func(value);
+                    if(!(hist.history.length && value == hist.history[hist.history.length-1])){
+                        hist.history.push(value);
                     }
-                    history_index = history.length;
-                    current_text = "";
-                    set_text = "";
+                    hist.index = hist.history.length;
+                    hist.current_text = "";
+                    hist.set_text = "";
                 }
             }break;
             case 'ArrowUp':{
-                if(chat.value && chat.value != set_text) break;
+                if(chat.value && chat.value != hist.set_text) break;
                 e.preventDefault();
-                if(history_index > 0 && history_index <= history.length){
-                    if(history_index == history.length){
-                        current_text = chat.value;
+                if(hist.index > 0 && hist.index <= hist.history.length){
+                    if(hist.index == hist.history.length){
+                        hist.current_text = chat.value;
                     }
-                    history_index--;
-                    chat.value = history[history_index];
-                    set_text = chat.value;
+                    hist.index--;
+                    chat.value = hist.history[hist.index];
+                    hist.set_text = chat.value;
                 }
             }break;
             case 'ArrowDown':{
-                if(chat.value && chat.value != set_text) break;
+                if(chat.value && chat.value != hist.set_text) break;
                 e.preventDefault();
-                if(history_index >= 0 && history_index < history.length){
-                    history_index++;
-                    if(history_index == history.length)
-                        chat.value = current_text;
+                if(hist.index >= 0 && hist.index < hist.history.length){
+                    hist.index++;
+                    if(hist.index == hist.history.length)
+                        chat.value = hist.current_text;
                     else
-                        chat.value = history[history_index];
-                    set_text = chat.value;
+                        chat.value = hist.history[hist.index];
+                    hist.set_text = chat.value;
                 }
             }break;
             case 'Escape':{
@@ -634,6 +652,7 @@ function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string)=>void){
             }break;
         }
     });
+    return hist;
 }
 
 type TabView = {

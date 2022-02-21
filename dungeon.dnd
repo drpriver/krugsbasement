@@ -130,6 +130,7 @@ David20::title #hide
   make_window('privateroll', 'Private Rolls',
   `
     <div id="privateroll-container" class="window-container">
+      <div id="privateroll-targets" class="window-group-list"> </div>
       <div class="log" id="privateroll-history">
       </div>
       <textarea spellcheck="false" id="privateroll-input" rows="4"></textarea>

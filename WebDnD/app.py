@@ -15,7 +15,7 @@ from . import chat
 from . import canvas
 from . import notes
 from .persist import Persister, RepeatTimer, AppKVPersister
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage
 from .validator import validate, register_list
 from . import db
 from .users import User
@@ -294,6 +294,24 @@ def chat_private_input(data:ChatCommandMessage)->None:
     responses = chat.handle_structured_input(current_user.userid, campaign, data['chatname'], data['commands'], private=True)
     emit(ToClient.CHAT_PRIVATE_STRUCTURED_MSG, responses, to=str(campaign))
 
+@socketio.on(FromClient.CHAT_DM)
+def chat_dm(data:ChatDirectCommandMessage) -> None:
+    data = validate('ChatDirectCommandMessage', data)
+    dlog('chat_dm: %s', data);
+    campaign = get_campaign(request)
+    if not data:
+        return
+    responses = chat.handle_structured_input(current_user.userid, campaign, data['chatname'], data['commands'], private=True)
+    if not responses: return
+    msg = {'users':[current_user.userid, data['to']], 'msgs':responses}
+    dlog('msg: %s', msg)
+    sids = sorted(set([request.sid]+get_sids(campaign, current_user.userid) + get_sids(campaign, data['to'])))
+    for sid in sids:
+        emit(ToClient.CHAT_DIRECT_MSG, msg, to=sid)
+
+def get_sids(campaign:int, userid:int) -> List[str]:
+    return []
+
 session_id = AppKVPersister('session_id', 0).obj
 logging.info('session_id: %r', session_id.value)
 
@@ -367,6 +385,7 @@ def post_join() -> None:
     emit(ToClient.CHAT_CREATE, chat.get_history(campaign))
     emit(ToClient.CANVAS_INITIALIZE_MAPS, canvas.get_state(campaign))
     emit(ToClient.NOTES_INITIALIZE, notes.get_notes_for_room(campaign))
+    emit(ToClient.USER_LIST, db.get_users_in_campaign(campaign))
 
 @socketio.on(FromClient.CANVAS_CREATE_OBJECTS)
 def handle_canvas_create(data:CreateObjectMessage) -> None:
