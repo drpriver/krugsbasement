@@ -83,12 +83,12 @@ shrink-tokens:
 	python3 shrink_tokens.py
 
 ship-it: dist.zip
-	scp dist.zip david@droplet:/home/david/dist.zip
-	ssh david@droplet "cd ~webdnd && bash unpack.sh"
+	scp dist.zip david@website:/home/david/dist.zip
+	ssh david@website "cd ~webdnd && bash unpack.sh"
 .PHONY: backup
 backup: | Archives
-	ssh david@droplet "cd ~webdnd && bash backup.sh"
-	scp "david@droplet:~webdnd/data/campaigns.db.bak" campaigns.db
+	ssh david@website "cd ~webdnd && bash backup.sh"
+	scp "david@website:~webdnd/data/campaigns.db.bak" campaigns.db
 	cp campaigns.db Archives/campaigns.db.$$(date '+%Y-%m-%d-%T').bak
 tags: *.ts Scripts/tag_ts.py
 	python3 -m Scripts.tag_ts
@@ -97,7 +97,7 @@ DOCS=Generated/macro-doc.html Generated/tables.html
 
 .PHONY: ship-docs
 ship-docs: $(DOCS)
-	scp $(DOCS) david@droplet:/home/david/docs/docs
+	scp $(DOCS) david@website:/home/david/docs/docs
 
 .PHONY: mypy
 mypy:
