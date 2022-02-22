@@ -1,0 +1,19 @@
+bug.py: v0.0.1
+created: 2022-02-18T02:47:04.183622
+updated: 2022-02-21T22:36:24.111756
+updated: 2022-02-21T23:36:30.226147
+resolved: 2022-02-22T00:20:28.672785
+bugmagic^^^^
+Summary::md.summary
+  Player to Player chat/rolls.
+
+  There are times when you want player to player communication. 
+  This requires notifications maybe? There’s a lot to doing this one well.
+Updated Feb 21, 2022, 10:36PM::md.update
+  This was implemented, but there is no history yet so leaving this open.
+
+Updated Feb 21, 2022, 11:36PM::md.update
+  Added the history option. Needs notifications somehow?
+
+Resolved Feb 22, 2022, 12:20AM::md.update
+  Meh good enough.

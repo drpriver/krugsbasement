@@ -581,7 +581,7 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement):D
     return result;
 }
 
-type ChatHistory = {
+type ChatInput = {
     index: number;
     current_text: string
     set_text: string;
@@ -590,7 +590,7 @@ type ChatHistory = {
     set_history: (_:Array<string>)=>void;
 };
 function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string)=>void){
-    const hist: ChatHistory = {
+    const hist: ChatInput = {
         index: 0,
         current_text: "",
         set_text: "",

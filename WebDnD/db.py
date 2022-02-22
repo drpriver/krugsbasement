@@ -13,7 +13,7 @@ atexit.register(lambda: (logging.info('closing db'), conn.close())) # type: igno
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 8
+DBVERSION = 9
 with conn:
     conn.execute("PRAGMA encoding = 'UTF-8';")
     conn.execute('PRAGMA foreign_keys = ON;')
@@ -219,6 +219,22 @@ def setup_tables() -> None:
                 FOREIGN KEY(userid) REFERENCES users(userid)
             );
         ''')
+    if version < 9:
+        conn.execute('''
+            CREATE TABLE privatechats (
+                msgid INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                campaignid INTEGER NOT NULL,
+                type INTEGER NOT NULL,
+                chatname TEXT, /* display name, not unique identifier */
+                created TEXT, /* UTC datetime */
+                data BLOB, /* json dump */
+                userid INTEGER NOT NULL,
+                touserid INTEGER NOT NULL,
+                FOREIGN KEY(userid) REFERENCES users(userid),
+                FOREIGN KEY(touserid) REFERENCES users(userid),
+                FOREIGN KEY(campaignid) REFERENCES campaigns(id)
+            );
+        ''')
 
 
 
@@ -404,6 +420,17 @@ def save_chat_msg(campaignid:int, msgtype:int, chatname:str, data:Any, created:A
         ;
         ''', (campaignid, msgtype, chatname, created, data, userid))
 
+def save_private_chat_msg(campaignid:int, msgtype:int, chatname:str, data:Any, created:Any, userid:int, to:int) -> None:
+    data = json.dumps(data, separators=(',',':'))
+    with DBLOCK, conn:
+        conn.execute('''
+        INSERT INTO
+            privatechats(campaignid, type, chatname, created, data, userid, touserid)
+        VALUES
+            (?, ?, ?, ?, ?, ?, ?)
+        ;
+        ''', (campaignid, msgtype, chatname, created, data, userid, to))
+
 def save_map(id:int, map_id:int, map_name:str, objects:list, flags:int, grid_type:int) -> None:
     blob = json.dumps(objects, separators=(',',':'))
     with DBLOCK, conn:
@@ -576,6 +603,20 @@ def get_chat(id:int) -> list:
     result = [[row[0], row[1], json.loads(row[2])] for row in rows]
     result.reverse()
     return result
+
+# gets all private chats in this campaign involving this user, separate them yourself
+def get_private_chat(userid:int, campaignid:int) -> list:
+    with DBLOCK:
+        cur = conn.execute('''
+        SELECT
+            type, chatname, data, userid, touserid
+        FROM
+            privatechats
+        WHERE
+            campaignid = ? AND (userid = ? OR touserid = ?)
+        ;
+        ''', (campaignid, userid, userid))
+        return cur.fetchall()
 
 def save_note(campaignid:int, title:str, body:str, flags:int, noteid:int) -> None:
     # logging.info('saving note: %r/%r noteid: %r', campaignid, title, noteid)

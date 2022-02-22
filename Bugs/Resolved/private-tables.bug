@@ -1,8 +1,11 @@
 bug.py: v0.0.1
 created: 2022-02-18T02:45:52.427324
+resolved: 2022-02-21T22:36:10.325529
 bugmagic^^^^
 Summary::md.summary
   Private Tables.
 
   It would be cool to have private tables that you can roll on and only commands from you can access them.
   <code>mytable foo</code> and you get a result.
+Resolved Feb 21, 2022, 10:36PM::md.update
+  This was implemented, as above.

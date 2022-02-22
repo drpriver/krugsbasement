@@ -4,8 +4,9 @@ from .persist import Persister, Dummy
 from .logs import logging
 from . import db
 import datetime
+import json
 
-from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg, UnrolledDiceExpr, BINARY, UNARY, RolledExpr, ROLLTABLEFLAGS, RollTable, RollTables
+from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg, UnrolledDiceExpr, BINARY, UNARY, RolledExpr, ROLLTABLEFLAGS, RollTable, RollTables, ChatHistory
 
 from enum import IntEnum, IntFlag
 
@@ -116,7 +117,20 @@ def get_history(campaign:int) -> List[ChatMsg]:
         return []
     return db.get_chat(campaign)
 
-def handle_structured_input(userid:int, campaign:int, user:str, commands:List[Command], private:bool) -> List[ChatMsg]:
+def get_private_history(userid:int, campaign:int) -> List[ChatHistory]:
+    allmsgs = db.get_private_chat(userid, campaign)
+    by_chat = {} # type: Dict[int, List[ChatMsg]]
+    for type, chatname, data, uid, touserid in allmsgs:
+        group = touserid if uid == userid else uid
+        if group not in by_chat:
+            by_chat[group] = []
+        by_chat[group].append([type, chatname, json.loads(data)]) # type: ignore
+    # FIXME: this means we are building potentially large list in memory
+    # instead of limiting this at the DB level.
+    result = [[k, v[-100:]] for k, v in by_chat.items()]
+    return result # type: ignore
+
+def handle_structured_input(userid:int, campaign:int, user:str, commands:List[Command], private:bool, to:int=None) -> List[ChatMsg]:
     def echo(user:str, text:str) -> ChatMsg:
         return (Msg.ECHOABLE_TEXT, user, text) # type: ignore
     def plain(user:str, text:str) -> ChatMsg:
@@ -178,8 +192,12 @@ def handle_structured_input(userid:int, campaign:int, user:str, commands:List[Co
 
     if not private:
         utcnow = datetime.datetime.utcnow()
-        for msg in result:
-            db.save_chat_msg(campaign, msg[0], msg[1], msg[2], created=utcnow, userid=userid)
+        if to is not None:
+            for msg in result:
+                db.save_private_chat_msg(campaign, msg[0], msg[1], msg[2], created=utcnow, userid=userid, to=to)
+        else:
+            for msg in result:
+                db.save_chat_msg(campaign, msg[0], msg[1], msg[2], created=utcnow, userid=userid)
     return result
 
 def structured_roll_die(die:UnrolledDiceExpr) -> None:

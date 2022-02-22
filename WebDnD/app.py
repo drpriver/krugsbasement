@@ -303,7 +303,7 @@ def chat_dm(data:ChatDirectCommandMessage) -> None:
     campaign = get_campaign(request)
     if not data:
         return
-    responses = chat.handle_structured_input(current_user.userid, campaign, data['chatname'], data['commands'], private=True)
+    responses = chat.handle_structured_input(current_user.userid, campaign, data['chatname'], data['commands'], private=False, to=data['to'])
     if not responses: return
     msg = {'users':[current_user.userid, data['to']], 'msgs':responses}
     # dlog('msg: %s', msg)
@@ -390,6 +390,9 @@ def post_join() -> None:
     campaign = get_campaign(request)
     emit(ToClient.CHAT_CLEAR)
     emit(ToClient.CHAT_CREATE, chat.get_history(campaign))
+    privmsgs = chat.get_private_history(current_user.userid, campaign)
+    # dlog('privmsgs: %s', privmsgs)
+    emit(ToClient.CHAT_PRIVATE_CREATE, chat.get_private_history(current_user.userid, campaign))
     emit(ToClient.CANVAS_INITIALIZE_MAPS, canvas.get_state(campaign))
     emit(ToClient.NOTES_INITIALIZE, notes.get_notes_for_room(campaign))
     userids = db.get_users_in_campaign(campaign)

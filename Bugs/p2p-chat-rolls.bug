@@ -1,8 +1,0 @@
-bug.py: v0.0.1
-created: 2022-02-18T02:47:04.183622
-bugmagic^^^^
-Summary::md.summary
-  Player to Player chat/rolls.
-
-  There are times when you want player to player communication. 
-  This requires notifications maybe? There’s a lot to doing this one well.

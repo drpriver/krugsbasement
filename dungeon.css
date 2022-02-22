@@ -511,6 +511,7 @@ html, body {
   grid-column: 1;
   overflow-y: auto;
   width: 10em;
+  border-right: 1px solid #ccc;
 }
 #privateroll-history {
   grid-column: 2;
@@ -797,6 +798,9 @@ div.rolltable table{
   }
   body.dark-mode span.chat-error {
     color: #ff3333;
+  }
+  body.dark-mode #privateroll-targets {
+    border-right: 1px solid #555;
   }
   @supports (-moz-appearance:none) {
     body.dark-mode textarea {

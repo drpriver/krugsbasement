@@ -753,7 +753,6 @@ document.addEventListener('DOMContentLoaded', function(){
         chat.focus();
     };
     ONRECV(ToClient.CHAT_DIRECT_MSG, function(msg:ChatDirectResponse){
-        privateroll.show();
         let from = msg.users[0];
         let to   = msg.users[1];
         let user = (from == SETTINGS.userid)? to : from;
@@ -784,7 +783,8 @@ document.addEventListener('DOMContentLoaded', function(){
         lv.clear();
         log.innerHTML = '';
         for(let [uid, _] of users){
-            chats.set(uid, []);
+            if(!chats.has(uid))
+                chats.set(uid, []);
             histories.set(uid, []);
         }
         for(let [uid, chatname] of users){
@@ -802,6 +802,13 @@ document.addEventListener('DOMContentLoaded', function(){
         }
         USERS.set(uid, chatname);
         lv.rename(uid == SETTINGS.userid?`${chatname} (Me) `: chatname, uid);
+    });
+    ONRECV(ToClient.CHAT_PRIVATE_CREATE, function(data:Array<ChatHistory>){
+        for(let [uid, msgs] of data){
+            chats.set(uid, msgs);
+        }
+        if(lv.active !== undefined)
+            lv.activate_handler!(lv.active);
     });
 });
 
