@@ -360,7 +360,7 @@ def handle_disconnect() -> None:
         except Exception:
             pass
 
-LEGACY_CAMPAIGNS = {'candyland':2, 'horror_on_the_moors':3, 'test':3, 'greenskins1':4}
+LEGACY_CAMPAIGNS = {'horror_on_the_moors':3, 'greenskins1':5}
 
 @socketio.on(FromClient.JOIN)
 def join(room:str) -> None:
