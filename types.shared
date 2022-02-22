@@ -14,7 +14,7 @@ enum FromClient: int
     # -------------
     CHAT_STRUCTURED_INPUT = 3
     CHAT_TEST_STRUCTURED_INPUT = 4
-    CHAT_PRIVATE_INPUT = 28
+    # CHAT_PRIVATE_INPUT = 28
     CHAT_DM = 29
     # Roll Tables
     # -----------
@@ -68,7 +68,7 @@ enum ToClient: int
     CHAT_CLEAR = 3
     CHAT_CREATE = 4
     CHAT_STRUCTURED_MSG = 5
-    CHAT_PRIVATE_STRUCTURED_MSG = 29
+    # CHAT_PRIVATE_STRUCTURED_MSG = 29
     CHAT_TEST_STRUCTURED_RESPONSE = 25
     CHAT_DIRECT_MSG = 30
     USER_LIST = 31
@@ -824,7 +824,7 @@ message ToClientMsg: ToClient
     CHAT_CREATE = [ChatMsg]
     CHAT_STRUCTURED_MSG = [ChatMsg]
     CHAT_TEST_STRUCTURED_RESPONSE = [ChatMsg]
-    CHAT_PRIVATE_STRUCTURED_MSG = [ChatMsg]
+    # CHAT_PRIVATE_STRUCTURED_MSG = [ChatMsg]
     CHAT_DIRECT_MSG = ChatDirectResponse
     USER_LIST = [UserListItem]
     USER_RENAME = UserListItem
@@ -857,7 +857,7 @@ message FromClientMsg: FromClient
     POST_JOIN = void
     CHAT_STRUCTURED_INPUT = ChatCommandMessage
     CHAT_TEST_STRUCTURED_INPUT = ChatCommandMessage
-    CHAT_PRIVATE_INPUT = ChatCommandMessage
+    # CHAT_PRIVATE_INPUT = ChatCommandMessage
     CHAT_DM = ChatDirectCommandMessage
     RETRIEVE_ROLL_TABLES = void
     UPDATE_ROLL_TABLES = RollTables

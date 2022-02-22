@@ -164,11 +164,6 @@ function preprocess_and_send_chat(text:string){
     add_dice_history_commands(commands);
     EMIT(FromClient.CHAT_STRUCTURED_INPUT, to_send);
 }
-function preprocess_and_send_chat_private(text:string){
-    let commands = preprocess_command(text, EvaluateFlags.NONE);
-    let to_send: ChatCommandMessage = {chatname:SETTINGS.chat.name, commands:commands};
-    EMIT(FromClient.CHAT_PRIVATE_INPUT, to_send);
-}
 
 function preprocess_and_send_chat_with_usings(text:string){
     let commands = preprocess_command(text, EvaluateFlags.USE_USINGS);
@@ -746,7 +741,7 @@ document.addEventListener('DOMContentLoaded', function(){
         }
         if(msgs){
             add_chat_msgs(log, msgs, preproc_func);
-            log.scrollTo({behavior:'smooth', top:log.scrollHeight});
+            log.scrollTo({top:log.scrollHeight});
         }
         let h = histories.get(k);
         hist.set_history(h?h:[]);

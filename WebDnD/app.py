@@ -287,15 +287,6 @@ def chat_test_structured_input(data:ChatCommandMessage)->None:
     responses = chat.handle_structured_input(current_user.userid, campaign, data['chatname'], data['commands'], private=True)
     emit(ToClient.CHAT_TEST_STRUCTURED_RESPONSE, responses, to=str(campaign))
 
-@socketio.on(FromClient.CHAT_PRIVATE_INPUT)
-def chat_private_input(data:ChatCommandMessage)->None:
-    data = validate('ChatCommandMessage', data)
-    campaign = get_campaign(request)
-    if not data:
-        return
-    responses = chat.handle_structured_input(current_user.userid, campaign, data['chatname'], data['commands'], private=True)
-    emit(ToClient.CHAT_PRIVATE_STRUCTURED_MSG, responses, to=str(campaign))
-
 @socketio.on(FromClient.CHAT_DM)
 def chat_dm(data:ChatDirectCommandMessage) -> None:
     data = validate('ChatDirectCommandMessage', data)
