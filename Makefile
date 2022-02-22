@@ -90,7 +90,7 @@ backup: | Archives
 	ssh david@website "cd ~webdnd && bash backup.sh"
 	scp "david@website:~webdnd/data/campaigns.db.bak" campaigns.db
 	cp campaigns.db Archives/campaigns.db.$$(date '+%Y-%m-%d-%T').bak
-tags: *.ts Scripts/tag_ts.py
+tags: *.ts Scripts/tag_ts.py types.shared
 	python3 -m Scripts.tag_ts
 
 DOCS=Generated/macro-doc.html Generated/tables.html

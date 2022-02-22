@@ -1,5 +1,5 @@
 import glob
-from enum import IntEnum, auto
+from enum import IntEnum
 from typing import NamedTuple, List
 import io
 import re
@@ -62,6 +62,8 @@ def get_all_tags() -> List[TagLoc]:
     tags = []
     for filename in tsfiles:
         tags.extend(get_tags(filename))
+    from . import make_enums
+    tags.extend(make_enums.make_tags(make_enums.get_values('types.shared')))
     tags = sorted(tags, key=lambda x: (x.ident, not x.is_global, x.lineno, x.filename, x.type))
     return tags
 
