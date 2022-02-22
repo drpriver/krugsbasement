@@ -72,6 +72,7 @@ enum ToClient: int
     CHAT_TEST_STRUCTURED_RESPONSE = 25
     CHAT_DIRECT_MSG = 30
     USER_LIST = 31
+    USER_RENAME = 32
     # Roll messages
     # -------------
     NEW_ROLL_TABLE = 6
@@ -807,6 +808,10 @@ struct LocalSetting: array
     key = str
     value = str
 
+struct UserListItem: array
+    userid = int
+    chatname = str
+
 message ToClientMsg: ToClient
     SESSION_ID = int
     TOKEN_PATHS = [str]
@@ -816,7 +821,8 @@ message ToClientMsg: ToClient
     CHAT_TEST_STRUCTURED_RESPONSE = [ChatMsg]
     CHAT_PRIVATE_STRUCTURED_MSG = [ChatMsg]
     CHAT_DIRECT_MSG = ChatDirectResponse
-    USER_LIST = [int]
+    USER_LIST = [UserListItem]
+    USER_RENAME = UserListItem
     # NEW_ROLL_TABLE = RollTables
     CANVAS_INITIALIZE_MAPS = [InitializeMap]
     CANVAS_CREATE_OBJECTS = [CreateObjectsMessage]

@@ -233,6 +233,8 @@ def store_campaign_setting(data: LocalSetting) -> None:
         return
     logging.info('sid: %r storing campaign setting for %r: %r', request.sid, current_user, data[:2])
     settings.set_local(userid, campaign, *data)
+    if data[0] == 'chat' and data[1] == 'name':
+        emit(ToClient.USER_RENAME, [userid, json.loads(data[2])], to=str(campaign), broadcast=True)
 
 @app.route('/home', methods=['GET','POST'])
 @login_required
@@ -304,19 +306,24 @@ def chat_dm(data:ChatDirectCommandMessage) -> None:
     responses = chat.handle_structured_input(current_user.userid, campaign, data['chatname'], data['commands'], private=True)
     if not responses: return
     msg = {'users':[current_user.userid, data['to']], 'msgs':responses}
-    dlog('msg: %s', msg)
-    sids = sorted(set([request.sid]+get_sids(campaign, current_user.userid) + get_sids(campaign, data['to'])))
+    # dlog('msg: %s', msg)
+    sids = sorted(set(get_sids_of_user_for_campaign(campaign, current_user.userid) + get_sids_of_user_for_campaign(campaign, data['to'])))
+    dlog('sids: %s', sids)
     for sid in sids:
         emit(ToClient.CHAT_DIRECT_MSG, msg, to=sid)
 
-def get_sids(campaign:int, userid:int) -> List[str]:
-    return []
+def get_sids_of_user_for_campaign(campaign:int, userid:int) -> List[str]:
+    result = []
+    for sid in user_id_to_sids.get(userid, []):
+        if sid_to_campaign.get(sid) == campaign:
+            result.append(sid)
+    return result
 
 session_id = AppKVPersister('session_id', 0).obj
 logging.info('session_id: %r', session_id.value)
 
 sid_to_campaign = {} # type: Dict[str, int]
-user_id_to_sids = {} # type: Dict[int, list]
+user_id_to_sids = {} # type: Dict[int, List[str]]
 def get_campaign(req:Any) -> int:
     return sid_to_campaign[req.sid]
 
@@ -385,7 +392,13 @@ def post_join() -> None:
     emit(ToClient.CHAT_CREATE, chat.get_history(campaign))
     emit(ToClient.CANVAS_INITIALIZE_MAPS, canvas.get_state(campaign))
     emit(ToClient.NOTES_INITIALIZE, notes.get_notes_for_room(campaign))
-    emit(ToClient.USER_LIST, db.get_users_in_campaign(campaign))
+    userids = db.get_users_in_campaign(campaign)
+    userlist = []
+    for uid in userids:
+        chatname = settings.get_local_ckvd(uid, campaign, 'chat', 'name', 'anon')
+        dlog('chatname for uid (%s): %r', uid, chatname)
+        userlist.append((uid, chatname))
+    emit(ToClient.USER_LIST, userlist)
 
 @socketio.on(FromClient.CANVAS_CREATE_OBJECTS)
 def handle_canvas_create(data:CreateObjectMessage) -> None:

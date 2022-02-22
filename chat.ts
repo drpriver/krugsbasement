@@ -718,7 +718,7 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 document.addEventListener('DOMContentLoaded', function(){
-    // let USERS: Array<number> = [];
+    let USERS: Map<number, string> = new Map();
     let privateroll = get_window('privateroll');
     let targets = by_id('privateroll-targets');
     let lv = make_list_view<number>(targets, ListViewFlags.NONE);
@@ -739,6 +739,11 @@ document.addEventListener('DOMContentLoaded', function(){
         if(k === undefined) return;
         log.innerHTML = '';
         let msgs = chats.get(k);
+        if(k !== SETTINGS.userid){
+            let name = USERS.get(k);
+            if(!name) name = "anon";
+            lv.rename(name, k);
+        }
         if(msgs){
             add_chat_msgs(log, msgs, preproc_func);
             log.scrollTo({behavior:'smooth', top:log.scrollHeight});
@@ -748,17 +753,24 @@ document.addEventListener('DOMContentLoaded', function(){
         chat.focus();
     };
     ONRECV(ToClient.CHAT_DIRECT_MSG, function(msg:ChatDirectResponse){
+        privateroll.show();
         let from = msg.users[0];
         let to   = msg.users[1];
         let user = (from == SETTINGS.userid)? to : from;
-        if(lv.active !== user)
-            lv.make_active(user);
         if(msg.msgs){
             let prev = chats.get(user);
             if(prev !== undefined){
                 for(let m of msg.msgs)
                     prev.push(m);
             }
+        }
+        if(lv.active !== user){
+            if(user !== SETTINGS.userid){
+                let name = USERS.get(user);
+                if(!name) name = "anon";
+                lv.rename(`${name}\u00A0(*)`, user);
+            }
+            return;
         }
         add_chat_msgs(log, msg.msgs, preproc_func);
         log.scrollTo({behavior:'smooth', top:log.scrollHeight});
@@ -768,18 +780,28 @@ document.addEventListener('DOMContentLoaded', function(){
         chat.focus();
     };
     let hist = setup_chat(chat, preproc_func);
-    ONRECV(ToClient.USER_LIST, function(users:Array<number>){
+    ONRECV(ToClient.USER_LIST, function(users:Array<UserListItem>){
         lv.clear();
         log.innerHTML = '';
-        for(let uid of users){
+        for(let [uid, _] of users){
             chats.set(uid, []);
             histories.set(uid, []);
         }
-        for(let user of users){
-            lv.add_item(user == SETTINGS.userid?`${user} (Me)` : `${user}`, user);
+        for(let [uid, chatname] of users){
+            lv.add_item(uid == SETTINGS.userid?`${chatname} (Me)` : chatname, uid);
+            USERS.set(uid, chatname);
         }
-        lv.make_active(users[0]);
-        // USERS = users;
+        lv.make_active(users[0][0]);
+    });
+    ONRECV(ToClient.USER_RENAME, function(user:UserListItem){
+        let [uid, chatname] = user;
+        if(!chats.has(uid)){
+            chats.set(uid, []);
+            histories.set(uid, []);
+            lv.add_item(chatname, uid);
+        }
+        USERS.set(uid, chatname);
+        lv.rename(uid == SETTINGS.userid?`${chatname} (Me) `: chatname, uid);
     });
 });
 

@@ -2,7 +2,8 @@ from . import db
 from .logs import logging
 from .persist import RepeatTimer
 import time
-from typing import Set, Dict, List, Any, Tuple, Optional
+from typing import Set, Dict, List, Any, Tuple, Optional, TypeVar
+T = TypeVar('T')
 import json
 from threading import RLock
 import atexit
@@ -90,6 +91,10 @@ def get_settings(userid:int) -> Settings:
 def get_local(userid:int, campaignid:int) -> dict:
     with settingslock:
         return get_settings(userid).get_local(campaignid)
+
+def get_local_ckvd(userid:int, campaignid: int, category:str, key:str, d:T) -> T:
+    s = get_local(userid, campaignid)
+    return s.get(category, {}).get(key, d)
 
 def get_global(userid:int) -> dict:
     with settingslock:
