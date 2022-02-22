@@ -360,7 +360,7 @@ def handle_disconnect() -> None:
         except Exception:
             pass
 
-LEGACY_CAMPAIGNS = {'':1, 'candyland':2, 'horror_on_the_moors':3, 'test':3, 'greenskins1':4}
+LEGACY_CAMPAIGNS = {'candyland':2, 'horror_on_the_moors':3, 'test':3, 'greenskins1':4}
 
 @socketio.on(FromClient.JOIN)
 def join(room:str) -> None:
@@ -602,6 +602,7 @@ def get_html(info:db.CampaignInfo) -> str:
 
 @app.route('/')
 def index() -> str:
+    return flask.redirect('/home')
     info = db.campaign_info(1)
     assert info
     return get_html(info)
