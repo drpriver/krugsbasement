@@ -15,7 +15,7 @@ from . import chat
 from . import canvas
 from . import notes
 from .persist import Persister, RepeatTimer, AppKVPersister
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse
 from .validator import validate, register_list
 from . import db
 from .users import User
@@ -234,7 +234,7 @@ def store_campaign_setting(data: LocalSetting) -> None:
     logging.info('sid: %r storing campaign setting for %r: %r', request.sid, current_user, data[:2])
     settings.set_local(userid, campaign, *data)
     if data[0] == 'chat' and data[1] == 'name':
-        emit(ToClient.USER_RENAME, [userid, json.loads(data[2])], to=str(campaign), broadcast=True)
+        emit(ToClient.USER_RENAME, (userid, json.loads(data[2])), to=str(campaign), broadcast=True)
 
 @app.route('/home', methods=['GET','POST'])
 @login_required
@@ -296,7 +296,7 @@ def chat_dm(data:ChatDirectCommandMessage) -> None:
         return
     responses = chat.handle_structured_input(current_user.userid, campaign, data['chatname'], data['commands'], private=False, to=data['to'])
     if not responses: return
-    msg = {'users':[current_user.userid, data['to']], 'msgs':responses}
+    msg: ChatDirectResponse = {'users':[current_user.userid, data['to']], 'msgs':responses}
     # dlog('msg: %s', msg)
     sids = sorted(set(get_sids_of_user_for_campaign(campaign, current_user.userid) + get_sids_of_user_for_campaign(campaign, data['to'])))
     dlog('sids: %s', sids)
@@ -547,7 +547,6 @@ def retrieve_roll_tables() -> None:
     campaign = get_campaign(request)
     logging.info('retrieving roll tables for campaign %r', campaign)
     tables = chat.get_both_tables(current_user.userid, campaign)
-    tables = list(tables)
     dlog('tables: %r', tables)
     emit(ToClient.ROLL_TABLES, tables)
 

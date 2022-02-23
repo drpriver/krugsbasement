@@ -379,6 +379,30 @@ def make_python(filename:str, infos: List[Info]) -> None:
 
     fp.flush()
     fp.close()
+    fp = open('flask_socketio.pyi', 'w')
+    p('from typing import Callable, Union, Dict, Type, Optional, Any, Mapping, overload, Literal')
+    p('JSType = Union[str, int, float, dict, list, tuple, Mapping]')
+    p('from WebDnD.messages import *')
+    # p('def emit(event:Union[str,int], *args:JSType, **kwargs:JSType) -> None:
+    # p('    ...
+    p('SocketIO: Type')
+    p('def join_room(room:str, sid:Optional[str]=None, namespace:Optional[str]=None)->None: ...')
+    p('def disconnect() -> None: ...')
+    for info in infos:
+        if not isinstance(info, MsgInfo): continue
+        if info.name != 'ToClientMsg': continue
+        for it in info.items:
+            if isinstance(it, Comment): continue
+            k, v, _, _ = it
+            p('@overload')
+            if v == 'void':
+                p(f'def emit(event:Literal[ToClient.{k}], **kwargs:Any) -> None: ...')
+            else:
+                p(f'def emit(event:Literal[ToClient.{k}], arg:{convert_type(v)}, **kwargs:Any) -> None: ...')
+    fp.flush()
+    fp.close()
+
+
 
 def make_ts(filename:str, infos:List[Info]) -> None:
     fp = open('Generated/messages.ts', 'w', encoding='utf-8')
@@ -742,8 +766,6 @@ def make_tags(infos:List[Info]) -> List['TagLoc']:
 
 
     return result
-
-
 
 
 if __name__ == '__main__':

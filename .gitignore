@@ -31,3 +31,4 @@ Bin
 *.o
 Generated
 appconfig.py
+flask_socketio.pyi

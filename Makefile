@@ -53,7 +53,7 @@ Generated/%.css: %.css
 Generated/%.js: %.js
 	cp $< $@
 
-Generated/messages.ts WebDnD/messages.py: types.shared Scripts/make_enums.py | Generated
+Generated/messages.ts WebDnD/messages.py flask_socketio.pyi: types.shared Scripts/make_enums.py | Generated
 	python3 Scripts/make_enums.py
 
 .PHONY: dist.zip
@@ -100,7 +100,7 @@ ship-docs: $(DOCS)
 	scp $(DOCS) david@website:/home/david/docs/docs
 
 .PHONY: mypy
-mypy:
+mypy: flask_socketio.pyi
 	mypy -p WebDnD.app --namespace-packages --ignore-missing-imports --disallow-untyped-defs
 
 Bin/meta: meta.c | Bin

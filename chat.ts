@@ -680,7 +680,7 @@ document.addEventListener('DOMContentLoaded',function(){
             let id = --newtableid;
             const table = {
                 name:text,
-                id: id, // sending <0 to the server means the server should assign a new id
+                id: id, // sending < 0 to the server means the server should assign a new id
                 entries: [{weight:1, value:"", flags:0}]
             };
             rolltables.push(table);
@@ -705,15 +705,12 @@ document.addEventListener('DOMContentLoaded',function(){
             let weight = 1;
             let flags = ROLLTABLEFLAGS.NONE;
             if(split.length > 1){
-                // let num = split[0];
                 value = split[1];
                 if(split.length > 2){
                     let t = split[2].toLowerCase();
                     if(t  == 'true' || t == 't' || t == 'x' || t == '1' || t == 'yes')
                         flags = ROLLTABLEFLAGS.IS_TABLE;
                 }
-
-                // if(num
             }
             else
                 value = split[0];
@@ -729,26 +726,6 @@ document.addEventListener('DOMContentLoaded',function(){
         prom.then(take_paste);
     });
     by_id('tables-button').addEventListener('click', tablewindow.show);
-    /*
-    ONRECV(ToClient.NEW_ROLL_TABLE, function(rts:RollTables){
-        if(rts[0]){
-            let rt = rts[0][0];
-            sharedtables.push(rt)
-            if(rolltables === sharedtables){
-                listview.add_item(rt.name, rt.id);
-                listview.make_active(rt.id);
-            }
-        }
-        else{
-            let rt = rts[1][0];
-            privtables.push(rt);
-            if(rolltables === privtables){
-                listview.add_item(rt.name, rt.id);
-                listview.make_active(rt.id);
-            }
-        }
-    });
-    */
 });
 
 document.addEventListener('DOMContentLoaded', function(){
