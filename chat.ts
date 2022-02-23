@@ -621,6 +621,13 @@ document.addEventListener('DOMContentLoaded',function(){
                 return;
             }
         });
+        valinp.addEventListener('paste', function(e:ClipboardEvent){
+            e.stopPropagation();
+            e.preventDefault();
+            let data = e.clipboardData!.getData('text');
+            take_paste(data);
+            del.click();
+        });
         append(valinp);
 
         const tablecheck = elem('input');
@@ -689,6 +696,38 @@ document.addEventListener('DOMContentLoaded',function(){
     function submit_tables(){
         EMIT(FromClient.UPDATE_ROLL_TABLES, [sharedtables, privtables]);
     }
+    function take_paste(text:string){
+        if(current_table == undefined) return;
+        let lines = text.split(/\n/);
+        for(let line of lines){
+            let split = line.split(/\t/);
+            let value = '';
+            let weight = 1;
+            let flags = ROLLTABLEFLAGS.NONE;
+            if(split.length > 1){
+                // let num = split[0];
+                value = split[1];
+                if(split.length > 2){
+                    let t = split[2].toLowerCase();
+                    if(t  == 'true' || t == 't' || t == 'x' || t == '1' || t == 'yes')
+                        flags = ROLLTABLEFLAGS.IS_TABLE;
+                }
+
+                // if(num
+            }
+            else
+                value = split[0];
+            let entry = {weight:weight, value:value, flags:flags};
+            let id = rowid++;
+            let row = make_row(id, entry, current_table.entries);
+            current_table.entries.push(entry);
+            tableview.add_row(row, id);
+        }
+    }
+    by_id('rolltable-paste').addEventListener('click', function(){
+        let prom = navigator.clipboard.readText();
+        prom.then(take_paste);
+    });
     by_id('tables-button').addEventListener('click', tablewindow.show);
     /*
     ONRECV(ToClient.NEW_ROLL_TABLE, function(rts:RollTables){

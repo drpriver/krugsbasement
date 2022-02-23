@@ -106,6 +106,7 @@ David20::title #hide
       <div class="window-tab">
         <span id="rolltable-shared" class="active-tab">Shared Tables</span>
         <span id="rolltable-private">My Tables</span>
+        <button id="rolltable-paste">Paste rows from clipboard</button>
       </div>
       <div id="rolltable-group-list" class="window-group-list">
         <button id="rolltable-add-table">+ New Table</button>
