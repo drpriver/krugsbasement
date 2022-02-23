@@ -444,7 +444,7 @@ def canvas_create_map(data:int) -> None:
     emit(ToClient.CANVAS_CREATE_MAP, data, broadcast=True, include_self=False, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_PING)
-def canvas_ping(data:dict) -> None:
+def canvas_ping(data:PingMessage) -> None:
     data = validate('PingMessage', data)
     campaign = get_campaign(request)
     emit(ToClient.CANVAS_PING, data, broadcast=True, include_self=True, to=str(campaign)) # type: ignore
