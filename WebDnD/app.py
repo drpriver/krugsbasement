@@ -15,7 +15,7 @@ from . import chat
 from . import canvas
 from . import notes
 from .persist import Persister, RepeatTimer, AppKVPersister
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames
 from .validator import validate, register_list
 from . import db
 from .users import User
@@ -549,6 +549,18 @@ def retrieve_roll_tables() -> None:
     tables = chat.get_both_tables(current_user.userid, campaign)
     dlog('tables: %r', tables)
     emit(ToClient.ROLL_TABLES, tables)
+
+@socketio.on(FromClient.GET_ROLL_TABLE_NAMES)
+def get_roll_table_names() -> None:
+    campaign = get_campaign(request)
+    dlog('Getting roll table names for campaign %r', campaign)
+    sh, pr = chat.get_both_tables(current_user.userid, campaign)
+    names: RollTableNames = {'shared':[], 'private':[]}
+    for t in sh:
+        names['shared'].append(t['name'])
+    for p in pr:
+        names['private'].append(p['name'])
+    emit(ToClient.ROLL_TABLE_NAMES, names)
 
 @socketio.on(FromClient.UPDATE_ROLL_TABLES)
 def update_roll_tables(tables:RollTables) -> None:

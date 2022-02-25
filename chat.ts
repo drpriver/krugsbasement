@@ -437,14 +437,38 @@ function err_dialog(html:string){
     });
 }
 
+let ROLLTABLES: {shared:Array<RollTable>, private:Array<RollTable>} = {
+    shared: [],
+    private: []
+};
+
+ONRECV(ToClient.ROLL_TABLES, function(tables:RollTables){
+    ROLLTABLES.shared = tables[0];
+    ROLLTABLES.private = tables[1];
+    signal_for(ListenEvent.ROLLTABLES_RECEIVED);
+    signal_for(ListenEvent.ROLLTABLES_RENAMED);
+});
+ONRECV(ToClient.ROLL_TABLE_NAMES, function(data:RollTableNames){
+    // hack;
+    let old_shared = ROLLTABLES.shared;
+    let old_priv = ROLLTABLES.private;
+    ROLLTABLES.shared = [];
+    ROLLTABLES.private = [];
+    for(let s of data.shared)
+        ROLLTABLES.shared.push({name:s, id:0, entries:[]});
+    for(let s of data.private)
+        ROLLTABLES.private.push({name:s, id:0, entries:[]});
+    signal_for(ListenEvent.ROLLTABLES_RENAMED);
+    ROLLTABLES.shared = old_shared;
+    ROLLTABLES.private = old_priv;
+});
+
 document.addEventListener('DOMContentLoaded',function(){
     let tablewindow = get_window('rolltable');
     let tbody = by_id('rolltable-body');
     let listview = make_list_view<number>(by_id('rolltable-group-list'), ListViewFlags.USER_RENAMABLE|ListViewFlags.USER_DELETABLE);
     let tableview = make_table_view<number>(tbody);
-    let sharedtables: Array<RollTable> = [];
-    let privtables: Array<RollTable> = [];
-    let rolltables: Array<RollTable> = [];
+    let current_tables: Array<RollTable> = [];
     let current_table: RollTable | undefined;
     let rowid = 0;
     let newtableid = -1;
@@ -454,7 +478,7 @@ document.addEventListener('DOMContentLoaded',function(){
     let sh_tab = by_id('rolltable-shared');
     let pr_tab = by_id('rolltable-private');
     function switch_to(tbs:Array<RollTable>){
-        if(tbs === sharedtables){
+        if(tbs === ROLLTABLES.shared){
             sh_tab.classList.add('active-tab');
             pr_tab.classList.remove('active-tab');
         }
@@ -462,45 +486,41 @@ document.addEventListener('DOMContentLoaded',function(){
             pr_tab.classList.add('active-tab');
             sh_tab.classList.remove('active-tab');
         }
-        if(rolltables === tbs)
+        if(current_tables === tbs)
             return;
-        rolltables = tbs;
+        current_tables = tbs;
         setup_listview();
     }
 
     sh_tab.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
-        switch_to(sharedtables);
+        switch_to(ROLLTABLES.shared);
     });
 
     pr_tab.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
-        switch_to(privtables);
+        switch_to(ROLLTABLES.private);
     });
 
     function setup_listview(){
         listview.clear();
-        for(let rt of rolltables){
+        for(let rt of current_tables){
             listview.add_item(rt.name, rt.id);
         }
-        if(!rolltables.length){
+        if(!current_tables.length){
             listview.make_active(undefined);
         }
         else
-            listview.make_active(rolltables[0].id);
+            listview.make_active(current_tables[0].id);
     }
 
-    ONRECV(ToClient.ROLL_TABLES, function(tables:RollTables){
-        sharedtables = tables[0];
-        privtables = tables[1];
-        switch_to(sharedtables);
+    listen_for(ListenEvent.ROLLTABLES_RECEIVED, function(){
+        switch_to(ROLLTABLES.shared);
     });
     tablewindow.show_handler = function(){
-        sharedtables = [];
-        rolltables = [];
-        privtables = [];
+        current_tables = [];
         current_table = undefined;
         rowid = 0;
         newtableid = -1;
@@ -516,7 +536,7 @@ document.addEventListener('DOMContentLoaded',function(){
             current_table = undefined;
             return;
         }
-        for(let rt of rolltables){
+        for(let rt of current_tables){
             if(rt.id == id){
                 current_table = rt;
                 parenttable.style.visibility = 'initial';
@@ -528,7 +548,7 @@ document.addEventListener('DOMContentLoaded',function(){
         parenttable.style.visibility = 'hidden';
     }
     listview.user_rename_handler = function(id:number, name:string){
-        for(let rt of rolltables){
+        for(let rt of current_tables){
             if(rt.id == id){
                 rt.name = name;
                 return;
@@ -536,9 +556,9 @@ document.addEventListener('DOMContentLoaded',function(){
         }
     };
     listview.user_remove_handler = function(id:number){
-        for(let i = 0; i < rolltables.length; i++){
-            if(rolltables[i].id == id){
-                rolltables.splice(i, 1);
+        for(let i = 0; i < current_tables.length; i++){
+            if(current_tables[i].id == id){
+                current_tables.splice(i, 1);
                 return;
             }
         }
@@ -683,7 +703,7 @@ document.addEventListener('DOMContentLoaded',function(){
                 id: id, // sending < 0 to the server means the server should assign a new id
                 entries: [{weight:1, value:"", flags:0}]
             };
-            rolltables.push(table);
+            current_tables.push(table);
             listview.add_item(table.name, table.id);
             listview.make_active(table.id);
         };
@@ -694,7 +714,7 @@ document.addEventListener('DOMContentLoaded',function(){
     });
 
     function submit_tables(){
-        EMIT(FromClient.UPDATE_ROLL_TABLES, [sharedtables, privtables]);
+        EMIT(FromClient.UPDATE_ROLL_TABLES, [ROLLTABLES.shared, ROLLTABLES.private]);
     }
     function take_paste(text:string){
         if(current_table == undefined) return;
@@ -733,6 +753,8 @@ document.addEventListener('DOMContentLoaded', function(){
     let privateroll = get_window('privateroll');
     let targets = by_id('privateroll-targets');
     let lv = make_list_view<number>(targets, ListViewFlags.NONE);
+    let shtbs = by_id('privateroll-tables-shared');
+    let prtbs = by_id('privateroll-tables-private');
     by_id('privateroll-button').addEventListener('click', function(){
         privateroll.show();
     });
@@ -786,10 +808,33 @@ document.addEventListener('DOMContentLoaded', function(){
         log.scrollTo({behavior:'smooth', top:log.scrollHeight});
     });
     let chat = by_id('privateroll-input');
+    let hist = setup_chat(chat, preproc_func);
     privateroll.show_handler = function(){
+        EMIT(FromClient.GET_ROLL_TABLE_NAMES);
         chat.focus();
     };
-    let hist = setup_chat(chat, preproc_func);
+    listen_for(ListenEvent.ROLLTABLES_RENAMED, function(){
+        shtbs.innerHTML = '';
+        prtbs.innerHTML = '';
+        if(ROLLTABLES.shared.length)
+            elem_parent_text(shtbs, 'h2', 'Tables');
+        if(ROLLTABLES.private.length)
+            elem_parent_text(prtbs, 'h2', 'My Tables');
+        for(let tb of ROLLTABLES.shared){
+            let name = tb.name;
+            let b = elem_parent_text(shtbs, 'button', name);
+            b.addEventListener('click', function(){
+                preproc_func(`table ${name}`);
+            });
+        }
+        for(let tb of ROLLTABLES.private){
+            let name = tb.name;
+            let b = elem_parent_text(prtbs, 'button', name);
+            b.addEventListener('click', function(){
+                preproc_func(`mytable ${name}`);
+            });
+        }
+    });
     ONRECV(ToClient.USER_LIST, function(users:Array<UserListItem>){
         lv.clear();
         log.innerHTML = '';

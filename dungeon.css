@@ -514,28 +514,34 @@ html, body {
 }
 #privateroll-container {
   display: grid;
-  grid-template-rows: auto 60px;
+  grid-template-rows: 50% calc(50% - 60px) 60px;
   grid-template-columns: 10em auto;
 }
 #privateroll-input {
   outline: none;
+  grid-row: 3;
+  grid-column: 2;
 }
 #privateroll-targets {
-  grid-row: 1/3;
+  grid-row: 1;
   grid-column: 1;
   overflow-y: auto;
   width: 10em;
   border-right: 1px solid #ccc;
+  overflow-y: scroll;
 }
 #privateroll-history {
   grid-column: 2;
-  grid-row: 1;
+  grid-row: 1 / 4;
   -webkit-user-select: initial;
   user-select: initial;
 }
-#privateroll-input{
-  grid-column: 2;
-  grid-row: 2;
+#privateroll-tables {
+  grid-row: 2/4;
+  grid-column: 1;
+  width: 10em;
+  overflow-y: scroll;
+  border-right: 1px solid #ccc;
 }
 #chat-history {
   overflow-y: scroll;

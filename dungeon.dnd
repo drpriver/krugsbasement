@@ -135,6 +135,14 @@ David20::title #hide
       <div class="log" id="privateroll-history">
       </div>
       <textarea spellcheck="false" id="privateroll-input" rows="4"></textarea>
+      <div id="privateroll-tables">
+        <div id="privateroll-tables-shared">
+        </div>
+        <div id="privateroll-tables-private">
+        </div>
+        <div id="privateroll-macros">
+        </div>
+      </div>
     </div>
   `);
   if(ctx.outpath.includes('temp')){

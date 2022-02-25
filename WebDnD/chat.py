@@ -55,7 +55,7 @@ def get_private_tables(user:int, campaign:int) -> Dummy[List[RollTable]]:
     return PRIVATEROLLTABLES[(user, campaign)]
 
 def get_both_tables(user:int, campaign:int) -> RollTables:
-    return (get_roll_tables(campaign).value, get_private_tables(user, campaign).value)
+    return [get_roll_tables(campaign).value, get_private_tables(user, campaign).value] # type: ignore
 
 def update_roll_table(tables:Dummy[List[RollTable]], data:List[RollTable]) -> None:
     highest = max(t['id'] for t in tables.value) if tables.value else 0
@@ -73,6 +73,7 @@ def update_roll_table(tables:Dummy[List[RollTable]], data:List[RollTable]) -> No
     tables.value.clear()
     tables.value.extend(data)
     tables.dirty = True
+
 def update_roll_tables(user:int, campaign:int, data:RollTables) -> None:
     tables = get_roll_tables(campaign)
     update_roll_table(get_roll_tables(campaign), data[0])

@@ -8,7 +8,7 @@ include $(DEPFILES)
 TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError
 TSFILES:= toplevel.ts chat.ts canvas.ts notes.ts utils.ts Generated/messages.ts \
 	  interp.ts storage.ts Generated/nodes.ts dialogs.ts \
-	  Generated/dialogdefs.ts subwindows.ts Generated/subwindowdefs.ts macros.ts
+	  Generated/dialogdefs.ts subwindows.ts Generated/subwindowdefs.ts macros.ts internal_listeners.ts
 ifneq ($(LOCALTSC),)
 Generated/combined.js: $(TSFILES) | Generated
 	$(LOCALTSC) $^ $(TSCFLAGS) --outFile $@

@@ -21,6 +21,7 @@ enum FromClient: int
     RETRIEVE_ROLL_TABLES = 5
     UPDATE_ROLL_TABLES = 6
     UPLOAD_ROLL_TABLE = 7
+    GET_ROLL_TABLE_NAMES = 30
     # Canvas Messages
     # ---------------
     CANVAS_CREATE_OBJECTS = 8
@@ -78,6 +79,7 @@ enum ToClient: int
     # -------------
     NEW_ROLL_TABLE = 6
     ROLL_TABLES = 26
+    ROLL_TABLE_NAMES = 34
     # Canvas
     # ------
     CANVAS_INITIALIZE_MAPS = 7
@@ -817,6 +819,10 @@ struct ChatHistory: array
     userid = int
     msgs = [ChatMsg]
 
+struct RollTableNames: dict
+    shared = [str]
+    private = [str]
+
 message ToClientMsg: ToClient
     SESSION_ID = int
     TOKEN_PATHS = [str]
@@ -849,6 +855,7 @@ message ToClientMsg: ToClient
     NOTE_DIRTY = int
     NOTE_DELETE = int
     ROLL_TABLES = RollTables
+    ROLL_TABLE_NAMES = RollTableNames
     GOT_NOTE = Note
     NEW_NOTE_RESPONSE = int
 
@@ -882,6 +889,7 @@ message FromClientMsg: FromClient
     DELETE_NOTE_REQUEST = int
     DEBUG = str
     STORE_LOCAL_SETTING = LocalSetting
+    GET_ROLL_TABLE_NAMES = void
 
 enum DarkMode: int
     SYSTEM = 0
