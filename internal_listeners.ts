@@ -1,0 +1,33 @@
+// This file implements a listener abstraction where different pieces of code
+// can listen (subscribe) to notifications about a change.  This is not
+// comprehensive - new events will be added when there is more than one place
+// that needs to be updated. 
+//
+// This is only necessary as the DOM is a horrible ui abstraction, so you need
+// to maintain a stateful tree of elements for your interface instead of just
+// having an easy-to-understand immediate-mode style updating of the UI. Note
+// that the shared canvas does not at all have this problem -- we just redraw
+// it from scratch when something changes and it's not a big deal.
+
+const enum ListenEvent {
+    // Rolltables
+    ROLLTABLES_RENAMED = 0,
+    // Got new tables from the server. Renamed will also be sent afterwards.
+    ROLLTABLES_RECEIVED = 1,
+    // Macros
+    MACROS_RENAMED = 2,
+}
+const enum LISTEN_EVENT {LARGEST = 2};
+
+const INTERNAL_LISTENERS: Map<ListenEvent, Array<()=>void>> = new Map();
+for(let i = 0; i <= LISTEN_EVENT.LARGEST; i++)
+    INTERNAL_LISTENERS.set(i, []);
+
+function listen_for(e:ListenEvent, cb:()=>void){
+    INTERNAL_LISTENERS.get(e)!.push(cb);
+}
+
+function signal_for(e:ListenEvent){
+    for(let cb of INTERNAL_LISTENERS.get(e)!)
+        cb();
+}
