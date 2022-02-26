@@ -17,17 +17,13 @@ const enum ListenEvent {
     // Macros changed names.
     MACROS_RENAMED = 2,
 }
-const enum LISTEN_EVENT {LARGEST = 2}
-
-const INTERNAL_LISTENERS: Map<ListenEvent, Array<()=>void>> = new Map();
-for(let i = 0; i <= LISTEN_EVENT.LARGEST; i++)
-    INTERNAL_LISTENERS.set(i, []);
+const INTERNAL_LISTENERS: Array<Array<()=>void>> = [[], [], []];
 
 function listen_for(e:ListenEvent, cb:()=>void){
-    INTERNAL_LISTENERS.get(e)!.push(cb);
+    INTERNAL_LISTENERS[e].push(cb);
 }
 
 function signal_for(e:ListenEvent){
-    for(let cb of INTERNAL_LISTENERS.get(e)!)
+    for(let cb of INTERNAL_LISTENERS[e])
         cb();
 }

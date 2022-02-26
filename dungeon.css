@@ -540,8 +540,14 @@ html, body {
   grid-row: 2/4;
   grid-column: 1;
   width: 10.2em;
-  overflow-y: scroll;
   border-right: 1px solid #ccc;
+  display: grid;
+  grid-template-rows: max-content auto;
+  grid-template-columns: auto;
+  gap: 4px;
+}
+#privateroll-tables-shared, #privateroll-tables-private, #privateroll-macros {
+  overflow-y: scroll;
 }
 #chat-history {
   overflow-y: scroll;
