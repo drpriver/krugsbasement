@@ -39,6 +39,7 @@ const MACROS: Array<Macro> = (function(){
     }
     return result;
 }());
+signal_for(ListenEvent.MACROS_RENAMED);
 const MACROGROUPS: Map<string, HTMLDivElement> = new Map();
 
 function save_macros(){
@@ -51,6 +52,7 @@ function save_macros(){
             id: m.id,
         });
     }
+    signal_for(ListenEvent.MACROS_RENAMED);
     sync_local(StorageCategory.MACROS, 'macros', to_save);
 }
 

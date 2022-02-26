@@ -715,6 +715,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
     function submit_tables(){
         EMIT(FromClient.UPDATE_ROLL_TABLES, [ROLLTABLES.shared, ROLLTABLES.private]);
+        signal_for(ListenEvent.ROLLTABLES_RENAMED);
     }
     function take_paste(text:string){
         if(current_table == undefined) return;
@@ -811,15 +812,25 @@ document.addEventListener('DOMContentLoaded', function(){
     let hist = setup_chat(chat, preproc_func);
     privateroll.show_handler = function(){
         EMIT(FromClient.GET_ROLL_TABLE_NAMES);
+        setup_macros();
         chat.focus();
     };
+    let macs = by_id('privateroll-macros');
+    make_tab_view(
+        [
+            by_id('privateroll-macros-tab'),
+            by_id('privateroll-tables-tab'),
+            by_id('privateroll-mytables-tab'),
+        ],
+        [
+            macs,
+            shtbs,
+            prtbs,
+        ]
+    );
     listen_for(ListenEvent.ROLLTABLES_RENAMED, function(){
         shtbs.innerHTML = '';
         prtbs.innerHTML = '';
-        if(ROLLTABLES.shared.length)
-            elem_parent_text(shtbs, 'h2', 'Tables');
-        if(ROLLTABLES.private.length)
-            elem_parent_text(prtbs, 'h2', 'My Tables');
         for(let tb of ROLLTABLES.shared){
             let name = tb.name;
             let b = elem_parent_text(shtbs, 'button', name);
@@ -835,6 +846,19 @@ document.addEventListener('DOMContentLoaded', function(){
             });
         }
     });
+    function setup_macros(){
+        macs.innerHTML = '';
+        for(let m of MACROS){
+            let macid = m.id;
+            let b = elem_parent_text(macs, 'button', m.name);
+            b.addEventListener('click', function(){
+                let macro = MACROS[macid];
+                if(!macro) return;
+                preproc_func(macro.body);
+            });
+        }
+    }
+    listen_for(ListenEvent.MACROS_RENAMED, setup_macros);
     ONRECV(ToClient.USER_LIST, function(users:Array<UserListItem>){
         lv.clear();
         log.innerHTML = '';

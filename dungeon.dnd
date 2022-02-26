@@ -136,6 +136,11 @@ David20::title #hide
       </div>
       <textarea spellcheck="false" id="privateroll-input" rows="4"></textarea>
       <div id="privateroll-tables">
+        <div id="privateroll-tables-tabs">
+          <div id="privateroll-macros-tab">Macros</div>
+          <div id="privateroll-tables-tab">Tables</div>
+          <div id="privateroll-mytables-tab">MyTables</div>
+        </div>
         <div id="privateroll-tables-shared">
         </div>
         <div id="privateroll-tables-private">

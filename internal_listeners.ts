@@ -10,14 +10,14 @@
 // it from scratch when something changes and it's not a big deal.
 
 const enum ListenEvent {
-    // Rolltables
+    // Rolltables changed names.
     ROLLTABLES_RENAMED = 0,
     // Got new tables from the server. Renamed will also be sent afterwards.
     ROLLTABLES_RECEIVED = 1,
-    // Macros
+    // Macros changed names.
     MACROS_RENAMED = 2,
 }
-const enum LISTEN_EVENT {LARGEST = 2};
+const enum LISTEN_EVENT {LARGEST = 2}
 
 const INTERNAL_LISTENERS: Map<ListenEvent, Array<()=>void>> = new Map();
 for(let i = 0; i <= LISTEN_EVENT.LARGEST; i++)

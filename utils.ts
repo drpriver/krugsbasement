@@ -672,12 +672,12 @@ function make_tab_view(tabs:Array<HTMLElement>, views:Array<HTMLElement>):TabVie
         change_tab:function(idx:number){
             if(idx >= tv.tabs.length) return;
             if(idx == tv.active_tab_idx) return;
-            tv.tabs[tv.active_tab_idx].classList.remove('active-tab');
+            tv.tabs[tv.active_tab_idx].classList.remove('active');
             tv.views[tv.active_tab_idx].style.display = 'none';
             if(tv.on_change_handler)
                 tv.on_change_handler(tv.active_tab_idx, idx);
             tv.active_tab_idx = idx;
-            tv.tabs[tv.active_tab_idx].classList.add('active-tab');
+            tv.tabs[tv.active_tab_idx].classList.add('active');
             tv.views[tv.active_tab_idx].style.display = 'initial';
         },
     };
@@ -689,6 +689,7 @@ function make_tab_view(tabs:Array<HTMLElement>, views:Array<HTMLElement>):TabVie
         });
         views[i].style.display = 'none';
     }
-    tv.change_tab(0);
+    views[0].style.display = 'initial';
+    tabs[0].classList.add('active');
     return tv;
 }
