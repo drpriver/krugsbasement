@@ -506,7 +506,7 @@ html, body {
   border-left: 1px solid black;
   overflow-wrap: break-word;
   z-index: 1;
-  grid-template-rows: max-content auto max-content max-content max-content;
+  grid-template-rows: max-content max-content auto max-content max-content max-content;
   grid-template-columns: 17em;
   /* This thing is the bane of my existence on windows*/
   /* Just overflow: hidden it */
@@ -558,6 +558,13 @@ html, body {
   overflow-y: scroll;
 }
 
+#notifications {
+  display: grid;
+  grid-template-columns: auto;
+  max-height: 4em;
+  overflow-y: auto;
+  background-color: rgba(200, 80, 80, 80);
+}
 #chat-history div, #dice-history div, #privateroll-history div {
   border: 1px dotted gray;
   margin:-1px 0 0 -1px;

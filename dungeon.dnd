@@ -589,6 +589,7 @@ David20::title #hide
     ::div.three-buttons
       ::raw
         <button id="privateroll-button">Private Rolls</button>
+  ::div #id(notifications)
   ::div.log #id(chat-history)
   ::div #id(macros)
     ::div #id(macro-tabs)

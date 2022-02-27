@@ -764,6 +764,13 @@ document.addEventListener('DOMContentLoaded', function(){
     let log = by_id('privateroll-history');
     let chats: Map<number, Array<ChatMsg>> = new Map();
     let histories: Map<number, Array<string>> = new Map();
+    // NOTE: for now this is the only producer/consumer of notifications, so
+    // all the logic is localized here. If I come up with another reasonable
+    // use case for notifications, I should move it out and come up with an
+    // interface for it that allows removing several notifications at once (not
+    // just your notification).
+    let notifications: Array<HTMLElement> = [];
+
     function preproc_func(text:string){
         let commands = preprocess_command(text, EvaluateFlags.NONE);
         let to_send: ChatDirectCommandMessage = {chatname:SETTINGS.chat.name, to:lv.active?lv.active:SETTINGS.userid, commands:commands};
@@ -797,11 +804,34 @@ document.addEventListener('DOMContentLoaded', function(){
                     prev.push(m);
             }
         }
-        if(lv.active !== user){
+        if(lv.active !== user || privateroll.hidden){
             if(user !== SETTINGS.userid){
                 let name = USERS.get(user);
                 if(!name) name = "anon";
-                lv.rename(`${name}\u00A0(*)`, user);
+                lv.rename(`(*)\u00A0${name}`, user);
+            }
+            if(privateroll.hidden){
+                let noti = by_id('notifications');
+                let name = USERS.get(user);
+                if(!name) name = "anon";
+                let text = `${name} has messaged you.`;
+                let should_add = true;
+                for(let e of notifications){
+                    if(e.firstChild!.textContent == text){
+                        should_add = false;
+                        break;
+                    }
+                }
+                if(should_add){
+                    let d = elem_with_parent(noti, 'div');
+                    let i_el = elem_parent_text(d, 'i', text);
+                    i_el.onclick = function(){
+                        lv.make_active(user);
+                        privateroll.show();
+                    }
+                    i_el.style.cursor = 'pointer';
+                    notifications.push(d);
+                }
             }
             return;
         }
@@ -812,7 +842,11 @@ document.addEventListener('DOMContentLoaded', function(){
     let hist = setup_chat(chat, preproc_func);
     privateroll.show_handler = function(){
         EMIT(FromClient.GET_ROLL_TABLE_NAMES);
+        for(let e of notifications)
+            e.remove()
+        notifications = [];
         setup_macros();
+        lv.make_active(lv.active);
         chat.focus();
     };
     let macs = by_id('privateroll-macros');
