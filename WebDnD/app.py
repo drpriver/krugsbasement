@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 import logging
 from typing import List, Dict, Optional, Set, Union, Any
@@ -16,7 +17,7 @@ from . import canvas
 from . import notes
 from .persist import Persister, RepeatTimer, AppKVPersister
 from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames
-from .validator import validate, register_list
+from .validator import register_list, validated
 from . import db
 from .users import User
 from .forms import LoginForm, RegisterForm, CampaignForm
@@ -223,10 +224,8 @@ def post_settings() -> object:
     return {}
 
 @socketio.on(FromClient.STORE_LOCAL_SETTING)
+@validated
 def store_campaign_setting(data: LocalSetting) -> None:
-    if not current_user.is_authenticated:
-        return
-    data = validate('LocalSetting', data)
     campaign = get_campaign(request)
     userid = current_user.userid
     if campaign is None:
@@ -271,16 +270,18 @@ def home() -> object:
 
 
 @socketio.on(FromClient.CHAT_STRUCTURED_INPUT)
+@validated
 def chat_structured_input(data:ChatCommandMessage)->None:
-    data = validate('ChatCommandMessage', data)
+    assert current_user.is_authenticated
     campaign = get_campaign(request)
     responses = chat.handle_structured_input(current_user.userid, campaign, data['chatname'], data['commands'], private=False)
     if responses:
         emit(ToClient.CHAT_STRUCTURED_MSG, responses, broadcast=True, to=str(campaign))
 
 @socketio.on(FromClient.CHAT_TEST_STRUCTURED_INPUT)
+@validated
 def chat_test_structured_input(data:ChatCommandMessage)->None:
-    data = validate('ChatCommandMessage', data)
+    assert current_user.is_authenticated
     campaign = get_campaign(request)
     if not data:
         return
@@ -288,8 +289,9 @@ def chat_test_structured_input(data:ChatCommandMessage)->None:
     emit(ToClient.CHAT_TEST_STRUCTURED_RESPONSE, responses, to=str(campaign))
 
 @socketio.on(FromClient.CHAT_DM)
+@validated
 def chat_dm(data:ChatDirectCommandMessage) -> None:
-    data = validate('ChatDirectCommandMessage', data)
+    assert current_user.is_authenticated
     dlog('chat_dm: %s', data);
     campaign = get_campaign(request)
     if not data:
@@ -354,6 +356,7 @@ def handle_disconnect() -> None:
 LEGACY_CAMPAIGNS = {'horror_on_the_moors':3, 'greenskins1':5}
 
 @socketio.on(FromClient.JOIN)
+@validated
 def join(room:str) -> None:
     campaign  = room.split('/')[-1] if '/' in room else ''
     try:
@@ -395,38 +398,38 @@ def post_join() -> None:
     emit(ToClient.USER_LIST, userlist)
 
 @socketio.on(FromClient.CANVAS_CREATE_OBJECTS)
+@validated
 def handle_canvas_create(data:CreateObjectMessage) -> None:
-    data = validate('CreateObjectMessage', data)
     campaign = get_campaign(request)
     response = canvas.handle_create(campaign, data)
     if response:
         emit(ToClient.CANVAS_CREATE_OBJECTS, response, broadcast=True, include_self=False, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_DELETE)
+@validated
 def handle_canvas_delete(data:CanvasDeleteMessage) -> None:
-    data = validate('CanvasDeleteMessage', data)
     campaign = get_campaign(request)
     response = canvas.handle_delete(campaign, data)
     if response:
         emit(ToClient.CANVAS_DELETE, response, broadcast=True, include_self=False, to=str(campaign)) # type: ignore
 
 @socketio.on(FromClient.CANVAS_UPDATE)
+@validated
 def handle_canvas_update(data:CanvasUpdateMessage) -> None:
-    data = validate('CanvasUpdateMessage', data)
     campaign = get_campaign(request)
     response = canvas.handle_update(campaign, data)
     if response:
         emit(ToClient.CANVAS_UPDATE, response, broadcast=True, include_self=False, to=str(campaign)) # type: ignore
 
 @socketio.on(FromClient.CANVAS_GATHER)
+@validated
 def canvas_gather(where:GatherMessage) -> None:
-    where = validate('GatherMessage', where)
     campaign = get_campaign(request)
     emit(ToClient.CANVAS_GATHER, where, broadcast=True, to=str(campaign)) # type: ignore
 
 @socketio.on(FromClient.CANVAS_BATTLE)
+@validated
 def canvas_battle(where:GatherMessage) -> None:
-    where = validate('GatherMessage', where)
     campaign = get_campaign(request)
     emit(ToClient.CANVAS_BATTLE, where, broadcast=True, to=str(campaign)) # type: ignore
 
@@ -437,28 +440,28 @@ def canvas_dungeon_mode() -> None:
 
 
 @socketio.on(FromClient.CANVAS_CREATE_MAP)
+@validated
 def canvas_create_map(data:int) -> None:
-    assert isinstance(data, int)
     campaign = get_campaign(request)
     canvas.create_map(campaign, data)
     emit(ToClient.CANVAS_CREATE_MAP, data, broadcast=True, include_self=False, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_PING)
+@validated
 def canvas_ping(data:PingMessage) -> None:
-    data = validate('PingMessage', data)
     campaign = get_campaign(request)
     emit(ToClient.CANVAS_PING, data, broadcast=True, include_self=True, to=str(campaign)) # type: ignore
 
 @socketio.on(FromClient.CANVAS_NAME_MAP)
+@validated
 def canvas_name_map(data:NameMapMessage) -> None:
-    data = validate('NameMapMessage', data)
     campaign = get_campaign(request)
     canvas.name_map(campaign, **data)
     emit(ToClient.CANVAS_NAME_MAP, data, broadcast=True, include_self=False, to=str(campaign)) # type: ignore
 
 @socketio.on(FromClient.CANVAS_NEW_MAP_REQUEST)
+@validated
 def new_map_request(data:NewMapRequest) -> None:
-    data = validate('NewMapRequest', data)
     map_name:str = data['name']
     grid_type = data['grid_type']
     flags = data['flags']
@@ -471,8 +474,8 @@ def new_map_request(data:NewMapRequest) -> None:
     emit(ToClient.CANVAS_GRID_NUMBERED, {'map_id':new_map_id, 'numbered':flags}, broadcast=True, include_self=True, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_GRID_TYPE)
+@validated
 def change_grid_type(data:CanvasGridTypeMsg) -> None:
-    data = validate('CanvasGridTypeMsg', data)
     map_id = data['map_id']
     gt = data['grid_type']
     campaign = get_campaign(request)
@@ -481,8 +484,8 @@ def change_grid_type(data:CanvasGridTypeMsg) -> None:
     emit(ToClient.CANVAS_GRID_TYPE, {'map_id':map_id, 'grid_type':gt}, broadcast=True, include_self=True, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_GRID_NUMBERED)
+@validated
 def change_grid_numbered(data:CanvasGridNumberedMsg) -> None:
-    data = validate('CanvasGridNumberedMsg', data)
     map_id = data['map_id']
     numbered = data['numbered']
     campaign = get_campaign(request)
@@ -491,8 +494,8 @@ def change_grid_numbered(data:CanvasGridNumberedMsg) -> None:
 
 
 @socketio.on(FromClient.CANVAS_DELETE_MAP_REQUEST)
+@validated
 def delete_map_request(map_id:int) -> None:
-    assert isinstance(map_id, int)
     campaign = get_campaign(request)
     logging.info('delete map: %r for campaign %r', map_id, campaign)
     was_deleted = canvas.delete_map(campaign, map_id)
@@ -500,8 +503,8 @@ def delete_map_request(map_id:int) -> None:
         emit(ToClient.CANVAS_DELETE_MAP, map_id, broadcast=True, include_self=True, to=str(campaign))
 
 @socketio.on(FromClient.GET_NOTE)
+@validated
 def note_get(note_id: int) -> None:
-    assert isinstance(note_id, int)
     campaign = get_campaign(request)
     note = notes.get_note(campaign, note_id)
     if note is not None:
@@ -518,8 +521,8 @@ def new_note_request() -> None:
     # return note_id
 
 @socketio.on(FromClient.NOTE_UPDATE_TITLE)
+@validated
 def note_update_title(data:NoteUpdateTitle) -> None:
-    data = validate('NoteUpdateTitle', data)
     campaign = get_campaign(request)
     notes.note_update_title(campaign, data['note_id'], data['title'])
     dlog('Updating note title. Note: %r. Room: %r. Title: %r', data['note_id'], campaign, data['title'])
@@ -527,16 +530,16 @@ def note_update_title(data:NoteUpdateTitle) -> None:
     # emit(ToClient.NOTE_DIRTY, data['note_id'], broadcast=True, include_self=False, to=str(campaign))
 
 @socketio.on(FromClient.NOTE_UPDATE_BODY)
+@validated
 def note_update_body(data:NoteUpdateBody) -> None:
-    data = validate('NoteUpdateBody', data)
     campaign = get_campaign(request)
     dlog('Updating note body. Note: %r. Room: %r', data['note_id'], campaign)
     notes.note_update_body(campaign, data['note_id'], data['body'])
     emit(ToClient.NOTE_DIRTY, data['note_id'], broadcast=True, include_self=False, to=str(campaign))
 
 @socketio.on(FromClient.DELETE_NOTE_REQUEST)
+@validated
 def note_delete(note_id:int) -> None:
-    assert isinstance(note_id, int)
     campaign = get_campaign(request)
     logging.info('delete note: %r for campaign %r', note_id, campaign)
     notes.note_delete(campaign, note_id)
@@ -563,8 +566,8 @@ def get_roll_table_names() -> None:
     emit(ToClient.ROLL_TABLE_NAMES, names)
 
 @socketio.on(FromClient.UPDATE_ROLL_TABLES)
+@validated
 def update_roll_tables(tables:RollTables) -> None:
-    tables = validate('RollTables', tables)
     campaign = get_campaign(request)
     logging.info('Setting roll tables for campaign %r', campaign)
     # logging.info('%r', tables);
@@ -592,11 +595,11 @@ def get_html(info:db.CampaignInfo) -> str:
                 update_vals(orig[k], to_update[k])
             else:
                 orig[k] = to_update[k]
-    if current_user.is_authenticated:
-        update_vals(vals, settings.get_global(current_user.userid))
-        update_vals(vals, settings.get_local(current_user.userid, info.id))
-        vals['userid'] = current_user.userid
-        dlog('get settings: %r', vals)
+    assert current_user.is_authenticated
+    update_vals(vals, settings.get_global(current_user.userid))
+    update_vals(vals, settings.get_local(current_user.userid, info.id))
+    vals['userid'] = current_user.userid
+    dlog('get settings: %r', vals)
     result = SCREEN
     title = info.name.replace('-', ' ').replace('_', ' ').title()
     title = markupsafe.escape(title)
@@ -608,9 +611,6 @@ def get_html(info:db.CampaignInfo) -> str:
 @app.route('/')
 def index() -> str:
     return flask.redirect('/home')
-    info = db.campaign_info(1)
-    assert info
-    return get_html(info)
 
 @app.route('/campaigns/<campaign>')
 @login_required

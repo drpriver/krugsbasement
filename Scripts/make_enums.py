@@ -385,6 +385,19 @@ def make_python(filename:str, infos: List[Info]) -> None:
     p('from WebDnD.messages import *')
     # p('def emit(event:Union[str,int], *args:JSType, **kwargs:JSType) -> None:
     # p('    ...
+    for info in infos:
+        if not isinstance(info, MsgInfo): continue
+        if info.name != 'FromClientMsg': continue
+        for it in info.items:
+            if isinstance(it, Comment): continue
+            k, v, _, _ = it
+            if v == 'void':
+                c = 'Callable[[Callable[[], None]], Callable[[], None]]'
+            else:
+                v = convert_type(v)
+                c = f'Callable[[Callable[[{v}], None]], Callable[[{v}], None]]'
+            p(f'{k}_T =', c)
+    p('')
     p('class SocketIO:')
     p('    server: Any')
     p('    def run(self, *args:Any, **kwargs:Any) -> Any:')
@@ -393,26 +406,17 @@ def make_python(filename:str, infos: List[Info]) -> None:
     p('        ...')
     for s in ['connect', 'disconnect']:
         p(' '*3, '@overload')
-        p(' '*3, f'def on(self, key:Literal[{s!r}]) \\')
-        p(' '*7, '-> Callable:')
+        p(' '*3, f'def on(self, key:Literal[{s!r}]) ->Callable[[Callable[[], None]], Callable[[], None]]:')
         p(' '*7, '...')
-        p('')
     for info in infos:
         if not isinstance(info, MsgInfo): continue
         if info.name != 'FromClientMsg': continue
         for it in info.items:
             if isinstance(it, Comment): continue
-            k, v, _, _ = it
+            k, _, _, _ = it
             p(' '*3, '@overload')
-            if v == 'void':
-                c = 'Callable[[Callable[[], None]], None]'
-            else:
-                v = convert_type(v)
-                c = f'Callable[[Callable[[{v}], None]], None]'
-            p(' '*3,  f'def on(self, key:Literal[FromClient.{k}]) \\')
-            p(' '*7, f'-> {c}:')
+            p(' '*3,  f'def on(self, key:Literal[FromClient.{k}]) -> {k}_T:')
             p(' '*7, '...')
-            p('')
     p('')
     p('def join_room(room:str, sid:Optional[str]=None, namespace:Optional[str]=None)->None: ...')
     p('def disconnect() -> None: ...')
@@ -428,7 +432,7 @@ def make_python(filename:str, infos: List[Info]) -> None:
             else:
                 p(f'def emit(event:Literal[ToClient.{k}], arg:{convert_type(v)}, **kwargs:Any) -> None:')
             p(' '*3, '...')
-            p('')
+    p('')
     fp.flush()
     fp.close()
 

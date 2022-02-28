@@ -1,6 +1,8 @@
 from typing import NamedTuple, Tuple, Callable, Any, List, Dict, TypeVar
 T = TypeVar('T')
+F = TypeVar('F')
 import enum
+import functools
 
 class DictStructTypeInfo(NamedTuple):
     items: List[Tuple[str, Callable]]
@@ -111,3 +113,14 @@ def register_list(arrayname:str, typename:str) -> None:
 
 def validate(name:str, obj:T) -> T:
     return TYPES[name](obj)
+
+def validated(func:F) -> F:
+    @functools.wraps(func) # type: ignore
+    def wrapped(*args, **kwargs): # type: ignore
+        kwargs.update(dict(zip(func.__code__.co_varnames, args)))
+        for k, t in func.__annotations__.items():
+            if k == 'return': continue
+            kwargs[k] = validate(t, kwargs[k])
+        return func(**kwargs)
+
+    return wrapped # type: ignore
