@@ -3798,6 +3798,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
             dialog.f['link-dungeon'].innerHTML = '<option value="-1">No Link</option>'+by_id('current-map-name').innerHTML;
             dialog.f['link-dungeon'].value = ""+obj.map_id;
             dialog.show_handler = function(){
+                dialog.f.text.value = obj.text;
                 dialog.f.text.focus();
             };
             dialog.ok_handler = function(){
@@ -3805,7 +3806,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 if(!text) return;
                 let alignment = radio_to_value([l,c,r], [TEXTALIGNMENT.LEFT, TEXTALIGNMENT.CENTER, TEXTALIGNMENT.RIGHT]);
                 let textsize = (+dialog.f.size.value) | 0;
-                if(textsize < 8) textsize = 8;
+                if(textsize < 4) textsize = 4;
                 if(textsize > 72) textsize = 72;
                 let map_id = +dialog.f['link-dungeon'].value;
                 // This is annoying otherwise
@@ -6758,7 +6759,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     let alignment = radio_to_value([l, c, r], [TEXTALIGNMENT.LEFT, TEXTALIGNMENT.CENTER, TEXTALIGNMENT.RIGHT]);
 
                     let textsize = (+dialog.f.size.value) | 0;
-                    if(textsize < 8) textsize = 8;
+                    if(textsize < 4) textsize = 4;
                     if(textsize > 72) textsize = 72;
                     let map_id = +dialog.f['link-dungeon'].value;
                     // This is annoying otherwise
