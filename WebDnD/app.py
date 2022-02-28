@@ -482,7 +482,7 @@ def change_grid_type(data:CanvasGridTypeMsg) -> None:
 
 @socketio.on(FromClient.CANVAS_GRID_NUMBERED)
 def change_grid_numbered(data:CanvasGridNumberedMsg) -> None:
-    data = validate('CanvaGridNumberedMsg', data)
+    data = validate('CanvasGridNumberedMsg', data)
     map_id = data['map_id']
     numbered = data['numbered']
     campaign = get_campaign(request)
