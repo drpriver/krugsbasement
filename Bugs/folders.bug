@@ -1,4 +1,5 @@
 updated: 2022-01-04T00:04:57.549187
+updated: 2022-02-28T09:17:11Z
 bugmagic^^^^
 Summary::md.summary
   Maps will get out of hand. Probably want to implement folders so they can be organized.
@@ -8,3 +9,5 @@ Update::md.update
 
 Updated Jan 04, 2022, 12:04AM::md.update
   I probably just want to use the double list view abstraction.
+Updated Feb 28, 2022, 04:17AM::md.update
+  Don’t really want to clutter the UI too much, obvious solution is to put list view on the lefthand side.

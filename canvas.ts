@@ -5609,8 +5609,10 @@ function make_color_menu(e:MouseEvent, colorpicker: HTMLInputElement, colors:Arr
         return;
     has_tri_menu = true;
     const trimenu = document.createElement('section');
+    const container = by_id('tool-container');
     trimenu.classList.add('menu');
     trimenu.style.left = e.clientX + 'px';
+    trimenu.style.zIndex = container.style.zIndex;
     const window_height = window.innerHeight;
     trimenu.style.bottom = (window_height - e.clientY)+'px'
     function remove_tri_menu(e?:MouseEvent){
