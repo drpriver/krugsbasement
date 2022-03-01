@@ -16,7 +16,7 @@ from . import chat
 from . import canvas
 from . import notes
 from .persist import Persister, RepeatTimer, AppKVPersister
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api
 from .validator import register_list, validated
 from . import db
 from .users import User
@@ -337,6 +337,7 @@ TOKEN_PATH_LIST = get_token_paths()
 @socketio.on('connect')
 def handle_connection() -> None:
     session_id.value += 1
+    emit(ToClient.API_VERSION, Api.VERSION)
     emit(ToClient.SESSION_ID, session_id.value)
     emit(ToClient.TOKEN_PATHS, TOKEN_PATH_LIST)
 

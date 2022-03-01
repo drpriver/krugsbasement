@@ -103,6 +103,8 @@ enum ToClient: int
     NOTE_DELETE = 24
     GOT_NOTE = 27
     NEW_NOTE_RESPONSE = 28
+    # Init?
+    API_VERSION = 35
 
 
 # ChatCommand
@@ -823,6 +825,9 @@ struct RollTableNames: dict
     shared = [str]
     private = [str]
 
+enum Api: int
+    VERSION = 13
+
 message ToClientMsg: ToClient
     SESSION_ID = int
     TOKEN_PATHS = [str]
@@ -858,6 +863,7 @@ message ToClientMsg: ToClient
     ROLL_TABLE_NAMES = RollTableNames
     GOT_NOTE = Note
     NEW_NOTE_RESPONSE = int
+    API_VERSION = int
 
 message FromClientMsg: FromClient
     JOIN = str

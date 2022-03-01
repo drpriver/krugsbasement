@@ -1,6 +1,7 @@
 import os
 import textwrap
 from typing import List, Tuple, Union, Optional, Set, NamedTuple
+import hashlib
 Comment = str
 TypeName = str
 class CommentInfo:
@@ -154,12 +155,20 @@ class MsgInfo:
 Info = Union[EnumInfo, StructInfo, UnionInfo , CommentInfo, MsgInfo]
 
 def get_values(filename:str) -> List[Info]:
+    with open(filename, 'rb') as bfp:
+        b = bfp.read()
+    sh = hashlib.sha256()
+    sh.update(b)
+    ver = int.from_bytes(sh.digest()[:4], 'little', signed=False)
+
     fp = open(filename, encoding='utf-8')
     result = []
     current_info: Info = None # type: ignore
     result = []
     lineno = 0
     for line in fp:
+        if 'VERSION = 13' in line:
+            line = line.replace('13', str(ver))
         lineno += 1
         line = line.rstrip()
         if not line:
