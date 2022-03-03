@@ -84,17 +84,27 @@ def write_files(tags:List[TagLoc]) -> None:
     funcs = io.StringIO()
     variables = io.StringIO()
     types = io.StringIO()
+    shenum = io.StringIO()
+    shtypes = io.StringIO()
     buffers = {
         TagType.FUNC: funcs,
         TagType.ENUM: types,
         TagType.GLOBAL: variables,
         TagType.TYPE: types,
-        }
+    }
+    shared_buffers = {
+        TagType.ENUM: shenum,
+        TagType.TYPE: shtypes
+    }
     for tag in tags:
         format_tag(tag, tag_s)
         buff = buffers[tag.type]
         buff.write(' ')
         buff.write(tag.ident)
+        if tag.filename.endswith('.shared'):
+            buff = shared_buffers[tag.type]
+            buff.write(' ')
+            buff.write(tag.ident)
     with open('tags', 'w') as fp:
         fp.write('!_TAG_FILE_FORMAT\t2\n')
         fp.write('!_TAG_FILE_SORTED\t1\n')
@@ -117,6 +127,13 @@ def write_files(tags:List[TagLoc]) -> None:
         fp.write(variables.getvalue())
         fp.write('\n')
         fp.write('source shared.vim')
+        fp.write('\n')
+        fp.write('au BufEnter *.shared syn keyword Type')
+        fp.write(shtypes.getvalue())
+        fp.write('\n')
+        fp.write('au BufEnter *.shared syn keyword Enum')
+        fp.write(shenum.getvalue())
+        fp.write('\n')
 
 if __name__ == '__main__':
     write_files(get_all_tags())

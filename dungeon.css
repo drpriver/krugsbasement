@@ -257,6 +257,7 @@ span.color-picker-dropdown {
   top: 0px;
   left: 20%;
   max-width: 60%;
+  z-index: 999999;
 }
 #help-menu tbody tr td:nth-child(1){
   font-weight: bold;

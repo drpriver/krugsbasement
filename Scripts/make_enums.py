@@ -772,7 +772,7 @@ def make_tags(infos:List[Info]) -> List['TagLoc']:
                     continue
                 memb = item[0]
                 result.append(TagLoc(
-                    TagType.TYPE,
+                    TagType.ENUM,
                     f'/{memb}/',
                     memb,
                     info.filename,
