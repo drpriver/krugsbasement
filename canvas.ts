@@ -169,9 +169,9 @@ const SORTORDER = [
        4, // FILLED_RECT
        3, // ELLIPSE
        1, // IMAGE
-       5, // TEXT
-       5, // EZ_TOKEN
-       5, // IMG_TOKEN
+       6, // TEXT
+       7, // EZ_TOKEN
+       7, // IMG_TOKEN
        4, // DOOR
        4, // STAIRS
      100, // MEASURE
