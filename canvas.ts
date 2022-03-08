@@ -6371,7 +6371,8 @@ document.addEventListener('DOMContentLoaded', function(){
                 let [clicked_x, clicked_y] = event_to_coord(e, view);
                 {
                     let o = obj_at(view, clicked_x, clicked_y, select_type);
-                    if(o && o.type == CANVASTYPE.TEXT && o.map_id >= 0){
+                    const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;
+                    if(!modified && o && o.type == CANVASTYPE.TEXT && o.map_id >= 0){
                         change_map(o.map_id, false);
                         view.selected.clear();
                         canvas.style.cursor = 'initial';
