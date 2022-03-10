@@ -256,11 +256,11 @@ document.addEventListener('DOMContentLoaded', function(){
                                let t = document.getElementById(target);
                                if(t){
                                    t.scrollIntoView();
-                                   e.preventDefault();
-                                   e.stopPropagation();
-                                   return false;
                                }
                            }
+                           e.preventDefault();
+                           e.stopPropagation();
+                           return false;
                            a.setAttribute('target', '_blank');
                         };
                     }
