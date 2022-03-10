@@ -248,10 +248,10 @@ def home() -> object:
     campaigns = []
     ownedcampaigns = []
     if current_user.is_authenticated:
-        campaigns =  db.get_users_campaigns(current_user.userid)
+        campaigns = [(a, markupsafe.escape(b)) for a, b in db.get_users_campaigns(current_user.userid)]
         ownedcampaigns = db.get_owned_campaigns(current_user.userid)
         # javascript can't handle large integers, so convert to string
-        ownedcampaigns = [(a, b, str(c) if c is not None else '') for a, b, c in ownedcampaigns]
+        ownedcampaigns = [(a, markupsafe.escape(b), str(c) if c is not None else '') for a, b, c in ownedcampaigns]
     global HOME_d
     if appconfig.DEV:
         HOME_d = r('home.dnd')
