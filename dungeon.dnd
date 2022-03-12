@@ -368,6 +368,21 @@ David20::title #hide
     </table>
     ${div('conditions')}
     `);
+  begin('submap');
+  make(`
+    ${title('Submap')}
+    <table class="input-container">
+      <tr>
+        <td>${label('sm-title', 'Title:')}
+        <td>${textbox('sm-title')}
+      </tr>
+      <tr>
+      </tr>
+      <tr>
+        <td>${label('minimize', 'Minimize:')}
+        <td>${checkbox('minimize')}
+      </tr>
+    </table>`);
   begin('macro-deletion');
   make(`
     ${title('Delete Macro')}
@@ -527,6 +542,8 @@ David20::title #hide
       ☰
     ::div.tool #id(measure-tool)
       <b>M</b>easure
+    ::div.tool #id(submap-tool)
+      Submap
   ::div #id(stuff)
     ::div #id(colors)
       ::raw

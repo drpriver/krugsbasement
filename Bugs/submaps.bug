@@ -1,0 +1,40 @@
+created: 2022-03-10T18:33:13Z
+updated: 2022-03-11T01:23:18Z
+updated: 2022-03-11T04:36:46Z
+updated: 2022-03-11T20:20:45Z
+updated: 2022-03-13T06:40:58Z
+bugmagic^^^^
+Created Mar 10, 2022, 01:33PM::md.update
+Summary::md.summary
+  I want a feature that is submaps on top of the main map. It will be a bit difficult,
+  but it should have the following features:
+
+  1. ✓ Ability to move the submap as an entire whole.
+  2. ✓ Ability to minimize/maximize the submap
+  3. Submap has a different grid type than the parent map.
+  4. <s>Submap has a different scale than the parent map.</s>
+  5. ✓ Selection starting inside the submap only selects objects in the submap.
+  6. ✓ Selection starting outside the submap only selects the submap itself, not the interior objects.
+  7. ✓ Deleting the submap deletes the inner objects.
+  8. ✓ Drawing starting inside the submap draws inside the submap.
+  9. ✓ Drawing starting outside the submap draws outside the submap.
+  9. ✓ Submap is not pannable.
+  10. Submap is resizable.
+  11. ✓ Undo/redo is shared with parent map.
+Updated Mar 10, 2022, 08:23PM::md.update
+  More features:
+
+  1. ✓ Draw the sub map’s grid, not necessarily aligned with parent’s grid.
+  2. ✓ Snap/scale, etc. to sub map’s grid.
+  3. ✓ Measure tool works according to the subgrid.
+  4. Prevent moving outside of submap.
+  4. Prevent drawing outside of submap.
+  5. Paste into the submap.
+Updated Mar 10, 2022, 11:36PM::md.update
+  1. ✓ Objects contained by the map need to have their coordinates be relative to the map.
+Updated Mar 11, 2022, 03:20PM::md.update
+  1. Better minimize ui (button instead of in the edit menu)
+  2. Shrinks to the size of a square/hex
+  3. Remembers the origin square/hex is maybe?
+Updated Mar 13, 2022, 01:40AM::md.update
+  This is enough features to ship it.

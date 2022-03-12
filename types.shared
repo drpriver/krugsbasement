@@ -357,13 +357,16 @@ enum CANVASTYPE: int
     FILLED_TILE   = 15
     TERRAIN_TILE  = 16
     ICON_TILE     = 17
+    SUBMAP        = 18
 
 #
 # flags
 enum CANVASFLAG: int flag
     NONE = 0
     DELETED = 1 << 0
-    ALL = 1 << 0
+    // Use the "small" representation of this object, such as a
+    // "minimized" submap.
+    SMALL = 2 << 0
 
 //  freehand-line
 //  -------------
@@ -378,6 +381,7 @@ struct StrippedFreehandLine: array
     base_y = float
     flags = CANVASFLAG
     hidinguser = int # userid
+    submap = int
     color = color
     # points are just raw x,y pairs in a flat array.
     points = [float]
@@ -398,6 +402,7 @@ struct StrippedGridLine: array
     base_y = float
     flags = CANVASFLAG
     hidinguser = int # userid
+    submap = int
     color = color
     # points are just raw x,y pairs in a flat array.
     points = [float]
@@ -413,6 +418,7 @@ struct StrippedRectangle: array
     base_y = float
     flags = CANVASFLAG
     hidinguser = int # userid
+    submap = int
     color = color
     width = float
     height = float
@@ -428,6 +434,7 @@ struct StrippedFilledRectangle: array
     base_y = float
     flags = CANVASFLAG
     hidinguser = int # userid
+    submap = int
     color = color
     color2 = color
     width = float
@@ -446,6 +453,7 @@ struct StrippedGridRectangle: array
     base_y = float
     flags = CANVASFLAG
     hidinguser = int # userid
+    submap = int
     color = color
     width = float
     height = float
@@ -467,6 +475,7 @@ struct StrippedEllipse: array
     base_y = float
     flags = CANVASFLAG
     hidinguser = int # userid
+    submap = int
     color = color
     color2 = color
     width = float
@@ -482,6 +491,7 @@ struct StrippedImageObj: array
     base_y = float
     flags = CANVASFLAG
     hidinguser = int # userid
+    submap = int
     width = float
     height = float
     url = str
@@ -500,6 +510,7 @@ struct StrippedTextObj: array
     base_y = float
     flags =  CANVASFLAG
     hidinguser = int # userid
+    submap = int
     text = str
     size = float
     alignment = TEXTALIGNMENT
@@ -538,6 +549,7 @@ struct StrippedEzToken: array
     base_y = float
     flags = CANVASFLAG
     hidinguser = int # userid
+    submap = int
     text = str
     color = color
     width = float # in squares (?)
@@ -554,6 +566,7 @@ struct StrippedImgToken: array
     base_y = float
     flags = CANVASFLAG
     hidinguser = int # userid
+    submap = int
     url = str
     width = float # in squares (?)
     height = float # in squares (?)
@@ -585,6 +598,7 @@ struct StrippedDoorObj: array
     base_y = float
     flags = CANVASFLAG
     hidinguser = int # userid
+    submap = int
     doortype = DOORTYPE
     color = color
     width = float # in squares (?)
@@ -605,6 +619,7 @@ struct StrippedStairs: array
     base_y = float
     flags = CANVASFLAG
     hidinguser = int # userid
+    submap = int
     width = float # in squares
     height = float # in squares
     rotation = ROTATION
@@ -619,6 +634,7 @@ struct StrippedMeasureObj: array
     base_y = float
     flags = CANVASFLAG
     hidinguser = int # userid
+    submap = int
     color = color
     x1 = float
     y1 = float
@@ -639,6 +655,7 @@ struct StrippedFixtureObj: array
     base_y = float
     flags = CANVASFLAG
     hidinguser = int # userid
+    submap = int
     width = float
     height = float
     ftype = FIXTURETYPE
@@ -657,6 +674,7 @@ struct StrippedFilledTile: array
     base_y = float
     flags = CANVASFLAG
     hidinguser = int # userid
+    submap = int
     color = color
     size = float
 
@@ -669,6 +687,7 @@ struct StrippedTerrainTile: array
     base_y = float
     flags = CANVASFLAG
     hidinguser = int # userid
+    submap = int
     terrain_id = int
 
 // IconTile
@@ -680,7 +699,24 @@ struct StrippedIconTile: array
     base_y = float
     flags = CANVASFLAG
     hidinguser = int # userid
+    submap = int
     terrainicon_id = int
+
+struct StrippedSubMap: array
+    type = CANVASTYPE.SUBMAP
+    id = int
+    base_x = float
+    base_y = float
+    flags = CANVASFLAG
+    hidinguser = int # userid
+    submap = int # this should always be 0, only here for compat
+    width = float
+    height = float
+    # these are analagous to camera_x/y
+    tlx = float # Coordinate of top left
+    tly = float # Coordinate of top left
+    grid_type = GRIDTYPE
+    title = str
 
 // StrippedObj
 // -----------
@@ -700,6 +736,7 @@ struct StrippedIconTile: array
 //    base_y = float
 //    flags = CANVASFLAG
 //    hidinguser = int # userid
+//    submap = int
 //
 // This allows most handling of the objects to work on the generic shared
 // subset (like translating x pixels or setting a flag).
@@ -722,10 +759,14 @@ union StrippedObj: array
     StrippedFilledTile
     StrippedTerrainTile
     StrippedIconTile
+    StrippedSubMap
 
 
 // GridType
 // --------
+// It looks weird that you can have NOGRID and HEX set at the same time,
+// but it just means to not draw the hex grid, you still do math
+// and such on it.
 enum GRIDTYPE: int flag
     SQUARE = 0 # square is default
     HEX = 1 << 0 # Hexes are drawn "odd-q" vertical layout

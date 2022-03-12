@@ -8,6 +8,7 @@ const enum INDEX {
     BASE_Y = 3,
     FLAGS = 4,
     HIDINGUSER = 5,
+    SUBMAP = 6,
 }
 interface Bbox {
     // These are relative to some base_x, base_y.
@@ -178,8 +179,8 @@ const SORTORDER = [
        4, // FIXTURE
        1, // FILLED_TILE
        1, // TERRAIN_TILE
-       1, // TERRAIN_ICON ??? doesn't exist ???
        1, // ICON_TILE
+      10, // SUBMAP
 ];
 //
 // Base of all objects and then the rest of the fields are different.
@@ -216,12 +217,16 @@ type FreehandLine = {
     base_y: number;
     flags: CANVASFLAG;
     hidinguser: number;
+    submap: number;
     color: string;
     // points are just raw x,y pairs in a flat array.
     points: Array<number>;
     path?: Path2D;
     bbox: Bbox;
     thickness: number;
+    // These are a hack to know if the path got invalidated.
+    last_bx?:number;
+    last_by?:number;
 }
 //  grid-line
 //  ---------
@@ -238,11 +243,15 @@ type GridLine = {
     base_y: number;
     flags: CANVASFLAG;
     hidinguser: number;
+    submap: number;
     color: string;
     // points are just raw x,y pairs in a flat array.
     points: Array<number>;
     path?: Path2D;
     bbox: Bbox;
+    // These are a hack to know if the path got invalidated.
+    last_bx?:number;
+    last_by?:number;
 }
 //  rectangle
 //  ---------
@@ -257,6 +266,7 @@ type Rectangle = {
     base_y: number,
     flags: CANVASFLAG,
     hidinguser: number;
+    submap: number;
     color: string,
     width: number,
     height: number,
@@ -275,6 +285,7 @@ type FilledRectangle = {
     base_y: number,
     flags: CANVASFLAG,
     hidinguser: number;
+    submap: number;
     color: string,
     color2: string,
     width: number,
@@ -295,6 +306,7 @@ type GridRectangle = {
     base_y: number,
     flags: CANVASFLAG,
     hidinguser: number;
+    submap: number;
     color: string,
     width: number,
     height: number,
@@ -322,6 +334,7 @@ type Ellipse = {
     base_y: number,
     flags: CANVASFLAG,
     hidinguser: number;
+    submap: number;
     color: string,
     color2: string,
     width: number,
@@ -338,6 +351,7 @@ type ImageObj = {
     base_y: number;
     flags: CANVASFLAG;
     hidinguser: number;
+    submap: number;
     width: number;
     height: number;
     url: string;
@@ -353,6 +367,7 @@ type TextObj = {
     base_y: number;
     flags: CANVASFLAG;
     hidinguser: number;
+    submap: number;
     text: string;
     size: number;
     bbox: Bbox;
@@ -403,6 +418,7 @@ type EzToken = {
     base_y: number,
     flags: CANVASFLAG
     hidinguser: number;
+    submap: number;
     text: string,
     color: string,
     width: number, // in squares (?)
@@ -420,6 +436,7 @@ type ImgToken = {
     base_y: number;
     flags: CANVASFLAG;
     hidinguser: number;
+    submap: number;
     url: string;
     img?: HTMLImageElement,
     width: number; // in squares (?)
@@ -437,6 +454,7 @@ type DoorObj = {
     base_y: number,
     flags: CANVASFLAG
     hidinguser: number;
+    submap: number;
     doortype: DOORTYPE
     color: string,
     width: number, // in squares (?)
@@ -452,6 +470,7 @@ type Stairs = {
     base_y: number,
     flags: CANVASFLAG,
     hidinguser: number;
+    submap: number;
     width: number, // in squares
     height: number, // in squares
     rotation: ROTATION,
@@ -468,6 +487,7 @@ type MeasureObj = {
     base_y: number,
     flags: CANVASFLAG
     hidinguser: number;
+    submap: number;
     color: string,
     x1: number,
     y1: number,
@@ -497,6 +517,7 @@ type FixtureObj = {
     base_y: number,
     flags: CANVASFLAG,
     hidinguser: number;
+    submap: number;
     width: number,
     height: number,
     ftype: FIXTURETYPE,
@@ -524,6 +545,7 @@ type FilledTile = {
     base_y: number,
     flags: CANVASFLAG,
     hidinguser: number;
+    submap: number;
     color: string,
     size: number,
 }
@@ -537,6 +559,7 @@ type TerrainTile = {
     base_y: number;
     flags: CANVASFLAG;
     hidinguser: number;
+    submap: number;
     terrain_id: number;
 }
 
@@ -556,7 +579,25 @@ type IconTile = {
     base_y: number;
     flags: CANVASFLAG;
     hidinguser: number;
+    submap: number;
     terrainicon_id: number;
+}
+// SubMap
+// ------
+type SubMap = {
+    type: CANVASTYPE.SUBMAP; // SUBMAP
+    id: number;
+    base_x: number;
+    base_y: number;
+    flags: CANVASFLAG;
+    hidinguser: number;
+    submap: number;
+    width: number;
+    height: number;
+    tlx : number;
+    tly: number;
+    grid_type: GRIDTYPE;
+    title: string;
 }
 
 // TODO: something more elegant than this.
@@ -969,7 +1010,7 @@ const TERRAIN_ICONS: Map<number, HTMLImageElement> = (function(){
     return m;
 }());
 
-type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj | FilledTile | TerrainTile | IconTile;
+type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj | FilledTile | TerrainTile | IconTile | SubMap;
 
 // Door subtypes
 // ------------
@@ -1127,7 +1168,9 @@ type DungeonMap = {
     undo_stack: Array<UndoEvent>;
     undo_position: number; // integer
     pings: Array<Ping>;
+    submaps: Array<SubMap>;
 }
+
 type Ping = {
     t0?: DOMHighResTimeStamp; // we add this onto the PingMessage
     cx: number;
@@ -1166,6 +1209,7 @@ type DungeonMapView = {
         x1: number;
         y0: number;
         y1: number;
+        submap: number;
     };
     placing_area: {
         is_placing: boolean;
@@ -1196,6 +1240,7 @@ function new_map_view(map_id:number): DungeonMapView{
             is_selecting: false,
             x0:0, y0:0,
             x1:0, y1:0,
+            submap: 0,
         },
         placing_area: {
             is_placing: false,
@@ -1259,6 +1304,7 @@ function get_map(map_id:number): DungeonMap {
         undo_position: 0,
 
         pings: [],
+        submaps: [],
     };
     EMIT(FromClient.CANVAS_CREATE_MAP, map_id);
     MAPS.set(map_id, new_map);
@@ -1284,7 +1330,9 @@ function sort_canv_objs(map:DungeonMap){
     if(map.is_sorted)
         return;
     map.canvas_obj_array.sort(function(first:CanvasObject, second:CanvasObject){
-        return SORTORDER[first.type] - SORTORDER[second.type];
+        let a = SORTORDER[first.type] + (first.submap? 50 : 0);
+        let b = SORTORDER[second.type] + (second.submap? 50 : 0);
+        return a - b;
     });
     map.is_sorted = true;
 }
@@ -1400,7 +1448,7 @@ function resize_canvas():void{
 
 //
 // freehand-line stuff.
-function make_freehand_line(id:number, base_x:number, base_y:number, color:string, thickness:number):FreehandLine{
+function make_freehand_line(id:number, base_x:number, base_y:number, submap:number, color:string, thickness:number):FreehandLine{
     base_x = Math.round(base_x);
     base_y = Math.round(base_y);
     const obj: FreehandLine =  {
@@ -1410,16 +1458,19 @@ function make_freehand_line(id:number, base_x:number, base_y:number, color:strin
         base_y: base_y,
         flags: CANVASFLAG.NONE,
         hidinguser: hiddenid(),
+        submap: submap,
         points: [],
         color: color,
         path: undefined,
         bbox: { x0: 0, y0: 0, x1: 0, y1: 0, },
         thickness: thickness,
+        last_bx:undefined,
+        last_by:undefined,
     };
     return obj;
 }
-function add_freehand_line(map:DungeonMap, id:number, base_x:number, base_y:number, color:string, thickness:number):void{
-    const obj = make_freehand_line(id, base_x, base_y, color, thickness);
+function add_freehand_line(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string, thickness:number):void{
+    const obj = make_freehand_line(id, base_x, base_y, submap, color, thickness);
     add_canv_obj(map, obj);
 }
 function add_freehand_point(obj:FreehandLine, x:number, y:number):void{
@@ -1448,7 +1499,7 @@ function add_freehand_point(obj:FreehandLine, x:number, y:number):void{
     if(y > obj.bbox.y1){
         obj.bbox.y1 = y;
     }
-    freehand_recalculate_path(obj);
+    obj.path = undefined;
 }
 function freehand_recalculate_bbox(obj:FreehandLine):void{
     const points = obj.points;
@@ -1474,10 +1525,8 @@ function freehand_recalculate_bbox(obj:FreehandLine):void{
         }
     }
 }
-function freehand_recalculate_path(obj:FreehandLine):void{
+function freehand_recalculate_path(obj:FreehandLine, base_x:number, base_y:number):void{
     const points = obj.points;
-    const base_x = obj.base_x;
-    const base_y = obj.base_y;
     let x0 = base_x;
     let y0 = base_y;
     const length = points.length;
@@ -1683,8 +1732,14 @@ function calc_measure_length(map:DungeonMap, x0:number, y0:number, x1:number, y1
         return length.toFixed(0) + "'";
     }
 }
+function calc_square_length(map:DungeonMap, x0:number, y0:number, x1:number, y1:number):string{
+    const h2 = Math.pow(x0-x1,2) + Math.pow(y0-y1,2);
+    const h = Math.sqrt(h2);
+    const length = h * 10 / REFERENCE_WIDTH;
+    return length.toFixed(0) + "'";
+}
 
-function make_gridline(id:number, base_x:number, base_y:number, color:string):GridLine{
+function make_gridline(id:number, base_x:number, base_y:number, submap:number, color:string):GridLine{
     let snap = get_snap_func();
     base_x = snap(base_x);
     base_y = snap(base_y);
@@ -1695,15 +1750,18 @@ function make_gridline(id:number, base_x:number, base_y:number, color:string):Gr
         base_y: base_y,
         flags: CANVASFLAG.NONE,
         hidinguser: hiddenid(),
+        submap:submap,
         points: [],
         color: color,
         path: undefined,
         bbox: { x0: 0, y0: 0, x1: 0, y1: 0, },
+        last_bx:undefined,
+        last_by:undefined,
     };
     return obj;
 }
-function add_gridline(map:DungeonMap, id:number, base_x:number, base_y:number, color:string):void{
-    const obj = make_gridline(id, base_x, base_y, color);
+function add_gridline(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string):void{
+    const obj = make_gridline(id, base_x, base_y, submap, color);
     add_canv_obj(map, obj);
 }
 function add_gridline_point(obj:GridLine, x:number, y:number):void{
@@ -1773,7 +1831,7 @@ function add_gridline_point(obj:GridLine, x:number, y:number):void{
     if(y > obj.bbox.y1){
         obj.bbox.y1 = y;
     }
-    gridline_recalculate_path(obj);
+    obj.path = undefined;
 }
 function gridline_recalculate_bbox(obj:GridLine):void{
     // this is the same as freehand??
@@ -1800,11 +1858,9 @@ function gridline_recalculate_bbox(obj:GridLine):void{
         }
     }
 }
-function gridline_recalculate_path(obj:GridLine):void{
+function gridline_recalculate_path(obj:GridLine, base_x:number, base_y:number):void{
     // this is the same as freehand??
     const points = obj.points;
-    const base_x = obj.base_x;
-    const base_y = obj.base_y;
     const length = points.length;
     const path = new Path2D();
     path.moveTo(base_x, base_y);
@@ -1820,7 +1876,7 @@ function add_gridline_point_by_id(map:DungeonMap, id:number, x:number, y:number)
     let obj = map.canvas_objs.get(id) as GridLine;
     add_gridline_point(obj, x, y);
 }
-function make_gridrect(id:number, base_x:number, base_y:number, color:string):GridRectangle{
+function make_gridrect(id:number, base_x:number, base_y:number, submap:number, color:string):GridRectangle{
     const obj:GridRectangle =  {
         type: CANVASTYPE.GRID_RECT,
         id: id,
@@ -1828,14 +1884,15 @@ function make_gridrect(id:number, base_x:number, base_y:number, color:string):Gr
         base_y: base_y,
         flags: CANVASFLAG.NONE,
         hidinguser: hiddenid(),
+        submap:submap,
         color: color,
         width: 0,
         height: 0,
     };
     return obj;
 }
-function add_gridrect(map:DungeonMap, id:number, base_x:number, base_y:number, color:string){
-    const obj = make_gridrect(id, base_x, base_y, color);
+function add_gridrect(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string){
+    const obj = make_gridrect(id, base_x, base_y, submap, color);
     add_canv_obj(map, obj);
 }
 function change_gridrect(obj:GridRectangle, x0:number, y0:number, x1:number, y1:number):void{
@@ -1859,7 +1916,7 @@ function change_gridrect_by_id(map:DungeonMap, id:number, x0:number, y0:number, 
     let obj = map.canvas_objs.get(id) as GridRectangle;
     change_gridrect(obj, x0, y0, x1, y1);
 }
-function make_door(id:number, x:number, y:number, doortype:DOORTYPE, color:string, width:number, orientation:ORIENTATION):DoorObj{
+function make_door(id:number, x:number, y:number, doortype:DOORTYPE, submap:number, color:string, width:number, orientation:ORIENTATION):DoorObj{
     const obj: DoorObj = {
         type: CANVASTYPE.DOOR,
         id: id,
@@ -1867,6 +1924,7 @@ function make_door(id:number, x:number, y:number, doortype:DOORTYPE, color:strin
         base_y: y,
         flags: CANVASFLAG.NONE,
         hidinguser: hiddenid(),
+        submap:submap,
         doortype: doortype,
         color: color,
         width: width,
@@ -1874,11 +1932,11 @@ function make_door(id:number, x:number, y:number, doortype:DOORTYPE, color:strin
     };
     return obj;
 }
-function add_door(map:DungeonMap, id:number, base_x:number, base_y:number, doortype:DOORTYPE, color:string, width:number, orientation:ORIENTATION):void{
-    const obj = make_door(id, base_x, base_y, doortype, color, width, orientation);
+function add_door(map:DungeonMap, id:number, base_x:number, base_y:number, doortype:DOORTYPE, submap:number, color:string, width:number, orientation:ORIENTATION):void{
+    const obj = make_door(id, base_x, base_y, doortype, submap, color, width, orientation);
     add_canv_obj(map, obj);
 }
-function make_rect(id:number, base_x:number, base_y:number, color:string):Rectangle{
+function make_rect(id:number, base_x:number, base_y:number, submap:number, color:string):Rectangle{
     const obj: Rectangle =  {
         type: CANVASTYPE.RECT,
         id: id,
@@ -1886,14 +1944,15 @@ function make_rect(id:number, base_x:number, base_y:number, color:string):Rectan
         base_y: base_y,
         flags: CANVASFLAG.NONE,
         hidinguser: hiddenid(),
+        submap:submap,
         color: color,
         width: 0,
         height: 0,
     };
     return obj;
 }
-function add_rect(map:DungeonMap, id:number, base_x:number, base_y:number, color:string):void{
-    const obj = make_rect(id, base_x, base_y, color);
+function add_rect(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string):void{
+    const obj = make_rect(id, base_x, base_y, submap, color);
     add_canv_obj(map, obj);
 }
 function change_rect(obj:Rectangle, x0:number, y0:number, x1:number, y1:number):void{
@@ -1917,7 +1976,7 @@ function change_rect_by_id(map:DungeonMap, id:number, x0:number, y0:number, x1:n
     let obj = map.canvas_objs.get(id) as Rectangle;
     change_rect(obj, x0, y0, x1, y1);
 }
-function make_filled_rect(id:number, base_x:number, base_y:number, color:string, color2:string):FilledRectangle{
+function make_filled_rect(id:number, base_x:number, base_y:number, submap:number, color:string, color2:string):FilledRectangle{
     const obj: FilledRectangle =  {
         type: CANVASTYPE.FILLED_RECT,
         id: id,
@@ -1925,6 +1984,7 @@ function make_filled_rect(id:number, base_x:number, base_y:number, color:string,
         base_y: Math.round(base_y),
         flags: CANVASFLAG.NONE,
         hidinguser: hiddenid(),
+        submap:submap,
         color: color,
         color2: color2,
         width: 0,
@@ -1932,8 +1992,8 @@ function make_filled_rect(id:number, base_x:number, base_y:number, color:string,
     };
     return obj;
 }
-function add_filled_rect(map:DungeonMap, id:number, base_x:number, base_y:number, color:string, color2:string){
-    const obj = make_filled_rect(id, base_x, base_y, color, color2);
+function add_filled_rect(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string, color2:string){
+    const obj = make_filled_rect(id, base_x, base_y, submap, color, color2);
     add_canv_obj(map, obj);
 }
 function change_filled_rect(obj:FilledRectangle, x0:number, y0:number, x1:number, y1:number):void{
@@ -1957,7 +2017,7 @@ function change_filled_rect_by_id(map:DungeonMap, id:number, x0:number, y0:numbe
     let obj = map.canvas_objs.get(id) as FilledRectangle;
     change_filled_rect(obj, x0, y0, x1, y1);
 }
-function make_ellipse(id:number, base_x:number, base_y:number, color:string, color2:string, variant:ELLIPSETYPE):Ellipse{
+function make_ellipse(id:number, base_x:number, base_y:number, submap:number, color:string, color2:string, variant:ELLIPSETYPE):Ellipse{
     const obj:Ellipse = {
         type: CANVASTYPE.ELLIPSE,
         id:id,
@@ -1965,6 +2025,7 @@ function make_ellipse(id:number, base_x:number, base_y:number, color:string, col
         base_y: Math.round(base_y),
         flags: CANVASFLAG.NONE,
         hidinguser: hiddenid(),
+        submap:submap,
         color: color,
         color2: color2,
         width: 0,
@@ -1973,11 +2034,11 @@ function make_ellipse(id:number, base_x:number, base_y:number, color:string, col
     };
     return obj;
 }
-function add_ellipse(map:DungeonMap, id:number, base_x:number, base_y:number, color:string, color2:string, variant:ELLIPSETYPE){
-    const obj = make_ellipse(id, base_x, base_y, color, color2, variant);
+function add_ellipse(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string, color2:string, variant:ELLIPSETYPE){
+    const obj = make_ellipse(id, base_x, base_y, submap, color, color2, variant);
     add_canv_obj(map, obj);
 }
-function make_text(id:number, base_x:number, base_y:number, text:string, size:number, alignment: TEXTALIGNMENT, map_id:number):TextObj{
+function make_text(id:number, base_x:number, base_y:number, submap:number, text:string, size:number, alignment: TEXTALIGNMENT, map_id:number):TextObj{
     let snap = get_snap_center_func();
     base_x = snap(base_x);
     base_y = snap(base_y);
@@ -1988,6 +2049,7 @@ function make_text(id:number, base_x:number, base_y:number, text:string, size:nu
         base_y: Math.round(base_y),
         flags: CANVASFLAG.NONE,
         hidinguser: hiddenid(),
+        submap:submap,
         text: text,
         size: size,
         bbox: {x0:0, y0:0, x1:0, y1:0},
@@ -1998,11 +2060,11 @@ function make_text(id:number, base_x:number, base_y:number, text:string, size:nu
     };
     return obj;
 }
-function add_text(map:DungeonMap, id:number, base_x:number, base_y:number, text:string, size:number, alignment:TEXTALIGNMENT, map_id:number):void{
-    const obj = make_text(id, base_x, base_y, text, size, alignment, map_id);
+function add_text(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, text:string, size:number, alignment:TEXTALIGNMENT, map_id:number):void{
+    const obj = make_text(id, base_x, base_y, submap, text, size, alignment, map_id);
     add_canv_obj(map, obj);
 }
-function make_ez_token(id:number, base_x:number, base_y:number, text:string, color:string, width:number, height:number):EzToken{
+function make_ez_token(id:number, base_x:number, base_y:number, submap:number, text:string, color:string, width:number, height:number):EzToken{
     const obj: EzToken = {
         type: CANVASTYPE.EZ_TOKEN,
         id: id,
@@ -2010,6 +2072,7 @@ function make_ez_token(id:number, base_x:number, base_y:number, text:string, col
         base_y: Math.round(base_y),
         flags: CANVASFLAG.NONE,
         hidinguser: hiddenid(),
+        submap:submap,
         text: text,
         color:color,
         width: width,
@@ -2018,11 +2081,11 @@ function make_ez_token(id:number, base_x:number, base_y:number, text:string, col
     };
     return obj;
 }
-function add_ez_token(map:DungeonMap, id:number, base_x:number, base_y:number, text:string, color:string, width:number, height:number):void{
-    const obj = make_ez_token(id, base_x, base_y, text, color, width, height);
+function add_ez_token(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, text:string, color:string, width:number, height:number):void{
+    const obj = make_ez_token(id, base_x, base_y, submap, text, color, width, height);
     add_canv_obj(map, obj);
 }
-function make_img_token(id:number, base_x:number, base_y:number, url:string, width:number, height: number):ImgToken{
+function make_img_token(id:number, base_x:number, base_y:number, submap:number, url:string, width:number, height: number):ImgToken{
     const obj:ImgToken = {
         type: CANVASTYPE.IMG_TOKEN,
         id: id,
@@ -2030,6 +2093,7 @@ function make_img_token(id:number, base_x:number, base_y:number, url:string, wid
         base_y: Math.round(base_y),
         flags: CANVASFLAG.NONE,
         hidinguser: hiddenid(),
+        submap:submap,
         url: url,
         img: undefined,
         width: width,
@@ -2039,8 +2103,8 @@ function make_img_token(id:number, base_x:number, base_y:number, url:string, wid
     delay_load_obj_image(obj, REFERENCE_WIDTH, REFERENCE_WIDTH, 1, 1);
     return obj;
 }
-function add_img_token(map:DungeonMap, id:number, base_x:number, base_y:number, url:string, width:number, height:number):void{
-    const obj = make_img_token(id, base_x, base_y, url, width, height);
+function add_img_token(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, url:string, width:number, height:number):void{
+    const obj = make_img_token(id, base_x, base_y, submap, url, width, height);
     add_canv_obj(map, obj);
 }
 
@@ -2065,7 +2129,7 @@ function delay_load_obj_image(obj:ImageObj|ImgToken, width:number, height:number
     }, {once:true});
     img.src = obj.url;
 }
-function make_image(id:number, base_x:number, base_y:number, width:number, height:number, url:string):ImageObj{
+function make_image(id:number, base_x:number, base_y:number, width:number, height:number, submap:number, url:string):ImageObj{
     base_x = Math.round(base_x);
     base_y = Math.round(base_y);
     base_x = base_x - (base_x & (REFERENCE_WIDTH-1)) + 1;
@@ -2077,6 +2141,7 @@ function make_image(id:number, base_x:number, base_y:number, width:number, heigh
         base_y: base_y,
         flags: CANVASFLAG.NONE,
         hidinguser: hiddenid(),
+        submap:submap,
         width: width,
         height: height,
         url: url,
@@ -2085,11 +2150,11 @@ function make_image(id:number, base_x:number, base_y:number, width:number, heigh
     delay_load_obj_image(obj, width, height, width, height);
     return obj;
 }
-function add_image(map:DungeonMap, id:number, base_x:number, base_y:number, width:number, height:number, url:string):void{
-    const obj = make_image(id, base_x, base_y, width, height, url);
+function add_image(map:DungeonMap, id:number, base_x:number, base_y:number, width:number, height:number, submap:number, url:string):void{
+    const obj = make_image(id, base_x, base_y, width, height, submap, url);
     add_canv_obj(map, obj);
 }
-function make_stairs(id:number, base_x:number, base_y:number): Stairs{
+function make_stairs(id:number, base_x:number, base_y:number, submap:number): Stairs{
     const snap = get_snap_func();
     base_x = snap(base_x);
     base_y = snap(base_y);
@@ -2100,14 +2165,15 @@ function make_stairs(id:number, base_x:number, base_y:number): Stairs{
         base_y:base_y,
         flags: CANVASFLAG.NONE,
         hidinguser: hiddenid(),
+        submap:submap,
         width: 0,
         height: 0,
         rotation: ROTATION.UP,
     };
     return obj;
 }
-function add_stairs(map:DungeonMap, id:number, base_x:number, base_y:number){
-    const obj = make_stairs(id, base_x, base_y);
+function add_stairs(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number){
+    const obj = make_stairs(id, base_x, base_y, submap);
     add_canv_obj(map, obj);
 }
 function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number){
@@ -2149,7 +2215,7 @@ function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number){
         }
     }
 }
-function make_measure(id:number, x:number, y:number, color:string):MeasureObj{
+function make_measure(id:number, x:number, y:number, submap:number, color:string):MeasureObj{
     const obj:MeasureObj = {
         type: CANVASTYPE.MEASURE,
         id: id,
@@ -2157,13 +2223,14 @@ function make_measure(id:number, x:number, y:number, color:string):MeasureObj{
         base_y:y,
         flags: CANVASFLAG.NONE,
         hidinguser: hiddenid(),
+        submap:submap,
         color:color,
         x1:x,
         y1:y,
     };
     return obj;
 }
-function make_fixture(id:number, x:number, y:number, ftype:FIXTURETYPE):FixtureObj{
+function make_fixture(id:number, x:number, y:number, submap:number,ftype:FIXTURETYPE):FixtureObj{
     const obj:FixtureObj = {
         type: CANVASTYPE.FIXTURE,
         id: id,
@@ -2171,6 +2238,7 @@ function make_fixture(id:number, x:number, y:number, ftype:FIXTURETYPE):FixtureO
         base_y:y,
         flags: CANVASFLAG.NONE,
         hidinguser: hiddenid(),
+        submap:submap,
         width:0,
         height:0,
         ftype:ftype,
@@ -2380,6 +2448,7 @@ function copy_selected_objs_to_copy_buffer(view:DungeonMapView):void{
 }
 
 function cut_selected_objs_to_copy_buffer(view:DungeonMapView):void{
+    let deleted = [];
     for(let obj_id of view.selected){
         const obj = view.map.canvas_objs.get(obj_id)!;
         if(obj.flags & CANVASFLAG.DELETED)
@@ -2387,9 +2456,21 @@ function cut_selected_objs_to_copy_buffer(view:DungeonMapView):void{
         const stripped = strip_obj(obj);
         copied_objs.push(stripped);
         obj.flags |= CANVASFLAG.DELETED;
+        deleted.push(obj.id);
+        // #SPEED: faster way to get all objects in this submap
+        if(obj.type == CANVASTYPE.SUBMAP){
+            for(let o of view.map.canvas_obj_array){
+                if(o.flags & CANVASFLAG.DELETED) continue;
+                if(o.submap == obj.id){
+                    copied_objs.push(strip_obj(o));
+                    o.flags |= CANVASFLAG.DELETED;
+                    deleted.push(o.id);
+                }
+            }
+        }
     }
-    publish_delete_by_ids(view.map.map_id, Array.from(view.selected));
-    note_delete_by_ids_for_undo(view.map, Array.from(view.selected));
+    publish_delete_by_ids(view.map.map_id, deleted);
+    note_delete_by_ids_for_undo(view.map, deleted);
     view.selected.clear()
     request_render();
 }
@@ -2398,12 +2479,12 @@ function translate_object(obj: CanvasObject, dx: number, dy: number){
     obj.base_y += dy;
     switch(obj.type){
         case CANVASTYPE.FREEHAND_LINE:{
-            freehand_recalculate_bbox(obj as FreehandLine);
-            freehand_recalculate_path(obj as FreehandLine);
+            freehand_recalculate_bbox(obj);
+            obj.path = undefined;
         }break;
         case CANVASTYPE.GRID_LINE:{
-            gridline_recalculate_bbox(obj as GridLine);
-            gridline_recalculate_path(obj as GridLine);
+            gridline_recalculate_bbox(obj);
+            obj.path = undefined;
         }break;
         default:
             break;
@@ -2459,7 +2540,7 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
                 obj.points[i+1] = y;
             }
             freehand_recalculate_bbox(obj);
-            freehand_recalculate_path(obj);
+            obj.path = undefined;
             return strip_obj(obj);
         }
         case CANVASTYPE.GRID_LINE:{
@@ -2471,7 +2552,7 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
                 obj.points[i+1] = y;
             }
             gridline_recalculate_bbox(obj);
-            gridline_recalculate_path(obj);
+            obj.path = undefined;
             return strip_obj(obj);
         }
         case CANVASTYPE.RECT:{
@@ -2605,6 +2686,10 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
             obj.base_y = r.base_y;
             return strip_obj(obj);
         }
+        case CANVASTYPE.SUBMAP:{
+            rotate_rectangleish(obj);
+            return strip_obj(obj);
+        }
     }
 }
 function rotate_everything_90(view:DungeonMapView){
@@ -2641,11 +2726,13 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
         if(stripped[INDEX.BASE_Y] < y0)
             y0 = stripped[INDEX.BASE_Y];
     }
+    // TODO: might be more intuitive to paste the center of the objects.
     const dx = x - x0;
     const dy = y - y0;
     const new_ids = [];
     for(let i = 0; i < length; ++i){
         const obj = unstrip_obj(copied_objs[i]);
+        obj.submap = 0; // TODO: figure out if we are pasting into a submap
         let id = get_new_id();
         obj.id = id;
         translate_object(obj, dx, dy);
@@ -2729,6 +2816,8 @@ ONRECV(ToClient.CANVAS_INITIALIZE_MAPS, function(msgs:Array<{map_id:number; map_
             else {
                 add_canv_obj(map, obj);
             }
+            if(obj.type == CANVASTYPE.SUBMAP)
+                map.submaps.push(obj)
         }
     }
     let old_idx = get_local(StorageCategory.CANVAS, 'active_map_view_index');
@@ -2762,6 +2851,8 @@ ONRECV(ToClient.CANVAS_CREATE_OBJECTS, function(msgs:Array<CreateObjectsMessage>
             else {
                 add_canv_obj(map,obj);
             }
+            if(obj.type == CANVASTYPE.SUBMAP)
+                map.submaps.push(obj);
         }
     }
     request_render();
@@ -2833,6 +2924,7 @@ function update_selection(view:DungeonMapView, x0:number, y0:number, x1:number, 
     view.selection_area.y1 = y1;
 }
 // Pray the JIT inlines this call.
+// FIXME: this shouldn't be looking at selection type, hoist to the caller.
 function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_type:SELECTTYPE):boolean{
     switch(obj.type){
         case CANVASTYPE.FREEHAND_LINE:
@@ -2867,6 +2959,48 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
                     return true;
                 x0 = x1;
                 y0 = y1;
+            }
+            return false;
+        }break;
+        case CANVASTYPE.SUBMAP: {
+            if(!(selection_type & SELECTTYPE.MAP))
+                return false;
+            const th2 = 3;
+            const rect_bbox = {
+                x0:obj.base_x-th2,
+                y0:obj.base_y-th2,
+                x1:obj.base_x+obj.width+th2,
+                y1:obj.base_y+obj.height+th2,
+            };
+            if(!bbox_overlaps(rect_bbox, bbox))
+                return false;
+            // break into four pieces
+            let left = {
+                x0: obj.base_x-th2,
+                y0: obj.base_y-th2,
+                x1: obj.base_x+th2,
+                y1: obj.base_y+obj.height+th2,
+            };
+            let top = {
+                x0: obj.base_x-th2,
+                y0: obj.base_y-th2,
+                x1: obj.base_x+obj.width+th2,
+                y1: obj.base_y+th2+64,
+            };
+            let right = {
+                x0: obj.base_x+obj.width-th2,
+                y0: obj.base_y+th2,
+                x1: obj.base_x+obj.width+th2,
+                y1: obj.base_y+obj.height+th2,
+            };
+            let bottom = {
+                x0: obj.base_x-th2,
+                y0: obj.base_y+obj.height-th2,
+                x1: obj.base_x+obj.width+th2,
+                y1: obj.base_y+obj.height+th2,
+            };
+            for(let b of [left, top, right, bottom]){
+                if(bbox_overlaps(b, bbox)) return true;
             }
             return false;
         }break;
@@ -2947,7 +3081,7 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
                     break;
             }
         }
-        case CANVASTYPE.FILLED_RECT:
+        case CANVASTYPE.FILLED_RECT: // fall-through
         case CANVASTYPE.IMAGE: // fall-through
         case CANVASTYPE.GRID_RECT:{
             if(!(selection_type & SELECTTYPE.MAP))
@@ -3108,7 +3242,18 @@ function obj_at(view:DungeonMapView, x0:number, y0:number, select_type:SELECTTYP
             continue;
         if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
             continue;
-        if(obj_in_bbox(obj, bbox, select_type))
+        if(obj.submap){
+            let sm = view.map.canvas_objs.get(obj.submap)! as SubMap;
+            let bbox_ = {
+                x0: bbox.x0-sm.base_x-sm.tlx,
+                y0: bbox.y0-sm.base_y-sm.tly,
+                x1: bbox.x1-sm.base_x-sm.tlx,
+                y1: bbox.y1-sm.base_y-sm.tly,
+            };
+            if(obj_in_bbox(obj, bbox_, select_type))
+                return obj;
+        }
+        else if(obj_in_bbox(obj, bbox, select_type))
             return obj;
     }
     return null;
@@ -3130,7 +3275,20 @@ function note_selections(view:DungeonMapView):void{
                 continue;
             if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
                 continue;
-            if(obj_in_bbox(obj, selection_bbox, selection_type)){
+            if(obj.submap){
+                let sm = view.map.canvas_objs.get(obj.submap)! as SubMap;
+                let bbox_ = {
+                    x0: selection_bbox.x0-sm.base_x-sm.tlx,
+                    y0: selection_bbox.y0-sm.base_y-sm.tly,
+                    x1: selection_bbox.x1-sm.base_x-sm.tlx,
+                    y1: selection_bbox.y1-sm.base_y-sm.tly,
+                };
+                if(obj_in_bbox(obj, bbox_, select_type)){
+                    selected.add(obj.id);
+                    break;
+                }
+            }
+            else if(obj_in_bbox(obj, selection_bbox, selection_type)){
                 selected.add(obj.id);
                 break;
             }
@@ -3143,7 +3301,20 @@ function note_selections(view:DungeonMapView):void{
                 continue;
             if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
                 continue;
-            if(obj_in_bbox(obj, selection_bbox, selection_type)){
+            if(obj.submap !== view.selection_area.submap)
+                continue;
+            if(obj.submap){
+                let sm = view.map.canvas_objs.get(obj.submap)! as SubMap;
+                let bbox_ = {
+                    x0: selection_bbox.x0-sm.base_x-sm.tlx,
+                    y0: selection_bbox.y0-sm.base_y-sm.tly,
+                    x1: selection_bbox.x1-sm.base_x-sm.tlx,
+                    y1: selection_bbox.y1-sm.base_y-sm.tly,
+                };
+                if(obj_in_bbox(obj, bbox_, select_type))
+                    selected.add(obj.id);
+            }
+            else if(obj_in_bbox(obj, selection_bbox, selection_type)){
                 selected.add(obj.id);
             }
         }
@@ -3268,71 +3439,75 @@ function strip_obj(obj:CanvasObject): StrippedObj{
     switch(obj.type){
         case CANVASTYPE.FREEHAND_LINE:{
             const stripped_obj: StrippedFreehandLine =
-                [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, Array.from(obj.points), obj.thickness];
+                [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, Array.from(obj.points), obj.thickness];
             return stripped_obj;
         }break;
         case CANVASTYPE.GRID_LINE:{
-            const stripped_obj: StrippedGridLine = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, Array.from(obj.points)];
+            const stripped_obj: StrippedGridLine = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, Array.from(obj.points)];
             return stripped_obj;
         }break;
         case CANVASTYPE.RECT:{
-            const stripped_obj: StrippedRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.width, obj.height];
+            const stripped_obj: StrippedRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.width, obj.height];
             return stripped_obj;
         }break;
         case CANVASTYPE.FILLED_RECT:{
-            const stripped_obj: StrippedFilledRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.color2, obj.width, obj.height];
+            const stripped_obj: StrippedFilledRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.color2, obj.width, obj.height];
             return stripped_obj;
         }break;
         case CANVASTYPE.GRID_RECT:{
-            const stripped_obj: StrippedGridRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.width, obj.height];
+            const stripped_obj: StrippedGridRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.width, obj.height];
             return stripped_obj;
         }break;
         case CANVASTYPE.ELLIPSE:{
-            const stripped_obj: StrippedEllipse = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.color2, obj.width, obj.height, obj.variant];
+            const stripped_obj: StrippedEllipse = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.color2, obj.width, obj.height, obj.variant];
             return stripped_obj;
         }break;
         case CANVASTYPE.IMAGE:{
-            const stripped_obj: StrippedImageObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.width, obj.height, obj.url];
+            const stripped_obj: StrippedImageObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.width, obj.height, obj.url];
             return stripped_obj;
         }break;
         case CANVASTYPE.TEXT:{
-            const stripped_obj: StrippedTextObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.text, obj.size, obj.alignment, obj.map_id];
+            const stripped_obj: StrippedTextObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.text, obj.size, obj.alignment, obj.map_id];
             return stripped_obj;
         }break;
         case CANVASTYPE.EZ_TOKEN:{
-            const stripped_obj: StrippedEzToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.text, obj.color, obj.width, obj.height, obj.statusflags];
+            const stripped_obj: StrippedEzToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.text, obj.color, obj.width, obj.height, obj.statusflags];
             return stripped_obj;
         }break;
         case CANVASTYPE.IMG_TOKEN:{
-            const stripped_obj: StrippedImgToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.url, obj.width, obj.height, obj.statusflags];
+            const stripped_obj: StrippedImgToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.url, obj.width, obj.height, obj.statusflags];
             return stripped_obj;
         }break;
         case CANVASTYPE.DOOR:{
-            const stripped_obj: StrippedDoorObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.doortype, obj.color, obj.width, obj.orientation];
+            const stripped_obj: StrippedDoorObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.doortype, obj.color, obj.width, obj.orientation];
             return stripped_obj;
         }break;
         case CANVASTYPE.STAIRS:{
-            const stripped_obj: StrippedStairs = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.width, obj.height, obj.rotation];
+            const stripped_obj: StrippedStairs = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.width, obj.height, obj.rotation];
             return stripped_obj;
         }break;
         case CANVASTYPE.MEASURE:{
-            const stripped_obj: StrippedMeasureObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.x1, obj.y1];
+            const stripped_obj: StrippedMeasureObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.x1, obj.y1];
             return stripped_obj;
         }break;
         case CANVASTYPE.FIXTURE:{
-            const stripped_obj: StrippedFixtureObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.width, obj.height, obj.ftype];
+            const stripped_obj: StrippedFixtureObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.width, obj.height, obj.ftype];
             return stripped_obj;
         }break;
         case CANVASTYPE.FILLED_TILE:{
-            const stripped_obj: StrippedFilledTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.size];
+            const stripped_obj: StrippedFilledTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.size];
             return stripped_obj;
         }break;
         case CANVASTYPE.TERRAIN_TILE:{
-            const stripped_obj: StrippedTerrainTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.terrain_id];
+            const stripped_obj: StrippedTerrainTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.terrain_id];
             return stripped_obj;
         }break;
         case CANVASTYPE.ICON_TILE:{
-            const stripped_obj: StrippedIconTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.terrainicon_id];
+            const stripped_obj: StrippedIconTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.terrainicon_id];
+            return stripped_obj;
+        }break;
+        case CANVASTYPE.SUBMAP:{
+            const stripped_obj: StrippedSubMap = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.width, obj.height, obj.tlx, obj.tly, obj.grid_type, obj.title]
             return stripped_obj;
         }break;
     }
@@ -3351,15 +3526,16 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
+                submap: sobj[INDEX.SUBMAP],
                 // typescript  is being dumb here
-                color: (sobj as StrippedFreehandLine)[6],
-                points: (sobj as StrippedFreehandLine)[7],
-                thickness: (sobj as StrippedFreehandLine)[8],
+                color: (sobj as StrippedFreehandLine)[7],
+                points: (sobj as StrippedFreehandLine)[8],
+                thickness: (sobj as StrippedFreehandLine)[9],
                 bbox:{x0:0, x1:0, y0:0, y1:0}
             };
             obj.points = Array.from(obj.points),
             freehand_recalculate_bbox(obj);
-            freehand_recalculate_path(obj);
+            obj.path = undefined;
             return obj;
             }break;
         case CANVASTYPE.GRID_LINE:{
@@ -3370,13 +3546,14 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                color:  (sobj as StrippedGridLine)[6],
-                points: (sobj as StrippedGridLine)[7],
+                submap: sobj[INDEX.SUBMAP],
+                color:  (sobj as StrippedGridLine)[7],
+                points: (sobj as StrippedGridLine)[8],
                 bbox:{x0:0, x1:0, y0:0, y1:0},
             };
             obj.points = Array.from(obj.points),
             gridline_recalculate_bbox(obj);
-            gridline_recalculate_path(obj);
+            obj.path = undefined;
             return obj;
         }break;
         case CANVASTYPE.RECT:{
@@ -3387,9 +3564,10 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                color: (sobj as StrippedRectangle)[6],
-                width: (sobj as StrippedRectangle)[7],
-                height: (sobj as StrippedRectangle)[8],
+                submap: sobj[INDEX.SUBMAP],
+                color: (sobj as StrippedRectangle)[7],
+                width: (sobj as StrippedRectangle)[8],
+                height: (sobj as StrippedRectangle)[9],
             };
             return obj;
         }break;
@@ -3401,10 +3579,11 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                color  : (sobj as StrippedFilledRectangle)[6],
-                color2 : (sobj as StrippedFilledRectangle)[7],
-                width  : (sobj as StrippedFilledRectangle)[8],
-                height : (sobj as StrippedFilledRectangle)[9],
+                submap: sobj[INDEX.SUBMAP],
+                color  : (sobj as StrippedFilledRectangle)[7],
+                color2 : (sobj as StrippedFilledRectangle)[8],
+                width  : (sobj as StrippedFilledRectangle)[9],
+                height : (sobj as StrippedFilledRectangle)[10],
             };
             return obj;
         }break;
@@ -3416,9 +3595,10 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                color  : (sobj as StrippedGridRectangle)[6],
-                width  : (sobj as StrippedGridRectangle)[7],
-                height : (sobj as StrippedGridRectangle)[8],
+                submap: sobj[INDEX.SUBMAP],
+                color  : (sobj as StrippedGridRectangle)[7],
+                width  : (sobj as StrippedGridRectangle)[8],
+                height : (sobj as StrippedGridRectangle)[9],
             };
             return obj;
         }break;
@@ -3430,11 +3610,12 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                color   : (sobj as StrippedEllipse)[6],
-                color2  : (sobj as StrippedEllipse)[7],
-                width   : (sobj as StrippedEllipse)[8],
-                height  : (sobj as StrippedEllipse)[9],
-                variant : (sobj as StrippedEllipse)[10],
+                submap: sobj[INDEX.SUBMAP],
+                color   : (sobj as StrippedEllipse)[7],
+                color2  : (sobj as StrippedEllipse)[8],
+                width   : (sobj as StrippedEllipse)[9],
+                height  : (sobj as StrippedEllipse)[10],
+                variant : (sobj as StrippedEllipse)[11],
             };
             return obj;
         }break;
@@ -3446,9 +3627,10 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                width  : (sobj as StrippedImageObj)[6],
-                height : (sobj as StrippedImageObj)[7],
-                url    : (sobj as StrippedImageObj)[8],
+                submap: sobj[INDEX.SUBMAP],
+                width  : (sobj as StrippedImageObj)[7],
+                height : (sobj as StrippedImageObj)[8],
+                url    : (sobj as StrippedImageObj)[9],
             };
             delay_load_obj_image(obj, obj.width, obj.height, obj.width?obj.width:64, obj.height?obj.height:64);
             return obj;
@@ -3461,13 +3643,14 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                text      : (sobj as StrippedTextObj)[6],
-                size      : (sobj as StrippedTextObj)[7],
-                alignment : (sobj as StrippedTextObj)[8],
+                submap: sobj[INDEX.SUBMAP],
+                text      : (sobj as StrippedTextObj)[7],
+                size      : (sobj as StrippedTextObj)[8],
+                alignment : (sobj as StrippedTextObj)[9],
                 bbox:{x0:0, x1:0, y0:0, y1:0},
-                lines: (sobj as StrippedTextObj)[6].split('\n'),
+                lines: (sobj as StrippedTextObj)[7].split('\n'),
                 bboxes: [],
-                map_id: (sobj as StrippedTextObj)[9],
+                map_id: (sobj as StrippedTextObj)[10],
             };
             return obj;
         }break;
@@ -3479,11 +3662,12 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                text        : (sobj as StrippedEzToken)[6],
-                color       : (sobj as StrippedEzToken)[7],
-                width       : (sobj as StrippedEzToken)[8],
-                height      : (sobj as StrippedEzToken)[9],
-                statusflags : (sobj as StrippedEzToken)[10],
+                submap: sobj[INDEX.SUBMAP],
+                text        : (sobj as StrippedEzToken)[7],
+                color       : (sobj as StrippedEzToken)[8],
+                width       : (sobj as StrippedEzToken)[9],
+                height      : (sobj as StrippedEzToken)[10],
+                statusflags : (sobj as StrippedEzToken)[11],
             };
             return obj;
         }break;
@@ -3495,10 +3679,11 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                url         : (sobj as StrippedImgToken)[6],
-                width       : (sobj as StrippedImgToken)[7],
-                height      : (sobj as StrippedImgToken)[8],
-                statusflags : (sobj as StrippedImgToken)[9],
+                submap: sobj[INDEX.SUBMAP],
+                url         : (sobj as StrippedImgToken)[7],
+                width       : (sobj as StrippedImgToken)[8],
+                height      : (sobj as StrippedImgToken)[9],
+                statusflags : (sobj as StrippedImgToken)[10],
             };
             delay_load_obj_image(obj, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH, obj.width, obj.width);
             return obj;
@@ -3511,10 +3696,11 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                doortype    : (sobj as StrippedDoorObj)[6],
-                color       : (sobj as StrippedDoorObj)[7],
-                width       : (sobj as StrippedDoorObj)[8],
-                orientation : (sobj as StrippedDoorObj)[9],
+                submap: sobj[INDEX.SUBMAP],
+                doortype    : (sobj as StrippedDoorObj)[7],
+                color       : (sobj as StrippedDoorObj)[8],
+                width       : (sobj as StrippedDoorObj)[9],
+                orientation : (sobj as StrippedDoorObj)[10],
             };
             return obj;
         }break;
@@ -3526,9 +3712,10 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                width    : (sobj as StrippedStairs)[6],
-                height   : (sobj as StrippedStairs)[7],
-                rotation : (sobj as StrippedStairs)[8],
+                submap: sobj[INDEX.SUBMAP],
+                width    : (sobj as StrippedStairs)[7],
+                height   : (sobj as StrippedStairs)[8],
+                rotation : (sobj as StrippedStairs)[9],
             };
             return obj;
         }break;
@@ -3540,9 +3727,10 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                color : (sobj as StrippedMeasureObj)[6],
-                x1    : (sobj as StrippedMeasureObj)[7],
-                y1    : (sobj as StrippedMeasureObj)[8],
+                submap: sobj[INDEX.SUBMAP],
+                color : (sobj as StrippedMeasureObj)[7],
+                x1    : (sobj as StrippedMeasureObj)[8],
+                y1    : (sobj as StrippedMeasureObj)[9],
             };
             return obj;
             // all fields are good
@@ -3555,9 +3743,10 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                width  : (sobj as StrippedFixtureObj)[6],
-                height : (sobj as StrippedFixtureObj)[7],
-                ftype  : (sobj as StrippedFixtureObj)[8],
+                submap: sobj[INDEX.SUBMAP],
+                width  : (sobj as StrippedFixtureObj)[7],
+                height : (sobj as StrippedFixtureObj)[8],
+                ftype  : (sobj as StrippedFixtureObj)[9],
             };
             return obj;
         }break;
@@ -3569,8 +3758,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                color : (sobj as StrippedFilledTile)[6],
-                size  : (sobj as StrippedFilledTile)[7],
+                submap: sobj[INDEX.SUBMAP],
+                color : (sobj as StrippedFilledTile)[7],
+                size  : (sobj as StrippedFilledTile)[8],
             };
             return obj;
         }break;
@@ -3582,7 +3772,8 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                terrain_id: (sobj as StrippedTerrainTile)[6],
+                submap: sobj[INDEX.SUBMAP],
+                terrain_id: (sobj as StrippedTerrainTile)[7],
             };
             return obj;
         }break;
@@ -3594,7 +3785,26 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                terrainicon_id: (sobj as StrippedIconTile)[6],
+                submap: sobj[INDEX.SUBMAP],
+                terrainicon_id: (sobj as StrippedIconTile)[7],
+            };
+            return obj;
+        }break;
+        case CANVASTYPE.SUBMAP:{
+            const obj: SubMap = {
+                type: CANVASTYPE.SUBMAP,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                submap: sobj[INDEX.SUBMAP],
+                width  : (sobj as StrippedSubMap)[7],
+                height : (sobj as StrippedSubMap)[8],
+                tlx: (sobj as StrippedSubMap)[9],
+                tly: (sobj as StrippedSubMap)[10],
+                grid_type: (sobj as StrippedSubMap)[11],
+                title: (sobj as StrippedSubMap)[12],
             };
             return obj;
         }break;
@@ -3613,7 +3823,7 @@ function set_obj_from_stripped(obj: CanvasObject, state:StrippedObj){
             obj.bbox = {x0:0, x1:0, y0:0, y1:0};
             obj.points = Array.from(obj.points);
             freehand_recalculate_bbox(obj);
-            freehand_recalculate_path(obj);
+            obj.path = undefined;
         }break;
         case CANVASTYPE.GRID_LINE:{
             const o = unstrip_obj(state);
@@ -3621,7 +3831,7 @@ function set_obj_from_stripped(obj: CanvasObject, state:StrippedObj){
             obj.bbox = {x0:0, x1:0, y0:0, y1:0};
             obj.points = Array.from(obj.points);
             gridline_recalculate_bbox(obj);
-            gridline_recalculate_path(obj);
+            obj.path = undefined;
         }break;
         case CANVASTYPE.IMAGE:{
             const o = unstrip_obj(state) as ImageObj;
@@ -3729,6 +3939,8 @@ function edit_is_impossible(view:DungeonMapView):boolean{
             return true;
         case CANVASTYPE.ICON_TILE:
             return true;
+        case CANVASTYPE.SUBMAP:
+            return false;
     }
 }
 function launch_edit_dialog(view:DungeonMapView):void{
@@ -3960,6 +4172,30 @@ function launch_edit_dialog(view:DungeonMapView):void{
             return;
         case CANVASTYPE.FIXTURE:
             return;
+        case CANVASTYPE.SUBMAP:{
+            let dialog = get_dialog('submap');
+            if(!dialog) return;
+            dialog.title.textContent = 'Submap';
+            dialog.f['sm-title'].value = obj.title;
+            dialog.f.minimize.checked = !!(obj.flags & CANVASFLAG.SMALL);
+            dialog.show_handler = function(){
+            };
+            dialog.ok_handler = function(){
+                const title = dialog.f['sm-title'].value.trim();
+                const minimize = dialog.f.minimize.checked;
+                if(title !== obj.title || minimize != !!(obj.flags & CANVASFLAG.SMALL)){
+                    obj.title = title;
+                    if(minimize)
+                        obj.flags |= CANVASFLAG.SMALL;
+                    else
+                        obj.flags &= ~CANVASFLAG.SMALL;
+                    const after = strip_obj(obj);
+                    publish_obj_updates(view.map.map_id, [after]);
+                    request_render();
+                }
+            };
+            dialog.show();
+        }return;
     }
 }
 
@@ -4008,6 +4244,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
     const COULD_SELECT_COLOR = '#aaccaa';
     const hovered_id = view.hovered_id;
     const canvas_obj_array = map.canvas_obj_array;
+    const canvas_objs = map.canvas_objs;
     const selected = view.selected;
     const camera_x = Math.round(view.camera_x);
     const camera_y = Math.round(view.camera_y);
@@ -4278,6 +4515,15 @@ function render(timestamp:DOMHighResTimeStamp):void{
             continue;
         if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
             continue;
+        let bx = obj.base_x;
+        let by = obj.base_y;
+        if(obj.submap){
+            const sm = canvas_objs.get(obj.submap)! as SubMap;
+            if(sm!.flags & CANVASFLAG.SMALL)
+                continue;
+            bx += sm.base_x + sm.tlx;
+            by += sm.base_y + sm.tly;
+        }
         let is_selected = selected.has(obj.id);
         const is_hovered = obj.id == hovered_id;
         const sel_color = is_selected?SELECTED_COLOR:COULD_SELECT_COLOR;
@@ -4292,37 +4538,42 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 // This works well enough for now.
                 // If things get hairy, I could build a quadtree or whatever.
                 const line_bbox = {
-                    x0:obj.bbox.x0 + obj.base_x,
-                    y0:obj.bbox.y0 + obj.base_y,
-                    x1:obj.bbox.x1 + obj.base_x,
-                    y1:obj.bbox.y1 + obj.base_y,
+                    x0:obj.bbox.x0 + bx,
+                    y0:obj.bbox.y0 + by,
+                    x1:obj.bbox.x1 + bx,
+                    y1:obj.bbox.y1 + by,
                 };
                 if(!bbox_overlaps(canvas_bbox, line_bbox)){
                     break;
                 }
-                if(obj.path){
-                    const oldcap = ctx.lineCap;
-                    const oldjoin = ctx.lineJoin;
-                    ctx.lineCap = 'round';
-                    ctx.lineJoin = 'round';
-                    if(is_selected){
-                        ctx.lineWidth=obj.thickness+4;
-                        ctx.strokeStyle = sel_color;
-                        ctx.stroke(obj.path);
-                    }
-                    ctx.lineWidth = obj.thickness;
-                    ctx.strokeStyle = obj.color;
-                    ctx.stroke(obj.path);
-                    ctx.lineCap = oldcap;
-                    ctx.lineJoin = oldjoin;
+                if(obj.last_bx !== bx || obj.last_by !== by)
+                    obj.path = undefined;
+                if(!obj.path){
+                    obj.last_bx = bx;
+                    obj.last_by = by;
+                    freehand_recalculate_path(obj, bx, by);
                 }
+                const oldcap = ctx.lineCap;
+                const oldjoin = ctx.lineJoin;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                if(is_selected){
+                    ctx.lineWidth=obj.thickness+4;
+                    ctx.strokeStyle = sel_color;
+                    ctx.stroke(obj.path!);
+                }
+                ctx.lineWidth = obj.thickness;
+                ctx.strokeStyle = obj.color;
+                ctx.stroke(obj.path!);
+                ctx.lineCap = oldcap;
+                ctx.lineJoin = oldjoin;
             }break;
             case CANVASTYPE.GRID_LINE:{
                 const line_bbox = {
-                    x0:obj.bbox.x0 + obj.base_x,
-                    y0:obj.bbox.y0 + obj.base_y,
-                    x1:obj.bbox.x1 + obj.base_x,
-                    y1:obj.bbox.y1 + obj.base_y,
+                    x0:obj.bbox.x0 + bx,
+                    y0:obj.bbox.y0 + by,
+                    x1:obj.bbox.x1 + bx,
+                    y1:obj.bbox.y1 + by,
                 };
                 if(!bbox_overlaps(canvas_bbox, line_bbox)){
                     break;
@@ -4332,30 +4583,35 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 const oldjoin = ctx.lineJoin;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
-                if(obj.path){
-                    if(is_selected){
-                        ctx.lineWidth=12;
-                        ctx.strokeStyle = sel_color;
-                        ctx.stroke(obj.path);
-                    }
-                    ctx.lineWidth = 6;
-                    ctx.strokeStyle = obj.color;
-                    ctx.stroke(obj.path);
+                if(obj.last_bx !== bx || obj.last_by !== by)
+                    obj.path = undefined;
+                if(!obj.path){
+                    obj.last_bx = bx;
+                    obj.last_by = by;
+                    gridline_recalculate_path(obj, bx, by);
                 }
+                if(is_selected){
+                    ctx.lineWidth=12;
+                    ctx.strokeStyle = sel_color;
+                    ctx.stroke(obj.path!);
+                }
+                ctx.lineWidth = 6;
+                ctx.strokeStyle = obj.color;
+                ctx.stroke(obj.path!);
                 ctx.lineCap = oldcap;
                 ctx.lineJoin = oldjoin;
             }break;
             case CANVASTYPE.ELLIPSE:{
                 const bbox = {
-                    x0:obj.base_x,
-                    y0:obj.base_y,
-                    x1:obj.base_x+obj.width,
-                    y1:obj.base_y+obj.height,
+                    x0:bx,
+                    y0:by,
+                    x1:bx+obj.width,
+                    y1:by+obj.height,
                 };
                 if(!bbox_overlaps(bbox, canvas_bbox))
                     break;
-                const cx = obj.base_x+obj.width/2;
-                const cy = obj.base_y+obj.height/2;
+                const cx = bx+obj.width/2;
+                const cy = by+obj.height/2;
                 if(obj.width && obj.height){
                     if(is_selected){
                         ctx.lineWidth=8;
@@ -4385,10 +4641,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
             }break;
             case CANVASTYPE.FILLED_RECT:{
                 const rect_bbox = {
-                    x0:obj.base_x,
-                    y0:obj.base_y,
-                    x1:obj.base_x+obj.width,
-                    y1:obj.base_y+obj.height,
+                    x0:bx,
+                    y0:by,
+                    x1:bx+obj.width,
+                    y1:by+obj.height,
                 };
                 if(!bbox_overlaps(rect_bbox, canvas_bbox)){
                     break;
@@ -4397,21 +4653,21 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     if(is_selected){
                         ctx.lineWidth=8;
                         ctx.strokeStyle = sel_color;
-                        ctx.strokeRect(obj.base_x-2, obj.base_y-2, obj.width+4, obj.height+4);
+                        ctx.strokeRect(bx-2, by-2, obj.width+4, obj.height+4);
                     }
                     ctx.lineWidth=4;
                     ctx.fillStyle = obj.color2;
-                    ctx.fillRect(obj.base_x, obj.base_y, obj.width, obj.height);
+                    ctx.fillRect(bx, by, obj.width, obj.height);
                     ctx.strokeStyle = obj.color;
-                    ctx.strokeRect(obj.base_x, obj.base_y, obj.width, obj.height);
+                    ctx.strokeRect(bx, by, obj.width, obj.height);
                 }
             }break;
             case CANVASTYPE.RECT:{
                 const rect_bbox = {
-                    x0:obj.base_x,
-                    y0:obj.base_y,
-                    x1:obj.base_x+obj.width,
-                    y1:obj.base_y+obj.height,
+                    x0:bx,
+                    y0:by,
+                    x1:bx+obj.width,
+                    y1:by+obj.height,
                 };
                 if(!bbox_overlaps(rect_bbox, canvas_bbox)){
                     break;
@@ -4421,19 +4677,19 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     if(is_selected){
                         ctx.lineWidth=8;
                         ctx.strokeStyle = sel_color;
-                        ctx.strokeRect(obj.base_x-2, obj.base_y-2, obj.width+4, obj.height+4);
+                        ctx.strokeRect(bx-2, by-2, obj.width+4, obj.height+4);
                     }
                     ctx.lineWidth=6;
                     ctx.strokeStyle = obj.color;
-                    ctx.strokeRect(obj.base_x, obj.base_y, obj.width, obj.height);
+                    ctx.strokeRect(bx, by, obj.width, obj.height);
                 }
             }break;
             case CANVASTYPE.GRID_RECT:{
                 const rect_bbox = {
-                    x0:obj.base_x,
-                    y0:obj.base_y,
-                    x1:obj.base_x+obj.width,
-                    y1:obj.base_y+obj.height,
+                    x0:bx,
+                    y0:by,
+                    x1:bx+obj.width,
+                    y1:by+obj.height,
                 };
                 if(!bbox_overlaps(rect_bbox, canvas_bbox)){
                     break;
@@ -4441,10 +4697,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(obj.width && obj.height){
                     if(is_selected){
                         ctx.fillStyle = sel_color;
-                        ctx.fillRect(obj.base_x-2, obj.base_y-2, obj.width+4, obj.height+4);
+                        ctx.fillRect(bx-2, by-2, obj.width+4, obj.height+4);
                     }
                     ctx.fillStyle = obj.color;
-                    ctx.fillRect(obj.base_x-0.5, obj.base_y-0.5, obj.width+1, obj.height+1);
+                    ctx.fillRect(bx-0.5, by-0.5, obj.width+1, obj.height+1);
                 }
             }break;
             case CANVASTYPE.TEXT:{
@@ -4497,16 +4753,16 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             bbox.y1 = height/2 + y_off+2;
                         }
                         const text_bbox = {
-                            x0:bbox.x0 + obj.base_x,
-                            y0:bbox.y0 + obj.base_y,
-                            x1:bbox.x1 + obj.base_x,
-                            y1:bbox.y1 + obj.base_y,
+                            x0:bbox.x0 + bx,
+                            y0:bbox.y0 + by,
+                            x1:bbox.x1 + bx,
+                            y1:bbox.y1 + by,
                         };
                         if(bbox_overlaps(text_bbox, canvas_bbox)){
                             if(is_selected){
                                 ctx.fillStyle = sel_color+'aa';
-                                const x = obj.base_x+bbox.x0;
-                                const y = obj.base_y+bbox.y0;
+                                const x = bx+bbox.x0;
+                                const y = by+bbox.y0;
                                 const width = bbox.x1-bbox.x0;
                                 const height = bbox.y1-bbox.y0;
                                 ctx.fillRect(x, y, width, height);
@@ -4523,9 +4779,9 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 else
                                     ctx.fillStyle = '#000';
                             }
-                            ctx.fillText(line, obj.base_x, obj.base_y+y_off);
+                            ctx.fillText(line, bx, by+y_off);
                             if(obj.map_id != -1){
-                                ctx.fillRect(obj.base_x+bbox.x0, obj.base_y+bbox.y1-1, bbox.x1-bbox.x0, 2);
+                                ctx.fillRect(bx+bbox.x0, by+bbox.y1-1, bbox.x1-bbox.x0, 2);
                             }
                         }
                         y_off += bbox.y1 - bbox.y0;
@@ -4551,10 +4807,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(!radius_x || !radius_y)
                     continue;
                 const token_bbox = {
-                    x0: obj.base_x,
-                    x1: obj.base_x + 2*radius_x,
-                    y0: obj.base_y,
-                    y1: obj.base_y + 2*radius_y,
+                    x0: bx,
+                    x1: bx + 2*radius_x,
+                    y0: by,
+                    y1: by + 2*radius_y,
                 };
                 if(!bbox_overlaps(token_bbox, canvas_bbox)){
                     break;
@@ -4563,53 +4819,53 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.beginPath();
                     ctx.fillStyle = sel_color;
                     if(radius_x == radius_y)
-                        ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x+4, 0, 2*Math.PI);
+                        ctx.arc(bx+radius_x, by+radius_y, radius_x+4, 0, 2*Math.PI);
                     else
-                        ctx.ellipse(obj.base_x+radius_x, obj.base_y+radius_y, radius_x+4, radius_y+4, 0, 0, 2*Math.PI);
+                        ctx.ellipse(bx+radius_x, by+radius_y, radius_x+4, radius_y+4, 0, 0, 2*Math.PI);
                     ctx.fill();
                 }
                 ctx.beginPath();
                 ctx.fillStyle = '#000';
                 if(radius_x == radius_y)
-                    ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x, 0, 2*Math.PI);
+                    ctx.arc(bx+radius_x, by+radius_y, radius_x, 0, 2*Math.PI);
                 else
-                    ctx.ellipse(obj.base_x+radius_x, obj.base_y+radius_y, radius_x, radius_y, 0, 0, 2*Math.PI);
+                    ctx.ellipse(bx+radius_x, by+radius_y, radius_x, radius_y, 0, 0, 2*Math.PI);
                 ctx.fill();
                 ctx.beginPath();
                 ctx.fillStyle = obj.color;
                 if(radius_x == radius_y)
-                    ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x-2, 0, 2*Math.PI);
+                    ctx.arc(bx+radius_x, by+radius_y, radius_x-2, 0, 2*Math.PI);
                 else
-                    ctx.ellipse(obj.base_x+radius_x, obj.base_y+radius_y, radius_x-2, radius_y-2, 0, 0, 2*Math.PI);
+                    ctx.ellipse(bx+radius_x, by+radius_y, radius_x-2, radius_y-2, 0, 0, 2*Math.PI);
                 ctx.fill();
                 ctx.font = "" + ((18 * obj.width)|0) + 'px sans-serif';
                 ctx.textBaseline = 'middle';
                 ctx.textAlign = "center";
                 ctx.fillStyle = '#000';
-                ctx.fillText(obj.text, obj.base_x+radius_x, obj.base_y+radius_y);
+                ctx.fillText(obj.text, bx+radius_x, by+radius_y);
                 draw_status_icons(token_bbox, obj.statusflags, obj.width);
             }break;
             case CANVASTYPE.IMAGE:{
                 const rect_bbox = {
-                    x0:obj.base_x,
-                    y0:obj.base_y,
-                    x1:obj.base_x+obj.width,
-                    y1:obj.base_y+obj.height,
+                    x0:bx,
+                    y0:by,
+                    x1:bx+obj.width,
+                    y1:by+obj.height,
                 };
                 if(!bbox_overlaps(rect_bbox, canvas_bbox)){
                     break;
                 }
                 if(is_selected){
                     ctx.fillStyle = sel_color+'aa';
-                    ctx.fillRect(obj.base_x-4, obj.base_y-4, obj.width+8, obj.height+8);
+                    ctx.fillRect(bx-4, by-4, obj.width+8, obj.height+8);
                 }
                 if(obj.img)
-                    ctx.drawImage(obj.img, obj.base_x, obj.base_y, obj.width, obj.height);
+                    ctx.drawImage(obj.img, bx, by, obj.width, obj.height);
                 else {
                     ctx.fillStyle = '#ff0000';
-                    ctx.fillRect(obj.base_x, obj.base_y, obj.width, obj.height);
+                    ctx.fillRect(bx, by, obj.width, obj.height);
                     ctx.fillStyle = '#000000';
-                    ctx.fillText(`broken image url: ${obj.url}`, obj.base_x+32, obj.base_y+32);
+                    ctx.fillText(`broken image url: ${obj.url}`, bx+32, by+32);
                 }
             }break;
             case CANVASTYPE.IMG_TOKEN:{
@@ -4617,10 +4873,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 const radius_x = obj.width*REFERENCE_WIDTH/2;
                 const radius_y = obj.height*REFERENCE_WIDTH/2;
                 const token_bbox = {
-                    x0: obj.base_x,
-                    x1: obj.base_x + 2*radius_x,
-                    y0: obj.base_y,
-                    y1: obj.base_y + 2*radius_y,
+                    x0: bx,
+                    x1: bx + 2*radius_x,
+                    y0: by,
+                    y1: by + 2*radius_y,
                 };
                 if(!bbox_overlaps(token_bbox, canvas_bbox)){
                     break;
@@ -4629,21 +4885,21 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.beginPath();
                     ctx.lineWidth = 4;
                     ctx.strokeStyle = sel_color;
-                    ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x+2, 0, 2*Math.PI);
+                    ctx.arc(bx+radius_x, by+radius_y, radius_x+2, 0, 2*Math.PI);
                     ctx.stroke();
                 }
                 ctx.beginPath();
                 ctx.lineWidth = 4;
                 ctx.strokeStyle = '#000';
-                ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x-2, 0, 2*Math.PI);
+                ctx.arc(bx+radius_x, by+radius_y, radius_x-2, 0, 2*Math.PI);
                 ctx.stroke();
                 if(obj.img){
-                    ctx.drawImage(obj.img, obj.base_x, obj.base_y, radius_x*2, radius_y*2);
+                    ctx.drawImage(obj.img, bx, by, radius_x*2, radius_y*2);
                 }
                 else {
                     ctx.beginPath();
                     ctx.fillStyle = '#333333';
-                    ctx.arc(obj.base_x+radius_x, obj.base_y+radius_y, radius_x-4, 0, 2*Math.PI);
+                    ctx.arc(bx+radius_x, by+radius_y, radius_x-4, 0, 2*Math.PI);
                     ctx.fill();
                 }
                 draw_status_icons(token_bbox, obj.statusflags, obj.width);
@@ -4655,10 +4911,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(!is_vertical){
                     // FIXME: I just hardcoded some random values.
                     const bbox = {
-                        x0 : obj.base_x - 32 * w,
-                        x1 : obj.base_x + 32 * w,
-                        y0 : obj.base_y - 5,
-                        y1 : obj.base_y +5,
+                        x0 : bx - 32 * w,
+                        x1 : bx + 32 * w,
+                        y0 : by - 5,
+                        y1 : by +5,
                     };
                     if(!bbox_overlaps(bbox, canvas_bbox)){
                         break;
@@ -4667,10 +4923,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 else {
                     // FIXME: I just hardcoded some random values.
                     const bbox = {
-                        x0 : obj.base_x - 5,
-                        x1 : obj.base_x + 5,
-                        y0 : obj.base_y - 32 * w,
-                        y1 : obj.base_y + 32 * w,
+                        x0 : bx - 5,
+                        x1 : bx + 5,
+                        y0 : by - 32 * w,
+                        y1 : by + 32 * w,
                     };
                     if(!bbox_overlaps(bbox, canvas_bbox)){
                         break;
@@ -4685,23 +4941,23 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    ctx.strokeRect(obj.base_x-10*th, obj.base_y-off, 20*th, length);
+                                    ctx.strokeRect(bx-10*th, by-off, 20*th, length);
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    ctx.strokeRect(obj.base_x-off, obj.base_y-10*th, length, 20*th);
+                                    ctx.strokeRect(bx-off, by-10*th, length, 20*th);
                                     break;
                                 case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x-22*w, obj.base_y-22*w)
-                                    ctx.lineTo(obj.base_x+22*w, obj.base_y+22*w);
+                                    ctx.moveTo(bx-22*w, by-22*w)
+                                    ctx.lineTo(bx+22*w, by+22*w);
                                     ctx.stroke();
                                     break;
                                 case ORIENTATION.TOPRIGHT_DOWNLEFT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x+22*w, obj.base_y-22*w)
-                                    ctx.lineTo(obj.base_x-22*w, obj.base_y+22*w);
+                                    ctx.moveTo(bx+22*w, by-22*w)
+                                    ctx.lineTo(bx-22*w, by+22*w);
                                     ctx.stroke();
                                     break;
                             }
@@ -4711,47 +4967,47 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.lineWidth=4;
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.fillRect(obj.base_x-10*th, obj.base_y-off, 20*th, length);
-                                ctx.strokeRect(obj.base_x-10*th, obj.base_y-off, 20*th, length);
-                                ctx.strokeRect(obj.base_x-10*th, obj.base_y, 20*th, 1);
+                                ctx.fillRect(bx-10*th, by-off, 20*th, length);
+                                ctx.strokeRect(bx-10*th, by-off, 20*th, length);
+                                ctx.strokeRect(bx-10*th, by, 20*th, 1);
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.fillRect(obj.base_x-off, obj.base_y-10*th, length, 20*th);
-                                ctx.strokeRect(obj.base_x-off, obj.base_y-10*th, length, 20*th);
-                                ctx.strokeRect(obj.base_x, obj.base_y-10*th, 1, 20*th);
+                                ctx.fillRect(bx-off, by-10*th, length, 20*th);
+                                ctx.strokeRect(bx-off, by-10*th, length, 20*th);
+                                ctx.strokeRect(bx, by-10*th, 1, 20*th);
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                 ctx.lineWidth=18;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x-20*w, obj.base_y-20*w)
-                                ctx.lineTo(obj.base_x+20*w, obj.base_y+20*w);
+                                ctx.moveTo(bx-20*w, by-20*w)
+                                ctx.lineTo(bx+20*w, by+20*w);
                                 ctx.stroke();
                                 ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x-16*w, obj.base_y-16*w)
-                                ctx.lineTo(obj.base_x-2*w, obj.base_y-2*w);
+                                ctx.moveTo(bx-16*w, by-16*w)
+                                ctx.lineTo(bx-2*w, by-2*w);
                                 ctx.stroke();
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x+2*w, obj.base_y+2*w)
-                                ctx.lineTo(obj.base_x+16*w, obj.base_y+16*w);
+                                ctx.moveTo(bx+2*w, by+2*w)
+                                ctx.lineTo(bx+16*w, by+16*w);
                                 ctx.stroke();
                                 break;
                             case ORIENTATION.TOPRIGHT_DOWNLEFT:
                                 ctx.lineWidth=18;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x+20*w, obj.base_y-20*w)
-                                ctx.lineTo(obj.base_x-20*w, obj.base_y+20*w);
+                                ctx.moveTo(bx+20*w, by-20*w)
+                                ctx.lineTo(bx-20*w, by+20*w);
                                 ctx.stroke();
                                 ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x+16*w, obj.base_y-16*w)
-                                ctx.lineTo(obj.base_x+2*w, obj.base_y-2*w);
+                                ctx.moveTo(bx+16*w, by-16*w)
+                                ctx.lineTo(bx+2*w, by-2*w);
                                 ctx.stroke();
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x-2*w, obj.base_y+2*w)
-                                ctx.lineTo(obj.base_x-16*w, obj.base_y+16*w);
+                                ctx.moveTo(bx-2*w, by+2*w)
+                                ctx.lineTo(bx-16*w, by+16*w);
                                 ctx.stroke();
                                 break;
                         }
@@ -4764,23 +5020,23 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    ctx.strokeRect(obj.base_x-10*th, obj.base_y-off, 20*th, length);
+                                    ctx.strokeRect(bx-10*th, by-off, 20*th, length);
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    ctx.strokeRect(obj.base_x-off, obj.base_y-10*th, length, 20*th);
+                                    ctx.strokeRect(bx-off, by-10*th, length, 20*th);
                                     break;
                                 case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x-22*w, obj.base_y-22*w)
-                                    ctx.lineTo(obj.base_x+22*w, obj.base_y+22*w);
+                                    ctx.moveTo(bx-22*w, by-22*w)
+                                    ctx.lineTo(bx+22*w, by+22*w);
                                     ctx.stroke();
                                     break;
                                 case ORIENTATION.TOPRIGHT_DOWNLEFT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x+22*w, obj.base_y-22*w)
-                                    ctx.lineTo(obj.base_x-22*w, obj.base_y+22*w);
+                                    ctx.moveTo(bx+22*w, by-22*w)
+                                    ctx.lineTo(bx-22*w, by+22*w);
                                     ctx.stroke();
                                     break;
                             }
@@ -4790,37 +5046,37 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.lineWidth=4;
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.fillRect(obj.base_x-10*th, obj.base_y-off, 20*th, length);
-                                ctx.strokeRect(obj.base_x-10*th, obj.base_y-off, 20*th, length);
+                                ctx.fillRect(bx-10*th, by-off, 20*th, length);
+                                ctx.strokeRect(bx-10*th, by-off, 20*th, length);
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.fillRect(obj.base_x-off, obj.base_y-10*th, length, 20*th);
-                                ctx.strokeRect(obj.base_x-off, obj.base_y-10*th, length, 20*th);
+                                ctx.fillRect(bx-off, by-10*th, length, 20*th);
+                                ctx.strokeRect(bx-off, by-10*th, length, 20*th);
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                 ctx.lineWidth=18;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x-20*w, obj.base_y-20*w)
-                                ctx.lineTo(obj.base_x+20*w, obj.base_y+20*w);
+                                ctx.moveTo(bx-20*w, by-20*w)
+                                ctx.lineTo(bx+20*w, by+20*w);
                                 ctx.stroke();
                                 ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x-16*w, obj.base_y-16*w)
-                                ctx.lineTo(obj.base_x+16*w, obj.base_y+16*w);
+                                ctx.moveTo(bx-16*w, by-16*w)
+                                ctx.lineTo(bx+16*w, by+16*w);
                                 ctx.stroke();
                                 break;
                             case ORIENTATION.TOPRIGHT_DOWNLEFT:
                                 ctx.lineWidth=18;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x+20*w, obj.base_y-20*w)
-                                ctx.lineTo(obj.base_x-20*w, obj.base_y+20*w);
+                                ctx.moveTo(bx+20*w, by-20*w)
+                                ctx.lineTo(bx-20*w, by+20*w);
                                 ctx.stroke();
                                 ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x+16*w, obj.base_y-16*w)
-                                ctx.lineTo(obj.base_x-16*w, obj.base_y+16*w);
+                                ctx.moveTo(bx+16*w, by-16*w)
+                                ctx.lineTo(bx-16*w, by+16*w);
                                 ctx.stroke();
                                 break;
                         }
@@ -4831,23 +5087,23 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    ctx.strokeRect(obj.base_x-10*th, obj.base_y-16*w, 20*th, 32*w);
+                                    ctx.strokeRect(bx-10*th, by-16*w, 20*th, 32*w);
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    ctx.strokeRect(obj.base_x-16*w, obj.base_y-10*th, 32*w, 20*th);
+                                    ctx.strokeRect(bx-16*w, by-10*th, 32*w, 20*th);
                                     break;
                                 case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x-22*w, obj.base_y-22*w)
-                                    ctx.lineTo(obj.base_x+22*w, obj.base_y+22*w);
+                                    ctx.moveTo(bx-22*w, by-22*w)
+                                    ctx.lineTo(bx+22*w, by+22*w);
                                     ctx.stroke();
                                     break;
                                 case ORIENTATION.TOPRIGHT_DOWNLEFT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x+22*w, obj.base_y-22*w)
-                                    ctx.lineTo(obj.base_x-22*w, obj.base_y+22*w);
+                                    ctx.moveTo(bx+22*w, by-22*w)
+                                    ctx.lineTo(bx-22*w, by+22*w);
                                     ctx.stroke();
                                     break;
                             }
@@ -4859,20 +5115,20 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.beginPath();
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.moveTo(obj.base_x, obj.base_y-length/2+8);
-                                ctx.lineTo(obj.base_x, obj.base_y+length/2-6);
+                                ctx.moveTo(bx, by-length/2+8);
+                                ctx.lineTo(bx, by+length/2-6);
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.moveTo(obj.base_x-length/2+8, obj.base_y);
-                                ctx.lineTo(obj.base_x+length/2-6, obj.base_y);
+                                ctx.moveTo(bx-length/2+8, by);
+                                ctx.lineTo(bx+length/2-6, by);
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
-                                ctx.moveTo(obj.base_x-16*w, obj.base_y-16*w)
-                                ctx.lineTo(obj.base_x+16*w, obj.base_y+16*w);
+                                ctx.moveTo(bx-16*w, by-16*w)
+                                ctx.lineTo(bx+16*w, by+16*w);
                                 break;
                             case ORIENTATION.TOPRIGHT_DOWNLEFT:
-                                ctx.moveTo(obj.base_x+16*w, obj.base_y-16*w)
-                                ctx.lineTo(obj.base_x-16*w, obj.base_y+16*w);
+                                ctx.moveTo(bx+16*w, by-16*w)
+                                ctx.lineTo(bx-16*w, by+16*w);
                                 break;
                         }
                         ctx.stroke();
@@ -4884,23 +5140,23 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    ctx.strokeRect(obj.base_x-10, obj.base_y-16*th, 20, 32*th);
+                                    ctx.strokeRect(bx-10, by-16*th, 20, 32*th);
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    ctx.strokeRect(obj.base_x-16*th, obj.base_y-10, 32*th, 20);
+                                    ctx.strokeRect(bx-16*th, by-10, 32*th, 20);
                                     break;
                                 case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x-22*th, obj.base_y-22*th)
-                                    ctx.lineTo(obj.base_x+22*th, obj.base_y+22*th);
+                                    ctx.moveTo(bx-22*th, by-22*th)
+                                    ctx.lineTo(bx+22*th, by+22*th);
                                     ctx.stroke();
                                     break;
                                 case ORIENTATION.TOPRIGHT_DOWNLEFT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x+22*th, obj.base_y-22*th)
-                                    ctx.lineTo(obj.base_x-22*th, obj.base_y+22*th);
+                                    ctx.moveTo(bx+22*th, by-22*th)
+                                    ctx.lineTo(bx-22*th, by+22*th);
                                     ctx.stroke();
                                     break;
                             }
@@ -4911,33 +5167,33 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.lineWidth=4;
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.fillRect(obj.base_x-5, obj.base_y-length/2, 10, length);
-                                if((obj.base_x & (REFERENCE_WIDTH-1)) == 0){
+                                ctx.fillRect(bx-5, by-length/2, 10, length);
+                                if((bx & (REFERENCE_WIDTH-1)) == 0){
                                     ctx.fillStyle = 'rgb(150, 150, 150)';
-                                    ctx.fillRect(obj.base_x, obj.base_y-length/2, 1/SCALE, length);
+                                    ctx.fillRect(bx, by-length/2, 1/SCALE, length);
                                 }
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.fillRect(obj.base_x-length/2, obj.base_y-5, length, 10);
-                                if((obj.base_y & (REFERENCE_WIDTH-1)) == 0){
+                                ctx.fillRect(bx-length/2, by-5, length, 10);
+                                if((by & (REFERENCE_WIDTH-1)) == 0){
                                     ctx.fillStyle = 'rgb(150, 150, 150)';
-                                    ctx.fillRect(obj.base_x-length/2, obj.base_y, length, 1/SCALE);
+                                    ctx.fillRect(bx-length/2, by, length, 1/SCALE);
                                 }
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                 ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x-24*w, obj.base_y-24*w)
-                                ctx.lineTo(obj.base_x+24*w, obj.base_y+24*w);
+                                ctx.moveTo(bx-24*w, by-24*w)
+                                ctx.lineTo(bx+24*w, by+24*w);
                                 ctx.stroke();
                                 break;
                             case ORIENTATION.TOPRIGHT_DOWNLEFT:
                                 ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x+16*w, obj.base_y-16*w)
-                                ctx.lineTo(obj.base_x-16*w, obj.base_y+16*w);
+                                ctx.moveTo(bx+16*w, by-16*w)
+                                ctx.lineTo(bx-16*w, by+16*w);
                                 ctx.stroke();
                                 break;
                         }
@@ -4948,23 +5204,23 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.lineWidth=8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    ctx.strokeRect(obj.base_x-10, obj.base_y-32*w, 20, 64*w);
+                                    ctx.strokeRect(bx-10, by-32*w, 20, 64*w);
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    ctx.strokeRect(obj.base_x-32*w, obj.base_y-10, 64*w, 20);
+                                    ctx.strokeRect(bx-32*w, by-10, 64*w, 20);
                                     break;
                                 case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x-32*w, obj.base_y-32*w)
-                                    ctx.lineTo(obj.base_x+32*w, obj.base_y+32*w);
+                                    ctx.moveTo(bx-32*w, by-32*w)
+                                    ctx.lineTo(bx+32*w, by+32*w);
                                     ctx.stroke();
                                     break;
                                 case ORIENTATION.TOPRIGHT_DOWNLEFT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
-                                    ctx.moveTo(obj.base_x+32*w, obj.base_y-32*w)
-                                    ctx.lineTo(obj.base_x-32*w, obj.base_y+32*w);
+                                    ctx.moveTo(bx+32*w, by-32*w)
+                                    ctx.lineTo(bx-32*w, by+32*w);
                                     ctx.stroke();
                                     break;
                             }
@@ -4973,33 +5229,33 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.lineWidth=4;
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.fillRect(obj.base_x-5, obj.base_y-32*w+3, 10, 64*w-6);
-                                if((obj.base_x & (REFERENCE_WIDTH-1)) == 0){
+                                ctx.fillRect(bx-5, by-32*w+3, 10, 64*w-6);
+                                if((bx & (REFERENCE_WIDTH-1)) == 0){
                                     ctx.fillStyle = 'rgb(150, 150, 150)';
-                                    ctx.fillRect(obj.base_x, obj.base_y-32*w+3, 1/SCALE, 64*w-6);
+                                    ctx.fillRect(bx, by-32*w+3, 1/SCALE, 64*w-6);
                                 }
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.fillRect(obj.base_x-32*w+3, obj.base_y-5, 64*w-6, 10);
-                                if((obj.base_y & (REFERENCE_WIDTH-1)) == 0){
+                                ctx.fillRect(bx-32*w+3, by-5, 64*w-6, 10);
+                                if((by & (REFERENCE_WIDTH-1)) == 0){
                                     ctx.fillStyle = 'rgb(150, 150, 150)';
-                                    ctx.fillRect(obj.base_x-32*w+3, obj.base_y, 64*w-6, 1/SCALE);
+                                    ctx.fillRect(bx-32*w+3, by, 64*w-6, 1/SCALE);
                                 }
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
                                 ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x-28*w, obj.base_y-28*w)
-                                ctx.lineTo(obj.base_x+28*w, obj.base_y+28*w);
+                                ctx.moveTo(bx-28*w, by-28*w)
+                                ctx.lineTo(bx+28*w, by+28*w);
                                 ctx.stroke();
                                 break;
                             case ORIENTATION.TOPRIGHT_DOWNLEFT:
                                 ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
-                                ctx.moveTo(obj.base_x+28*w, obj.base_y-28*w)
-                                ctx.lineTo(obj.base_x-28*w, obj.base_y+28*w);
+                                ctx.moveTo(bx+28*w, by-28*w)
+                                ctx.lineTo(bx-28*w, by+28*w);
                                 ctx.stroke();
                                 break;
                         }
@@ -5011,16 +5267,16 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             const r = 8;
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    for(let y = obj.base_y-REFERENCE_WIDTH*w/2+r, i=0; y < obj.base_y+REFERENCE_WIDTH*w/2+r; y+= 2*r, i++){
+                                    for(let y = by-REFERENCE_WIDTH*w/2+r, i=0; y < by+REFERENCE_WIDTH*w/2+r; y+= 2*r, i++){
                                         ctx.beginPath();
-                                        ctx.arc(obj.base_x, y, r, Math.PI/2, 3*Math.PI/2, !!(i & 1));
+                                        ctx.arc(bx, y, r, Math.PI/2, 3*Math.PI/2, !!(i & 1));
                                         ctx.stroke();
                                     }
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    for(let x = obj.base_x-REFERENCE_WIDTH*w/2+r, i=0; x < obj.base_x+REFERENCE_WIDTH*w/2+r; x+= 2*r, i++){
+                                    for(let x = bx-REFERENCE_WIDTH*w/2+r, i=0; x < bx+REFERENCE_WIDTH*w/2+r; x+= 2*r, i++){
                                         ctx.beginPath();
-                                        ctx.arc(x, obj.base_y, r, 0, Math.PI, !!(i & 1));
+                                        ctx.arc(x, by, r, 0, Math.PI, !!(i & 1));
                                         ctx.stroke();
                                     }
                                     break;
@@ -5028,7 +5284,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                     let r = 64*1.4159/12;
                                     for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
                                         ctx.beginPath();
-                                        ctx.arc(obj.base_x-REFERENCE_WIDTH/2+d+r/1.41519, obj.base_y-REFERENCE_WIDTH/2+d+r/1.41519, r, Math.PI/4, 5*Math.PI/4, !!(i & 1));
+                                        ctx.arc(bx-REFERENCE_WIDTH/2+d+r/1.41519, by-REFERENCE_WIDTH/2+d+r/1.41519, r, Math.PI/4, 5*Math.PI/4, !!(i & 1));
                                         ctx.stroke();
                                     }
                                 }break;
@@ -5036,7 +5292,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                     let r = 64*1.4159/12;
                                     for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
                                         ctx.beginPath();
-                                        ctx.arc(obj.base_x-REFERENCE_WIDTH/2+d+r/1.41519, obj.base_y+REFERENCE_WIDTH/2-d-r/1.41519, r, 3*Math.PI/4, 7*Math.PI/4, !!(i & 1));
+                                        ctx.arc(bx-REFERENCE_WIDTH/2+d+r/1.41519, by+REFERENCE_WIDTH/2-d-r/1.41519, r, 3*Math.PI/4, 7*Math.PI/4, !!(i & 1));
                                         ctx.stroke();
                                     }
                                 }break;
@@ -5047,16 +5303,16 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         const r = 8;
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                for(let y = obj.base_y-REFERENCE_WIDTH*w/2+r, i=0; y < obj.base_y+REFERENCE_WIDTH*w/2+r; y+= 2*r, i++){
+                                for(let y = by-REFERENCE_WIDTH*w/2+r, i=0; y < by+REFERENCE_WIDTH*w/2+r; y+= 2*r, i++){
                                     ctx.beginPath();
-                                    ctx.arc(obj.base_x, y, r, Math.PI/2, 3*Math.PI/2, !!(i & 1));
+                                    ctx.arc(bx, y, r, Math.PI/2, 3*Math.PI/2, !!(i & 1));
                                     ctx.stroke();
                                 }
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                for(let x = obj.base_x-REFERENCE_WIDTH*w/2+r, i=0; x < obj.base_x+REFERENCE_WIDTH*w/2+r; x+= 2*r, i++){
+                                for(let x = bx-REFERENCE_WIDTH*w/2+r, i=0; x < bx+REFERENCE_WIDTH*w/2+r; x+= 2*r, i++){
                                     ctx.beginPath();
-                                    ctx.arc(x, obj.base_y, r, 0, Math.PI, !!(i & 1));
+                                    ctx.arc(x, by, r, 0, Math.PI, !!(i & 1));
                                     ctx.stroke();
                                 }
                                 break;
@@ -5064,7 +5320,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 let r = 64*1.4159/12;
                                 for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
                                     ctx.beginPath();
-                                    ctx.arc(obj.base_x-REFERENCE_WIDTH/2+d+r/1.41519, obj.base_y-REFERENCE_WIDTH/2+d+r/1.41519, r, Math.PI/4, 5*Math.PI/4, !!(i & 1));
+                                    ctx.arc(bx-REFERENCE_WIDTH/2+d+r/1.41519, by-REFERENCE_WIDTH/2+d+r/1.41519, r, Math.PI/4, 5*Math.PI/4, !!(i & 1));
                                     ctx.stroke();
                                 }
                             }break;
@@ -5072,7 +5328,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 let r = 64*1.4159/12;
                                 for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
                                     ctx.beginPath();
-                                    ctx.arc(obj.base_x-REFERENCE_WIDTH/2+d+r/1.41519, obj.base_y+REFERENCE_WIDTH/2-d-r/1.41519, r, 3*Math.PI/4, 7*Math.PI/4, !!(i & 1));
+                                    ctx.arc(bx-REFERENCE_WIDTH/2+d+r/1.41519, by+REFERENCE_WIDTH/2-d-r/1.41519, r, 3*Math.PI/4, 7*Math.PI/4, !!(i & 1));
                                     ctx.stroke();
                                 }
                             }break;
@@ -5082,7 +5338,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.save();
                         ctx.textBaseline = 'middle';
                         ctx.textAlign = 'center';
-                        ctx.translate(obj.base_x, obj.base_y);
+                        ctx.translate(bx, by);
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
                                 break;
@@ -5116,20 +5372,20 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.beginPath();
                             switch(obj.orientation){
                                 case ORIENTATION.VERTICAL:
-                                    ctx.moveTo(obj.base_x, obj.base_y-22*w)
-                                    ctx.lineTo(obj.base_x, obj.base_y+22*w);
+                                    ctx.moveTo(bx, by-22*w)
+                                    ctx.lineTo(bx, by+22*w);
                                     break;
                                 case ORIENTATION.HORIZONTAL:
-                                    ctx.moveTo(obj.base_x-22*w, obj.base_y)
-                                    ctx.lineTo(obj.base_x+22*w, obj.base_y);
+                                    ctx.moveTo(bx-22*w, by)
+                                    ctx.lineTo(bx+22*w, by);
                                     break;
                                 case ORIENTATION.TOPLEFT_DOWNRIGHT:
-                                    ctx.moveTo(obj.base_x-22*w, obj.base_y-22*w)
-                                    ctx.lineTo(obj.base_x+22*w, obj.base_y+22*w);
+                                    ctx.moveTo(bx-22*w, by-22*w)
+                                    ctx.lineTo(bx+22*w, by+22*w);
                                     break;
                                 case ORIENTATION.TOPRIGHT_DOWNLEFT:
-                                    ctx.moveTo(obj.base_x+22*w, obj.base_y-22*w)
-                                    ctx.lineTo(obj.base_x-22*w, obj.base_y+22*w);
+                                    ctx.moveTo(bx+22*w, by-22*w)
+                                    ctx.lineTo(bx-22*w, by+22*w);
                                     break;
                             }
                             ctx.stroke();
@@ -5139,20 +5395,20 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.beginPath();
                         switch(obj.orientation){
                             case ORIENTATION.VERTICAL:
-                                ctx.moveTo(obj.base_x, obj.base_y-22*w)
-                                ctx.lineTo(obj.base_x, obj.base_y+22*w);
+                                ctx.moveTo(bx, by-22*w)
+                                ctx.lineTo(bx, by+22*w);
                                 break;
                             case ORIENTATION.HORIZONTAL:
-                                ctx.moveTo(obj.base_x-22*w, obj.base_y)
-                                ctx.lineTo(obj.base_x+22*w, obj.base_y);
+                                ctx.moveTo(bx-22*w, by)
+                                ctx.lineTo(bx+22*w, by);
                                 break;
                             case ORIENTATION.TOPLEFT_DOWNRIGHT:
-                                ctx.moveTo(obj.base_x-22*w, obj.base_y-22*w)
-                                ctx.lineTo(obj.base_x+22*w, obj.base_y+22*w);
+                                ctx.moveTo(bx-22*w, by-22*w)
+                                ctx.lineTo(bx+22*w, by+22*w);
                                 break;
                             case ORIENTATION.TOPRIGHT_DOWNLEFT:
-                                ctx.moveTo(obj.base_x+22*w, obj.base_y-22*w)
-                                ctx.lineTo(obj.base_x-22*w, obj.base_y+22*w);
+                                ctx.moveTo(bx+22*w, by-22*w)
+                                ctx.lineTo(bx-22*w, by+22*w);
                                 break;
                         }
                         ctx.stroke();
@@ -5163,10 +5419,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(!obj.width || !obj.height)
                     break;
                 const bbox = {
-                    x0:obj.base_x,
-                    y0:obj.base_y,
-                    x1:obj.base_x+obj.width*REFERENCE_WIDTH,
-                    y1:obj.base_y+obj.height*REFERENCE_WIDTH,
+                    x0:bx,
+                    y0:by,
+                    x1:bx+obj.width*REFERENCE_WIDTH,
+                    y1:by+obj.height*REFERENCE_WIDTH,
                 };
                 if(!bbox_overlaps(bbox, canvas_bbox)){
                     break;
@@ -5174,7 +5430,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(is_selected){
                     ctx.lineWidth=4;
                     ctx.strokeStyle = sel_color;
-                    ctx.strokeRect(obj.base_x, obj.base_y, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH);
+                    ctx.strokeRect(bx, by, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH);
                 }
                 ctx.fillStyle = "#000000";
                 let n = 0;
@@ -5184,8 +5440,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 let h = 0;
                 let dw = 0;
                 let dh = 0;
-                let x = obj.base_x;
-                let y = obj.base_y;
+                let x = bx;
+                let y = by;
                 switch(obj.rotation){
                     case ROTATION.UP:{
                         x += 2;
@@ -5205,7 +5461,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         dw = -w / n;
                         dx = -dw/2;
                         dy = -8;
-                        y = obj.base_y + obj.height*64 - 8;
+                        y = by + obj.height*64 - 8;
                     }break;
                     case ROTATION.RIGHT:{
                         y += 2;
@@ -5225,7 +5481,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         dh = -h / n;
                         dy = -dh/2;
                         dx = -8;
-                        x = obj.base_x + obj.width*64 - 8;
+                        x = bx + obj.width*64 - 8;
                     }break;
                 }
                 for(let q = 0; q < n; ++q){
@@ -5237,11 +5493,21 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
             }break;
             case CANVASTYPE.MEASURE:{
+                // thiss looks sus with the change to bx over obj.base_x
+                let x1 = obj.x1;
+                let y1 = obj.y1;
+                if(obj.submap){
+                    const sm = canvas_objs.get(obj.submap)! as SubMap;
+                    if(sm!.flags & CANVASFLAG.SMALL)
+                        continue;
+                    x1 += sm.base_x + sm.tlx;
+                    y1 += sm.base_y + sm.tly;
+                }
                 const bbox = {
-                    x0: obj.base_x < obj.x1?obj.base_x : obj.x1,
-                    x1: obj.base_x > obj.x1?obj.base_x : obj.x1,
-                    y0: obj.base_y < obj.y1?obj.base_y : obj.y1,
-                    y1: obj.base_y > obj.y1?obj.base_y : obj.y1,
+                    x0: bx < x1 ? bx : x1,
+                    x1: bx > x1 ? bx : x1,
+                    y0: by < y1 ? by : y1,
+                    y1: by > y1 ? by : y1,
                 };
                 if(!bbox_overlaps(bbox, canvas_bbox))
                     break;
@@ -5251,39 +5517,40 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 ctx.lineWidth = 4/scale;
                 ctx.lineJoin = 'miter';
                 ctx.beginPath();
-                ctx.moveTo(obj.base_x, obj.base_y);
+                ctx.moveTo(bx, by);
                 const head_length = 20/scale;
-                const dx = obj.x1 - obj.base_x;
-                const dy = obj.y1 - obj.base_y;
+                const dx = x1 - bx;
+                const dy = y1 - by;
                 const angle = Math.atan2(dy, dx);
-                ctx.lineTo(obj.x1, obj.y1);
+                ctx.lineTo(x1, y1);
                 ctx.stroke();
                 ctx.beginPath();
                 let x_off = head_length * Math.cos(angle - Math.PI/6);
                 let y_off = head_length * Math.sin(angle - Math.PI/6);
-                ctx.lineTo(obj.x1 - x_off, obj.y1 - y_off);
-                ctx.lineTo(obj.x1, obj.y1);
+                ctx.lineTo(x1 - x_off, y1 - y_off);
+                ctx.lineTo(x1, y1);
                 x_off = head_length * Math.cos(angle + Math.PI/6);
                 y_off = head_length * Math.sin(angle + Math.PI/6);
-                ctx.lineTo(obj.x1 - x_off, obj.y1 - y_off);
+                ctx.lineTo(x1 - x_off, y1 - y_off);
                 ctx.stroke();
                 const fontsize = 24/scale | 0;
                 ctx.font = fontsize+'px sans-serif';
                 ctx.textBaseline = 'middle';
                 ctx.textAlign = 'center';
                 ctx.fillStyle = '#000000';
-                const measure_length = calc_measure_length(map, obj.base_x, obj.base_y, obj.x1, obj.y1);
 
-                ctx.fillText(measure_length, (obj.base_x+obj.x1)/2-fontsize, (obj.base_y+obj.y1)/2-fontsize);
+                const measure_length = (obj.submap?calc_square_length:calc_measure_length)(map, bx, by, x1, y1);
+
+                ctx.fillText(measure_length, (bx+x1)/2-fontsize, (by+y1)/2-fontsize);
             }break;
             case CANVASTYPE.FIXTURE:{
                 if(!obj.width || !obj.height)
                     break;
                 const bbox = {
-                    x0:obj.base_x,
-                    y0:obj.base_y,
-                    x1:obj.base_x+obj.width,
-                    y1:obj.base_y+obj.height,
+                    x0:bx,
+                    y0:by,
+                    x1:bx+obj.width,
+                    y1:by+obj.height,
                 };
                 if(!bbox_overlaps(bbox, canvas_bbox)){
                     break;
@@ -5323,8 +5590,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     case FIXTURETYPE.PIT:{
                         let w = obj.width - 8;
                         let h = obj.height - 8;
-                        let x = obj.base_x + 4;
-                        let y = obj.base_y + 4;
+                        let x = bx + 4;
+                        let y = by + 4;
                         if(is_selected){
                             ctx.lineWidth = 4;
                             ctx.strokeStyle = sel_color;
@@ -5357,10 +5624,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         if(is_selected){
                             ctx.lineWidth = 4;
                             ctx.strokeStyle = sel_color;
-                            ctx.strokeRect(obj.base_x, obj.base_y, obj.width, obj.height);
+                            ctx.strokeRect(bx, by, obj.width, obj.height);
                         }
                         if(RUBBLEIMAGE){
-                            ctx.drawImage(RUBBLEIMAGE, obj.base_x, obj.base_y, obj.width, obj.height);
+                            ctx.drawImage(RUBBLEIMAGE, bx, by, obj.width, obj.height);
                         }
                     }break;
                 }
@@ -5375,10 +5642,69 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 const icon = TERRAIN_ICONS.get(obj.terrainicon_id);
                 if(is_selected){
                     ctx.fillStyle = sel_color+'aa';
-                    ctx.fillRect(obj.base_x+4, obj.base_y+4, 56, 56);
+                    ctx.fillRect(bx+4, by+4, 56, 56);
                 }
                 if(icon)
-                    ctx.drawImage(icon, obj.base_x+4, obj.base_y+4, 56, 56);
+                    ctx.drawImage(icon, bx+4, by+4, 56, 56);
+            }break;
+            case CANVASTYPE.SUBMAP:{
+                ctx.save();
+                // if(map.grid_type & GRIDTYPE.HEX)
+                    // ctx.scale(1, HEX_Y_FIX_INV);
+                const rect_bbox = {
+                    x0:bx,
+                    y0:by,
+                    x1:bx+obj.width,
+                    y1:by+obj.height,
+                };
+                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                    break;
+                }
+                if(is_selected){
+                    ctx.lineWidth=8;
+                    ctx.strokeStyle = sel_color;
+                    if(obj.flags & CANVASFLAG.SMALL)
+                        ctx.strokeRect(bx-2, by-2, obj.width+4, 68);
+                    else
+                        ctx.strokeRect(bx-2, by-2, obj.width+4, obj.height+4);
+                }
+                ctx.lineWidth=4;
+                ctx.fillStyle = BACKGROUND;
+                if(obj.flags & CANVASFLAG.SMALL)
+                    ctx.fillRect(bx, by, obj.width, 64);
+                else
+                    ctx.fillRect(bx, by, obj.width, obj.height);
+                ctx.strokeStyle = '#000';
+                if(obj.flags & CANVASFLAG.SMALL)
+                    ctx.strokeRect(bx, by, obj.width, 64);
+                else{
+                    ctx.strokeRect(bx, by, obj.width, obj.height);
+
+                    if(obj.width && obj.height){
+                        let box = new Path2D();
+                        box.rect(bx+2/SCALE, by+2/SCALE, obj.width-4/SCALE, obj.height-4/SCALE);
+                        ctx.clip(box);
+                        ctx.fillStyle = 'rgb(150, 150, 150)';
+                        for(let dx = 0; dx < obj.width; dx += REFERENCE_WIDTH){
+                            ctx.fillRect(bx+dx, by+64, 1/SCALE, obj.height-64);
+                        }
+                        for(let dy = 0; dy < obj.height; dy += REFERENCE_WIDTH){
+                            ctx.fillRect(bx, by+dy, obj.width, 1/SCALE);
+                        }
+                    }
+                }
+                if(obj.title){
+                    ctx.font = '48px sans-serif';
+                    ctx.textBaseline = 'middle';
+                    ctx.textAlign = 'center';
+                    if(DARKMODE)
+                        ctx.fillStyle = '#ffffff';
+                    else
+                        ctx.fillStyle = '#000000';
+                    ctx.fillText(obj.title, bx+obj.width/2, by+24);
+                }
+                ctx.restore();
+
             }break;
         }
     }
@@ -5478,8 +5804,8 @@ const enum TOOLTYPE {
     MEASURE = 11,
     FIXTURE = 12,
     TILE    = 13,
+    SUBMAP  = 14,
 }
-const TOOLTYPE_MAX = TOOLTYPE.FIXTURE + 1;
 const TOOL_IDS_TO_TOOL = (function(){
     const m: Map<string, TOOLTYPE> = new Map();
     m.set('pan-tool',     TOOLTYPE.PAN);
@@ -5496,6 +5822,7 @@ const TOOL_IDS_TO_TOOL = (function(){
     m.set('measure-tool', TOOLTYPE.MEASURE);
     m.set('fixture-tool', TOOLTYPE.FIXTURE);
     m.set('tile-tool',    TOOLTYPE.TILE);
+    m.set('submap-tool',  TOOLTYPE.SUBMAP);
     return m;
 }());
 const TOOL_TO_TOOL_ID = [
@@ -5527,6 +5854,8 @@ const TOOL_TO_TOOL_ID = [
     'fixture-tool',
     // TOOLTYPE.FILL:
     'tile-tool',
+    // TOOLTYPE.SUBMAP
+    'submap-tool',
 ];
 let current_fixture_type = FIXTURETYPE.STAIRS;
 const enum TOKENTYPE {
@@ -6043,12 +6372,26 @@ function event_to_coord(e:MouseEvent, view:DungeonMapView):[number, number]{
         : e.offsetY/view.scale - view.camera_y;
     return [x,y];
 }
+function event_to_coord_off(e:MouseEvent, view:DungeonMapView, off:[number, number]):[number, number]{
+    const x = e.offsetX/view.scale - view.camera_x
+    const y = view.map.grid_type & GRIDTYPE.HEX?
+        HEX_Y_FIX_INV*(e.offsetY/view.scale - view.camera_y)
+        : e.offsetY/view.scale - view.camera_y;
+    return [x-off[0],y-off[1]];
+}
 function event_to_coord_snapped(e:MouseEvent, view:DungeonMapView, snap:(x:number)=>number):[number, number]{
     const x = e.offsetX/view.scale - view.camera_x
     const y = view.map.grid_type & GRIDTYPE.HEX?
         HEX_Y_FIX_INV*(e.offsetY/view.scale - view.camera_y)
         : e.offsetY/view.scale - view.camera_y;
     return [snap(x),snap(y)];
+}
+function event_to_coord_snapped_off(e:MouseEvent, view:DungeonMapView, snap:(x:number)=>number, off:[number, number]):[number, number]{
+    const x = e.offsetX/view.scale - view.camera_x
+    const y = view.map.grid_type & GRIDTYPE.HEX?
+        HEX_Y_FIX_INV*(e.offsetY/view.scale - view.camera_y)
+        : e.offsetY/view.scale - view.camera_y;
+    return [snap(x-off[0]),snap(y-off[1])];
 }
 
 function hiddenid():number {
@@ -6175,11 +6518,26 @@ document.addEventListener('DOMContentLoaded', function(){
             case 'Delete':{
                 if(!view.selected.size)
                     break;
+                let deleted = [];
                 for(let item of view.selected){
-                    view.map.canvas_objs.get(item)!.flags |= CANVASFLAG.DELETED;
+                    let o = view.map.canvas_objs.get(item)!;
+                    if(o.flags & CANVASFLAG.DELETED) continue;
+                    o.flags |= CANVASFLAG.DELETED;
+                    deleted.push(o.id);
+                    // #SPEED: faster way to get all objects in this submap
+                    if(o.type == CANVASTYPE.SUBMAP){
+                        for(let obj of view.map.canvas_obj_array){
+                            if(obj.flags & CANVASFLAG.DELETED) continue;
+                            if(obj.submap == o.id){
+                                obj.flags |= CANVASFLAG.DELETED;
+                                deleted.push(obj.id);
+                            }
+                        }
+
+                    }
                 }
-                publish_delete_by_ids(view.map.map_id, Array.from(view.selected));
-                note_delete_by_ids_for_undo(view.map, Array.from(view.selected));
+                publish_delete_by_ids(view.map.map_id, deleted);
+                note_delete_by_ids_for_undo(view.map, deleted);
                 end_selecting(view);
             }break;
             case 'q':
@@ -6365,6 +6723,37 @@ document.addEventListener('DOMContentLoaded', function(){
             prev_tool = current_tool;
             current_tool = TOOLTYPE.PAN;
         }
+        let submapid = 0;
+        let smoff:[number, number] = [0, 0];
+        // Find what submap if any we are inside.
+        {
+            let [x, y] = event_to_coord(e, view);
+            for(let sm of view.map.submaps){
+                if(sm.flags & CANVASFLAG.DELETED)
+                    continue;
+                if(sm.hidinguser && sm.hidinguser != SETTINGS.userid)
+                    continue;
+                const sm_bbox = {
+                    x0:sm.base_x,
+                    y0:sm.base_y,
+                    x1:sm.base_x+sm.width,
+                    y1:sm.base_y+sm.height,
+                };
+                const click_bbox = {
+                    x0:x,
+                    y0:y,
+                    x1:x,
+                    y1:y,
+                };
+                if(bbox_overlaps(sm_bbox, click_bbox)){
+                    submapid = sm.id;
+                    smoff = [sm.base_x+sm.tlx, sm.base_y+sm.tly];
+                    break;
+                }
+            }
+        }
+        console.log('submapid', submapid);
+
         let snap = get_snap_func();
         switch(current_tool){
             case TOOLTYPE.SELECT:{
@@ -6379,10 +6768,10 @@ document.addEventListener('DOMContentLoaded', function(){
                         return;
                     }
                 }
-                const fudged_x0 = clicked_x-FUDGE._;//view.scale;
-                const fudged_x1 = clicked_x+FUDGE._;//view.scale;
-                const fudged_y0 = clicked_y-FUDGE._;//view.scale;
-                const fudged_y1 = clicked_y+FUDGE._;//view.scale;
+                const fudged_x0 = clicked_x-FUDGE._;
+                const fudged_x1 = clicked_x+FUDGE._;
+                const fudged_y0 = clicked_y-FUDGE._;
+                const fudged_y1 = clicked_y+FUDGE._;
                 // Simulate doing a single item click so that you can immediately
                 // start moving it.
                 // There's probably a more efficient/clear way to do this,
@@ -6432,6 +6821,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     sort_canv_objs(view.map);
                     view.selection_area.select_one = true;
                     view.selection_area.is_selecting = true;
+                    view.selection_area.submap = submapid;
                     update_selection(view, fudged_x0, fudged_y0, fudged_x1, fudged_y1);
                     request_render();
                     function select(e:MouseEvent){
@@ -6484,14 +6874,14 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case TOOLTYPE.LINE:{
                 let id = get_new_id();
-                const [x0, y0] = event_to_coord(e, view);
+                const [x0, y0] = event_to_coord_off(e, view, smoff);
                 const thickness_input = by_id('line-thickness');
                 const thickness = +thickness_input.value || 4;
-                add_freehand_line(view.map, id, x0, y0, get_primary_color(), thickness);
+                add_freehand_line(view.map, id, x0, y0, submapid, get_primary_color(), thickness);
                 function add_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    const [x1, y1] = event_to_coord(e, view);
+                    const [x1, y1] = event_to_coord_off(e, view, smoff);
                     add_freehand_point_by_id(view.map, id, x1, y1);
                     request_render();
                 }
@@ -6510,12 +6900,12 @@ document.addEventListener('DOMContentLoaded', function(){
                 let id = get_new_id();
                 if(snapmode == SNAPMODE.FREE){
                     // copy paste from LINE above.
-                    const [x0, y0] = event_to_coord(e, view);
-                    add_freehand_line(view.map, id, x0, y0, get_primary_color(), 4);
+                    const [x0, y0] = event_to_coord_off(e, view, smoff);
+                    add_freehand_line(view.map, id, x0, y0, submapid, get_primary_color(), 4);
                     function add_point(e:MouseEvent){
                         e.stopPropagation();
                         e.preventDefault();
-                        const [x1, y1] = event_to_coord(e, view);
+                        const [x1, y1] = event_to_coord_off(e, view, smoff);
                         add_freehand_point_by_id(view.map, id, x1, y1);
                         request_render();
                     }
@@ -6531,12 +6921,12 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.addEventListener('pointerleave', finish_point);
                 }
                 else{
-                    const [x0, y0] = event_to_coord(e, view);
-                    add_gridline(view.map, id, x0, y0, get_primary_color());
+                    const [x0, y0] = event_to_coord_off(e, view, smoff);
+                    add_gridline(view.map, id, x0, y0, submapid, get_primary_color());
                     function add_point(e:MouseEvent){
                         e.stopPropagation();
                         e.preventDefault();
-                        const [x1, y1] = event_to_coord(e, view);
+                        const [x1, y1] = event_to_coord_off(e, view, smoff);
                         add_gridline_point_by_id(view.map, id, x1, y1);
                         request_render();
                     }
@@ -6553,7 +6943,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
             }break;
             case TOOLTYPE.DOOR:{
-                const [x0, y0] = event_to_coord_snapped(e, view, snap);
+                const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
                 let x1 = x0;
                 let y1 = y0;
                 view.placing_area.is_placing = true;
@@ -6566,7 +6956,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 function change_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    [x1, y1] = event_to_coord_snapped(e, view, snap);
+                    [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
                     view.placing_area.x0 = x0;
                     view.placing_area.y0 = y0;
                     view.placing_area.x1 = x1;
@@ -6605,7 +6995,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             return;
                         let x = ((x0 + x1)/2) | 0;
                         let y = ((y0 + y1)/2) | 0;
-                        add_door(view.map, id, x, y, current_door, get_primary_color(), width, orientation);
+                        add_door(view.map, id, x, y, current_door, submapid, get_primary_color(), width, orientation);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                     }
@@ -6618,12 +7008,12 @@ document.addEventListener('DOMContentLoaded', function(){
                 switch(current_rect_type){
                     case RECTTYPE.HOLLOW:{
                         let id = get_new_id();
-                        const [x0, y0] = event_to_coord_snapped(e, view, snap);
-                        add_rect(view.map, id, x0, y0, get_primary_color());
+                        const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
+                        add_rect(view.map, id, x0, y0, submapid, get_primary_color());
                         function add_point(e:MouseEvent){
                             e.stopPropagation();
                             e.preventDefault();
-                            const [x1, y1] = event_to_coord_snapped(e, view, snap);
+                            const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
                             change_rect_by_id(view.map, id, x1, y1, x0, y0);
                             request_render();
                         }
@@ -6640,12 +7030,12 @@ document.addEventListener('DOMContentLoaded', function(){
                     }break;
                     case RECTTYPE.FILLED:{
                         let id = get_new_id();
-                        const [x0, y0] = event_to_coord_snapped(e, view, snap);
-                        add_filled_rect(view.map, id, x0, y0, get_primary_color(), get_secondary_color());
+                        const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
+                        add_filled_rect(view.map, id, x0, y0, submapid, get_primary_color(), get_secondary_color());
                         function add_point(e:MouseEvent){
                             e.stopPropagation();
                             e.preventDefault();
-                            const [x1, y1] = event_to_coord_snapped(e, view, snap);
+                            const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
                             change_filled_rect_by_id(view.map, id, x1, y1, x0, y0);
                             request_render();
                         }
@@ -6662,8 +7052,8 @@ document.addEventListener('DOMContentLoaded', function(){
                     }break;
                     case RECTTYPE.SOLID:{
                         let id = get_new_id();
-                        const [x0, y0] = event_to_coord_snapped(e, view, snap);
-                        add_gridrect(view.map, id, x0, y0, get_primary_color());
+                        const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
+                        add_gridrect(view.map, id, x0, y0, submapid, get_primary_color());
                         const gridrect = view.map.canvas_objs.get(id) as GridRectangle;
                         view.placing_area.is_placing = true;
                         view.placing_area.is_line = false;
@@ -6675,7 +7065,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         function add_point(e:MouseEvent){
                             e.stopPropagation();
                             e.preventDefault();
-                            const [x1, y1] = event_to_coord_snapped(e, view, snap);
+                            const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
                             change_gridrect_by_id(view.map, id, x1, y1, x0, y0);
                             view.placing_area.x0 = gridrect.base_x;
                             view.placing_area.y0 = gridrect.base_y;
@@ -6700,8 +7090,8 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case TOOLTYPE.ELLIPSE:{
                 let id = get_new_id();
-                const [x0, y0] = event_to_coord_snapped(e, view, snap);
-                add_ellipse(view.map, id, x0, y0, get_primary_color(), get_secondary_color(), current_ellipse);
+                const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
+                add_ellipse(view.map, id, x0, y0, submapid, get_primary_color(), get_secondary_color(), current_ellipse);
                 const ellipse = view.map.canvas_objs.get(id)! as Ellipse;
                 view.placing_area.is_placing = true;
                 view.placing_area.is_line = false;
@@ -6713,7 +7103,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 function add_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    const [x1, y1] = event_to_coord_snapped(e, view, snap);
+                    const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
                     if(x1 < x0)
                         ellipse.base_x = x1;
                     else
@@ -6744,7 +7134,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 canvas.addEventListener('pointerleave', finish_point);
             }break;
             case TOOLTYPE.TEXT:{
-                const [x0, y0] = event_to_coord(e, view);
+                const [x0, y0] = event_to_coord_off(e, view, smoff);
                 let dialog = get_dialog('text-input');
                 if(!dialog) return;
                 dialog.title.textContent = 'Enter Text';
@@ -6769,7 +7159,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     if(map_id == view.map.map_id)
                         map_id = -1;
                     let id = get_new_id();
-                    add_text(view.map, id, x0, y0, text, textsize, alignment, map_id);
+                    add_text(view.map, id, x0, y0, submapid, text, textsize, alignment, map_id);
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                     request_render();
@@ -6778,7 +7168,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
             }break;
             case TOOLTYPE.IMAGE:{
-                const [x0, y0] = event_to_coord(e, view);
+                const [x0, y0] = event_to_coord_off(e, view, smoff);
                 let dialog = get_dialog('image-input');
                 if(!dialog) return;
                 dialog.title.textContent = 'Enter Image';
@@ -6802,7 +7192,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         height = snap_to_grid(height);
                     }
                     let id = get_new_id();
-                    add_image(view.map, id, x0, y0, width, height, text);
+                    add_image(view.map, id, x0, y0, width, height, submapid, text);
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                     request_render();
@@ -6811,7 +7201,7 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case TOOLTYPE.TOKEN:{
                 if(current_token_type == TOKENTYPE.EZ){
-                    const [x0, y0] = event_to_coord(e, view);
+                    const [x0, y0] = event_to_coord_off(e, view, smoff);
                     let dialog = get_dialog('ez-token');
                     if(!dialog) return;
                     dialog.title.textContent = 'Enter Token';
@@ -6833,7 +7223,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         let id = get_new_id();
                         ez_token_color = color;
                         let snap = get_snap_tl_func();
-                        add_ez_token(view.map, id, snap(x0), snap(y0), text, color, width, height);
+                        add_ez_token(view.map, id, snap(x0), snap(y0), submapid, text, color, width, height);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                         request_render();
@@ -6842,7 +7232,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
                 }
                 else {
-                    const [x0, y0] = event_to_coord(e, view);
+                    const [x0, y0] = event_to_coord_off(e, view, smoff);
                     let dialog = get_dialog('img-token');
                     if(!dialog) return;
                     dialog.title.textContent = 'Choose Token';
@@ -6878,7 +7268,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         let h = +dialog.f.height.value;
                         if(!w || w < 0) w = gridscale == GRIDSCALE.TEN?1:0.5;
                         if(!h || h < 0) h = gridscale == GRIDSCALE.TEN?1:0.5;
-                        add_img_token(view.map, id, snap(x0), snap(y0), text, w, h);
+                        add_img_token(view.map, id, snap(x0), snap(y0), submapid, text, w, h);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                         request_render();
@@ -6891,8 +7281,8 @@ document.addEventListener('DOMContentLoaded', function(){
                     // Legacy: is its own impl
                     case FIXTURETYPE.STAIRS:{
                         let id = get_new_id();
-                        let [x0, y0] = event_to_coord(e, view);
-                        add_stairs(view.map, id, x0, y0);
+                        let [x0, y0] = event_to_coord_off(e, view, smoff);
+                        add_stairs(view.map, id, x0, y0, submapid);
                         view.placing_area.is_placing = true;
                         view.placing_area.is_line = false;
                         const stairs = view.map.canvas_objs.get(id)! as Stairs; // lazy
@@ -6906,7 +7296,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         function change_stairs_on_move(e:MouseEvent){
                             e.stopPropagation();
                             e.preventDefault();
-                            const [ex0, ey0] = event_to_coord(e, view);
+                            const [ex0, ey0] = event_to_coord_off(e, view, smoff);
                             change_stairs(stairs, x0, y0, ex0, ey0);
                             view.placing_area.x0 = stairs.base_x;
                             view.placing_area.y0 = stairs.base_y;
@@ -6934,8 +7324,8 @@ document.addEventListener('DOMContentLoaded', function(){
                     }break;
                     default:{
                         let id = get_new_id();
-                        const [x, y] = event_to_coord_snapped(e, view, snap);
-                        const fixture = make_fixture(id, x, y, current_fixture_type);
+                        const [x, y] = event_to_coord_snapped_off(e, view, snap, smoff);
+                        const fixture = make_fixture(id, x, y, submapid, current_fixture_type);
                         add_canv_obj(view.map, fixture);
                         view.placing_area.is_placing = true;
                         view.placing_area.is_line = false;
@@ -6949,7 +7339,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             e.preventDefault();
                             let x0 = x;
                             let y0 = y;
-                            let [x1, y1] = event_to_coord_snapped(e, view, snap);
+                            let [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
                             if(x1 < x0){
                                 let temp = x1; x1 = x0; x0 = temp;
                             }
@@ -6989,7 +7379,7 @@ document.addEventListener('DOMContentLoaded', function(){
             case TOOLTYPE.MEASURE:{
                 let id = get_new_id();
                 let snap:(x:number, y:number)=>[number, number];
-                if(view.map.grid_type & GRIDTYPE.HEX){
+                if(!submapid && view.map.grid_type & GRIDTYPE.HEX){
                     snap = function(x:number, y:number):[number, number]{
                         return snap_to_hex_center(x, y);
                     };
@@ -7002,16 +7392,16 @@ document.addEventListener('DOMContentLoaded', function(){
                         return [x0, y0];
                     };
                 }
-                const [unsnapped_x, unsnapped_y] = event_to_coord(e, view);
+                const [unsnapped_x, unsnapped_y] = event_to_coord_off(e, view, smoff);
                 const [x0, y0] = snap(unsnapped_x, unsnapped_y);
-                let measure = make_measure(id, x0, y0, '#aa0033');
+                let measure = make_measure(id, x0, y0, submapid, '#aa0033');
                 add_canv_obj(view.map, measure);
                 publish_obj_by_id(view.map, id); // don't note create for undo
                 request_render();
                 function move(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    const [x_, y_] = event_to_coord(e, view);
+                    const [x_, y_] = event_to_coord_off(e, view, smoff);
                     const [x, y] = snap(x_, y_);
                     if(x == measure.x1 && y == measure.y1)
                         return;
@@ -7038,12 +7428,12 @@ document.addEventListener('DOMContentLoaded', function(){
                 let x:number;
                 let y:number;
                 if(view.map.grid_type & GRIDTYPE.HEX){
-                    const [x_, y_] = event_to_coord(e, view);
+                    const [x_, y_] = event_to_coord_off(e, view, smoff);
                     [x, y] = snap_down_to_hex_grid(x_, y_);
                 }
                 else {
                     let snap = get_snap_tl_func();
-                    [x, y] = event_to_coord_snapped(e, view, snap);
+                    [x, y] = event_to_coord_snapped_off(e, view, snap, smoff);
                 }
                 let id = get_new_id();
                 switch(current_tile_type){
@@ -7055,6 +7445,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             base_y: y,
                             flags: CANVASFLAG.NONE,
                             hidinguser: hiddenid(),
+                            submap:submapid,
                             color: get_primary_color(),
                             size: gridscale == GRIDSCALE.TEN?1:0.5,
                         };
@@ -7068,6 +7459,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             base_y: y,
                             flags: CANVASFLAG.NONE,
                             hidinguser: hiddenid(),
+                            submap:submapid,
                             terrain_id: current_terrain_id,
                         };
                         add_canv_obj(view.map, terrain);
@@ -7080,6 +7472,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             base_y: y,
                             flags: CANVASFLAG.NONE,
                             hidinguser: hiddenid(),
+                            submap:submapid,
                             terrainicon_id: current_terrain_icon_id,
                         };
                         add_canv_obj(view.map, icon);
@@ -7090,6 +7483,62 @@ document.addEventListener('DOMContentLoaded', function(){
                 publish_obj_by_id(view.map, id);
                 note_create_by_id_for_undo(view.map, id);
                 request_render();
+            }break;
+            case TOOLTYPE.SUBMAP:{
+                // Don't allow nested submaps
+                if(submapid) break;
+                let id = get_new_id();
+                // could use smoff, whatever
+                const [x0, y0] = event_to_coord_snapped(e, view, snap);
+                let submap: SubMap = {
+                    type: CANVASTYPE.SUBMAP,
+                    id: id,
+                    base_x: x0,
+                    base_y: y0,
+                    flags: CANVASFLAG.NONE,
+                    hidinguser: hiddenid(),
+                    submap: 0,
+                    width: 0,
+                    height: 0,
+                    tlx: 0, tly:0,
+                    grid_type: GRIDTYPE.SQUARE,
+                    title: "Untitled",
+                };
+                add_canv_obj(view.map, submap);
+                request_render();
+                function add_point(e:MouseEvent){
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const [x1, y1] = event_to_coord_snapped(e, view, snap);
+                    let bx = x0;
+                    let width = Math.abs(x1 - x0);
+                    if(x1 < bx) bx = x1;
+                    let by = y0;
+                    if(y1 < by) by = y1;
+                    let height = Math.abs(y1 - y0);
+                    submap.base_x = bx;
+                    submap.base_y = by;
+                    submap.width = width;
+                    submap.height = height;
+                    request_render();
+                }
+                canvas.addEventListener('pointermove', add_point);
+                function finish_point(){
+                    canvas.removeEventListener('pointermove', add_point);
+                    window.removeEventListener('pointerup', finish_point);
+                    canvas.removeEventListener('pointerleave', finish_point);
+                    if(submap.width == 0 || submap.height == 0){
+                        submap.flags |= CANVASFLAG.DELETED;
+                    }
+                    else {
+                        view.map.submaps.push(submap);
+                        publish_obj_by_id(view.map, id);
+                        note_create_by_id_for_undo(view.map, id);
+                    }
+                    request_render();
+                }
+                window.addEventListener('pointerup', finish_point);
+                canvas.addEventListener('pointerleave', finish_point);
             }break;
             default:{
                 console.log('unknown tool:', current_tool);
@@ -7114,7 +7563,11 @@ document.addEventListener('DOMContentLoaded', function(){
             }
         }
         prev_id = o?o.id:-1;
-        if(current_tool == TOOLTYPE.SELECT){
+        if(view.selection_area.is_selecting){
+            view.hovered_id = -1;
+            canvas.style.cursor = 'initial';
+        }
+        else if(current_tool == TOOLTYPE.SELECT){
             if(o && o.type == CANVASTYPE.TEXT && o.map_id > -1){
                 canvas.style.cursor = 'pointer';
             }

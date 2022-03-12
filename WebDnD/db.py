@@ -13,7 +13,7 @@ atexit.register(lambda: (logging.info('closing db'), conn.close())) # type: igno
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 9
+DBVERSION = 10
 with conn:
     conn.execute("PRAGMA encoding = 'UTF-8';")
     conn.execute('PRAGMA foreign_keys = ON;')
@@ -198,16 +198,15 @@ def setup_tables() -> None:
         ''').fetchall()
         for m in maps:
             campid, mapid, name, objects, flags, grid_type = m
-            objs = json.loads(objects)
-            o: list
+            objs: List[list] = json.loads(objects)
             for o in objs:
-                o.insert(5, 0)
-            objs = json.dumps(objs)
+                o.insert(5, 0) # hidinguser
+            objs_ = json.dumps(objs)
             conn.execute('''
             UPDATE maps
             SET objects = ?
             WHERE campaignid = ? AND mapid = ?;
-            ''',(objs, campid, mapid))
+            ''',(objs_, campid, mapid))
     if version < 8:
         conn.execute('''
             CREATE TABLE privaterolltables (
@@ -235,6 +234,21 @@ def setup_tables() -> None:
                 FOREIGN KEY(campaignid) REFERENCES campaigns(id)
             );
         ''')
+    if version < 10:
+        maps = conn.execute('''
+        SELECT * FROM maps;
+        ''').fetchall()
+        for m in maps:
+            campid, mapid, name, objects, flags, grid_type = m
+            objs = json.loads(objects)
+            for o in objs:
+                o.insert(6, 0) # submap
+            objs_ = json.dumps(objs)
+            conn.execute('''
+            UPDATE maps
+            SET objects = ?
+            WHERE campaignid = ? AND mapid = ?;
+            ''',(objs_, campid, mapid))
 
 
 
