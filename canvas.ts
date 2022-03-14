@@ -6537,45 +6537,47 @@ function hiddenid():number {
     return 0;
 }
 
-// TODO: move this to a closure for privacy?
-let prev_id = -1;
-function redo_canvas_cursor(view: DungeonMapView){
-    if(view.resize.resizing) return;
-    for(let rh of view.resize.handles){
-        if(point_in_rect(view.mouse.x, view.mouse.y, rh.bbox.x0, rh.bbox.y0, rh.bbox.x1, rh.bbox.y1)){
-            canvas.style.cursor = 'nwse-resize';
-            prev_id = -1;
-            return;
+const redo_canvas_cursor = (function(){
+    let prev_id = -1;
+    function redo_canvas_cursor(view: DungeonMapView){
+        if(view.resize.resizing) return;
+        for(let rh of view.resize.handles){
+            if(point_in_rect(view.mouse.x, view.mouse.y, rh.bbox.x0, rh.bbox.y0, rh.bbox.x1, rh.bbox.y1)){
+                canvas.style.cursor = 'nwse-resize';
+                prev_id = -1;
+                return;
+            }
         }
-    }
-    let o = obj_at(view, view.mouse.x, view.mouse.y, select_type);
-    if(o){
-        if(prev_id != o.id)
-            request_render();
-    }
-    else {
-        if(prev_id != -1)
-            request_render();
-    }
-    prev_id = o?o.id:-1;
-    if(view.selection_area.is_selecting){
-        view.hovered_id = -1;
-        canvas.style.cursor = 'initial';
-    }
-    else if(current_tool == TOOLTYPE.SELECT){
-        if(o && o.type == CANVASTYPE.TEXT && o.map_id > -1){
-            canvas.style.cursor = 'pointer';
+        let o = obj_at(view, view.mouse.x, view.mouse.y, select_type);
+        if(o){
+            if(prev_id != o.id)
+                request_render();
         }
         else {
+            if(prev_id != -1)
+                request_render();
+        }
+        prev_id = o?o.id:-1;
+        if(view.selection_area.is_selecting){
+            view.hovered_id = -1;
             canvas.style.cursor = 'initial';
         }
-        view.hovered_id = prev_id;
+        else if(current_tool == TOOLTYPE.SELECT){
+            if(o && o.type == CANVASTYPE.TEXT && o.map_id > -1){
+                canvas.style.cursor = 'pointer';
+            }
+            else {
+                canvas.style.cursor = 'initial';
+            }
+            view.hovered_id = prev_id;
+        }
+        else {
+            view.hovered_id = -1;
+            canvas.style.cursor = 'initial';
+        }
     }
-    else {
-        view.hovered_id = -1;
-        canvas.style.cursor = 'initial';
-    }
-}
+    return redo_canvas_cursor;
+}());
 
 function get_submap_at(view:DungeonMapView, x:number, y:number):SubMap | null {
     for(let sm of view.map.submaps){
