@@ -1213,6 +1213,11 @@ type ResizeHandle = {
     obj_id: number;
     topleft: boolean;
 }
+type ActionArea = {
+    bbox: Bbox;
+    obj_id: number;
+    action: number;
+}
 type DungeonMapView = {
     map: DungeonMap; // non-owning
     // These are in REFERENCE_WIDTH space.
@@ -1250,6 +1255,9 @@ type DungeonMapView = {
         handles: Array<ResizeHandle>;
         resizing: boolean;
     };
+    action: {
+        areas: Array<ActionArea>;
+    };
 
 }
 let active_map_view_index = 0;
@@ -1281,6 +1289,9 @@ function new_map_view(map_id:number): DungeonMapView{
         resize: {
             handles: [],
             resizing: false,
+        },
+        action:{
+            areas: [],
         },
     };
     return view;
@@ -4262,6 +4273,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
     if(!view)
         return;
     view.resize.handles = [];
+    view.action.areas = [];
     const map = view.map;
     sort_canv_objs(map);
     if(view.selection_area.is_selecting){
@@ -5823,8 +5835,31 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.fillStyle = '#ffffff';
                     else
                         ctx.fillStyle = '#000000';
-                    ctx.fillText(obj.title, bx+obj.width/2, by+24);
+                    ctx.fillText(obj.title, bx+obj.width/2, by+32);
                 }
+                ctx.fillStyle = DARKMODE?'#ffffff':'#000000';
+                ctx.strokeStyle = DARKMODE?'#ffffff':'#000000';
+                const enum M {W=40, H=4};
+                const enum O {BASE=(64-M.W)/2, WIN=64-BASE, MARGIN=BASE/2};
+                ctx.lineWidth = M.H;
+                const y = by + O.BASE;
+                const x = IS_WINDOWS? bx + obj.width - O.WIN : bx + O.BASE;
+                view.action.areas.push({
+                    bbox: {
+                        x0:x - O.MARGIN,
+                        y0:y - O.MARGIN,
+                        x1:x+M.W+O.MARGIN,
+                        y1:y+M.W+O.MARGIN,
+                    },
+                    obj_id: obj.id,
+                    action: 0,
+                });
+                if(point_in_rect(view.mouse.x, view.mouse.y, x-O.MARGIN, y-O.MARGIN, x+M.W+O.MARGIN, y+M.W+O.MARGIN)){
+                    ctx.fillStyle = COULD_SELECT_COLOR;
+                    ctx.fillRect(x-O.MARGIN, y-O.MARGIN, M.W+O.MARGIN*2, M.W+O.MARGIN*2);
+                }
+                const h = obj.flags & CANVASFLAG.SMALL? M.W : 0;
+                ctx.strokeRect(x, y, M.W, h);
                 ctx.restore();
                 if(one_selection && selected.has(obj.id) && !(obj.flags & CANVASFLAG.SMALL)){
                     ctx.fillStyle = sel_color;
@@ -6541,9 +6576,23 @@ const redo_canvas_cursor = (function(){
     let prev_id = -1;
     function redo_canvas_cursor(view: DungeonMapView){
         if(view.resize.resizing) return;
+        if(current_tool != TOOLTYPE.SELECT){
+            view.hovered_id = -1;
+            if(canvas.style.cursor != 'initial')
+                canvas.style.cursor = 'initial';
+            return;
+        }
         for(let rh of view.resize.handles){
             if(point_in_rect(view.mouse.x, view.mouse.y, rh.bbox.x0, rh.bbox.y0, rh.bbox.x1, rh.bbox.y1)){
                 canvas.style.cursor = 'nwse-resize';
+                prev_id = -1;
+                return;
+            }
+        }
+        for(let aa of view.action.areas){
+            if(point_in_rect(view.mouse.x, view.mouse.y, aa.bbox.x0, aa.bbox.y0, aa.bbox.x1, aa.bbox.y1)){
+                request_render();
+                canvas.style.cursor = 'pointer';
                 prev_id = -1;
                 return;
             }
@@ -6940,6 +6989,16 @@ document.addEventListener('DOMContentLoaded', function(){
         switch(current_tool){
             case TOOLTYPE.SELECT:{
                 let [clicked_x, clicked_y] = event_to_coord(e, view);
+                for(let aa of view.action.areas){
+                    if(point_in_rect(clicked_x, clicked_y, aa.bbox.x0, aa.bbox.y0, aa.bbox.x1, aa.bbox.y1)){
+                        let o = view.map.canvas_objs.get(aa.obj_id);
+                        if(!o) return;
+                        if(o.flags & CANVASFLAG.DELETED) return;
+                        o.flags ^= CANVASFLAG.SMALL;
+                        request_render();
+                        return;
+                    }
+                }
                 if(view.resize.handles.length){
                     for(let rh of view.resize.handles){
                         if(point_in_rect(clicked_x, clicked_y, rh.bbox.x0, rh.bbox.y0, rh.bbox.x1, rh.bbox.y1)){
@@ -7806,6 +7865,11 @@ document.addEventListener('DOMContentLoaded', function(){
         if(current_tool != TOOLTYPE.SELECT)
             return;
         if(view.resize.resizing) return;
+        let [clicked_x, clicked_y] = event_to_coord(e, view);
+        for(let aa of view.action.areas){
+            if(point_in_rect(clicked_x, clicked_y, aa.bbox.x0, aa.bbox.y0, aa.bbox.x1, aa.bbox.y1))
+                return;
+        }
         launch_edit_dialog(view);
     });
     canvas.addEventListener('contextmenu', function(e:MouseEvent){

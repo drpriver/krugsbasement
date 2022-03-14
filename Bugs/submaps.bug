@@ -5,6 +5,7 @@ updated: 2022-03-11T20:20:45Z
 updated: 2022-03-13T06:40:58Z
 updated: 2022-03-14T06:32:52Z
 updated: 2022-03-14T07:03:59Z
+updated: 2022-03-14T18:09:36Z
 bugmagic^^^^
 Created Mar 10, 2022, 01:33PM::md.update
 Summary::md.summary
@@ -35,7 +36,7 @@ Updated Mar 10, 2022, 08:23PM::md.update
 Updated Mar 10, 2022, 11:36PM::md.update
   1. ✓ Objects contained by the map need to have their coordinates be relative to the map.
 Updated Mar 11, 2022, 03:20PM::md.update
-  1. Better minimize ui (button instead of in the edit menu)
+  1. ✓ Better minimize ui (button instead of in the edit menu)
   2. Shrinks to the size of a square/hex
   3. Remembers the origin square/hex is maybe?
 Updated Mar 13, 2022, 01:40AM::md.update
@@ -44,3 +45,5 @@ Updated Mar 14, 2022, 02:32AM::md.update
   Resizable
 Updated Mar 14, 2022, 03:03AM::md.update
   Good enough copy paste
+Updated Mar 14, 2022, 02:09PM::md.update
+  Good minimize ui

@@ -224,9 +224,10 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
         y = e.screenY;
     }
 }
+const IS_WINDOWS = window.navigator.platform.includes('Windows');
 
 function setup_closable_window(win:HTMLElement, closer:HTMLElement, onclose:()=>void){
-    if(window.navigator.platform.includes('Windows'))
+    if(IS_WINDOWS)
         closer.style.gridColumn = '3';
     else
         closer.style.gridColumn = '1';
