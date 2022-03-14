@@ -2738,7 +2738,7 @@ function rotate_everything_90(view:DungeonMapView){
     publish_obj_updates(view.map.map_id, after_rotate);
     request_render();
 }
-function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
+function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number, submapid:number):void{
     x = snap_to_grid(x);
     y = snap_to_grid(y);
     const length = copied_objs.length;
@@ -2762,7 +2762,7 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
     const new_ids = [];
     for(let i = 0; i < length; ++i){
         const obj = unstrip_obj(copied_objs[i]);
-        obj.submap = 0; // TODO: figure out if we are pasting into a submap
+        obj.submap = submapid; // TODO: figure out if we are pasting into a submap
         let id = get_new_id();
         obj.id = id;
         translate_object(obj, dx, dy);
@@ -6577,6 +6577,24 @@ function redo_canvas_cursor(view: DungeonMapView){
     }
 }
 
+function get_submap_at(view:DungeonMapView, x:number, y:number):SubMap | null {
+    for(let sm of view.map.submaps){
+        if(sm.flags & CANVASFLAG.DELETED)
+            continue;
+        if(sm.hidinguser && sm.hidinguser != SETTINGS.userid)
+            continue;
+        const sm_bbox = {
+            x0:sm.base_x+64, // The title area.
+            y0:sm.base_y+64,
+            x1:sm.base_x+sm.width,
+            y1:sm.base_y+sm.height,
+        };
+        if(point_in_rect(x, y, sm_bbox.x0, sm_bbox.y0, sm_bbox.x1, sm_bbox.y1))
+            return sm;
+    }
+    return null;
+}
+
 document.addEventListener('DOMContentLoaded', function(){
     canvas = document.getElementsByTagName('canvas')[0]!;
     let gesturing = false;
@@ -6818,9 +6836,15 @@ document.addEventListener('DOMContentLoaded', function(){
             case 'v':
                 if(shortcut){
                     if(copied_objs.length){
-                        const x = canvas.width/4/view.scale - view.camera_x;
-                        const y = canvas.height/4/view.scale - view.camera_y;
-                        paste_from_copy_buffer_at(view.map, x, y);
+                        let submapid = 0;
+                        let x = view.mouse.x; let y = view.mouse.y;
+                        let sm = get_submap_at(view, x, y);
+                        if(sm){
+                            submapid = sm.id;
+                            x -= sm.base_x + sm.tlx;
+                            y -= sm.base_y + sm.tly;
+                        }
+                        paste_from_copy_buffer_at(view.map, x, y, submapid);
                     }
                     break;
                 }
@@ -6904,28 +6928,10 @@ document.addEventListener('DOMContentLoaded', function(){
         // Find what submap if any we are inside.
         {
             let [x, y] = event_to_coord(e, view);
-            for(let sm of view.map.submaps){
-                if(sm.flags & CANVASFLAG.DELETED)
-                    continue;
-                if(sm.hidinguser && sm.hidinguser != SETTINGS.userid)
-                    continue;
-                const sm_bbox = {
-                    x0:sm.base_x+64, // The title area.
-                    y0:sm.base_y+64,
-                    x1:sm.base_x+sm.width,
-                    y1:sm.base_y+sm.height,
-                };
-                const click_bbox = {
-                    x0:x,
-                    y0:y,
-                    x1:x,
-                    y1:y,
-                };
-                if(bbox_overlaps(sm_bbox, click_bbox)){
-                    submapid = sm.id;
-                    smoff = [sm.base_x+sm.tlx, sm.base_y+sm.tly];
-                    break;
-                }
+            let sm = get_submap_at(view, x, y);
+            if(sm){
+                submapid = sm.id;
+                smoff = [sm.base_x+sm.tlx, sm.base_y+sm.tly];
             }
         }
         let snap = get_snap_func();
@@ -6945,7 +6951,6 @@ document.addEventListener('DOMContentLoaded', function(){
                                 smoff = [0, 0];
                             let o_x = obj.base_x; let o_y = obj.base_y; let o_w = obj.width; let o_h = obj.height;
                             function change_wh(e:PointerEvent){
-                                console.log('change_wh');
                                 e.stopPropagation();
                                 e.preventDefault();
                                 const [x1, y1] = event_to_coord_off(e, view, smoff);
@@ -7813,7 +7818,7 @@ document.addEventListener('DOMContentLoaded', function(){
         let [x, y] = event_to_coord(e, view);
         x -= canvas.width/2/view.scale;
         y -= canvas.height/2/view.scale;
-        const [click_x, click_y] = event_to_coord(e, view);
+        let [click_x, click_y] = event_to_coord(e, view);
         function remove_menu(e?:MouseEvent){
             canvas.removeEventListener('pointerdown', remove_menu);
             document.body.removeChild(ctxmenu);
@@ -7986,7 +7991,14 @@ document.addEventListener('DOMContentLoaded', function(){
             {
                 label: 'Paste',
                 func: function(){
-                    paste_from_copy_buffer_at(view.map, click_x, click_y);
+                    let submapid = 0;
+                    let sm = get_submap_at(view, click_x, click_y);
+                    if(sm){
+                        submapid = sm.id;
+                        click_x -= sm.base_x + sm.tlx;
+                        click_y -= sm.base_y + sm.tly;
+                    }
+                    paste_from_copy_buffer_at(view.map, click_x, click_y, submapid);
                     remove_menu();
                 },
                 disabled: copied_objs.length === 0,

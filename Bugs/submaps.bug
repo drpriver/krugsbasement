@@ -4,6 +4,7 @@ updated: 2022-03-11T04:36:46Z
 updated: 2022-03-11T20:20:45Z
 updated: 2022-03-13T06:40:58Z
 updated: 2022-03-14T06:32:52Z
+updated: 2022-03-14T07:03:59Z
 bugmagic^^^^
 Created Mar 10, 2022, 01:33PM::md.update
 Summary::md.summary
@@ -30,7 +31,7 @@ Updated Mar 10, 2022, 08:23PM::md.update
   3. ✓ Measure tool works according to the subgrid.
   4. Prevent moving outside of submap.
   4. Prevent drawing outside of submap.
-  5. Paste into the submap.
+  5. ✓ Paste into the submap.
 Updated Mar 10, 2022, 11:36PM::md.update
   1. ✓ Objects contained by the map need to have their coordinates be relative to the map.
 Updated Mar 11, 2022, 03:20PM::md.update
@@ -41,3 +42,5 @@ Updated Mar 13, 2022, 01:40AM::md.update
   This is enough features to ship it.
 Updated Mar 14, 2022, 02:32AM::md.update
   Resizable
+Updated Mar 14, 2022, 03:03AM::md.update
+  Good enough copy paste
