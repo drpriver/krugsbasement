@@ -3,6 +3,7 @@ updated: 2022-03-11T01:23:18Z
 updated: 2022-03-11T04:36:46Z
 updated: 2022-03-11T20:20:45Z
 updated: 2022-03-13T06:40:58Z
+updated: 2022-03-14T06:32:52Z
 bugmagic^^^^
 Created Mar 10, 2022, 01:33PM::md.update
 Summary::md.summary
@@ -19,7 +20,7 @@ Summary::md.summary
   8. ✓ Drawing starting inside the submap draws inside the submap.
   9. ✓ Drawing starting outside the submap draws outside the submap.
   9. ✓ Submap is not pannable.
-  10. Submap is resizable.
+  10. ✓ Submap is resizable.
   11. ✓ Undo/redo is shared with parent map.
 Updated Mar 10, 2022, 08:23PM::md.update
   More features:
@@ -38,3 +39,5 @@ Updated Mar 11, 2022, 03:20PM::md.update
   3. Remembers the origin square/hex is maybe?
 Updated Mar 13, 2022, 01:40AM::md.update
   This is enough features to ship it.
+Updated Mar 14, 2022, 02:32AM::md.update
+  Resizable

@@ -182,6 +182,23 @@ const SORTORDER = [
        1, // ICON_TILE
       10, // SUBMAP
 ];
+type Resizable = Rectangle | GridRectangle | FilledRectangle | Ellipse | ImageObj | SubMap;
+
+function is_resizable(obj:CanvasObject): obj is Resizable{
+    switch(obj.type){
+        case CANVASTYPE.RECT:
+        case CANVASTYPE.GRID_RECT:
+        case CANVASTYPE.FILLED_RECT:
+        case CANVASTYPE.ELLIPSE:
+        case CANVASTYPE.IMAGE:
+        // case CANVASTYPE.STAIRS:
+        case CANVASTYPE.SUBMAP:
+            return true
+        default:
+            return false;
+    }
+}
+
 //
 // Base of all objects and then the rest of the fields are different.
 // Essentially, they are tagged unions.
@@ -1191,6 +1208,11 @@ ONRECV(ToClient.CANVAS_PING, function(data:PingMessage){
     map.pings.push(data.ping);
     request_render();
 });
+type ResizeHandle = {
+    bbox: Bbox;
+    obj_id: number;
+    topleft: boolean;
+}
 type DungeonMapView = {
     map: DungeonMap; // non-owning
     // These are in REFERENCE_WIDTH space.
@@ -1224,6 +1246,10 @@ type DungeonMapView = {
         y: number;
     };
     hovered_id: number;
+    resize: {
+        handles: Array<ResizeHandle>;
+        resizing: boolean;
+    };
 
 }
 let active_map_view_index = 0;
@@ -1252,6 +1278,10 @@ function new_map_view(map_id:number): DungeonMapView{
             x: -1, y:-1,
         },
         hovered_id: -1,
+        resize: {
+            handles: [],
+            resizing: false,
+        },
     };
     return view;
 }
@@ -4231,6 +4261,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
     const view = get_active_view();
     if(!view)
         return;
+    view.resize.handles = [];
     const map = view.map;
     sort_canv_objs(map);
     if(view.selection_area.is_selecting){
@@ -4304,13 +4335,13 @@ function render(timestamp:DOMHighResTimeStamp):void{
             p.lineTo(+9, 0);
             p.closePath();
             for(let obj of bgtiles){
-                const rect_bbox = {
+                const bbox = {
                     x0:obj.base_x-9,
                     y0:obj.base_y,
                     x1:obj.base_x+REFERENCE_WIDTH+9,
                     y1:obj.base_y+REFERENCE_WIDTH,
                 };
-                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                if(!bbox_overlaps(bbox, canvas_bbox)){
                     continue;
                 }
                 ctx.save();
@@ -4331,13 +4362,13 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 ctx.restore();
             }
             for(let obj of terraintiles){
-                const rect_bbox = {
+                const bbox = {
                     x0:obj.base_x-9,
                     y0:obj.base_y,
                     x1:obj.base_x+REFERENCE_WIDTH+9,
                     y1:obj.base_y+REFERENCE_WIDTH,
                 };
-                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                if(!bbox_overlaps(bbox, canvas_bbox)){
                     continue;
                 }
                 ctx.save();
@@ -4369,13 +4400,13 @@ function render(timestamp:DOMHighResTimeStamp):void{
         else {
             for(let obj of bgtiles){
                 const size = obj.size? obj.size: 1;
-                const rect_bbox = {
+                const bbox = {
                     x0:obj.base_x,
                     y0:obj.base_y,
                     x1:obj.base_x+REFERENCE_WIDTH*size,
                     y1:obj.base_y+REFERENCE_WIDTH*size,
                 };
-                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                if(!bbox_overlaps(bbox, canvas_bbox)){
                     continue;
                 }
                 const is_selected = selected.has(obj.id);
@@ -4386,13 +4417,13 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 ctx.fillRect(obj.base_x, obj.base_y, REFERENCE_WIDTH*size, REFERENCE_WIDTH*size);
             }
             for(let obj of terraintiles){
-                const rect_bbox = {
+                const bbox = {
                     x0:obj.base_x,
                     y0:obj.base_y,
                     x1:obj.base_x+REFERENCE_WIDTH,
                     y1:obj.base_y+REFERENCE_WIDTH,
                 };
-                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                if(!bbox_overlaps(bbox, canvas_bbox)){
                     continue;
                 }
                 const is_selected = selected.has(obj.id);
@@ -4509,6 +4540,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
             }
         }
     }
+    const one_selection = selected.size == 1;
     for(let i = 0; i < length; ++i){
         let obj = canvas_obj_array[i];
         if(obj.flags & CANVASFLAG.DELETED)
@@ -4637,16 +4669,31 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.fill();
                             break;
                     }
+                    if(one_selection && selected.has(obj.id)){
+                        ctx.fillStyle = sel_color;
+                        ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
+                        ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
+                        view.resize.handles.push({
+                            bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
+                            obj_id: obj.id,
+                            topleft:true,
+                        });
+                        view.resize.handles.push({
+                            bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
+                            obj_id: obj.id,
+                            topleft:false,
+                        });
+                    }
                 }
             }break;
             case CANVASTYPE.FILLED_RECT:{
-                const rect_bbox = {
+                const bbox = {
                     x0:bx,
                     y0:by,
                     x1:bx+obj.width,
                     y1:by+obj.height,
                 };
-                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                if(!bbox_overlaps(bbox, canvas_bbox)){
                     break;
                 }
                 if(obj.width && obj.height){
@@ -4661,15 +4708,30 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.strokeStyle = obj.color;
                     ctx.strokeRect(bx, by, obj.width, obj.height);
                 }
+                if(one_selection && selected.has(obj.id)){
+                    ctx.fillStyle = sel_color;
+                    ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
+                    ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
+                    view.resize.handles.push({
+                        bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
+                        obj_id: obj.id,
+                        topleft:true,
+                    });
+                    view.resize.handles.push({
+                        bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
+                        obj_id: obj.id,
+                        topleft:false,
+                    });
+                }
             }break;
             case CANVASTYPE.RECT:{
-                const rect_bbox = {
+                const bbox = {
                     x0:bx,
                     y0:by,
                     x1:bx+obj.width,
                     y1:by+obj.height,
                 };
-                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                if(!bbox_overlaps(bbox, canvas_bbox)){
                     break;
                 }
                 // if(obj.width && obj.height){
@@ -4683,15 +4745,30 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.strokeStyle = obj.color;
                     ctx.strokeRect(bx, by, obj.width, obj.height);
                 }
+                if(one_selection && selected.has(obj.id)){
+                    ctx.fillStyle = sel_color;
+                    ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
+                    ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
+                    view.resize.handles.push({
+                        bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
+                        obj_id: obj.id,
+                        topleft:true,
+                    });
+                    view.resize.handles.push({
+                        bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
+                        obj_id: obj.id,
+                        topleft:false,
+                    });
+                }
             }break;
             case CANVASTYPE.GRID_RECT:{
-                const rect_bbox = {
+                const bbox = {
                     x0:bx,
                     y0:by,
                     x1:bx+obj.width,
                     y1:by+obj.height,
                 };
-                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                if(!bbox_overlaps(bbox, canvas_bbox)){
                     break;
                 }
                 if(obj.width && obj.height){
@@ -4701,6 +4778,21 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     }
                     ctx.fillStyle = obj.color;
                     ctx.fillRect(bx-0.5, by-0.5, obj.width+1, obj.height+1);
+                }
+                if(one_selection && selected.has(obj.id)){
+                    ctx.fillStyle = sel_color;
+                    ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
+                    ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
+                    view.resize.handles.push({
+                        bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
+                        obj_id: obj.id,
+                        topleft:true,
+                    });
+                    view.resize.handles.push({
+                        bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
+                        obj_id: obj.id,
+                        topleft:false,
+                    });
                 }
             }break;
             case CANVASTYPE.TEXT:{
@@ -4846,13 +4938,13 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 draw_status_icons(token_bbox, obj.statusflags, obj.width);
             }break;
             case CANVASTYPE.IMAGE:{
-                const rect_bbox = {
+                const bbox = {
                     x0:bx,
                     y0:by,
                     x1:bx+obj.width,
                     y1:by+obj.height,
                 };
-                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                if(!bbox_overlaps(bbox, canvas_bbox)){
                     break;
                 }
                 if(is_selected){
@@ -4866,6 +4958,21 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.fillRect(bx, by, obj.width, obj.height);
                     ctx.fillStyle = '#000000';
                     ctx.fillText(`broken image url: ${obj.url}`, bx+32, by+32);
+                }
+                if(one_selection && selected.has(obj.id)){
+                    ctx.fillStyle = sel_color;
+                    ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
+                    ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
+                    view.resize.handles.push({
+                        bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
+                        obj_id: obj.id,
+                        topleft:true,
+                    });
+                    view.resize.handles.push({
+                        bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
+                        obj_id: obj.id,
+                        topleft:false,
+                    });
                 }
             }break;
             case CANVASTYPE.IMG_TOKEN:{
@@ -5491,6 +5598,21 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     x += dx;
                     y += dy;
                 }
+                if(0 && one_selection && selected.has(obj.id)){
+                    ctx.fillStyle = sel_color;
+                    ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
+                    ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
+                    view.resize.handles.push({
+                        bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
+                        obj_id: obj.id,
+                        topleft:true,
+                    });
+                    view.resize.handles.push({
+                        bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
+                        obj_id: obj.id,
+                        topleft:false,
+                    });
+                }
             }break;
             case CANVASTYPE.MEASURE:{
                 // thiss looks sus with the change to bx over obj.base_x
@@ -5651,13 +5773,13 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 ctx.save();
                 // if(map.grid_type & GRIDTYPE.HEX)
                     // ctx.scale(1, HEX_Y_FIX_INV);
-                const rect_bbox = {
+                const bbox = {
                     x0:bx,
                     y0:by,
                     x1:bx+obj.width,
                     y1:by+obj.height,
                 };
-                if(!bbox_overlaps(rect_bbox, canvas_bbox)){
+                if(!bbox_overlaps(bbox, canvas_bbox)){
                     break;
                 }
                 if(is_selected){
@@ -5704,7 +5826,21 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.fillText(obj.title, bx+obj.width/2, by+24);
                 }
                 ctx.restore();
-
+                if(one_selection && selected.has(obj.id) && !(obj.flags & CANVASFLAG.SMALL)){
+                    ctx.fillStyle = sel_color;
+                    ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
+                    ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
+                    view.resize.handles.push({
+                        bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
+                        obj_id: obj.id,
+                        topleft:true,
+                    });
+                    view.resize.handles.push({
+                        bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
+                        obj_id: obj.id,
+                        topleft:false,
+                    });
+                }
             }break;
         }
     }
@@ -6401,6 +6537,46 @@ function hiddenid():number {
     return 0;
 }
 
+// TODO: move this to a closure for privacy?
+let prev_id = -1;
+function redo_canvas_cursor(view: DungeonMapView){
+    if(view.resize.resizing) return;
+    for(let rh of view.resize.handles){
+        if(point_in_rect(view.mouse.x, view.mouse.y, rh.bbox.x0, rh.bbox.y0, rh.bbox.x1, rh.bbox.y1)){
+            canvas.style.cursor = 'nwse-resize';
+            prev_id = -1;
+            return;
+        }
+    }
+    let o = obj_at(view, view.mouse.x, view.mouse.y, select_type);
+    if(o){
+        if(prev_id != o.id)
+            request_render();
+    }
+    else {
+        if(prev_id != -1)
+            request_render();
+    }
+    prev_id = o?o.id:-1;
+    if(view.selection_area.is_selecting){
+        view.hovered_id = -1;
+        canvas.style.cursor = 'initial';
+    }
+    else if(current_tool == TOOLTYPE.SELECT){
+        if(o && o.type == CANVASTYPE.TEXT && o.map_id > -1){
+            canvas.style.cursor = 'pointer';
+        }
+        else {
+            canvas.style.cursor = 'initial';
+        }
+        view.hovered_id = prev_id;
+    }
+    else {
+        view.hovered_id = -1;
+        canvas.style.cursor = 'initial';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function(){
     canvas = document.getElementsByTagName('canvas')[0]!;
     let gesturing = false;
@@ -6752,12 +6928,76 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
             }
         }
-        console.log('submapid', submapid);
-
         let snap = get_snap_func();
         switch(current_tool){
             case TOOLTYPE.SELECT:{
                 let [clicked_x, clicked_y] = event_to_coord(e, view);
+                if(view.resize.handles.length){
+                    for(let rh of view.resize.handles){
+                        if(point_in_rect(clicked_x, clicked_y, rh.bbox.x0, rh.bbox.y0, rh.bbox.x1, rh.bbox.y1)){
+                            const o = view.map.canvas_objs.get(rh.obj_id);
+                            if(!o) return;
+                            if(o.flags & CANVASFLAG.DELETED) return;
+                            if(!is_resizable(o)) return;
+                            const obj: Resizable = o;
+                            view.resize.resizing = true;
+                            if(obj.type == CANVASTYPE.SUBMAP)
+                                smoff = [0, 0];
+                            let o_x = obj.base_x; let o_y = obj.base_y; let o_w = obj.width; let o_h = obj.height;
+                            function change_wh(e:PointerEvent){
+                                console.log('change_wh');
+                                e.stopPropagation();
+                                e.preventDefault();
+                                const [x1, y1] = event_to_coord_off(e, view, smoff);
+                                let x0 = obj.base_x; let y0 = obj.base_y;
+                                if(rh.topleft){
+                                    x0 += obj.width;
+                                    y0 += obj.height;
+                                    if(x1 > x0 || y1 > y0) return;
+                                    const xdiff = snap(x0 - x1);
+                                    const ydiff = snap(y0 - y1);
+                                    let old_w = obj.width;
+                                    let old_h = obj.height;
+                                    obj.width = xdiff;
+                                    obj.height = ydiff;
+                                    obj.base_x = x0 - obj.width;
+                                    obj.base_y = y0 - obj.height;
+                                    if(obj.type == CANVASTYPE.SUBMAP){
+                                        obj.tlx -= old_w - obj.width;
+                                        obj.tly -= old_h - obj.height;
+                                    }
+                                }
+                                else {
+                                    if(x1 < x0 || y1 < y0) return;
+                                    const xdiff = snap(x1 - x0);
+                                    const ydiff = snap(y1 - y0);
+                                    if(!xdiff && !ydiff) return;
+                                    obj.width = xdiff;
+                                    obj.height = ydiff;
+                                }
+                                request_render();
+                            }
+                            canvas.addEventListener('pointermove', change_wh);
+                            const before = strip_obj(obj);
+                            function finish(){
+                                view.resize.resizing = false;
+                                redo_canvas_cursor(view);
+                                canvas.removeEventListener('pointermove', change_wh);
+                                window.removeEventListener('pointerup', finish);
+                                canvas.removeEventListener('pointerup', finish);
+                                request_render();
+                                if(o_x != obj.base_x || o_y != obj.base_y || o_w != obj.width || o_h != obj.height){
+                                    const after = strip_obj(obj);
+                                    note_updates_for_undo(view.map, [before], [after]);
+                                    publish_obj_updates(view.map.map_id, [after]);
+                                }
+                            }
+                            window.addEventListener('pointerup', finish);
+                            canvas.addEventListener('pointerleave', finish);
+                            return;
+                        }
+                    }
+                }
                 {
                     let o = obj_at(view, clicked_x, clicked_y, select_type);
                     const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;
@@ -7545,46 +7785,20 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
         }
     });
-    let prev_id = -1;
     canvas.addEventListener('pointermove', function(e:PointerEvent){
         let view = get_active_view();
+        // NOTE: obj_at handles submap
         let [mx, my] = event_to_coord(e, view);
         view.mouse.x = mx;
         view.mouse.y = my;
-        let o = obj_at(view, mx, my, select_type);
-        if(o){
-            if(prev_id != o.id){
-                request_render();
-            }
-        }
-        else {
-            if(prev_id != -1){
-                request_render();
-            }
-        }
-        prev_id = o?o.id:-1;
-        if(view.selection_area.is_selecting){
-            view.hovered_id = -1;
-            canvas.style.cursor = 'initial';
-        }
-        else if(current_tool == TOOLTYPE.SELECT){
-            if(o && o.type == CANVASTYPE.TEXT && o.map_id > -1){
-                canvas.style.cursor = 'pointer';
-            }
-            else {
-                canvas.style.cursor = 'initial';
-            }
-            view.hovered_id = prev_id;
-        }
-        else {
-            view.hovered_id = -1;
-            canvas.style.cursor = 'initial';
-        }
+        redo_canvas_cursor(view);
+
     });
     canvas.addEventListener('dblclick', function(e:MouseEvent){
         let view = get_active_view();
         if(current_tool != TOOLTYPE.SELECT)
             return;
+        if(view.resize.resizing) return;
         launch_edit_dialog(view);
     });
     canvas.addEventListener('contextmenu', function(e:MouseEvent){
