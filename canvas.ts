@@ -6734,8 +6734,8 @@ document.addEventListener('DOMContentLoaded', function(){
                 if(sm.hidinguser && sm.hidinguser != SETTINGS.userid)
                     continue;
                 const sm_bbox = {
-                    x0:sm.base_x,
-                    y0:sm.base_y,
+                    x0:sm.base_x+64, // The title area.
+                    y0:sm.base_y+64,
                     x1:sm.base_x+sm.width,
                     y1:sm.base_y+sm.height,
                 };
@@ -6784,7 +6784,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     finalize_selection(view);
                     request_render();
                 }
-                if(view.selected.size && there_are_selected_objs_at(view, fudged_x0, fudged_y0, fudged_x1, fudged_y1)){
+                if(view.selected.size && there_are_selected_objs_at(view, fudged_x0-smoff[0], fudged_y0-smoff[1], fudged_x1-smoff[0], fudged_y1-smoff[1])){
                     // handle movement
                     let rawclick_x = e.offsetX;
                     let rawclick_y = e.offsetY;
