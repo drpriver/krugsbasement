@@ -6584,8 +6584,8 @@ function get_submap_at(view:DungeonMapView, x:number, y:number):SubMap | null {
         if(sm.hidinguser && sm.hidinguser != SETTINGS.userid)
             continue;
         const sm_bbox = {
-            x0:sm.base_x+64, // The title area.
-            y0:sm.base_y+64,
+            x0:sm.base_x,
+            y0:sm.base_y+64, // The title area.
             x1:sm.base_x+sm.width,
             y1:sm.base_y+sm.height,
         };
