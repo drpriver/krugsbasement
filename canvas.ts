@@ -7195,19 +7195,19 @@ document.addEventListener('DOMContentLoaded', function(){
                 let y1 = y0;
                 view.placing_area.is_placing = true;
                 view.placing_area.is_line = true;
-                view.placing_area.x0 = x0;
-                view.placing_area.y0 = y0;
-                view.placing_area.x1 = x1;
-                view.placing_area.y1 = y1;
+                view.placing_area.x0 = x0+smoff[0];
+                view.placing_area.y0 = y0+smoff[1];
+                view.placing_area.x1 = x1+smoff[0];
+                view.placing_area.y1 = y1+smoff[1];
                 request_render();
                 function change_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
                     [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
-                    view.placing_area.x0 = x0;
-                    view.placing_area.y0 = y0;
-                    view.placing_area.x1 = x1;
-                    view.placing_area.y1 = y1;
+                    view.placing_area.x0 = x0+smoff[0];
+                    view.placing_area.y0 = y0+smoff[1];
+                    view.placing_area.x1 = x1+smoff[0];
+                    view.placing_area.y1 = y1+smoff[1];
                     request_render();
                 }
                 canvas.addEventListener('pointermove', change_point);
@@ -7304,20 +7304,20 @@ document.addEventListener('DOMContentLoaded', function(){
                         const gridrect = view.map.canvas_objs.get(id) as GridRectangle;
                         view.placing_area.is_placing = true;
                         view.placing_area.is_line = false;
-                        view.placing_area.x0 = gridrect.base_x;
-                        view.placing_area.y0 = gridrect.base_y;
-                        view.placing_area.x1 = gridrect.base_x;
-                        view.placing_area.y1 = gridrect.base_y;
+                        view.placing_area.x0 = gridrect.base_x+smoff[0];
+                        view.placing_area.y0 = gridrect.base_y+smoff[1];
+                        view.placing_area.x1 = gridrect.base_x+smoff[0];
+                        view.placing_area.y1 = gridrect.base_y+smoff[1];
                         request_render()
                         function add_point(e:MouseEvent){
                             e.stopPropagation();
                             e.preventDefault();
                             const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
                             change_gridrect_by_id(view.map, id, x1, y1, x0, y0);
-                            view.placing_area.x0 = gridrect.base_x;
-                            view.placing_area.y0 = gridrect.base_y;
-                            view.placing_area.x1 = gridrect.base_x + gridrect.width;
-                            view.placing_area.y1 = gridrect.base_y + gridrect.height;
+                            view.placing_area.x0 = gridrect.base_x+smoff[0];
+                            view.placing_area.y0 = gridrect.base_y+smoff[1];
+                            view.placing_area.x1 = gridrect.base_x + gridrect.width+smoff[0];
+                            view.placing_area.y1 = gridrect.base_y + gridrect.height+smoff[1];
                             request_render();
                         }
                         canvas.addEventListener('pointermove', add_point);
@@ -7342,10 +7342,10 @@ document.addEventListener('DOMContentLoaded', function(){
                 const ellipse = view.map.canvas_objs.get(id)! as Ellipse;
                 view.placing_area.is_placing = true;
                 view.placing_area.is_line = false;
-                view.placing_area.x0 = ellipse.base_x;
-                view.placing_area.y0 = ellipse.base_y;
-                view.placing_area.x1 = ellipse.base_x;
-                view.placing_area.y1 = ellipse.base_y;
+                view.placing_area.x0 = ellipse.base_x+smoff[0];
+                view.placing_area.y0 = ellipse.base_y+smoff[1];
+                view.placing_area.x1 = ellipse.base_x+smoff[0];
+                view.placing_area.y1 = ellipse.base_y+smoff[1];
                 request_render()
                 function add_point(e:MouseEvent){
                     e.stopPropagation();
@@ -7361,10 +7361,10 @@ document.addEventListener('DOMContentLoaded', function(){
                         ellipse.base_y = y0;
                     ellipse.width = Math.abs(x1-x0);
                     ellipse.height = Math.abs(y1-y0);
-                    view.placing_area.x0 = ellipse.base_x;
-                    view.placing_area.y0 = ellipse.base_y;
-                    view.placing_area.x1 = ellipse.base_x + ellipse.width;
-                    view.placing_area.y1 = ellipse.base_y + ellipse.height;
+                    view.placing_area.x0 = ellipse.base_x+smoff[0];
+                    view.placing_area.y0 = ellipse.base_y+smoff[1];
+                    view.placing_area.x1 = ellipse.base_x + ellipse.width+smoff[0];
+                    view.placing_area.y1 = ellipse.base_y + ellipse.height+smoff[1];
                     request_render();
                 }
                 canvas.addEventListener('pointermove', add_point);
@@ -7533,10 +7533,10 @@ document.addEventListener('DOMContentLoaded', function(){
                         view.placing_area.is_placing = true;
                         view.placing_area.is_line = false;
                         const stairs = view.map.canvas_objs.get(id)! as Stairs; // lazy
-                        view.placing_area.x0 = stairs.base_x;
-                        view.placing_area.y0 = stairs.base_y;
-                        view.placing_area.x1 = stairs.base_x;
-                        view.placing_area.y1 = stairs.base_y;
+                        view.placing_area.x0 = stairs.base_x+smoff[0];
+                        view.placing_area.y0 = stairs.base_y+smoff[1];
+                        view.placing_area.x1 = stairs.base_x+smoff[0];
+                        view.placing_area.y1 = stairs.base_y+smoff[1];
                         x0 = stairs.base_x;
                         y0 = stairs.base_y;
                         request_render();
@@ -7545,10 +7545,10 @@ document.addEventListener('DOMContentLoaded', function(){
                             e.preventDefault();
                             const [ex0, ey0] = event_to_coord_off(e, view, smoff);
                             change_stairs(stairs, x0, y0, ex0, ey0);
-                            view.placing_area.x0 = stairs.base_x;
-                            view.placing_area.y0 = stairs.base_y;
-                            view.placing_area.x1 = stairs.base_x+REFERENCE_WIDTH*stairs.width;
-                            view.placing_area.y1 = stairs.base_y+REFERENCE_WIDTH*stairs.height;
+                            view.placing_area.x0 = stairs.base_x+smoff[0];
+                            view.placing_area.y0 = stairs.base_y+smoff[1];
+                            view.placing_area.x1 = stairs.base_x+REFERENCE_WIDTH*stairs.width+smoff[0];
+                            view.placing_area.y1 = stairs.base_y+REFERENCE_WIDTH*stairs.height+smoff[1];
                             request_render();
                         }
                         canvas.addEventListener('pointermove', change_stairs_on_move);
@@ -7576,10 +7576,10 @@ document.addEventListener('DOMContentLoaded', function(){
                         add_canv_obj(view.map, fixture);
                         view.placing_area.is_placing = true;
                         view.placing_area.is_line = false;
-                        view.placing_area.x0 = fixture.base_x;
-                        view.placing_area.y0 = fixture.base_y;
-                        view.placing_area.x1 = fixture.base_x;
-                        view.placing_area.y1 = fixture.base_y;
+                        view.placing_area.x0 = fixture.base_x+smoff[0];
+                        view.placing_area.y0 = fixture.base_y+smoff[1];
+                        view.placing_area.x1 = fixture.base_x+smoff[0];
+                        view.placing_area.y1 = fixture.base_y+smoff[1];
                         request_render();
                         function move(e:MouseEvent){
                             e.stopPropagation();
@@ -7597,10 +7597,10 @@ document.addEventListener('DOMContentLoaded', function(){
                             fixture.base_y = y0;
                             fixture.width = x1 - x0;
                             fixture.height = y1 - y0;
-                            view.placing_area.x0 = x0;
-                            view.placing_area.y0 = y0;
-                            view.placing_area.x1 = x1;
-                            view.placing_area.y1 = y1;
+                            view.placing_area.x0 = x0+smoff[0];
+                            view.placing_area.y0 = y0+smoff[1];
+                            view.placing_area.x1 = x1+smoff[0];
+                            view.placing_area.y1 = y1+smoff[1];
                             request_render();
                         }
                         canvas.addEventListener('pointermove', move);
