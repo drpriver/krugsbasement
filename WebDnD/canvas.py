@@ -6,7 +6,7 @@ else:
 from .persist import Persister, Dummy
 from enum import IntFlag, IntEnum
 from .logs import logging
-from .messages import CANVASTYPE, CreateObjectMessage, StrippedObj, CanvasFlag, MapFlags, GRIDTYPE, CanvasDeleteMessage, CanvasUpdateMessage, CreateObjectsMessage
+from .messages import CANVASTYPE, CreateObjectMessage, StrippedObj, CanvasFlag, MapFlags, GridType, CanvasDeleteMessage, CanvasUpdateMessage, CreateObjectsMessage
 from . import db
 import appconfig
 
@@ -15,14 +15,14 @@ class MapDict(TypedDict):
     objects: List[StrippedObj]
     map_name: str
     flags: MapFlags
-    grid_type: GRIDTYPE
+    grid_type: GridType
 
 class Map(NamedTuple):
     map_id: int
     objects: List[StrippedObj]
     map_name: str
     flags: MapFlags = MapFlags.NONE
-    grid_type: GRIDTYPE = GRIDTYPE.SQUARE
+    grid_type: GridType = GridType.SQUARE
     def with_live_objs(self) -> MapDict:
         md: MapDict = self._asdict() # type: ignore
         md['objects'] = [o for o in md['objects'] if not (o[4] & CanvasFlag.DELETED)]
@@ -78,7 +78,7 @@ def name_map(campaign:int, map_id: int, map_name:str) -> None:
     m = MAPS[campaign][map_id]
     MAPS[campaign][map_id].value = m.value._replace(map_name=map_name)
 
-def change_grid_type(campaign:int, map_id:int, grid_type:GRIDTYPE) -> None:
+def change_grid_type(campaign:int, map_id:int, grid_type:GridType) -> None:
     m = MAPS[campaign][map_id]
     MAPS[campaign][map_id].value = m.value._replace(grid_type=grid_type)
 
@@ -90,7 +90,7 @@ def set_numbered(campaign:int, map_id:int, numbered:MapFlags) -> None:
         flags = m.value.flags & ~(MapFlags.NUMBERED)
     MAPS[campaign][map_id].value = m.value._replace(flags=flags)
 
-def new_map_request(campaign:int, map_name:str, grid_type:GRIDTYPE, flags:MapFlags) -> int:
+def new_map_request(campaign:int, map_name:str, grid_type:GridType, flags:MapFlags) -> int:
     new_map_id = max(MAPS[campaign].keys()) + 1
     MAPS[campaign][new_map_id] = SingleMapPersister(campaign, Map(new_map_id, [], map_name, grid_type=grid_type, flags=flags)).obj
     MAP_OBJS_BY_ID[campaign][new_map_id] = {}

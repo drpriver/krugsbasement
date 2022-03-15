@@ -722,7 +722,7 @@ struct StrippedSubMap: array
     # these are analagous to camera_x/y
     tlx = float # Coordinate of top left
     tly = float # Coordinate of top left
-    grid_type = GRIDTYPE
+    grid_type = GridType
     title = str
 
 // StrippedObj
@@ -774,7 +774,7 @@ union StrippedObj: array
 // It looks weird that you can have NOGRID and HEX set at the same time,
 // but it just means to not draw the hex grid, you still do math
 // and such on it.
-enum GRIDTYPE: int flag
+enum GridType: int flag
     SQUARE = 0 # square is default
     HEX = 1 << 0 # Hexes are drawn "odd-q" vertical layout
     NOGRID = 1 << 1 # NOGRID just means don't draw the grid.
@@ -807,12 +807,12 @@ struct NameMapMessage: dict
 
 struct NewMapRequest: dict
     name = str
-    grid_type  = GRIDTYPE
+    grid_type  = GridType
     flags = MapFlags
 
 struct CanvasGridTypeMsg: dict
     map_id = int
-    grid_type = GRIDTYPE
+    grid_type = GridType
 struct CanvasGridNumberedMsg: dict
     map_id = int
     numbered = MapFlags
@@ -844,7 +844,7 @@ struct InitializeMap: dict
     map_name = str
     objects = [StrippedObj]
     flags = MapFlags
-    grid_type = GRIDTYPE
+    grid_type = GridType
 
 enum NOTEFLAGS: int flag
     NONE = 0

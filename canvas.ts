@@ -613,7 +613,7 @@ type SubMap = {
     height: number;
     tlx : number;
     tly: number;
-    grid_type: GRIDTYPE;
+    grid_type: GridType;
     title: string;
 }
 
@@ -1176,7 +1176,7 @@ const MapOptionElements: Map<number, HTMLOptionElement> = new Map();
 
 type DungeonMap = {
     map_id: number; // integer
-    grid_type: GRIDTYPE;
+    grid_type: GridType;
     map_name: string;
     flags: MapFlags;
     canvas_obj_array: Array<CanvasObject>;
@@ -1336,7 +1336,7 @@ function get_map(map_id:number): DungeonMap {
     const new_map:DungeonMap = {
         map_id: map_id,
         map_name: 'Untitled',
-        grid_type: GRIDTYPE.SQUARE,
+        grid_type: GridType.SQUARE,
         flags: MapFlags.NONE,
         // TODO: these shouldn't be on the map itself, this prevents having multiple
         // dungeon_map_views into the same map.
@@ -1762,7 +1762,7 @@ function cube_distance(a:[number, number, number], b:[number, number, number]):n
 }
 
 function calc_measure_length(map:DungeonMap, x0:number, y0:number, x1:number, y1:number):string{
-    if(map.grid_type & GRIDTYPE.HEX){
+    if(map.grid_type & GridType.HEX){
         let [hex_x0, hex_y0] = point_to_hex_coord(x0, y0);
         let [hex_x1, hex_y1] = point_to_hex_coord(x1, y1);
         const dist = cube_distance(oddq_to_cube(hex_x0, hex_y0), oddq_to_cube(hex_x1, hex_y1));
@@ -2824,7 +2824,7 @@ function delete_map(map_id:number){
 
 // cutnpaste from below. TODO: factor these.
 
-ONRECV(ToClient.CANVAS_INITIALIZE_MAPS, function(msgs:Array<{map_id:number; map_name:string; objects:Array<StrippedObj>; flags:MapFlags; grid_type:GRIDTYPE}>){
+ONRECV(ToClient.CANVAS_INITIALIZE_MAPS, function(msgs:Array<{map_id:number; map_name:string; objects:Array<StrippedObj>; flags:MapFlags; grid_type:GridType}>){
     // Clear
     {
         for(let m of MAPS.values())
@@ -3436,7 +3436,7 @@ function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number
         const ox = base_x + dx;
         const oy = base_y + dy;
         let m;
-        if(snapmode == SNAPMODE.HALF || (view.map.grid_type & GRIDTYPE.HEX)){
+        if(snapmode == SNAPMODE.HALF || (view.map.grid_type & GridType.HEX)){
             m = REFERENCE_WIDTH/2-1;
         }
         else if(snapmode == SNAPMODE.QUARTER){
@@ -4335,7 +4335,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
         x1:-camera_x+width/scale,
         y1:-camera_y+height/scale,
     };
-    if(map.grid_type & GRIDTYPE.HEX){
+    if(map.grid_type & GridType.HEX){
         canvas_bbox.y0 *= HEX_Y_FIX_INV;
         canvas_bbox.y1 *= HEX_Y_FIX_INV;
     }
@@ -4364,7 +4364,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
         ctx.textBaseline = 'bottom';
         ctx.textAlign = 'center';
         // draw hex version of map
-        if(map.grid_type & GRIDTYPE.HEX){
+        if(map.grid_type & GridType.HEX){
             ctx.scale(1, HEX_Y_FIX);
             const half = REFERENCE_WIDTH/2;
             const full = REFERENCE_WIDTH;
@@ -4491,9 +4491,9 @@ function render(timestamp:DOMHighResTimeStamp):void{
     }
     ctx.scale(SCALE, SCALE);
     ctx.fillStyle = 'rgb(150, 150, 150)';
-    if(map.grid_type & GRIDTYPE.NOGRID){
+    if(map.grid_type & GridType.NOGRID){
     }
-    else if(map.grid_type & GRIDTYPE.HEX){
+    else if(map.grid_type & GridType.HEX){
         function draw_hex_grid(){
             let top_left_hex_x = Math.ceil(camera_x / REFERENCE_WIDTH);
             if(((camera_x) & (REFERENCE_WIDTH-1)) == 0){
@@ -4563,7 +4563,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
         }
     }
     ctx.translate(camera_x, camera_y);
-    if(map.grid_type & GRIDTYPE.HEX)
+    if(map.grid_type & GridType.HEX)
         ctx.scale(1, HEX_Y_FIX);
     let length = canvas_obj_array.length;
     function draw_status_icons(token_bbox: Bbox, statusflags: TOKENSTATUSFLAGS, scale:number){
@@ -5829,7 +5829,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
             }break;
             case CANVASTYPE.SUBMAP:{
                 ctx.save();
-                // if(map.grid_type & GRIDTYPE.HEX)
+                // if(map.grid_type & GridType.HEX)
                     // ctx.scale(1, HEX_Y_FIX_INV);
                 const bbox = {
                     x0:bx,
@@ -6584,28 +6584,28 @@ const enum CONTEXTMENUWHENFLAGS {
 };
 function event_to_coord(e:MouseEvent, view:DungeonMapView):[number, number]{
     const x = e.offsetX/view.scale - view.camera_x
-    const y = view.map.grid_type & GRIDTYPE.HEX?
+    const y = view.map.grid_type & GridType.HEX?
         HEX_Y_FIX_INV*(e.offsetY/view.scale - view.camera_y)
         : e.offsetY/view.scale - view.camera_y;
     return [x,y];
 }
 function event_to_coord_off(e:MouseEvent, view:DungeonMapView, off:[number, number]):[number, number]{
     const x = e.offsetX/view.scale - view.camera_x
-    const y = view.map.grid_type & GRIDTYPE.HEX?
+    const y = view.map.grid_type & GridType.HEX?
         HEX_Y_FIX_INV*(e.offsetY/view.scale - view.camera_y)
         : e.offsetY/view.scale - view.camera_y;
     return [x-off[0],y-off[1]];
 }
 function event_to_coord_snapped(e:MouseEvent, view:DungeonMapView, snap:(x:number)=>number):[number, number]{
     const x = e.offsetX/view.scale - view.camera_x
-    const y = view.map.grid_type & GRIDTYPE.HEX?
+    const y = view.map.grid_type & GridType.HEX?
         HEX_Y_FIX_INV*(e.offsetY/view.scale - view.camera_y)
         : e.offsetY/view.scale - view.camera_y;
     return [snap(x),snap(y)];
 }
 function event_to_coord_snapped_off(e:MouseEvent, view:DungeonMapView, snap:(x:number)=>number, off:[number, number]):[number, number]{
     const x = e.offsetX/view.scale - view.camera_x
-    const y = view.map.grid_type & GRIDTYPE.HEX?
+    const y = view.map.grid_type & GridType.HEX?
         HEX_Y_FIX_INV*(e.offsetY/view.scale - view.camera_y)
         : e.offsetY/view.scale - view.camera_y;
     return [snap(x-off[0]),snap(y-off[1])];
@@ -7758,7 +7758,7 @@ document.addEventListener('DOMContentLoaded', function(){
             case TOOLTYPE.MEASURE:{
                 let id = get_new_id();
                 let snap:(x:number, y:number)=>[number, number];
-                if(!submapid && view.map.grid_type & GRIDTYPE.HEX){
+                if(!submapid && view.map.grid_type & GridType.HEX){
                     snap = function(x:number, y:number):[number, number]{
                         return snap_to_hex_center(x, y);
                     };
@@ -7806,7 +7806,7 @@ document.addEventListener('DOMContentLoaded', function(){
             case TOOLTYPE.TILE:{
                 let x:number;
                 let y:number;
-                if(view.map.grid_type & GRIDTYPE.HEX){
+                if(view.map.grid_type & GridType.HEX){
                     const [x_, y_] = event_to_coord_off(e, view, smoff);
                     [x, y] = snap_down_to_hex_grid(x_, y_);
                 }
@@ -7880,7 +7880,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     width: 0,
                     height: 0,
                     tlx: 0, tly:0,
-                    grid_type: GRIDTYPE.SQUARE,
+                    grid_type: GridType.SQUARE,
                     title: "Untitled",
                 };
                 add_canv_obj(view.map, submap);
@@ -8200,8 +8200,8 @@ document.addEventListener('DOMContentLoaded', function(){
         dialog.f.name.value = active_view.map.map_name;
         const hg = dialog.f['hex-grid'];
         const ng = dialog.f['no-grid']
-        hg.checked = !!(active_view.map.grid_type & GRIDTYPE.HEX);
-        ng.checked = !!(active_view.map.grid_type & GRIDTYPE.NOGRID);
+        hg.checked = !!(active_view.map.grid_type & GridType.HEX);
+        ng.checked = !!(active_view.map.grid_type & GridType.NOGRID);
         dialog.f.numbered.checked = !!(active_view.map.flags & MapFlags.NUMBERED);
         dialog.ok_handler = function(){
             const value = dialog.f.name.value.trim();
@@ -8211,8 +8211,8 @@ document.addEventListener('DOMContentLoaded', function(){
                 let msg: NameMapMessage = {map_id:active_view.map.map_id, map_name:value};
                 EMIT(FromClient.CANVAS_NAME_MAP, msg);
             }
-            let gt = hg.checked? GRIDTYPE.HEX : GRIDTYPE.SQUARE;
-            if(ng.checked) gt |= GRIDTYPE.NOGRID;
+            let gt = hg.checked? GridType.HEX : GridType.SQUARE;
+            if(ng.checked) gt |= GridType.NOGRID;
             if(active_view.map.grid_type != gt){
                 let msg: CanvasGridTypeMsg = {map_id:active_view.map.map_id, grid_type:gt};
                 EMIT(FromClient.CANVAS_GRID_TYPE, msg);
@@ -8269,8 +8269,8 @@ document.addEventListener('DOMContentLoaded', function(){
         dialog.ok_handler = function(){
             const value = dialog.f.name.value.trim();
             if(!value) return;
-            let gt = hg.checked? GRIDTYPE.HEX : GRIDTYPE.SQUARE;
-            if(ng.checked) gt |= GRIDTYPE.NOGRID;
+            let gt = hg.checked? GridType.HEX : GridType.SQUARE;
+            if(ng.checked) gt |= GridType.NOGRID;
             let flags = MapFlags.NONE;
             if(numbered.checked)
                 flags |= MapFlags.NUMBERED

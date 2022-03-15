@@ -233,7 +233,7 @@ def store_campaign_setting(data: LocalSetting) -> None:
     logging.info('sid: %r storing campaign setting for %r: %r', request.sid, current_user, data[:2])
     settings.set_local(userid, campaign, *data)
     if data[0] == 'chat' and data[1] == 'name':
-        emit(ToClient.USER_RENAME, [userid, json.loads(data[2])], to=str(campaign), broadcast=True)
+        emit(ToClient.USER_RENAME, [userid, json.loads(data[2])], to=str(campaign), broadcast=True) # type: ignore
 
 @app.route('/home', methods=['GET','POST'])
 @login_required
