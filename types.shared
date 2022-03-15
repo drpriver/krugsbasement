@@ -366,7 +366,9 @@ enum CANVASFLAG: int flag
     DELETED = 1 << 0
     // Use the "small" representation of this object, such as a
     // "minimized" submap.
-    SMALL = 2 << 0
+    SMALL = 1 << 1
+    // A flag that is to be interpreted based on the object.
+    FLAG_A = 1 << 2
 
 //  freehand-line
 //  -------------
@@ -514,7 +516,7 @@ struct StrippedTextObj: array
     text = str
     size = float
     alignment = TEXTALIGNMENT
-    map_id = int # -1 means no link
+    map_id = int # -1 means no link, if (flags & CANVASFLAG.FLAG_A), then it is a submap
 
 // TOKENSTATUSFLAGS
 // ----------------

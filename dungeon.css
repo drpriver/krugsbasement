@@ -15,6 +15,7 @@
   -webkit-user-select: none;
   user-select: none;
   border: 1px solid black;
+  contain: strict;
 }
 .window-handle {
   grid-row: 1;
