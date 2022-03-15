@@ -390,7 +390,7 @@ type TextObj = {
     bbox: Bbox;
     lines: Array<string>;
     bboxes: Array<Bbox>;
-    alignment: TEXTALIGNMENT;
+    alignment: TextAlignment;
     map_id: number; // integer
 }
 
@@ -440,7 +440,7 @@ type EzToken = {
     color: string,
     width: number, // in squares (?)
     height: number, // in squares (?)
-    statusflags: TOKENSTATUSFLAGS,
+    statusflags: TokenStatusFlags,
 }
 
 //  img-token
@@ -458,7 +458,7 @@ type ImgToken = {
     img?: HTMLImageElement,
     width: number; // in squares (?)
     height: number; // in squares (?)
-    statusflags: TOKENSTATUSFLAGS;
+    statusflags: TokenStatusFlags;
 }
 //  door
 //  ----
@@ -472,10 +472,10 @@ type DoorObj = {
     flags: CanvasFlag
     hidinguser: number;
     submap: number;
-    doortype: DOORTYPE
+    doortype: DoorType
     color: string,
     width: number, // in squares (?)
-    orientation: ORIENTATION,
+    orientation: Orientation,
 }
 
 
@@ -490,7 +490,7 @@ type Stairs = {
     submap: number;
     width: number, // in squares
     height: number, // in squares
-    rotation: ROTATION,
+    rotation: Rotation,
 }
 
 // Measure
@@ -510,15 +510,15 @@ type MeasureObj = {
     y1: number,
 }
 
-const FIXTURETYPE_MAX = FIXTURETYPE.RUBBLE + 1;
-const FIXTURETYPE_TO_NAME = [
-    // FIXTURETYPE.STATUE
+const FixtureType_MAX = FixtureType.RUBBLE + 1;
+const FixtureType_TO_NAME = [
+    // FixtureType.STATUE
     'Statue',
-    // FIXTURETYPE.STAIRS
+    // FixtureType.STAIRS
     'Stairs',
-    // FIXTURETYPE.PIT
+    // FixtureType.PIT
     'Pit',
-    // FIXTURETYPE.RUBBLE
+    // FixtureType.RUBBLE
     'Rubble',
 ];
 
@@ -537,18 +537,18 @@ type FixtureObj = {
     submap: number;
     width: number,
     height: number,
-    ftype: FIXTURETYPE,
+    ftype: FixtureType,
 }
 
-let current_tile_type = TILETYPE.FILLED;
+let current_tile_type = TileType.FILLED;
 let current_terrain_id: number = 0;
-const TILETYPE_MAX = TILETYPE.ICON+1;
-const TILETYPE_TO_NAME = [
-    // TILETYPE.FILLED
+const TileType_MAX = TileType.ICON+1;
+const TileType_TO_NAME = [
+    // TileType.FILLED
     'Filled',
-    // TILETYPE.TERRAIN
+    // TileType.TERRAIN
     'Terrain',
-    // TILETYPE.ICON
+    // TileType.ICON
     'Icon',
 ];
 
@@ -1031,44 +1031,44 @@ type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | Grid
 
 // Door subtypes
 // ------------
-const DOORTYPE_MAX = DOORTYPE.HALLWAY + 1;
+const DoorType_MAX = DoorType.HALLWAY + 1;
 const DOOR_TO_NAMES = [
-    // DOORTYPE.DOOR
+    // DoorType.DOOR
     'Door',
-    // DOORTYPE.DOUBLE
+    // DoorType.DOUBLE
     'Double',
-    // DOORTYPE.PORTCULLIS
+    // DoorType.PORTCULLIS
     'Portcullis',
-    // DOORTYPE.SECRET
+    // DoorType.SECRET
     'Secret',
-    // DOORTYPE.BRICKED_WALL
+    // DoorType.BRICKED_WALL
     'Bricks',
-    // DOORTYPE.PORTAL
+    // DoorType.PORTAL
     'Portal',
-    // DOORTYPE.CURTAINS
+    // DoorType.CURTAINS
     'Curtains',
-    // DOORTYPE.HALLWAY
+    // DoorType.HALLWAY
     'Hallway',
 ];
 const DOOR_TO_SHORT_NAMES = [
-    // DOORTYPE.DOOR
+    // DoorType.DOOR
     'Door',
-    // DOORTYPE.DOUBLE
+    // DoorType.DOUBLE
     'Double',
-    // DOORTYPE.PORTCULLIS
+    // DoorType.PORTCULLIS
     'Portcul',
-    // DOORTYPE.SECRET
+    // DoorType.SECRET
     'Secret',
-    // DOORTYPE.BRICKED_WALL
+    // DoorType.BRICKED_WALL
     'Bricks',
-    // DOORTYPE.PORTAL
+    // DoorType.PORTAL
     'Portal',
-    // DOORTYPE.CURTAINS
+    // DoorType.CURTAINS
     'Curtain',
-    // DOORTYPE.HALLWAY
+    // DoorType.HALLWAY
     'Hall',
 ];
-let current_door = DOORTYPE.DOOR;
+let current_door = DoorType.DOOR;
 
 const enum GRIDSCALE {
     FIVE = "5",
@@ -1961,7 +1961,7 @@ function change_gridrect_by_id(map:DungeonMap, id:number, x0:number, y0:number, 
     let obj = map.canvas_objs.get(id) as GridRectangle;
     change_gridrect(obj, x0, y0, x1, y1);
 }
-function make_door(id:number, x:number, y:number, doortype:DOORTYPE, submap:number, color:string, width:number, orientation:ORIENTATION):DoorObj{
+function make_door(id:number, x:number, y:number, doortype:DoorType, submap:number, color:string, width:number, orientation:Orientation):DoorObj{
     const obj: DoorObj = {
         type: CanvasType.DOOR,
         id: id,
@@ -1977,7 +1977,7 @@ function make_door(id:number, x:number, y:number, doortype:DOORTYPE, submap:numb
     };
     return obj;
 }
-function add_door(map:DungeonMap, id:number, base_x:number, base_y:number, doortype:DOORTYPE, submap:number, color:string, width:number, orientation:ORIENTATION):void{
+function add_door(map:DungeonMap, id:number, base_x:number, base_y:number, doortype:DoorType, submap:number, color:string, width:number, orientation:Orientation):void{
     const obj = make_door(id, base_x, base_y, doortype, submap, color, width, orientation);
     add_canv_obj(map, obj);
 }
@@ -2083,7 +2083,7 @@ function add_ellipse(map:DungeonMap, id:number, base_x:number, base_y:number, su
     const obj = make_ellipse(id, base_x, base_y, submap, color, color2, variant);
     add_canv_obj(map, obj);
 }
-function make_text(id:number, base_x:number, base_y:number, submap:number, text:string, size:number, alignment: TEXTALIGNMENT, map_id:number):TextObj{
+function make_text(id:number, base_x:number, base_y:number, submap:number, text:string, size:number, alignment: TextAlignment, map_id:number):TextObj{
     let snap = get_snap_center_func();
     base_x = snap(base_x);
     base_y = snap(base_y);
@@ -2105,7 +2105,7 @@ function make_text(id:number, base_x:number, base_y:number, submap:number, text:
     };
     return obj;
 }
-function add_text(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, text:string, size:number, alignment:TEXTALIGNMENT, map_id:number):void{
+function add_text(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, text:string, size:number, alignment:TextAlignment, map_id:number):void{
     const obj = make_text(id, base_x, base_y, submap, text, size, alignment, map_id);
     add_canv_obj(map, obj);
 }
@@ -2213,7 +2213,7 @@ function make_stairs(id:number, base_x:number, base_y:number, submap:number): St
         submap:submap,
         width: 0,
         height: 0,
-        rotation: ROTATION.UP,
+        rotation: Rotation.UP,
     };
     return obj;
 }
@@ -2245,18 +2245,18 @@ function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number){
     obj.height = (y1 - y0)/REFERENCE_WIDTH;
     if(Math.abs(xdiff) > Math.abs(ydiff)){
         if(xdiff > 0){
-            obj.rotation = ROTATION.RIGHT;
+            obj.rotation = Rotation.RIGHT;
         }
         else{
-            obj.rotation = ROTATION.LEFT;
+            obj.rotation = Rotation.LEFT;
         }
     }
     else {
         if(ydiff > 0){
-            obj.rotation = ROTATION.UP;
+            obj.rotation = Rotation.UP;
         }
         else{
-            obj.rotation = ROTATION.DOWN;
+            obj.rotation = Rotation.DOWN;
         }
     }
 }
@@ -2275,7 +2275,7 @@ function make_measure(id:number, x:number, y:number, submap:number, color:string
     };
     return obj;
 }
-function make_fixture(id:number, x:number, y:number, submap:number,ftype:FIXTURETYPE):FixtureObj{
+function make_fixture(id:number, x:number, y:number, submap:number,ftype:FixtureType):FixtureObj{
     const obj:FixtureObj = {
         type: CanvasType.FIXTURE,
         id: id,
@@ -2657,17 +2657,17 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
         case CanvasType.DOOR:{
             rotate_base(obj);
             switch(obj.orientation){
-                case ORIENTATION.VERTICAL:
-                    obj.orientation = ORIENTATION.HORIZONTAL;
+                case Orientation.VERTICAL:
+                    obj.orientation = Orientation.HORIZONTAL;
                     break;
-                case ORIENTATION.HORIZONTAL:
-                    obj.orientation = ORIENTATION.VERTICAL;
+                case Orientation.HORIZONTAL:
+                    obj.orientation = Orientation.VERTICAL;
                     break;
-                case ORIENTATION.TOPLEFT_DOWNRIGHT:
-                    obj.orientation = ORIENTATION.TOPRIGHT_DOWNLEFT;
+                case Orientation.TOPLEFT_DOWNRIGHT:
+                    obj.orientation = Orientation.TOPRIGHT_DOWNLEFT;
                     break;
-                case ORIENTATION.TOPRIGHT_DOWNLEFT:
-                    obj.orientation = ORIENTATION.TOPLEFT_DOWNRIGHT;
+                case Orientation.TOPRIGHT_DOWNLEFT:
+                    obj.orientation = Orientation.TOPLEFT_DOWNRIGHT;
                     break;
             }
             return strip_obj(obj);
@@ -3181,7 +3181,7 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
         case CanvasType.DOOR:{
             if(!(selection_type & SELECTTYPE.MAP))
                 return false;
-            const is_vertical = obj.orientation === ORIENTATION.VERTICAL;
+            const is_vertical = obj.orientation === Orientation.VERTICAL;
             if(!is_vertical){
                 // FIXME: I just hardcoded some random values.
                 const door_bbox = {
@@ -4080,7 +4080,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
             dialog.ok_handler = function(){
                 const text = dialog.f.text.value.trim();
                 if(!text) return;
-                let alignment = radio_to_value([l,c,r], [TEXTALIGNMENT.LEFT, TEXTALIGNMENT.CENTER, TEXTALIGNMENT.RIGHT]);
+                let alignment = radio_to_value([l,c,r], [TextAlignment.LEFT, TextAlignment.CENTER, TextAlignment.RIGHT]);
                 let textsize = (+dialog.f.size.value) | 0;
                 if(textsize < 4) textsize = 4;
                 if(textsize > 72) textsize = 72;
@@ -4130,7 +4130,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
             const conditions = dialog.f.conditions;
             const flags_before = obj.statusflags;
             let flags_after = flags_before;
-            function make_handler(el: HTMLInputElement, flag:TOKENSTATUSFLAGS){
+            function make_handler(el: HTMLInputElement, flag:TokenStatusFlags){
                 function onchange(){
                     if(el.checked)
                         flags_after |= flag;
@@ -4194,7 +4194,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
             const flags_before = obj.statusflags;
             const url_before = obj.url;
             let flags_after = flags_before;
-            function make_handler(el: HTMLInputElement, flag:TOKENSTATUSFLAGS){
+            function make_handler(el: HTMLInputElement, flag:TokenStatusFlags){
                 function onchange(){
                     if(el.checked)
                         flags_after |= flag;
@@ -4566,7 +4566,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
     if(map.grid_type & GridType.HEX)
         ctx.scale(1, HEX_Y_FIX);
     let length = canvas_obj_array.length;
-    function draw_status_icons(token_bbox: Bbox, statusflags: TOKENSTATUSFLAGS, scale:number){
+    function draw_status_icons(token_bbox: Bbox, statusflags: TokenStatusFlags, scale:number){
         let sx = token_bbox.x0;
         let sy = token_bbox.y1-STATUSICONSIZE*scale;
         for(let i = 0; i < STATUSFLAG_NAMES.length; i++){
@@ -4843,13 +4843,13 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.font = obj.size + 'px sans-serif';
                     ctx.textBaseline = 'middle';
                     switch(obj.alignment){
-                        case TEXTALIGNMENT.LEFT:
+                        case TextAlignment.LEFT:
                             ctx.textAlign = 'left';
                             break;
-                        case TEXTALIGNMENT.CENTER:
+                        case TextAlignment.CENTER:
                             ctx.textAlign = 'center';
                             break;
-                        case TEXTALIGNMENT.RIGHT:
+                        case TextAlignment.RIGHT:
                             ctx.textAlign = 'right';
                             break;
                     }
@@ -4870,15 +4870,15 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             // Only some have this property.
                             const height = metric.fontBoundingBoxAscent? metric.fontBoundingBoxAscent + 2 : obj.size;
                             switch(obj.alignment){
-                                case TEXTALIGNMENT.LEFT:
+                                case TextAlignment.LEFT:
                                     bbox.x0 = -2;
                                     bbox.x1 = width+2;
                                     break;
-                                case TEXTALIGNMENT.CENTER:
+                                case TextAlignment.CENTER:
                                     bbox.x0 = -width/2-2;
                                     bbox.x1 = width/2+2;
                                     break;
-                                case TEXTALIGNMENT.RIGHT:
+                                case TextAlignment.RIGHT:
                                     bbox.x0 = -width-2;
                                     bbox.x1 = 2;
                                     break;
@@ -5070,7 +5070,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 draw_status_icons(token_bbox, obj.statusflags, obj.width);
             }break;
             case CanvasType.DOOR:{
-                const is_vertical = obj.orientation === ORIENTATION.VERTICAL;
+                const is_vertical = obj.orientation === Orientation.VERTICAL;
                 const w = obj.width;
                 const th = obj.width < 1.0? 0.5 : 1.0;
                 if(!is_vertical){
@@ -5098,27 +5098,27 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     }
                 }
                 switch(obj.doortype){
-                    case DOORTYPE.DOUBLE:{
+                    case DoorType.DOUBLE:{
                         const length = REFERENCE_WIDTH*w - 16*th;
                         const off = length/2;
                         if(is_selected){
                             ctx.strokeStyle = sel_color;
                             ctx.lineWidth=8;
                             switch(obj.orientation){
-                                case ORIENTATION.VERTICAL:
+                                case Orientation.VERTICAL:
                                     ctx.strokeRect(bx-10*th, by-off, 20*th, length);
                                     break;
-                                case ORIENTATION.HORIZONTAL:
+                                case Orientation.HORIZONTAL:
                                     ctx.strokeRect(bx-off, by-10*th, length, 20*th);
                                     break;
-                                case ORIENTATION.TOPLEFT_DOWNRIGHT:
+                                case Orientation.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
                                     ctx.moveTo(bx-22*w, by-22*w)
                                     ctx.lineTo(bx+22*w, by+22*w);
                                     ctx.stroke();
                                     break;
-                                case ORIENTATION.TOPRIGHT_DOWNLEFT:
+                                case Orientation.TOPRIGHT_DOWNLEFT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
                                     ctx.moveTo(bx+22*w, by-22*w)
@@ -5131,17 +5131,17 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.strokeStyle = obj.color;
                         ctx.lineWidth=4;
                         switch(obj.orientation){
-                            case ORIENTATION.VERTICAL:
+                            case Orientation.VERTICAL:
                                 ctx.fillRect(bx-10*th, by-off, 20*th, length);
                                 ctx.strokeRect(bx-10*th, by-off, 20*th, length);
                                 ctx.strokeRect(bx-10*th, by, 20*th, 1);
                                 break;
-                            case ORIENTATION.HORIZONTAL:
+                            case Orientation.HORIZONTAL:
                                 ctx.fillRect(bx-off, by-10*th, length, 20*th);
                                 ctx.strokeRect(bx-off, by-10*th, length, 20*th);
                                 ctx.strokeRect(bx, by-10*th, 1, 20*th);
                                 break;
-                            case ORIENTATION.TOPLEFT_DOWNRIGHT:
+                            case Orientation.TOPLEFT_DOWNRIGHT:
                                 ctx.lineWidth=18;
                                 ctx.beginPath();
                                 ctx.moveTo(bx-20*w, by-20*w)
@@ -5158,7 +5158,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 ctx.lineTo(bx+16*w, by+16*w);
                                 ctx.stroke();
                                 break;
-                            case ORIENTATION.TOPRIGHT_DOWNLEFT:
+                            case Orientation.TOPRIGHT_DOWNLEFT:
                                 ctx.lineWidth=18;
                                 ctx.beginPath();
                                 ctx.moveTo(bx+20*w, by-20*w)
@@ -5177,27 +5177,27 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 break;
                         }
                     }break;
-                    case DOORTYPE.DOOR:{
+                    case DoorType.DOOR:{
                         const length = REFERENCE_WIDTH*w - 16*th;
                         const off = length/2;
                         if(is_selected){
                             ctx.strokeStyle = sel_color;
                             ctx.lineWidth=8;
                             switch(obj.orientation){
-                                case ORIENTATION.VERTICAL:
+                                case Orientation.VERTICAL:
                                     ctx.strokeRect(bx-10*th, by-off, 20*th, length);
                                     break;
-                                case ORIENTATION.HORIZONTAL:
+                                case Orientation.HORIZONTAL:
                                     ctx.strokeRect(bx-off, by-10*th, length, 20*th);
                                     break;
-                                case ORIENTATION.TOPLEFT_DOWNRIGHT:
+                                case Orientation.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
                                     ctx.moveTo(bx-22*w, by-22*w)
                                     ctx.lineTo(bx+22*w, by+22*w);
                                     ctx.stroke();
                                     break;
-                                case ORIENTATION.TOPRIGHT_DOWNLEFT:
+                                case Orientation.TOPRIGHT_DOWNLEFT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
                                     ctx.moveTo(bx+22*w, by-22*w)
@@ -5210,15 +5210,15 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.strokeStyle = obj.color;
                         ctx.lineWidth=4;
                         switch(obj.orientation){
-                            case ORIENTATION.VERTICAL:
+                            case Orientation.VERTICAL:
                                 ctx.fillRect(bx-10*th, by-off, 20*th, length);
                                 ctx.strokeRect(bx-10*th, by-off, 20*th, length);
                                 break;
-                            case ORIENTATION.HORIZONTAL:
+                            case Orientation.HORIZONTAL:
                                 ctx.fillRect(bx-off, by-10*th, length, 20*th);
                                 ctx.strokeRect(bx-off, by-10*th, length, 20*th);
                                 break;
-                            case ORIENTATION.TOPLEFT_DOWNRIGHT:
+                            case Orientation.TOPLEFT_DOWNRIGHT:
                                 ctx.lineWidth=18;
                                 ctx.beginPath();
                                 ctx.moveTo(bx-20*w, by-20*w)
@@ -5231,7 +5231,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 ctx.lineTo(bx+16*w, by+16*w);
                                 ctx.stroke();
                                 break;
-                            case ORIENTATION.TOPRIGHT_DOWNLEFT:
+                            case Orientation.TOPRIGHT_DOWNLEFT:
                                 ctx.lineWidth=18;
                                 ctx.beginPath();
                                 ctx.moveTo(bx+20*w, by-20*w)
@@ -5246,25 +5246,25 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 break;
                         }
                     }break;
-                    case DOORTYPE.PORTCULLIS:{
+                    case DoorType.PORTCULLIS:{
                         if(is_selected){
                             ctx.strokeStyle = sel_color;
                             ctx.lineWidth=8;
                             switch(obj.orientation){
-                                case ORIENTATION.VERTICAL:
+                                case Orientation.VERTICAL:
                                     ctx.strokeRect(bx-10*th, by-16*w, 20*th, 32*w);
                                     break;
-                                case ORIENTATION.HORIZONTAL:
+                                case Orientation.HORIZONTAL:
                                     ctx.strokeRect(bx-16*w, by-10*th, 32*w, 20*th);
                                     break;
-                                case ORIENTATION.TOPLEFT_DOWNRIGHT:
+                                case Orientation.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
                                     ctx.moveTo(bx-22*w, by-22*w)
                                     ctx.lineTo(bx+22*w, by+22*w);
                                     ctx.stroke();
                                     break;
-                                case ORIENTATION.TOPRIGHT_DOWNLEFT:
+                                case Orientation.TOPRIGHT_DOWNLEFT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
                                     ctx.moveTo(bx+22*w, by-22*w)
@@ -5279,19 +5279,19 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.setLineDash([6, 4]);
                         ctx.beginPath();
                         switch(obj.orientation){
-                            case ORIENTATION.VERTICAL:
+                            case Orientation.VERTICAL:
                                 ctx.moveTo(bx, by-length/2+8);
                                 ctx.lineTo(bx, by+length/2-6);
                                 break;
-                            case ORIENTATION.HORIZONTAL:
+                            case Orientation.HORIZONTAL:
                                 ctx.moveTo(bx-length/2+8, by);
                                 ctx.lineTo(bx+length/2-6, by);
                                 break;
-                            case ORIENTATION.TOPLEFT_DOWNRIGHT:
+                            case Orientation.TOPLEFT_DOWNRIGHT:
                                 ctx.moveTo(bx-16*w, by-16*w)
                                 ctx.lineTo(bx+16*w, by+16*w);
                                 break;
-                            case ORIENTATION.TOPRIGHT_DOWNLEFT:
+                            case Orientation.TOPRIGHT_DOWNLEFT:
                                 ctx.moveTo(bx+16*w, by-16*w)
                                 ctx.lineTo(bx-16*w, by+16*w);
                                 break;
@@ -5299,25 +5299,25 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.stroke();
                         ctx.setLineDash([]);
                     }break;
-                    case DOORTYPE.PORTAL:{
+                    case DoorType.PORTAL:{
                         if(is_selected){
                             ctx.strokeStyle = sel_color;
                             ctx.lineWidth=8;
                             switch(obj.orientation){
-                                case ORIENTATION.VERTICAL:
+                                case Orientation.VERTICAL:
                                     ctx.strokeRect(bx-10, by-16*th, 20, 32*th);
                                     break;
-                                case ORIENTATION.HORIZONTAL:
+                                case Orientation.HORIZONTAL:
                                     ctx.strokeRect(bx-16*th, by-10, 32*th, 20);
                                     break;
-                                case ORIENTATION.TOPLEFT_DOWNRIGHT:
+                                case Orientation.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
                                     ctx.moveTo(bx-22*th, by-22*th)
                                     ctx.lineTo(bx+22*th, by+22*th);
                                     ctx.stroke();
                                     break;
-                                case ORIENTATION.TOPRIGHT_DOWNLEFT:
+                                case Orientation.TOPRIGHT_DOWNLEFT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
                                     ctx.moveTo(bx+22*th, by-22*th)
@@ -5331,21 +5331,21 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.fillStyle = BACKGROUND;
                         ctx.lineWidth=4;
                         switch(obj.orientation){
-                            case ORIENTATION.VERTICAL:
+                            case Orientation.VERTICAL:
                                 ctx.fillRect(bx-5, by-length/2, 10, length);
                                 if((bx & (REFERENCE_WIDTH-1)) == 0){
                                     ctx.fillStyle = 'rgb(150, 150, 150)';
                                     ctx.fillRect(bx, by-length/2, 1/SCALE, length);
                                 }
                                 break;
-                            case ORIENTATION.HORIZONTAL:
+                            case Orientation.HORIZONTAL:
                                 ctx.fillRect(bx-length/2, by-5, length, 10);
                                 if((by & (REFERENCE_WIDTH-1)) == 0){
                                     ctx.fillStyle = 'rgb(150, 150, 150)';
                                     ctx.fillRect(bx-length/2, by, length, 1/SCALE);
                                 }
                                 break;
-                            case ORIENTATION.TOPLEFT_DOWNRIGHT:
+                            case Orientation.TOPLEFT_DOWNRIGHT:
                                 ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
@@ -5353,7 +5353,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 ctx.lineTo(bx+24*w, by+24*w);
                                 ctx.stroke();
                                 break;
-                            case ORIENTATION.TOPRIGHT_DOWNLEFT:
+                            case Orientation.TOPRIGHT_DOWNLEFT:
                                 ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
@@ -5363,25 +5363,25 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 break;
                         }
                     }break;
-                    case DOORTYPE.HALLWAY:{
+                    case DoorType.HALLWAY:{
                         if(is_selected){
                             ctx.strokeStyle = sel_color;
                             ctx.lineWidth=8;
                             switch(obj.orientation){
-                                case ORIENTATION.VERTICAL:
+                                case Orientation.VERTICAL:
                                     ctx.strokeRect(bx-10, by-32*w, 20, 64*w);
                                     break;
-                                case ORIENTATION.HORIZONTAL:
+                                case Orientation.HORIZONTAL:
                                     ctx.strokeRect(bx-32*w, by-10, 64*w, 20);
                                     break;
-                                case ORIENTATION.TOPLEFT_DOWNRIGHT:
+                                case Orientation.TOPLEFT_DOWNRIGHT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
                                     ctx.moveTo(bx-32*w, by-32*w)
                                     ctx.lineTo(bx+32*w, by+32*w);
                                     ctx.stroke();
                                     break;
-                                case ORIENTATION.TOPRIGHT_DOWNLEFT:
+                                case Orientation.TOPRIGHT_DOWNLEFT:
                                     ctx.lineWidth=22;
                                     ctx.beginPath();
                                     ctx.moveTo(bx+32*w, by-32*w)
@@ -5393,21 +5393,21 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.fillStyle = BACKGROUND;
                         ctx.lineWidth=4;
                         switch(obj.orientation){
-                            case ORIENTATION.VERTICAL:
+                            case Orientation.VERTICAL:
                                 ctx.fillRect(bx-5, by-32*w+3, 10, 64*w-6);
                                 if((bx & (REFERENCE_WIDTH-1)) == 0){
                                     ctx.fillStyle = 'rgb(150, 150, 150)';
                                     ctx.fillRect(bx, by-32*w+3, 1/SCALE, 64*w-6);
                                 }
                                 break;
-                            case ORIENTATION.HORIZONTAL:
+                            case Orientation.HORIZONTAL:
                                 ctx.fillRect(bx-32*w+3, by-5, 64*w-6, 10);
                                 if((by & (REFERENCE_WIDTH-1)) == 0){
                                     ctx.fillStyle = 'rgb(150, 150, 150)';
                                     ctx.fillRect(bx-32*w+3, by, 64*w-6, 1/SCALE);
                                 }
                                 break;
-                            case ORIENTATION.TOPLEFT_DOWNRIGHT:
+                            case Orientation.TOPLEFT_DOWNRIGHT:
                                 ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
@@ -5415,7 +5415,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 ctx.lineTo(bx+28*w, by+28*w);
                                 ctx.stroke();
                                 break;
-                            case ORIENTATION.TOPRIGHT_DOWNLEFT:
+                            case Orientation.TOPRIGHT_DOWNLEFT:
                                 ctx.strokeStyle = BACKGROUND;
                                 ctx.lineWidth=10;
                                 ctx.beginPath();
@@ -5425,27 +5425,27 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 break;
                         }
                     }break;
-                    case DOORTYPE.CURTAINS:{
+                    case DoorType.CURTAINS:{
                         if(is_selected){
                             ctx.strokeStyle = sel_color;
                             ctx.lineWidth=4;
                             const r = 8;
                             switch(obj.orientation){
-                                case ORIENTATION.VERTICAL:
+                                case Orientation.VERTICAL:
                                     for(let y = by-REFERENCE_WIDTH*w/2+r, i=0; y < by+REFERENCE_WIDTH*w/2+r; y+= 2*r, i++){
                                         ctx.beginPath();
                                         ctx.arc(bx, y, r, Math.PI/2, 3*Math.PI/2, !!(i & 1));
                                         ctx.stroke();
                                     }
                                     break;
-                                case ORIENTATION.HORIZONTAL:
+                                case Orientation.HORIZONTAL:
                                     for(let x = bx-REFERENCE_WIDTH*w/2+r, i=0; x < bx+REFERENCE_WIDTH*w/2+r; x+= 2*r, i++){
                                         ctx.beginPath();
                                         ctx.arc(x, by, r, 0, Math.PI, !!(i & 1));
                                         ctx.stroke();
                                     }
                                     break;
-                                case ORIENTATION.TOPLEFT_DOWNRIGHT:{
+                                case Orientation.TOPLEFT_DOWNRIGHT:{
                                     let r = 64*1.4159/12;
                                     for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
                                         ctx.beginPath();
@@ -5453,7 +5453,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                         ctx.stroke();
                                     }
                                 }break;
-                                case ORIENTATION.TOPRIGHT_DOWNLEFT:{
+                                case Orientation.TOPRIGHT_DOWNLEFT:{
                                     let r = 64*1.4159/12;
                                     for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
                                         ctx.beginPath();
@@ -5467,21 +5467,21 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.lineWidth=2;
                         const r = 8;
                         switch(obj.orientation){
-                            case ORIENTATION.VERTICAL:
+                            case Orientation.VERTICAL:
                                 for(let y = by-REFERENCE_WIDTH*w/2+r, i=0; y < by+REFERENCE_WIDTH*w/2+r; y+= 2*r, i++){
                                     ctx.beginPath();
                                     ctx.arc(bx, y, r, Math.PI/2, 3*Math.PI/2, !!(i & 1));
                                     ctx.stroke();
                                 }
                                 break;
-                            case ORIENTATION.HORIZONTAL:
+                            case Orientation.HORIZONTAL:
                                 for(let x = bx-REFERENCE_WIDTH*w/2+r, i=0; x < bx+REFERENCE_WIDTH*w/2+r; x+= 2*r, i++){
                                     ctx.beginPath();
                                     ctx.arc(x, by, r, 0, Math.PI, !!(i & 1));
                                     ctx.stroke();
                                 }
                                 break;
-                            case ORIENTATION.TOPLEFT_DOWNRIGHT:{
+                            case Orientation.TOPLEFT_DOWNRIGHT:{
                                 let r = 64*1.4159/12;
                                 for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
                                     ctx.beginPath();
@@ -5489,7 +5489,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                     ctx.stroke();
                                 }
                             }break;
-                            case ORIENTATION.TOPRIGHT_DOWNLEFT:{
+                            case Orientation.TOPRIGHT_DOWNLEFT:{
                                 let r = 64*1.4159/12;
                                 for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
                                     ctx.beginPath();
@@ -5499,21 +5499,21 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             }break;
                         }
                     }break;
-                    case DOORTYPE.SECRET:{
+                    case DoorType.SECRET:{
                         ctx.save();
                         ctx.textBaseline = 'middle';
                         ctx.textAlign = 'center';
                         ctx.translate(bx, by);
                         switch(obj.orientation){
-                            case ORIENTATION.VERTICAL:
+                            case Orientation.VERTICAL:
                                 break;
-                            case ORIENTATION.HORIZONTAL:
+                            case Orientation.HORIZONTAL:
                                 ctx.rotate(Math.PI/2);
                                 break;
-                            case ORIENTATION.TOPLEFT_DOWNRIGHT:
+                            case Orientation.TOPLEFT_DOWNRIGHT:
                                 ctx.rotate(3*Math.PI/4);
                                 break;
-                            case ORIENTATION.TOPRIGHT_DOWNLEFT:
+                            case Orientation.TOPRIGHT_DOWNLEFT:
                                 ctx.rotate(Math.PI/4);
                                 break;
                         }
@@ -5530,25 +5530,25 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.fillText('S', 0, 0);
                         ctx.restore();
                     }break;
-                    case DOORTYPE.BRICKED_WALL:{
+                    case DoorType.BRICKED_WALL:{
                         if(is_selected){
                             ctx.strokeStyle = sel_color;
                             ctx.lineWidth=12;
                             ctx.beginPath();
                             switch(obj.orientation){
-                                case ORIENTATION.VERTICAL:
+                                case Orientation.VERTICAL:
                                     ctx.moveTo(bx, by-22*w)
                                     ctx.lineTo(bx, by+22*w);
                                     break;
-                                case ORIENTATION.HORIZONTAL:
+                                case Orientation.HORIZONTAL:
                                     ctx.moveTo(bx-22*w, by)
                                     ctx.lineTo(bx+22*w, by);
                                     break;
-                                case ORIENTATION.TOPLEFT_DOWNRIGHT:
+                                case Orientation.TOPLEFT_DOWNRIGHT:
                                     ctx.moveTo(bx-22*w, by-22*w)
                                     ctx.lineTo(bx+22*w, by+22*w);
                                     break;
-                                case ORIENTATION.TOPRIGHT_DOWNLEFT:
+                                case Orientation.TOPRIGHT_DOWNLEFT:
                                     ctx.moveTo(bx+22*w, by-22*w)
                                     ctx.lineTo(bx-22*w, by+22*w);
                                     break;
@@ -5559,19 +5559,19 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.lineWidth=6;
                         ctx.beginPath();
                         switch(obj.orientation){
-                            case ORIENTATION.VERTICAL:
+                            case Orientation.VERTICAL:
                                 ctx.moveTo(bx, by-22*w)
                                 ctx.lineTo(bx, by+22*w);
                                 break;
-                            case ORIENTATION.HORIZONTAL:
+                            case Orientation.HORIZONTAL:
                                 ctx.moveTo(bx-22*w, by)
                                 ctx.lineTo(bx+22*w, by);
                                 break;
-                            case ORIENTATION.TOPLEFT_DOWNRIGHT:
+                            case Orientation.TOPLEFT_DOWNRIGHT:
                                 ctx.moveTo(bx-22*w, by-22*w)
                                 ctx.lineTo(bx+22*w, by+22*w);
                                 break;
-                            case ORIENTATION.TOPRIGHT_DOWNLEFT:
+                            case Orientation.TOPRIGHT_DOWNLEFT:
                                 ctx.moveTo(bx+22*w, by-22*w)
                                 ctx.lineTo(bx-22*w, by+22*w);
                                 break;
@@ -5608,7 +5608,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 let x = bx;
                 let y = by;
                 switch(obj.rotation){
-                    case ROTATION.UP:{
+                    case Rotation.UP:{
                         x += 2;
                         y += 4;
                         n = obj.height * 8 - 1;
@@ -5618,7 +5618,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         dx = -dw/2;
                         dy = 8;
                     }break;
-                    case ROTATION.DOWN:{
+                    case Rotation.DOWN:{
                         x += 2;
                         n = obj.height * 8 - 1;
                         w = REFERENCE_WIDTH*obj.width-4;
@@ -5628,7 +5628,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         dy = -8;
                         y = by + obj.height*64 - 8;
                     }break;
-                    case ROTATION.RIGHT:{
+                    case Rotation.RIGHT:{
                         y += 2;
                         x += 4;
                         n = obj.width * 8 - 1;
@@ -5638,7 +5638,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         dy = -dh/2;
                         dx = 8;
                     }break;
-                    case ROTATION.LEFT:{
+                    case Rotation.LEFT:{
                         y += 2;
                         n = obj.width * 8 - 1;
                         h = REFERENCE_WIDTH*obj.height-4;
@@ -5736,9 +5736,9 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     break;
                 }
                 switch(obj.ftype){
-                    case FIXTURETYPE.STAIRS:
+                    case FixtureType.STAIRS:
                         break; // should be unreachable
-                    case FIXTURETYPE.STATUE:{
+                    case FixtureType.STATUE:{
                         const cx = (bbox.x0+bbox.x1)/2;
                         const cy = (bbox.y0+bbox.y1)/2;
                         if(is_selected){
@@ -5767,7 +5767,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.closePath();
                         ctx.stroke();
                     }break;
-                    case FIXTURETYPE.PIT:{
+                    case FixtureType.PIT:{
                         let w = obj.width - 8;
                         let h = obj.height - 8;
                         let x = bx + 4;
@@ -5800,7 +5800,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.lineTo(x+thick, y+thick);
                         ctx.stroke();
                     }break;
-                    case FIXTURETYPE.RUBBLE:{
+                    case FixtureType.RUBBLE:{
                         if(is_selected){
                             ctx.lineWidth = 4;
                             ctx.strokeStyle = sel_color;
@@ -6006,7 +6006,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
 // NOTE: The 'Help' tool was removed (it was a proto dialog.futton).
 // There is now an empty slot due to this.
-const enum TOOLTYPE {
+const enum ToolType {
     PAN     = 0,
     SELECT  = 1,
     LINE    = 2,
@@ -6024,57 +6024,57 @@ const enum TOOLTYPE {
     SUBMAP  = 14,
 }
 const TOOL_IDS_TO_TOOL = (function(){
-    const m: Map<string, TOOLTYPE> = new Map();
-    m.set('pan-tool',     TOOLTYPE.PAN);
-    m.set('select-tool',  TOOLTYPE.SELECT);
-    m.set('line-tool',    TOOLTYPE.LINE);
-    m.set('ellipse-tool', TOOLTYPE.ELLIPSE);
-    m.set('wall-tool',    TOOLTYPE.WALL);
-    m.set('door-tool',    TOOLTYPE.DOOR);
-    m.set('rect-tool',    TOOLTYPE.RECT);
-    m.set('text-tool',    TOOLTYPE.TEXT);
-    m.set('token-tool',   TOOLTYPE.TOKEN);
-    m.set('image-tool',   TOOLTYPE.IMAGE);
-    // m.set('help-tool',    TOOLTYPE.HELP);
-    m.set('measure-tool', TOOLTYPE.MEASURE);
-    m.set('fixture-tool', TOOLTYPE.FIXTURE);
-    m.set('tile-tool',    TOOLTYPE.TILE);
-    m.set('submap-tool',  TOOLTYPE.SUBMAP);
+    const m: Map<string, ToolType> = new Map();
+    m.set('pan-tool',     ToolType.PAN);
+    m.set('select-tool',  ToolType.SELECT);
+    m.set('line-tool',    ToolType.LINE);
+    m.set('ellipse-tool', ToolType.ELLIPSE);
+    m.set('wall-tool',    ToolType.WALL);
+    m.set('door-tool',    ToolType.DOOR);
+    m.set('rect-tool',    ToolType.RECT);
+    m.set('text-tool',    ToolType.TEXT);
+    m.set('token-tool',   ToolType.TOKEN);
+    m.set('image-tool',   ToolType.IMAGE);
+    // m.set('help-tool',    ToolType.HELP);
+    m.set('measure-tool', ToolType.MEASURE);
+    m.set('fixture-tool', ToolType.FIXTURE);
+    m.set('tile-tool',    ToolType.TILE);
+    m.set('submap-tool',  ToolType.SUBMAP);
     return m;
 }());
 const TOOL_TO_TOOL_ID = [
-    // TOOLTYPE.PAN:
+    // ToolType.PAN:
     'pan-tool',
-    // TOOLTYPE.SELECT:
+    // ToolType.SELECT:
     'select-tool',
-    // TOOLTYPE.LINE:
+    // ToolType.LINE:
     'line-tool',
-    // TOOLTYPE.ELLIPSE:
+    // ToolType.ELLIPSE:
     'ellipse-tool',
-    // TOOLTYPE.WALL:
+    // ToolType.WALL:
     'wall-tool',
-    // TOOLTYPE.DOOR:
+    // ToolType.DOOR:
     'door-tool',
-    // TOOLTYPE.RECT:
+    // ToolType.RECT:
     'rect-tool',
-    // TOOLTYPE.TEXT:
+    // ToolType.TEXT:
     'text-tool',
-    // TOOLTYPE.TOKEN:
+    // ToolType.TOKEN:
     'token-tool',
-    // TOOLTYPE.IMAGE:
+    // ToolType.IMAGE:
     'image-tool',
-    // TOOLTYPE.HELP:
+    // ToolType.HELP:
     'help-tool', // unused?
-    // TOOLTYPE.MEASURE:
+    // ToolType.MEASURE:
     'measure-tool',
-    // TOOLTYPE.FIXTURE:
+    // ToolType.FIXTURE:
     'fixture-tool',
-    // TOOLTYPE.FILL:
+    // ToolType.FILL:
     'tile-tool',
-    // TOOLTYPE.SUBMAP
+    // ToolType.SUBMAP
     'submap-tool',
 ];
-let current_fixture_type = FIXTURETYPE.STAIRS;
+let current_fixture_type = FixtureType.STAIRS;
 const enum TOKENTYPE {
     EZ = 0,
     IMG = 1,
@@ -6102,7 +6102,7 @@ const RECTTYPE_TO_NAME = [
     'Filled',
 ];
 let current_rect_type = RECTTYPE.HOLLOW;
-let current_tool:TOOLTYPE = (function(){
+let current_tool:ToolType = (function(){
     let t = get_global(StorageCategory.CANVAS, 'current_tool');
     if(t === undefined)
         t = localStorage.getItem('current_tool');
@@ -6112,7 +6112,7 @@ let current_tool:TOOLTYPE = (function(){
             return result;
         }
     }
-    return show_pan?TOOLTYPE.PAN:TOOLTYPE.SELECT;
+    return show_pan?ToolType.PAN:ToolType.SELECT;
     }());
 let color_picker_:HTMLInputElement;
 let color_picker2_:HTMLInputElement;
@@ -6282,13 +6282,13 @@ document.addEventListener('DOMContentLoaded', function(){
     ensure_window_is_completely_on_screen(palette);
 });
 let tools: Array<HTMLElement> = [];
-function change_tool(tool:TOOLTYPE):void{
+function change_tool(tool:ToolType):void{
     store_global(StorageCategory.CANVAS, 'current_tool', TOOL_TO_TOOL_ID[tool]);
     if(!tools) return;
     current_tool = tool;
     switch(tool){
-        case TOOLTYPE.PAN:
-        case TOOLTYPE.SELECT:
+        case ToolType.PAN:
+        case ToolType.SELECT:
             break;
         default:
             for(let view of dungeon_map_views){
@@ -6297,15 +6297,15 @@ function change_tool(tool:TOOLTYPE):void{
             break;
     }
     switch(tool){
-        case TOOLTYPE.TILE:{
+        case ToolType.TILE:{
             switch(current_tile_type){
-                case TILETYPE.FILLED:
+                case TileType.FILLED:
                     hide_palette();
                     break;
-                case TILETYPE.TERRAIN:
+                case TileType.TERRAIN:
                     make_terrain_palette();
                     break;
-                case TILETYPE.ICON:
+                case TileType.ICON:
                     make_terrain_icon_palette();
                     break;
             }
@@ -6407,13 +6407,13 @@ document.addEventListener('DOMContentLoaded', function():void{
 
             function make_cb(st:SELECTTYPE){
                 function cb():void{
-                    change_tool(TOOLTYPE.SELECT);
+                    change_tool(ToolType.SELECT);
                     change_st(st);
                     change_select_mode(st);
                 }
                 return cb;
             }
-            numeric_hot_keys.set(TOOLTYPE.SELECT, {
+            numeric_hot_keys.set(ToolType.SELECT, {
                 func: function(index:number){
                     switch(index){
                         case 0:
@@ -6455,7 +6455,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 ]);
             });
         }
-        function setup_multi_option(toolel:HTMLElement, menu_id:string, t_type:TOOLTYPE, set_current:(_:number)=>void, t_to_name:Array<string>, t_to_short_name:Array<string>, t_max:number){
+        function setup_multi_option(toolel:HTMLElement, menu_id:string, t_type:ToolType, set_current:(_:number)=>void, t_to_name:Array<string>, t_to_short_name:Array<string>, t_max:number){
             const name = get_by_id<HTMLDivElement>(menu_id);
             function change_t(t:number){
                 set_current(t);
@@ -6490,36 +6490,36 @@ document.addEventListener('DOMContentLoaded', function():void{
             });
         }
         switch(TOOL_IDS_TO_TOOL.get(toolel.id)){
-            case TOOLTYPE.DOOR:
-                setup_multi_option(toolel, 'door-tool-menu', TOOLTYPE.DOOR, function(i:number){current_door=i}, DOOR_TO_NAMES, DOOR_TO_SHORT_NAMES, DOORTYPE_MAX);
+            case ToolType.DOOR:
+                setup_multi_option(toolel, 'door-tool-menu', ToolType.DOOR, function(i:number){current_door=i}, DOOR_TO_NAMES, DOOR_TO_SHORT_NAMES, DoorType_MAX);
             break;
-            case TOOLTYPE.TOKEN:
-                setup_multi_option(toolel, 'token-tool-menu', TOOLTYPE.TOKEN, function(i:number){current_token_type=i}, TOKEN_TO_NAME, TOKEN_TO_NAME, TOKENTYPE_MAX);
+            case ToolType.TOKEN:
+                setup_multi_option(toolel, 'token-tool-menu', ToolType.TOKEN, function(i:number){current_token_type=i}, TOKEN_TO_NAME, TOKEN_TO_NAME, TOKENTYPE_MAX);
             break;
-            case TOOLTYPE.RECT:
-                setup_multi_option(toolel, 'rect-tool-menu', TOOLTYPE.RECT, function(i:number){current_rect_type=i}, RECTTYPE_TO_NAME, RECTTYPE_TO_NAME, RECTTYPE_MAX);
+            case ToolType.RECT:
+                setup_multi_option(toolel, 'rect-tool-menu', ToolType.RECT, function(i:number){current_rect_type=i}, RECTTYPE_TO_NAME, RECTTYPE_TO_NAME, RECTTYPE_MAX);
             break;
-            case TOOLTYPE.ELLIPSE:
-                setup_multi_option(toolel, 'ellipse-tool-menu', TOOLTYPE.ELLIPSE, function(i:number){current_ellipse=i}, ELLIPSETYPE_TO_NAME, ELLIPSETYPE_TO_NAME, ELLIPSETYPE_MAX);
+            case ToolType.ELLIPSE:
+                setup_multi_option(toolel, 'ellipse-tool-menu', ToolType.ELLIPSE, function(i:number){current_ellipse=i}, ELLIPSETYPE_TO_NAME, ELLIPSETYPE_TO_NAME, ELLIPSETYPE_MAX);
             break;
-            case TOOLTYPE.FIXTURE:
-                setup_multi_option(toolel, 'fixture-tool-menu', TOOLTYPE.FIXTURE, function(i:number){current_fixture_type=i}, FIXTURETYPE_TO_NAME, FIXTURETYPE_TO_NAME, FIXTURETYPE_MAX);
+            case ToolType.FIXTURE:
+                setup_multi_option(toolel, 'fixture-tool-menu', ToolType.FIXTURE, function(i:number){current_fixture_type=i}, FixtureType_TO_NAME, FixtureType_TO_NAME, FixtureType_MAX);
             break;
-            case TOOLTYPE.TILE:
-                setup_multi_option(toolel, 'tile-tool-menu', TOOLTYPE.TILE, function(i:number){
+            case ToolType.TILE:
+                setup_multi_option(toolel, 'tile-tool-menu', ToolType.TILE, function(i:number){
                     current_tile_type=i;
                     switch(current_tile_type){
-                        case TILETYPE.FILLED:
+                        case TileType.FILLED:
                             hide_palette();
                             break;
-                        case TILETYPE.TERRAIN:
+                        case TileType.TERRAIN:
                             make_terrain_palette();
                             break;
-                        case TILETYPE.ICON:
+                        case TileType.ICON:
                             make_terrain_icon_palette();
                             break;
                     }
-                }, TILETYPE_TO_NAME, TILETYPE_TO_NAME, TILETYPE_MAX);
+                }, TileType_TO_NAME, TileType_TO_NAME, TileType_MAX);
             break;
             default:
             break;
@@ -6543,7 +6543,7 @@ const DEFAULT_NUMERIC_HOT_KEY = {
     max_index: 0,
 };
 let numeric_hot_key = DEFAULT_NUMERIC_HOT_KEY;
-let numeric_hot_keys:Map<TOOLTYPE, NumericHotKey> = new Map();
+let numeric_hot_keys:Map<ToolType, NumericHotKey> = new Map();
 let token_paths: Array<string> = [];
 ONRECV(ToClient.TOKEN_PATHS, function(paths:Array<string>){
     token_paths = paths;
@@ -6622,7 +6622,7 @@ const redo_canvas_cursor = (function(){
     let prev_id = -1;
     function redo_canvas_cursor(view: DungeonMapView, modified:boolean){
         if(view.resize.resizing) return;
-        if(current_tool != TOOLTYPE.SELECT){
+        if(current_tool != ToolType.SELECT){
             view.hovered_id = -1;
             if(canvas.style.cursor != 'initial')
                 canvas.style.cursor = 'initial';
@@ -6837,55 +6837,55 @@ document.addEventListener('DOMContentLoaded', function(){
                 break;
             case 's':
                 if(modified) return;
-                change_tool(TOOLTYPE.SELECT);
+                change_tool(ToolType.SELECT);
                 break;
             case 'p':
                 if(modified) return;
-                change_tool(TOOLTYPE.ELLIPSE);
+                change_tool(ToolType.ELLIPSE);
                 break;
             case 'n':
                 if(modified) return;
-                if(show_pan) change_tool(TOOLTYPE.PAN);
+                if(show_pan) change_tool(ToolType.PAN);
                 break;
             case 'l':
                 if(modified) return;
-                change_tool(TOOLTYPE.LINE);
+                change_tool(ToolType.LINE);
                 break;
             case 'r':
                 if(modified) return;
-                change_tool(TOOLTYPE.RECT);
+                change_tool(ToolType.RECT);
                 break;
             case 'i':
                 if(modified) return;
-                change_tool(TOOLTYPE.IMAGE);
+                change_tool(ToolType.IMAGE);
                 break;
             case 'f':
                 if(modified) return;
-                change_tool(TOOLTYPE.FIXTURE);
+                change_tool(ToolType.FIXTURE);
                 break;
             case 'd':
                 if(modified) return;
-                change_tool(TOOLTYPE.DOOR);
+                change_tool(ToolType.DOOR);
                 break;
             case 'm':
                 if(modified) return;
-                change_tool(TOOLTYPE.MEASURE);
+                change_tool(ToolType.MEASURE);
                 break;
             case 'a':
                 if(modified) return;
-                change_tool(TOOLTYPE.WALL);
+                change_tool(ToolType.WALL);
                 break;
             case 't':
                 if(modified) return;
-                change_tool(TOOLTYPE.TEXT);
+                change_tool(ToolType.TEXT);
                 break;
             case 'o':
                 if(modified) return;
-                change_tool(TOOLTYPE.TOKEN);
+                change_tool(ToolType.TOKEN);
                 break;
             case 'k':
                 if(modified) return;
-                change_tool(TOOLTYPE.TILE);
+                change_tool(ToolType.TILE);
                 break;
             case 'y':
                 if(shortcut){
@@ -6983,7 +6983,7 @@ document.addEventListener('DOMContentLoaded', function(){
         e.stopPropagation();
         e.preventDefault();
     });
-    let prev_tool:TOOLTYPE = TOOLTYPE.PAN;
+    let prev_tool:ToolType = ToolType.PAN;
     // this state variable is kind of janky.
     let ctxmenu_is_active = 0;
     let ez_token_color = '#ff3333';
@@ -7010,7 +7010,7 @@ document.addEventListener('DOMContentLoaded', function(){
         e.preventDefault();
         if(e.button === 1){
             prev_tool = current_tool;
-            current_tool = TOOLTYPE.PAN;
+            current_tool = ToolType.PAN;
         }
         let submapid = 0;
         let smoff:[number, number] = [0, 0];
@@ -7025,7 +7025,7 @@ document.addEventListener('DOMContentLoaded', function(){
         }
         let snap = get_snap_func();
         switch(current_tool){
-            case TOOLTYPE.SELECT:{
+            case ToolType.SELECT:{
                 let [clicked_x, clicked_y] = event_to_coord(e, view);
                 const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;
                 if(!modified) {
@@ -7197,7 +7197,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.addEventListener('pointerleave', finish_select);
                 }
             }break;
-            case TOOLTYPE.PAN:{
+            case ToolType.PAN:{
                 // don't use the helper as it includes view.camera_*
                 let clicked_x = e.offsetX/view.scale;
                 let clicked_y = e.offsetY/view.scale;
@@ -7216,7 +7216,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 function finish_pan(){
                     if(prev_tool){
                         current_tool = prev_tool;
-                        prev_tool = TOOLTYPE.PAN;
+                        prev_tool = ToolType.PAN;
                     }
                     canvas.removeEventListener('pointermove', pan);
                     window.removeEventListener('pointerup', finish_pan);
@@ -7225,7 +7225,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('pointerup', finish_pan);
                 canvas.addEventListener('pointerleave', finish_pan);
             }break;
-            case TOOLTYPE.LINE:{
+            case ToolType.LINE:{
                 let id = get_new_id();
                 const [x0, y0] = event_to_coord_off(e, view, smoff);
                 const thickness_input = by_id('line-thickness');
@@ -7249,7 +7249,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('pointerup', finish_point);
                 canvas.addEventListener('pointerleave', finish_point);
             }break;
-            case TOOLTYPE.WALL:{
+            case ToolType.WALL:{
                 let id = get_new_id();
                 if(snapmode == SNAPMODE.FREE){
                     // copy paste from LINE above.
@@ -7295,7 +7295,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.addEventListener('pointerleave', finish_point);
                 }
             }break;
-            case TOOLTYPE.DOOR:{
+            case ToolType.DOOR:{
                 const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
                 let x1 = x0;
                 let y1 = y0;
@@ -7328,20 +7328,20 @@ document.addEventListener('DOMContentLoaded', function(){
                         let width;
                         if(Math.abs(y1-y0) < 4){
                         // if(y1 === y0){
-                            orientation = ORIENTATION.HORIZONTAL;
+                            orientation = Orientation.HORIZONTAL;
                             width = Math.abs(x1-x0)/REFERENCE_WIDTH;
                         }
                         else if(Math.abs(x1-x0) < 4){
                         // else if(x1 == x0){
-                            orientation = ORIENTATION.VERTICAL;
+                            orientation = Orientation.VERTICAL;
                             width = Math.abs(y1-y0)/REFERENCE_WIDTH;
                         }
                         else if((x1 < x0 && y1 < y0) || (x1 > x0 && y1 > y0)){
-                            orientation = ORIENTATION.TOPLEFT_DOWNRIGHT;
+                            orientation = Orientation.TOPLEFT_DOWNRIGHT;
                             width = Math.max(Math.abs(y1-y0), Math.abs(x1-x0))/REFERENCE_WIDTH;
                         }
                         else {
-                            orientation = ORIENTATION.TOPRIGHT_DOWNLEFT;
+                            orientation = Orientation.TOPRIGHT_DOWNLEFT;
                             width = Math.max(Math.abs(y1-y0), Math.abs(x1-x0))/REFERENCE_WIDTH;
                         }
                         if(width < 0.1)
@@ -7357,7 +7357,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('pointerup', finish_door);
                 canvas.addEventListener('pointerleave', finish_door);
             }break;
-            case TOOLTYPE.RECT:{
+            case ToolType.RECT:{
                 switch(current_rect_type){
                     case RECTTYPE.HOLLOW:{
                         let id = get_new_id();
@@ -7441,7 +7441,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     }break;
                 }
             }break;
-            case TOOLTYPE.ELLIPSE:{
+            case ToolType.ELLIPSE:{
                 let id = get_new_id();
                 const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
                 add_ellipse(view.map, id, x0, y0, submapid, get_primary_color(), get_secondary_color(), current_ellipse);
@@ -7486,7 +7486,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('pointerup', finish_point);
                 canvas.addEventListener('pointerleave', finish_point);
             }break;
-            case TOOLTYPE.TEXT:{
+            case ToolType.TEXT:{
                 const [x0, y0] = event_to_coord_off(e, view, smoff);
                 let dialog = get_dialog('text-input');
                 if(!dialog) return;
@@ -7517,7 +7517,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 dialog.ok_handler = function(){
                     const text = dialog.f.text.value.trim();
                     if(!text) return;
-                    let alignment = radio_to_value([l, c, r], [TEXTALIGNMENT.LEFT, TEXTALIGNMENT.CENTER, TEXTALIGNMENT.RIGHT]);
+                    let alignment = radio_to_value([l, c, r], [TextAlignment.LEFT, TextAlignment.CENTER, TextAlignment.RIGHT]);
 
                     let textsize = (+dialog.f.size.value) | 0;
                     if(textsize < 4) textsize = 4;
@@ -7546,7 +7546,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 dialog.show();
 
             }break;
-            case TOOLTYPE.IMAGE:{
+            case ToolType.IMAGE:{
                 const [x0, y0] = event_to_coord_off(e, view, smoff);
                 let dialog = get_dialog('image-input');
                 if(!dialog) return;
@@ -7578,7 +7578,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 };
                 dialog.show();
             }break;
-            case TOOLTYPE.TOKEN:{
+            case ToolType.TOKEN:{
                 if(current_token_type == TOKENTYPE.EZ){
                     const [x0, y0] = event_to_coord_off(e, view, smoff);
                     let dialog = get_dialog('ez-token');
@@ -7655,10 +7655,10 @@ document.addEventListener('DOMContentLoaded', function(){
                     dialog.show();
                 }
             }break;
-            case TOOLTYPE.FIXTURE:{
+            case ToolType.FIXTURE:{
                 switch(current_fixture_type){
                     // Legacy: is its own impl
-                    case FIXTURETYPE.STAIRS:{
+                    case FixtureType.STAIRS:{
                         let id = get_new_id();
                         let [x0, y0] = event_to_coord_off(e, view, smoff);
                         add_stairs(view.map, id, x0, y0, submapid);
@@ -7755,7 +7755,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     }break;
                 }
             }break;
-            case TOOLTYPE.MEASURE:{
+            case ToolType.MEASURE:{
                 let id = get_new_id();
                 let snap:(x:number, y:number)=>[number, number];
                 if(!submapid && view.map.grid_type & GridType.HEX){
@@ -7803,7 +7803,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 canvas.addEventListener('pointerleave', finish);
 
             }break;
-            case TOOLTYPE.TILE:{
+            case ToolType.TILE:{
                 let x:number;
                 let y:number;
                 if(view.map.grid_type & GridType.HEX){
@@ -7816,7 +7816,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
                 let id = get_new_id();
                 switch(current_tile_type){
-                    case TILETYPE.FILLED:{
+                    case TileType.FILLED:{
                         let filled: FilledTile = {
                             type: CanvasType.FILLED_TILE,
                             id: id,
@@ -7830,7 +7830,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         };
                         add_canv_obj(view.map, filled);
                     }break;
-                    case TILETYPE.TERRAIN: {
+                    case TileType.TERRAIN: {
                         let terrain: TerrainTile = {
                             type: CanvasType.TERRAIN_TILE,
                             id: id,
@@ -7843,7 +7843,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         };
                         add_canv_obj(view.map, terrain);
                     }break;
-                    case TILETYPE.ICON: {
+                    case TileType.ICON: {
                         let icon: IconTile = {
                             type: CanvasType.ICON_TILE,
                             id: id,
@@ -7863,7 +7863,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 note_create_by_id_for_undo(view.map, id);
                 request_render();
             }break;
-            case TOOLTYPE.SUBMAP:{
+            case ToolType.SUBMAP:{
                 // Don't allow nested submaps
                 if(submapid) break;
                 let id = get_new_id();
@@ -7936,7 +7936,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     canvas.addEventListener('dblclick', function(e:MouseEvent){
         let view = get_active_view();
-        if(current_tool != TOOLTYPE.SELECT)
+        if(current_tool != ToolType.SELECT)
             return;
         if(view.resize.resizing) return;
         let [clicked_x, clicked_y] = event_to_coord(e, view);

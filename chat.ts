@@ -366,54 +366,54 @@ function format_new_die_roll(roll_result:RolledExpr, tight:boolean):[number, str
             let [total, text] = format_new_die_roll(roll_result[1], false);
             return [total, '( ' + text + ' )'];
         }
-        case DieExprTypes.UNARY:{
+        case DieExprTypes.Unary:{
             let [total, text] = format_new_die_roll(roll_result[2], true);
             switch(roll_result[1]){
-                case UNARY.PLUS:
+                case Unary.PLUS:
                     text = '+' + text;
                     return [total, text];
-                case UNARY.NEG:
+                case Unary.NEG:
                     text = MINUS.m + text;
                     return [-total, text];
-                case UNARY.NOT:
+                case Unary.NOT:
                     text = '!' + text;
                     return [+!total, text];
             }
         }
-        case DieExprTypes.BINARY:{
+        case DieExprTypes.Binary:{
             let op = roll_result[1];
-            let [ltotal, ltext] = format_new_die_roll(roll_result[2], op == BINARY.MUL || op == BINARY.DIV);
-            let [rtotal, rtext] = format_new_die_roll(roll_result[3], op == BINARY.MUL || op == BINARY.DIV);
+            let [ltotal, ltext] = format_new_die_roll(roll_result[2], op == Binary.MUL || op == Binary.DIV);
+            let [rtotal, rtext] = format_new_die_roll(roll_result[3], op == Binary.MUL || op == Binary.DIV);
             let result: [number, string];
             switch(op){
-                case BINARY.ADD:
+                case Binary.ADD:
                     result = [rounddown(ltotal)+rounddown(rtotal), `${ltext} + ${rtext}`];
                     break;
-                case BINARY.SUB:
+                case Binary.SUB:
                     result = [rounddown(ltotal)-rounddown(rtotal), `${ltext} ${MINUS.m} ${rtext}`];
                     break;
-                case BINARY.MUL:
+                case Binary.MUL:
                     result = [ltotal*rtotal, `${ltext} &times; ${rtext}`];
                     break;
-                case BINARY.DIV:
+                case Binary.DIV:
                     result = [rtotal?ltotal/rtotal:0, `${ltext} &divide; ${rtext}`];
                     break;
-                case BINARY.EQ:
+                case Binary.EQ:
                     result = [+(rounddown(ltotal)==rounddown(rtotal)), `${ltext} ＝ ${rtext}`];
                     break;
-                case BINARY.NE:
+                case Binary.NE:
                     result = [+(rounddown(ltotal)!=rounddown(rtotal)), `${ltext} &ne; ${rtext}`];
                     break;
-                case BINARY.GT:
+                case Binary.GT:
                     result = [+(rounddown(ltotal) > rounddown(rtotal)), `${ltext} &gt; ${rtext}`];
                     break;
-                case BINARY.GE:
+                case Binary.GE:
                     result = [+(rounddown(ltotal) >= rounddown(rtotal)), `${ltext} &geq; ${rtext}`];
                     break;
-                case BINARY.LT:
+                case Binary.LT:
                     result = [+(rounddown(ltotal) < rounddown(rtotal)), `${ltext} &lt; ${rtext}`];
                     break;
-                case BINARY.LE:
+                case Binary.LE:
                     result = [+(rounddown(ltotal) <= rounddown(rtotal)), `${ltext} &leq; ${rtext}`];
                     break;
             }
@@ -579,7 +579,7 @@ document.addEventListener('DOMContentLoaded',function(){
     function make_row(key:number, entry:RollTableEntry, entries:Array<RollTableEntry>):HTMLTableRowElement{
         let weight = entry.weight;
         let text = entry.value;
-        let is_table = !!(entry.flags & ROLLTABLEFLAGS.IS_TABLE);
+        let is_table = !!(entry.flags & RollTableFlags.IS_TABLE);
         const tr = elem('tr');
         function append(el:HTMLElement){
             const td = elem_with_parent(tr, 'td');
@@ -655,9 +655,9 @@ document.addEventListener('DOMContentLoaded',function(){
         tablecheck.checked = is_table;
         tablecheck.addEventListener('change', function(){
             if(tablecheck.checked)
-                entry.flags |= ROLLTABLEFLAGS.IS_TABLE;
+                entry.flags |= RollTableFlags.IS_TABLE;
             else
-                entry.flags &= ~ROLLTABLEFLAGS.IS_TABLE;
+                entry.flags &= ~RollTableFlags.IS_TABLE;
         });
         append(tablecheck);
 
@@ -724,13 +724,13 @@ document.addEventListener('DOMContentLoaded',function(){
             let split = line.split(/\t/);
             let value = '';
             let weight = 1;
-            let flags = ROLLTABLEFLAGS.NONE;
+            let flags = RollTableFlags.NONE;
             if(split.length > 1){
                 value = split[1];
                 if(split.length > 2){
                     let t = split[2].toLowerCase();
                     if(t  == 'true' || t == 't' || t == 'x' || t == '1' || t == 'yes')
-                        flags = ROLLTABLEFLAGS.IS_TABLE;
+                        flags = RollTableFlags.IS_TABLE;
                 }
             }
             else

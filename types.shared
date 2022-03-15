@@ -178,15 +178,15 @@ enum DieExprTypes: int
     NUMBER = 0 # Example: 4
     DICE   = 1 # Example: 2d6
     GROUP  = 2 # Example: (2d6+4)
-    UNARY  = 3 # Example: -3
-    BINARY = 4 # Example: d6*2
+    Unary  = 3 # Example: -3
+    Binary = 4 # Example: d6*2
 
-enum UNARY: int
+enum Unary: int
     PLUS = 0 # +
     NEG = 1 # -
     NOT = 2 # !
 
-enum BINARY: int
+enum Binary: int
     ADD = 0 # +
     SUB = 1 # -
     MUL = 2 # *
@@ -216,13 +216,13 @@ struct RolledGroup: array
     value = RolledExpr
 
 struct RolledUnary: array
-    type = DieExprTypes.UNARY
-    op = UNARY
+    type = DieExprTypes.Unary
+    op = Unary
     value = RolledExpr
 
 struct RolledBinary: array
-    type = DieExprTypes.BINARY
-    op = BINARY
+    type = DieExprTypes.Binary
+    op = Binary
     left = RolledExpr
     right = RolledExpr
 
@@ -247,13 +247,13 @@ struct UnrolledGroup: array
     value = UnrolledDiceExpr
 
 struct UnrolledUnary: array
-    type = DieExprTypes.UNARY
-    op = UNARY
+    type = DieExprTypes.Unary
+    op = Unary
     value = UnrolledDiceExpr
 
 struct UnrolledBinary: array
-    type = DieExprTypes.BINARY
-    op = BINARY
+    type = DieExprTypes.Binary
+    op = Binary
     left = UnrolledDiceExpr
     right = UnrolledDiceExpr
 
@@ -316,14 +316,14 @@ struct ChatDirectResponse: dict
 
 # Roll table for the table command
 # Tables are stored on the server, clients can create and update them.
-enum ROLLTABLEFLAGS: int flag
+enum RollTableFlags: int flag
     NONE = 0
     IS_TABLE = 1 << 0
 
 struct RollTableEntry: dict
     weight = int
     value = str
-    flags = ROLLTABLEFLAGS
+    flags = RollTableFlags
 
 struct RollTable: dict
     name = str
@@ -503,7 +503,7 @@ struct StrippedImageObj: array
     height = float
     url = str
 
-enum TEXTALIGNMENT: int
+enum TextAlignment: int
     LEFT = 0
     CENTER = 1
     RIGHT = 2
@@ -520,14 +520,14 @@ struct StrippedTextObj: array
     submap = int
     text = str
     size = float
-    alignment = TEXTALIGNMENT
+    alignment = TextAlignment
     map_id = int # -1 means no link, if (flags & CanvasFlag.FLAG_A), then it is a submap
 
-// TOKENSTATUSFLAGS
+// TokenStatusFlags
 // ----------------
 // status flags for conditions and status effects
 // Bit flags
-enum TOKENSTATUSFLAGS: int flag
+enum TokenStatusFlags: int flag
     NONE       = 0
     ASLEEP     = 1 << 0
     BLESS      = 1 << 1
@@ -561,7 +561,7 @@ struct StrippedEzToken: array
     color = color
     width = float # in squares (?)
     height = float # in squares (?)
-    statusflags = TOKENSTATUSFLAGS
+    statusflags = TokenStatusFlags
 
 //  img-token
 //  --------
@@ -577,9 +577,9 @@ struct StrippedImgToken: array
     url = str
     width = float # in squares (?)
     height = float # in squares (?)
-    statusflags = TOKENSTATUSFLAGS
+    statusflags = TokenStatusFlags
 
-enum DOORTYPE: int
+enum DoorType: int
     DOOR = 0
     DOUBLE = 1
     PORTCULLIS = 2
@@ -589,7 +589,7 @@ enum DOORTYPE: int
     CURTAINS = 6
     HALLWAY = 7
 
-enum ORIENTATION: int
+enum Orientation: int
     VERTICAL = 0
     HORIZONTAL = 1
     TOPLEFT_DOWNRIGHT = 2
@@ -606,12 +606,12 @@ struct StrippedDoorObj: array
     flags = CanvasFlag
     hidinguser = int # userid
     submap = int
-    doortype = DOORTYPE
+    doortype = DoorType
     color = color
     width = float # in squares (?)
-    orientation = ORIENTATION
+    orientation = Orientation
 
-enum ROTATION: int
+enum Rotation: int
     # note: 
     # we might add the diagonals
     UP    = 0
@@ -629,7 +629,7 @@ struct StrippedStairs: array
     submap = int
     width = float # in squares
     height = float # in squares
-    rotation = ROTATION
+    rotation = Rotation
 
 // Measure
 // -------
@@ -646,7 +646,7 @@ struct StrippedMeasureObj: array
     x1 = float
     y1 = float
 
-enum FIXTURETYPE: int
+enum FixtureType: int
     STATUE = 0
     STAIRS = 1
     PIT = 2
@@ -665,9 +665,9 @@ struct StrippedFixtureObj: array
     submap = int
     width = float
     height = float
-    ftype = FIXTURETYPE
+    ftype = FixtureType
 
-enum TILETYPE: int
+enum TileType: int
     FILLED = 0
     TERRAIN = 1
     ICON = 2

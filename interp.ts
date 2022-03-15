@@ -1,5 +1,5 @@
 //
-// Definitions for BINARY and UNARY are shared between
+// Definitions for Binary and Unary are shared between
 // client and server and so are in the shared types.
 //
 const evaluate_script = (function(){
@@ -222,8 +222,8 @@ const evaluate_script = (function(){
         NUMBER = 0,
         DICE = 1,
         GROUP = 2,
-        BINARY = 3,
-        UNARY = 4,
+        Binary = 3,
+        Unary = 4,
         IDENT = 5,
     }
     type NumberExpression = {
@@ -244,14 +244,14 @@ const evaluate_script = (function(){
         expr: Expression,
     }
     type BinaryExpression = {
-        type: EXPR.BINARY,
-        btype: BINARY,
+        type: EXPR.Binary,
+        btype: Binary,
         lhs: Expression,
         rhs: Expression,
     }
     type UnaryExpression = {
-        type: EXPR.UNARY,
-        utype: UNARY,
+        type: EXPR.Unary,
+        utype: Unary,
         expr: Expression,
     }
     type Expression = NumberExpression | DiceExpression | IdentExpression | GroupExpression | BinaryExpression | UnaryExpression;
@@ -293,16 +293,16 @@ const evaluate_script = (function(){
                 if(c == TokenKind.BANG && !c2) return null;
                 let rhs = parse_addplus();
                 if(!rhs) return rhs;
-                let op: BINARY;
+                let op: Binary;
                 switch(c){
-                    case TokenKind.EQUALS: op = BINARY.EQ; break;
-                    case TokenKind.BANG: op = BINARY.NE; break;
-                    case TokenKind.LT: op = c2? BINARY.LE : BINARY.LT; break;
-                    case TokenKind.GT: op = c2? BINARY.GE : BINARY.GT; break;
+                    case TokenKind.EQUALS: op = Binary.EQ; break;
+                    case TokenKind.BANG: op = Binary.NE; break;
+                    case TokenKind.LT: op = c2? Binary.LE : Binary.LT; break;
+                    case TokenKind.GT: op = c2? Binary.GE : Binary.GT; break;
                     default: return null;
                 }
                 lhs = {
-                    type: EXPR.BINARY,
+                    type: EXPR.Binary,
                     btype: op,
                     lhs: lhs,
                     rhs: rhs,
@@ -321,8 +321,8 @@ const evaluate_script = (function(){
                 let rhs = parse_divmul();
                 if(!rhs) return rhs;
                 lhs = {
-                    type: EXPR.BINARY,
-                    btype: c == TokenKind.PLUS? BINARY.ADD : BINARY.SUB,
+                    type: EXPR.Binary,
+                    btype: c == TokenKind.PLUS? Binary.ADD : Binary.SUB,
                     lhs: lhs,
                     rhs: rhs,
                 };
@@ -340,8 +340,8 @@ const evaluate_script = (function(){
                 let rhs = parse_unary();
                 if(!rhs) return rhs;
                 lhs = {
-                    type: EXPR.BINARY,
-                    btype: c == TokenKind.SLASH? BINARY.DIV : BINARY.MUL,
+                    type: EXPR.Binary,
+                    btype: c == TokenKind.SLASH? Binary.DIV : Binary.MUL,
                     lhs: lhs,
                     rhs: rhs,
                 };
@@ -357,8 +357,8 @@ const evaluate_script = (function(){
                 let expr = parse_unary();
                 if(!expr) return null;
                 return {
-                    type: EXPR.UNARY,
-                    utype: c == TokenKind.PLUS? UNARY.PLUS : c == TokenKind.BANG? UNARY.NOT : UNARY.NEG,
+                    type: EXPR.Unary,
+                    utype: c == TokenKind.PLUS? Unary.PLUS : c == TokenKind.BANG? Unary.NOT : Unary.NEG,
                     expr: expr,
                 };
             }
@@ -430,44 +430,44 @@ const evaluate_script = (function(){
             }
             case EXPR.GROUP:
                 return eval_expr(expr.expr, vars);
-            case EXPR.BINARY:{
+            case EXPR.Binary:{
                 let lhs = eval_expr(expr.lhs, vars);
                 let rhs = eval_expr(expr.rhs, vars);
                 if(lhs === null) return null;
                 if(rhs === null) return null;
                 switch(expr.btype){
-                    case BINARY.ADD:
+                    case Binary.ADD:
                         return lhs + rhs;
-                    case BINARY.SUB:
+                    case Binary.SUB:
                         return lhs - rhs;
-                    case BINARY.MUL:
+                    case Binary.MUL:
                         return lhs * rhs;
-                    case BINARY.DIV:
+                    case Binary.DIV:
                         if(!rhs) return 0;
                         return (lhs / rhs) | 0;
-                    case BINARY.EQ:
+                    case Binary.EQ:
                         return lhs == rhs? 1 : 0;
-                    case BINARY.NE:
+                    case Binary.NE:
                         return lhs != rhs? 1 : 0;
-                    case BINARY.LT:
+                    case Binary.LT:
                         return lhs < rhs? 1 : 0;
-                    case BINARY.LE:
+                    case Binary.LE:
                         return lhs <= rhs? 1 : 0;
-                    case BINARY.GT:
+                    case Binary.GT:
                         return lhs > rhs? 1 : 0;
-                    case BINARY.GE:
+                    case Binary.GE:
                         return lhs >= rhs? 1 : 0;
                 }
             }
-            case EXPR.UNARY:{
+            case EXPR.Unary:{
                 let v = eval_expr(expr.expr, vars);
                 if(v === null) return null;
                 switch(expr.utype){
-                    case UNARY.PLUS:
+                    case Unary.PLUS:
                         return v;
-                    case UNARY.NOT:
+                    case Unary.NOT:
                         return !v? 1 : 0;
-                    case UNARY.NEG:
+                    case Unary.NEG:
                         return -v;
                 }
             }
@@ -901,21 +901,21 @@ const evaluate_script = (function(){
                 if(!e) return e;
                 return [DieExprTypes.GROUP, e];
             }
-            case EXPR.BINARY:{
-                let childmuldiv = expr.btype == BINARY.MUL || expr.btype == BINARY.DIV;
+            case EXPR.Binary:{
+                let childmuldiv = expr.btype == Binary.MUL || expr.btype == Binary.DIV;
                 let lhs = expand_dice(expr.lhs, vars, childmuldiv);
                 if(!lhs) return lhs;
                 let rhs = expand_dice(expr.rhs, vars, childmuldiv);
                 if(!rhs) return rhs;
-                let result: UnrolledDiceExpr = [DieExprTypes.BINARY, expr.btype, lhs, rhs];
+                let result: UnrolledDiceExpr = [DieExprTypes.Binary, expr.btype, lhs, rhs];
                 if(muldiv && !childmuldiv)
                     return [DieExprTypes.GROUP, result];
                 return result;
             }
-            case EXPR.UNARY:{
+            case EXPR.Unary:{
                 let e = expand_dice(expr.expr, vars, false);
                 if(!e) return e;
-                return [DieExprTypes.UNARY, expr.utype, e];
+                return [DieExprTypes.Unary, expr.utype, e];
             }
             case EXPR.IDENT:{
                 let toks = vars.get(expr.ident.toLowerCase());

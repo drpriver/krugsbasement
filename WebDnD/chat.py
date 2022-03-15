@@ -6,7 +6,7 @@ from . import db
 import datetime
 import json
 
-from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg, UnrolledDiceExpr, BINARY, UNARY, RolledExpr, ROLLTABLEFLAGS, RollTable, RollTables, ChatHistory
+from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg, UnrolledDiceExpr, Binary, Unary, RolledExpr, RollTableFlags, RollTable, RollTables, ChatHistory
 
 from enum import IntEnum, IntFlag
 
@@ -104,7 +104,7 @@ def parse_and_roll_table_inner(mapping:Dict[str, RollTable], key:str, path:str, 
     for e in table['entries']:
         weights.append(e['weight'])
         values.append(e['value'])
-        is_subtable.append(e['flags'] & ROLLTABLEFLAGS.IS_TABLE)
+        is_subtable.append(e['flags'] & RollTableFlags.IS_TABLE)
     indexes = list(range(len(weights)))
     index = random.choices(indexes, weights=weights, k=1)[0]
     value = values[index]
@@ -217,9 +217,9 @@ def structured_roll_die(die:UnrolledDiceExpr) -> None:
         return
     if t == DieExprTypes.GROUP:
         return structured_roll_die(die[1]) # type: ignore
-    if t == DieExprTypes.UNARY:
+    if t == DieExprTypes.Unary:
         return structured_roll_die(die[2]) # type: ignore
-    if t == DieExprTypes.BINARY:
+    if t == DieExprTypes.Binary:
         structured_roll_die(die[2]) # type: ignore
         structured_roll_die(die[3]) # type: ignore
 
