@@ -6,7 +6,7 @@ else:
 from .persist import Persister, Dummy
 from enum import IntFlag, IntEnum
 from .logs import logging
-from .messages import CANVASTYPE, CreateObjectMessage, StrippedObj, CANVASFLAG, MapFlags, GRIDTYPE, CanvasDeleteMessage, CanvasUpdateMessage, CreateObjectsMessage
+from .messages import CANVASTYPE, CreateObjectMessage, StrippedObj, CanvasFlag, MapFlags, GRIDTYPE, CanvasDeleteMessage, CanvasUpdateMessage, CreateObjectsMessage
 from . import db
 import appconfig
 
@@ -25,7 +25,7 @@ class Map(NamedTuple):
     grid_type: GRIDTYPE = GRIDTYPE.SQUARE
     def with_live_objs(self) -> MapDict:
         md: MapDict = self._asdict() # type: ignore
-        md['objects'] = [o for o in md['objects'] if not (o[4] & CANVASFLAG.DELETED)]
+        md['objects'] = [o for o in md['objects'] if not (o[4] & CanvasFlag.DELETED)]
         return md
 
 def load_maps(campaign_id:int) -> Dict[int, Dummy[Map]]:
@@ -137,7 +137,7 @@ def handle_delete(campaign:int, data:CanvasDeleteMessage) -> CanvasDeleteMessage
     OBJS_BY_ID = MAP_OBJS_BY_ID[campaign][map_id]
     obj_ids = data['ids']
     for obj_id in obj_ids:
-        OBJS_BY_ID[obj_id][4] |= CANVASFLAG.DELETED # type: ignore
+        OBJS_BY_ID[obj_id][4] |= CanvasFlag.DELETED # type: ignore
     MAPS[campaign][map_id].dirty = True
     return data
 

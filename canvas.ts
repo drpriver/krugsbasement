@@ -210,7 +210,7 @@ function is_resizable(obj:CanvasObject): obj is Resizable{
 //     id: number;
 //     base_x: number;
 //     base_y: number;
-//     flags: CANVASFLAG;
+//     flags: CanvasFlag;
 // }
 //
 //  Additionally, each object also has a "stripped" representation, which is
@@ -232,7 +232,7 @@ type FreehandLine = {
     id: number;
     base_x: number;
     base_y: number;
-    flags: CANVASFLAG;
+    flags: CanvasFlag;
     hidinguser: number;
     submap: number;
     color: string;
@@ -258,7 +258,7 @@ type GridLine = {
     id: number;
     base_x: number;
     base_y: number;
-    flags: CANVASFLAG;
+    flags: CanvasFlag;
     hidinguser: number;
     submap: number;
     color: string;
@@ -281,7 +281,7 @@ type Rectangle = {
     id: number,
     base_x: number,
     base_y: number,
-    flags: CANVASFLAG,
+    flags: CanvasFlag,
     hidinguser: number;
     submap: number;
     color: string,
@@ -300,7 +300,7 @@ type FilledRectangle = {
     id: number,
     base_x: number,
     base_y: number,
-    flags: CANVASFLAG,
+    flags: CanvasFlag,
     hidinguser: number;
     submap: number;
     color: string,
@@ -321,7 +321,7 @@ type GridRectangle = {
     id: number,
     base_x: number,
     base_y: number,
-    flags: CANVASFLAG,
+    flags: CanvasFlag,
     hidinguser: number;
     submap: number;
     color: string,
@@ -349,7 +349,7 @@ type Ellipse = {
     id: number,
     base_x: number,
     base_y: number,
-    flags: CANVASFLAG,
+    flags: CanvasFlag,
     hidinguser: number;
     submap: number;
     color: string,
@@ -366,7 +366,7 @@ type ImageObj = {
     id: number;
     base_x: number;
     base_y: number;
-    flags: CANVASFLAG;
+    flags: CanvasFlag;
     hidinguser: number;
     submap: number;
     width: number;
@@ -382,7 +382,7 @@ type TextObj = {
     id: number;
     base_x: number;
     base_y: number;
-    flags: CANVASFLAG;
+    flags: CanvasFlag;
     hidinguser: number;
     submap: number;
     text: string;
@@ -433,7 +433,7 @@ type EzToken = {
     id: number,
     base_x: number,
     base_y: number,
-    flags: CANVASFLAG
+    flags: CanvasFlag
     hidinguser: number;
     submap: number;
     text: string,
@@ -451,7 +451,7 @@ type ImgToken = {
     id: number;
     base_x: number;
     base_y: number;
-    flags: CANVASFLAG;
+    flags: CanvasFlag;
     hidinguser: number;
     submap: number;
     url: string;
@@ -469,7 +469,7 @@ type DoorObj = {
     id: number,
     base_x: number,
     base_y: number,
-    flags: CANVASFLAG
+    flags: CanvasFlag
     hidinguser: number;
     submap: number;
     doortype: DOORTYPE
@@ -485,7 +485,7 @@ type Stairs = {
     id: number,
     base_x: number,
     base_y: number,
-    flags: CANVASFLAG,
+    flags: CanvasFlag,
     hidinguser: number;
     submap: number;
     width: number, // in squares
@@ -502,7 +502,7 @@ type MeasureObj = {
     id: number,
     base_x: number,
     base_y: number,
-    flags: CANVASFLAG
+    flags: CanvasFlag
     hidinguser: number;
     submap: number;
     color: string,
@@ -532,7 +532,7 @@ type FixtureObj = {
     id: number,
     base_x: number,
     base_y: number,
-    flags: CANVASFLAG,
+    flags: CanvasFlag,
     hidinguser: number;
     submap: number;
     width: number,
@@ -560,7 +560,7 @@ type FilledTile = {
     id: number,
     base_x: number,
     base_y: number,
-    flags: CANVASFLAG,
+    flags: CanvasFlag,
     hidinguser: number;
     submap: number;
     color: string,
@@ -574,7 +574,7 @@ type TerrainTile = {
     id: number;
     base_x: number;
     base_y: number;
-    flags: CANVASFLAG;
+    flags: CanvasFlag;
     hidinguser: number;
     submap: number;
     terrain_id: number;
@@ -594,7 +594,7 @@ type IconTile = {
     id: number;
     base_x: number;
     base_y: number;
-    flags: CANVASFLAG;
+    flags: CanvasFlag;
     hidinguser: number;
     submap: number;
     terrainicon_id: number;
@@ -606,7 +606,7 @@ type SubMap = {
     id: number;
     base_x: number;
     base_y: number;
-    flags: CANVASFLAG;
+    flags: CanvasFlag;
     hidinguser: number;
     submap: number;
     width: number;
@@ -1501,7 +1501,7 @@ function make_freehand_line(id:number, base_x:number, base_y:number, submap:numb
         id: id,
         base_x: base_x,
         base_y: base_y,
-        flags: CANVASFLAG.NONE,
+        flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
         submap: submap,
         points: [],
@@ -1793,7 +1793,7 @@ function make_gridline(id:number, base_x:number, base_y:number, submap:number, c
         id: id,
         base_x: base_x,
         base_y: base_y,
-        flags: CANVASFLAG.NONE,
+        flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
         submap:submap,
         points: [],
@@ -1927,7 +1927,7 @@ function make_gridrect(id:number, base_x:number, base_y:number, submap:number, c
         id: id,
         base_x: base_x,
         base_y: base_y,
-        flags: CANVASFLAG.NONE,
+        flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
         submap:submap,
         color: color,
@@ -1967,7 +1967,7 @@ function make_door(id:number, x:number, y:number, doortype:DOORTYPE, submap:numb
         id: id,
         base_x: x,
         base_y: y,
-        flags: CANVASFLAG.NONE,
+        flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
         submap:submap,
         doortype: doortype,
@@ -1987,7 +1987,7 @@ function make_rect(id:number, base_x:number, base_y:number, submap:number, color
         id: id,
         base_x: base_x,
         base_y: base_y,
-        flags: CANVASFLAG.NONE,
+        flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
         submap:submap,
         color: color,
@@ -2027,7 +2027,7 @@ function make_filled_rect(id:number, base_x:number, base_y:number, submap:number
         id: id,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
-        flags: CANVASFLAG.NONE,
+        flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
         submap:submap,
         color: color,
@@ -2068,7 +2068,7 @@ function make_ellipse(id:number, base_x:number, base_y:number, submap:number, co
         id:id,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
-        flags: CANVASFLAG.NONE,
+        flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
         submap:submap,
         color: color,
@@ -2092,7 +2092,7 @@ function make_text(id:number, base_x:number, base_y:number, submap:number, text:
         id: id,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
-        flags: CANVASFLAG.NONE,
+        flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
         submap:submap,
         text: text,
@@ -2115,7 +2115,7 @@ function make_ez_token(id:number, base_x:number, base_y:number, submap:number, t
         id: id,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
-        flags: CANVASFLAG.NONE,
+        flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
         submap:submap,
         text: text,
@@ -2136,7 +2136,7 @@ function make_img_token(id:number, base_x:number, base_y:number, submap:number, 
         id: id,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
-        flags: CANVASFLAG.NONE,
+        flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
         submap:submap,
         url: url,
@@ -2184,7 +2184,7 @@ function make_image(id:number, base_x:number, base_y:number, width:number, heigh
         id: id,
         base_x: base_x,
         base_y: base_y,
-        flags: CANVASFLAG.NONE,
+        flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
         submap:submap,
         width: width,
@@ -2208,7 +2208,7 @@ function make_stairs(id:number, base_x:number, base_y:number, submap:number): St
         id: id,
         base_x:base_x,
         base_y:base_y,
-        flags: CANVASFLAG.NONE,
+        flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
         submap:submap,
         width: 0,
@@ -2266,7 +2266,7 @@ function make_measure(id:number, x:number, y:number, submap:number, color:string
         id: id,
         base_x:x,
         base_y:y,
-        flags: CANVASFLAG.NONE,
+        flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
         submap:submap,
         color:color,
@@ -2281,7 +2281,7 @@ function make_fixture(id:number, x:number, y:number, submap:number,ftype:FIXTURE
         id: id,
         base_x:x,
         base_y:y,
-        flags: CANVASFLAG.NONE,
+        flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
         submap:submap,
         width:0,
@@ -2385,7 +2385,7 @@ function do_one_undo(map:DungeonMap):void{
         case UNDO_EVENT_TYPE.CREATE:{
             const ue = undo_event as UndoCreate;
             const obj = map.canvas_objs.get(ue.id)!;
-            obj.flags |= CANVASFLAG.DELETED;
+            obj.flags |= CanvasFlag.DELETED;
             publish_delete_by_ids(map.map_id, [obj.id]);
         }break;
         case UNDO_EVENT_TYPE.DELETE:{
@@ -2395,8 +2395,8 @@ function do_one_undo(map:DungeonMap):void{
             const stripped = get_stripped_state_by_id(map, ids);
             for(let i = 0; i < length; i++){
                 const obj = map.canvas_objs.get(ids[i])!;
-                obj.flags &= ~CANVASFLAG.DELETED;
-                stripped[i][INDEX.FLAGS] &= ~CANVASFLAG.DELETED;
+                obj.flags &= ~CanvasFlag.DELETED;
+                stripped[i][INDEX.FLAGS] &= ~CanvasFlag.DELETED;
             }
             // maybe there should be an undelete?
             publish_obj_updates(map.map_id, stripped);
@@ -2407,7 +2407,7 @@ function do_one_undo(map:DungeonMap):void{
             const length = ids.length;
             for(let i = 0; i < length; i++){
                 const obj = map.canvas_objs.get(ids[i])!;
-                obj.flags |= CANVASFLAG.DELETED;
+                obj.flags |= CanvasFlag.DELETED;
             }
             publish_delete_by_ids(map.map_id, ids);
         }break;
@@ -2427,7 +2427,7 @@ function do_one_redo(map:DungeonMap):void{
         case UNDO_EVENT_TYPE.CREATE:{
             const ue = undo_event as UndoCreate;
             const obj = map.canvas_objs.get(ue.id)!;
-            obj.flags &= ~CANVASFLAG.DELETED;
+            obj.flags &= ~CanvasFlag.DELETED;
             const stripped = get_stripped_state_by_id(map, [ue.id]);
             publish_obj_updates(map.map_id, stripped);
         }break;
@@ -2437,7 +2437,7 @@ function do_one_redo(map:DungeonMap):void{
             const length = ids.length;
             for(let i = 0; i < length; i++){
                 const obj = map.canvas_objs.get(ids[i])!;
-                obj.flags |= CANVASFLAG.DELETED;
+                obj.flags |= CanvasFlag.DELETED;
             }
             publish_delete_by_ids(map.map_id, ue.ids);
         }break;
@@ -2447,7 +2447,7 @@ function do_one_redo(map:DungeonMap):void{
             const length = ids.length;
             for(let i = 0; i < length; i++){
                 const obj = map.canvas_objs.get(ids[i])!;
-                obj.flags &= ~ CANVASFLAG.DELETED;
+                obj.flags &= ~ CanvasFlag.DELETED;
             }
             const stripped = get_stripped_state_by_id(map, ue.ids);
             publish_obj_updates(map.map_id, stripped);
@@ -2485,7 +2485,7 @@ function clear_copy_buffer():void{
 function copy_selected_objs_to_copy_buffer(view:DungeonMapView):void{
     for(let obj_id of view.selected){
         const obj = view.map.canvas_objs.get(obj_id)!;
-        if(obj.flags & CANVASFLAG.DELETED)
+        if(obj.flags & CanvasFlag.DELETED)
             continue;
         const stripped = strip_obj(obj);
         copied_objs.push(stripped);
@@ -2496,19 +2496,19 @@ function cut_selected_objs_to_copy_buffer(view:DungeonMapView):void{
     let deleted = [];
     for(let obj_id of view.selected){
         const obj = view.map.canvas_objs.get(obj_id)!;
-        if(obj.flags & CANVASFLAG.DELETED)
+        if(obj.flags & CanvasFlag.DELETED)
             continue;
         const stripped = strip_obj(obj);
         copied_objs.push(stripped);
-        obj.flags |= CANVASFLAG.DELETED;
+        obj.flags |= CanvasFlag.DELETED;
         deleted.push(obj.id);
         // #SPEED: faster way to get all objects in this submap
         if(obj.type == CANVASTYPE.SUBMAP){
             for(let o of view.map.canvas_obj_array){
-                if(o.flags & CANVASFLAG.DELETED) continue;
+                if(o.flags & CanvasFlag.DELETED) continue;
                 if(o.submap == obj.id){
                     copied_objs.push(strip_obj(o));
-                    o.flags |= CANVASFLAG.DELETED;
+                    o.flags |= CanvasFlag.DELETED;
                     deleted.push(o.id);
                 }
             }
@@ -2741,7 +2741,7 @@ function rotate_everything_90(view:DungeonMapView){
     const before_rotate = [];
     const after_rotate = []
     for(let obj of view.map.canvas_obj_array){
-        if(obj.flags & CANVASFLAG.DELETED)
+        if(obj.flags & CanvasFlag.DELETED)
             continue;
         if(obj.type == CANVASTYPE.MEASURE)
             continue;
@@ -2911,7 +2911,7 @@ ONRECV(ToClient.CANVAS_DELETE, function(msg:CanvasDeleteMessage){
         const id = obj_ids[i];
         const obj = map.canvas_objs.get(id);
         if(obj){
-            obj.flags |= CANVASFLAG.DELETED;
+            obj.flags |= CanvasFlag.DELETED;
         }
         else {
             console.log('Deleting unknown object??', id);
@@ -3283,7 +3283,7 @@ function obj_at(view:DungeonMapView, x0:number, y0:number, select_type:SELECTTYP
     };
     for(let i = length-1; i >= 0; --i){
         const obj = canvas_obj_array[i];
-        if(obj.flags & CANVASFLAG.DELETED)
+        if(obj.flags & CanvasFlag.DELETED)
             continue;
         if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
             continue;
@@ -3316,7 +3316,7 @@ function note_selections(view:DungeonMapView):void{
     if(view.selection_area.select_one){
         for(let i = length-1; i >=0; --i){
             const obj = canvas_obj_array[i];
-            if(obj.flags & CANVASFLAG.DELETED)
+            if(obj.flags & CanvasFlag.DELETED)
                 continue;
             if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
                 continue;
@@ -3342,7 +3342,7 @@ function note_selections(view:DungeonMapView):void{
     else {
         for(let i = 0; i < length; ++i){
             const obj = canvas_obj_array[i];
-            if(obj.flags & CANVASFLAG.DELETED)
+            if(obj.flags & CanvasFlag.DELETED)
                 continue;
             if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
                 continue;
@@ -3368,7 +3368,7 @@ function note_selections(view:DungeonMapView):void{
 function selection_is_rigid(view:DungeonMapView):boolean{
     for(let id of view.selected){
         const obj = view.map.canvas_objs.get(id)!;
-        if(obj.flags & CANVASFLAG.DELETED)
+        if(obj.flags & CanvasFlag.DELETED)
             continue;
         switch(obj.type){
             // Idk, this is unclear.
@@ -3396,7 +3396,7 @@ function there_are_selected_objs_at(view:DungeonMapView, x0:number, y0:number, x
     const selection_type = select_type;
     for(let id of view.selected){
         const obj = view.map.canvas_objs.get(id) as CanvasObject;
-        if(obj.flags & CANVASFLAG.DELETED)
+        if(obj.flags & CanvasFlag.DELETED)
             continue;
         if(obj_in_bbox(obj, selection_bbox, selection_type))
             return true;
@@ -3426,7 +3426,7 @@ function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number
     const selected_objs = [];
     for(let item of view.selected){
         const obj = view.map.canvas_objs.get(item)!;
-        if(obj.flags & CANVASFLAG.DELETED)
+        if(obj.flags & CanvasFlag.DELETED)
             continue;
         selected_objs.push(obj);
     }
@@ -3947,7 +3947,7 @@ function edit_is_impossible(view:DungeonMapView):boolean{
         return true;
     const first = view.selected.values().next().value;
     const obj = view.map.canvas_objs.get(first)!;
-    if(obj.flags & CANVASFLAG.DELETED)
+    if(obj.flags & CanvasFlag.DELETED)
         return true;
     switch(obj.type){
         case CANVASTYPE.FREEHAND_LINE:
@@ -3993,7 +3993,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
         return;
     const first = view.selected.values().next()!.value;
     const obj: CanvasObject = view.map.canvas_objs.get(first)!;
-    if(obj.flags & CANVASFLAG.DELETED)
+    if(obj.flags & CanvasFlag.DELETED)
         return;
     switch(obj.type){
         case CANVASTYPE.FREEHAND_LINE:
@@ -4051,19 +4051,19 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 a.checked = false;
             }
             [l, c, r][obj.alignment].checked = true;
-            dialog.f.background.checked = !!(obj.flags & CANVASFLAG.TEXT_HAS_BACKGROUND);
+            dialog.f.background.checked = !!(obj.flags & CanvasFlag.TEXT_HAS_BACKGROUND);
             dialog.f.text.textContent = obj.text;
             dialog.f['link-dungeon'].innerHTML = '<option value="-1">No Link</option>'+by_id('current-map-name').innerHTML;
             let submapoptions = '<option value="-1">No Link</option>'
             for(let sm of view.map.submaps){
-                if(sm.flags & CANVASFLAG.DELETED) continue;
+                if(sm.flags & CanvasFlag.DELETED) continue;
                 if(sm.hidinguser && sm.hidinguser !== SETTINGS.userid) continue;
                 submapoptions += `<option value="${sm.id}">${sm.title}</option>`;
             }
             dialog.f['link-submap'].innerHTML = submapoptions;
             dialog.f['link-dungeon'].value = '-1';
             dialog.f['link-submap'].value = '-1';
-            if(obj.flags & CANVASFLAG.TEXT_LINKS_TO_SUBMAP)
+            if(obj.flags & CanvasFlag.TEXT_LINKS_TO_SUBMAP)
                 dialog.f['link-submap'].value = ""+obj.map_id;
             else
                 dialog.f['link-dungeon'].value = ""+obj.map_id;
@@ -4101,13 +4101,13 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 obj.map_id = map_id;
                 obj.alignment = alignment;
                 if(submap)
-                    obj.flags |= CANVASFLAG.TEXT_LINKS_TO_SUBMAP;
+                    obj.flags |= CanvasFlag.TEXT_LINKS_TO_SUBMAP;
                 else
-                    obj.flags &= ~CANVASFLAG.TEXT_LINKS_TO_SUBMAP;
+                    obj.flags &= ~CanvasFlag.TEXT_LINKS_TO_SUBMAP;
                 if(dialog.f.background.checked)
-                    obj.flags |= CANVASFLAG.TEXT_HAS_BACKGROUND;
+                    obj.flags |= CanvasFlag.TEXT_HAS_BACKGROUND;
                 else
-                    obj.flags &= ~CANVASFLAG.TEXT_HAS_BACKGROUND;
+                    obj.flags &= ~CanvasFlag.TEXT_HAS_BACKGROUND;
                 const after = strip_obj(obj);
                 publish_obj_updates(view.map.map_id, [after]);
                 request_render();
@@ -4345,7 +4345,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
         const length = canvas_obj_array.length;
         for(let i = 0; i < length; ++i){
             const obj = canvas_obj_array[i];
-            if(obj.flags & CANVASFLAG.DELETED)
+            if(obj.flags & CanvasFlag.DELETED)
                 continue;
             if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
                 continue;
@@ -4585,7 +4585,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
     const one_selection = selected.size == 1;
     for(let i = 0; i < length; ++i){
         let obj = canvas_obj_array[i];
-        if(obj.flags & CANVASFLAG.DELETED)
+        if(obj.flags & CanvasFlag.DELETED)
             continue;
         if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
             continue;
@@ -4593,7 +4593,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
         let by = obj.base_y;
         if(obj.submap){
             const sm = canvas_objs.get(obj.submap)! as SubMap;
-            if(sm!.flags & CANVASFLAG.SMALL)
+            if(sm!.flags & CanvasFlag.SMALL)
                 continue;
             bx += sm.base_x + sm.tlx;
             by += sm.base_y + sm.tly;
@@ -4897,7 +4897,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 ctx.fillStyle = sel_color+'cc';
                             else
                                 ctx.fillStyle = BACKGROUND + '88';
-                            if(is_selected || (obj.flags & CANVASFLAG.TEXT_HAS_BACKGROUND)){
+                            if(is_selected || (obj.flags & CanvasFlag.TEXT_HAS_BACKGROUND)){
                             const x = bx+bbox.x0;
                             const y = by+bbox.y0;
                             const width = bbox.x1-bbox.x0;
@@ -4913,7 +4913,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             }
                             else{
                                 if(obj.map_id != -1){
-                                    if(obj.flags & CANVASFLAG.TEXT_LINKS_TO_SUBMAP)
+                                    if(obj.flags & CanvasFlag.TEXT_LINKS_TO_SUBMAP)
                                         ctx.fillStyle = '#282';
                                     else
                                         ctx.fillStyle = '#44f';
@@ -5678,7 +5678,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 let y1 = obj.y1;
                 if(obj.submap){
                     const sm = canvas_objs.get(obj.submap)! as SubMap;
-                    if(sm!.flags & CANVASFLAG.SMALL)
+                    if(sm!.flags & CanvasFlag.SMALL)
                         continue;
                     x1 += sm.base_x + sm.tlx;
                     y1 += sm.base_y + sm.tly;
@@ -5843,19 +5843,19 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(is_selected){
                     ctx.lineWidth=8;
                     ctx.strokeStyle = sel_color;
-                    if(obj.flags & CANVASFLAG.SMALL)
+                    if(obj.flags & CanvasFlag.SMALL)
                         ctx.strokeRect(bx-2, by-2, obj.width+4, 68);
                     else
                         ctx.strokeRect(bx-2, by-2, obj.width+4, obj.height+4);
                 }
                 ctx.lineWidth=4;
                 ctx.fillStyle = BACKGROUND;
-                if(obj.flags & CANVASFLAG.SMALL)
+                if(obj.flags & CanvasFlag.SMALL)
                     ctx.fillRect(bx, by, obj.width, 64);
                 else
                     ctx.fillRect(bx, by, obj.width, obj.height);
                 ctx.strokeStyle = '#000';
-                if(obj.flags & CANVASFLAG.SMALL)
+                if(obj.flags & CanvasFlag.SMALL)
                     ctx.strokeRect(bx, by, obj.width, 64);
                 else{
                     ctx.strokeRect(bx, by, obj.width, obj.height);
@@ -5904,10 +5904,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.fillStyle = COULD_SELECT_COLOR;
                     ctx.fillRect(x-O.MARGIN, y-O.MARGIN, M.W+O.MARGIN*2, M.W+O.MARGIN*2);
                 }
-                const h = obj.flags & CANVASFLAG.SMALL? M.W : 0;
+                const h = obj.flags & CanvasFlag.SMALL? M.W : 0;
                 ctx.strokeRect(x, y, M.W, h);
                 ctx.restore();
-                if(one_selection && selected.has(obj.id) && !(obj.flags & CANVASFLAG.SMALL)){
+                if(one_selection && selected.has(obj.id) && !(obj.flags & CanvasFlag.SMALL)){
                     ctx.fillStyle = sel_color;
                     ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
                     ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
@@ -6561,7 +6561,7 @@ function maybe_move_selection_one_unit(view:DungeonMapView, dx:number, dy:number
     const obj = view.map.canvas_objs.get(s);
     if(!obj)
         return false;
-    if(obj.flags & CANVASFLAG.DELETED)
+    if(obj.flags & CanvasFlag.DELETED)
         return false;
     if(obj.type != CANVASTYPE.EZ_TOKEN && obj.type != CANVASTYPE.IMG_TOKEN)
         return false;
@@ -6668,7 +6668,7 @@ const redo_canvas_cursor = (function(){
 
 function get_submap_at(view:DungeonMapView, x:number, y:number):SubMap | null {
     for(let sm of view.map.submaps){
-        if(sm.flags & CANVASFLAG.DELETED)
+        if(sm.flags & CanvasFlag.DELETED)
             continue;
         if(sm.hidinguser && sm.hidinguser != SETTINGS.userid)
             continue;
@@ -6676,7 +6676,7 @@ function get_submap_at(view:DungeonMapView, x:number, y:number):SubMap | null {
             x0:sm.base_x,
             y0:sm.base_y+64, // The title area.
             x1:sm.base_x+sm.width,
-            y1:sm.base_y+(sm.flags & CANVASFLAG.SMALL?64:sm.height),
+            y1:sm.base_y+(sm.flags & CanvasFlag.SMALL?64:sm.height),
         };
         if(point_in_rect(x, y, sm_bbox.x0, sm_bbox.y0, sm_bbox.x1, sm_bbox.y1))
             return sm;
@@ -6804,15 +6804,15 @@ document.addEventListener('DOMContentLoaded', function(){
                 let deleted = [];
                 for(let item of view.selected){
                     let o = view.map.canvas_objs.get(item)!;
-                    if(o.flags & CANVASFLAG.DELETED) continue;
-                    o.flags |= CANVASFLAG.DELETED;
+                    if(o.flags & CanvasFlag.DELETED) continue;
+                    o.flags |= CanvasFlag.DELETED;
                     deleted.push(o.id);
                     // #SPEED: faster way to get all objects in this submap
                     if(o.type == CANVASTYPE.SUBMAP){
                         for(let obj of view.map.canvas_obj_array){
-                            if(obj.flags & CANVASFLAG.DELETED) continue;
+                            if(obj.flags & CanvasFlag.DELETED) continue;
                             if(obj.submap == o.id){
-                                obj.flags |= CANVASFLAG.DELETED;
+                                obj.flags |= CanvasFlag.DELETED;
                                 deleted.push(obj.id);
                             }
                         }
@@ -7033,15 +7033,15 @@ document.addEventListener('DOMContentLoaded', function(){
                         if(point_in_rect(clicked_x, clicked_y, aa.bbox.x0, aa.bbox.y0, aa.bbox.x1, aa.bbox.y1)){
                             let o = view.map.canvas_objs.get(aa.obj_id);
                             if(!o) break;
-                            if(o.flags & CANVASFLAG.DELETED) break;
+                            if(o.flags & CanvasFlag.DELETED) break;
                             if(o.hidinguser && o.hidinguser !== SETTINGS.userid) break;
                             if(o.type == CANVASTYPE.SUBMAP)
-                                o.flags ^= CANVASFLAG.SMALL;
+                                o.flags ^= CanvasFlag.SMALL;
                             else if (o.type == CANVASTYPE.TEXT){
-                                if(o.flags & CANVASFLAG.TEXT_LINKS_TO_SUBMAP){
+                                if(o.flags & CanvasFlag.TEXT_LINKS_TO_SUBMAP){
                                     let sm = view.map.canvas_objs.get(o.map_id) as (SubMap | undefined);
                                     if(!sm) return;
-                                    sm.flags &= ~CANVASFLAG.SMALL;
+                                    sm.flags &= ~CanvasFlag.SMALL;
                                     center_view_at(view, sm.base_x+sm.width/2, sm.base_y+sm.height/2);
                                     request_render();
                                     return;
@@ -7060,7 +7060,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             if(point_in_rect(clicked_x, clicked_y, rh.bbox.x0, rh.bbox.y0, rh.bbox.x1, rh.bbox.y1)){
                                 const o = view.map.canvas_objs.get(rh.obj_id);
                                 if(!o) return;
-                                if(o.flags & CANVASFLAG.DELETED) return;
+                                if(o.flags & CanvasFlag.DELETED) return;
                                 if(!is_resizable(o)) return;
                                 const obj: Resizable = o;
                                 view.resize.resizing = true;
@@ -7501,7 +7501,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 dialog.f['link-dungeon'].innerHTML = '<option value="-1">No Link</option>'+by_id('current-map-name').innerHTML;
                 let submapoptions = '<option value="-1">No Link</option>'
                 for(let sm of view.map.submaps){
-                    if(sm.flags & CANVASFLAG.DELETED) continue;
+                    if(sm.flags & CanvasFlag.DELETED) continue;
                     if(sm.hidinguser && sm.hidinguser !== SETTINGS.userid) continue;
                     submapoptions += `<option value="${sm.id}">${sm.title}</option>`;
                 }
@@ -7536,9 +7536,9 @@ document.addEventListener('DOMContentLoaded', function(){
                     // kind of hacky
                     let o = view.map.canvas_objs.get(id)!;
                     if(submap)
-                        o.flags |= CANVASFLAG.TEXT_LINKS_TO_SUBMAP;
+                        o.flags |= CanvasFlag.TEXT_LINKS_TO_SUBMAP;
                     if(dialog.f.background.checked)
-                        o.flags |= CANVASFLAG.TEXT_HAS_BACKGROUND;
+                        o.flags |= CanvasFlag.TEXT_HAS_BACKGROUND;
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                     request_render();
@@ -7695,7 +7695,7 @@ document.addEventListener('DOMContentLoaded', function(){
                                 note_create_by_id_for_undo(view.map, id);
                             }
                             else {
-                                stairs.flags |= CANVASFLAG.DELETED;
+                                stairs.flags |= CanvasFlag.DELETED;
                             }
                         }
                         window.addEventListener('pointerup', finish_point);
@@ -7747,7 +7747,7 @@ document.addEventListener('DOMContentLoaded', function(){
                                 note_create_by_id_for_undo(view.map, id);
                             }
                             else {
-                                fixture.flags |= CANVASFLAG.DELETED;
+                                fixture.flags |= CanvasFlag.DELETED;
                             }
                         }
                         window.addEventListener('pointerup', finish);
@@ -7793,7 +7793,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 canvas.addEventListener('pointermove', move);
                 function finish(){
                     publish_delete_by_ids(view.map.map_id, [id]);
-                    measure.flags |= CANVASFLAG.DELETED;
+                    measure.flags |= CanvasFlag.DELETED;
                     request_render();
                     canvas.removeEventListener('pointermove', move);
                     window.removeEventListener('pointerup', finish);
@@ -7822,7 +7822,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             id: id,
                             base_x: x,
                             base_y: y,
-                            flags: CANVASFLAG.NONE,
+                            flags: CanvasFlag.NONE,
                             hidinguser: hiddenid(),
                             submap:submapid,
                             color: get_primary_color(),
@@ -7836,7 +7836,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             id: id,
                             base_x: x,
                             base_y: y,
-                            flags: CANVASFLAG.NONE,
+                            flags: CanvasFlag.NONE,
                             hidinguser: hiddenid(),
                             submap:submapid,
                             terrain_id: current_terrain_id,
@@ -7849,7 +7849,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             id: id,
                             base_x: x,
                             base_y: y,
-                            flags: CANVASFLAG.NONE,
+                            flags: CanvasFlag.NONE,
                             hidinguser: hiddenid(),
                             submap:submapid,
                             terrainicon_id: current_terrain_icon_id,
@@ -7874,7 +7874,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     id: id,
                     base_x: x0,
                     base_y: y0,
-                    flags: CANVASFLAG.NONE,
+                    flags: CanvasFlag.NONE,
                     hidinguser: hiddenid(),
                     submap: 0,
                     width: 0,
@@ -7907,7 +7907,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     window.removeEventListener('pointerup', finish_point);
                     canvas.removeEventListener('pointerleave', finish_point);
                     if(submap.width == 0 || submap.height == 0){
-                        submap.flags |= CANVASFLAG.DELETED;
+                        submap.flags |= CanvasFlag.DELETED;
                     }
                     else {
                         view.map.submaps.push(submap);

@@ -361,7 +361,7 @@ enum CANVASTYPE: int
 
 #
 # flags
-enum CANVASFLAG: int flag
+enum CanvasFlag: int flag
     NONE = 0
     DELETED = 1 << 0
     // Use the "small" representation of this object, such as a
@@ -386,7 +386,7 @@ struct StrippedFreehandLine: array
     id = int
     base_x = float
     base_y = float
-    flags = CANVASFLAG
+    flags = CanvasFlag
     hidinguser = int # userid
     submap = int
     color = color
@@ -407,7 +407,7 @@ struct StrippedGridLine: array
     id = int
     base_x = float
     base_y = float
-    flags = CANVASFLAG
+    flags = CanvasFlag
     hidinguser = int # userid
     submap = int
     color = color
@@ -423,7 +423,7 @@ struct StrippedRectangle: array
     id = int
     base_x = float
     base_y = float
-    flags = CANVASFLAG
+    flags = CanvasFlag
     hidinguser = int # userid
     submap = int
     color = color
@@ -439,7 +439,7 @@ struct StrippedFilledRectangle: array
     id = int
     base_x = float
     base_y = float
-    flags = CANVASFLAG
+    flags = CanvasFlag
     hidinguser = int # userid
     submap = int
     color = color
@@ -458,7 +458,7 @@ struct StrippedGridRectangle: array
     id = int
     base_x = float
     base_y = float
-    flags = CANVASFLAG
+    flags = CanvasFlag
     hidinguser = int # userid
     submap = int
     color = color
@@ -480,7 +480,7 @@ struct StrippedEllipse: array
     id = int
     base_x = float
     base_y = float
-    flags = CANVASFLAG
+    flags = CanvasFlag
     hidinguser = int # userid
     submap = int
     color = color
@@ -496,7 +496,7 @@ struct StrippedImageObj: array
     id = int
     base_x = float
     base_y = float
-    flags = CANVASFLAG
+    flags = CanvasFlag
     hidinguser = int # userid
     submap = int
     width = float
@@ -515,13 +515,13 @@ struct StrippedTextObj: array
     id = int
     base_x = float
     base_y = float
-    flags =  CANVASFLAG
+    flags =  CanvasFlag
     hidinguser = int # userid
     submap = int
     text = str
     size = float
     alignment = TEXTALIGNMENT
-    map_id = int # -1 means no link, if (flags & CANVASFLAG.FLAG_A), then it is a submap
+    map_id = int # -1 means no link, if (flags & CanvasFlag.FLAG_A), then it is a submap
 
 // TOKENSTATUSFLAGS
 // ----------------
@@ -554,7 +554,7 @@ struct StrippedEzToken: array
     id = int
     base_x = float
     base_y = float
-    flags = CANVASFLAG
+    flags = CanvasFlag
     hidinguser = int # userid
     submap = int
     text = str
@@ -571,7 +571,7 @@ struct StrippedImgToken: array
     id = int
     base_x = float
     base_y = float
-    flags = CANVASFLAG
+    flags = CanvasFlag
     hidinguser = int # userid
     submap = int
     url = str
@@ -603,7 +603,7 @@ struct StrippedDoorObj: array
     id = int
     base_x = float
     base_y = float
-    flags = CANVASFLAG
+    flags = CanvasFlag
     hidinguser = int # userid
     submap = int
     doortype = DOORTYPE
@@ -624,7 +624,7 @@ struct StrippedStairs: array
     id = int
     base_x = float
     base_y = float
-    flags = CANVASFLAG
+    flags = CanvasFlag
     hidinguser = int # userid
     submap = int
     width = float # in squares
@@ -639,7 +639,7 @@ struct StrippedMeasureObj: array
     id = int
     base_x = float
     base_y = float
-    flags = CANVASFLAG
+    flags = CanvasFlag
     hidinguser = int # userid
     submap = int
     color = color
@@ -660,7 +660,7 @@ struct StrippedFixtureObj: array
     id = int
     base_x = float
     base_y = float
-    flags = CANVASFLAG
+    flags = CanvasFlag
     hidinguser = int # userid
     submap = int
     width = float
@@ -679,7 +679,7 @@ struct StrippedFilledTile: array
     id = int
     base_x = float
     base_y = float
-    flags = CANVASFLAG
+    flags = CanvasFlag
     hidinguser = int # userid
     submap = int
     color = color
@@ -692,7 +692,7 @@ struct StrippedTerrainTile: array
     id = int
     base_x = float
     base_y = float
-    flags = CANVASFLAG
+    flags = CanvasFlag
     hidinguser = int # userid
     submap = int
     terrain_id = int
@@ -704,7 +704,7 @@ struct StrippedIconTile: array
     id = int
     base_x = float
     base_y = float
-    flags = CANVASFLAG
+    flags = CanvasFlag
     hidinguser = int # userid
     submap = int
     terrainicon_id = int
@@ -714,7 +714,7 @@ struct StrippedSubMap: array
     id = int
     base_x = float
     base_y = float
-    flags = CANVASFLAG
+    flags = CanvasFlag
     hidinguser = int # userid
     submap = int # this should always be 0, only here for compat
     width = float
@@ -741,7 +741,7 @@ struct StrippedSubMap: array
 //    id = int
 //    base_x = float
 //    base_y = float
-//    flags = CANVASFLAG
+//    flags = CanvasFlag
 //    hidinguser = int # userid
 //    submap = int
 //
