@@ -186,13 +186,13 @@ type Resizable = Rectangle | GridRectangle | FilledRectangle | Ellipse | ImageOb
 
 function is_resizable(obj:CanvasObject): obj is Resizable{
     switch(obj.type){
-        case CANVASTYPE.RECT:
-        case CANVASTYPE.GRID_RECT:
-        case CANVASTYPE.FILLED_RECT:
-        case CANVASTYPE.ELLIPSE:
-        case CANVASTYPE.IMAGE:
-        // case CANVASTYPE.STAIRS:
-        case CANVASTYPE.SUBMAP:
+        case CanvasType.RECT:
+        case CanvasType.GRID_RECT:
+        case CanvasType.FILLED_RECT:
+        case CanvasType.ELLIPSE:
+        case CanvasType.IMAGE:
+        // case CanvasType.STAIRS:
+        case CanvasType.SUBMAP:
             return true
         default:
             return false;
@@ -206,7 +206,7 @@ function is_resizable(obj:CanvasObject): obj is Resizable{
 // This interface is implicit as it is the
 // intersection of all the canvas objects.
 // interface CanvasObject {
-//     type: CANVASTYPE;
+//     type: CanvasType;
 //     id: number;
 //     base_x: number;
 //     base_y: number;
@@ -228,7 +228,7 @@ function is_resizable(obj:CanvasObject): obj is Resizable{
 //  The server can optimize the lines by removing redundant
 //  points.
 type FreehandLine = {
-    type: CANVASTYPE.FREEHAND_LINE; // FREEHAND_LINE
+    type: CanvasType.FREEHAND_LINE; // FREEHAND_LINE
     id: number;
     base_x: number;
     base_y: number;
@@ -254,7 +254,7 @@ type FreehandLine = {
 //  grid point. When moving multiple objects, all of them need to snap
 //  this way so that their relative positions are maintained.
 type GridLine = {
-    type: CANVASTYPE.GRID_LINE; // GRID_LINE
+    type: CanvasType.GRID_LINE; // GRID_LINE
     id: number;
     base_x: number;
     base_y: number;
@@ -277,7 +277,7 @@ type GridLine = {
 //  This is a HOLLOW rectangle
 
 type Rectangle = {
-    type: CANVASTYPE.RECT,
+    type: CanvasType.RECT,
     id: number,
     base_x: number,
     base_y: number,
@@ -296,7 +296,7 @@ type Rectangle = {
 //
 //  This is a FILLED rectangle
 type FilledRectangle = {
-    type: CANVASTYPE.FILLED_RECT,
+    type: CanvasType.FILLED_RECT,
     id: number,
     base_x: number,
     base_y: number,
@@ -317,7 +317,7 @@ type FilledRectangle = {
 //  This is a SOLID rectangle.
 
 type GridRectangle = {
-    type: CANVASTYPE.GRID_RECT,
+    type: CanvasType.GRID_RECT,
     id: number,
     base_x: number,
     base_y: number,
@@ -345,7 +345,7 @@ let current_ellipse = ELLIPSETYPE.HOLLOW;
 //  We only allow axis-aligned ellipses.
 //
 type Ellipse = {
-    type: CANVASTYPE.ELLIPSE,
+    type: CanvasType.ELLIPSE,
     id: number,
     base_x: number,
     base_y: number,
@@ -362,7 +362,7 @@ type Ellipse = {
 //  image
 //  -----
 type ImageObj = {
-    type: CANVASTYPE.IMAGE; // IMAGE
+    type: CanvasType.IMAGE; // IMAGE
     id: number;
     base_x: number;
     base_y: number;
@@ -378,7 +378,7 @@ type ImageObj = {
 //  text
 //  ----
 type TextObj = {
-    type: CANVASTYPE.TEXT; // TEXT
+    type: CanvasType.TEXT; // TEXT
     id: number;
     base_x: number;
     base_y: number;
@@ -429,7 +429,7 @@ const STATUSICONS = (function(){
 //  A token that just has a simple text label.
 
 type EzToken = {
-    type: CANVASTYPE.EZ_TOKEN,
+    type: CanvasType.EZ_TOKEN,
     id: number,
     base_x: number,
     base_y: number,
@@ -447,7 +447,7 @@ type EzToken = {
 //  --------
 //  A token that has an image as its contents.
 type ImgToken = {
-    type: CANVASTYPE.IMG_TOKEN; // IMG_TOKEN
+    type: CanvasType.IMG_TOKEN; // IMG_TOKEN
     id: number;
     base_x: number;
     base_y: number;
@@ -465,7 +465,7 @@ type ImgToken = {
 //  A door.
 // stripped doors are the same as regular doors.
 type DoorObj = {
-    type: CANVASTYPE.DOOR,
+    type: CanvasType.DOOR,
     id: number,
     base_x: number,
     base_y: number,
@@ -481,7 +481,7 @@ type DoorObj = {
 
 // stripped stairs are the same as regular stairs.
 type Stairs = {
-    type: CANVASTYPE.STAIRS,
+    type: CanvasType.STAIRS,
     id: number,
     base_x: number,
     base_y: number,
@@ -498,7 +498,7 @@ type Stairs = {
 // This is a weird object, but it is the measurement tool.
 // stripped measure is the same as regular measure.
 type MeasureObj = {
-    type: CANVASTYPE.MEASURE,
+    type: CanvasType.MEASURE,
     id: number,
     base_x: number,
     base_y: number,
@@ -528,7 +528,7 @@ const FIXTURETYPE_TO_NAME = [
 
 // stripped fixture obj is the same as regular fixtures.
 type FixtureObj = {
-    type: CANVASTYPE.FIXTURE,
+    type: CanvasType.FIXTURE,
     id: number,
     base_x: number,
     base_y: number,
@@ -556,7 +556,7 @@ const TILETYPE_TO_NAME = [
 // ----------
 
 type FilledTile = {
-    type: CANVASTYPE.FILLED_TILE,
+    type: CanvasType.FILLED_TILE,
     id: number,
     base_x: number,
     base_y: number,
@@ -570,7 +570,7 @@ type FilledTile = {
 // TerrainTile
 // -----------
 type TerrainTile = {
-    type: CANVASTYPE.TERRAIN_TILE; // TERRAIN_TILE
+    type: CanvasType.TERRAIN_TILE; // TERRAIN_TILE
     id: number;
     base_x: number;
     base_y: number;
@@ -590,7 +590,7 @@ let current_terrain_icon_id: number = 0;
 // IconTile
 // --------
 type IconTile = {
-    type: CANVASTYPE.ICON_TILE; // ICON_TILE
+    type: CanvasType.ICON_TILE; // ICON_TILE
     id: number;
     base_x: number;
     base_y: number;
@@ -602,7 +602,7 @@ type IconTile = {
 // SubMap
 // ------
 type SubMap = {
-    type: CANVASTYPE.SUBMAP; // SUBMAP
+    type: CanvasType.SUBMAP; // SUBMAP
     id: number;
     base_x: number;
     base_y: number;
@@ -1497,7 +1497,7 @@ function make_freehand_line(id:number, base_x:number, base_y:number, submap:numb
     base_x = Math.round(base_x);
     base_y = Math.round(base_y);
     const obj: FreehandLine =  {
-        type: CANVASTYPE.FREEHAND_LINE,
+        type: CanvasType.FREEHAND_LINE,
         id: id,
         base_x: base_x,
         base_y: base_y,
@@ -1789,7 +1789,7 @@ function make_gridline(id:number, base_x:number, base_y:number, submap:number, c
     base_x = snap(base_x);
     base_y = snap(base_y);
     const obj: GridLine =  {
-        type: CANVASTYPE.GRID_LINE,
+        type: CanvasType.GRID_LINE,
         id: id,
         base_x: base_x,
         base_y: base_y,
@@ -1923,7 +1923,7 @@ function add_gridline_point_by_id(map:DungeonMap, id:number, x:number, y:number)
 }
 function make_gridrect(id:number, base_x:number, base_y:number, submap:number, color:string):GridRectangle{
     const obj:GridRectangle =  {
-        type: CANVASTYPE.GRID_RECT,
+        type: CanvasType.GRID_RECT,
         id: id,
         base_x: base_x,
         base_y: base_y,
@@ -1963,7 +1963,7 @@ function change_gridrect_by_id(map:DungeonMap, id:number, x0:number, y0:number, 
 }
 function make_door(id:number, x:number, y:number, doortype:DOORTYPE, submap:number, color:string, width:number, orientation:ORIENTATION):DoorObj{
     const obj: DoorObj = {
-        type: CANVASTYPE.DOOR,
+        type: CanvasType.DOOR,
         id: id,
         base_x: x,
         base_y: y,
@@ -1983,7 +1983,7 @@ function add_door(map:DungeonMap, id:number, base_x:number, base_y:number, doort
 }
 function make_rect(id:number, base_x:number, base_y:number, submap:number, color:string):Rectangle{
     const obj: Rectangle =  {
-        type: CANVASTYPE.RECT,
+        type: CanvasType.RECT,
         id: id,
         base_x: base_x,
         base_y: base_y,
@@ -2023,7 +2023,7 @@ function change_rect_by_id(map:DungeonMap, id:number, x0:number, y0:number, x1:n
 }
 function make_filled_rect(id:number, base_x:number, base_y:number, submap:number, color:string, color2:string):FilledRectangle{
     const obj: FilledRectangle =  {
-        type: CANVASTYPE.FILLED_RECT,
+        type: CanvasType.FILLED_RECT,
         id: id,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
@@ -2064,7 +2064,7 @@ function change_filled_rect_by_id(map:DungeonMap, id:number, x0:number, y0:numbe
 }
 function make_ellipse(id:number, base_x:number, base_y:number, submap:number, color:string, color2:string, variant:ELLIPSETYPE):Ellipse{
     const obj:Ellipse = {
-        type: CANVASTYPE.ELLIPSE,
+        type: CanvasType.ELLIPSE,
         id:id,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
@@ -2088,7 +2088,7 @@ function make_text(id:number, base_x:number, base_y:number, submap:number, text:
     base_x = snap(base_x);
     base_y = snap(base_y);
     const obj: TextObj =  {
-        type: CANVASTYPE.TEXT,
+        type: CanvasType.TEXT,
         id: id,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
@@ -2111,7 +2111,7 @@ function add_text(map:DungeonMap, id:number, base_x:number, base_y:number, subma
 }
 function make_ez_token(id:number, base_x:number, base_y:number, submap:number, text:string, color:string, width:number, height:number):EzToken{
     const obj: EzToken = {
-        type: CANVASTYPE.EZ_TOKEN,
+        type: CanvasType.EZ_TOKEN,
         id: id,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
@@ -2132,7 +2132,7 @@ function add_ez_token(map:DungeonMap, id:number, base_x:number, base_y:number, s
 }
 function make_img_token(id:number, base_x:number, base_y:number, submap:number, url:string, width:number, height: number):ImgToken{
     const obj:ImgToken = {
-        type: CANVASTYPE.IMG_TOKEN,
+        type: CanvasType.IMG_TOKEN,
         id: id,
         base_x: Math.round(base_x),
         base_y: Math.round(base_y),
@@ -2180,7 +2180,7 @@ function make_image(id:number, base_x:number, base_y:number, width:number, heigh
     base_x = base_x - (base_x & (REFERENCE_WIDTH-1)) + 1;
     base_y = base_y - (base_y & (REFERENCE_WIDTH-1)) + 1;
     const obj:ImageObj =  {
-        type: CANVASTYPE.IMAGE,
+        type: CanvasType.IMAGE,
         id: id,
         base_x: base_x,
         base_y: base_y,
@@ -2204,7 +2204,7 @@ function make_stairs(id:number, base_x:number, base_y:number, submap:number): St
     base_x = snap(base_x);
     base_y = snap(base_y);
     const obj:Stairs = {
-        type: CANVASTYPE.STAIRS,
+        type: CanvasType.STAIRS,
         id: id,
         base_x:base_x,
         base_y:base_y,
@@ -2262,7 +2262,7 @@ function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number){
 }
 function make_measure(id:number, x:number, y:number, submap:number, color:string):MeasureObj{
     const obj:MeasureObj = {
-        type: CANVASTYPE.MEASURE,
+        type: CanvasType.MEASURE,
         id: id,
         base_x:x,
         base_y:y,
@@ -2277,7 +2277,7 @@ function make_measure(id:number, x:number, y:number, submap:number, color:string
 }
 function make_fixture(id:number, x:number, y:number, submap:number,ftype:FIXTURETYPE):FixtureObj{
     const obj:FixtureObj = {
-        type: CANVASTYPE.FIXTURE,
+        type: CanvasType.FIXTURE,
         id: id,
         base_x:x,
         base_y:y,
@@ -2503,7 +2503,7 @@ function cut_selected_objs_to_copy_buffer(view:DungeonMapView):void{
         obj.flags |= CanvasFlag.DELETED;
         deleted.push(obj.id);
         // #SPEED: faster way to get all objects in this submap
-        if(obj.type == CANVASTYPE.SUBMAP){
+        if(obj.type == CanvasType.SUBMAP){
             for(let o of view.map.canvas_obj_array){
                 if(o.flags & CanvasFlag.DELETED) continue;
                 if(o.submap == obj.id){
@@ -2523,11 +2523,11 @@ function translate_object(obj: CanvasObject, dx: number, dy: number){
     obj.base_x += dx;
     obj.base_y += dy;
     switch(obj.type){
-        case CANVASTYPE.FREEHAND_LINE:{
+        case CanvasType.FREEHAND_LINE:{
             freehand_recalculate_bbox(obj);
             obj.path = undefined;
         }break;
-        case CANVASTYPE.GRID_LINE:{
+        case CanvasType.GRID_LINE:{
             gridline_recalculate_bbox(obj);
             obj.path = undefined;
         }break;
@@ -2576,7 +2576,7 @@ function rotate_rectangleish(obj:Rectangleish){
 // checking I need to return a value.
 function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
     switch(obj.type){
-        case CANVASTYPE.FREEHAND_LINE:{
+        case CanvasType.FREEHAND_LINE:{
             rotate_base(obj);
             const length = obj.points.length;
             for(let i = 0; i < length; i+=2){
@@ -2588,7 +2588,7 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
             obj.path = undefined;
             return strip_obj(obj);
         }
-        case CANVASTYPE.GRID_LINE:{
+        case CanvasType.GRID_LINE:{
             rotate_base(obj);
             const length = obj.points.length;
             for(let i = 0; i < length; i+=2){
@@ -2600,35 +2600,35 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
             obj.path = undefined;
             return strip_obj(obj);
         }
-        case CANVASTYPE.RECT:{
+        case CanvasType.RECT:{
             rotate_rectangleish(obj);
             return strip_obj(obj);
         }
-        case CANVASTYPE.FILLED_RECT:{
+        case CanvasType.FILLED_RECT:{
             rotate_rectangleish(obj);
             return strip_obj(obj);
         }
-        case CANVASTYPE.GRID_RECT:{
+        case CanvasType.GRID_RECT:{
             rotate_rectangleish(obj);
             return strip_obj(obj);
         }
-        case CANVASTYPE.ELLIPSE:{
+        case CanvasType.ELLIPSE:{
             rotate_rectangleish(obj);
             return strip_obj(obj);
         }
-        case CANVASTYPE.IMAGE:{
+        case CanvasType.IMAGE:{
             // This is kind of weird. Not sure how images are
             // supposed to behave when the world gets rotated.
             rotate_rectangleish(obj);
             return strip_obj(obj);
         }
-        case CANVASTYPE.TEXT:{
+        case CanvasType.TEXT:{
             rotate_base(obj);
             obj.bbox = {x0:0, y0:0, x1:0, y1:0};
             obj.bboxes = [];
             return strip_obj(obj);
         }
-        case CANVASTYPE.EZ_TOKEN:{
+        case CanvasType.EZ_TOKEN:{
             const r = {
                 base_x: obj.base_x, base_y:obj.base_y,
                 width:obj.width*REFERENCE_WIDTH, height:obj.height*REFERENCE_WIDTH,
@@ -2641,7 +2641,7 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
             obj.height = temp;
             return strip_obj(obj);
         }
-        case CANVASTYPE.IMG_TOKEN:{
+        case CanvasType.IMG_TOKEN:{
             const r = {
                 base_x: obj.base_x, base_y:obj.base_y,
                 width:obj.width*REFERENCE_WIDTH, height:obj.height*REFERENCE_WIDTH,
@@ -2654,7 +2654,7 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
             obj.height = temp;
             return strip_obj(obj);
         }
-        case CANVASTYPE.DOOR:{
+        case CanvasType.DOOR:{
             rotate_base(obj);
             switch(obj.orientation){
                 case ORIENTATION.VERTICAL:
@@ -2672,7 +2672,7 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
             }
             return strip_obj(obj);
         }
-        case CANVASTYPE.STAIRS:{
+        case CanvasType.STAIRS:{
             const r = {
                 base_x: obj.base_x, base_y:obj.base_y,
                 width:obj.width*REFERENCE_WIDTH, height:obj.height*REFERENCE_WIDTH,
@@ -2689,19 +2689,19 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
             }
             return strip_obj(obj);
         }
-        case CANVASTYPE.MEASURE:{
+        case CanvasType.MEASURE:{
             // meh
             rotate_base(obj);
             return strip_obj(obj);
         }
-        case CANVASTYPE.FIXTURE:{
+        case CanvasType.FIXTURE:{
             rotate_rectangleish(obj);
             return strip_obj(obj);
         }
         // The tile rotations are kind of janky, as you can't rotate a hexagon
         // 90 degrees and expect anything reasonable to happen.
         // We'll do our best.
-        case CANVASTYPE.FILLED_TILE:{
+        case CanvasType.FILLED_TILE:{
             const r = {
                 base_x: obj.base_x, base_y:obj.base_y,
                 width:REFERENCE_WIDTH, height:REFERENCE_WIDTH,
@@ -2711,7 +2711,7 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
             obj.base_y = r.base_y;
             return strip_obj(obj);
         }
-        case CANVASTYPE.TERRAIN_TILE:{
+        case CanvasType.TERRAIN_TILE:{
             const r = {
                 base_x: obj.base_x, base_y:obj.base_y,
                 width:REFERENCE_WIDTH, height:REFERENCE_WIDTH,
@@ -2721,7 +2721,7 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
             obj.base_y = r.base_y;
             return strip_obj(obj);
         }
-        case CANVASTYPE.ICON_TILE:{
+        case CanvasType.ICON_TILE:{
             const r = {
                 base_x: obj.base_x, base_y:obj.base_y,
                 width:REFERENCE_WIDTH, height:REFERENCE_WIDTH,
@@ -2731,7 +2731,7 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
             obj.base_y = r.base_y;
             return strip_obj(obj);
         }
-        case CANVASTYPE.SUBMAP:{
+        case CanvasType.SUBMAP:{
             rotate_rectangleish(obj);
             return strip_obj(obj);
         }
@@ -2743,7 +2743,7 @@ function rotate_everything_90(view:DungeonMapView){
     for(let obj of view.map.canvas_obj_array){
         if(obj.flags & CanvasFlag.DELETED)
             continue;
-        if(obj.type == CANVASTYPE.MEASURE)
+        if(obj.type == CanvasType.MEASURE)
             continue;
         before_rotate.push(strip_obj(obj));
         const after = rotate_and_then_strip_obj(obj);
@@ -2861,7 +2861,7 @@ ONRECV(ToClient.CANVAS_INITIALIZE_MAPS, function(msgs:Array<{map_id:number; map_
             else {
                 add_canv_obj(map, obj);
             }
-            if(obj.type == CANVASTYPE.SUBMAP)
+            if(obj.type == CanvasType.SUBMAP)
                 map.submaps.push(obj)
         }
     }
@@ -2896,7 +2896,7 @@ ONRECV(ToClient.CANVAS_CREATE_OBJECTS, function(msgs:Array<CreateObjectsMessage>
             else {
                 add_canv_obj(map,obj);
             }
-            if(obj.type == CANVASTYPE.SUBMAP)
+            if(obj.type == CanvasType.SUBMAP)
                 map.submaps.push(obj);
         }
     }
@@ -2972,11 +2972,11 @@ function update_selection(view:DungeonMapView, x0:number, y0:number, x1:number, 
 // FIXME: this shouldn't be looking at selection type, hoist to the caller.
 function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_type:SELECTTYPE):boolean{
     switch(obj.type){
-        case CANVASTYPE.FREEHAND_LINE:
-        case CANVASTYPE.GRID_LINE:{
+        case CanvasType.FREEHAND_LINE:
+        case CanvasType.GRID_LINE:{
             if(!(selection_type & SELECTTYPE.MAP))
                 return false;
-            const th2 = obj.type==CANVASTYPE.FREEHAND_LINE?obj.thickness/2:3;
+            const th2 = obj.type==CanvasType.FREEHAND_LINE?obj.thickness/2:3;
             const bb = {
                 x0: bbox.x0-th2,
                 y0: bbox.y0-th2,
@@ -3007,7 +3007,7 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
             }
             return false;
         }break;
-        case CANVASTYPE.SUBMAP: {
+        case CanvasType.SUBMAP: {
             if(!(selection_type & SELECTTYPE.MAP))
                 return false;
             const th2 = 3;
@@ -3049,7 +3049,7 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
             }
             return false;
         }break;
-        case CANVASTYPE.RECT:{
+        case CanvasType.RECT:{
             if(!(selection_type & SELECTTYPE.MAP))
                 return false;
             const th2 = 3;
@@ -3091,7 +3091,7 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
             }
             return false;
         }break;
-        case CANVASTYPE.ELLIPSE:{
+        case CanvasType.ELLIPSE:{
             const rect_bbox = {
                 x0:obj.base_x,
                 y0:obj.base_y,
@@ -3126,9 +3126,9 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
                     break;
             }
         }
-        case CANVASTYPE.FILLED_RECT: // fall-through
-        case CANVASTYPE.IMAGE: // fall-through
-        case CANVASTYPE.GRID_RECT:{
+        case CanvasType.FILLED_RECT: // fall-through
+        case CanvasType.IMAGE: // fall-through
+        case CanvasType.GRID_RECT:{
             if(!(selection_type & SELECTTYPE.MAP))
                 return false;
             const rect_bbox = {
@@ -3139,8 +3139,8 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
             };
             return bbox_overlaps(bbox, rect_bbox);
         }break;
-        case CANVASTYPE.IMG_TOKEN:// fall-through
-        case CANVASTYPE.EZ_TOKEN:{
+        case CanvasType.IMG_TOKEN:// fall-through
+        case CanvasType.EZ_TOKEN:{
             if(!(selection_type & SELECTTYPE.TOKEN))
                 return false;
             const w = obj.width * REFERENCE_WIDTH;
@@ -3155,7 +3155,7 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
             };
             return bbox_overlaps(token_bbox, bbox);
         }break;
-        case CANVASTYPE.TEXT:{
+        case CanvasType.TEXT:{
             if(!(selection_type & SELECTTYPE.MAP))
                 return false;
             const text_bbox = {
@@ -3178,7 +3178,7 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
             }
             return false;
         }break;
-        case CANVASTYPE.DOOR:{
+        case CanvasType.DOOR:{
             if(!(selection_type & SELECTTYPE.MAP))
                 return false;
             const is_vertical = obj.orientation === ORIENTATION.VERTICAL;
@@ -3203,7 +3203,7 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
                 return bbox_overlaps(bbox, door_bbox);
             }
         }break;
-        case CANVASTYPE.STAIRS:{
+        case CanvasType.STAIRS:{
             if(!(selection_type & SELECTTYPE.MAP))
                 return false;
             if(!obj.width || !obj.height)
@@ -3218,9 +3218,9 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
             };
             return bbox_overlaps(bbox, stairs_bbox);
         }break;
-        case CANVASTYPE.MEASURE:
+        case CanvasType.MEASURE:
             return false;
-        case CANVASTYPE.FIXTURE:{
+        case CanvasType.FIXTURE:{
             if(!(selection_type & SELECTTYPE.MAP))
                 return false;
             if(!obj.width || !obj.height)
@@ -3233,7 +3233,7 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
             };
             return bbox_overlaps(bbox, f_bbox);
         }
-        case CANVASTYPE.ICON_TILE:{
+        case CanvasType.ICON_TILE:{
             if(!(selection_type & SELECTTYPE.MAP))
                 return false;
             // kind of cheesy.
@@ -3245,7 +3245,7 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
             };
             return bbox_overlaps(bbox, ftbbox);
         }
-        case CANVASTYPE.FILLED_TILE:{
+        case CanvasType.FILLED_TILE:{
             if(!(selection_type & SELECTTYPE.BACKGROUND))
                 return false;
             // kind of cheesy.
@@ -3257,7 +3257,7 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
             };
             return bbox_overlaps(bbox, ftbbox);
         }
-        case CANVASTYPE.TERRAIN_TILE:{
+        case CanvasType.TERRAIN_TILE:{
             if(!(selection_type & SELECTTYPE.BACKGROUND))
                 return false;
             // kind of cheesy.
@@ -3372,18 +3372,18 @@ function selection_is_rigid(view:DungeonMapView):boolean{
             continue;
         switch(obj.type){
             // Idk, this is unclear.
-            case CANVASTYPE.EZ_TOKEN:
-            case CANVASTYPE.IMG_TOKEN:
-            case CANVASTYPE.ELLIPSE:
-            case CANVASTYPE.GRID_RECT:
-            case CANVASTYPE.GRID_LINE:
-            case CANVASTYPE.IMAGE:
+            case CanvasType.EZ_TOKEN:
+            case CanvasType.IMG_TOKEN:
+            case CanvasType.ELLIPSE:
+            case CanvasType.GRID_RECT:
+            case CanvasType.GRID_LINE:
+            case CanvasType.IMAGE:
                 return snapmode != SNAPMODE.FREE;
-            case CANVASTYPE.DOOR:
-            case CANVASTYPE.STAIRS:
-            case CANVASTYPE.ICON_TILE:
-            case CANVASTYPE.FILLED_TILE:
-            case CANVASTYPE.TERRAIN_TILE:
+            case CanvasType.DOOR:
+            case CanvasType.STAIRS:
+            case CanvasType.ICON_TILE:
+            case CanvasType.FILLED_TILE:
+            case CanvasType.TERRAIN_TILE:
                 return true;
             default:
                 break;
@@ -3482,76 +3482,76 @@ function add_canv_obj(map:DungeonMap, obj:CanvasObject):void{
 //
 function strip_obj(obj:CanvasObject): StrippedObj{
     switch(obj.type){
-        case CANVASTYPE.FREEHAND_LINE:{
+        case CanvasType.FREEHAND_LINE:{
             const stripped_obj: StrippedFreehandLine =
                 [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, Array.from(obj.points), obj.thickness];
             return stripped_obj;
         }break;
-        case CANVASTYPE.GRID_LINE:{
+        case CanvasType.GRID_LINE:{
             const stripped_obj: StrippedGridLine = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, Array.from(obj.points)];
             return stripped_obj;
         }break;
-        case CANVASTYPE.RECT:{
+        case CanvasType.RECT:{
             const stripped_obj: StrippedRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.width, obj.height];
             return stripped_obj;
         }break;
-        case CANVASTYPE.FILLED_RECT:{
+        case CanvasType.FILLED_RECT:{
             const stripped_obj: StrippedFilledRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.color2, obj.width, obj.height];
             return stripped_obj;
         }break;
-        case CANVASTYPE.GRID_RECT:{
+        case CanvasType.GRID_RECT:{
             const stripped_obj: StrippedGridRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.width, obj.height];
             return stripped_obj;
         }break;
-        case CANVASTYPE.ELLIPSE:{
+        case CanvasType.ELLIPSE:{
             const stripped_obj: StrippedEllipse = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.color2, obj.width, obj.height, obj.variant];
             return stripped_obj;
         }break;
-        case CANVASTYPE.IMAGE:{
+        case CanvasType.IMAGE:{
             const stripped_obj: StrippedImageObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.width, obj.height, obj.url];
             return stripped_obj;
         }break;
-        case CANVASTYPE.TEXT:{
+        case CanvasType.TEXT:{
             const stripped_obj: StrippedTextObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.text, obj.size, obj.alignment, obj.map_id];
             return stripped_obj;
         }break;
-        case CANVASTYPE.EZ_TOKEN:{
+        case CanvasType.EZ_TOKEN:{
             const stripped_obj: StrippedEzToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.text, obj.color, obj.width, obj.height, obj.statusflags];
             return stripped_obj;
         }break;
-        case CANVASTYPE.IMG_TOKEN:{
+        case CanvasType.IMG_TOKEN:{
             const stripped_obj: StrippedImgToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.url, obj.width, obj.height, obj.statusflags];
             return stripped_obj;
         }break;
-        case CANVASTYPE.DOOR:{
+        case CanvasType.DOOR:{
             const stripped_obj: StrippedDoorObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.doortype, obj.color, obj.width, obj.orientation];
             return stripped_obj;
         }break;
-        case CANVASTYPE.STAIRS:{
+        case CanvasType.STAIRS:{
             const stripped_obj: StrippedStairs = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.width, obj.height, obj.rotation];
             return stripped_obj;
         }break;
-        case CANVASTYPE.MEASURE:{
+        case CanvasType.MEASURE:{
             const stripped_obj: StrippedMeasureObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.x1, obj.y1];
             return stripped_obj;
         }break;
-        case CANVASTYPE.FIXTURE:{
+        case CanvasType.FIXTURE:{
             const stripped_obj: StrippedFixtureObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.width, obj.height, obj.ftype];
             return stripped_obj;
         }break;
-        case CANVASTYPE.FILLED_TILE:{
+        case CanvasType.FILLED_TILE:{
             const stripped_obj: StrippedFilledTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.size];
             return stripped_obj;
         }break;
-        case CANVASTYPE.TERRAIN_TILE:{
+        case CanvasType.TERRAIN_TILE:{
             const stripped_obj: StrippedTerrainTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.terrain_id];
             return stripped_obj;
         }break;
-        case CANVASTYPE.ICON_TILE:{
+        case CanvasType.ICON_TILE:{
             const stripped_obj: StrippedIconTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.terrainicon_id];
             return stripped_obj;
         }break;
-        case CANVASTYPE.SUBMAP:{
+        case CanvasType.SUBMAP:{
             const stripped_obj: StrippedSubMap = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.width, obj.height, obj.tlx, obj.tly, obj.grid_type, obj.title]
             return stripped_obj;
         }break;
@@ -3563,9 +3563,9 @@ function strip_obj(obj:CanvasObject): StrippedObj{
 //
 function unstrip_obj(sobj: StrippedObj):CanvasObject{
     switch(sobj[INDEX.TYPE]){
-        case CANVASTYPE.FREEHAND_LINE:{
+        case CanvasType.FREEHAND_LINE:{
             const obj:FreehandLine = {
-                type: CANVASTYPE.FREEHAND_LINE,
+                type: CanvasType.FREEHAND_LINE,
                 id: sobj[INDEX.ID],
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
@@ -3583,9 +3583,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             obj.path = undefined;
             return obj;
             }break;
-        case CANVASTYPE.GRID_LINE:{
+        case CanvasType.GRID_LINE:{
             const obj:GridLine = {
-                type: CANVASTYPE.GRID_LINE,
+                type: CanvasType.GRID_LINE,
                 id: sobj[INDEX.ID],
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
@@ -3601,9 +3601,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             obj.path = undefined;
             return obj;
         }break;
-        case CANVASTYPE.RECT:{
+        case CanvasType.RECT:{
             const obj:Rectangle = {
-                type: CANVASTYPE.RECT,
+                type: CanvasType.RECT,
                 id: sobj[INDEX.ID],
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
@@ -3616,9 +3616,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             };
             return obj;
         }break;
-        case CANVASTYPE.FILLED_RECT:{
+        case CanvasType.FILLED_RECT:{
             const obj:FilledRectangle = {
-                type: CANVASTYPE.FILLED_RECT,
+                type: CanvasType.FILLED_RECT,
                 id: sobj[INDEX.ID],
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
@@ -3632,9 +3632,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             };
             return obj;
         }break;
-        case CANVASTYPE.GRID_RECT:{
+        case CanvasType.GRID_RECT:{
             const obj: GridRectangle = {
-                type: CANVASTYPE.GRID_RECT,
+                type: CanvasType.GRID_RECT,
                 id: sobj[INDEX.ID],
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
@@ -3647,9 +3647,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             };
             return obj;
         }break;
-        case CANVASTYPE.ELLIPSE:{
+        case CanvasType.ELLIPSE:{
             const obj:Ellipse = {
-                type: CANVASTYPE.ELLIPSE,
+                type: CanvasType.ELLIPSE,
                 id: sobj[INDEX.ID],
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
@@ -3664,9 +3664,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             };
             return obj;
         }break;
-        case CANVASTYPE.IMAGE:{
+        case CanvasType.IMAGE:{
             const obj: ImageObj = {
-                type: CANVASTYPE.IMAGE,
+                type: CanvasType.IMAGE,
                 id: sobj[INDEX.ID],
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
@@ -3680,9 +3680,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             delay_load_obj_image(obj, obj.width, obj.height, obj.width?obj.width:64, obj.height?obj.height:64);
             return obj;
         }break;
-        case CANVASTYPE.TEXT:{
+        case CanvasType.TEXT:{
             const obj: TextObj = {
-                type: CANVASTYPE.TEXT,
+                type: CanvasType.TEXT,
                 id: sobj[INDEX.ID],
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
@@ -3699,9 +3699,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             };
             return obj;
         }break;
-        case CANVASTYPE.EZ_TOKEN:{
+        case CanvasType.EZ_TOKEN:{
             const obj: EzToken = {
-                type: CANVASTYPE.EZ_TOKEN,
+                type: CanvasType.EZ_TOKEN,
                 id: sobj[INDEX.ID],
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
@@ -3716,9 +3716,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             };
             return obj;
         }break;
-        case CANVASTYPE.IMG_TOKEN:{
+        case CanvasType.IMG_TOKEN:{
             const obj: ImgToken = {
-                type: CANVASTYPE.IMG_TOKEN,
+                type: CanvasType.IMG_TOKEN,
                 id: sobj[INDEX.ID],
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
@@ -3733,9 +3733,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             delay_load_obj_image(obj, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH, obj.width, obj.width);
             return obj;
         }break;
-        case CANVASTYPE.DOOR:{
+        case CanvasType.DOOR:{
             const obj:DoorObj = {
-                type: CANVASTYPE.DOOR,
+                type: CanvasType.DOOR,
                 id: sobj[INDEX.ID],
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
@@ -3749,9 +3749,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             };
             return obj;
         }break;
-        case CANVASTYPE.STAIRS:{
+        case CanvasType.STAIRS:{
             const obj: Stairs = {
-                type: CANVASTYPE.STAIRS,
+                type: CanvasType.STAIRS,
                 id: sobj[INDEX.ID],
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
@@ -3764,9 +3764,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             };
             return obj;
         }break;
-        case CANVASTYPE.MEASURE:{
+        case CanvasType.MEASURE:{
             const obj: MeasureObj = {
-                type: CANVASTYPE.MEASURE,
+                type: CanvasType.MEASURE,
                 id: sobj[INDEX.ID],
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
@@ -3780,9 +3780,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             return obj;
             // all fields are good
         }break;
-        case CANVASTYPE.FIXTURE:{
+        case CanvasType.FIXTURE:{
             const obj: FixtureObj = {
-                type: CANVASTYPE.FIXTURE,
+                type: CanvasType.FIXTURE,
                 id: sobj[INDEX.ID],
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
@@ -3795,9 +3795,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             };
             return obj;
         }break;
-        case CANVASTYPE.FILLED_TILE:{
+        case CanvasType.FILLED_TILE:{
             const obj: FilledTile = {
-                type: CANVASTYPE.FILLED_TILE,
+                type: CanvasType.FILLED_TILE,
                 id: sobj[INDEX.ID],
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
@@ -3809,9 +3809,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             };
             return obj;
         }break;
-        case CANVASTYPE.TERRAIN_TILE:{
+        case CanvasType.TERRAIN_TILE:{
             const obj: TerrainTile = {
-                type: CANVASTYPE.TERRAIN_TILE,
+                type: CanvasType.TERRAIN_TILE,
                 id: sobj[INDEX.ID],
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
@@ -3822,9 +3822,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             };
             return obj;
         }break;
-        case CANVASTYPE.ICON_TILE:{
+        case CanvasType.ICON_TILE:{
             const obj: IconTile = {
-                type: CANVASTYPE.ICON_TILE,
+                type: CanvasType.ICON_TILE,
                 id: sobj[INDEX.ID],
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
@@ -3835,9 +3835,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             };
             return obj;
         }break;
-        case CANVASTYPE.SUBMAP:{
+        case CanvasType.SUBMAP:{
             const obj: SubMap = {
-                type: CANVASTYPE.SUBMAP,
+                type: CanvasType.SUBMAP,
                 id: sobj[INDEX.ID],
                 base_x: sobj[INDEX.BASE_X],
                 base_y: sobj[INDEX.BASE_Y],
@@ -3862,7 +3862,7 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
 //
 function set_obj_from_stripped(obj: CanvasObject, state:StrippedObj){
     switch(obj.type){
-        case CANVASTYPE.FREEHAND_LINE:{
+        case CanvasType.FREEHAND_LINE:{
             const o = unstrip_obj(state);
             Object.assign(obj, o);
             obj.bbox = {x0:0, x1:0, y0:0, y1:0};
@@ -3870,7 +3870,7 @@ function set_obj_from_stripped(obj: CanvasObject, state:StrippedObj){
             freehand_recalculate_bbox(obj);
             obj.path = undefined;
         }break;
-        case CANVASTYPE.GRID_LINE:{
+        case CanvasType.GRID_LINE:{
             const o = unstrip_obj(state);
             Object.assign(obj, o);
             obj.bbox = {x0:0, x1:0, y0:0, y1:0};
@@ -3878,7 +3878,7 @@ function set_obj_from_stripped(obj: CanvasObject, state:StrippedObj){
             gridline_recalculate_bbox(obj);
             obj.path = undefined;
         }break;
-        case CANVASTYPE.IMAGE:{
+        case CanvasType.IMAGE:{
             const o = unstrip_obj(state) as ImageObj;
             const needs_new_image = (obj.width !== o.width) || (obj.height !== o.height) || (obj.url !== o.url);
             Object.assign(obj, o);
@@ -3886,7 +3886,7 @@ function set_obj_from_stripped(obj: CanvasObject, state:StrippedObj){
                 delay_load_obj_image(obj, obj.width, obj.height, obj.width?obj.width:64, obj.height?obj.height:64);
             }
         }break;
-        case CANVASTYPE.IMG_TOKEN:{
+        case CanvasType.IMG_TOKEN:{
             const o = unstrip_obj(state) as ImgToken;
             const needs_new_image = (obj.width !== o.width) || (obj.height !== o.height) || (obj.url !== o.url);
             Object.assign(obj, o);
@@ -3894,7 +3894,7 @@ function set_obj_from_stripped(obj: CanvasObject, state:StrippedObj){
                 delay_load_obj_image(obj, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH, obj.width, obj.height);
             }
         }break;
-        case CANVASTYPE.TEXT:{
+        case CanvasType.TEXT:{
             const o = unstrip_obj(state);
             Object.assign(obj, o);
             obj.bbox = {x0:0, x1:0, y0:0, y1:0};
@@ -3950,41 +3950,41 @@ function edit_is_impossible(view:DungeonMapView):boolean{
     if(obj.flags & CanvasFlag.DELETED)
         return true;
     switch(obj.type){
-        case CANVASTYPE.FREEHAND_LINE:
+        case CanvasType.FREEHAND_LINE:
             return true;
-        case CANVASTYPE.GRID_LINE:
+        case CanvasType.GRID_LINE:
             return true;
-        case CANVASTYPE.RECT:
+        case CanvasType.RECT:
             return true;
-        case CANVASTYPE.GRID_RECT:
+        case CanvasType.GRID_RECT:
             return true;
-        case CANVASTYPE.ELLIPSE:
+        case CanvasType.ELLIPSE:
             return true;
-        case CANVASTYPE.FILLED_RECT:
+        case CanvasType.FILLED_RECT:
             return true;
-        case CANVASTYPE.IMAGE:
+        case CanvasType.IMAGE:
             return false;
-        case CANVASTYPE.TEXT:
+        case CanvasType.TEXT:
             return false;
-        case CANVASTYPE.EZ_TOKEN:
+        case CanvasType.EZ_TOKEN:
             return false;
-        case CANVASTYPE.IMG_TOKEN:
+        case CanvasType.IMG_TOKEN:
             return false;
-        case CANVASTYPE.DOOR:
+        case CanvasType.DOOR:
             return true;
-        case CANVASTYPE.STAIRS:
+        case CanvasType.STAIRS:
             return true;
-        case CANVASTYPE.MEASURE:
+        case CanvasType.MEASURE:
             return true; // should be unreachable
-        case CANVASTYPE.FIXTURE:
+        case CanvasType.FIXTURE:
             return true;
-        case CANVASTYPE.FILLED_TILE:
+        case CanvasType.FILLED_TILE:
             return true;
-        case CANVASTYPE.TERRAIN_TILE:
+        case CanvasType.TERRAIN_TILE:
             return true;
-        case CANVASTYPE.ICON_TILE:
+        case CanvasType.ICON_TILE:
             return true;
-        case CANVASTYPE.SUBMAP:
+        case CanvasType.SUBMAP:
             return false;
     }
 }
@@ -3996,19 +3996,19 @@ function launch_edit_dialog(view:DungeonMapView):void{
     if(obj.flags & CanvasFlag.DELETED)
         return;
     switch(obj.type){
-        case CANVASTYPE.FREEHAND_LINE:
+        case CanvasType.FREEHAND_LINE:
             return;
-        case CANVASTYPE.GRID_LINE:
+        case CanvasType.GRID_LINE:
             return;
-        case CANVASTYPE.RECT:
+        case CanvasType.RECT:
             return;
-        case CANVASTYPE.GRID_RECT:
+        case CanvasType.GRID_RECT:
             return;
-        case CANVASTYPE.ELLIPSE:
+        case CanvasType.ELLIPSE:
             return;
-        case CANVASTYPE.FILLED_RECT:
+        case CanvasType.FILLED_RECT:
             return;
-        case CANVASTYPE.IMAGE:{
+        case CanvasType.IMAGE:{
             let dialog = get_dialog('image-input');
             if(!dialog) return;
             dialog.title.textContent = 'Edit Image';
@@ -4040,7 +4040,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
             };
             dialog.show();
         }return;
-        case CANVASTYPE.TEXT:{
+        case CanvasType.TEXT:{
             let dialog = get_dialog('text-input');
             if(!dialog) return;
             dialog.title.textContent = 'Edit Text';
@@ -4116,7 +4116,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
             dialog.show();
 
         }return;
-        case CANVASTYPE.EZ_TOKEN:{
+        case CanvasType.EZ_TOKEN:{
             let dialog = get_dialog('ez-token');
             if(!dialog) return;
             dialog.title.textContent = 'Edit Token';
@@ -4180,7 +4180,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
             };
             dialog.show();
         }return;
-        case CANVASTYPE.IMG_TOKEN:{
+        case CanvasType.IMG_TOKEN:{
             let dialog = get_dialog('img-token');
             if(!dialog) return;
             dialog.title.textContent = 'Edit Token';
@@ -4241,15 +4241,15 @@ function launch_edit_dialog(view:DungeonMapView):void{
             };
             dialog.show();
         }return;
-        case CANVASTYPE.DOOR:
+        case CanvasType.DOOR:
             return;
-        case CANVASTYPE.STAIRS:
+        case CanvasType.STAIRS:
             return;
-        case CANVASTYPE.MEASURE:
+        case CanvasType.MEASURE:
             return;
-        case CANVASTYPE.FIXTURE:
+        case CanvasType.FIXTURE:
             return;
-        case CANVASTYPE.SUBMAP:{
+        case CanvasType.SUBMAP:{
             let dialog = get_dialog('submap');
             if(!dialog) return;
             dialog.title.textContent = 'Submap';
@@ -4349,11 +4349,11 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 continue;
             if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
                 continue;
-            if(obj.type == CANVASTYPE.FILLED_TILE){
+            if(obj.type == CanvasType.FILLED_TILE){
                 bgtiles.push(obj);
                 continue;
             }
-            if(obj.type == CANVASTYPE.TERRAIN_TILE){
+            if(obj.type == CanvasType.TERRAIN_TILE){
                 terraintiles.push(obj);
                 continue;
             }
@@ -4608,7 +4608,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
         else
             ctx.globalAlpha = 1;
         switch(obj.type){
-            case CANVASTYPE.FREEHAND_LINE:{
+            case CanvasType.FREEHAND_LINE:{
                 // This works well enough for now.
                 // If things get hairy, I could build a quadtree or whatever.
                 const line_bbox = {
@@ -4642,7 +4642,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 ctx.lineCap = oldcap;
                 ctx.lineJoin = oldjoin;
             }break;
-            case CANVASTYPE.GRID_LINE:{
+            case CanvasType.GRID_LINE:{
                 const line_bbox = {
                     x0:obj.bbox.x0 + bx,
                     y0:obj.bbox.y0 + by,
@@ -4675,7 +4675,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 ctx.lineCap = oldcap;
                 ctx.lineJoin = oldjoin;
             }break;
-            case CANVASTYPE.ELLIPSE:{
+            case CanvasType.ELLIPSE:{
                 const bbox = {
                     x0:bx,
                     y0:by,
@@ -4728,7 +4728,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     }
                 }
             }break;
-            case CANVASTYPE.FILLED_RECT:{
+            case CanvasType.FILLED_RECT:{
                 const bbox = {
                     x0:bx,
                     y0:by,
@@ -4766,7 +4766,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     });
                 }
             }break;
-            case CANVASTYPE.RECT:{
+            case CanvasType.RECT:{
                 const bbox = {
                     x0:bx,
                     y0:by,
@@ -4803,7 +4803,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     });
                 }
             }break;
-            case CANVASTYPE.GRID_RECT:{
+            case CanvasType.GRID_RECT:{
                 const bbox = {
                     x0:bx,
                     y0:by,
@@ -4837,7 +4837,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     });
                 }
             }break;
-            case CANVASTYPE.TEXT:{
+            case CanvasType.TEXT:{
                 if(obj.text){
                     let y_off = 0;
                     ctx.font = obj.size + 'px sans-serif';
@@ -4950,7 +4950,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         }
                 }
             }break;
-            case CANVASTYPE.EZ_TOKEN:{
+            case CanvasType.EZ_TOKEN:{
                 // TODO: currently we don't consider radius_y
                 const radius_x = obj.width*REFERENCE_WIDTH/2;
                 const radius_y = obj.height*REFERENCE_WIDTH/2;
@@ -4995,7 +4995,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 ctx.fillText(obj.text, bx+radius_x, by+radius_y);
                 draw_status_icons(token_bbox, obj.statusflags, obj.width);
             }break;
-            case CANVASTYPE.IMAGE:{
+            case CanvasType.IMAGE:{
                 const bbox = {
                     x0:bx,
                     y0:by,
@@ -5033,7 +5033,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     });
                 }
             }break;
-            case CANVASTYPE.IMG_TOKEN:{
+            case CanvasType.IMG_TOKEN:{
                 // TODO: currently we don't consider radius_y
                 const radius_x = obj.width*REFERENCE_WIDTH/2;
                 const radius_y = obj.height*REFERENCE_WIDTH/2;
@@ -5069,7 +5069,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
                 draw_status_icons(token_bbox, obj.statusflags, obj.width);
             }break;
-            case CANVASTYPE.DOOR:{
+            case CanvasType.DOOR:{
                 const is_vertical = obj.orientation === ORIENTATION.VERTICAL;
                 const w = obj.width;
                 const th = obj.width < 1.0? 0.5 : 1.0;
@@ -5580,7 +5580,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     }break;
                 }
             }break;
-            case CANVASTYPE.STAIRS:{
+            case CanvasType.STAIRS:{
                 if(!obj.width || !obj.height)
                     break;
                 const bbox = {
@@ -5672,7 +5672,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     });
                 }
             }break;
-            case CANVASTYPE.MEASURE:{
+            case CanvasType.MEASURE:{
                 // thiss looks sus with the change to bx over obj.base_x
                 let x1 = obj.x1;
                 let y1 = obj.y1;
@@ -5723,7 +5723,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
 
                 ctx.fillText(measure_length, (bx+x1)/2-fontsize, (by+y1)/2-fontsize);
             }break;
-            case CANVASTYPE.FIXTURE:{
+            case CanvasType.FIXTURE:{
                 if(!obj.width || !obj.height)
                     break;
                 const bbox = {
@@ -5812,13 +5812,13 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     }break;
                 }
             }break;
-            case CANVASTYPE.FILLED_TILE:{
+            case CanvasType.FILLED_TILE:{
                 // drawn already
             }break;
-            case CANVASTYPE.TERRAIN_TILE:{
+            case CanvasType.TERRAIN_TILE:{
                 // drawn already
             }break;
-            case CANVASTYPE.ICON_TILE:{
+            case CanvasType.ICON_TILE:{
                 const icon = TERRAIN_ICONS.get(obj.terrainicon_id);
                 if(is_selected){
                     ctx.fillStyle = sel_color+'aa';
@@ -5827,7 +5827,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(icon)
                     ctx.drawImage(icon, bx+4, by+4, 56, 56);
             }break;
-            case CANVASTYPE.SUBMAP:{
+            case CanvasType.SUBMAP:{
                 ctx.save();
                 // if(map.grid_type & GridType.HEX)
                     // ctx.scale(1, HEX_Y_FIX_INV);
@@ -6563,7 +6563,7 @@ function maybe_move_selection_one_unit(view:DungeonMapView, dx:number, dy:number
         return false;
     if(obj.flags & CanvasFlag.DELETED)
         return false;
-    if(obj.type != CANVASTYPE.EZ_TOKEN && obj.type != CANVASTYPE.IMG_TOKEN)
+    if(obj.type != CanvasType.EZ_TOKEN && obj.type != CanvasType.IMG_TOKEN)
         return false;
     const before = strip_obj(obj);
     obj.base_x += dx;
@@ -6808,7 +6808,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     o.flags |= CanvasFlag.DELETED;
                     deleted.push(o.id);
                     // #SPEED: faster way to get all objects in this submap
-                    if(o.type == CANVASTYPE.SUBMAP){
+                    if(o.type == CanvasType.SUBMAP){
                         for(let obj of view.map.canvas_obj_array){
                             if(obj.flags & CanvasFlag.DELETED) continue;
                             if(obj.submap == o.id){
@@ -7035,9 +7035,9 @@ document.addEventListener('DOMContentLoaded', function(){
                             if(!o) break;
                             if(o.flags & CanvasFlag.DELETED) break;
                             if(o.hidinguser && o.hidinguser !== SETTINGS.userid) break;
-                            if(o.type == CANVASTYPE.SUBMAP)
+                            if(o.type == CanvasType.SUBMAP)
                                 o.flags ^= CanvasFlag.SMALL;
-                            else if (o.type == CANVASTYPE.TEXT){
+                            else if (o.type == CanvasType.TEXT){
                                 if(o.flags & CanvasFlag.TEXT_LINKS_TO_SUBMAP){
                                     let sm = view.map.canvas_objs.get(o.map_id) as (SubMap | undefined);
                                     if(!sm) return;
@@ -7064,7 +7064,7 @@ document.addEventListener('DOMContentLoaded', function(){
                                 if(!is_resizable(o)) return;
                                 const obj: Resizable = o;
                                 view.resize.resizing = true;
-                                if(obj.type == CANVASTYPE.SUBMAP)
+                                if(obj.type == CanvasType.SUBMAP)
                                     smoff = [0, 0];
                                 let o_x = obj.base_x; let o_y = obj.base_y; let o_w = obj.width; let o_h = obj.height;
                                 function change_wh(e:PointerEvent){
@@ -7084,7 +7084,7 @@ document.addEventListener('DOMContentLoaded', function(){
                                         obj.height = ydiff;
                                         obj.base_x = x0 - obj.width;
                                         obj.base_y = y0 - obj.height;
-                                        if(obj.type == CANVASTYPE.SUBMAP){
+                                        if(obj.type == CanvasType.SUBMAP){
                                             obj.tlx -= old_w - obj.width;
                                             obj.tly -= old_h - obj.height;
                                         }
@@ -7818,7 +7818,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 switch(current_tile_type){
                     case TILETYPE.FILLED:{
                         let filled: FilledTile = {
-                            type: CANVASTYPE.FILLED_TILE,
+                            type: CanvasType.FILLED_TILE,
                             id: id,
                             base_x: x,
                             base_y: y,
@@ -7832,7 +7832,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     }break;
                     case TILETYPE.TERRAIN: {
                         let terrain: TerrainTile = {
-                            type: CANVASTYPE.TERRAIN_TILE,
+                            type: CanvasType.TERRAIN_TILE,
                             id: id,
                             base_x: x,
                             base_y: y,
@@ -7845,7 +7845,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     }break;
                     case TILETYPE.ICON: {
                         let icon: IconTile = {
-                            type: CANVASTYPE.ICON_TILE,
+                            type: CanvasType.ICON_TILE,
                             id: id,
                             base_x: x,
                             base_y: y,
@@ -7870,7 +7870,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 // could use smoff, whatever
                 const [x0, y0] = event_to_coord_snapped(e, view, snap);
                 let submap: SubMap = {
-                    type: CANVASTYPE.SUBMAP,
+                    type: CanvasType.SUBMAP,
                     id: id,
                     base_x: x0,
                     base_y: y0,

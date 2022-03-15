@@ -6,7 +6,7 @@ else:
 from .persist import Persister, Dummy
 from enum import IntFlag, IntEnum
 from .logs import logging
-from .messages import CANVASTYPE, CreateObjectMessage, StrippedObj, CanvasFlag, MapFlags, GridType, CanvasDeleteMessage, CanvasUpdateMessage, CreateObjectsMessage
+from .messages import CreateObjectMessage, StrippedObj, CanvasFlag, MapFlags, GridType, CanvasDeleteMessage, CanvasUpdateMessage, CreateObjectsMessage
 from . import db
 import appconfig
 

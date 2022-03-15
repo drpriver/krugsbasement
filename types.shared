@@ -339,7 +339,7 @@ struct RollTables: array
 #
 # Canvas Obj Types
 # ================
-enum CANVASTYPE: int
+enum CanvasType: int
     FREEHAND_LINE = 1
     GRID_LINE     = 2
     RECT          = 3
@@ -382,7 +382,7 @@ enum CanvasFlag: int flag
 //  The server can optimize the lines by removing redundant
 //  points.
 struct StrippedFreehandLine: array
-    type = CANVASTYPE.FREEHAND_LINE
+    type = CanvasType.FREEHAND_LINE
     id = int
     base_x = float
     base_y = float
@@ -403,7 +403,7 @@ struct StrippedFreehandLine: array
 //  grid point. When moving multiple objects, all of them need to snap
 //  this way so that their relative positions are maintained.
 struct StrippedGridLine: array
-    type = CANVASTYPE.GRID_LINE
+    type = CanvasType.GRID_LINE
     id = int
     base_x = float
     base_y = float
@@ -419,7 +419,7 @@ struct StrippedGridLine: array
 //  An axis-aligned box.
 //  base_x and base_y is the top-left corner of the box.
 struct StrippedRectangle: array
-    type = CANVASTYPE.RECT
+    type = CanvasType.RECT
     id = int
     base_x = float
     base_y = float
@@ -435,7 +435,7 @@ struct StrippedRectangle: array
 //  An axis-aligned box, but the center is filled with 'color2'
 //  base_x and base_y is the top-left corner of the box.
 struct StrippedFilledRectangle: array
-    type = CANVASTYPE.FILLED_RECT
+    type = CanvasType.FILLED_RECT
     id = int
     base_x = float
     base_y = float
@@ -454,7 +454,7 @@ struct StrippedFilledRectangle: array
 //  grid-line.
 //  base_x and base_y is the top-left corner of the box.
 struct StrippedGridRectangle: array
-    type = CANVASTYPE.GRID_RECT
+    type = CanvasType.GRID_RECT
     id = int
     base_x = float
     base_y = float
@@ -476,7 +476,7 @@ enum ELLIPSETYPE:int
 //  We only allow axis-aligned ellipses.
 //
 struct StrippedEllipse: array
-    type = CANVASTYPE.ELLIPSE
+    type = CanvasType.ELLIPSE
     id = int
     base_x = float
     base_y = float
@@ -492,7 +492,7 @@ struct StrippedEllipse: array
 //  image
 //  -----
 struct StrippedImageObj: array
-    type = CANVASTYPE.IMAGE
+    type = CanvasType.IMAGE
     id = int
     base_x = float
     base_y = float
@@ -511,7 +511,7 @@ enum TEXTALIGNMENT: int
 //  text
 //  ----
 struct StrippedTextObj: array
-    type = CANVASTYPE.TEXT
+    type = CanvasType.TEXT
     id = int
     base_x = float
     base_y = float
@@ -550,7 +550,7 @@ enum TOKENSTATUSFLAGS: int flag
 //  --------
 //  A token that just has a simple text label.
 struct StrippedEzToken: array
-    type = CANVASTYPE.EZ_TOKEN
+    type = CanvasType.EZ_TOKEN
     id = int
     base_x = float
     base_y = float
@@ -567,7 +567,7 @@ struct StrippedEzToken: array
 //  --------
 //  A token that has an image as its contents.
 struct StrippedImgToken: array
-    type = CANVASTYPE.IMG_TOKEN
+    type = CanvasType.IMG_TOKEN
     id = int
     base_x = float
     base_y = float
@@ -599,7 +599,7 @@ enum ORIENTATION: int
 // ----
 // A door.
 struct StrippedDoorObj: array
-    type = CANVASTYPE.DOOR
+    type = CanvasType.DOOR
     id = int
     base_x = float
     base_y = float
@@ -620,7 +620,7 @@ enum ROTATION: int
     LEFT  = 6
 
 struct StrippedStairs: array
-    type = CANVASTYPE.STAIRS
+    type = CanvasType.STAIRS
     id = int
     base_x = float
     base_y = float
@@ -635,7 +635,7 @@ struct StrippedStairs: array
 // -------
 // This is a weird object, but it is the measurement tool.
 struct StrippedMeasureObj: array
-    type = CANVASTYPE.MEASURE
+    type = CanvasType.MEASURE
     id = int
     base_x = float
     base_y = float
@@ -656,7 +656,7 @@ enum FIXTURETYPE: int
 // ----------
 // For dungeon fixtures, like rubble or pits.
 struct StrippedFixtureObj: array
-    type = CANVASTYPE.FIXTURE
+    type = CanvasType.FIXTURE
     id = int
     base_x = float
     base_y = float
@@ -675,7 +675,7 @@ enum TILETYPE: int
 // FilledTile
 // ----------
 struct StrippedFilledTile: array
-    type = CANVASTYPE.FILLED_TILE
+    type = CanvasType.FILLED_TILE
     id = int
     base_x = float
     base_y = float
@@ -688,7 +688,7 @@ struct StrippedFilledTile: array
 // TerrainTile
 // -----------
 struct StrippedTerrainTile: array
-    type = CANVASTYPE.TERRAIN_TILE
+    type = CanvasType.TERRAIN_TILE
     id = int
     base_x = float
     base_y = float
@@ -700,7 +700,7 @@ struct StrippedTerrainTile: array
 // IconTile
 // --------
 struct StrippedIconTile: array
-    type = CANVASTYPE.ICON_TILE
+    type = CanvasType.ICON_TILE
     id = int
     base_x = float
     base_y = float
@@ -710,7 +710,7 @@ struct StrippedIconTile: array
     terrainicon_id = int
 
 struct StrippedSubMap: array
-    type = CANVASTYPE.SUBMAP
+    type = CanvasType.SUBMAP
     id = int
     base_x = float
     base_y = float
@@ -737,7 +737,7 @@ struct StrippedSubMap: array
 // Intersection of all of the above types. They
 // should share the following fields
 //
-//    type = CANVASTYPE
+//    type = CanvasType
 //    id = int
 //    base_x = float
 //    base_y = float
