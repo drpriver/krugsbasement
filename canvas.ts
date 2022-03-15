@@ -4051,6 +4051,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 a.checked = false;
             }
             [l, c, r][obj.alignment].checked = true;
+            dialog.f.background.checked = !!(obj.flags & CANVASFLAG.FLAG_B);
             dialog.f.text.textContent = obj.text;
             dialog.f['link-dungeon'].innerHTML = '<option value="-1">No Link</option>'+by_id('current-map-name').innerHTML;
             let submapoptions = '<option value="-1">No Link</option>'
@@ -4103,6 +4104,10 @@ function launch_edit_dialog(view:DungeonMapView):void{
                     obj.flags |= CANVASFLAG.FLAG_A;
                 else
                     obj.flags &= ~CANVASFLAG.FLAG_A;
+                if(dialog.f.background.checked)
+                    obj.flags |= CANVASFLAG.FLAG_B;
+                else
+                    obj.flags &= ~CANVASFLAG.FLAG_B;
                 const after = strip_obj(obj);
                 publish_obj_updates(view.map.map_id, [after]);
                 request_render();
@@ -4888,13 +4893,16 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             y1:bbox.y1 + by,
                         };
                         if(bbox_overlaps(text_bbox, canvas_bbox)){
-                            if(is_selected){
-                                ctx.fillStyle = sel_color+'aa';
-                                const x = bx+bbox.x0;
-                                const y = by+bbox.y0;
-                                const width = bbox.x1-bbox.x0;
-                                const height = bbox.y1-bbox.y0;
-                                ctx.fillRect(x, y, width, height);
+                            if(is_selected)
+                                ctx.fillStyle = sel_color+'cc';
+                            else
+                                ctx.fillStyle = BACKGROUND + '88';
+                            if(is_selected || (obj.flags & CANVASFLAG.FLAG_B)){
+                            const x = bx+bbox.x0;
+                            const y = by+bbox.y0;
+                            const width = bbox.x1-bbox.x0;
+                            const height = bbox.y1-bbox.y0;
+                            ctx.fillRect(x, y, width, height);
                             }
                             if(DARKMODE){
                                 if(obj.map_id != -1){
@@ -6648,7 +6656,6 @@ const redo_canvas_cursor = (function(){
                     request_render();
                     canvas.style.cursor = 'pointer';
                     prev_id = -1;
-                    view.hovered_id = -1;
                     return;
                 }
             }
@@ -6669,7 +6676,7 @@ function get_submap_at(view:DungeonMapView, x:number, y:number):SubMap | null {
             x0:sm.base_x,
             y0:sm.base_y+64, // The title area.
             x1:sm.base_x+sm.width,
-            y1:sm.base_y+sm.height,
+            y1:sm.base_y+(sm.flags & CANVASFLAG.SMALL?64:sm.height),
         };
         if(point_in_rect(x, y, sm_bbox.x0, sm_bbox.y0, sm_bbox.x1, sm_bbox.y1))
             return sm;
@@ -7490,6 +7497,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 c.checked = true;
                 r.checked = false;
                 dialog.f.text.value = '';
+                dialog.f.background.checked = false;
                 dialog.f['link-dungeon'].innerHTML = '<option value="-1">No Link</option>'+by_id('current-map-name').innerHTML;
                 let submapoptions = '<option value="-1">No Link</option>'
                 for(let sm of view.map.submaps){
@@ -7526,10 +7534,11 @@ document.addEventListener('DOMContentLoaded', function(){
                     let id = get_new_id();
                     add_text(view.map, id, x0, y0, submapid, text, textsize, alignment, map_id);
                     // kind of hacky
-                    if(submap){
-                        let o = view.map.canvas_objs.get(id)!;
+                    let o = view.map.canvas_objs.get(id)!;
+                    if(submap)
                         o.flags |= CANVASFLAG.FLAG_A;
-                    }
+                    if(dialog.f.background.checked)
+                        o.flags |= CANVASFLAG.FLAG_B;
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                     request_render();

@@ -299,6 +299,10 @@ David20::title #hide
               <option value="-1">No Link</option>
             </select>
         </tr>
+        <tr>
+          <td>${label('background', "Background:")}
+          <td>${checkbox('background')}
+        </tr>
     </table>
   `);
   begin('map-input');

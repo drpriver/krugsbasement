@@ -369,6 +369,7 @@ enum CANVASFLAG: int flag
     SMALL = 1 << 1
     // A flag that is to be interpreted based on the object.
     FLAG_A = 1 << 2
+    FLAG_B = 1 << 3
 
 //  freehand-line
 //  -------------
