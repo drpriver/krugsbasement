@@ -370,6 +370,10 @@ enum CANVASFLAG: int flag
     // A flag that is to be interpreted based on the object.
     FLAG_A = 1 << 2
     FLAG_B = 1 << 3
+    // Named versions of the above
+    duplicate TEXT_LINKS_TO_SUBMAP = 1 << 2
+    duplicate TEXT_HAS_BACKGROUND = 1 << 3
+
 
 //  freehand-line
 //  -------------

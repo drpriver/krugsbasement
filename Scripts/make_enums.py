@@ -39,6 +39,15 @@ class EnumInfo:
     def append(self, k:str, v:str) -> None:
         k = k.strip()
         v = v.strip()
+        duplicate = False
+        if ' ' in k or '\t' in k:
+            first, k = k.split(None, 1)
+            if first == 'duplicate':
+                duplicate = True
+            else:
+                raise Exception('Unknown leading keyword', first)
+            k = k.strip()
+
         comment = None
         if '#' in v:
             v, *comment = v.split('#')
@@ -50,7 +59,7 @@ class EnumInfo:
             comment = '//'.join(comment).strip()
         if k in self.keys:
             raise Exception(self.name, 'duplicate key:', k)
-        if v in self.values and k != 'ALL':
+        if not duplicate and v in self.values and k != 'ALL':
             raise Exception(self.name, 'duplicate value:', v)
         self.keys.add(k)
         self.values.add(v)

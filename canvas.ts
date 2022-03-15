@@ -4051,7 +4051,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 a.checked = false;
             }
             [l, c, r][obj.alignment].checked = true;
-            dialog.f.background.checked = !!(obj.flags & CANVASFLAG.FLAG_B);
+            dialog.f.background.checked = !!(obj.flags & CANVASFLAG.TEXT_HAS_BACKGROUND);
             dialog.f.text.textContent = obj.text;
             dialog.f['link-dungeon'].innerHTML = '<option value="-1">No Link</option>'+by_id('current-map-name').innerHTML;
             let submapoptions = '<option value="-1">No Link</option>'
@@ -4063,7 +4063,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
             dialog.f['link-submap'].innerHTML = submapoptions;
             dialog.f['link-dungeon'].value = '-1';
             dialog.f['link-submap'].value = '-1';
-            if(obj.flags & CANVASFLAG.FLAG_A)
+            if(obj.flags & CANVASFLAG.TEXT_LINKS_TO_SUBMAP)
                 dialog.f['link-submap'].value = ""+obj.map_id;
             else
                 dialog.f['link-dungeon'].value = ""+obj.map_id;
@@ -4101,13 +4101,13 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 obj.map_id = map_id;
                 obj.alignment = alignment;
                 if(submap)
-                    obj.flags |= CANVASFLAG.FLAG_A;
+                    obj.flags |= CANVASFLAG.TEXT_LINKS_TO_SUBMAP;
                 else
-                    obj.flags &= ~CANVASFLAG.FLAG_A;
+                    obj.flags &= ~CANVASFLAG.TEXT_LINKS_TO_SUBMAP;
                 if(dialog.f.background.checked)
-                    obj.flags |= CANVASFLAG.FLAG_B;
+                    obj.flags |= CANVASFLAG.TEXT_HAS_BACKGROUND;
                 else
-                    obj.flags &= ~CANVASFLAG.FLAG_B;
+                    obj.flags &= ~CANVASFLAG.TEXT_HAS_BACKGROUND;
                 const after = strip_obj(obj);
                 publish_obj_updates(view.map.map_id, [after]);
                 request_render();
@@ -4897,7 +4897,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 ctx.fillStyle = sel_color+'cc';
                             else
                                 ctx.fillStyle = BACKGROUND + '88';
-                            if(is_selected || (obj.flags & CANVASFLAG.FLAG_B)){
+                            if(is_selected || (obj.flags & CANVASFLAG.TEXT_HAS_BACKGROUND)){
                             const x = bx+bbox.x0;
                             const y = by+bbox.y0;
                             const width = bbox.x1-bbox.x0;
@@ -4913,7 +4913,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             }
                             else{
                                 if(obj.map_id != -1){
-                                    if(obj.flags & CANVASFLAG.FLAG_A)
+                                    if(obj.flags & CANVASFLAG.TEXT_LINKS_TO_SUBMAP)
                                         ctx.fillStyle = '#282';
                                     else
                                         ctx.fillStyle = '#44f';
@@ -7038,7 +7038,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             if(o.type == CANVASTYPE.SUBMAP)
                                 o.flags ^= CANVASFLAG.SMALL;
                             else if (o.type == CANVASTYPE.TEXT){
-                                if(o.flags & CANVASFLAG.FLAG_A){ // submap instead of top level map.
+                                if(o.flags & CANVASFLAG.TEXT_LINKS_TO_SUBMAP){
                                     let sm = view.map.canvas_objs.get(o.map_id) as (SubMap | undefined);
                                     if(!sm) return;
                                     sm.flags &= ~CANVASFLAG.SMALL;
@@ -7536,9 +7536,9 @@ document.addEventListener('DOMContentLoaded', function(){
                     // kind of hacky
                     let o = view.map.canvas_objs.get(id)!;
                     if(submap)
-                        o.flags |= CANVASFLAG.FLAG_A;
+                        o.flags |= CANVASFLAG.TEXT_LINKS_TO_SUBMAP;
                     if(dialog.f.background.checked)
-                        o.flags |= CANVASFLAG.FLAG_B;
+                        o.flags |= CANVASFLAG.TEXT_HAS_BACKGROUND;
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                     request_render();
