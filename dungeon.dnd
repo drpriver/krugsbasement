@@ -440,6 +440,7 @@ David20::title #hide
         <td>${checkbox('fps')} ${label('fps', 'Show FPS')}
       </tr>
     </table>
+    <a style="color:#00f; margin:auto;" href="/logout">Log Out</a>
     `);
   begin('simple-text');
   make(`
