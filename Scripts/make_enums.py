@@ -2,6 +2,7 @@ import os
 import textwrap
 from typing import List, Tuple, Union, Optional, Set, NamedTuple
 import hashlib
+import re
 Comment = str
 TypeName = str
 class CommentInfo:
@@ -30,9 +31,8 @@ class EnumInfo:
         self.values:Set[str] = set()
         self.keys:Set[str] = set()
     def add_line(self, line:str) -> None:
-        k, *v = line.split('=')
+        k, v = re.split('[=:]', line, 1)
         assert v
-        v = '='.join(v)
         self.append(k, v)
     def add_comment(self, comment:Comment) -> None:
         self.items.append(comment.strip())
@@ -76,9 +76,9 @@ class StructInfo:
         self.members: List[Union[Comment, Tuple[str, TypeName, Optional[Comment]]]] = []
         self.member_names: Set[str] = set()
     def add_line(self, line:str) -> None:
-        k, *v = line.split('=')
+        k, v = re.split('[=:]', line, 1)
         assert v
-        self.append(k, '='.join(v))
+        self.append(k, v)
     def add_comment(self, comment:Comment) -> None:
         self.members.append(comment.strip())
     def append(self, name:str, type:str) -> None:
@@ -140,7 +140,7 @@ class MsgInfo:
         self.enu = enu
         self.items:List[Union[Comment, Tuple[str, str, Optional[str], Optional[Comment]]]] = []
     def add_line(self, line:str) -> None:
-        k, v = line.split('=', 1)
+        k, v = re.split('[=:]', line, 1)
         comment = None
         cb = None
         if '#' in v:

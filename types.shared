@@ -121,36 +121,36 @@ enum ChatCommand: int
 
 struct NameCommand: array
     type = ChatCommand.NAME
-    name = str
+    name: str
 
 struct RollCommand: array
     type = ChatCommand.ROLL
-    original = str
-    expr = UnrolledDiceExpr
+    original: str
+    expr: UnrolledDiceExpr
 
 struct SayCommand: array
     type = ChatCommand.SAY
-    text = str
+    text: str
 
 struct ShuffleCommand: array
     type = ChatCommand.SHUFFLE
-    original = str
-    items = [str]
+    original: str
+    items: [str]
 
 struct ChooseCommand: array
     type = ChatCommand.CHOOSE
-    original = str
-    items = [str]
+    original: str
+    items: [str]
 
 struct TableCommand: array
     type = ChatCommand.TABLE
-    original = str
-    table = str
+    original: str
+    table: str
 
 struct MyTableCommand: array
     type = ChatCommand.MYTABLE
-    original = str
-    table = str
+    original: str
+    table: str
 
 union Command: array
     NameCommand
@@ -162,13 +162,13 @@ union Command: array
     MyTableCommand
 
 struct ChatCommandMessage: dict
-    chatname = str
-    commands = [Command]
+    chatname: str
+    commands: [Command]
 
 struct ChatDirectCommandMessage: dict
-    chatname = str
-    to = int
-    commands = [Command]
+    chatname: str
+    to: int
+    commands: [Command]
 
 # DieExprTypes
 # ------------
@@ -203,28 +203,28 @@ enum Binary: int
 # Server responds with rolled dice.
 struct RolledNumber: array
     type = DieExprTypes.NUMBER
-    value = int
+    value: int
 
 struct RolledDice: array
     type = DieExprTypes.DICE
-    n = int
-    base = int
-    values = [int]
+    n: int
+    base: int
+    values: [int]
 
 struct RolledGroup: array
     type = DieExprTypes.GROUP
-    value = RolledExpr
+    value: RolledExpr
 
 struct RolledUnary: array
     type = DieExprTypes.Unary
-    op = Unary
-    value = RolledExpr
+    op: Unary
+    value: RolledExpr
 
 struct RolledBinary: array
     type = DieExprTypes.Binary
-    op = Binary
-    left = RolledExpr
-    right = RolledExpr
+    op: Binary
+    left: RolledExpr
+    right: RolledExpr
 
 # RolledExpr
 # ----------
@@ -239,23 +239,23 @@ union RolledExpr: array
 # Client sends unrolled dice
 struct UnrolledDice: array
     type = DieExprTypes.DICE
-    n = int
-    base = int
+    n: int
+    base: int
 
 struct UnrolledGroup: array
     type = DieExprTypes.GROUP
-    value = UnrolledDiceExpr
+    value: UnrolledDiceExpr
 
 struct UnrolledUnary: array
     type = DieExprTypes.Unary
-    op = Unary
-    value = UnrolledDiceExpr
+    op: Unary
+    value: UnrolledDiceExpr
 
 struct UnrolledBinary: array
     type = DieExprTypes.Binary
-    op = Binary
-    left = UnrolledDiceExpr
-    right = UnrolledDiceExpr
+    op: Binary
+    left: UnrolledDiceExpr
+    right: UnrolledDiceExpr
 
 # UnrolledDiceExpr
 # ----------------
@@ -283,23 +283,23 @@ enum Msg: int
 
 struct ChatPlainMsg: array
     type = Msg.PLAIN
-    user = str
-    data = str
+    user: str
+    data: str
 
 struct ChatErrorMsg: array
     type = Msg.ERROR
-    user = str
-    data = str
+    user: str
+    data: str
 
 struct ChatNewRollMsg: array
     type = Msg.DICEROLL
-    user = str
-    data = RolledExpr
+    user: str
+    data: RolledExpr
 
 struct ChatEchoableMsg: array
     type = Msg.ECHOABLE_TEXT
-    user = str
-    data = str
+    user: str
+    data: str
 
 # ChatMsg
 # -------
@@ -311,8 +311,8 @@ union ChatMsg: array
     ChatEchoableMsg
 
 struct ChatDirectResponse: dict
-    users = [int]
-    msgs = [ChatMsg]
+    users: [int]
+    msgs: [ChatMsg]
 
 # Roll table for the table command
 # Tables are stored on the server, clients can create and update them.
@@ -321,18 +321,18 @@ enum RollTableFlags: int flag
     IS_TABLE = 1 << 0
 
 struct RollTableEntry: dict
-    weight = int
-    value = str
-    flags = RollTableFlags
+    weight: int
+    value: str
+    flags: RollTableFlags
 
 struct RollTable: dict
-    name = str
-    id = int
-    entries = [RollTableEntry]
+    name: str
+    id: int
+    entries: [RollTableEntry]
 
 struct RollTables: array
-    shared = [RollTable]
-    private = [RollTable]
+    shared: [RollTable]
+    private: [RollTable]
 
 # Canvas stuff
 
@@ -383,16 +383,16 @@ enum CanvasFlag: int flag
 //  points.
 struct StrippedFreehandLine: array
     type = CanvasType.FREEHAND_LINE
-    id = int
-    base_x = float
-    base_y = float
-    flags = CanvasFlag
-    hidinguser = int # userid
-    submap = int
-    color = color
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    color: color
     # points are just raw x,y pairs in a flat array.
-    points = [float]
-    thickness = float
+    points: [float]
+    thickness: float
 
 //  grid-line
 //  ---------
@@ -404,15 +404,15 @@ struct StrippedFreehandLine: array
 //  this way so that their relative positions are maintained.
 struct StrippedGridLine: array
     type = CanvasType.GRID_LINE
-    id = int
-    base_x = float
-    base_y = float
-    flags = CanvasFlag
-    hidinguser = int # userid
-    submap = int
-    color = color
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    color: color
     # points are just raw x,y pairs in a flat array.
-    points = [float]
+    points: [float]
 
 //  rectangle
 //  ---------
@@ -420,15 +420,15 @@ struct StrippedGridLine: array
 //  base_x and base_y is the top-left corner of the box.
 struct StrippedRectangle: array
     type = CanvasType.RECT
-    id = int
-    base_x = float
-    base_y = float
-    flags = CanvasFlag
-    hidinguser = int # userid
-    submap = int
-    color = color
-    width = float
-    height = float
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    color: color
+    width: float
+    height: float
 
 //  filled-rectangle
 //  ---------
@@ -436,16 +436,16 @@ struct StrippedRectangle: array
 //  base_x and base_y is the top-left corner of the box.
 struct StrippedFilledRectangle: array
     type = CanvasType.FILLED_RECT
-    id = int
-    base_x = float
-    base_y = float
-    flags = CanvasFlag
-    hidinguser = int # userid
-    submap = int
-    color = color
-    color2 = color
-    width = float
-    height = float
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    color: color
+    color2: color
+    width: float
+    height: float
 
 //  grid-rectangle
 //  ---------
@@ -455,15 +455,15 @@ struct StrippedFilledRectangle: array
 //  base_x and base_y is the top-left corner of the box.
 struct StrippedGridRectangle: array
     type = CanvasType.GRID_RECT
-    id = int
-    base_x = float
-    base_y = float
-    flags = CanvasFlag
-    hidinguser = int # userid
-    submap = int
-    color = color
-    width = float
-    height = float
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    color: color
+    width: float
+    height: float
 
 enum ELLIPSETYPE:int
     HOLLOW = 0
@@ -477,31 +477,31 @@ enum ELLIPSETYPE:int
 //
 struct StrippedEllipse: array
     type = CanvasType.ELLIPSE
-    id = int
-    base_x = float
-    base_y = float
-    flags = CanvasFlag
-    hidinguser = int # userid
-    submap = int
-    color = color
-    color2 = color
-    width = float
-    height = float
-    variant = ELLIPSETYPE
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    color: color
+    color2: color
+    width: float
+    height: float
+    variant: ELLIPSETYPE
 
 //  image
 //  -----
 struct StrippedImageObj: array
     type = CanvasType.IMAGE
-    id = int
-    base_x = float
-    base_y = float
-    flags = CanvasFlag
-    hidinguser = int # userid
-    submap = int
-    width = float
-    height = float
-    url = str
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    width: float
+    height: float
+    url: str
 
 enum TextAlignment: int
     LEFT = 0
@@ -512,16 +512,16 @@ enum TextAlignment: int
 //  ----
 struct StrippedTextObj: array
     type = CanvasType.TEXT
-    id = int
-    base_x = float
-    base_y = float
-    flags =  CanvasFlag
-    hidinguser = int # userid
-    submap = int
-    text = str
-    size = float
-    alignment = TextAlignment
-    map_id = int # -1 means no link, if (flags & CanvasFlag.FLAG_A), then it is a submap
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    text: str
+    size: float
+    alignment: TextAlignment
+    map_id: int # -1 means no link, if (flags & CanvasFlag.FLAG_A), then it is a submap
 
 // TokenStatusFlags
 // ----------------
@@ -551,33 +551,33 @@ enum TokenStatusFlags: int flag
 //  A token that just has a simple text label.
 struct StrippedEzToken: array
     type = CanvasType.EZ_TOKEN
-    id = int
-    base_x = float
-    base_y = float
-    flags = CanvasFlag
-    hidinguser = int # userid
-    submap = int
-    text = str
-    color = color
-    width = float # in squares (?)
-    height = float # in squares (?)
-    statusflags = TokenStatusFlags
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    text: str
+    color: color
+    width: float # in squares (?)
+    height: float # in squares (?)
+    statusflags: TokenStatusFlags
 
 //  img-token
 //  --------
 //  A token that has an image as its contents.
 struct StrippedImgToken: array
     type = CanvasType.IMG_TOKEN
-    id = int
-    base_x = float
-    base_y = float
-    flags = CanvasFlag
-    hidinguser = int # userid
-    submap = int
-    url = str
-    width = float # in squares (?)
-    height = float # in squares (?)
-    statusflags = TokenStatusFlags
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    url: str
+    width: float # in squares (?)
+    height: float # in squares (?)
+    statusflags: TokenStatusFlags
 
 enum DoorType: int
     DOOR = 0
@@ -600,16 +600,16 @@ enum Orientation: int
 // A door.
 struct StrippedDoorObj: array
     type = CanvasType.DOOR
-    id = int
-    base_x = float
-    base_y = float
-    flags = CanvasFlag
-    hidinguser = int # userid
-    submap = int
-    doortype = DoorType
-    color = color
-    width = float # in squares (?)
-    orientation = Orientation
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    doortype: DoorType
+    color: color
+    width: float # in squares (?)
+    orientation: Orientation
 
 enum Rotation: int
     # note: 
@@ -621,30 +621,30 @@ enum Rotation: int
 
 struct StrippedStairs: array
     type = CanvasType.STAIRS
-    id = int
-    base_x = float
-    base_y = float
-    flags = CanvasFlag
-    hidinguser = int # userid
-    submap = int
-    width = float # in squares
-    height = float # in squares
-    rotation = Rotation
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    width: float # in squares
+    height: float # in squares
+    rotation: Rotation
 
 // Measure
 // -------
 // This is a weird object, but it is the measurement tool.
 struct StrippedMeasureObj: array
     type = CanvasType.MEASURE
-    id = int
-    base_x = float
-    base_y = float
-    flags = CanvasFlag
-    hidinguser = int # userid
-    submap = int
-    color = color
-    x1 = float
-    y1 = float
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    color: color
+    x1: float
+    y1: float
 
 enum FixtureType: int
     STATUE = 0
@@ -657,15 +657,15 @@ enum FixtureType: int
 // For dungeon fixtures, like rubble or pits.
 struct StrippedFixtureObj: array
     type = CanvasType.FIXTURE
-    id = int
-    base_x = float
-    base_y = float
-    flags = CanvasFlag
-    hidinguser = int # userid
-    submap = int
-    width = float
-    height = float
-    ftype = FixtureType
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    width: float
+    height: float
+    ftype: FixtureType
 
 enum TileType: int
     FILLED = 0
@@ -676,54 +676,54 @@ enum TileType: int
 // ----------
 struct StrippedFilledTile: array
     type = CanvasType.FILLED_TILE
-    id = int
-    base_x = float
-    base_y = float
-    flags = CanvasFlag
-    hidinguser = int # userid
-    submap = int
-    color = color
-    size = float
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    color: color
+    size: float
 
 // TerrainTile
 // -----------
 struct StrippedTerrainTile: array
     type = CanvasType.TERRAIN_TILE
-    id = int
-    base_x = float
-    base_y = float
-    flags = CanvasFlag
-    hidinguser = int # userid
-    submap = int
-    terrain_id = int
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    terrain_id: int
 
 // IconTile
 // --------
 struct StrippedIconTile: array
     type = CanvasType.ICON_TILE
-    id = int
-    base_x = float
-    base_y = float
-    flags = CanvasFlag
-    hidinguser = int # userid
-    submap = int
-    terrainicon_id = int
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    terrainicon_id: int
 
 struct StrippedSubMap: array
     type = CanvasType.SUBMAP
-    id = int
-    base_x = float
-    base_y = float
-    flags = CanvasFlag
-    hidinguser = int # userid
-    submap = int # this should always be 0, only here for compat
-    width = float
-    height = float
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int # this should always be 0, only here for compat
+    width: float
+    height: float
     # these are analagous to camera_x/y
-    tlx = float # Coordinate of top left
-    tly = float # Coordinate of top left
-    grid_type = GridType
-    title = str
+    tlx: float # Coordinate of top left
+    tly: float # Coordinate of top left
+    grid_type: GridType
+    title: str
 
 // StrippedObj
 // -----------
@@ -737,13 +737,13 @@ struct StrippedSubMap: array
 // Intersection of all of the above types. They
 // should share the following fields
 //
-//    type = CanvasType
-//    id = int
-//    base_x = float
-//    base_y = float
-//    flags = CanvasFlag
-//    hidinguser = int # userid
-//    submap = int
+//    type: CanvasType
+//    id: int
+//    base_x: float
+//    base_y: float
+//    flags: CanvasFlag
+//    hidinguser: int # userid
+//    submap: int
 //
 // This allows most handling of the objects to work on the generic shared
 // subset (like translating x pixels or setting a flag).
@@ -786,92 +786,92 @@ enum MapFlags: int flag
     NUMBERED = 1 << 2
 
 struct CreateObjectMessage: dict
-    map_id = int
-    object = StrippedObj
+    map_id: int
+    object: StrippedObj
 
 struct CreateObjectsMessage: dict
-    map_id = int
-    objects = [StrippedObj]
+    map_id: int
+    objects: [StrippedObj]
 
 struct CanvasDeleteMessage: dict
-    map_id = int
-    ids = [int]
+    map_id: int
+    ids: [int]
 
 struct CanvasUpdateMessage: dict
-    map_id = int
-    obj_states = [StrippedObj]
+    map_id: int
+    obj_states: [StrippedObj]
 
 struct NameMapMessage: dict
-    map_id = int
-    map_name = str
+    map_id: int
+    map_name: str
 
 struct NewMapRequest: dict
-    name = str
-    grid_type  = GridType
-    flags = MapFlags
+    name: str
+    grid_type : GridType
+    flags: MapFlags
 
 struct CanvasGridTypeMsg: dict
-    map_id = int
-    grid_type = GridType
+    map_id: int
+    grid_type: GridType
 struct CanvasGridNumberedMsg: dict
-    map_id = int
-    numbered = MapFlags
+    map_id: int
+    numbered: MapFlags
 
 struct NoteUpdateTitle: dict
-    note_id = int
-    title = str
+    note_id: int
+    title: str
 
 struct NoteUpdateBody: dict
-    note_id = int
-    body = str
+    note_id: int
+    body: str
 
 struct GatherMessage: dict
-    x = int
-    y = int
-    map_id = int
+    x: int
+    y: int
+    map_id: int
 
 struct PingData: dict
-    cx = float
-    cy = float
-    color = color
+    cx: float
+    cy: float
+    color: color
 
 struct PingMessage: dict
-    ping = PingData
-    map_id = int
+    ping: PingData
+    map_id: int
 
 struct InitializeMap: dict
-    map_id = int
-    map_name = str
-    objects = [StrippedObj]
-    flags = MapFlags
-    grid_type = GridType
+    map_id: int
+    map_name: str
+    objects: [StrippedObj]
+    flags: MapFlags
+    grid_type: GridType
 
 enum NOTEFLAGS: int flag
     NONE = 0
     DELETED = 1
 
 struct Note: dict
-    title = str
-    body = str
-    flags = NOTEFLAGS
-    id = int
+    title: str
+    body: str
+    flags: NOTEFLAGS
+    id: int
 
 struct LocalSetting: array
-    category = str
-    key = str
-    value = str
+    category: str
+    key: str
+    value: str
 
 struct UserListItem: array
-    userid = int
-    chatname = str
+    userid: int
+    chatname: str
 
 struct ChatHistory: array
-    userid = int
-    msgs = [ChatMsg]
+    userid: int
+    msgs: [ChatMsg]
 
 struct RollTableNames: dict
-    shared = [str]
-    private = [str]
+    shared: [str]
+    private: [str]
 
 enum Api: int
     VERSION = 13
