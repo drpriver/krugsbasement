@@ -1476,12 +1476,11 @@ function zoom_out(view:DungeonMapView):void{
 function resize_canvas():void{
     canvas = by_id('map');
     ctx = canvas.getContext('2d')!;
-    const chat_rect = by_id('chat').getBoundingClientRect();
+    const chat = by_id('chat');
     const ww = window.innerWidth;
     const wh = window.innerHeight;
-    let width = ww;
-    let height = wh;
-    width -= chat_rect.width;
+    let width = chat.offsetLeft?chat.offsetLeft:ww;
+    let height = chat.offsetTop?chat.offsetTop:wh;
     width |= 0;
     height |= 0;
     canvas.width = width;

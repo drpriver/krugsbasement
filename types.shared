@@ -69,7 +69,6 @@ enum ToClient: int
     CHAT_CLEAR = 3
     CHAT_CREATE = 4
     CHAT_STRUCTURED_MSG = 5
-    # CHAT_PRIVATE_STRUCTURED_MSG = 29
     CHAT_TEST_STRUCTURED_RESPONSE = 25
     CHAT_DIRECT_MSG = 30
     USER_LIST = 31
@@ -877,13 +876,14 @@ enum Api: int
     VERSION = 13
 
 message ToClientMsg: ToClient
+    // Unique id for generating object ids clientside.
     SESSION_ID = int
+    // List of what tokens are available.
     TOKEN_PATHS = [str]
     CHAT_CLEAR = void
     CHAT_CREATE = [ChatMsg]
     CHAT_STRUCTURED_MSG = [ChatMsg]
     CHAT_TEST_STRUCTURED_RESPONSE = [ChatMsg]
-    # CHAT_PRIVATE_STRUCTURED_MSG = [ChatMsg]
     CHAT_DIRECT_MSG = ChatDirectResponse
     USER_LIST = [UserListItem]
     USER_RENAME = UserListItem

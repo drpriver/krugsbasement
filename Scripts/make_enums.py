@@ -580,6 +580,7 @@ def make_ts(filename:str, infos:List[Info]) -> None:
                 assert 'ToClient' in info.name
                 for it in info.items:
                     if isinstance(it, Comment):
+                        p(f'// {it}')
                         continue
                     ty, arg, cb, comment = it
                     assert not cb
@@ -770,7 +771,7 @@ def make_tags(infos:List[Info]) -> List['TagLoc']:
         if isinstance(info, EnumInfo):
             result.append(TagLoc(
                 TagType.TYPE,
-                f'/^enum {info.name}/',
+                f'/^enum {info.name}\>/',
                 info.name,
                 info.filename,
                 info.line,
@@ -782,7 +783,7 @@ def make_tags(infos:List[Info]) -> List['TagLoc']:
                 memb = item[0]
                 result.append(TagLoc(
                     TagType.ENUM,
-                    f'/{memb}/',
+                    f'/^\s\*{memb}\>/',
                     memb,
                     info.filename,
                     info.line,
@@ -791,7 +792,7 @@ def make_tags(infos:List[Info]) -> List['TagLoc']:
         elif isinstance(info, StructInfo):
             result.append(TagLoc(
                 TagType.TYPE,
-                f'/^struct {info.name}/',
+                f'/^struct {info.name}\>/',
                 info.name,
                 info.filename,
                 info.line,
@@ -800,7 +801,7 @@ def make_tags(infos:List[Info]) -> List['TagLoc']:
         elif isinstance(info, UnionInfo):
             result.append(TagLoc(
                 TagType.TYPE,
-                f'/^struct {info.name}/',
+                f'/^union {info.name}\>/',
                 info.name,
                 info.filename,
                 info.line,
@@ -809,7 +810,7 @@ def make_tags(infos:List[Info]) -> List['TagLoc']:
         elif isinstance(info, MsgInfo):
             result.append(TagLoc(
                 TagType.TYPE,
-                f'/^message {info.name}/',
+                f'/^message {info.name}\>/',
                 info.name,
                 info.filename,
                 info.line,

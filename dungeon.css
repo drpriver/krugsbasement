@@ -875,40 +875,33 @@ div.rolltable table{
     }
   }
 /*}*/
-@media only screen and (max-width: 450px) {
-  /* Turn the site into a diceroller. */
-  #tools, #stuff{
-    display: none;
-  }
-  #chat {
-    width: 100%;
-  }
-  #chat-history {
-    width: 100%;
-  }
-  div.hover, section.hover {
-    top: 0;
-    left: 0;
-    position: initial;
-    transform: none;
-    min-width: 0px;
-  }
-  .input-container textarea  {
-    width: 200px;
-  }
-}
-@media only screen and (max-height: 450px) {
-  * {
-    font-size: 0.5rem;
-  }
-  input [type="radio"], .tool, .tool-menu, #stuff *{
-    height: auto !important;
-    font-size: 8px !important;
-    padding: 0px !important;
-  }
-}
 #tool-container, #palette{
   touch-action: none;
+}
+@media only screen and (hover: none) and (pointer: coarse){
+  .window, #tool-container, .three-buttons, #macros, #dice-history, #notifications {
+    display: none !important;
+  }
+  #chat {
+    grid-template-rows: max-content auto max-content;
+    height: 85vh;
+    grid-template-columns: auto;
+  }
+  @media only screen and (max-width: 450px){
+    #chat {
+      top: auto;
+      bottom: 0;
+      height: 30vh;
+      right: auto;
+      left: 0;
+      width: 100vw;
+
+    }
+  }
+  #chat-history {
+    width: auto;
+  }
+
 }
 
 #zoomers {
