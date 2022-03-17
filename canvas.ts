@@ -2776,7 +2776,9 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number, submapid:
     const new_ids = [];
     for(let i = 0; i < length; ++i){
         const obj = unstrip_obj(copied_objs[i]);
-        obj.submap = submapid; // TODO: figure out if we are pasting into a submap
+        obj.submap = submapid;
+        if(submapid && obj.type == CanvasType.SUBMAP)
+            continue;
         let id = get_new_id();
         obj.id = id;
         translate_object(obj, dx, dy);
@@ -4294,6 +4296,7 @@ const timings: Array<number> = [];
 const HEX_Y_FIX_INV = 74/82;
 const HEX_Y_FIX = 82/74;
 function render(timestamp:DOMHighResTimeStamp):void{
+    // console.log('render', performance.now());
     const before = SHOW_FPS?performance.now():0;
     if(!ctx)
         return;
@@ -4590,10 +4593,15 @@ function render(timestamp:DOMHighResTimeStamp):void{
             continue;
         let bx = obj.base_x;
         let by = obj.base_y;
+        let is_hidden = obj.hidinguser != 0;
         if(obj.submap){
             const sm = canvas_objs.get(obj.submap)! as SubMap;
-            if(sm!.flags & CanvasFlag.SMALL)
+            if(sm.flags & (CanvasFlag.SUBMAP_IS_MINIMIZED | CanvasFlag.DELETED))
                 continue;
+            if(sm.hidinguser && sm.hidinguser != SETTINGS.userid)
+                continue;
+            if(sm.hidinguser)
+                is_hidden = true;
             bx += sm.base_x + sm.tlx;
             by += sm.base_y + sm.tly;
         }
@@ -4602,7 +4610,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
         const sel_color = is_selected?SELECTED_COLOR:COULD_SELECT_COLOR;
         if(is_hovered)
             is_selected = true;
-        if(obj.hidinguser)
+        if(is_hidden)
             ctx.globalAlpha = 0.5;
         else
             ctx.globalAlpha = 1;
@@ -5677,7 +5685,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 let y1 = obj.y1;
                 if(obj.submap){
                     const sm = canvas_objs.get(obj.submap)! as SubMap;
-                    if(sm!.flags & CanvasFlag.SMALL)
+                    if(sm!.flags & CanvasFlag.SUBMAP_IS_MINIMIZED)
                         continue;
                     x1 += sm.base_x + sm.tlx;
                     y1 += sm.base_y + sm.tly;
@@ -5842,19 +5850,19 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(is_selected){
                     ctx.lineWidth=8;
                     ctx.strokeStyle = sel_color;
-                    if(obj.flags & CanvasFlag.SMALL)
+                    if(obj.flags & CanvasFlag.SUBMAP_IS_MINIMIZED)
                         ctx.strokeRect(bx-2, by-2, obj.width+4, 68);
                     else
                         ctx.strokeRect(bx-2, by-2, obj.width+4, obj.height+4);
                 }
                 ctx.lineWidth=4;
                 ctx.fillStyle = BACKGROUND;
-                if(obj.flags & CanvasFlag.SMALL)
+                if(obj.flags & CanvasFlag.SUBMAP_IS_MINIMIZED)
                     ctx.fillRect(bx, by, obj.width, 64);
                 else
                     ctx.fillRect(bx, by, obj.width, obj.height);
                 ctx.strokeStyle = '#000';
-                if(obj.flags & CanvasFlag.SMALL)
+                if(obj.flags & CanvasFlag.SUBMAP_IS_MINIMIZED)
                     ctx.strokeRect(bx, by, obj.width, 64);
                 else{
                     ctx.strokeRect(bx, by, obj.width, obj.height);
@@ -5903,10 +5911,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.fillStyle = COULD_SELECT_COLOR;
                     ctx.fillRect(x-O.MARGIN, y-O.MARGIN, M.W+O.MARGIN*2, M.W+O.MARGIN*2);
                 }
-                const h = obj.flags & CanvasFlag.SMALL? M.W : 0;
+                const h = obj.flags & CanvasFlag.SUBMAP_IS_MINIMIZED? M.W : 0;
                 ctx.strokeRect(x, y, M.W, h);
                 ctx.restore();
-                if(one_selection && selected.has(obj.id) && !(obj.flags & CanvasFlag.SMALL)){
+                if(one_selection && selected.has(obj.id) && !(obj.flags & CanvasFlag.SUBMAP_IS_MINIMIZED)){
                     ctx.fillStyle = sel_color;
                     ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
                     ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
@@ -6675,7 +6683,7 @@ function get_submap_at(view:DungeonMapView, x:number, y:number):SubMap | null {
             x0:sm.base_x,
             y0:sm.base_y+64, // The title area.
             x1:sm.base_x+sm.width,
-            y1:sm.base_y+(sm.flags & CanvasFlag.SMALL?64:sm.height),
+            y1:sm.base_y+(sm.flags & CanvasFlag.SUBMAP_IS_MINIMIZED?64:sm.height),
         };
         if(point_in_rect(x, y, sm_bbox.x0, sm_bbox.y0, sm_bbox.x1, sm_bbox.y1))
             return sm;
@@ -7035,12 +7043,12 @@ document.addEventListener('DOMContentLoaded', function(){
                             if(o.flags & CanvasFlag.DELETED) break;
                             if(o.hidinguser && o.hidinguser !== SETTINGS.userid) break;
                             if(o.type == CanvasType.SUBMAP)
-                                o.flags ^= CanvasFlag.SMALL;
+                                o.flags ^= CanvasFlag.SUBMAP_IS_MINIMIZED;
                             else if (o.type == CanvasType.TEXT){
                                 if(o.flags & CanvasFlag.TEXT_LINKS_TO_SUBMAP){
                                     let sm = view.map.canvas_objs.get(o.map_id) as (SubMap | undefined);
                                     if(!sm) return;
-                                    sm.flags &= ~CanvasFlag.SMALL;
+                                    sm.flags &= ~CanvasFlag.SUBMAP_IS_MINIMIZED;
                                     center_view_at(view, sm.base_x+sm.width/2, sm.base_y+sm.height/2);
                                     request_render();
                                     return;

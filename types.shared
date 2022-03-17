@@ -363,15 +363,14 @@ enum CanvasType: int
 enum CanvasFlag: int flag
     NONE = 0
     DELETED = 1 << 0
-    // Use the "small" representation of this object, such as a
-    // "minimized" submap.
-    SMALL = 1 << 1
     // A flag that is to be interpreted based on the object.
-    FLAG_A = 1 << 2
-    FLAG_B = 1 << 3
+    FLAG_A = 1 << 1
+    FLAG_B = 1 << 2
+    FLAG_C = 1 << 3
     // Named versions of the above
-    duplicate TEXT_LINKS_TO_SUBMAP = 1 << 2
-    duplicate TEXT_HAS_BACKGROUND = 1 << 3
+    duplicate SUBMAP_IS_MINIMIZED = FLAG_A
+    duplicate TEXT_LINKS_TO_SUBMAP = FLAG_B
+    duplicate TEXT_HAS_BACKGROUND = FLAG_C
 
 
 //  freehand-line
@@ -520,7 +519,7 @@ struct StrippedTextObj: array
     text: str
     size: float
     alignment: TextAlignment
-    map_id: int # -1 means no link, if (flags & CanvasFlag.FLAG_A), then it is a submap
+    map_id: int # -1 means no link, if (flags & CanvasFlag.TEXT_LINKS_TO_SUBMAP), then it is a submap
 
 // TokenStatusFlags
 // ----------------
@@ -736,7 +735,7 @@ struct StrippedSubMap: array
 // Intersection of all of the above types. They
 // should share the following fields
 //
-//    type: CanvasType
+//    type : CanvasType
 //    id: int
 //    base_x: float
 //    base_y: float
