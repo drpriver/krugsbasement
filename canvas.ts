@@ -4076,7 +4076,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
             };
             dialog.show_handler = function(){
                 dialog.f.text.value = obj.text;
-                dialog.f.text.focus();
+                if(!IS_TOUCH) dialog.f.text.focus();
             };
             dialog.ok_handler = function(){
                 const text = dialog.f.text.value.trim();
@@ -6694,6 +6694,7 @@ function get_submap_at(view:DungeonMapView, x:number, y:number):SubMap | null {
 document.addEventListener('DOMContentLoaded', function(){
     canvas = document.getElementsByTagName('canvas')[0]!;
     let gesturing = false;
+    let stop_pan: (()=>void)| null = null;
     (function(){
         let start_scale = 1.0;
         let start_x = 0;
@@ -6701,6 +6702,7 @@ document.addEventListener('DOMContentLoaded', function(){
         canvas.addEventListener('gesturestart', function(e:any){
             e.stopPropagation();
             e.preventDefault();
+            if(stop_pan) stop_pan();
             const view = get_active_view();
             start_scale = view.scale;
             start_x = view.camera_x;
@@ -6710,6 +6712,7 @@ document.addEventListener('DOMContentLoaded', function(){
         canvas.addEventListener('gesturechange', function(e:any){
             e.stopPropagation();
             e.preventDefault();
+            if(stop_pan) stop_pan();
             const view = get_active_view();
             view.scale = start_scale * e.scale;
             view.scale = clamp_scale(view.scale);
@@ -7208,9 +7211,11 @@ document.addEventListener('DOMContentLoaded', function(){
                 // don't use the helper as it includes view.camera_*
                 let clicked_x = e.offsetX/view.scale;
                 let clicked_y = e.offsetY/view.scale;
-                function pan(e:MouseEvent){
+                let pointer_id = e.pointerId;
+                function pan(e:PointerEvent){
                     e.stopPropagation();
                     e.preventDefault();
+                    if(e.pointerId != pointer_id) return;
                     let pan_x = e.offsetX/view.scale;
                     let pan_y = e.offsetY/view.scale;
                     view.camera_x -= clicked_x - pan_x;
@@ -7221,6 +7226,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
                 canvas.addEventListener('pointermove', pan);
                 function finish_pan(){
+                    stop_pan = null;
                     if(prev_tool){
                         current_tool = prev_tool;
                         prev_tool = ToolType.PAN;
@@ -7229,6 +7235,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     window.removeEventListener('pointerup', finish_pan);
                     canvas.removeEventListener('pointerleave', finish_pan);
                 }
+                stop_pan = finish_pan;
                 window.addEventListener('pointerup', finish_pan);
                 canvas.addEventListener('pointerleave', finish_pan);
             }break;
@@ -7563,7 +7570,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 dialog.f.url.value = '';
                 dialog.f.checkbox.checked = false;
                 dialog.show_handler = function(){
-                    dialog.f.url.focus();
+                    if(!IS_TOUCH) dialog.f.url.focus();
                 };
                 dialog.ok_handler = function(){
                     const text = dialog.f.url.value.trim();
@@ -7596,7 +7603,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     dialog.f.height.value = gridscale == GRIDSCALE.TEN?'1':'0.5';
                     dialog.f.text.value = '';
                     dialog.show_handler = function(){
-                        dialog.f.text.focus();
+                        if(!IS_TOUCH) dialog.f.text.focus();
                     };
                     dialog.ok_handler = function(){
                         const text = dialog.f.text.value.trim();
@@ -8271,7 +8278,7 @@ document.addEventListener('DOMContentLoaded', function(){
         const numbered = dialog.f.numbered;
         numbered.checked = false;
         dialog.show_handler = function(){
-            dialog.f.name.focus();
+            if(!IS_TOUCH) dialog.f.name.focus();
         };
         dialog.ok_handler = function(){
             const value = dialog.f.name.value.trim();

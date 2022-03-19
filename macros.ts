@@ -241,7 +241,7 @@ document.addEventListener('DOMContentLoaded', function(){
             dualview.make_active1(id);
         };
         dialog.show_handler = function(){
-            dialog.f.text.focus();
+            if(!IS_TOUCH)dialog.f.text.focus();
         };
         dialog.show();
     });
@@ -404,7 +404,7 @@ document.addEventListener('DOMContentLoaded', function(){
         dialog.title.textContent = 'Category Name';
         dialog.f.text.value = '';
         dialog.show_handler = function(){
-            dialog.f.text.focus();
+            if(!IS_TOUCH)dialog.f.text.focus();
         };
         dialog.ok_handler = function(){
             let text = dialog.f.text.value.trim();

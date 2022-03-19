@@ -227,7 +227,7 @@ function chat_options_dialog(){
         dialog.f.light.onchange  = function(){change_dark_mode(DarkMode.LIGHT, 1);};
     }
     dialog.show_handler = function(){
-        dialog.f.chatname.focus();
+        if(!IS_TOUCH) dialog.f.chatname.focus();
     }
     dialog.ok_handler = function(){
         if(is_dev){
@@ -573,7 +573,7 @@ document.addEventListener('DOMContentLoaded',function(){
             row = make_row(id, entry, table.entries);
             tableview.add_row(row, id);
         }
-        if(row)
+        if(row && !IS_TOUCH)
             (row.children[2].children[0] as any).focus();
     }
     function make_row(key:number, entry:RollTableEntry, entries:Array<RollTableEntry>):HTMLTableRowElement{
@@ -687,7 +687,7 @@ document.addEventListener('DOMContentLoaded',function(){
         const row = make_row(id, entry, current_table.entries);
         current_table.entries.push(entry);
         tableview.add_row(row, id);
-        (row.children[2].children[0] as any).focus();
+        if(!IS_TOUCH)(row.children[2].children[0] as any).focus();
     }
     by_id('rolltable-add-table').addEventListener('click', function(){
         let dialog = get_dialog('simple-text');
@@ -708,7 +708,7 @@ document.addEventListener('DOMContentLoaded',function(){
             listview.make_active(table.id);
         };
         dialog.show_handler = function(){
-            dialog.f.text.focus();
+            if(!IS_TOUCH)dialog.f.text.focus();
         };
         dialog.show();
     });
@@ -791,7 +791,7 @@ document.addEventListener('DOMContentLoaded', function(){
         }
         let h = histories.get(k);
         hist.set_history(h?h:[]);
-        chat.focus();
+        if(!IS_TOUCH)chat.focus();
     };
     ONRECV(ToClient.CHAT_DIRECT_MSG, function(msg:ChatDirectResponse){
         let from = msg.users[0];
@@ -847,7 +847,7 @@ document.addEventListener('DOMContentLoaded', function(){
         notifications = [];
         setup_macros();
         lv.make_active(lv.active);
-        chat.focus();
+        if(!IS_TOUCH)chat.focus();
     };
     let macs = by_id('privateroll-macros');
     make_tab_view(

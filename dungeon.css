@@ -878,7 +878,9 @@ div.rolltable table{
 #tool-container, #palette{
   touch-action: none;
 }
-@media only screen and (hover: none) and (pointer: coarse){
+@media only screen and (hover: none) and (pointer: coarse) and (max-width: 450px),
+@media only screen and (hover: none) and (pointer: coarse) and (max-height: 450px),
+{
   .window, #tool-container, .three-buttons, #macros, #dice-history, #notifications {
     display: none !important;
   }
@@ -886,6 +888,7 @@ div.rolltable table{
     grid-template-rows: max-content auto max-content;
     height: 85vh;
     grid-template-columns: auto;
+    max-width: 50vw;
   }
   @media only screen and (max-width: 450px){
     #chat {
@@ -895,7 +898,7 @@ div.rolltable table{
       right: auto;
       left: 0;
       width: 100vw;
-
+      max-width: 100vw;
     }
   }
   #chat-history {

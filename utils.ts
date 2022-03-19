@@ -77,7 +77,7 @@ function make_ok_dialog2(html:string, after_append:()=>void, on_ok:(_:HTMLElemen
         const text_input = text_inputs[i];
         if(text_input.type == 'text' || text_input.type == 'url'){
             if(!did_focus){
-                text_input.focus();
+                if(!IS_TOUCH) text_input.focus();
                 did_focus = true;
             }
             text_input.addEventListener('keydown', function(e){
@@ -93,7 +93,7 @@ function make_ok_dialog2(html:string, after_append:()=>void, on_ok:(_:HTMLElemen
     const text_areas = hoverpop.getElementsByTagName('textarea');
     for(let ta of text_areas){
         if(!did_focus){
-            ta.focus();
+            if(!IS_TOUCH) ta.focus();
             did_focus = true;
         }
     }
@@ -353,7 +353,7 @@ function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):Li
                     dialog.title.innerText = 'Rename '+t;
                     dialog.f.text.value = t;
                     dialog.show_handler = function(){
-                        dialog.f.text.focus();
+                        if(!IS_TOUCH) dialog.f.text.focus();
                     };
                     dialog.ok_handler = function(){
                         let text = dialog.f.text.value.trim();
