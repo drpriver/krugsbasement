@@ -198,5 +198,6 @@ document.addEventListener('DOMContentLoaded', function(){
     // ask for what you want.
     if(window.matchMedia("(pointer: coarse)").matches) {
         IS_TOUCH = true;
+        by_id('keyboardless-buttons').style.display = 'initial';
     }
 });

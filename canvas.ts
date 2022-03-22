@@ -1169,6 +1169,72 @@ document.addEventListener('DOMContentLoaded', function(){
         const view = get_active_view();
         zoom_out(view);
     });
+    by_id('undo').addEventListener('click', function(){
+        const view = get_active_view();
+        do_one_undo(view.map);
+    });
+    by_id('redo').addEventListener('click', function(){
+        const view = get_active_view();
+        do_one_redo(view.map);
+    });
+    by_id('cut').addEventListener('click', function(){
+        const view = get_active_view();
+        if(view.selected.size !== 0){
+            clear_copy_buffer();
+            cut_selected_objs_to_copy_buffer(view);
+        }
+    });
+    by_id('copy').addEventListener('click', function(){
+        const view = get_active_view();
+        if(view.selected.size !== 0){
+            clear_copy_buffer();
+            copy_selected_objs_to_copy_buffer(view);
+        }
+    });
+    by_id('paste').addEventListener('click', function(){
+        const view = get_active_view();
+        if(copied_objs.length){
+            let submapid = 0;
+            let x = view.mouse.x; let y = view.mouse.y;
+            let sm = get_submap_at(view, x, y);
+            if(sm){
+                submapid = sm.id;
+                x -= sm.base_x + sm.tlx;
+                y -= sm.base_y + sm.tly;
+            }
+            paste_from_copy_buffer_at(view.map, x, y, submapid);
+        }
+    });
+    by_id('delete').addEventListener('click', function(){
+        const view = get_active_view();
+        if(!view.selected.size)
+            return;
+        let deleted = [];
+        for(let item of view.selected){
+            let o = view.map.canvas_objs.get(item)!;
+            if(o.flags & CanvasFlag.DELETED) continue;
+            o.flags |= CanvasFlag.DELETED;
+            deleted.push(o.id);
+            // #SPEED: faster way to get all objects in this submap
+            if(o.type == CanvasType.SUBMAP){
+                for(let obj of view.map.canvas_obj_array){
+                    if(obj.flags & CanvasFlag.DELETED) continue;
+                    if(obj.submap == o.id){
+                        obj.flags |= CanvasFlag.DELETED;
+                        deleted.push(obj.id);
+                    }
+                }
+
+            }
+        }
+        publish_delete_by_ids(view.map.map_id, deleted);
+        note_delete_by_ids_for_undo(view.map, deleted);
+        end_selecting(view);
+    });
+    by_id('edit').addEventListener('click', function(){
+        const view = get_active_view();
+        launch_edit_dialog(view);
+    });
 });
 
 const MAPS:Map<number,DungeonMap> = new Map();

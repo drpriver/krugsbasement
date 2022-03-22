@@ -910,6 +910,9 @@ div.rolltable table{
 #zoomers {
   display: none;
 }
+#keyboardless-buttons {
+  display: none;
+}
 /*@media screen and (max-width: 767px) {*/
 body.mobile textarea,
 body.mobile input[type="text"],

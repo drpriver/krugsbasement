@@ -563,6 +563,20 @@ David20::title #hide
       ::raw
         <button id="zoom-out">Zoom -</button>
         <button id="zoom-in">Zoom +</button>
+    ::div #id(keyboardless-buttons)
+      ::div
+        ::raw
+          <button id="undo">Undo</button>
+          <button id="redo">Redo</button>
+      ::div
+        ::raw
+          <button id="cut">Cut</button>
+          <button id="copy">Copy</button>
+          <button id="paste">Paste</button>
+      ::div
+        ::raw
+          <button id="edit">Edit</button>
+          <button id="delete">Delete</button>
     ::div.scale
       ::raw
         <div>Scale:</div>
