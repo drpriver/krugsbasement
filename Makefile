@@ -110,7 +110,7 @@ Generated/subwindowdefs.ts Generated/dialogdefs.ts Generated/dungeon.temp.html: 
 	dndc $< --output Generated/dungeon.temp.html --strip-spaces --allow-js-write
 
 Generated/nodes.ts: Bin/meta Generated/dungeon.temp.html | Generated
-	Bin/meta $@
+	Bin/meta Generated/dungeon.temp.html $@
 .PHONY: clean
 clean:
 	$(RM) $(wildcard Generated/*) Generated/dungeon.html

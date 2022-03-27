@@ -4,6 +4,8 @@
 #include <inttypes.h>
 #include <assert.h>
 #include <stdarg.h>
+#include <errno.h>
+#include <unistd.h>
 extern void*memmem(const void*, size_t, const void*, size_t);
 enum {
     FILE_ERROR = 1,
@@ -19,12 +21,66 @@ typedef struct LongString{
 typedef struct TextFileResult {
     LongString result;
     int errored;
+    int native_error;
 } TextFileResult;
 
 typedef struct FileSizeResult {
     size_t result;
     int errored;
+    int native_error;
 } FileSizeResult;
+
+typedef struct StringView {
+    size_t length;
+    const char* text;
+} StringView;
+
+typedef struct StringBuilder {
+    size_t cursor;
+    size_t capacity;
+    char* data;
+} StringBuilder;
+
+static inline
+void
+sb_check_size(StringBuilder* sb, size_t n){
+    if(sb->cursor + n > sb->capacity){
+        // this grow strategy is wonky, but this program is so trivial.
+        size_t new_size = (sb->capacity + n)*2;
+        if(new_size & 15)
+            new_size += 16 - (new_size&15);
+        char* new_data = realloc(sb->data, new_size);
+        assert(new_data);
+        sb->data = new_data;
+        sb->capacity = new_size;
+    }
+}
+
+static inline
+void
+sb_put(StringBuilder* sb, const char* data, size_t size){
+    sb_check_size(sb, size);
+    char* ptr = sb->data + sb->cursor;
+    memcpy(ptr, data, size);
+    sb->cursor += size;
+}
+
+#define SB_PUT(sb, literal) sb_put(sb, "" literal, sizeof(literal)-1)
+
+static inline
+void
+sb_printf(StringBuilder* sb, const char* fmt, ...){
+    va_list args, args2;
+    va_start(args, fmt);
+    va_copy(args2, args);
+    int size = vsnprintf(NULL, 0, fmt, args);
+    va_end(args);
+    sb_check_size(sb, size);
+    char* ptr = sb->data + sb->cursor;
+    int printed = vsnprintf(ptr, sb->capacity-sb->cursor, fmt, args2);
+    sb->cursor += printed;
+    va_end(args2);
+}
 
 static inline
 FileSizeResult
@@ -38,10 +94,12 @@ file_size_from_fp(FILE* fp){
         goto errored;
     if(fseek(fp, 0, SEEK_SET))
         goto errored;
+    fprintf(stderr, "result.result: %zu\n", result.result);
     return result;
 
     errored:
     result.errored = FILE_ERROR;
+    result.native_error = errno;
     return result;
 }
 
@@ -52,21 +110,54 @@ read_file(const char* filepath){
     FILE* fp = fopen(filepath, "rb");
     if(! fp)
         return (TextFileResult){.errored=FILE_NOT_OPENED};
+    if(isatty(fileno(fp))){
+        StringBuilder sb = {0};
+        enum {READ_AMOUNT=4092};
+        sb_check_size(&sb, READ_AMOUNT);
+        size_t nread = 0;
+        for(;;){
+            nread = fread(sb.data+sb.cursor, 1, READ_AMOUNT, fp);
+            if(nread != READ_AMOUNT){
+                if(ferror(fp)){
+                    result.errored = 1;
+                    result.native_error = errno;
+                    free(sb.data);
+                    goto finally;
+                }
+                else
+                    break;
+            }
+        }
+        char* text = realloc(sb.data, sb.cursor+1);
+        if(!text){
+            result.errored = 1;
+            result.native_error = ENOMEM;
+            free(sb.data);
+            goto finally;
+        }
+        text[sb.cursor] = 0;
+        result.result.text = text;
+        result.result.length = sb.cursor;
+        goto finally;
+    }
     FileSizeResult size_e = file_size_from_fp(fp);
     if(size_e.errored){
         fclose(fp);
         result.errored = size_e.errored;
+        result.native_error = size_e.native_error;
         return result;
     }
     size_t nbytes = size_e.result;
     char* text = malloc(nbytes+1);
     if(!text){
         result.errored = FILE_RESULT_ALLOC_FAILURE;
+        result.native_error = ENOMEM;
         goto finally;
     }
     size_t fread_result = fread(text, 1, nbytes, fp);
     if(fread_result != nbytes){
         result.errored = FILE_ERROR;
+        result.native_error = errno;
         free(text);
         goto finally;
     }
@@ -130,59 +221,7 @@ get_tag_type(const char* tag, int length){
             break;
     }
     fprintf(stderr, "Unknown tag: '%.*s'\n", length, tag);
-    assert(0);
-}
-
-typedef struct StringView {
-    size_t length;
-    const char* text;
-} StringView;
-
-typedef struct StringBuilder {
-    size_t cursor;
-    size_t capacity;
-    char* data;
-} StringBuilder;
-
-static inline
-void
-sb_check_size(StringBuilder* sb, size_t n){
-    if(sb->cursor + n > sb->capacity){
-        // this grow strategy is wonky, but this program is so trivial.
-        size_t new_size = (sb->capacity + n)*2;
-        if(new_size & 15)
-            new_size += 16 - (new_size&15);
-        char* new_data = realloc(sb->data, new_size);
-        assert(new_data);
-        sb->data = new_data;
-        sb->capacity = new_size;
-    }
-}
-
-static inline
-void
-sb_put(StringBuilder* sb, const char* data, size_t size){
-    sb_check_size(sb, size);
-    char* ptr = sb->data + sb->cursor;
-    memcpy(ptr, data, size);
-    sb->cursor += size;
-}
-
-#define SB_PUT(sb, literal) sb_put(sb, "" literal, sizeof(literal)-1)
-
-static inline
-void
-sb_printf(StringBuilder* sb, const char* fmt, ...){
-    va_list args, args2;
-    va_start(args, fmt);
-    va_copy(args2, args);
-    int size = vsnprintf(NULL, 0, fmt, args);
-    va_end(args);
-    sb_check_size(sb, size);
-    char* ptr = sb->data + sb->cursor;
-    int printed = vsnprintf(ptr, sb->capacity-sb->cursor, fmt, args2);
-    sb->cursor += printed;
-    va_end(args2);
+    return NULL;
 }
 
 typedef struct DynArray {
@@ -208,10 +247,11 @@ da_check(DynArray* da, size_t elsize){
 
 
 int main(int argc, char** argv){
-#define INFILE "Generated/dungeon.temp.html"
+    if(argc < 2) return 1;
+    const char* INFILE = argv[1];
     TextFileResult fr = read_file(INFILE);
     if(fr.errored){
-        perror("open " INFILE);
+        fprintf(stderr, "Unable to open: '%s': %s\n", INFILE, strerror(fr.native_error));
         return fr.errored;
     }
     assert(!fr.errored);
@@ -222,7 +262,9 @@ int main(int argc, char** argv){
     SB_PUT(&sb, "// NOTE: this file was generated by " __FILE__ "\n"
                 "// Do NOT edit this file. Your edits will be lost!\n"
                 "\n"
-                "// It was generated by scanning" INFILE "\n"
+                "// It was generated by scanning");
+    sb_put(&sb, INFILE, strlen(INFILE));
+    SB_PUT(&sb, "\n"
                 "// And finding anything that even looks like an\n"
                 "// html tag with an id.\n"
                 "\n"
@@ -260,7 +302,9 @@ int main(int argc, char** argv){
         int idwidth = (int)(idend-id);
         int padwidth = idwidth < LEFT_WIDTH? LEFT_WIDTH-idwidth : 1;
         int tagwidth = (int)(tagend-tag);
-        sb_printf(&sb, "  '%.*s': %*s%s;\n", idwidth, id, padwidth, "", get_tag_type(tag, tagwidth));
+        const char* tagtype = get_tag_type(tag, tagwidth);
+        if(!tagtype) return 1;
+        sb_printf(&sb, "  '%.*s': %*s%s;\n", idwidth, id, padwidth, "", tagtype);
         Continue:
         text = idend;
     }
@@ -276,8 +320,8 @@ int main(int argc, char** argv){
     "    return document.getElementById(id) as NodeIdMap[K];\n"
     "}\n");
     FILE* fp = stdout;
-    if(argc > 1)
-        fp = fopen(argv[1], "w");
+    if(argc > 2)
+        fp = fopen(argv[2], "w");
     if(!fp){
         perror("fopen");
         return 3;

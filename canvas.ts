@@ -4387,8 +4387,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
     const canvas_obj_array = map.canvas_obj_array;
     const canvas_objs = map.canvas_objs;
     const selected = view.selected;
-    const camera_x = Math.round(view.camera_x);
-    const camera_y = Math.round(view.camera_y);
+    const camera_x = view.camera_x;
+    const camera_y = view.camera_y;
     const scale = view.scale;
     animation_requested = false;
     const width = canvas.width;

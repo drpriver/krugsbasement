@@ -374,7 +374,7 @@ def join(room:str) -> None:
     if not may_access:
         return disconnect()
     record_campaign(request, campaignid)
-    logging.info("Someone joining room (campaignid): %r, %r", room, campaignid);
+    logging.info("%r joining room (campaignid): %r, %r", current_user, room, campaignid);
     join_room(str(campaignid))
     # chat.create_chat(room)
     canvas.create_maps(campaignid)
