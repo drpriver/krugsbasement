@@ -7111,13 +7111,22 @@ document.addEventListener('DOMContentLoaded', function(){
                             if(!o) break;
                             if(o.flags & CanvasFlag.DELETED) break;
                             if(o.hidinguser && o.hidinguser !== SETTINGS.userid) break;
-                            if(o.type == CanvasType.SUBMAP)
+                            if(o.type == CanvasType.SUBMAP){
+                                let before = strip_obj(o);
                                 o.flags ^= CanvasFlag.SUBMAP_IS_MINIMIZED;
+                                let after = strip_obj(o);
+                                note_updates_for_undo(view.map, [before], [after]);
+                                publish_obj_updates(view.map.map_id, [after]);
+                            }
                             else if (o.type == CanvasType.TEXT){
                                 if(o.flags & CanvasFlag.TEXT_LINKS_TO_SUBMAP){
                                     let sm = view.map.canvas_objs.get(o.map_id) as (SubMap | undefined);
                                     if(!sm) return;
+                                    let before = strip_obj(sm);
                                     sm.flags &= ~CanvasFlag.SUBMAP_IS_MINIMIZED;
+                                    let after = strip_obj(sm);
+                                    note_updates_for_undo(view.map, [before], [after]);
+                                    publish_obj_updates(view.map.map_id, [after]);
                                     center_view_at(view, sm.base_x+sm.width/2, sm.base_y+sm.height/2);
                                     request_render();
                                     return;
