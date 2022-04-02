@@ -68,6 +68,7 @@ dist.zip: Generated/dungeon.html
 	cp login.dnd dist
 	cp login.css dist
 	cp darkmode.js dist
+	cat .git/refs/heads/master > dist/githash
 	mkdir -p dist/WebDnD
 	cp WebDnD/*.py dist/WebDnD
 	cp requirements.txt dist
