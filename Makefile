@@ -5,7 +5,7 @@ Bin: ; mkdir -p $@
 Archives: ; mkdir -p $@
 DEPFILES:= $(wildcard Depends/*.dep Depends/Generated/*.dep)
 include $(DEPFILES)
-TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError
+TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError --strictFunctionTypes
 TSFILES:= internal_listeners.ts toplevel.ts chat.ts canvas.ts notes.ts utils.ts Generated/messages.ts \
 	  interp.ts storage.ts Generated/nodes.ts dialogs.ts \
 	  Generated/dialogdefs.ts subwindows.ts Generated/subwindowdefs.ts macros.ts
