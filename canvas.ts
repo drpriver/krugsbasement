@@ -2680,7 +2680,11 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
         case CanvasType.IMAGE:{
             // This is kind of weird. Not sure how images are
             // supposed to behave when the world gets rotated.
+            // rotate_base(obj);
             rotate_rectangleish(obj);
+            let tmp = obj.width;
+            obj.width = obj.height;
+            obj.height = tmp;
             return strip_obj(obj);
         }
         case CanvasType.TEXT:{
