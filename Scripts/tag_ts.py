@@ -88,7 +88,7 @@ def write_files(tags:List[TagLoc]) -> None:
     shtypes = io.StringIO()
     buffers = {
         TagType.FUNC: funcs,
-        TagType.ENUM: types,
+        TagType.ENUM: shenum,
         TagType.GLOBAL: variables,
         TagType.TYPE: types,
     }
@@ -117,10 +117,11 @@ def write_files(tags:List[TagLoc]) -> None:
         fp.write('au BufEnter *.ts setlocal errorformat=%+A\ %#%f\ %#(%l\\\,%c):\ %m,%C%m\n')
         fp.write('hi tsConstant cterm=bold gui=bold\n')
         fp.write('hi tsFunction ctermfg=109 guifg=#664499\n')
-        fp.write('au BufEnter *.ts syn keyword tsFunction')
+        fp.write('au BufEnter *.ts syn keyword Function')
         fp.write(funcs.getvalue())
         fp.write('\n')
         fp.write('au BufEnter *.ts syn keyword Type')
+        fp.write(' number boolean Array Map Set');
         fp.write(types.getvalue())
         fp.write('\n')
         fp.write('au BufEnter *.ts syn keyword tsConstant')
