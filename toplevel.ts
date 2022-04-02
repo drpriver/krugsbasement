@@ -75,6 +75,9 @@ function change_dark_mode(mode:DarkMode, postit:number){
     }
 }
 change_dark_mode(SETTINGS.darkmode, 0);
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e){
+    change_dark_mode(SETTINGS.darkmode, 0);
+});
 
 
 // idk where to put this

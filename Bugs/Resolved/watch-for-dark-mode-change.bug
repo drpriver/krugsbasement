@@ -1,4 +1,5 @@
 created: 2022-04-02T05:06:04Z
+resolved: 2022-04-02T21:37:49Z
 bugmagic^^^^
 Created Apr 02, 2022, 01:06AM::md.update
 Summary::md.summary
@@ -7,3 +8,7 @@ Summary::md.summary
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
         const newColorScheme = event.matches ? "dark" : "light";
     });
+Resolved Apr 02, 2022, 05:37PM::md.update
+  Fixed.
+
+  Was pretty easy.
