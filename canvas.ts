@@ -10,7 +10,7 @@ const enum INDEX {
     HIDINGUSER = 5,
     SUBMAP = 6,
 }
-interface Bbox {
+type Bbox = {
     // These are relative to some base_x, base_y.
     x0: number;
     x1: number;
