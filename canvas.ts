@@ -1227,8 +1227,10 @@ document.addEventListener('DOMContentLoaded', function(){
 
             }
         }
-        publish_delete_by_ids(view.map.map_id, deleted);
-        note_delete_by_ids_for_undo(view.map, deleted);
+        if(deleted.length){
+            publish_delete_by_ids(view.map.map_id, deleted);
+            note_delete_by_ids_for_undo(view.map, deleted);
+        }
         end_selecting(view);
     });
     by_id('edit').addEventListener('click', function(){
@@ -1286,7 +1288,7 @@ type ActionArea = {
 }
 type DungeonMapView = {
     map: DungeonMap; // non-owning
-    // These are in REFERENCE_WIDTH space.
+    // These are in REFERENCE.WIDTH space.
     // To go from screen space to grid space, divide by `scale` and subtract
     // `camera_x`/`camera_y`.
     // TODO: all this camera_N stuff is totally fucked.
@@ -1479,7 +1481,7 @@ ONRECV(ToClient.CANVAS_GRID_NUMBERED, function(data:CanvasGridNumberedMsg){
 //
 // THIS NEEDS TO ALWAYS BE POWER OF 2.
 // Also if it changes, lots of things will probably break.
-const REFERENCE_WIDTH = 64; // the size of a square at scale = 1.
+const enum REFERENCE {WIDTH = 64}; // the size of a square at scale = 1.
 // The main canvas and its context. These are set once the content loads.
 let canvas:HTMLCanvasElement;
 let ctx:CanvasRenderingContext2D;
@@ -1663,7 +1665,7 @@ function add_freehand_point_by_id(map:DungeonMap, id:number, x:number, y:number)
 
 function snap_down_to_grid(x: number):number{
     x = Math.round(x);
-    x -= x & (REFERENCE_WIDTH-1);
+    x -= x & (REFERENCE.WIDTH-1);
     return x;
 }
 function snap_down_to_hex_grid(x: number, y:number):[number, number]{
@@ -1682,17 +1684,17 @@ function snap_down_to_hex_grid(x: number, y:number):[number, number]{
 // Rounds a single dimension to the grid.
 function snap_to_grid(x:number):number{
     x = Math.round(x);
-    const remainder = x & (REFERENCE_WIDTH-1);
-    if(remainder < (REFERENCE_WIDTH>>1)){
+    const remainder = x & (REFERENCE.WIDTH-1);
+    if(remainder < (REFERENCE.WIDTH>>1)){
         x -= remainder;
     }
     else{
-        x += REFERENCE_WIDTH - remainder;
+        x += REFERENCE.WIDTH - remainder;
     }
     return x;
 }
 function snap_to_half_grid(x:number):number{
-    const SNAP = REFERENCE_WIDTH/2;
+    const SNAP = REFERENCE.WIDTH/2;
     x = Math.round(x);
     const remainder = x & (SNAP-1);
     if(remainder < (SNAP>>1)){
@@ -1705,7 +1707,7 @@ function snap_to_half_grid(x:number):number{
 }
 
 function snap_to_quarter_grid(x:number):number{
-    const SNAP = REFERENCE_WIDTH/4;
+    const SNAP = REFERENCE.WIDTH/4;
     x = Math.round(x);
     const remainder = x & (SNAP-1);
     if(remainder < (SNAP>>1)){
@@ -1734,17 +1736,17 @@ function get_snap_func():(x:number)=>number{
 
 function snap_to_grid_center(x:number):number{
     x = Math.round(x);
-    x = x - (x & (REFERENCE_WIDTH-1)) + REFERENCE_WIDTH/2;
+    x = x - (x & (REFERENCE.WIDTH-1)) + REFERENCE.WIDTH/2;
     return x;
 }
 function snap_to_half_grid_center(x:number):number{
     x = Math.round(x);
-    x = x - (x & (REFERENCE_WIDTH/2-1)) + REFERENCE_WIDTH/4;
+    x = x - (x & (REFERENCE.WIDTH/2-1)) + REFERENCE.WIDTH/4;
     return x;
 }
 function snap_to_quarter_grid_center(x:number):number{
     x = Math.round(x);
-    x = x - (x & (REFERENCE_WIDTH/4-1)) + REFERENCE_WIDTH/8;
+    x = x - (x & (REFERENCE.WIDTH/4-1)) + REFERENCE.WIDTH/8;
     return x;
 }
 
@@ -1763,15 +1765,15 @@ function get_snap_center_func():(_:number)=>number{
 
 function snap_to_grid_tl(x:number):number{
     x |= 0;
-    return x - (x & (REFERENCE_WIDTH-1));
+    return x - (x & (REFERENCE.WIDTH-1));
 }
 function snap_to_half_tl(x:number):number{
     x |= 0;
-    return x - (x & (REFERENCE_WIDTH/2-1));
+    return x - (x & (REFERENCE.WIDTH/2-1));
 }
 function snap_to_quarter_tl(x:number):number{
     x |= 0;
-    return x - (x & (REFERENCE_WIDTH/4-1));
+    return x - (x & (REFERENCE.WIDTH/4-1));
 }
 
 function get_snap_tl_func():(_:number)=>number{
@@ -1788,21 +1790,21 @@ function get_snap_tl_func():(_:number)=>number{
 }
 
 function point_to_hex_coord(x0:number, y0:number):[number, number]{
-        let hex_x0 = Math.floor(x0/REFERENCE_WIDTH);
+        let hex_x0 = Math.floor(x0/REFERENCE.WIDTH);
         let hex_y0;
         if(hex_x0 & 1)
-            hex_y0 = Math.floor((y0-32)/REFERENCE_WIDTH);
+            hex_y0 = Math.floor((y0-32)/REFERENCE.WIDTH);
         else
-            hex_y0 = Math.floor(y0/REFERENCE_WIDTH);
+            hex_y0 = Math.floor(y0/REFERENCE.WIDTH);
         return [hex_x0|0, hex_y0|0];
 }
 function snap_to_hex_center(x0:number, y0:number):[number, number]{
     const [hx, hy] = point_to_hex_coord(x0, y0);
     if(hx & 1){
-        return [hx*REFERENCE_WIDTH+REFERENCE_WIDTH/2, (hy+0.5)*REFERENCE_WIDTH+REFERENCE_WIDTH/2];
+        return [hx*REFERENCE.WIDTH+REFERENCE.WIDTH/2, (hy+0.5)*REFERENCE.WIDTH+REFERENCE.WIDTH/2];
     }
     else {
-        return [hx*REFERENCE_WIDTH+REFERENCE_WIDTH/2, hy*REFERENCE_WIDTH+REFERENCE_WIDTH/2];
+        return [hx*REFERENCE.WIDTH+REFERENCE.WIDTH/2, hy*REFERENCE.WIDTH+REFERENCE.WIDTH/2];
     }
 }
 function cube_to_oddq(x:number, y:number, z:number):[number, number]{
@@ -1838,14 +1840,14 @@ function calc_measure_length(map:DungeonMap, x0:number, y0:number, x1:number, y1
     else{
         const h2 = Math.pow(x0-x1,2) + Math.pow(y0-y1,2);
         const h = Math.sqrt(h2);
-        const length = h * 10 / REFERENCE_WIDTH;
+        const length = h * 10 / REFERENCE.WIDTH;
         return length.toFixed(0) + "'";
     }
 }
 function calc_square_length(map:DungeonMap, x0:number, y0:number, x1:number, y1:number):string{
     const h2 = Math.pow(x0-x1,2) + Math.pow(y0-y1,2);
     const h = Math.sqrt(h2);
-    const length = h * 10 / REFERENCE_WIDTH;
+    const length = h * 10 / REFERENCE.WIDTH;
     return length.toFixed(0) + "'";
 }
 
@@ -1884,8 +1886,8 @@ function add_gridline_point(obj:GridLine, x:number, y:number):void{
             if(dist < 30)
                 return;
             if(dist < 64){
-                let xrem = Math.round(x) & ((REFERENCE_WIDTH>>1)-1);
-                let yrem = Math.round(y) & ((REFERENCE_WIDTH>>1)-1);
+                let xrem = Math.round(x) & ((REFERENCE.WIDTH>>1)-1);
+                let yrem = Math.round(y) & ((REFERENCE.WIDTH>>1)-1);
                 if((xrem > 8 && xrem < 24) || (yrem > 8 && yrem < 24)){
                     return;
                 }
@@ -1897,8 +1899,8 @@ function add_gridline_point(obj:GridLine, x:number, y:number):void{
             if(dist < 15)
                 return;
             if(dist < 32){
-                let xrem = Math.round(x) & ((REFERENCE_WIDTH>>2)-1);
-                let yrem = Math.round(y) & ((REFERENCE_WIDTH>>2)-1);
+                let xrem = Math.round(x) & ((REFERENCE.WIDTH>>2)-1);
+                let yrem = Math.round(y) & ((REFERENCE.WIDTH>>2)-1);
                 if((xrem > 4 && xrem < 12) || (yrem > 4 && yrem < 12)){
                     return;
                 }
@@ -1910,8 +1912,8 @@ function add_gridline_point(obj:GridLine, x:number, y:number):void{
             if(dist < 60)
                 return;
             if(dist < 128){
-                let xrem = Math.round(x) & (REFERENCE_WIDTH-1);
-                let yrem = Math.round(y) & (REFERENCE_WIDTH-1);
+                let xrem = Math.round(x) & (REFERENCE.WIDTH-1);
+                let yrem = Math.round(y) & (REFERENCE.WIDTH-1);
                 if((xrem > 16 && xrem < 48) || (yrem > 16 && yrem < 48)){
                     return;
                 }
@@ -2210,7 +2212,7 @@ function make_img_token(id:number, base_x:number, base_y:number, submap:number, 
         height: height,
         statusflags: 0,
     };
-    delay_load_obj_image(obj, REFERENCE_WIDTH, REFERENCE_WIDTH, 1, 1);
+    delay_load_obj_image(obj, REFERENCE.WIDTH, REFERENCE.WIDTH, 1, 1);
     return obj;
 }
 function add_img_token(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, url:string, width:number, height:number):void{
@@ -2232,8 +2234,8 @@ function delay_load_obj_image(obj:ImageObj|ImgToken, width:number, height:number
         obj.width = error_width;
         obj.height = error_height;
         if(!error_width || !error_height){
-            obj.width = REFERENCE_WIDTH;
-            obj.height = REFERENCE_WIDTH;
+            obj.width = REFERENCE.WIDTH;
+            obj.height = REFERENCE.WIDTH;
         }
         request_render();
     }, {once:true});
@@ -2242,8 +2244,8 @@ function delay_load_obj_image(obj:ImageObj|ImgToken, width:number, height:number
 function make_image(id:number, base_x:number, base_y:number, width:number, height:number, submap:number, url:string):ImageObj{
     base_x = Math.round(base_x);
     base_y = Math.round(base_y);
-    base_x = base_x - (base_x & (REFERENCE_WIDTH-1)) + 1;
-    base_y = base_y - (base_y & (REFERENCE_WIDTH-1)) + 1;
+    base_x = base_x - (base_x & (REFERENCE.WIDTH-1)) + 1;
+    base_y = base_y - (base_y & (REFERENCE.WIDTH-1)) + 1;
     const obj:ImageObj =  {
         type: CanvasType.IMAGE,
         id: id,
@@ -2306,8 +2308,8 @@ function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number){
     }
     obj.base_x = x0;
     obj.base_y = y0;
-    obj.width = (x1 - x0)/REFERENCE_WIDTH;
-    obj.height = (y1 - y0)/REFERENCE_WIDTH;
+    obj.width = (x1 - x0)/REFERENCE.WIDTH;
+    obj.height = (y1 - y0)/REFERENCE.WIDTH;
     if(Math.abs(xdiff) > Math.abs(ydiff)){
         if(xdiff > 0){
             obj.rotation = Rotation.RIGHT;
@@ -2401,15 +2403,9 @@ type UndoEvent = UndoCreate | UndoMassCreate | UndoDelete | UndoUpdate;
 function push_undo_event(map:DungeonMap, undo_event:UndoEvent):void{
     map.undo_stack.length = map.undo_position;
     map.undo_stack.push(undo_event);
-    const MAX_UNDO_STACK = 10000;
-    if(map.undo_stack.length > MAX_UNDO_STACK){
-        const new_stack = [];
-        // Is there a better way to slice arrays?
-        for(let i = map.undo_stack.length-Math.floor(MAX_UNDO_STACK/2); i < map.undo_stack.length; i++){
-            new_stack.push(map.undo_stack[i]);
-        }
-        map.undo_stack = new_stack;
-    }
+    const enum UNDO_STACK {MAX= 10000, MAX_HALF=MAX/2};
+    if(map.undo_stack.length > UNDO_STACK.MAX)
+        map.undo_stack = Array.from(map.undo_stack.slice(UNDO_STACK.MAX_HALF));
     map.undo_position = map.undo_stack.length;
 }
 function note_delete_by_ids_for_undo(map:DungeonMap, deleted:Array<number>):void{
@@ -2696,7 +2692,7 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
         case CanvasType.EZ_TOKEN:{
             const r = {
                 base_x: obj.base_x, base_y:obj.base_y,
-                width:obj.width*REFERENCE_WIDTH, height:obj.height*REFERENCE_WIDTH,
+                width:obj.width*REFERENCE.WIDTH, height:obj.height*REFERENCE.WIDTH,
             };
             rotate_rectangleish(r);
             obj.base_x = r.base_x;
@@ -2709,7 +2705,7 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
         case CanvasType.IMG_TOKEN:{
             const r = {
                 base_x: obj.base_x, base_y:obj.base_y,
-                width:obj.width*REFERENCE_WIDTH, height:obj.height*REFERENCE_WIDTH,
+                width:obj.width*REFERENCE.WIDTH, height:obj.height*REFERENCE.WIDTH,
             };
             rotate_rectangleish(r);
             obj.base_x = r.base_x;
@@ -2740,7 +2736,7 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
         case CanvasType.STAIRS:{
             const r = {
                 base_x: obj.base_x, base_y:obj.base_y,
-                width:obj.width*REFERENCE_WIDTH, height:obj.height*REFERENCE_WIDTH,
+                width:obj.width*REFERENCE.WIDTH, height:obj.height*REFERENCE.WIDTH,
             };
             rotate_rectangleish(r);
             obj.base_x = r.base_x;
@@ -2769,7 +2765,7 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
         case CanvasType.FILLED_TILE:{
             const r = {
                 base_x: obj.base_x, base_y:obj.base_y,
-                width:REFERENCE_WIDTH, height:REFERENCE_WIDTH,
+                width:REFERENCE.WIDTH, height:REFERENCE.WIDTH,
             };
             rotate_rectangleish(r);
             obj.base_x = r.base_x;
@@ -2779,7 +2775,7 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
         case CanvasType.TERRAIN_TILE:{
             const r = {
                 base_x: obj.base_x, base_y:obj.base_y,
-                width:REFERENCE_WIDTH, height:REFERENCE_WIDTH,
+                width:REFERENCE.WIDTH, height:REFERENCE.WIDTH,
             };
             rotate_rectangleish(r);
             obj.base_x = r.base_x;
@@ -2789,7 +2785,7 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
         case CanvasType.ICON_TILE:{
             const r = {
                 base_x: obj.base_x, base_y:obj.base_y,
-                width:REFERENCE_WIDTH, height:REFERENCE_WIDTH,
+                width:REFERENCE.WIDTH, height:REFERENCE.WIDTH,
             };
             rotate_rectangleish(r);
             obj.base_x = r.base_x;
@@ -3210,10 +3206,10 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
         case CanvasType.EZ_TOKEN:{
             if(!(selection_type & SELECTTYPE.TOKEN))
                 return false;
-            const w = obj.width * REFERENCE_WIDTH;
-            const h = obj.height * REFERENCE_WIDTH;
-            // const radius_x = obj.width*REFERENCE_WIDTH/2;
-            // const radius_y = obj.height*REFERENCE_WIDTH/2;
+            const w = obj.width * REFERENCE.WIDTH;
+            const h = obj.height * REFERENCE.WIDTH;
+            // const radius_x = obj.width*REFERENCE.WIDTH/2;
+            // const radius_y = obj.height*REFERENCE.WIDTH/2;
             const token_bbox = {
                 x0: obj.base_x,
                 x1: obj.base_x + w,
@@ -3275,8 +3271,8 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
                 return false;
             if(!obj.width || !obj.height)
                 return false;
-            const w = obj.width*REFERENCE_WIDTH;
-            const h = obj.height*REFERENCE_WIDTH;
+            const w = obj.width*REFERENCE.WIDTH;
+            const h = obj.height*REFERENCE.WIDTH;
             const stairs_bbox = {
                     x0 : obj.base_x,
                     x1 : obj.base_x + w,
@@ -3306,9 +3302,9 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
             // kind of cheesy.
             const ftbbox = {
                 x0: obj.base_x,
-                x1: obj.base_x + REFERENCE_WIDTH,
+                x1: obj.base_x + REFERENCE.WIDTH,
                 y0: obj.base_y,
-                y1: obj.base_y + REFERENCE_WIDTH,
+                y1: obj.base_y + REFERENCE.WIDTH,
             };
             return bbox_overlaps(bbox, ftbbox);
         }
@@ -3318,9 +3314,9 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
             // kind of cheesy.
             const ftbbox = {
                 x0: obj.base_x,
-                x1: obj.base_x + REFERENCE_WIDTH*obj.size,
+                x1: obj.base_x + REFERENCE.WIDTH*obj.size,
                 y0: obj.base_y,
-                y1: obj.base_y + REFERENCE_WIDTH*obj.size,
+                y1: obj.base_y + REFERENCE.WIDTH*obj.size,
             };
             return bbox_overlaps(bbox, ftbbox);
         }
@@ -3330,9 +3326,9 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
             // kind of cheesy.
             const ftbbox = {
                 x0: obj.base_x,
-                x1: obj.base_x + REFERENCE_WIDTH,
+                x1: obj.base_x + REFERENCE.WIDTH,
                 y0: obj.base_y,
-                y1: obj.base_y + REFERENCE_WIDTH,
+                y1: obj.base_y + REFERENCE.WIDTH,
             };
             return bbox_overlaps(bbox, ftbbox);
         }
@@ -3504,13 +3500,13 @@ function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number
         const oy = base_y + dy;
         let m;
         if(snapmode == SNAPMODE.HALF || (view.map.grid_type & GridType.HEX)){
-            m = REFERENCE_WIDTH/2-1;
+            m = REFERENCE.WIDTH/2-1;
         }
         else if(snapmode == SNAPMODE.QUARTER){
-            m = REFERENCE_WIDTH/4-1;
+            m = REFERENCE.WIDTH/4-1;
         }
         else{
-            m = REFERENCE_WIDTH-1;
+            m = REFERENCE.WIDTH-1;
             }
         const m1 = m + 1;
         const aligned_old_x = base_x - (base_x & m);
@@ -3797,7 +3793,7 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 height      : (sobj as StrippedImgToken)[9],
                 statusflags : (sobj as StrippedImgToken)[10],
             };
-            delay_load_obj_image(obj, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH, obj.width, obj.width);
+            delay_load_obj_image(obj, obj.width*REFERENCE.WIDTH, obj.height*REFERENCE.WIDTH, obj.width, obj.width);
             return obj;
         }break;
         case CanvasType.DOOR:{
@@ -3958,7 +3954,7 @@ function set_obj_from_stripped(obj: CanvasObject, state:StrippedObj){
             const needs_new_image = (obj.width !== o.width) || (obj.height !== o.height) || (obj.url !== o.url);
             Object.assign(obj, o);
             if(needs_new_image){
-                delay_load_obj_image(obj, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH, obj.width, obj.height);
+                delay_load_obj_image(obj, obj.width*REFERENCE.WIDTH, obj.height*REFERENCE.WIDTH, obj.width, obj.height);
             }
         }break;
         case CanvasType.TEXT:{
@@ -4300,7 +4296,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 obj.statusflags = flags_after;
                 obj.url = dialog.f.url.value.trim();
                 if(obj.url != url_before){
-                    delay_load_obj_image(obj, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH);
+                    delay_load_obj_image(obj, obj.width*REFERENCE.WIDTH, obj.height*REFERENCE.WIDTH, obj.width*REFERENCE.WIDTH, obj.height*REFERENCE.WIDTH);
                 }
                 const after = strip_obj(obj);
                 publish_obj_updates(view.map.map_id, [after]);
@@ -4434,22 +4430,22 @@ function render(timestamp:DOMHighResTimeStamp):void{
         // draw hex version of map
         if(map.grid_type & GridType.HEX){
             ctx.scale(1, HEX_Y_FIX);
-            const half = REFERENCE_WIDTH/2;
-            const full = REFERENCE_WIDTH;
+            const half = REFERENCE.WIDTH/2;
+            const full = REFERENCE.WIDTH;
             const p = new Path2D();
             p.moveTo(-9, half);
             p.lineTo(+9, full);
-            p.lineTo(REFERENCE_WIDTH-9, full);
-            p.lineTo(REFERENCE_WIDTH+9, half);
-            p.lineTo(REFERENCE_WIDTH-9, 0);
+            p.lineTo(REFERENCE.WIDTH-9, full);
+            p.lineTo(REFERENCE.WIDTH+9, half);
+            p.lineTo(REFERENCE.WIDTH-9, 0);
             p.lineTo(+9, 0);
             p.closePath();
             for(let obj of bgtiles){
                 const bbox = {
                     x0:obj.base_x-9,
                     y0:obj.base_y,
-                    x1:obj.base_x+REFERENCE_WIDTH+9,
-                    y1:obj.base_y+REFERENCE_WIDTH,
+                    x1:obj.base_x+REFERENCE.WIDTH+9,
+                    y1:obj.base_y+REFERENCE.WIDTH,
                 };
                 if(!bbox_overlaps(bbox, canvas_bbox)){
                     continue;
@@ -4475,8 +4471,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 const bbox = {
                     x0:obj.base_x-9,
                     y0:obj.base_y,
-                    x1:obj.base_x+REFERENCE_WIDTH+9,
-                    y1:obj.base_y+REFERENCE_WIDTH,
+                    x1:obj.base_x+REFERENCE.WIDTH+9,
+                    y1:obj.base_y+REFERENCE.WIDTH,
                 };
                 if(!bbox_overlaps(bbox, canvas_bbox)){
                     continue;
@@ -4513,8 +4509,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 const bbox = {
                     x0:obj.base_x,
                     y0:obj.base_y,
-                    x1:obj.base_x+REFERENCE_WIDTH*size,
-                    y1:obj.base_y+REFERENCE_WIDTH*size,
+                    x1:obj.base_x+REFERENCE.WIDTH*size,
+                    y1:obj.base_y+REFERENCE.WIDTH*size,
                 };
                 if(!bbox_overlaps(bbox, canvas_bbox)){
                     continue;
@@ -4524,14 +4520,14 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.fillStyle = SELECTED_COLOR;
                 else
                     ctx.fillStyle = obj.color;
-                ctx.fillRect(obj.base_x, obj.base_y, REFERENCE_WIDTH*size, REFERENCE_WIDTH*size);
+                ctx.fillRect(obj.base_x, obj.base_y, REFERENCE.WIDTH*size, REFERENCE.WIDTH*size);
             }
             for(let obj of terraintiles){
                 const bbox = {
                     x0:obj.base_x,
                     y0:obj.base_y,
-                    x1:obj.base_x+REFERENCE_WIDTH,
-                    y1:obj.base_y+REFERENCE_WIDTH,
+                    x1:obj.base_x+REFERENCE.WIDTH,
+                    y1:obj.base_y+REFERENCE.WIDTH,
                 };
                 if(!bbox_overlaps(bbox, canvas_bbox)){
                     continue;
@@ -4542,7 +4538,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     ctx.fillStyle = SELECTED_COLOR;
                 else
                     ctx.fillStyle = info.color;
-                ctx.fillRect(obj.base_x, obj.base_y, REFERENCE_WIDTH, REFERENCE_WIDTH);
+                ctx.fillRect(obj.base_x, obj.base_y, REFERENCE.WIDTH, REFERENCE.WIDTH);
                 if(info.img){
                     ctx.drawImage(info.img, obj.base_x, obj.base_y, 64, 64);
                 }
@@ -4563,23 +4559,23 @@ function render(timestamp:DOMHighResTimeStamp):void{
     }
     else if(map.grid_type & GridType.HEX){
         function draw_hex_grid(){
-            let top_left_hex_x = Math.ceil(camera_x / REFERENCE_WIDTH);
-            if(((camera_x) & (REFERENCE_WIDTH-1)) == 0){
+            let top_left_hex_x = Math.ceil(camera_x / REFERENCE.WIDTH);
+            if(((camera_x) & (REFERENCE.WIDTH-1)) == 0){
                 top_left_hex_x++;
             }
-            let grid_base_x = camera_x & (REFERENCE_WIDTH-1);
+            let grid_base_x = camera_x & (REFERENCE.WIDTH-1);
             let fixed = view.camera_y*HEX_Y_FIX_INV
             let rounded = Math.round(fixed);
-            let grid_base_y = rounded & (REFERENCE_WIDTH-1);
+            let grid_base_y = rounded & (REFERENCE.WIDTH-1);
             ctx.lineWidth = 1;
             // ctx.strokeStyle = '#000000';
             ctx.strokeStyle = '#888888';
-            grid_base_x -= REFERENCE_WIDTH;
-            const half = REFERENCE_WIDTH/2;
-            const full = REFERENCE_WIDTH;
+            grid_base_x -= REFERENCE.WIDTH;
+            const half = REFERENCE.WIDTH/2;
+            const full = REFERENCE.WIDTH;
             const p = new Path2D();
             p.moveTo(-9, -half);
-            let n_y = Math.ceil(height/SCALE/REFERENCE_WIDTH)+3;
+            let n_y = Math.ceil(height/SCALE/REFERENCE.WIDTH)+3;
             for(let i = 0; i < n_y; i++){
                 p.lineTo(-9, i*full-half);
                 p.lineTo(+9, i*full);
@@ -4591,7 +4587,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 ctx.translate(grid_base_x-full, grid_base_y-full);
             else
                 ctx.translate(grid_base_x-full, grid_base_y-half);
-            let n_x = Math.ceil(width/SCALE/REFERENCE_WIDTH)+3;
+            let n_x = Math.ceil(width/SCALE/REFERENCE.WIDTH)+3;
             for(let i = 0; i < n_x; i++){
                 ctx.translate(full, -half);
                 ctx.stroke(p);
@@ -4606,7 +4602,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
         ctx.restore();
     }
     else if(gridscale == GRIDSCALE.FIVE){
-        const RW = REFERENCE_WIDTH/2;
+        const RW = REFERENCE.WIDTH/2;
         let grid_base_x = camera_x & (RW-1);
         let grid_base_y = camera_y & (RW-1);
         let grid_max_x = width/SCALE;
@@ -4619,14 +4615,14 @@ function render(timestamp:DOMHighResTimeStamp):void{
         }
     }
     else{
-        let grid_base_x = camera_x & (REFERENCE_WIDTH-1);
-        let grid_base_y = camera_y & (REFERENCE_WIDTH-1);
+        let grid_base_x = camera_x & (REFERENCE.WIDTH-1);
+        let grid_base_y = camera_y & (REFERENCE.WIDTH-1);
         let grid_max_x = width/SCALE;
         let grid_max_y = height/SCALE;
-        for(let x = grid_base_x; x < grid_max_x; x+= REFERENCE_WIDTH){
+        for(let x = grid_base_x; x < grid_max_x; x+= REFERENCE.WIDTH){
             ctx.fillRect(x, 0, 1/SCALE, height/SCALE);
         }
-        for(let y = grid_base_y; y < grid_max_y; y+= REFERENCE_WIDTH){
+        for(let y = grid_base_y; y < grid_max_y; y+= REFERENCE.WIDTH){
             ctx.fillRect(0, y, width/SCALE, 1/SCALE);
         }
     }
@@ -5025,8 +5021,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
             }break;
             case CanvasType.EZ_TOKEN:{
                 // TODO: currently we don't consider radius_y
-                const radius_x = obj.width*REFERENCE_WIDTH/2;
-                const radius_y = obj.height*REFERENCE_WIDTH/2;
+                const radius_x = obj.width*REFERENCE.WIDTH/2;
+                const radius_y = obj.height*REFERENCE.WIDTH/2;
                 if(!radius_x || !radius_y)
                     continue;
                 const token_bbox = {
@@ -5108,8 +5104,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
             }break;
             case CanvasType.IMG_TOKEN:{
                 // TODO: currently we don't consider radius_y
-                const radius_x = obj.width*REFERENCE_WIDTH/2;
-                const radius_y = obj.height*REFERENCE_WIDTH/2;
+                const radius_x = obj.width*REFERENCE.WIDTH/2;
+                const radius_y = obj.height*REFERENCE.WIDTH/2;
                 const token_bbox = {
                     x0: bx,
                     x1: bx + 2*radius_x,
@@ -5172,7 +5168,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
                 switch(obj.doortype){
                     case DoorType.DOUBLE:{
-                        const length = REFERENCE_WIDTH*w - 16*th;
+                        const length = REFERENCE.WIDTH*w - 16*th;
                         const off = length/2;
                         if(is_selected){
                             ctx.strokeStyle = sel_color;
@@ -5251,7 +5247,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         }
                     }break;
                     case DoorType.DOOR:{
-                        const length = REFERENCE_WIDTH*w - 16*th;
+                        const length = REFERENCE.WIDTH*w - 16*th;
                         const off = length/2;
                         if(is_selected){
                             ctx.strokeStyle = sel_color;
@@ -5346,7 +5342,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                     break;
                             }
                         }
-                        const length = REFERENCE_WIDTH*w;
+                        const length = REFERENCE.WIDTH*w;
                         ctx.strokeStyle = BACKGROUND;
                         ctx.lineWidth=12;
                         ctx.setLineDash([6, 4]);
@@ -5406,14 +5402,14 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         switch(obj.orientation){
                             case Orientation.VERTICAL:
                                 ctx.fillRect(bx-5, by-length/2, 10, length);
-                                if((bx & (REFERENCE_WIDTH-1)) == 0){
+                                if((bx & (REFERENCE.WIDTH-1)) == 0){
                                     ctx.fillStyle = 'rgb(150, 150, 150)';
                                     ctx.fillRect(bx, by-length/2, 1/SCALE, length);
                                 }
                                 break;
                             case Orientation.HORIZONTAL:
                                 ctx.fillRect(bx-length/2, by-5, length, 10);
-                                if((by & (REFERENCE_WIDTH-1)) == 0){
+                                if((by & (REFERENCE.WIDTH-1)) == 0){
                                     ctx.fillStyle = 'rgb(150, 150, 150)';
                                     ctx.fillRect(bx-length/2, by, length, 1/SCALE);
                                 }
@@ -5468,14 +5464,14 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         switch(obj.orientation){
                             case Orientation.VERTICAL:
                                 ctx.fillRect(bx-5, by-32*w+3, 10, 64*w-6);
-                                if((bx & (REFERENCE_WIDTH-1)) == 0){
+                                if((bx & (REFERENCE.WIDTH-1)) == 0){
                                     ctx.fillStyle = 'rgb(150, 150, 150)';
                                     ctx.fillRect(bx, by-32*w+3, 1/SCALE, 64*w-6);
                                 }
                                 break;
                             case Orientation.HORIZONTAL:
                                 ctx.fillRect(bx-32*w+3, by-5, 64*w-6, 10);
-                                if((by & (REFERENCE_WIDTH-1)) == 0){
+                                if((by & (REFERENCE.WIDTH-1)) == 0){
                                     ctx.fillStyle = 'rgb(150, 150, 150)';
                                     ctx.fillRect(bx-32*w+3, by, 64*w-6, 1/SCALE);
                                 }
@@ -5505,14 +5501,14 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             const r = 8;
                             switch(obj.orientation){
                                 case Orientation.VERTICAL:
-                                    for(let y = by-REFERENCE_WIDTH*w/2+r, i=0; y < by+REFERENCE_WIDTH*w/2+r; y+= 2*r, i++){
+                                    for(let y = by-REFERENCE.WIDTH*w/2+r, i=0; y < by+REFERENCE.WIDTH*w/2+r; y+= 2*r, i++){
                                         ctx.beginPath();
                                         ctx.arc(bx, y, r, Math.PI/2, 3*Math.PI/2, !!(i & 1));
                                         ctx.stroke();
                                     }
                                     break;
                                 case Orientation.HORIZONTAL:
-                                    for(let x = bx-REFERENCE_WIDTH*w/2+r, i=0; x < bx+REFERENCE_WIDTH*w/2+r; x+= 2*r, i++){
+                                    for(let x = bx-REFERENCE.WIDTH*w/2+r, i=0; x < bx+REFERENCE.WIDTH*w/2+r; x+= 2*r, i++){
                                         ctx.beginPath();
                                         ctx.arc(x, by, r, 0, Math.PI, !!(i & 1));
                                         ctx.stroke();
@@ -5522,7 +5518,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                     let r = 64*1.4159/12;
                                     for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
                                         ctx.beginPath();
-                                        ctx.arc(bx-REFERENCE_WIDTH/2+d+r/1.41519, by-REFERENCE_WIDTH/2+d+r/1.41519, r, Math.PI/4, 5*Math.PI/4, !!(i & 1));
+                                        ctx.arc(bx-REFERENCE.WIDTH/2+d+r/1.41519, by-REFERENCE.WIDTH/2+d+r/1.41519, r, Math.PI/4, 5*Math.PI/4, !!(i & 1));
                                         ctx.stroke();
                                     }
                                 }break;
@@ -5530,7 +5526,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                     let r = 64*1.4159/12;
                                     for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
                                         ctx.beginPath();
-                                        ctx.arc(bx-REFERENCE_WIDTH/2+d+r/1.41519, by+REFERENCE_WIDTH/2-d-r/1.41519, r, 3*Math.PI/4, 7*Math.PI/4, !!(i & 1));
+                                        ctx.arc(bx-REFERENCE.WIDTH/2+d+r/1.41519, by+REFERENCE.WIDTH/2-d-r/1.41519, r, 3*Math.PI/4, 7*Math.PI/4, !!(i & 1));
                                         ctx.stroke();
                                     }
                                 }break;
@@ -5541,14 +5537,14 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         const r = 8;
                         switch(obj.orientation){
                             case Orientation.VERTICAL:
-                                for(let y = by-REFERENCE_WIDTH*w/2+r, i=0; y < by+REFERENCE_WIDTH*w/2+r; y+= 2*r, i++){
+                                for(let y = by-REFERENCE.WIDTH*w/2+r, i=0; y < by+REFERENCE.WIDTH*w/2+r; y+= 2*r, i++){
                                     ctx.beginPath();
                                     ctx.arc(bx, y, r, Math.PI/2, 3*Math.PI/2, !!(i & 1));
                                     ctx.stroke();
                                 }
                                 break;
                             case Orientation.HORIZONTAL:
-                                for(let x = bx-REFERENCE_WIDTH*w/2+r, i=0; x < bx+REFERENCE_WIDTH*w/2+r; x+= 2*r, i++){
+                                for(let x = bx-REFERENCE.WIDTH*w/2+r, i=0; x < bx+REFERENCE.WIDTH*w/2+r; x+= 2*r, i++){
                                     ctx.beginPath();
                                     ctx.arc(x, by, r, 0, Math.PI, !!(i & 1));
                                     ctx.stroke();
@@ -5558,7 +5554,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 let r = 64*1.4159/12;
                                 for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
                                     ctx.beginPath();
-                                    ctx.arc(bx-REFERENCE_WIDTH/2+d+r/1.41519, by-REFERENCE_WIDTH/2+d+r/1.41519, r, Math.PI/4, 5*Math.PI/4, !!(i & 1));
+                                    ctx.arc(bx-REFERENCE.WIDTH/2+d+r/1.41519, by-REFERENCE.WIDTH/2+d+r/1.41519, r, Math.PI/4, 5*Math.PI/4, !!(i & 1));
                                     ctx.stroke();
                                 }
                             }break;
@@ -5566,7 +5562,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                                 let r = 64*1.4159/12;
                                 for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
                                     ctx.beginPath();
-                                    ctx.arc(bx-REFERENCE_WIDTH/2+d+r/1.41519, by+REFERENCE_WIDTH/2-d-r/1.41519, r, 3*Math.PI/4, 7*Math.PI/4, !!(i & 1));
+                                    ctx.arc(bx-REFERENCE.WIDTH/2+d+r/1.41519, by+REFERENCE.WIDTH/2-d-r/1.41519, r, 3*Math.PI/4, 7*Math.PI/4, !!(i & 1));
                                     ctx.stroke();
                                 }
                             }break;
@@ -5659,8 +5655,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 const bbox = {
                     x0:bx,
                     y0:by,
-                    x1:bx+obj.width*REFERENCE_WIDTH,
-                    y1:by+obj.height*REFERENCE_WIDTH,
+                    x1:bx+obj.width*REFERENCE.WIDTH,
+                    y1:by+obj.height*REFERENCE.WIDTH,
                 };
                 if(!bbox_overlaps(bbox, canvas_bbox)){
                     break;
@@ -5668,7 +5664,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(is_selected){
                     ctx.lineWidth=4;
                     ctx.strokeStyle = sel_color;
-                    ctx.strokeRect(bx, by, obj.width*REFERENCE_WIDTH, obj.height*REFERENCE_WIDTH);
+                    ctx.strokeRect(bx, by, obj.width*REFERENCE.WIDTH, obj.height*REFERENCE.WIDTH);
                 }
                 ctx.fillStyle = "#000000";
                 let n = 0;
@@ -5685,7 +5681,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         x += 2;
                         y += 4;
                         n = obj.height * 8 - 1;
-                        w = REFERENCE_WIDTH*obj.width-4;
+                        w = REFERENCE.WIDTH*obj.width-4;
                         h = 4;
                         dw = -w / n;
                         dx = -dw/2;
@@ -5694,7 +5690,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     case Rotation.DOWN:{
                         x += 2;
                         n = obj.height * 8 - 1;
-                        w = REFERENCE_WIDTH*obj.width-4;
+                        w = REFERENCE.WIDTH*obj.width-4;
                         h = 4;
                         dw = -w / n;
                         dx = -dw/2;
@@ -5705,7 +5701,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         y += 2;
                         x += 4;
                         n = obj.width * 8 - 1;
-                        h = REFERENCE_WIDTH*obj.height-4;
+                        h = REFERENCE.WIDTH*obj.height-4;
                         w = 4;
                         dh = -h / n;
                         dy = -dh/2;
@@ -5714,7 +5710,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     case Rotation.LEFT:{
                         y += 2;
                         n = obj.width * 8 - 1;
-                        h = REFERENCE_WIDTH*obj.height-4;
+                        h = REFERENCE.WIDTH*obj.height-4;
                         w = 4;
                         dh = -h / n;
                         dy = -dh/2;
@@ -5938,10 +5934,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         box.rect(bx+2/SCALE, by+2/SCALE, obj.width-4/SCALE, obj.height-4/SCALE);
                         ctx.clip(box);
                         ctx.fillStyle = 'rgb(150, 150, 150)';
-                        for(let dx = 0; dx < obj.width; dx += REFERENCE_WIDTH){
+                        for(let dx = 0; dx < obj.width; dx += REFERENCE.WIDTH){
                             ctx.fillRect(bx+dx, by+64, 1/SCALE, obj.height-64);
                         }
-                        for(let dy = 0; dy < obj.height; dy += REFERENCE_WIDTH){
+                        for(let dy = 0; dy < obj.height; dy += REFERENCE.WIDTH){
                             ctx.fillRect(bx, by+dy, obj.width, 1/SCALE);
                         }
                     }
@@ -7418,20 +7414,20 @@ document.addEventListener('DOMContentLoaded', function(){
                         if(Math.abs(y1-y0) < 4){
                         // if(y1 === y0){
                             orientation = Orientation.HORIZONTAL;
-                            width = Math.abs(x1-x0)/REFERENCE_WIDTH;
+                            width = Math.abs(x1-x0)/REFERENCE.WIDTH;
                         }
                         else if(Math.abs(x1-x0) < 4){
                         // else if(x1 == x0){
                             orientation = Orientation.VERTICAL;
-                            width = Math.abs(y1-y0)/REFERENCE_WIDTH;
+                            width = Math.abs(y1-y0)/REFERENCE.WIDTH;
                         }
                         else if((x1 < x0 && y1 < y0) || (x1 > x0 && y1 > y0)){
                             orientation = Orientation.TOPLEFT_DOWNRIGHT;
-                            width = Math.max(Math.abs(y1-y0), Math.abs(x1-x0))/REFERENCE_WIDTH;
+                            width = Math.max(Math.abs(y1-y0), Math.abs(x1-x0))/REFERENCE.WIDTH;
                         }
                         else {
                             orientation = Orientation.TOPRIGHT_DOWNLEFT;
-                            width = Math.max(Math.abs(y1-y0), Math.abs(x1-x0))/REFERENCE_WIDTH;
+                            width = Math.max(Math.abs(y1-y0), Math.abs(x1-x0))/REFERENCE.WIDTH;
                         }
                         if(width < 0.1)
                             return;
@@ -7768,8 +7764,8 @@ document.addEventListener('DOMContentLoaded', function(){
                             change_stairs(stairs, x0, y0, ex0, ey0);
                             view.placing_area.x0 = stairs.base_x+smoff[0];
                             view.placing_area.y0 = stairs.base_y+smoff[1];
-                            view.placing_area.x1 = stairs.base_x+REFERENCE_WIDTH*stairs.width+smoff[0];
-                            view.placing_area.y1 = stairs.base_y+REFERENCE_WIDTH*stairs.height+smoff[1];
+                            view.placing_area.x1 = stairs.base_x+REFERENCE.WIDTH*stairs.width+smoff[0];
+                            view.placing_area.y1 = stairs.base_y+REFERENCE.WIDTH*stairs.height+smoff[1];
                             request_render();
                         }
                         canvas.addEventListener('pointermove', change_stairs_on_move);
