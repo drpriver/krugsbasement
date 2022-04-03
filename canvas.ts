@@ -4401,10 +4401,12 @@ function render(timestamp:DOMHighResTimeStamp):void{
     let SCALE = scale;
     const BACKGROUND = background;
     const canvas_bbox = {
-        x0:-camera_x,
-        y0:-camera_y,
-        x1:-camera_x+width/scale,
-        y1:-camera_y+height/scale,
+        // The 10s are so we can be sloppy with canvas/object intersection and
+        // still draw things on the edge of the map properly.
+        x0:-camera_x-10,
+        y0:-camera_y-10,
+        x1:-camera_x+width/scale+10,
+        y1:-camera_y+height/scale+10,
     };
     if(map.grid_type & GridType.HEX){
         canvas_bbox.y0 *= HEX_Y_FIX_INV;
