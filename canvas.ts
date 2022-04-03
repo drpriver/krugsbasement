@@ -1561,8 +1561,11 @@ function resize_canvas():void{
 //
 // freehand-line stuff.
 function make_freehand_line(id:number, base_x:number, base_y:number, submap:number, color:string, thickness:number):FreehandLine{
-    base_x = Math.round(base_x);
-    base_y = Math.round(base_y);
+    // base_x = Math.round(base_x);
+    // base_y = Math.round(base_y);
+    // nearest tenth seems good enough to get smooth lines
+    base_x = Math.round(base_x*10)/10;
+    base_y = Math.round(base_y*10)/10;
     const obj: FreehandLine =  {
         type: CanvasType.FREEHAND_LINE,
         id: id,
@@ -1588,8 +1591,11 @@ function add_freehand_line(map:DungeonMap, id:number, base_x:number, base_y:numb
 function add_freehand_point(obj:FreehandLine, x:number, y:number):void{
     x -= obj.base_x;
     y -= obj.base_y;
-    x = Math.round(x);
-    y = Math.round(y);
+    // x = Math.round(x);
+    // y = Math.round(y);
+    // nearest tenth seems good enough to get smooth lines
+    x = Math.round(x*10)/10;
+    y = Math.round(y*10)/10;
     const points = obj.points;
     if(points.length > 1){
         let diff = Math.abs(points[points.length-2] - x);
@@ -6778,8 +6784,8 @@ document.addEventListener('DOMContentLoaded', function(){
             let cy = start_y - canvas.height/2/start_scale;
             cx += canvas.width/2/view.scale;
             cy += canvas.height/2/view.scale;
-            cx = Math.round(cx);
-            cy = Math.round(cy);
+            // cx = Math.round(cx);
+            // cy = Math.round(cy);
             view.camera_x = cx;
             view.camera_y = cy;
 
@@ -6811,8 +6817,8 @@ document.addEventListener('DOMContentLoaded', function(){
         view.camera_x += e.offsetX/view.scale;
         view.camera_y -= e.offsetY/oldscale;
         view.camera_y += e.offsetY/view.scale;
-        view.camera_x = Math.round(view.camera_x);
-        view.camera_y = Math.round(view.camera_y);
+        // view.camera_x = Math.round(view.camera_x);
+        // view.camera_y = Math.round(view.camera_y);
         request_render();
     });
     window.addEventListener('keydown', function(e:KeyboardEvent){
