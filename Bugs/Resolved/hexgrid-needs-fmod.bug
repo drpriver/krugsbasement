@@ -1,7 +1,10 @@
 bug.py: v0.0.1
 created: 2022-02-01T22:48:57.645617
+resolved: 2022-04-03T01:50:55Z
 bugmagic^^^^
 Summary::md .summary
   Hexgrid: canvas objects and grid are snapping to integer coordinates, which
   looks jumpy. Also they are rounding to different integer coordinates which
   looks even weirder! holy crap!
+Resolved Apr 02, 2022, 09:50PM::md.update
+  Hexgrid uses fmod now. actually the other grids were also fucked, it was just less noticeable. So that is fixed now as well.

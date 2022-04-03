@@ -1481,7 +1481,7 @@ ONRECV(ToClient.CANVAS_GRID_NUMBERED, function(data:CanvasGridNumberedMsg){
 //
 // THIS NEEDS TO ALWAYS BE POWER OF 2.
 // Also if it changes, lots of things will probably break.
-const enum REFERENCE {WIDTH = 64}; // the size of a square at scale = 1.
+const enum REFERENCE {WIDTH = 64, HALF_WIDTH=WIDTH/2, QUARTER_WIDTH=WIDTH/4}; // the size of a square at scale = 1.
 // The main canvas and its context. These are set once the content loads.
 let canvas:HTMLCanvasElement;
 let ctx:CanvasRenderingContext2D;
@@ -4361,6 +4361,9 @@ const timings: Array<number> = [];
 // image via these factors.
 const HEX_Y_FIX_INV = 74/82;
 const HEX_Y_FIX = 82/74;
+function fmod(a:number, n:number){
+    return a < 0? (a % n)+n : a % n;
+}
 function render(timestamp:DOMHighResTimeStamp):void{
     // console.log('render', performance.now());
     const before = SHOW_FPS?performance.now():0;
@@ -4563,14 +4566,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
     }
     else if(map.grid_type & GridType.HEX){
         function draw_hex_grid(){
-            let top_left_hex_x = Math.ceil(camera_x / REFERENCE.WIDTH);
-            if(((camera_x) & (REFERENCE.WIDTH-1)) == 0){
-                top_left_hex_x++;
-            }
-            let grid_base_x = camera_x & (REFERENCE.WIDTH-1);
-            let fixed = view.camera_y*HEX_Y_FIX_INV
-            let rounded = Math.round(fixed);
-            let grid_base_y = rounded & (REFERENCE.WIDTH-1);
+            let grid_base_y = fmod(camera_y*HEX_Y_FIX_INV, REFERENCE.WIDTH);
+            let grid_base_x = fmod(camera_x, REFERENCE.WIDTH*2);
             ctx.lineWidth = 1;
             // ctx.strokeStyle = '#000000';
             ctx.strokeStyle = '#888888';
@@ -4587,10 +4584,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 p.lineTo(+9, i*full);
             }
             ctx.save();
-            if(top_left_hex_x & 1)
-                ctx.translate(grid_base_x-full, grid_base_y-full);
-            else
-                ctx.translate(grid_base_x-full, grid_base_y-half);
+            ctx.translate(grid_base_x-3*full, grid_base_y-full);
             let n_x = Math.ceil(width/SCALE/REFERENCE.WIDTH)+3;
             for(let i = 0; i < n_x; i++){
                 ctx.translate(full, -half);
@@ -4606,21 +4600,20 @@ function render(timestamp:DOMHighResTimeStamp):void{
         ctx.restore();
     }
     else if(gridscale == GRIDSCALE.FIVE){
-        const RW = REFERENCE.WIDTH/2;
-        let grid_base_x = camera_x & (RW-1);
-        let grid_base_y = camera_y & (RW-1);
+        let grid_base_x = fmod(camera_x, REFERENCE.HALF_WIDTH);
+        let grid_base_y = fmod(camera_y, REFERENCE.HALF_WIDTH);
         let grid_max_x = width/SCALE;
         let grid_max_y = height/SCALE;
-        for(let x = grid_base_x; x < grid_max_x; x+= RW){
+        for(let x = grid_base_x; x < grid_max_x; x+= REFERENCE.HALF_WIDTH){
             ctx.fillRect(x, 0, 1/SCALE, height/SCALE);
         }
-        for(let y = grid_base_y; y < grid_max_y; y+= RW){
+        for(let y = grid_base_y; y < grid_max_y; y+= REFERENCE.HALF_WIDTH){
             ctx.fillRect(0, y, width/SCALE, 1/SCALE);
         }
     }
     else{
-        let grid_base_x = camera_x & (REFERENCE.WIDTH-1);
-        let grid_base_y = camera_y & (REFERENCE.WIDTH-1);
+        let grid_base_x = fmod(camera_x, REFERENCE.WIDTH);
+        let grid_base_y = fmod(camera_y, REFERENCE.WIDTH);
         let grid_max_x = width/SCALE;
         let grid_max_y = height/SCALE;
         for(let x = grid_base_x; x < grid_max_x; x+= REFERENCE.WIDTH){
@@ -4676,10 +4669,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
         const sel_color = is_selected?SELECTED_COLOR:COULD_SELECT_COLOR;
         if(is_hovered)
             is_selected = true;
-        if(is_hidden)
-            ctx.globalAlpha = 0.5;
-        else
-            ctx.globalAlpha = 1;
+        ctx.globalAlpha = is_hidden? 0.5 : 1;
         switch(obj.type){
             case CanvasType.FREEHAND_LINE:{
                 // This works well enough for now.
@@ -5746,7 +5736,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
             }break;
             case CanvasType.MEASURE:{
-                // thiss looks sus with the change to bx over obj.base_x
+                // this looks sus with the change to bx over obj.base_x
                 let x1 = obj.x1;
                 let y1 = obj.y1;
                 if(obj.submap){
