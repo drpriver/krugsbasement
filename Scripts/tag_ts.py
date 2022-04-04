@@ -24,7 +24,7 @@ class TagLoc(NamedTuple):
     is_global: bool
 
 IDENT = r'\b([A-Za-z0-9_]+)\b'
-RE = re.compile(r'\b(const enum|function|type|enum|(^(let|const|var)))\b\s?'+IDENT)
+RE = re.compile(r'\b(const\senum|function|type|enum|(^(let|const|var)))\b\s?'+IDENT)
 MATCH_TO_TYPE = {
     'function': TagType.FUNC,
     'type': TagType.TYPE,
@@ -84,11 +84,12 @@ def write_files(tags:List[TagLoc]) -> None:
     funcs = io.StringIO()
     variables = io.StringIO()
     types = io.StringIO()
+    enum = io.StringIO()
     shenum = io.StringIO()
     shtypes = io.StringIO()
     buffers = {
         TagType.FUNC: funcs,
-        TagType.ENUM: shenum,
+        TagType.ENUM: enum,
         TagType.GLOBAL: variables,
         TagType.TYPE: types,
     }
@@ -126,6 +127,9 @@ def write_files(tags:List[TagLoc]) -> None:
         fp.write('\n')
         fp.write('au BufEnter *.ts syn keyword tsConstant')
         fp.write(variables.getvalue())
+        fp.write('\n')
+        fp.write('au BufEnter *.ts syn keyword Enum')
+        fp.write(enum.getvalue())
         fp.write('\n')
         fp.write('source shared.vim')
         fp.write('\n')
