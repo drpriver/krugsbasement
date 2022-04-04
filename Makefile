@@ -104,8 +104,8 @@ ship-docs: $(DOCS)
 mypy: flask_socketio.pyi
 	mypy -p WebDnD.app --namespace-packages --ignore-missing-imports --disallow-untyped-defs
 
-Bin/meta: meta.c | Bin
-	$(CC) $< -o $@
+Bin/meta: C/meta.c | Bin
+	$(CC) $< -o $@ -IC
 # there should be a rule that this generates dialogdefs.ts
 Generated/subwindowdefs.ts Generated/dialogdefs.ts Generated/dungeon.temp.html: dungeon.dnd | Generated
 	dndc $< --output Generated/dungeon.temp.html --strip-spaces --allow-js-write
@@ -115,3 +115,10 @@ Generated/nodes.ts: Bin/meta Generated/dungeon.temp.html | Generated
 .PHONY: clean
 clean:
 	$(RM) $(wildcard Generated/*) Generated/dungeon.html
+
+.PHONY: pack
+pack: Generated/packed.json Generated/packed.png Generated/packed.ts
+Generated/packed.ts Generated/packed.json Generated/packed.png: Scripts/pack.py Bin/pack | Generated
+	python3 Scripts/pack.py
+Bin/pack: C/pack.c C/stb_rect_pack.h | Bin
+	$(CC) -O3 C/pack.c -o $@ -IC

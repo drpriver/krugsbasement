@@ -1,5 +1,7 @@
 venv
 *.db
+*.db-shm
+*.db-wal
 *.egg-info
 __pycache__
 .mypy_cache
@@ -14,9 +16,7 @@ DemoDb
 token-list.txt
 tokens
 icons
-iconorig
 tiles
-tilesorig
 hexmapdata.json
 .vimrc
 tags
