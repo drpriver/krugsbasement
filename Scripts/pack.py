@@ -217,18 +217,131 @@ FIXTURES = [
     FixtureData(0, 'Rubble', 'rubble.png'),
 ]
 
-Data = Union[StatusIconData, TerrainData, TerrainIconData, FixtureData]
-Thing = Union[StatusIcon, Terrain, TerrainIcon, Fixture]
-OutTypes = [StatusIcon, Terrain, TerrainIcon, Fixture]
+class TokenData(NamedTuple):
+    id: int
+    name: str
+    imgname: str
+    def path(self) -> str:
+        return f'tokens/{self.imgname}'
+    def as_thing(self, x:int, y:int, w:int, h:int) -> Token:
+        return Token(self.id, self.name, x, y, w, h)
 
-def main() -> None:
+class Token(NamedTuple):
+    id: int
+    name: str
+    x: int
+    y: int
+    w: int
+    h: int
+    @staticmethod
+    def key() -> str:
+        return 'tokens'
+TOKENS = [
+    TokenData( 0, 'advent.png',          'advent.png'),
+    TokenData( 1, 'adventurer.png',      'adventurer.png'),
+    TokenData( 2, 'bandit.png',          'bandit.png'),
+    TokenData( 3, 'banus.png',           'banus.png'),
+    TokenData( 4, 'based-skele.png',     'based-skele.png'),
+    TokenData( 5, 'beard.png',           'beard.png'),
+    TokenData( 6, 'beard2.png',          'beard2.png'),
+    TokenData( 7, 'beard3.png',          'beard3.png'),
+    TokenData( 8, 'beard4.png',          'beard4.png'),
+    TokenData( 9, 'beardorc.png',        'beardorc.png'),
+    TokenData(10, 'biceps.png',          'biceps.png'),
+    TokenData(11, 'bunnedorc.png',       'bunnedorc.png'),
+    TokenData(12, 'capitan.png',         'capitan.png'),
+    TokenData(13, 'centipede.png',       'centipede.png'),
+    TokenData(14, 'chops.png',           'chops.png'),
+    TokenData(15, 'cler.png',            'cler.png'),
+    TokenData(16, 'cleric.png',          'cleric.png'),
+    TokenData(17, 'coldandthin.png',     'coldandthin.png'),
+    TokenData(18, 'coldwarr.png',        'coldwarr.png'),
+    TokenData(19, 'cynic.png',           'cynic.png'),
+    TokenData(20, 'dark.png',            'dark.png'),
+    TokenData(21, 'defender.png',        'defender.png'),
+    TokenData(22, 'defender2.png',       'defender2.png'),
+    TokenData(23, 'demongirl.png',       'demongirl.png'),
+    TokenData(24, 'dredds.png',          'dredds.png'),
+    TokenData(25, 'druid.png',           'druid.png'),
+    TokenData(26, 'dwarf1.png',          'dwarf1.png'),
+    TokenData(27, 'dwarf2.png',          'dwarf2.png'),
+    TokenData(28, 'dwarf3.png',          'dwarf3.png'),
+    TokenData(29, 'dwarfberserk.png',    'dwarfberserk.png'),
+    TokenData(30, 'elf2.png',            'elf2.png'),
+    TokenData(31, 'elfwiz.png',          'elfwiz.png'),
+    TokenData(32, 'enforcer.png',        'enforcer.png'),
+    TokenData(33, 'fancy.png',           'fancy.png'),
+    TokenData(34, 'femwarrior.png',      'femwarrior.png'),
+    TokenData(35, 'fighter.png',         'fighter.png'),
+    TokenData(36, 'fighter2.png',        'fighter2.png'),
+    TokenData(37, 'fighter3.png',        'fighter3.png'),
+    TokenData(38, 'fire.png',            'fire.png'),
+    TokenData(39, 'firemage.png',        'firemage.png'),
+    TokenData(40, 'flameman.png',        'flameman.png'),
+    TokenData(41, 'flameman2.png',       'flameman2.png'),
+    TokenData(42, 'gb.png',              'gb.png'),
+    TokenData(43, 'gelf.png',            'gelf.png'),
+    TokenData(44, 'ghoul.png',           'ghoul.png'),
+    TokenData(45, 'glowie.png',          'glowie.png'),
+    TokenData(46, 'gnome.png',           'gnome.png'),
+    TokenData(47, 'goatman.png',         'goatman.png'),
+    TokenData(48, 'goblin.png',          'goblin.png'),
+    TokenData(49, 'hooded.png',          'hooded.png'),
+    TokenData(50, 'hoodie.png',          'hoodie.png'),
+    TokenData(51, 'horned.png',          'horned.png'),
+    TokenData(52, 'jonas.png',           'jonas.png'),
+    TokenData(53, 'kevin.png',           'kevin.png'),
+    TokenData(54, 'lavaguy.png',         'lavaguy.png'),
+    TokenData(55, 'lizardbrute.png',     'lizardbrute.png'),
+    TokenData(56, 'lizardflail.png',     'lizardflail.png'),
+    TokenData(57, 'lizardguy.png',       'lizardguy.png'),
+    TokenData(58, 'lizardman.png',       'lizardman.png'),
+    TokenData(59, 'lizardspear.png',     'lizardspear.png'),
+    TokenData(60, 'loxodon-assasin.png', 'loxodon-assasin.png'),
+    TokenData(61, 'loxodon-enforcer.png','loxodon-enforcer.png'),
+    TokenData(62, 'loxodon.png',         'loxodon.png'),
+    TokenData(63, 'masked.png',          'masked.png'),
+    TokenData(64, 'maskorc.png',         'maskorc.png'),
+    TokenData(65, 'melvin.png',          'melvin.png'),
+    TokenData(66, 'misunderstood.png',   'misunderstood.png'),
+    TokenData(67, 'ogre.png',            'ogre.png'),
+    TokenData(68, 'orctough.png',        'orctough.png'),
+    TokenData(69, 'original.png',        'original.png'),
+    TokenData(70, 'pirate.png',          'pirate.png'),
+    TokenData(71, 'rough.png',           'rough.png'),
+    TokenData(72, 'saddog.png',          'saddog.png'),
+    TokenData(73, 'shazam.png',          'shazam.png'),
+    TokenData(74, 'ship.png',            'ship.png'),
+    TokenData(75, 'shoulderpads.png',    'shoulderpads.png'),
+    TokenData(76, 'skeleto.png',         'skeleto.png'),
+    TokenData(77, 'skelewiz.png',        'skelewiz.png'),
+    TokenData(78, 'smolder.png',         'smolder.png'),
+    TokenData(79, 'snakeheaded.png',     'snakeheaded.png'),
+    TokenData(80, 'snakewoman.png',      'snakewoman.png'),
+    TokenData(81, 'snooty.png',          'snooty.png'),
+    TokenData(82, 'sorceress.png',       'sorceress.png'),
+    TokenData(83, 'thief.png',           'thief.png'),
+    TokenData(84, 'thief2.png',          'thief2.png'),
+    TokenData(85, 'thorlet.png',         'thorlet.png'),
+    TokenData(86, 'troll.png',           'troll.png'),
+    TokenData(87, 'tyrone.png',          'tyrone.png'),
+    TokenData(88, 'uggh.png',            'uggh.png'),
+    TokenData(89, 'whiteorc.png',        'whiteorc.png'),
+    TokenData(90, 'wilsbeard.png',       'wilsbeard.png'),
+    TokenData(91, 'wiz.png',             'wiz.png'),
+    TokenData(92, 'wiz2.png',            'wiz2.png'),
+    TokenData(93, 'wiz3.png',            'wiz3.png'),
+    TokenData(94, 'woman.png',           'woman.png'),
+    TokenData(95, 'woman2.png',          'woman2.png'),
+    TokenData(96, 'wrestler.png',        'wrestler.png'),
+]
+
+Data = Union[StatusIconData, TerrainData, TerrainIconData, FixtureData, TokenData]
+Thing = Union[StatusIcon, Terrain, TerrainIcon, Fixture, Token]
+OutTypes = [StatusIcon, Terrain, TerrainIcon, Fixture, Token]
+ICONDIM=64
+def run_pack(data:List[Data], path_locs:Dict[str, List]) -> Image:
     proc = subprocess.Popen('Bin/pack', stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    ICONDIM=64
-    data: List[Data] = []
-    data.extend(ICONS)
-    data.extend(TERRAINS)
-    data.extend(TERRAIN_ICONS_)
-    data.extend(FIXTURES)
     boxless = []
     for i, d in enumerate(data):
         p = d.path()
@@ -236,7 +349,7 @@ def main() -> None:
             boxless.append(d)
             continue
         if 'iconorig' in p:
-            w, h = ICONDIM, ICONDIM 
+            w, h = ICONDIM, ICONDIM
         else:
             img = Image.open(p)
             w, h = img.size
@@ -246,7 +359,6 @@ def main() -> None:
     for line in proc.stdout: # type: ignore
         res.append(line.decode('utf-8').strip())
     w, h = ast.literal_eval(res[0])
-    path_locs:Dict[str, List] = {ot.key():[] for ot in OutTypes}
     out = Image.new('RGBA', (w, h))
     for line in res[1:]:
         i, x, y, w, h = ast.literal_eval(line)
@@ -261,6 +373,28 @@ def main() -> None:
     for d in boxless:
         th = d.as_thing(0, 0, 0, 0)
         path_locs[th.key()].append(list(th))
+    return out
+
+def add_deps(data, fp):
+        for d in data:
+            p = d.path()
+            if p[-1] == '/': continue
+            print(' ', p.replace(' ', r'\ '), end=' \\\n', file=fp)
+        print(file=fp)
+        for d in data:
+            p = d.path()
+            if p[-1] == '/': continue
+            print(p.replace(' ', r'\ ')+':', file=fp)
+
+def main() -> None:
+    data: List[Data] = []
+    data.extend(ICONS)
+    data.extend(TERRAINS)
+    data.extend(TERRAIN_ICONS_)
+    data.extend(FIXTURES)
+    path_locs:Dict[str, List] = {ot.key():[] for ot in OutTypes}
+    out = run_pack(data, path_locs)
+    tokout = run_pack(TOKENS, path_locs)
 
     # idk what people are using, but webp on safari
     # requires macos 11.
@@ -279,15 +413,13 @@ def main() -> None:
         print('}', file=s)
 
     with open('Depends/packed.dep', 'w') as fp:
-        print('Generated/packed.ts Generated/packed.webp Generated/packed.png Generated/packed.json: Scripts/pack.py', file=fp, end=' \\\n')
-        for d in data:
-            p = d.path()
-            if p[-1] == '/': continue
-            print(' ', p.replace(' ', r'\ '), end=' \\\n', file=fp)
-        print(file=fp)
-        for d in data:
-            p = d.path()
-            if p[-1] == '/': continue
-            print(p.replace(' ', r'\ ')+':', file=fp)
+        print('Generated/packed.ts: Scripts/pack.py', file=fp)
+        print('Generated/packed.webp Generated/packed.png Generated/packed.json: Scripts/pack.py', file=fp, end=' \\\n')
+        add_deps(data, fp)
+        print('Generated/toks.webp Generated/toks.png Generated/packed.json: Scripts/pack.py', file=fp, end=' \\\n')
+        add_deps(TOKENS, fp)
+    tokout.save('Generated/toks.webp')
+    tokout.save('Generated/toks.png')
+
 if __name__ == '__main__':
     main()

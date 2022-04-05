@@ -63,7 +63,7 @@ enum ToClient: int
     # Core messages
     # -------------
     SESSION_ID = 1
-    TOKEN_PATHS = 2
+    # 2 was TOKEN_PATHS
     # Chat messages
     # -------------
     CHAT_CLEAR = 3
@@ -610,7 +610,7 @@ struct StrippedDoorObj: array
     orientation: Orientation
 
 enum Rotation: int
-    # note: 
+    # note:
     # we might add the diagonals
     UP    = 0
     RIGHT = 2
@@ -878,7 +878,6 @@ message ToClientMsg: ToClient
     // Unique id for generating object ids clientside.
     SESSION_ID = int
     // List of what tokens are available.
-    TOKEN_PATHS = [str]
     CHAT_CLEAR = void
     CHAT_CREATE = [ChatMsg]
     CHAT_STRUCTURED_MSG = [ChatMsg]

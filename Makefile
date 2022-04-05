@@ -58,7 +58,7 @@ Generated/messages.ts WebDnD/messages.py flask_socketio.pyi: types.shared Script
 	python3 Scripts/make_enums.py
 
 .PHONY: dist.zip
-dist.zip: Generated/dungeon.html Generated/packed.webp Generated/packed.png Generated/packed.json
+dist.zip: Generated/dungeon.html Generated/packed.webp Generated/packed.png Generated/toks.webp Generated/toks.png Generated/packed.json
 	rm -rf dist dist.zip
 	mkdir -p dist
 	mkdir -p dist/packed
@@ -70,7 +70,7 @@ dist.zip: Generated/dungeon.html Generated/packed.webp Generated/packed.png Gene
 	cp login.dnd dist
 	cp login.css dist
 	cp darkmode.js dist
-	cp Generated/packed.json Generated/packed.png Generated/packed.webp dist/packed
+	cp Generated/packed.json Generated/packed.png Generated/packed.webp Generated/toks.png Generated/toks.webp dist/packed
 	cat .git/refs/heads/master > dist/githash
 	mkdir -p dist/WebDnD
 	cp WebDnD/*.py dist/WebDnD
@@ -120,8 +120,9 @@ clean:
 	$(RM) $(wildcard Generated/*) Generated/dungeon.html
 
 .PHONY: pack
-pack: Generated/packed.json Generated/packed.webp Generated/packed.ts
-Generated/packed.ts Generated/packed.json Generated/packed.webp Generated/packed.png: Scripts/pack.py Bin/pack | Generated
+pack: Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.png Generated/toks.webp
+Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.webp Generated/toks.png: Scripts/pack.py Bin/pack | Generated
 	python3 Scripts/pack.py
+Generated/packed.ts: Scripts/pack.py
 Bin/pack: C/pack.c C/stb_rect_pack.h | Bin
 	$(CC) -O3 C/pack.c -o $@ -IC -Wall -Wextra

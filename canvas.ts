@@ -397,18 +397,27 @@ type TextObj = {
 let PACKED: Packed | null = null;
 let TERRAIN_BY_ID: Map<number, Terrain> = new Map();
 let TERRAIN_ICON_BY_ID: Map<number, TerrainIcon> = new Map();
+let TOKEN_BY_PATH: Map<string, Token> = new Map();
 let PACKEDIMG = new Image();
 PACKEDIMG.addEventListener('error', function(){
     // try again with png
     PACKEDIMG.src = '/tiles/packed.png';
-}, true);
+}, {once:true});
 PACKEDIMG.src = '/tiles/packed.webp'
+let TOKENIMG = new Image();
+TOKENIMG.addEventListener('error', function(){
+    // try again with png
+    TOKENIMG.src = '/tiles/toks.png';
+}, {once:true});
+TOKENIMG.src = '/tiles/toks.webp'
 fetch('/tiles/packed.json') .then(response => response.json()) .then(data => {
     PACKED=data;
     for(let t of PACKED!.terrain)
         TERRAIN_BY_ID.set(t[0], t);
     for(let t of PACKED!.terrain_icons)
         TERRAIN_ICON_BY_ID.set(t[0], t);
+    for(let t of PACKED!.tokens)
+        TOKEN_BY_PATH.set(`/tokens/${t[1]}`, t)
 });
 
 //  ez-token
@@ -1804,6 +1813,13 @@ function add_img_token(map:DungeonMap, id:number, base_x:number, base_y:number, 
 }
 
 function delay_load_obj_image(obj:ImageObj|ImgToken, width:number, height:number, error_width:number, error_height:number){
+    if(TOKEN_BY_PATH.has(obj.url)){
+        const tok = TOKEN_BY_PATH.get(obj.url)!;
+        const img = token_to_img(tok[2], tok[3], tok[4], tok[5], width, height);
+        obj.img = img;
+        request_render();
+        return;
+    }
     const img = width && height? new Image(width, height): new Image();
     img.addEventListener('load', function(){
         obj.img = img;
@@ -5896,6 +5912,28 @@ function packed_to_img(x:number, y:number, w:number, h:number, alt:string, imw:n
     }
     return PACKED_TO_IMG_CACHE.get(key)!;
 }
+let TOKEN_TO_IMG_CACHE = new Map();
+function token_to_img(x:number, y:number, w:number, h:number, imw:number, imh:number){
+    let key;
+    if(imw) key = `${x},${y},${imw}x${imw}`;
+    else key = `${x},${y}`;
+    if(!TOKEN_TO_IMG_CACHE.has(key)){
+        let cvs = document.createElement('canvas');
+        let c = cvs.getContext('2d')!;
+        cvs.width = w;
+        cvs.height = h;
+        c.drawImage(TOKENIMG, x, y, w, h, 0, 0, w, h);
+        let durl = cvs.toDataURL();
+        let img = new Image();
+        img.src = durl;
+        if(imw){
+            img.width = imw;
+            img.height = imh;
+        }
+        TOKEN_TO_IMG_CACHE.set(key, img);
+    }
+    return TOKEN_TO_IMG_CACHE.get(key)!;
+}
 function make_terrain_palette(){
     const icons = by_id('palette-icons');
     (icons as any).replaceChildren();
@@ -6230,10 +6268,6 @@ const DEFAULT_NUMERIC_HOT_KEY = {
 };
 let numeric_hot_key = DEFAULT_NUMERIC_HOT_KEY;
 let numeric_hot_keys:Map<ToolType, NumericHotKey> = new Map();
-let token_paths: Array<string> = [];
-ONRECV(ToClient.TOKEN_PATHS, function(paths:Array<string>){
-    token_paths = paths;
-});
 function maybe_move_selection_one_unit(view:DungeonMapView, dx:number, dy:number):boolean{
     switch(snapmode){
         case SNAPMODE.FREE: break;
@@ -7325,18 +7359,18 @@ document.addEventListener('DOMContentLoaded', function(){
                     dialog.f.height.value = gridscale == GRIDSCALE.TEN?'1':'0.5';
                     dialog.f.url.value = '';
                     function add_img_buttons(){
-                        for(let path of token_paths){
-                            const button = document.createElement('button');
-                            const img = document.createElement('img');
-                            const url = `/tokens/${path}`;
-                            img.src = url;
-                            img.width = 64;
-                            img.height = 64;
-                            button.appendChild(img);
-                            gallery.appendChild(button);
-                            button.addEventListener('click', function(){
-                                dialog.f.url.value = url;
-                            });
+                        if(PACKED){
+                            for(let ti of PACKED.tokens){
+                                const button = document.createElement('button');
+                                let path = ti[1];
+                                const img = token_to_img(ti[2], ti[3], ti[4], ti[5], 64, 64);
+                                button.appendChild(img);
+                                gallery.appendChild(button);
+                                const url = `/tokens/${path}`;
+                                button.addEventListener('click', function(){
+                                    dialog.f.url.value = url;
+                                });
+                            }
                         }
                     }
                     add_img_buttons();

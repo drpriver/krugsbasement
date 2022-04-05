@@ -327,19 +327,12 @@ def record_campaign(req:Any, campaign:int) -> None:
             user_id_to_sids[current_user.userid] = []
         user_id_to_sids[current_user.userid].append(req.sid)
 
-def get_token_paths()->List[str]:
-    with open(os.path.join(appconfig.STATICDIR, 'token-list.txt'), 'r') as fp:
-        tokens = [l.strip() for l in fp if l.strip()]
-    return tokens
-
-TOKEN_PATH_LIST = get_token_paths()
 
 @socketio.on('connect')
 def handle_connection() -> None:
     session_id.value += 1
     emit(ToClient.API_VERSION, Api.VERSION)
     emit(ToClient.SESSION_ID, session_id.value)
-    emit(ToClient.TOKEN_PATHS, TOKEN_PATH_LIST)
 
 @socketio.on('disconnect')
 def handle_disconnect() -> None:
@@ -655,12 +648,6 @@ def get_campaign_request(campaign:str) -> str:
     return get_html(info)
 
 if appconfig.DEV:
-    @app.route('/tokens/<token>')
-    def get_token(token:str) -> object:
-        return send_from_directory('tokens', token)
-    @app.route('/icons/<icon>')
-    def get_icon(icon:str) -> object:
-        return send_from_directory('icons', icon)
     @app.route('/tiles/<tile>')
     def get_tile(tile:str) -> object:
         return send_from_directory('Generated', tile)
