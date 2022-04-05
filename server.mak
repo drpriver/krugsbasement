@@ -9,11 +9,14 @@ restore:
 	cp data/campaigns.db.bak data/campaigns.db
 
 .PHONY: unpack
-unpack: static/token-list static/dungeon.html WebDnD
+unpack: static/token-list static/dungeon.html WebDnD imgs/tiles/packed
 
 .PHONY: static/token-list
 static/token-list:
 	ls imgs/tokens > static/token-list.txt
+.PHONY: imgs/tiles/packed
+imgs/tiles/packed:
+	cp dist/packed/* imgs/tiles/
 
 .PHONY: static/dungeon.html
 static/dungeon.html:

@@ -58,9 +58,10 @@ Generated/messages.ts WebDnD/messages.py flask_socketio.pyi: types.shared Script
 	python3 Scripts/make_enums.py
 
 .PHONY: dist.zip
-dist.zip: Generated/dungeon.html
+dist.zip: Generated/dungeon.html Generated/packed.webp Generated/packed.png Generated/packed.json
 	rm -rf dist dist.zip
 	mkdir -p dist
+	mkdir -p dist/packed
 	cp pydndc.cpython-38-x86_64-linux-gnu.so dist
 	cp server.mak dist
 	cp Generated/dungeon.html dist
@@ -69,6 +70,7 @@ dist.zip: Generated/dungeon.html
 	cp login.dnd dist
 	cp login.css dist
 	cp darkmode.js dist
+	cp Generated/packed.json Generated/packed.png Generated/packed.webp dist/packed
 	cat .git/refs/heads/master > dist/githash
 	mkdir -p dist/WebDnD
 	cp WebDnD/*.py dist/WebDnD

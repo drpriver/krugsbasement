@@ -122,7 +122,7 @@ def write_files(tags:List[TagLoc]) -> None:
         fp.write(funcs.getvalue())
         fp.write('\n')
         fp.write('au BufEnter *.ts syn keyword Type')
-        fp.write(' number boolean Array Map Set');
+        fp.write(' string number boolean Array Map Set');
         fp.write(types.getvalue())
         fp.write('\n')
         fp.write('au BufEnter *.ts syn keyword tsConstant')
