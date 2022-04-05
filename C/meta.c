@@ -94,7 +94,7 @@ file_size_from_fp(FILE* fp){
         goto errored;
     if(fseek(fp, 0, SEEK_SET))
         goto errored;
-    fprintf(stderr, "result.result: %zu\n", result.result);
+    // fprintf(stderr, "result.result: %zu\n", result.result);
     return result;
 
     errored:
@@ -294,7 +294,7 @@ int main(int argc, char** argv){
                 }
             }
         }
-        if(da_check(&previous, sizeof(StringView)) < 0){
+        if(da_check(&previous, sizeof(StringView)) != 0){
             fprintf(stderr, "Allocation failure\n");
             return 1;
         }

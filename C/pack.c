@@ -31,7 +31,7 @@ int main(){
         assert(n==3);
     }
 
-    enum {UPPER=16000};
+    enum {UPPER=20000};
     assert(pack(UPPER/2, UPPER/2));
     int x_min=UPPER/2, y_min=UPPER/2; 
     int best=UPPER/2*UPPER/2;
@@ -56,8 +56,8 @@ int main(){
         step /= 2;
     }
 
-    // fprintf(stderr, "%d checks\n", i);
-    // fprintf(stderr, "%d,%d\n", x_min, y_min);
+    fprintf(stderr, "%d checks\n", i);
+    fprintf(stderr, "%d,%d\n", x_min, y_min);
     fprintf(stdout, "%d,%d\n", x_min, y_min);
     int packed = pack(x_min, y_min);
     assert(packed);

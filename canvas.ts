@@ -394,35 +394,22 @@ type TextObj = {
     map_id: number; // integer
 }
 
-const STATUSFLAG_NAMES = [
-    'Asleep',
-    'Bless',
-    'Blinded',
-    'Charmed',
-    'Confused',
-    'Deafened',
-    'Fear',
-    'Grappling',
-    'Haste',
-    'Invisible',
-    'OnFire',
-    'Paralyzed',
-    'Poisoned',
-    'Prone',
-    'Restrained',
-    'Stunned',
-];
-const STATUSICONSIZE = 24;
-const STATUSICONS = (function(){
-    const result = [];
-    for(let i = 0; i < STATUSFLAG_NAMES.length; i++){
-        const url = `/icons/${STATUSFLAG_NAMES[i]}.png`;
-        const img = new Image(STATUSICONSIZE, STATUSICONSIZE);
-        img.src = url;
-        result.push(img);
-    }
-    return result;
-}());
+let PACKED: Packed | null = null;
+let TERRAIN_BY_ID: Map<number, Terrain> = new Map();
+let TERRAIN_ICON_BY_ID: Map<number, TerrainIcon> = new Map();
+let PACKEDIMG = new Image();
+PACKEDIMG.addEventListener('error', function(){
+    // try again with png
+    PACKEDIMG.src = '/tiles/packed.png';
+}, true);
+PACKEDIMG.src = '/tiles/packed.webp'
+fetch('/tiles/packed.json') .then(response => response.json()) .then(data => {
+    PACKED=data;
+    for(let t of PACKED!.terrain)
+        TERRAIN_BY_ID.set(t[0], t);
+    for(let t of PACKED!.terrain_icons)
+        TERRAIN_ICON_BY_ID.set(t[0], t);
+});
 
 //  ez-token
 //  --------
@@ -616,416 +603,6 @@ type SubMap = {
     grid_type: GridType;
     title: string;
 }
-
-// TODO: something more elegant than this.
-const TERRAINS = [
-    {
-        name: "No Terrain",
-        id: 0,
-        bg_color: "#ccccccff"
-    },
-    {
-        name: "Sea",
-        id: 1,
-        bg_color: "#99ccffff"
-    },
-    {
-        name: "Beach",
-        id: 2,
-        path: "beach.png",
-        bg_color: "#fff899ff"
-    },
-    {
-        name: "Dead Forest Hills",
-        id: 3,
-        path: "deadforesthills.png",
-        bg_color: "#a0a0a0ff"
-    },
-    {
-        name: "Dead Forest Mountain",
-        id: 4,
-        path: "deadforestmountain.png",
-        bg_color: "#909090ff"
-    },
-    {
-        name: "Dead Forest Mountains",
-        id: 5,
-        path: "deadforestmountains.png",
-        bg_color: "#808080ff"
-    },
-    {
-        name: "Dead Forest",
-        id: 6,
-        path: "deadforest.png",
-        bg_color: "#b0b0b0ff"
-    },
-    {
-        name: "Dead Forest Wetlands",
-        id: 7,
-        path: "deadforestwetlands.png",
-        bg_color: "#808080ff"
-    },
-    {
-        name: "Dunes",
-        id: 8,
-        path: "dunes.png",
-        bg_color: "#ffff99ff"
-    },
-    {
-        name: "Evergreen Hills",
-        id: 9,
-        path: "evergreenhills.png",
-        bg_color: "#488a21ff"
-    },
-    {
-        name: "Evergreen Mountain",
-        id: 10,
-        path: "evergreenmountain.png",
-        bg_color: "#577621ff"
-    },
-    {
-        name: "Evergreen Mountains",
-        id: 11,
-        path: "evergreenmountains.png",
-        bg_color: "#667621ff"
-    },
-    {
-        name: "Evergreen",
-        id: 12,
-        path: "evergreen.png",
-        bg_color: "#39912dff"
-    },
-    {
-        name: "Evergreen Wetlands",
-        id: 13,
-        path: "evergreenwetlands.png",
-        bg_color: "#488a40ff"
-    },
-    {
-        name: "Forested Hills",
-        id: 14,
-        path: "forestedhills.png",
-        bg_color: "#8ebd52ff"
-    },
-    {
-        name: "Forested Mountain",
-        id: 15,
-        path: "forestedmountain.png",
-        bg_color: "#86a233ff"
-    },
-    {
-        name: "Forested Mountains",
-        id: 16,
-        path: "forestedmountains.png",
-        bg_color: "#879233ff"
-    },
-    {
-        name: "Forest Wetlands",
-        id: 18,
-        path: "forestwetlands.png",
-        bg_color: "#879253ff"
-    },
-    {
-        name: "Farmland",
-        id: 19,
-        bg_color: "#a0d867",
-    },
-    {
-        name: "Cultivated Farmland",
-        id: 17,
-        bg_color: "#a0d867",
-        path: "cultivatedfarmland.png",
-    },
-    {
-        name: "Rich Grassland",
-        id: 20,
-        path: "grassland.png",
-        bg_color: "#a0d867",
-    },
-    {
-        name: "Glacier",
-        id: 21,
-        path: "glacier.png",
-        bg_color: "#e6ffffff"
-    },
-    {
-        name: "Grassland Hills",
-        id: 22,
-        path: "grasslandhills.png",
-        bg_color: "#d7f796ff"
-    },
-    {
-        name: "Grassland",
-        id: 23,
-        path: "grassland.png",
-        bg_color: "#e7f79cff"
-    },
-    {
-        name: "Grassy Hills",
-        id: 25,
-        path: "grassyhills.png",
-        bg_color: "#c3d263ff"
-    },
-    {
-        name: "Heavy Cactus",
-        id: 26,
-        path: "heavycactus.png",
-        bg_color: "#b2b200ff"
-    },
-    {
-        name: "Heavy Evergreen",
-        id: 27,
-        path: "heavyevergreen.png",
-        bg_color: "#2f7621ff"
-    },
-    {
-        name: "Heavy Forest",
-        id: 29,
-        path: "heavyforest.png",
-        bg_color: "#7aad43ff"
-    },
-    {
-        name: "Hills",
-        id: 30,
-        path: "hills.png",
-        bg_color: "#e7ce5aff"
-    },
-    {
-        name: "Iceflow",
-        id: 31,
-        path: "iceflow.png",
-        bg_color: "#cbffffff"
-    },
-    {
-        name: "Jungle Hills",
-        id: 32,
-        path: "junglehills.png",
-        bg_color: "#468552ff"
-    },
-    {
-        name: "Light Jungle",
-        id: 33,
-        path: "junglelight.png",
-        bg_color: "#559e64ff"
-    },
-    {
-        name: "Jungle Mountain",
-        id: 34,
-        path: "junglemountain.png",
-        bg_color: "#3f7b4aff"
-    },
-    {
-        name: "Jungle Mountains",
-        id: 35,
-        path: "junglemountains.png",
-        bg_color: "#367142ff"
-    },
-    {
-        name: "Jungle",
-        id: 36,
-        path: "jungle.png",
-        bg_color: "#4d8f5aff"
-    },
-    {
-        name: "Jungle Wetlands",
-        id: 37,
-        path: "junglewetlands.png",
-        bg_color: "#46855cff"
-    },
-    {
-        name: "Heavy Kelp Forest",
-        id: 38,
-        path: "kelpforestheavy.png",
-        bg_color: "#99f0ffff"
-    },
-    {
-        name: "Kelp Forest",
-        id: 39,
-        path: "kelpforest.png",
-        bg_color: "#99e0ffff"
-    },
-    {
-        name: "Lava",
-        id: 40,
-        path: "lava.png",
-        bg_color: "#ff9900ff"
-    },
-    {
-        name: "Light Forest",
-        id: 41,
-        path: "lightforest.png",
-        bg_color: "#95c663ff"
-    },
-    {
-        name: "Marsh",
-        id: 42,
-        path: "marsh.png",
-        bg_color: "#84ce94ff"
-    },
-    {
-        name: "Heavy Mixed Forest",
-        id: 43,
-        path: "mixedforestheavy.png",
-        bg_color: "#4f8a3bff"
-    },
-    {
-        name: "Mixed Forest Hills",
-        id: 44,
-        path: "mixedforesthills.png",
-        bg_color: "#74a33aff"
-    },
-    {
-        name: "Mixed Forest Mountain",
-        id: 45,
-        path: "mixedforestmountain.png",
-        bg_color: "#69872bff"
-    },
-    {
-        name: "Mixed Forest Mountains",
-        id: 46,
-        path: "mixedforestmountains.png",
-        bg_color: "#74852bff"
-    },
-    {
-        name: "Mixed Forest",
-        id: 47,
-        path: "mixedforest.png",
-        bg_color: "#4f9e45ff"
-    },
-    {
-        name: "Moor",
-        id: 48,
-        path: "moor.png",
-        bg_color: "#a0d79dff"
-    },
-    {
-        name: "Mountain",
-        id: 49,
-        path: "mountain.png",
-        bg_color: "#c68f00ff"
-    },
-    {
-        name: "Mountains",
-        id: 50,
-        path: "mountains.png",
-        bg_color: "#b28000ff"
-    },
-    {
-        name: "Reefs",
-        id: 51,
-        path: "reefs.png",
-        bg_color: "#99ccffff"
-    },
-    {
-        name: "Rocky Desert",
-        id: 52,
-        path: "rockydesert.png",
-        bg_color: "#f0e171ff"
-    },
-    {
-        name: "Sand Desert",
-        id: 53,
-        path: "sandydesert.png",
-        bg_color: "#f8f085ff"
-    },
-    {
-        name: "Savanna",
-        id: 54,
-        path: "savanna.png",
-        bg_color: "#d2f896ff"
-    },
-    {
-        name: "Shrubland Hills",
-        id: 55,
-        path: "shrublandhills.png",
-        bg_color: "#dadc71ff"
-    },
-    {
-        name: "Shrubland",
-        id: 56,
-        path: "shrubland.png",
-        bg_color: "#dadc80ff"
-    },
-    {
-        name: "Snowcapped Mountain",
-        id: 57,
-        path: "snowcappedmountain.png",
-        bg_color: "#c68f00ff"
-    },
-    {
-        name: "Snowcapped Mountains",
-        id: 58,
-        path: "snowcappedmountains.png",
-        bg_color: "#b28000ff"
-    },
-    {
-        name: "Snowfields",
-        id: 59,
-        path: "snowfields.png",
-        bg_color: "#ffffffff"
-    },
-    {
-        name: "Swamp",
-        id: 60,
-        path: "swamp.png",
-        bg_color: "#addea5ff"
-    },
-    {
-        name:"Broken",
-	    id: 61,
-	    path: "brokenlands.png",
-	    bg_color: "#c59d34ff",
-    },
-]
-const TERRAIN_INFOS: Map<number, TerrainInfo> = (function(){
-    const m: Map<number, TerrainInfo> = new Map();
-    for(let t of TERRAINS){
-        const info: TerrainInfo = {color:t.bg_color, name:t.name};
-        if(t.path){
-            const img = new Image();
-            img.src = `/tiles/${t.path}`;
-            info.img = img;
-        }
-        m.set(t.id, info);
-    }
-    return m;
-}());
-
-const TERRAIN_ICONS_ = [
-    {id: 0, path:"town.png"},
-    {id: 1, path:"temple.png"},
-    {id: 2, path:"tower.png"},
-    {id: 3, path:"village.png"},
-    {id: 4, path:"cave.png"},
-    {id: 5, path:"castle.png"},
-    {id: 6, path:"ruins.png"},
-    {id: 7, path:"ruinedcity.png"},
-    {id: 8, path:"shrine.png"},
-    {id: 9, path:"totem.png"},
-    {id: 10, path:"fort.png"},
-    {id: 11, path:"pyramid.png"},
-    {id: 12, path:"port.png"},
-    {id: 13, path:"landmark.png"},
-    {id: 14, path:"city.png"},
-    {id: 15, path:"clanmoot.png"},
-    {id: 16, path:"palace.png"},
-    {id: 17, path:"statue.png"},
-    {id: 18, path:"cathedral.png"},
-    {id: 19, path:"camp.png"},
-    {id: 20, path:"church.png"},
-    {id: 21, path:"crossbones.png"},
-    {id: 22, path:"dungeon.png"},
-    {id: 23, path:"windmill.png"},
-];
-const TERRAIN_ICONS: Map<number, HTMLImageElement> = (function(){
-    const m = new Map();
-    for(let ti of TERRAIN_ICONS_){
-        const img = new Image();
-        img.src = `/tiles/${ti.path}`;
-        m.set(ti.id, img);
-    }
-    return m;
-}());
 
 type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj | FilledTile | TerrainTile | IconTile | SubMap;
 
@@ -4213,9 +3790,11 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 return onchange;
             }
 
-            for(let i = 0; i < STATUSFLAG_NAMES.length; i++){
+            if(PACKED)
+            for(let i = 0; i < PACKED.status_icons.length; i++){
+                const si = PACKED.status_icons[i];
                 const flag = 1 << i;
-                const name = STATUSFLAG_NAMES[i];
+                const name = si[1];
                 const d = document.createElement('div');
                 const inp = document.createElement('input');
                 inp.type = 'checkbox';
@@ -4225,7 +3804,8 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 if(flags_before & flag)
                     inp.checked = true;
                 const label = document.createElement('label');
-                label.appendChild(STATUSICONS[i]);
+                let img = packed_to_img(si[2], si[3], si[4], si[5], si[1], 16, 16);
+                label.appendChild(img);
                 label.appendChild(document.createTextNode(name));
                 label.htmlFor = fullname;
                 inp.addEventListener('change', make_handler(inp, flag));
@@ -4276,9 +3856,11 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 }
                 return onchange;
             }
-            for(let i = 0; i < STATUSFLAG_NAMES.length; i++){
+            if(PACKED)
+            for(let i = 0; i < PACKED.status_icons.length; i++){
+                const si = PACKED.status_icons[i];
                 const flag = 1 << i;
-                const name = STATUSFLAG_NAMES[i];
+                const name = si[1];
                 const d = document.createElement('div');
                 const inp = document.createElement('input');
                 inp.type = 'checkbox';
@@ -4288,7 +3870,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 if(flags_before & flag)
                     inp.checked = true;
                 const label = document.createElement('label');
-                label.appendChild(STATUSICONS[i]);
+                label.appendChild(packed_to_img(si[2], si[3], si[4], si[5], si[1], 16, 16));
                 label.appendChild(document.createTextNode(name));
                 label.htmlFor = fullname;
                 inp.addEventListener('change', make_handler(inp, flag));
@@ -4355,12 +3937,6 @@ function request_render():void{
     // only call this from here to avoid double renders.
     requestAnimationFrame(render);
 }
-let RUBBLEIMAGE: HTMLImageElement | null = new Image();
-RUBBLEIMAGE.addEventListener('error', function(){
-    RUBBLEIMAGE = null;
-});
-if(RUBBLEIMAGE)
-    RUBBLEIMAGE.src = '/imgs/rubble.png';
 const timings: Array<number> = [];
 // It's kind of janky, but so that hexmaps and staggered squares
 // are just two views of the same data, we stretch the resulting
@@ -4494,26 +4070,28 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
                 ctx.save();
                 const is_selected = selected.has(obj.id);
-                const info = TERRAIN_INFOS.get(obj.terrain_id) || TERRAIN_INFOS.get(0)!;
-                if(is_selected)
-                    ctx.fillStyle = SELECTED_COLOR;
-                else
-                    ctx.fillStyle = info.color;
-                ctx.translate(obj.base_x, obj.base_y);
-                ctx.fill(p);
-                if(info.img){
-                    ctx.save();
-                    ctx.translate(4, 4);
-                    ctx.scale(56/250, 56/250);
-                    ctx.drawImage(info.img, 0, 0);
-                    ctx.restore();
-                }
-                if(map.flags & MapFlags.NUMBERED){
-                    if(info.color == '#000000')
-                        ctx.fillStyle = '#ffffff';
+                const info = TERRAIN_BY_ID.get(obj.terrain_id);
+                if(info){
+                    if(is_selected)
+                        ctx.fillStyle = SELECTED_COLOR;
                     else
-                        ctx.fillStyle = '#000000';
-                    ctx.fillText(`${obj.base_x>>6},${obj.base_y>>6}`, 32, 63);
+                        ctx.fillStyle = info[2];
+                    ctx.translate(obj.base_x, obj.base_y);
+                    ctx.fill(p);
+                    if(info[5]){
+                        ctx.save();
+                        ctx.translate(4, 4);
+                        ctx.scale(56/250, 56/250);
+                        ctx.drawImage(PACKEDIMG, info[3], info[4], info[5], info[6], 0, 0, 250, 250);
+                        ctx.restore();
+                    }
+                    if(map.flags & MapFlags.NUMBERED){
+                        if(info[2] == '#000000')
+                            ctx.fillStyle = '#ffffff';
+                        else
+                            ctx.fillStyle = '#000000';
+                        ctx.fillText(`${obj.base_x>>6},${obj.base_y>>6}`, 32, 63);
+                    }
                 }
                 ctx.restore();
             }
@@ -4548,21 +4126,23 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     continue;
                 }
                 const is_selected = selected.has(obj.id);
-                const info = TERRAIN_INFOS.get(obj.terrain_id) || TERRAIN_INFOS.get(0)!;
-                if(is_selected)
-                    ctx.fillStyle = SELECTED_COLOR;
-                else
-                    ctx.fillStyle = info.color;
-                ctx.fillRect(obj.base_x, obj.base_y, REFERENCE.WIDTH, REFERENCE.WIDTH);
-                if(info.img){
-                    ctx.drawImage(info.img, obj.base_x, obj.base_y, 64, 64);
-                }
-                if(map.flags & MapFlags.NUMBERED){
-                    if(info.color == '#000000')
-                        ctx.fillStyle = '#ffffff';
+                const info = TERRAIN_BY_ID.get(obj.terrain_id);
+                if(info){
+                    if(is_selected)
+                        ctx.fillStyle = SELECTED_COLOR;
                     else
-                        ctx.fillStyle = '#000000';
-                    ctx.fillText(`${obj.base_x>>6},${obj.base_y>>6}`, obj.base_x+32, obj.base_y+64);
+                        ctx.fillStyle = info[2]
+                    ctx.fillRect(obj.base_x, obj.base_y, REFERENCE.WIDTH, REFERENCE.WIDTH);
+                    if(info[5]){
+                        ctx.drawImage(PACKEDIMG, info[3], info[4], info[5], info[6], obj.base_x, obj.base_y, 64, 64);
+                    }
+                    if(map.flags & MapFlags.NUMBERED){
+                        if(info[2] == '#000000')
+                            ctx.fillStyle = '#ffffff';
+                        else
+                            ctx.fillStyle = '#000000';
+                        ctx.fillText(`${obj.base_x>>6},${obj.base_y>>6}`, obj.base_x+32, obj.base_y+64);
+                    }
                 }
             }
         }
@@ -4636,18 +4216,21 @@ function render(timestamp:DOMHighResTimeStamp):void{
         ctx.scale(1, HEX_Y_FIX);
     let length = canvas_obj_array.length;
     function draw_status_icons(token_bbox: Bbox, statusflags: TokenStatusFlags, scale:number){
+        const enum STATUSICONSIZE {_ = 24};
         let sx = token_bbox.x0;
-        let sy = token_bbox.y1-STATUSICONSIZE*scale;
-        for(let i = 0; i < STATUSFLAG_NAMES.length; i++){
+        let sy = token_bbox.y1-STATUSICONSIZE._*scale;
+        if(!PACKED)
+            return;
+        for(let i = 0; i < PACKED.status_icons.length; i++){
             const flag = 1 << i;
             if(!(statusflags & flag))
                 continue;
-            const img = STATUSICONS[i];
-            ctx.drawImage(img, sx, sy, STATUSICONSIZE*scale, STATUSICONSIZE*scale);
-            sx += STATUSICONSIZE*scale;
+            const si = PACKED.status_icons[i];
+            ctx.drawImage(PACKEDIMG, si[2], si[3], si[4], si[5], sx, sy, STATUSICONSIZE._*scale, STATUSICONSIZE._*scale);
+            sx += STATUSICONSIZE._*scale;
             if(sx >= token_bbox.x1){
                 sx = token_bbox.x0;
-                sy -= STATUSICONSIZE*scale;
+                sy -= STATUSICONSIZE._*scale;
             }
         }
     }
@@ -5877,8 +5460,9 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.strokeStyle = sel_color;
                             ctx.strokeRect(bx, by, obj.width, obj.height);
                         }
-                        if(RUBBLEIMAGE){
-                            ctx.drawImage(RUBBLEIMAGE, bx, by, obj.width, obj.height);
+                        if(PACKED){
+                            const ri = PACKED.fixtures[0];
+                            ctx.drawImage(PACKEDIMG, ri[2], ri[3], ri[4], ri[5], bx, by, obj.width, obj.height);
                         }
                     }break;
                 }
@@ -5890,13 +5474,13 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 // drawn already
             }break;
             case CanvasType.ICON_TILE:{
-                const icon = TERRAIN_ICONS.get(obj.terrainicon_id);
+                const icon = TERRAIN_ICON_BY_ID.get(obj.terrainicon_id);
                 if(is_selected){
                     ctx.fillStyle = sel_color+'aa';
                     ctx.fillRect(bx+4, by+4, 56, 56);
                 }
                 if(icon)
-                    ctx.drawImage(icon, bx+4, by+4, 56, 56);
+                    ctx.drawImage(PACKEDIMG, icon[2], icon[3], icon[4], icon[5], bx+4, by+4, 56, 56);
             }break;
             case CanvasType.SUBMAP:{
                 ctx.save();
@@ -6285,6 +5869,33 @@ function hide_palette(){
     const palette = by_id('palette');
     palette.style.display = 'none';
 }
+
+let PACKED_TO_IMG_CACHE = new Map();
+function packed_to_img(x:number, y:number, w:number, h:number, alt:string, imw:number, imh:number){
+    let key;
+    if(imw) key = `${x},${y},${imw}x${imw}`;
+    else key = `${x},${y}`;
+    if(!PACKED_TO_IMG_CACHE.has(key)){
+        let cvs = document.createElement('canvas');
+        let c = cvs.getContext('2d')!;
+        cvs.width = w;
+        cvs.height = h;
+        c.drawImage(PACKEDIMG, x, y, w, h, 0, 0, w, h);
+        let durl = cvs.toDataURL();
+        let img = new Image();
+        img.src = durl;
+        if(alt.length){
+            img.alt = alt;
+            img.title = alt;
+        }
+        if(imw){
+            img.width = imw;
+            img.height = imh;
+        }
+        PACKED_TO_IMG_CACHE.set(key, img);
+    }
+    return PACKED_TO_IMG_CACHE.get(key)!;
+}
 function make_terrain_palette(){
     const icons = by_id('palette-icons');
     (icons as any).replaceChildren();
@@ -6295,22 +5906,25 @@ function make_terrain_palette(){
         return cb;
     }
     by_id('palette').style.display = 'block';
-    for(const [id, ti] of TERRAIN_INFOS.entries()){
-        const inp = document.createElement('input');
-        inp.type = 'radio';
-        inp.name = 'terrain';
-        inp.id = `terrain-${ti.name}`;
-        const label = document.createElement('label');
-        label.htmlFor = inp.id;
-        label.style.backgroundColor = ti.color;
-        if(ti.img)
-            label.appendChild(ti.img);
-        icons.appendChild(inp);
-        icons.appendChild(label);
-        label.addEventListener('pointerdown', make_cb(id));
-        if(id == current_terrain_id){
-            label.click();
-            label.scrollIntoView();
+    if(PACKED){
+        const terrains = PACKED.terrain;
+        for(let terr of terrains){
+            const inp = document.createElement('input');
+            inp.type = 'radio';
+            inp.name = 'terrain';
+            inp.id = `terrain-${terr[1]}`;
+            const label = document.createElement('label');
+            label.htmlFor = inp.id;
+            label.style.backgroundColor = terr[2];
+            if(terr[5])
+                label.appendChild(packed_to_img(terr[3], terr[4], terr[5], terr[6], terr[1], 0, 0));
+            icons.appendChild(inp);
+            icons.appendChild(label);
+            label.addEventListener('pointerdown', make_cb(terr[0]));
+            if(terr[0] == current_terrain_id){
+                label.click();
+                label.scrollIntoView();
+            }
         }
     }
     palette_top();
@@ -6325,19 +5939,20 @@ function make_terrain_icon_palette(){
         return cb;
     }
     by_id('palette').style.display = 'block';
-    for(const [id, img] of TERRAIN_ICONS.entries()){
+    if(PACKED)
+    for(let ti of PACKED.terrain_icons){
         const inp = document.createElement('input');
         inp.type = 'radio';
         inp.name = 'terrain';
-        inp.id = `terrain-icon-${id}`;
+        inp.id = `terrain-icon-${ti[0]}`;
         const label = document.createElement('label');
         label.htmlFor = inp.id;
         label.style.backgroundColor = '#e7f79c';
-        label.appendChild(img);
+        label.appendChild(packed_to_img(ti[2], ti[3], ti[4], ti[5], ti[1], 0, 0));
         icons.appendChild(inp);
         icons.appendChild(label);
-        label.addEventListener('pointerdown', make_cb(id));
-        if(id == current_terrain_icon_id){
+        label.addEventListener('pointerdown', make_cb(ti[0]));
+        if(ti[0] == current_terrain_icon_id){
             label.click();
             label.scrollIntoView();
         }

@@ -655,9 +655,6 @@ def get_campaign_request(campaign:str) -> str:
     return get_html(info)
 
 if appconfig.DEV:
-    @app.route('/imgs/<img>')
-    def get_img(img:str) -> object:
-        return send_from_directory('imgs', img)
     @app.route('/tokens/<token>')
     def get_token(token:str) -> object:
         return send_from_directory('tokens', token)
@@ -666,7 +663,7 @@ if appconfig.DEV:
         return send_from_directory('icons', icon)
     @app.route('/tiles/<tile>')
     def get_tile(tile:str) -> object:
-        return send_from_directory('tiles', tile)
+        return send_from_directory('Generated', tile)
     @app.route('/wasm/<wasm>')
     def get_wasm(wasm:str) -> object:
         logging.info('wasm: %r', wasm)
@@ -680,6 +677,10 @@ if appconfig.DEV:
         logging.info('campaign: %r - %r', campaign, msg)
         msg: ChatPlainMsg = (Msg.PLAIN, '', str(msg), )
         emit(ToClient.CHAT_STRUCTURED_MSG, [msg])
+else:
+    @socketio.on(FromClient.DEBUG)
+    def log_debug(msg:str) -> None:
+        return
 
 _last_log_num = 0
 def log_connections() -> None:

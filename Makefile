@@ -8,7 +8,8 @@ include $(DEPFILES)
 TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError --strictFunctionTypes
 TSFILES:= internal_listeners.ts toplevel.ts chat.ts canvas.ts notes.ts utils.ts Generated/messages.ts \
 	  interp.ts storage.ts Generated/nodes.ts dialogs.ts \
-	  Generated/dialogdefs.ts subwindows.ts Generated/subwindowdefs.ts macros.ts
+	  Generated/dialogdefs.ts subwindows.ts Generated/subwindowdefs.ts macros.ts \
+	  Generated/packed.ts
 ifneq ($(LOCALTSC),)
 Generated/combined.js: $(TSFILES) | Generated
 	$(LOCALTSC) $^ $(TSCFLAGS) --outFile $@
@@ -105,7 +106,7 @@ mypy: flask_socketio.pyi
 	mypy -p WebDnD.app --namespace-packages --ignore-missing-imports --disallow-untyped-defs
 
 Bin/meta: C/meta.c | Bin
-	$(CC) $< -o $@ -IC
+	$(CC) $< -o $@ -IC -Wall -Wextra
 # there should be a rule that this generates dialogdefs.ts
 Generated/subwindowdefs.ts Generated/dialogdefs.ts Generated/dungeon.temp.html: dungeon.dnd | Generated
 	dndc $< --output Generated/dungeon.temp.html --strip-spaces --allow-js-write
@@ -117,8 +118,8 @@ clean:
 	$(RM) $(wildcard Generated/*) Generated/dungeon.html
 
 .PHONY: pack
-pack: Generated/packed.json Generated/packed.png Generated/packed.ts
-Generated/packed.ts Generated/packed.json Generated/packed.png: Scripts/pack.py Bin/pack | Generated
+pack: Generated/packed.json Generated/packed.webp Generated/packed.ts
+Generated/packed.ts Generated/packed.json Generated/packed.webp Generated/packed.png: Scripts/pack.py Bin/pack | Generated
 	python3 Scripts/pack.py
 Bin/pack: C/pack.c C/stb_rect_pack.h | Bin
-	$(CC) -O3 C/pack.c -o $@ -IC
+	$(CC) -O3 C/pack.c -o $@ -IC -Wall -Wextra
