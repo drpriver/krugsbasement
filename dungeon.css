@@ -641,6 +641,9 @@ html, body {
   height: 10ex;
   resize: none;
 }
+textarea {
+  resize: none;
+}
 canvas {
   -webkit-user-select: none;
   user-select: none;
