@@ -376,12 +376,12 @@ def join(room:str) -> None:
 @socketio.on(FromClient.POST_JOIN)
 def post_join() -> None:
     campaign = get_campaign(request)
+    emit(ToClient.CANVAS_INITIALIZE_MAPS, canvas.get_state(campaign))
     emit(ToClient.CHAT_CLEAR)
     emit(ToClient.CHAT_CREATE, chat.get_history(campaign))
     privmsgs = chat.get_private_history(current_user.userid, campaign)
     # dlog('privmsgs: %s', privmsgs)
     emit(ToClient.CHAT_PRIVATE_CREATE, chat.get_private_history(current_user.userid, campaign))
-    emit(ToClient.CANVAS_INITIALIZE_MAPS, canvas.get_state(campaign))
     emit(ToClient.NOTES_INITIALIZE, notes.get_notes_for_room(campaign))
     userids = db.get_users_in_campaign(campaign)
     userlist = []

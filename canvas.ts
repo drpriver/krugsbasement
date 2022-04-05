@@ -3965,10 +3965,12 @@ function fmod(a:number, n:number){
 function render(timestamp:DOMHighResTimeStamp):void{
     // console.log('render', performance.now());
     const before = SHOW_FPS?performance.now():0;
+    // console.log('ctx?', !!ctx);
     if(!ctx)
         return;
     ctx.imageSmoothingQuality = 'medium';
     const view = get_active_view();
+    // console.log('view?', !!view);
     if(!view)
         return;
     view.resize.handles = [];
