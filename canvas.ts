@@ -4193,10 +4193,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
         let grid_max_x = width/SCALE;
         let grid_max_y = height/SCALE;
         for(let x = grid_base_x; x < grid_max_x; x+= REFERENCE.HALF_WIDTH){
-            ctx.fillRect(x, 0, 1/SCALE, height/SCALE);
+            ctx.fillRect(x, 0, 1, height/SCALE);
         }
         for(let y = grid_base_y; y < grid_max_y; y+= REFERENCE.HALF_WIDTH){
-            ctx.fillRect(0, y, width/SCALE, 1/SCALE);
+            ctx.fillRect(0, y, width/SCALE, 1);
         }
     }
     else{
@@ -4205,10 +4205,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
         let grid_max_x = width/SCALE;
         let grid_max_y = height/SCALE;
         for(let x = grid_base_x; x < grid_max_x; x+= REFERENCE.WIDTH){
-            ctx.fillRect(x, 0, 1/SCALE, height/SCALE);
+            ctx.fillRect(x, 0, 1, height/SCALE);
         }
         for(let y = grid_base_y; y < grid_max_y; y+= REFERENCE.WIDTH){
-            ctx.fillRect(0, y, width/SCALE, 1/SCALE);
+            ctx.fillRect(0, y, width/SCALE, 1);
         }
     }
     ctx.translate(camera_x, camera_y);
