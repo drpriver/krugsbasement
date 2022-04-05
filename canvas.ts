@@ -4209,10 +4209,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
         let grid_max_x = width/SCALE;
         let grid_max_y = height/SCALE;
         for(let x = grid_base_x; x < grid_max_x; x+= REFERENCE.HALF_WIDTH){
-            ctx.fillRect(x, 0, 1, height/SCALE);
+            ctx.fillRect(x, 0, 0.5, height/SCALE);
         }
         for(let y = grid_base_y; y < grid_max_y; y+= REFERENCE.HALF_WIDTH){
-            ctx.fillRect(0, y, width/SCALE, 1);
+            ctx.fillRect(0, y, width/SCALE, 0.5);
         }
     }
     else{

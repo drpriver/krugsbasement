@@ -38,7 +38,7 @@ appconfig.py:
 
 
 .PHONY: run
-run: Generated/dungeon.html token-list WebDnD/messages.py | appconfig.py
+run: Generated/dungeon.html WebDnD/messages.py | appconfig.py
 	. venv/bin/activate && python3 -m WebDnD.app
 
 Generated/dungeon.html: client.dnd Generated/combined.js | Depends Depends/Generated
@@ -79,9 +79,6 @@ dist.zip: Generated/dungeon.html Generated/packed.webp Generated/packed.png Gene
 	zip -r dist dist
 	rm -rf dist
 
-.PHONY: token-list
-token-list:
-	ls tokens > Generated/token-list.txt
 .PHONY: shrink-tokens
 shrink-tokens:
 	python3 shrink_tokens.py
