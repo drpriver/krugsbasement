@@ -361,6 +361,7 @@ enum CanvasType: int
     TERRAIN_TILE  = 16
     ICON_TILE     = 17
     SUBMAP        = 18
+    SHAPE         = 19
 
 #
 # flags
@@ -375,6 +376,7 @@ enum CanvasFlag: int flag
     duplicate SUBMAP_IS_MINIMIZED = FLAG_A
     duplicate TEXT_LINKS_TO_SUBMAP = FLAG_B
     duplicate TEXT_HAS_BACKGROUND = FLAG_C
+    // Use straight connections instead of quadratic curves
 
 
 //  freehand-line
@@ -415,6 +417,23 @@ struct StrippedGridLine: array
     color: color
     # points are just raw x,y pairs in a flat array.
     points: [float]
+
+// shape
+// -----
+// A shape is a shape enclosed by an arbitrary sequence of points
+struct StrippedShape: array
+    type = CanvasType.SHAPE
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    color: color
+    color2: color # can be empty, color of interior
+    # points are just raw x,y pairs in a flat array.
+    points: [float]
+    thickness: float
 
 //  rectangle
 //  ---------
@@ -769,6 +788,7 @@ union StrippedObj: array
     StrippedTerrainTile
     StrippedIconTile
     StrippedSubMap
+    StrippedShape
 
 
 // GridType

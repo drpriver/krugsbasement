@@ -536,6 +536,10 @@ David20::title #hide
       <b>R</b>ect
     ::div.tool-menu #id(rect-tool-menu)
       ☰
+    ::div.tool #id(shape-tool)
+      Shape
+    ::div.tool-menu #id(shape-tool-menu)
+      ☰
     ::div.tool #id(ellipse-tool)
       Elli<b>p</b>se
     ::div.tool-menu #id(ellipse-tool-menu)

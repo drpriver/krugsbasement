@@ -245,6 +245,50 @@ type FreehandLine = {
     last_bx?:number;
     last_by?:number;
 }
+
+// shape
+// -----
+// A shape is a shape enclosed by an arbitrary sequence of points.
+// The points are interpolated together
+// with quadratic curves.
+type Shape = {
+    type: CanvasType.SHAPE; // SHAPE
+    id: number;
+    base_x: number;
+    base_y: number;
+    flags: CanvasFlag;
+    hidinguser: number;
+    submap: number;
+    color: string;
+    color2: string;
+    // points are just raw x,y pairs in a flat array.
+    points: Array<number>;
+    path?: Path2D;
+    bbox: Bbox;
+    thickness: number;
+    // These are a hack to know if the path got invalidated.
+    last_bx?:number;
+    last_by?:number;
+}
+
+const enum ShapeType {
+    SOLID_SHAPE = 0,
+    FILLED_SHAPE = 1,
+}
+const enum SHAPETYPE {
+    MAX = 2,
+}
+const SHAPETYPE_TO_NAME = [
+    'Solid',
+    'Filled',
+];
+
+const SHAPETYPE_TO_SHORT_NAME = [
+    'Solid',
+    'Filled',
+];
+
+let current_shape = ShapeType.SOLID_SHAPE;
 //  grid-line
 //  ---------
 //  A grid line are straight line-fragments whose points snap
@@ -613,7 +657,7 @@ type SubMap = {
     title: string;
 }
 
-type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj | FilledTile | TerrainTile | IconTile | SubMap;
+type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj | FilledTile | TerrainTile | IconTile | SubMap | Shape;
 
 // Door subtypes
 // ------------
@@ -1185,11 +1229,34 @@ function make_freehand_line(id:number, base_x:number, base_y:number, submap:numb
     };
     return obj;
 }
+function make_shape(id:number, base_x:number, base_y:number, submap:number, color:string, color2:string, thickness:number):Shape {
+    // nearest tenth seems good enough to get smooth lines
+    base_x = Math.round(base_x*10)/10;
+    base_y = Math.round(base_y*10)/10;
+    const obj: Shape =  {
+        type: CanvasType.SHAPE,
+        id: id,
+        base_x: base_x,
+        base_y: base_y,
+        flags: CanvasFlag.NONE,
+        hidinguser: hiddenid(),
+        submap: submap,
+        points: [],
+        color: color,
+        color2: color2,
+        path: undefined,
+        bbox: { x0: 0, y0: 0, x1: 0, y1: 0, },
+        thickness: thickness,
+        last_bx:undefined,
+        last_by:undefined,
+    };
+    return obj;
+}
 function add_freehand_line(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string, thickness:number):void{
     const obj = make_freehand_line(id, base_x, base_y, submap, color, thickness);
     add_canv_obj(map, obj);
 }
-function add_freehand_point(obj:FreehandLine, x:number, y:number):void{
+function add_freehand_point(obj:FreehandLine|Shape, x:number, y:number):void{
     x -= obj.base_x;
     y -= obj.base_y;
     // x = Math.round(x);
@@ -1220,7 +1287,7 @@ function add_freehand_point(obj:FreehandLine, x:number, y:number):void{
     }
     obj.path = undefined;
 }
-function freehand_recalculate_bbox(obj:FreehandLine):void{
+function freehand_recalculate_bbox(obj:FreehandLine|Shape):void{
     const points = obj.points;
     const length = points.length;
     obj.bbox.x0 = 0;
@@ -1245,6 +1312,27 @@ function freehand_recalculate_bbox(obj:FreehandLine):void{
     }
 }
 function freehand_recalculate_path(obj:FreehandLine, base_x:number, base_y:number):void{
+    const points = obj.points;
+    let x0 = base_x;
+    let y0 = base_y;
+    const length = points.length;
+    const path = new Path2D();
+    path.moveTo(x0, y0);
+    for(let i = 0; i < length; i+=2){
+        const x1 = points[i] + base_x
+        const y1 = points[i+1] + base_y;
+        const xc = (x0+x1)/2;
+        const yc = (y0+y1)/2;
+        path.quadraticCurveTo(x0, y0, xc, yc);
+        x0 = x1;
+        y0 = y1;
+    }
+    if(length > 2){
+        path.quadraticCurveTo(points[length-4]+base_x, points[length-3]+base_y, x0, y0);
+    }
+    obj.path = path;
+}
+function shape_recalculate_path(obj:Shape, base_x:number, base_y:number):void{
     const points = obj.points;
     let x0 = base_x;
     let y0 = base_y;
@@ -2251,6 +2339,7 @@ function rotate_rectangleish(obj:Rectangleish){
 // checking I need to return a value.
 function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
     switch(obj.type){
+        case CanvasType.SHAPE: // fall-through
         case CanvasType.FREEHAND_LINE:{
             rotate_base(obj);
             const length = obj.points.length;
@@ -2655,6 +2744,7 @@ function update_selection(view:DungeonMapView, x0:number, y0:number, x1:number, 
 // FIXME: this shouldn't be looking at selection type, hoist to the caller.
 function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_type:SELECTTYPE):boolean{
     switch(obj.type){
+        case CanvasType.SHAPE: // hack
         case CanvasType.FREEHAND_LINE:
         case CanvasType.GRID_LINE:{
             if(!(selection_type & SELECTTYPE.MAP))
@@ -3238,6 +3328,11 @@ function strip_obj(obj:CanvasObject): StrippedObj{
             const stripped_obj: StrippedSubMap = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.width, obj.height, obj.tlx, obj.tly, obj.grid_type, obj.title]
             return stripped_obj;
         }break;
+        case CanvasType.SHAPE:{
+            const stripped_obj: StrippedShape =
+                [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.color2, Array.from(obj.points), obj.thickness];
+            return stripped_obj;
+        }break;
     }
 }
 //
@@ -3536,6 +3631,27 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             };
             return obj;
         }break;
+        case CanvasType.SHAPE:{
+            const obj:Shape = {
+                type: CanvasType.SHAPE,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                submap: sobj[INDEX.SUBMAP],
+                // typescript  is being dumb here
+                color: (sobj as StrippedShape)[7],
+                color2: (sobj as StrippedShape)[8],
+                points: (sobj as StrippedShape)[9],
+                thickness: (sobj as StrippedShape)[10],
+                bbox:{x0:0, x1:0, y0:0, y1:0}
+            };
+            obj.points = Array.from(obj.points),
+            freehand_recalculate_bbox(obj);
+            obj.path = undefined;
+            return obj;
+            }break;
     }
 }
 
@@ -3545,6 +3661,7 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
 //
 function set_obj_from_stripped(obj: CanvasObject, state:StrippedObj){
     switch(obj.type){
+        case CanvasType.SHAPE:
         case CanvasType.FREEHAND_LINE:{
             const o = unstrip_obj(state);
             Object.assign(obj, o);
@@ -3669,6 +3786,8 @@ function edit_is_impossible(view:DungeonMapView):boolean{
             return true;
         case CanvasType.SUBMAP:
             return false;
+        case CanvasType.SHAPE:
+            return true;
     }
 }
 function launch_edit_dialog(view:DungeonMapView):void{
@@ -5616,6 +5735,44 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     });
                 }
             }break;
+            case CanvasType.SHAPE:{
+                // This works well enough for now.
+                // If things get hairy, I could build a quadtree or whatever.
+                const line_bbox = {
+                    x0:obj.bbox.x0 + bx,
+                    y0:obj.bbox.y0 + by,
+                    x1:obj.bbox.x1 + bx,
+                    y1:obj.bbox.y1 + by,
+                };
+                if(!bbox_overlaps(canvas_bbox, line_bbox)){
+                    break;
+                }
+                if(obj.last_bx !== bx || obj.last_by !== by)
+                    obj.path = undefined;
+                if(!obj.path){
+                    obj.last_bx = bx;
+                    obj.last_by = by;
+                    shape_recalculate_path(obj, bx, by);
+                }
+                const oldcap = ctx.lineCap;
+                const oldjoin = ctx.lineJoin;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                if(is_selected){
+                    ctx.lineWidth=obj.thickness+4;
+                    ctx.strokeStyle = sel_color;
+                    ctx.stroke(obj.path!);
+                }
+                ctx.lineWidth = obj.thickness;
+                ctx.strokeStyle = obj.color;
+                ctx.stroke(obj.path!);
+                if(obj.color2.length){
+                    ctx.fillStyle = obj.color2;
+                    ctx.fill(obj.path!);
+                }
+                ctx.lineCap = oldcap;
+                ctx.lineJoin = oldjoin;
+            }break;
         }
     }
     ctx.globalAlpha = 1;
@@ -5715,6 +5872,7 @@ const enum ToolType {
     FIXTURE = 12,
     TILE    = 13,
     SUBMAP  = 14,
+    SHAPE   = 15,
 }
 const TOOL_IDS_TO_TOOL = (function(){
     const m: Map<string, ToolType> = new Map();
@@ -5733,6 +5891,7 @@ const TOOL_IDS_TO_TOOL = (function(){
     m.set('fixture-tool', ToolType.FIXTURE);
     m.set('tile-tool',    ToolType.TILE);
     m.set('submap-tool',  ToolType.SUBMAP);
+    m.set('shape-tool', ToolType.SHAPE);
     return m;
 }());
 const TOOL_TO_TOOL_ID = [
@@ -5766,6 +5925,8 @@ const TOOL_TO_TOOL_ID = [
     'tile-tool',
     // ToolType.SUBMAP
     'submap-tool',
+    // ToolType.SHAPE
+    'shape-tool',
 ];
 let current_fixture_type = FixtureType.STAIRS;
 const enum TOKENTYPE {
@@ -6266,6 +6427,9 @@ document.addEventListener('DOMContentLoaded', function():void{
                             break;
                     }
                 }, TileType_TO_NAME, TileType_TO_NAME, TileType_MAX);
+            break;
+            case ToolType.SHAPE:
+                setup_multi_option(toolel, 'shape-tool-menu', ToolType.SHAPE, function(i:number){current_shape=i}, SHAPETYPE_TO_NAME, SHAPETYPE_TO_SHORT_NAME, SHAPETYPE.MAX);
             break;
             default:
             break;
@@ -7003,6 +7167,42 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.removeEventListener('pointerleave', finish_point);
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
+                }
+                window.addEventListener('pointerup', finish_point);
+                canvas.addEventListener('pointerleave', finish_point);
+            }break;
+            case ToolType.SHAPE:{
+                let id = get_new_id();
+                let thickness = 4;
+                let color1 = get_primary_color();
+                let color2 = '';
+                switch(current_shape){
+                    case ShapeType.SOLID_SHAPE:
+                        color2 = color1;
+                        break;
+                    case ShapeType.FILLED_SHAPE:
+                        color2 = get_secondary_color();
+                        break;
+                }
+                let [x0, y0] = event_to_coord_off(e, view, smoff);
+                let o = make_shape(id, x0, y0, submapid, color1, color2, thickness);
+                add_canv_obj(view.map, o);
+                function add_point(e:MouseEvent){
+                    e.stopPropagation();
+                    e.preventDefault();
+                    let [x1, y1] = event_to_coord_off(e, view, smoff);
+                    add_freehand_point(o, x1, y1);
+                    request_render();
+                }
+                canvas.addEventListener('pointermove', add_point);
+                function finish_point(){
+                    canvas.removeEventListener('pointermove', add_point);
+                    window.removeEventListener('pointerup', finish_point);
+                    canvas.removeEventListener('pointerleave', finish_point);
+                    add_freehand_point(o, x0, y0);
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
+                    request_render();
                 }
                 window.addEventListener('pointerup', finish_point);
                 canvas.addEventListener('pointerleave', finish_point);
