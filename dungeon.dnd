@@ -311,15 +311,21 @@ David20::title #hide
     <table class='input-container'>
       <tr>
         <td>${label('name', 'Map Name:')}
-        <td>${textbox('name')}
+        <td colspan=4>${textbox('name')}
       </tr>
       <tr>
         <td>${label('hex-grid', 'Hex Grid')}
         <td>${checkbox('hex-grid')}
+        <td>${label('grid-color', 'Grid Color')}
+        <td>${colorbox('grid-color')}
+        <td>${textbox('grid-color-text')}
       </tr>
       <tr>
         <td>${label('no-grid', 'No Grid')}
         <td>${checkbox('no-grid')}
+        <td>${label('bg-color', 'Bg Color')}
+        <td>${colorbox('bg-color')}
+        <td>${textbox('bg-color-text')}
       </tr>
       <tr>
         <td>${label('numbered', 'Numbered')}

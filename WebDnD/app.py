@@ -16,7 +16,7 @@ from . import chat
 from . import canvas
 from . import notes
 from .persist import Persister, RepeatTimer, AppKVPersister
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg
 from .validator import register_list, validated
 from . import db
 from .users import User
@@ -191,6 +191,7 @@ def campa() -> object:
             cid = int(cid)
             if not db.user_owns_campaign(uid, cid):
                 return abort(400)
+            logging.info('Creating magic link for %r', cid)
             magic = db.make_invite_link(cid)
             return flask.jsonify({'magic': magic})
         if action == 'revokemagic':
@@ -201,6 +202,7 @@ def campa() -> object:
                 return abort(400)
             magic = body['magic']
             magic = int(magic)
+            logging.info('Revoking magic link for %r', cid)
             db.revoke_invite_link(cid, magic)
             return flask.jsonify({})
     except Exception as e:
@@ -459,13 +461,17 @@ def new_map_request(data:NewMapRequest) -> None:
     map_name:str = data['name']
     grid_type = data['grid_type']
     flags = data['flags']
+    grid_color = data['grid_color']
+    bg_color = data['bg_color']
     campaign = get_campaign(request)
-    new_map_id = canvas.new_map_request(campaign, map_name, grid_type, flags)
+    new_map_id = canvas.new_map_request(campaign, map_name, grid_type, flags, grid_color)
     logging.info('new map: %r for campaign %r, with name: %r', new_map_id, campaign, map_name)
     emit(ToClient.CANVAS_CREATE_MAP, new_map_id, broadcast=True, include_self=True, to=str(campaign))
     emit(ToClient.CANVAS_NAME_MAP, {'map_id':new_map_id, 'map_name':map_name}, broadcast=True, include_self=True, to=str(campaign))
     emit(ToClient.CANVAS_GRID_TYPE, {'map_id':new_map_id, 'grid_type':grid_type}, broadcast=True, include_self=True, to=str(campaign))
     emit(ToClient.CANVAS_GRID_NUMBERED, {'map_id':new_map_id, 'numbered':flags}, broadcast=True, include_self=True, to=str(campaign))
+    emit(ToClient.CANVAS_GRID_COLOR, {'map_id':new_map_id, 'color':grid_color}, broadcast=True, include_self=True, to=str(campaign))
+    emit(ToClient.CANVAS_BG_COLOR, {'map_id':new_map_id, 'color':bg_color}, broadcast=True, include_self=True, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_GRID_TYPE)
 @validated
@@ -476,6 +482,26 @@ def change_grid_type(data:CanvasGridTypeMsg) -> None:
     logging.info('Changing grid type to %r for map %r in campaign %r', gt, map_id, campaign)
     canvas.change_grid_type(campaign, map_id, gt)
     emit(ToClient.CANVAS_GRID_TYPE, {'map_id':map_id, 'grid_type':gt}, broadcast=True, include_self=True, to=str(campaign))
+
+@socketio.on(FromClient.CANVAS_GRID_COLOR)
+@validated
+def change_grid_color(data:CanvasColorMsg) -> None:
+    map_id = data['map_id']
+    grid_color = data['color']
+    campaign = get_campaign(request)
+    logging.info('Changing grid color to %r for map %r in campaign %r', grid_color, map_id, campaign)
+    canvas.change_grid_color(campaign, map_id, grid_color)
+    emit(ToClient.CANVAS_GRID_COLOR, {'map_id':map_id, 'color':grid_color}, broadcast=True, include_self=True, to=str(campaign))
+
+@socketio.on(FromClient.CANVAS_BG_COLOR)
+@validated
+def change_bg_color(data:CanvasColorMsg) -> None:
+    map_id = data['map_id']
+    bg_color = data['color']
+    campaign = get_campaign(request)
+    logging.info('Changing bg color to %r for map %r in campaign %r', bg_color, map_id, campaign)
+    canvas.change_bg_color(campaign, map_id, bg_color)
+    emit(ToClient.CANVAS_BG_COLOR, {'map_id':map_id, 'color':bg_color}, broadcast=True, include_self=True, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_GRID_NUMBERED)
 @validated

@@ -831,6 +831,8 @@ const MapOptionElements: Map<number, HTMLOptionElement> = new Map();
 type DungeonMap = {
     map_id: number; // integer
     grid_type: GridType;
+    grid_color: string;
+    bg_color: string;
     map_name: string;
     flags: MapFlags;
     canvas_obj_array: Array<CanvasObject>;
@@ -991,6 +993,8 @@ function get_map(map_id:number): DungeonMap {
         map_id: map_id,
         map_name: 'Untitled',
         grid_type: GridType.SQUARE,
+        grid_color: '',
+        bg_color: '',
         flags: MapFlags.NONE,
         // TODO: these shouldn't be on the map itself, this prevents having multiple
         // dungeon_map_views into the same map.
@@ -1061,6 +1065,17 @@ ONRECV(ToClient.CANVAS_GRID_NUMBERED, function(data:CanvasGridNumberedMsg){
         map.flags |= MapFlags.NUMBERED
     else
         map.flags &= ~(MapFlags.NUMBERED);
+    request_render();
+});
+ONRECV(ToClient.CANVAS_GRID_COLOR, function(data:CanvasColorMsg){
+    const map = get_map(data.map_id);
+    map.grid_color = data.color;
+    request_render();
+});
+
+ONRECV(ToClient.CANVAS_BG_COLOR, function(data:CanvasColorMsg){
+    const map = get_map(data.map_id);
+    map.bg_color = data.color;
     request_render();
 });
 
@@ -2490,7 +2505,7 @@ function delete_map(map_id:number){
 
 // cutnpaste from below. TODO: factor these.
 
-ONRECV(ToClient.CANVAS_INITIALIZE_MAPS, function(msgs:Array<{map_id:number; map_name:string; objects:Array<StrippedObj>; flags:MapFlags; grid_type:GridType}>){
+ONRECV(ToClient.CANVAS_INITIALIZE_MAPS, function(msgs:Array<InitializeMap>){
     // Clear
     {
         for(let m of MAPS.values())
@@ -2515,6 +2530,8 @@ ONRECV(ToClient.CANVAS_INITIALIZE_MAPS, function(msgs:Array<{map_id:number; map_
         const map = view.map;
         map.flags = msg.flags;
         map.grid_type = msg.grid_type;
+        map.grid_color = msg.grid_color;
+        map.bg_color = msg.bg_color;
         rename_map(map, msg.map_name);
         const objs = msg.objects;
         const length = objs.length;
@@ -3984,6 +4001,9 @@ function render(timestamp:DOMHighResTimeStamp):void{
     let background = '#ffffff';
     if(DARKMODE)
         background = '#333333';
+    let cvs_bg = map.bg_color.length? map.bg_color : background;
+    if(canvas.style.backgroundColor != cvs_bg)
+        canvas.style.backgroundColor = cvs_bg;
     const SELECTED_COLOR = '#33ffdd';
     const COULD_SELECT_COLOR = '#aaccaa';
     const hovered_id = view.hovered_id;
@@ -4167,7 +4187,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
         ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
     ctx.scale(SCALE, SCALE);
-    ctx.fillStyle = 'rgb(150, 150, 150)';
+    ctx.fillStyle = map.grid_color.length?map.grid_color:'rgb(150, 150, 150)';
     if(map.grid_type & GridType.NOGRID){
     }
     else if(map.grid_type & GridType.HEX){
@@ -4176,7 +4196,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
             let grid_base_x = fmod(camera_x, REFERENCE.WIDTH*2);
             ctx.lineWidth = 1;
             // ctx.strokeStyle = '#000000';
-            ctx.strokeStyle = '#888888';
+            ctx.strokeStyle = map.grid_color.length?map.grid_color:'#888888';
             grid_base_x -= REFERENCE.WIDTH;
             const half = REFERENCE.WIDTH/2;
             const full = REFERENCE.WIDTH;
@@ -7936,6 +7956,22 @@ document.addEventListener('DOMContentLoaded', function(){
         if(!dialog) return;
         dialog.title.textContent = 'Edit Map';
         dialog.f.name.value = active_view.map.map_name;
+        dialog.f['grid-color'].value = active_view.map.grid_color.length?active_view.map.grid_color:'#969696';
+        dialog.f['grid-color-text'].value = active_view.map.grid_color;
+        dialog.f['grid-color'].onchange = function(){
+            dialog.f['grid-color-text'].value = dialog.f['grid-color'].value;
+        };
+        dialog.f['grid-color-text'].oninput = function(){
+            dialog.f['grid-color'].value = dialog.f['grid-color-text'].value;
+        };
+        dialog.f['bg-color'].value = active_view.map.bg_color;
+        dialog.f['bg-color-text'].value = active_view.map.bg_color;
+        dialog.f['bg-color'].onchange = function(){
+            dialog.f['bg-color-text'].value = dialog.f['bg-color'].value;
+        };
+        dialog.f['bg-color-text'].oninput = function(){
+            dialog.f['bg-color'].value = dialog.f['bg-color-text'].value;
+        };
         const hg = dialog.f['hex-grid'];
         const ng = dialog.f['no-grid']
         hg.checked = !!(active_view.map.grid_type & GridType.HEX);
@@ -7961,6 +7997,16 @@ document.addEventListener('DOMContentLoaded', function(){
             if((active_view.map.flags & MapFlags.NUMBERED) != flags){
                 let msg : CanvasGridNumberedMsg = {map_id:active_view.map.map_id, numbered:flags};
                 EMIT(FromClient.CANVAS_GRID_NUMBERED, msg);
+            }
+            let grid_color = dialog.f['grid-color-text'].value;
+            if(active_view.map.grid_color != grid_color){
+                let msg : CanvasColorMsg = {map_id:active_view.map.map_id, color:grid_color};
+                EMIT(FromClient.CANVAS_GRID_COLOR, msg);
+            }
+            let bg_color = dialog.f['bg-color-text'].value;
+            if(active_view.map.bg_color != bg_color){
+                let msg : CanvasColorMsg = {map_id:active_view.map.map_id, color:bg_color};
+                EMIT(FromClient.CANVAS_BG_COLOR, msg);
             }
         };
         dialog.show();
@@ -7995,6 +8041,22 @@ document.addEventListener('DOMContentLoaded', function(){
         if(!dialog) return;
         dialog.title.textContent = 'New Map';
         dialog.f.name.value = '';
+        dialog.f['grid-color'].value = '#969696';
+        dialog.f['grid-color'].onchange = function(){
+            dialog.f['grid-color-text'].value = dialog.f['grid-color'].value;
+        };
+        dialog.f['grid-color-text'].oninput = function(){
+            dialog.f['grid-color'].value = dialog.f['grid-color-text'].value;
+        };
+        dialog.f['grid-color-text'].value = '';
+        dialog.f['bg-color'].value = '#ffffff'
+        dialog.f['bg-color'].onchange = function(){
+            dialog.f['bg-color-text'].value = dialog.f['bg-color'].value;
+        };
+        dialog.f['bg-color-text'].oninput = function(){
+            dialog.f['bg-color'].value = dialog.f['bg-color-text'].value;
+        };
+        dialog.f['bg-color-text'].value = '';
         const hg = dialog.f['hex-grid'];
         const ng = dialog.f['no-grid']
         hg.checked = false;
@@ -8012,7 +8074,9 @@ document.addEventListener('DOMContentLoaded', function(){
             let flags = MapFlags.NONE;
             if(numbered.checked)
                 flags |= MapFlags.NUMBERED
-            let msg: NewMapRequest = {name:value, grid_type:gt, flags:flags};
+            let grid_color = dialog.f['grid-color-text'].value;
+            let bg_color = dialog.f['bg-color-text'].value
+            let msg: NewMapRequest = {name:value, grid_type:gt, flags, grid_color, bg_color};
             EMIT(FromClient.CANVAS_NEW_MAP_REQUEST, msg);
         };
         dialog.show();

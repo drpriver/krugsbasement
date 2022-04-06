@@ -1,0 +1,11 @@
+created: 2022-04-05T21:38:33Z
+updated: 2022-04-06T05:31:00Z
+resolved: 2022-04-06T19:15:45Z
+bugmagic^^^^
+Created Apr 05, 2022, 05:38PM::md.update
+Summary::md.summary
+  Grids should be colorable.
+Updated Apr 06, 2022, 01:31AM::md.update
+  Probably the background too.
+Resolved Apr 06, 2022, 03:15PM::md.update
+  Implemented.

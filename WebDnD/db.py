@@ -13,7 +13,7 @@ atexit.register(lambda: (logging.info('closing db'), conn.close())) # type: igno
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 10
+DBVERSION = 12
 with conn:
     conn.execute("PRAGMA encoding = 'UTF-8';")
     conn.execute('PRAGMA foreign_keys = ON;')
@@ -249,6 +249,24 @@ def setup_tables() -> None:
             SET objects = ?
             WHERE campaignid = ? AND mapid = ?;
             ''',(objs_, campid, mapid))
+    if version < 11:
+        conn.execute('''
+        ALTER TABLE
+            maps
+        ADD COLUMN
+            grid_color TEXT
+        DEFAULT ''
+        ;
+        ''')
+    if version < 12:
+        conn.execute('''
+        ALTER TABLE
+            maps
+        ADD COLUMN
+            bg_color TEXT
+        DEFAULT ''
+        ;
+        ''')
 
 
 
@@ -445,22 +463,24 @@ def save_private_chat_msg(campaignid:int, msgtype:int, chatname:str, data:Any, c
         ;
         ''', (campaignid, msgtype, chatname, created, data, userid, to))
 
-def save_map(id:int, map_id:int, map_name:str, objects:list, flags:int, grid_type:int) -> None:
+def save_map(id:int, map_id:int, map_name:str, objects:list, flags:int, grid_type:int, grid_color:str, bg_color:str) -> None:
     blob = json.dumps(objects, separators=(',',':'))
     with DBLOCK, conn:
         conn.execute('''
             INSERT INTO
-                maps(campaignid, mapid, name, objects, flags, grid_type)
+                maps(campaignid, mapid, name, objects, flags, grid_type, grid_color, bg_color)
             VALUES
-                (?, ?, ?, ?, ?, ?)
+                (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(campaignid, mapid)
             DO UPDATE SET
                 name      = excluded.name,
                 objects   = excluded.objects,
                 flags     = excluded.flags,
-                grid_type = excluded.grid_type
+                grid_type = excluded.grid_type,
+                grid_color = excluded.grid_color,
+                bg_color = excluded.bg_color
             ;
-        ''', (id, map_id, map_name, blob, flags, grid_type))
+        ''', (id, map_id, map_name, blob, flags, grid_type, grid_color, bg_color))
 def map_convert(row:tuple) -> dict:
     result = dict(
         map_id = row[1],
@@ -468,6 +488,8 @@ def map_convert(row:tuple) -> dict:
         objects = json.loads(row[3]),
         flags = row[4],
         grid_type = row[5],
+        grid_color = row[6],
+        bg_color = row[7],
     )
     return result
 

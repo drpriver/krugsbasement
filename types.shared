@@ -34,6 +34,8 @@ enum FromClient: int
     CANVAS_NEW_MAP_REQUEST = 15
     CANVAS_GRID_TYPE = 16
     CANVAS_GRID_NUMBERED = 17
+    CANVAS_GRID_COLOR = 31
+    CANVAS_BG_COLOR = 32
     CANVAS_DELETE_MAP_REQUEST = 18
     CANVAS_BATTLE = 19
     CANVAS_DUNGEON_MODE = 20
@@ -91,6 +93,8 @@ enum ToClient: int
     CANVAS_NAME_MAP = 14
     CANVAS_GRID_TYPE = 15
     CANVAS_GRID_NUMBERED = 16
+    CANVAS_GRID_COLOR = 36
+    CANVAS_BG_COLOR = 37
     CANVAS_DELETE_MAP = 17
     CANVAS_BATTLE = 18
     CANVAS_DUNGEON_MODE = 19
@@ -807,6 +811,8 @@ struct NewMapRequest: dict
     name: str
     grid_type : GridType
     flags: MapFlags
+    grid_color: color
+    bg_color: color
 
 struct CanvasGridTypeMsg: dict
     map_id: int
@@ -814,6 +820,10 @@ struct CanvasGridTypeMsg: dict
 struct CanvasGridNumberedMsg: dict
     map_id: int
     numbered: MapFlags
+
+struct CanvasColorMsg: dict
+    map_id: int
+    color: color
 
 struct NoteUpdateTitle: dict
     note_id: int
@@ -843,6 +853,8 @@ struct InitializeMap: dict
     objects: [StrippedObj]
     flags: MapFlags
     grid_type: GridType
+    grid_color: color
+    bg_color: color
 
 enum NOTEFLAGS: int flag
     NONE = 0
@@ -897,6 +909,8 @@ message ToClientMsg: ToClient
     CANVAS_NAME_MAP = NameMapMessage
     CANVAS_GRID_TYPE = CanvasGridTypeMsg
     CANVAS_GRID_NUMBERED = CanvasGridNumberedMsg
+    CANVAS_GRID_COLOR = CanvasColorMsg
+    CANVAS_BG_COLOR = CanvasColorMsg
     CANVAS_DELETE_MAP = int
     CANVAS_BATTLE = GatherMessage
     CANVAS_DUNGEON_MODE = void
@@ -931,6 +945,8 @@ message FromClientMsg: FromClient
     CANVAS_NEW_MAP_REQUEST = NewMapRequest
     CANVAS_GRID_TYPE = CanvasGridTypeMsg
     CANVAS_GRID_NUMBERED = CanvasGridNumberedMsg
+    CANVAS_GRID_COLOR = CanvasColorMsg
+    CANVAS_BG_COLOR = CanvasColorMsg
     CANVAS_DELETE_MAP_REQUEST = int
     CANVAS_BATTLE = GatherMessage
     CANVAS_DUNGEON_MODE = void

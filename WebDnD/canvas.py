@@ -6,16 +6,12 @@ else:
 from .persist import Persister, Dummy
 from enum import IntFlag, IntEnum
 from .logs import logging
-from .messages import CreateObjectMessage, StrippedObj, CanvasFlag, MapFlags, GridType, CanvasDeleteMessage, CanvasUpdateMessage, CreateObjectsMessage
+from .messages import CreateObjectMessage, StrippedObj, CanvasFlag, MapFlags, GridType, CanvasDeleteMessage, CanvasUpdateMessage, CreateObjectsMessage, InitializeMap
 from . import db
 import appconfig
 
-class MapDict(TypedDict):
-    map_id: int
-    objects: List[StrippedObj]
-    map_name: str
-    flags: MapFlags
-    grid_type: GridType
+MapDict = InitializeMap
+
 
 class Map(NamedTuple):
     map_id: int
@@ -23,6 +19,8 @@ class Map(NamedTuple):
     map_name: str
     flags: MapFlags = MapFlags.NONE
     grid_type: GridType = GridType.SQUARE
+    grid_color: str = ''
+    bg_color: str = ''
     def with_live_objs(self) -> MapDict:
         md: MapDict = self._asdict() # type: ignore
         md['objects'] = [o for o in md['objects'] if not (o[4] & CanvasFlag.DELETED)]
@@ -82,6 +80,14 @@ def change_grid_type(campaign:int, map_id:int, grid_type:GridType) -> None:
     m = MAPS[campaign][map_id]
     MAPS[campaign][map_id].value = m.value._replace(grid_type=grid_type)
 
+def change_grid_color(campaign:int, map_id:int, grid_color:str) -> None:
+    m = MAPS[campaign][map_id]
+    MAPS[campaign][map_id].value = m.value._replace(grid_color=grid_color)
+
+def change_bg_color(campaign:int, map_id:int, bg_color:str) -> None:
+    m = MAPS[campaign][map_id]
+    MAPS[campaign][map_id].value = m.value._replace(bg_color=bg_color)
+
 def set_numbered(campaign:int, map_id:int, numbered:MapFlags) -> None:
     m = MAPS[campaign][map_id]
     if numbered & MapFlags.NUMBERED:
@@ -90,9 +96,9 @@ def set_numbered(campaign:int, map_id:int, numbered:MapFlags) -> None:
         flags = m.value.flags & ~(MapFlags.NUMBERED)
     MAPS[campaign][map_id].value = m.value._replace(flags=flags)
 
-def new_map_request(campaign:int, map_name:str, grid_type:GridType, flags:MapFlags) -> int:
+def new_map_request(campaign:int, map_name:str, grid_type:GridType, flags:MapFlags, grid_color:str) -> int:
     new_map_id = max(MAPS[campaign].keys()) + 1
-    MAPS[campaign][new_map_id] = SingleMapPersister(campaign, Map(new_map_id, [], map_name, grid_type=grid_type, flags=flags)).obj
+    MAPS[campaign][new_map_id] = SingleMapPersister(campaign, Map(new_map_id, [], map_name, grid_type=grid_type, flags=flags, grid_color=grid_color)).obj
     MAP_OBJS_BY_ID[campaign][new_map_id] = {}
     return new_map_id
 
@@ -155,7 +161,7 @@ def handle_update(campaign:int, data:CanvasUpdateMessage) -> CanvasUpdateMessage
     MAPS[campaign][map_id].dirty = True
     return data
 
-def get_state(campaign:int) -> list:
+def get_state(campaign:int) -> List[MapDict]:
     assert isinstance(campaign, int)
     return save_canvas({k:v.value for k, v in MAPS[campaign].items()})
 
