@@ -655,6 +655,8 @@ type SubMap = {
     tly: number;
     grid_type: GridType;
     title: string;
+    grid_color: string;
+    bg_color: string;
 }
 
 type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj | FilledTile | TerrainTile | IconTile | SubMap | Shape;
@@ -3325,7 +3327,7 @@ function strip_obj(obj:CanvasObject): StrippedObj{
             return stripped_obj;
         }break;
         case CanvasType.SUBMAP:{
-            const stripped_obj: StrippedSubMap = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.width, obj.height, obj.tlx, obj.tly, obj.grid_type, obj.title]
+            const stripped_obj: StrippedSubMap = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.width, obj.height, obj.tlx, obj.tly, obj.grid_type, obj.title, obj.grid_color, obj.bg_color]
             return stripped_obj;
         }break;
         case CanvasType.SHAPE:{
@@ -3628,6 +3630,8 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 tly: (sobj as StrippedSubMap)[10],
                 grid_type: (sobj as StrippedSubMap)[11],
                 title: (sobj as StrippedSubMap)[12],
+                grid_color: (sobj as StrippedSubMap)[13],
+                bg_color: (sobj as StrippedSubMap)[14],
             };
             return obj;
         }break;
@@ -4060,18 +4064,34 @@ function launch_edit_dialog(view:DungeonMapView):void{
             let dialog = get_dialog('submap');
             if(!dialog) return;
             dialog.title.textContent = 'Submap';
+            const orig_grid_color = obj.grid_color;
+            const orig_bg_color = obj.bg_color;
             dialog.f['sm-title'].value = obj.title;
+            link_input_value(obj.grid_color, dialog.f['grid-color'], 'onchange', dialog.f['grid-color-text'], 'oninput', function(){
+                obj.grid_color = dialog.f['grid-color-text'].value;
+                request_render();
+            });
+            link_input_value(obj.bg_color, dialog.f['bg-color'], 'onchange', dialog.f['bg-color-text'], 'oninput', function(){
+                obj.bg_color = dialog.f['bg-color-text'].value;
+                request_render();
+            });
             dialog.show_handler = function(){
             };
             dialog.ok_handler = function(){
                 const title = dialog.f['sm-title'].value.trim();
-                if(title !== obj.title){
+                const changed = title !== obj.title || orig_grid_color !== obj.grid_color || orig_bg_color !== obj.bg_color;
+                if(changed){
                     obj.title = title;
                     const after = strip_obj(obj);
                     publish_obj_updates(view.map.map_id, [after]);
                     request_render();
                 }
             };
+            dialog.cancel_handler = function(){
+                obj.grid_color = orig_grid_color;
+                obj.bg_color = orig_bg_color;
+                request_render();
+            }
             dialog.show();
         }return;
     }
@@ -5661,7 +5681,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.strokeRect(bx-2, by-2, obj.width+4, obj.height+4);
                 }
                 ctx.lineWidth=4;
-                ctx.fillStyle = BACKGROUND;
+                ctx.fillStyle = obj.bg_color.length?obj.bg_color:BACKGROUND;
                 if(obj.flags & CanvasFlag.SUBMAP_IS_MINIMIZED)
                     ctx.fillRect(bx, by, obj.width, 64);
                 else
@@ -5676,12 +5696,12 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         let box = new Path2D();
                         box.rect(bx+2/SCALE, by+2/SCALE, obj.width-4/SCALE, obj.height-4/SCALE);
                         ctx.clip(box);
-                        ctx.fillStyle = 'rgb(150, 150, 150)';
+                        ctx.fillStyle = obj.grid_color.length?obj.grid_color:'rgb(150, 150, 150)';
                         for(let dx = 0; dx < obj.width; dx += REFERENCE.WIDTH){
-                            ctx.fillRect(bx+dx, by+64, 1/SCALE, obj.height-64);
+                            ctx.fillRect(bx+dx, by+64, 1, obj.height-64);
                         }
                         for(let dy = 0; dy < obj.height; dy += REFERENCE.WIDTH){
-                            ctx.fillRect(bx, by+dy, obj.width, 1/SCALE);
+                            ctx.fillRect(bx, by+dy, obj.width, 1);
                         }
                     }
                 }
@@ -7840,6 +7860,8 @@ document.addEventListener('DOMContentLoaded', function(){
                     tlx: 0, tly:0,
                     grid_type: GridType.SQUARE,
                     title: "Untitled",
+                    grid_color: '',
+                    bg_color: '',
                 };
                 add_canv_obj(view.map, submap);
                 request_render();
@@ -8152,62 +8174,66 @@ document.addEventListener('DOMContentLoaded', function(){
         e.stopPropagation();
         e.preventDefault();
         const active_view = get_active_view();
+        const map = active_view.map;
         let dialog = get_dialog('map-input');
         if(!dialog) return;
         dialog.title.textContent = 'Edit Map';
-        dialog.f.name.value = active_view.map.map_name;
-        dialog.f['grid-color'].value = active_view.map.grid_color.length?active_view.map.grid_color:'#969696';
-        dialog.f['grid-color-text'].value = active_view.map.grid_color;
-        dialog.f['grid-color'].onchange = function(){
-            dialog.f['grid-color-text'].value = dialog.f['grid-color'].value;
-        };
-        dialog.f['grid-color-text'].oninput = function(){
-            dialog.f['grid-color'].value = dialog.f['grid-color-text'].value;
-        };
-        dialog.f['bg-color'].value = active_view.map.bg_color;
-        dialog.f['bg-color-text'].value = active_view.map.bg_color;
-        dialog.f['bg-color'].onchange = function(){
-            dialog.f['bg-color-text'].value = dialog.f['bg-color'].value;
-        };
-        dialog.f['bg-color-text'].oninput = function(){
-            dialog.f['bg-color'].value = dialog.f['bg-color-text'].value;
-        };
+        dialog.f.name.value = map.map_name;
+        const orig_grid_color = map.grid_color;
+        link_input_value(orig_grid_color.length?orig_grid_color:'#969696',
+            dialog.f['grid-color'], 'onchange', dialog.f['grid-color-text'], 'oninput', function(){
+                map.grid_color = dialog.f['grid-color-text'].value;
+                request_render();
+            });
+        const orig_bg_color = map.bg_color;
+        link_input_value(orig_bg_color.length?orig_bg_color:'#ffffff',
+            dialog.f['bg-color'], 'onchange', dialog.f['bg-color-text'], 'oninput', function(){
+                map.bg_color = dialog.f['bg-color-text'].value;
+                request_render();
+            });
         const hg = dialog.f['hex-grid'];
         const ng = dialog.f['no-grid']
-        hg.checked = !!(active_view.map.grid_type & GridType.HEX);
-        ng.checked = !!(active_view.map.grid_type & GridType.NOGRID);
-        dialog.f.numbered.checked = !!(active_view.map.flags & MapFlags.NUMBERED);
+        hg.checked = !!(map.grid_type & GridType.HEX);
+        ng.checked = !!(map.grid_type & GridType.NOGRID);
+        dialog.f.numbered.checked = !!(map.flags & MapFlags.NUMBERED);
         dialog.ok_handler = function(){
             const value = dialog.f.name.value.trim();
             if(!value) return;
-            if(value != active_view.map.map_name){
-                rename_map(active_view.map, value);
-                let msg: NameMapMessage = {map_id:active_view.map.map_id, map_name:value};
+            if(value != map.map_name){
+                rename_map(map, value);
+                let msg: NameMapMessage = {map_id:map.map_id, map_name:value};
                 EMIT(FromClient.CANVAS_NAME_MAP, msg);
             }
             let gt = hg.checked? GridType.HEX : GridType.SQUARE;
             if(ng.checked) gt |= GridType.NOGRID;
-            if(active_view.map.grid_type != gt){
-                let msg: CanvasGridTypeMsg = {map_id:active_view.map.map_id, grid_type:gt};
+            if(map.grid_type != gt){
+                let msg: CanvasGridTypeMsg = {map_id:map.map_id, grid_type:gt};
                 EMIT(FromClient.CANVAS_GRID_TYPE, msg);
             }
             let flags = MapFlags.NONE;
             if(dialog.f.numbered.checked)
                 flags |= MapFlags.NUMBERED
-            if((active_view.map.flags & MapFlags.NUMBERED) != flags){
-                let msg : CanvasGridNumberedMsg = {map_id:active_view.map.map_id, numbered:flags};
+            if((map.flags & MapFlags.NUMBERED) != flags){
+                let msg : CanvasGridNumberedMsg = {map_id:map.map_id, numbered:flags};
                 EMIT(FromClient.CANVAS_GRID_NUMBERED, msg);
             }
             let grid_color = dialog.f['grid-color-text'].value;
-            if(active_view.map.grid_color != grid_color){
-                let msg : CanvasColorMsg = {map_id:active_view.map.map_id, color:grid_color};
+            if(grid_color == '#969696') grid_color = '';
+            if(orig_grid_color != grid_color){
+                let msg : CanvasColorMsg = {map_id:map.map_id, color:grid_color};
                 EMIT(FromClient.CANVAS_GRID_COLOR, msg);
             }
             let bg_color = dialog.f['bg-color-text'].value;
-            if(active_view.map.bg_color != bg_color){
-                let msg : CanvasColorMsg = {map_id:active_view.map.map_id, color:bg_color};
+            if(bg_color == '#ffffff') bg_color = '';
+            if(orig_bg_color != bg_color){
+                let msg : CanvasColorMsg = {map_id:map.map_id, color:bg_color};
                 EMIT(FromClient.CANVAS_BG_COLOR, msg);
             }
+        };
+        dialog.cancel_handler = function(){
+            map.grid_color = orig_grid_color;
+            map.bg_color = orig_bg_color;
+            request_render();
         };
         dialog.show();
     });
@@ -8241,22 +8267,9 @@ document.addEventListener('DOMContentLoaded', function(){
         if(!dialog) return;
         dialog.title.textContent = 'New Map';
         dialog.f.name.value = '';
-        dialog.f['grid-color'].value = '#969696';
-        dialog.f['grid-color'].onchange = function(){
-            dialog.f['grid-color-text'].value = dialog.f['grid-color'].value;
-        };
-        dialog.f['grid-color-text'].oninput = function(){
-            dialog.f['grid-color'].value = dialog.f['grid-color-text'].value;
-        };
-        dialog.f['grid-color-text'].value = '';
-        dialog.f['bg-color'].value = '#ffffff'
-        dialog.f['bg-color'].onchange = function(){
-            dialog.f['bg-color-text'].value = dialog.f['bg-color'].value;
-        };
-        dialog.f['bg-color-text'].oninput = function(){
-            dialog.f['bg-color'].value = dialog.f['bg-color-text'].value;
-        };
-        dialog.f['bg-color-text'].value = '';
+
+        link_input_value('#969696', dialog.f['grid-color'], 'onchange', dialog.f['grid-color-text'], 'oninput');
+        link_input_value('#ffffff', dialog.f['bg-color'], 'onchange', dialog.f['bg-color-text'], 'oninput');
         const hg = dialog.f['hex-grid'];
         const ng = dialog.f['no-grid']
         hg.checked = false;
@@ -8276,9 +8289,12 @@ document.addEventListener('DOMContentLoaded', function(){
                 flags |= MapFlags.NUMBERED
             let grid_color = dialog.f['grid-color-text'].value;
             let bg_color = dialog.f['bg-color-text'].value
+            if(bg_color == '#ffffff') bg_color = '';
+            if(grid_color == '#969696') grid_color = '';
             let msg: NewMapRequest = {name:value, grid_type:gt, flags, grid_color, bg_color};
             EMIT(FromClient.CANVAS_NEW_MAP_REQUEST, msg);
         };
+        dialog.cancel_handler = undefined;
         dialog.show();
     });
 });

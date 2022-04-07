@@ -694,3 +694,16 @@ function make_tab_view(tabs:Array<HTMLElement>, views:Array<HTMLElement>):TabVie
     tabs[0].classList.add('active');
     return tv;
 }
+
+function link_input_value(value:string, inp1:HTMLInputElement, event1:'onchange' | 'oninput', inp2:HTMLInputElement, event2: 'onchange' | 'oninput', cb?:()=>void){
+    inp1.value = value;
+    inp2.value = value;
+    inp1[event1] = function(){
+        inp2.value = inp1.value;
+        if(cb) cb();
+    };
+    inp2[event2] = function(){
+        inp1.value = inp2.value;
+        if(cb) cb();
+    };
+}

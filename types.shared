@@ -745,6 +745,8 @@ struct StrippedSubMap: array
     tly: float # Coordinate of top left
     grid_type: GridType
     title: str
+    grid_color: color
+    bg_color: color
 
 // StrippedObj
 // -----------

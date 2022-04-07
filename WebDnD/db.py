@@ -13,7 +13,7 @@ atexit.register(lambda: (logging.info('closing db'), conn.close())) # type: igno
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 12
+DBVERSION = 13
 with conn:
     conn.execute("PRAGMA encoding = 'UTF-8';")
     conn.execute('PRAGMA foreign_keys = ON;')
@@ -267,6 +267,24 @@ def setup_tables() -> None:
         DEFAULT ''
         ;
         ''')
+    if version < 13:
+        maps = conn.execute('''
+        SELECT * FROM maps;
+        ''').fetchall()
+        for m in maps:
+            campid, mapid, name, objects, flags, grid_type, grid_color, bg_color = m
+            objs: List[list] = json.loads(objects)
+            for o in objs:
+                # add grid_color and bg_color to SUBMAP
+                if o[0] == 18:
+                    o.append('')
+                    o.append('')
+            objs_ = json.dumps(objs)
+            conn.execute('''
+            UPDATE maps
+            SET objects = ?
+            WHERE campaignid = ? AND mapid = ?;
+            ''',(objs_, campid, mapid))
 
 
 
