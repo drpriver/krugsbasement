@@ -1,12 +1,10 @@
-It's useful to be able to have a background image that won't get
-selected and is basically read only.
+Summary::md .summary
+  It's useful to be able to have a background image that won't get
+  selected and is basically read only.
 
-Update:
+Update::md .update
+  In thinking about this, this isn't useful for dungeon maps.
+  There are situations this is useful, but it's for other use cases, which would need their own optimized interface I believe.
 
----
-In thinking about this, this isn't useful for dungeon maps.
-There are situations this is useful, but it's for other use cases, which would need their own optimized interface I believe.
-
-Update:
-------
-I am closing this feature as WONTFIX.
+Update::md .update
+  I am closing this feature as WONTFIX.
