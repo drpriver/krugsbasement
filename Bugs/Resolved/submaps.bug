@@ -6,6 +6,7 @@ updated: 2022-03-13T06:40:58Z
 updated: 2022-03-14T06:32:52Z
 updated: 2022-03-14T07:03:59Z
 updated: 2022-03-14T18:09:36Z
+resolved: 2022-04-09T23:01:31Z
 bugmagic^^^^
 Created Mar 10, 2022, 01:33PM::md.update
 Summary::md.summary
@@ -14,7 +15,7 @@ Summary::md.summary
 
   1. ✓ Ability to move the submap as an entire whole.
   2. ✓ Ability to minimize/maximize the submap
-  3. Submap has a different grid type than the parent map.
+  3. (moved) Submap has a different grid type than the parent map.
   4. <s>Submap has a different scale than the parent map.</s>
   5. ✓ Selection starting inside the submap only selects objects in the submap.
   6. ✓ Selection starting outside the submap only selects the submap itself, not the interior objects.
@@ -30,15 +31,15 @@ Updated Mar 10, 2022, 08:23PM::md.update
   1. ✓ Draw the sub map’s grid, not necessarily aligned with parent’s grid.
   2. ✓ Snap/scale, etc. to sub map’s grid.
   3. ✓ Measure tool works according to the subgrid.
-  4. Prevent moving outside of submap.
-  4. Prevent drawing outside of submap.
+  4. (moved) Prevent moving outside of submap.
+  4. (moved) Prevent drawing outside of submap.
   5. ✓ Paste into the submap.
 Updated Mar 10, 2022, 11:36PM::md.update
   1. ✓ Objects contained by the map need to have their coordinates be relative to the map.
 Updated Mar 11, 2022, 03:20PM::md.update
   1. ✓ Better minimize ui (button instead of in the edit menu)
-  2. Shrinks to the size of a square/hex
-  3. Remembers the origin square/hex is maybe?
+  2. (moved) Shrinks to the size of a square/hex
+  3. (moved) Remembers the origin square/hex is maybe?
 Updated Mar 13, 2022, 01:40AM::md.update
   This is enough features to ship it.
 Updated Mar 14, 2022, 02:32AM::md.update
@@ -47,3 +48,5 @@ Updated Mar 14, 2022, 03:03AM::md.update
   Good enough copy paste
 Updated Mar 14, 2022, 02:09PM::md.update
   Good minimize ui
+Resolved Apr 09, 2022, 07:01PM::md.update
+  These features were implemented and the remaining missing features moved to their own bugs.
