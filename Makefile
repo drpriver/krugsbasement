@@ -123,3 +123,6 @@ Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.
 Generated/packed.ts: Scripts/pack.py
 Bin/pack: C/pack.c C/stb_rect_pack.h | Bin
 	$(CC) -O3 C/pack.c -o $@ -IC -Wall -Wextra
+.PHONY: echo-deployed-hash
+echo-deployed-hash:
+	ssh website "cd ~webdnd && cat dist/githash"
