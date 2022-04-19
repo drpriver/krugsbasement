@@ -672,6 +672,7 @@ enum FixtureType: int
     STAIRS = 1
     PIT = 2
     RUBBLE = 3
+    WELL   = 4
 
 // Fixture
 // ----------

@@ -550,7 +550,7 @@ type MeasureObj = {
     y1: number,
 }
 
-const FixtureType_MAX = FixtureType.RUBBLE + 1;
+const FixtureType_MAX = FixtureType.WELL + 1;
 const FixtureType_TO_NAME = [
     // FixtureType.STATUE
     'Statue',
@@ -560,6 +560,8 @@ const FixtureType_TO_NAME = [
     'Pit',
     // FixtureType.RUBBLE
     'Rubble',
+    // FixtureType.WELL
+    'Well',
 ];
 
 // Fixture
@@ -3160,6 +3162,8 @@ function selection_is_rigid(view:DungeonMapView):boolean{
             case CanvasType.FILLED_TILE:
             case CanvasType.TERRAIN_TILE:
                 return true;
+            case CanvasType.FIXTURE:
+                return (obj.ftype == FixtureType.WELL || obj.ftype == FixtureType.PIT || obj.ftype == FixtureType.STATUE) && snapmode != SNAPMODE.FREE;
             default:
                 break;
         }
@@ -5641,6 +5645,30 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             const ri = PACKED.fixtures[0];
                             ctx.drawImage(PACKEDIMG, ri[2], ri[3], ri[4], ri[5], bx, by, obj.width, obj.height);
                         }
+                    }break;
+                    case FixtureType.WELL:{
+                        let rx = obj.width/2 - 2;
+                        let ry = obj.height/2 - 2;
+                        let cx = bx + obj.width/2;
+                        let cy = by + obj.height/2;
+                        if(is_selected){
+                            ctx.lineWidth = 4;
+                            ctx.strokeStyle = sel_color;
+                            ctx.beginPath();
+                            ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2);
+                            ctx.stroke();
+                        }
+                        ctx.strokeStyle = '#000000';
+                        ctx.fillStyle = '#333333';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2);
+                        ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.ellipse(cx, cy, rx-8, ry-8, 0, 0, Math.PI*2);
+                        ctx.stroke();
+                        ctx.fill();
                     }break;
                 }
             }break;
