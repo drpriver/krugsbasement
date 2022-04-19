@@ -553,7 +553,7 @@ const evaluate_script = (function(){
                     return err(token, "Assertion Error");
                 case TokenKind.IDENT:
                     switch(token.text.toLowerCase()){
-                        case 'roll': case 'r':
+                        case 'r': case 'roll': case 'ro': case 'rol': case 'rolll': case 'rl': case 'rll':
                             return parse_roll(1);
                         case 'name':
                             return parse_raw(ChatCommand.NAME, 1);
@@ -589,8 +589,19 @@ const evaluate_script = (function(){
                     index++;
                     return;
                 case TokenKind.SLASH:{
-                    switch(peek_no_space().text.toLowerCase()){
-                        case 'r': case 'roll':
+                    let peeked = peek_no_space();
+                    switch(peeked.kind){
+                        case TokenKind.PLUS:
+                        case TokenKind.MINUS:
+                        case TokenKind.LPAREN:
+                        case TokenKind.NUMBER:
+                        case TokenKind.DIE:
+                            return parse_roll(1);
+                        default:
+                            break;
+                    }
+                    switch(peeked.text.toLowerCase()){
+                        case 'r': case 'roll': case 'ro': case 'rol': case 'rolll': case 'rl': case 'rll':
                             return parse_roll(2);
                         case 'n': case 'name':
                             return parse_raw(ChatCommand.NAME, 2)
@@ -604,7 +615,6 @@ const evaluate_script = (function(){
                             return parse_raw(ChatCommand.MYTABLE, 2);
                         case 's': case 'say':
                             return parse_raw(ChatCommand.SAY, 2);
-
                     }
                     return parse_raw(ChatCommand.SAY, 0);
                 }

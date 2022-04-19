@@ -106,9 +106,8 @@ mypy: flask_socketio.pyi
 
 Bin/meta: C/meta.c | Bin
 	$(CC) $< -o $@ -IC -Wall -Wextra
-# there should be a rule that this generates dialogdefs.ts
 Generated/subwindowdefs.ts Generated/dialogdefs.ts Generated/dungeon.temp.html: dungeon.dnd | Generated
-	dndc $< --output Generated/dungeon.temp.html --strip-spaces --allow-js-write
+	dndc $< --output Generated/dungeon.temp.html --strip-spaces --allow-js-write --jsargs '{"temp":true}'
 
 Generated/nodes.ts: Bin/meta Generated/dungeon.temp.html | Generated
 	Bin/meta Generated/dungeon.temp.html $@

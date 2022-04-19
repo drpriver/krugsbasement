@@ -1,0 +1,22 @@
+created: 2022-04-18T17:57:11Z
+updated: 2022-04-18T17:58:55Z
+bugmagic^^^^
+Created Apr 18, 2022, 01:57PM::md.update
+Summary::md.summary
+  Sometimes you need to draw semicircles or quarter circles. There should be a tool for that.
+
+  Unfortunately, this is hard as you need 3 pieces of information to draw an arc: arc length, starting theta and ending theta (these can be equivalently represented in other forms). On top of that, you need the offset in the map (x,y is two pieces of info). Anyways this is tough because you naturally get 4 pieces of information with the tools: the initial click is two pieces of information and the final release is another two pieces of information. This is only 4 though, so you need some way of getting a 5th one in there.
+
+  I mean basically we need the Information to call the canvas method of <code>arc(x, y, radius, startAngle, endAngle)</code>.
+
+  Wait, that doesn’t let you do elliptical arcs?
+
+  Yeah we actually need to call <code>ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle)</code>.
+
+  Ok yeah, you need 5 things to draw a circular arc and 7 to draw an elliptical arc.
+
+  And yeah we definitely want elliptical arcs.
+
+  We could maybe drop rotation to get it down to 6. You get 4 from drawing the rectangle (initial click and click release). But how do you get start angle and end angle?
+Updated Apr 18, 2022, 01:58PM::md.update
+  You could constrain to half ellipse/quarter ellipse, but then you need some way of detecting which one it is. I sort of have something like this for the stairs tool but that assumes that the long axis is the way the stairs are going, which leads to ambiguity with squares.

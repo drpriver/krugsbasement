@@ -150,7 +150,7 @@ David20::title #hide
       </div>
     </div>
   `);
-  if(ctx.outpath.includes('temp')){
+  if(Args && Args.temp){
     let ts = '// NOTE: this file was generated\n'
     ts += '// Do NOT edit it. Your edits will be overwritten!\n'
     ts += '\n';
@@ -477,7 +477,7 @@ David20::title #hide
         <td>${checkbox('delete')}
       </tr>
     </table>`);
-  if(ctx.outpath.includes('temp')){
+  if(Args && Args.temp){
     let ts = '// NOTE: this file was generated\n'
     ts += '// Do NOT edit it. Your edits will be overwritten!\n'
     ts += '\n';
