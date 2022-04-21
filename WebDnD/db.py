@@ -273,7 +273,7 @@ def setup_tables() -> None:
         ''').fetchall()
         for m in maps:
             campid, mapid, name, objects, flags, grid_type, grid_color, bg_color = m
-            objs: List[list] = json.loads(objects)
+            objs: List[list] = json.loads(objects) # type: ignore
             for o in objs:
                 # add grid_color and bg_color to SUBMAP
                 if o[0] == 18:

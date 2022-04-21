@@ -8,42 +8,15 @@
 ::div.login
   ::md.centered
     No account? [Register] now!
-    ::js
-      ctx.add_link('register', Args.next_page?`/register?${Args.next_page}`:'/register');
   Log In::title
-  ::raw
+  ::raw #id(hidden)
     <form action="" method="post">
-  ::js
-    node.parent.children[2].add_child(Args.hidden);
-  ::div.error-item
-    ::js
-      if(Args.messages.length){
-        let raw = node.parent.make_child(NodeType.RAW);
-        raw.add_child('<ul class="error">');
-        for(let mess of Args.messages)
-          raw.add_child(`<li class="error">${mess}</li>`);
-        raw.add_child('</ul>');
-      }
-      if(Args.username.errors.length){
-        let raw = node.parent.make_child(NodeType.RAW);
-        raw.add_child('<ul class="error">');
-        for(let err of Args.username.errors)
-          raw.add_child(`<li class="error">${err}</li>`);
-        raw.add_child('</ul>');
-      }
+  ::div.error-item #id(username-errors)
   ::div.login-item
     ::raw
       <label for="username">Username</label>
       <input id="username" name="username" required="" size="32" type="text" value="" autocomplete="username">
-  ::div.error-item
-    ::js
-      if(Args.password.errors.length){
-        let raw = node.parent.make_child(NodeType.RAW);
-        raw.add_child('<ul class="error">');
-        for(let err of Args.password.errors)
-          raw.add_child(`<li class="error">${err}</li>`);
-        raw.add_child('</ul>');
-      }
+  ::div.error-item #id(password-errors)
   ::div.login-item
     ::raw
       <label for="password">Password</label>

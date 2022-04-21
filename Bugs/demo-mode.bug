@@ -1,0 +1,5 @@
+created: 2022-04-21T07:01:12Z
+bugmagic^^^^
+Created Apr 21, 2022, 03:01AM::md.update
+Summary::md.summary
+  Demo mode where all the socket calls are stubbed out.

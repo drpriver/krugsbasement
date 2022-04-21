@@ -8,29 +8,12 @@
 ::div.login
   ::md.centered
     Have an account? [Login] now!
-    ::js
-      ctx.add_link('login', Args.next_page?`/login?${Args.next_page}`:'/login');
   Register::title
-  ::raw
+  ::raw #id(hidden)
     <form action="" method="post">
   ::js
     node.parent.children[2].add_child(Args.hidden);
-  ::div.error-item
-    ::js
-      if(Args.messages.length){
-        let raw = node.parent.make_child(NodeType.RAW);
-        raw.add_child('<ul class="error">');
-        for(let mess of Args.messages)
-          raw.add_child(`<li class="error">${mess}</li>`);
-        raw.add_child('</ul>');
-      }
-      if(Args.username.errors.length){
-        let raw = node.parent.make_child(NodeType.RAW);
-        raw.add_child('<ul class="error">');
-        for(let err of Args.username.errors)
-          raw.add_child(`<li class="error">${err}</li>`);
-        raw.add_child('</ul>');
-      }
+  ::div.error-item #id(username-errors)
   ::div.login-item .hint
     ::raw
       <span>Between 5 and 32 characters</span>
@@ -38,28 +21,12 @@
     ::raw
       <label for="username">Username</label>
       <input id="username" maxlength="32" minlength="5" name="username" required="" size="32" type="text" value="" autocomplete="username">
-  ::div.error-item
-    ::js
-      if(Args.email.errors.length){
-        let raw = node.parent.make_child(NodeType.RAW);
-        raw.add_child('<ul class="error">');
-        for(let err of Args.email.errors)
-          raw.add_child(`<li class="error">${err}</li>`);
-        raw.add_child('</ul>');
-      }
+  ::div.error-item #id(email-errors)
   ::div.login-item
     ::raw
       <label for="email">Email</label>
       <input id="email" name="email" required size="32" type="email" value="" autocomplete="email">
-  ::div.error-item
-    ::js
-      if(Args.password.errors.length){
-        let raw = node.parent.make_child(NodeType.RAW);
-        raw.add_child('<ul class="error">');
-        for(let err of Args.password.errors)
-          raw.add_child(`<li class="error">${err}</li>`);
-        raw.add_child('</ul>');
-      }
+  ::div.error-item #id(password-errors)
   ::div.login-item .hint
     ::raw
       <span>Greater than 7 characters.</span>
@@ -67,15 +34,7 @@
     ::raw
       <label for="password">Password</label>
       <input id="password" minlength="8" name="password" required="" size="32" type="password" value="" autocomplete="new-password">
-  ::div.error-item
-    ::js
-      if(Args.password2.errors.length){
-        let raw = node.parent.make_child(NodeType.RAW);
-        raw.add_child('<ul class="error">');
-        for(let err of Args.password2.errors)
-          raw.add_child(`<li class="error">${err}</li>`);
-        raw.add_child('</ul>');
-      }
+  ::div.error-item #id(password2-errors)
   ::div.login-item
     ::raw
       <label for="password2">Repeat Password</label>

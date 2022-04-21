@@ -4,50 +4,11 @@
     logout = /logout
 ::md.center
   Home::title
-  ::md
-    ::js
-      node.parent.parse(`Welcome ${Args.name}, this is your home`);
+  ::md #id(welcome)
 
   There's not much here yet, but it is something.
   Campaigns::md
-    ::js
-      if(Args.campaigns.length){
-        let s = 'Go to a Campaign:\n';
-        let i = 0;
-        for(let [id, campaign] of Args.campaigns){
-          if(!campaign) continue;
-          s += `* [${campaign} | ${i}]\n`;
-          ctx.add_link(''+i, `/campaigns/${id}`);
-          i++;
-        }
-        node.parent.parse(s);
-      }
-      else {
-        node.parent.add_child('You have not joined any campaigns yet');
-      }
   Your Campaigns::md
-    ::js
-      if(Args.ownedcampaigns.length){
-        let raw = node.parent.make_child(NodeType.RAW);
-        raw.add_child('<table><tbody>')
-        for(let [id, campaign, magic] of Args.ownedcampaigns){
-          if(magic)
-            raw.add_child(`<tr>
-              <td><a href="/campaigns/${id}">${campaign}</a></td>
-              <td><button onclick="getmagic('${id}', '${magic}')">Copy Magic Link to Clipboard</button></td>
-              <td><button onclick="revokemagic('${id}', '${magic}')">Revoke Magic Link</button></td>
-              </tr>`);
-          else
-            raw.add_child(`<tr>
-            <td><a href="/campaigns/${id}">${campaign}</a></td>
-            <td><button onclick="createmagic('${id}')">Create Magic Link</button></td>
-            </tr>`);
-        }
-        raw.add_child('</table>')
-      }
-      else {
-        node.parent.hide = true;
-      }
     ::script
       function getmagic(id, magic){
         navigator.clipboard.writeText(`${location.host}/campaigns/${id}?magic=${magic}`);
@@ -73,14 +34,13 @@
         .then(location.reload());
       }
   Create a Campaign::md
-    ::js
-      let raw = node.parent.make_child(NodeType.RAW);
-      raw.add_child(`<form action="" method="post">`);
-      raw.add_child(Args.form.hidden);
-      raw.add_child(`<label for="campaignname">Name:</label>`);
-      raw.add_child(`<input id="campaignname" name="campaignname" size="32" required type="text" maxlength="64" minlength="5">`);
-      raw.add_child(`<input id="submit" name="submit" type="submit" value="Create">`);
-      raw.add_child(`</form>`);
+    ::raw
+      <form action="" method="post">
+      HIDDEN
+      <label for="campaignname">Name:</label>
+      <input id="campaignname" name="campaignname" size="32" required type="text" maxlength="64" minlength="5">
+      <input id="submit" name="submit" type="submit" value="Create">
+      </form>
 
   Settings::md
     ::raw

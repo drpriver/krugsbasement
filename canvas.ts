@@ -193,6 +193,7 @@ function is_resizable(obj:CanvasObject): obj is Resizable{
         case CanvasType.IMAGE:
         // case CanvasType.STAIRS:
         case CanvasType.SUBMAP:
+        case CanvasType.FIXTURE:
             return true
         default:
             return false;
@@ -5649,8 +5650,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     case FixtureType.WELL:{
                         let rx = obj.width/2 - 2;
                         let ry = obj.height/2 - 2;
-                        let cx = bx + obj.width/2;
-                        let cy = by + obj.height/2;
+                        let cx = bx + obj.width/2+0.5;
+                        let cy = by + obj.height/2+0.5;
                         if(is_selected){
                             ctx.lineWidth = 4;
                             ctx.strokeStyle = sel_color;
@@ -5659,8 +5660,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
                             ctx.stroke();
                         }
                         ctx.strokeStyle = '#000000';
-                        ctx.fillStyle = '#333333';
-                        ctx.lineWidth = 1;
+                        ctx.fillStyle = '#000000cc';
+                        ctx.lineWidth = 2;
                         ctx.beginPath();
                         ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2);
                         ctx.stroke();
@@ -5670,6 +5671,21 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         ctx.stroke();
                         ctx.fill();
                     }break;
+                }
+                if(one_selection && selected.has(obj.id)){
+                    ctx.fillStyle = sel_color;
+                    ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
+                    ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
+                    view.resize.handles.push({
+                        bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
+                        obj_id: obj.id,
+                        topleft:true,
+                    });
+                    view.resize.handles.push({
+                        bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
+                        obj_id: obj.id,
+                        topleft:false,
+                    });
                 }
             }break;
             case CanvasType.FILLED_TILE:{

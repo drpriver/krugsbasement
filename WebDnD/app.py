@@ -1,7 +1,7 @@
 from __future__ import annotations
 import os
 import logging
-from typing import List, Dict, Optional, Set, Union, Any
+from typing import List, Dict, Optional, Set, Union, Any, NamedTuple, Tuple
 
 from flask import Flask, jsonify, request, Response, send_from_directory, session, abort
 import flask
@@ -58,15 +58,41 @@ def r(f:str) -> str:
     with open(p) as fp:
         return fp.read()
 
-REGISTER_d = r('register.dnd')
-LOGIN_d    = r('login.dnd')
-HOME_d     = r('home.dnd')
 SCREEN     = r('dungeon.html')
 ip_ban_list = {} # type: Dict[str, float]
 ip_bad_attempts = {} # type: Dict[str, List[float]]
 FCACHE = pydndc.FileCache()
 FCACHE.store('login.css', r('login.css'))
 FCACHE.store('darkmode.js', r('darkmode.js'))
+
+class PageCtx:
+    def __init__(self, filename:str, node_ids: Tuple[str, ...], ctx:pydndc.Context, handles:List[int]) -> None:
+        self.filename = filename
+        self.node_ids = node_ids
+        self.ctx = ctx
+        self.handles = handles
+
+    def clone(self) -> Tuple[pydndc.Context, List[pydndc.Node]]:
+        # if appconfig.DEV:
+            # self = self.setup(self.filename, *self.node_ids)
+        ctx = self.ctx.clone()
+        return ctx, [ctx.node_from_int(h) for h in self.handles]
+
+    @classmethod
+    def setup(cls, filename:str, *node_ids:str) -> 'PageCtx':
+        text = r(filename)
+        ctx = pydndc.Context(filecache=FCACHE)
+        ctx.root.parse(text)
+        ctx.resolve_imports()
+        ctx.gather_links()
+        ctx.resolve_links()
+        handles = [ctx.node_by_id(node_id).handle for node_id in node_ids] # type: ignore
+        return cls(filename, node_ids, ctx, handles)
+
+HOMECTX     = PageCtx.setup('home.dnd', 'Campaigns', 'Your Campaigns', 'welcome', 'Create a Campaign')
+REGISTERCTX = PageCtx.setup('register.dnd', 'username-errors', 'email-errors', 'password-errors', 'password2-errors', 'hidden')
+LOGINCTX    = PageCtx.setup('login.dnd', 'username-errors', 'password-errors', 'hidden')
+
 
 def bad_attempt() -> None:
     ip = request.environ.get('REMOTE_ADDR')
@@ -101,9 +127,17 @@ def block_method() -> None:
 def pydndclog(kind, filename, line, col, mes) -> None: # type: ignore
     logging.warning('%r:%d:%d: %r', filename, line+1, col, mes)
 
+def add_errors(node:pydndc.Node, error_list:List[str]) -> None:
+    if not error_list: return
+    raw = node.make_child(pydndc.NodeType.RAW)
+    raw.append_child('<ul class="error">')
+    for mess in error_list:
+        raw.append_child(f'<li class="error">{mess}</li>')
+    raw.append_child('</ul>')
+
 @app.route('/register', methods=['GET', 'POST'])
 def register() -> object:
-    global REGISTER_d
+    t0 = time.time()
     if current_user.is_authenticated:
         return flask.redirect('/home')
     form = RegisterForm()
@@ -125,21 +159,27 @@ def register() -> object:
         if not next_page or url_parse(next_page).netloc != '':
             return flask.redirect('/home')
         return flask.redirect(next_page)
-    if appconfig.DEV:
-        REGISTER_d = r('register.dnd')
-    t0 = time.time()
     next_page = request.args.get('next')
-    jsargs = form.dictify()
-    jsargs['messages'] = flask.get_flashed_messages()
-    jsargs['next_page'] = url_encode({'next':next_page}) if next_page else ''
-    html = pydndc.htmlgen(REGISTER_d, jsargs=jsargs, error_reporter=pydndclog, file_cache=FCACHE)[0]
+    ctx, nodes = REGISTERCTX.clone()
+    username_errors, email_errors, password_errors, password2_errors, hidden = nodes
+
+    next_page = ('?'+url_encode({'next':next_page})) if next_page else ''
+    ctx.add_link('login', f'/login{next_page}')
+    messages = flask.get_flashed_messages()
+    add_errors(username_errors, messages)
+    add_errors(username_errors, form.username.errors)
+    add_errors(email_errors, form.email.errors)
+    add_errors(password_errors, form.password.errors)
+    add_errors(password2_errors, form.password2.errors)
+    hidden.append_child(form.hidden_tag())
+    html = ctx.render()
     t1 = time.time()
-    logging.debug('register rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
+    logging.info('register rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
     return html
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page() -> object:
-    global LOGIN_d
+    t0 = time.time()
     if current_user.is_authenticated:
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':
@@ -158,18 +198,23 @@ def login_page() -> object:
         if not next_page or url_parse(next_page).netloc != '':
             return flask.redirect('/home')
         return flask.redirect(next_page)
-    if appconfig.DEV:
-        os.system('make Generated/login.dnd')
-        LOGIN_d = r('login.dnd')
-    t0 = time.time()
+    ctx, nodes = LOGINCTX.clone()
+    username_errors, password_errors, hidden = nodes
     next_page = request.args.get('next')
-    jsargs = form.dictify()
-    jsargs['messages'] = flask.get_flashed_messages()
-    jsargs['next_page'] = url_encode({'next':next_page}) if next_page else ''
-    html = pydndc.htmlgen(LOGIN_d, jsargs=jsargs, error_reporter = pydndclog, file_cache=FCACHE)[0]
+    if next_page:
+        next_page = '?' + url_encode({'next':next_page})
+    else:
+        next_page = ''
+    ctx.add_link('register', f'/register{next_page}')
+    add_errors(username_errors, flask.get_flashed_messages())
+    add_errors(username_errors, form.username.errors)
+    add_errors(password_errors, form.password.errors)
+    hidden.append_child(form.hidden_tag())
+    html = ctx.render()
     t1 = time.time()
-    logging.debug('login rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
+    logging.info('login rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
     return html
+
 
 @app.route('/logout')
 def logout() -> object:
@@ -237,9 +282,11 @@ def store_campaign_setting(data: LocalSetting) -> None:
     if data[0] == 'chat' and data[1] == 'name':
         emit(ToClient.USER_RENAME, [userid, json.loads(data[2])], to=str(campaign), broadcast=True) # type: ignore
 
+
 @app.route('/home', methods=['GET','POST'])
 @login_required
 def home() -> object:
+    t0 = time.time()
     form = CampaignForm()
     if form.validate_on_submit():
         campaignid = db.create_campaign(form.campaignname.data, current_user.userid)
@@ -254,20 +301,43 @@ def home() -> object:
         ownedcampaigns = db.get_owned_campaigns(current_user.userid)
         # javascript can't handle large integers, so convert to string
         ownedcampaigns = [(a, markupsafe.escape(b), str(c) if c is not None else '') for a, b, c in ownedcampaigns]
-    global HOME_d
-    if appconfig.DEV:
-        HOME_d = r('home.dnd')
     name = current_user.name if current_user.is_authenticated else 'Guest User'
-    t0 = time.time()
-    jsargs = dict(
-            name = name,
-            campaigns = campaigns,
-            ownedcampaigns = ownedcampaigns,
-            form=form.dictify(),
-            )
-    html = pydndc.htmlgen(HOME_d, jsargs=jsargs, error_reporter=pydndclog, file_cache=FCACHE)[0]
-    t1 = time.time()
-    # logging.info('Took %.3fµs to render dnd', (t1-t0)*1000*1000)
+    ctx, nodes = HOMECTX.clone()
+    camp, your_campaigns, welcome, create = nodes
+    if campaigns:
+        camp.parse('Go to a Campaign:')
+        raw: pydndc.Node = camp.make_child(pydndc.NodeType.RAW)
+        raw.append_child('<ul>')
+        for id, campaign in campaigns:
+            if not campaign: continue
+            raw.append_child(f'<li><a href="/campaigns/{id}">{campaign}</a></li>')
+        raw.append_child('</ul>')
+    else:
+        camp.append_child("You have not joined any campaigns yet")
+    if ownedcampaigns:
+        raw = your_campaigns.make_child(pydndc.NodeType.RAW)
+        raw.append_child('<table><tbody>')
+        for id, campaign, magic in ownedcampaigns: # type: ignore
+            if magic:
+                raw.append_child('<tr>'
+                        f'<td><a href="/campaigns/{id}">{campaign}</a></td>'
+                        f'<td><button onclick="getmagic(\'{id}\', \'{magic}\')">Copy Magic Link to Clipboard</button></td>'
+                        f'<td><button onclick="revokemagic(\'{id}\', \'{magic}\')">Revoke Magic Link</button></td>'
+                        '</tr>')
+            else:
+                raw.append_child('<tr>'
+                    f'<td><a href="/campaigns/{id}">{campaign}</a></td>'
+                    f'<td><button onclick="createmagic(\'{id}\')">Create Magic Link</button></td>'
+                    '</tr>')
+        raw.append_child('</table>')
+
+    else:
+        your_campaigns.hide = True
+    welcome.parse(f'Welcome {name}, this is your home.')
+    create.children[0].children[1].header = form.hidden_tag()
+    html = ctx.render()
+    tend = time.time()
+    logging.info('Took %.3fµs to render dnd', (tend-t0)*1000*1000)
     return html
 
 
