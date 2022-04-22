@@ -17,6 +17,9 @@
   border: 1px solid black;
   contain: strict;
 }
+#float-variables-window {
+  contain: initial;
+}
 .window-handle {
   grid-row: 1;
   cursor: grab;

@@ -1,7 +1,7 @@
 ::nav.left
-Expanded Macro Processor::title
 ::div
   ::md.comment
+    Expanded Macro Processor::title
     The expanded functionality of the chat processor can now insert
     variables into your roll expressions. You can also do basic conditional
     statements with <code>if</code>.
@@ -154,14 +154,21 @@ Expanded Macro Processor::title
         This basically works as you would expect, but gives a couple non-obvious results.
 
         ::pre.macro
-          /roll 2/3*3 # produces 2
+          # This produces 2
+          /roll 2/3*3
 
-          /roll 3/2 > 1 # produces 0, left side is rounded down to 1,
-                        # which is not greater than 1
 
-          /roll 3/2 + 3/2 # produces 2, as the left side of the plus
-                          # and the right side of the plus are both
-                          # rounded to 1.
+          # This produces 0, left side is 
+          # rounded down to 1, which is not 
+          # greater than 1
+          /roll 3/2 > 1
+
+
+          # This produces 2, as the left side of 
+          # the plus and the right side of the 
+          # plus are both rounded to 1.
+          /roll 3/2 + 3/2 
+
         This means that division is not distributive. It is associative.
 
 

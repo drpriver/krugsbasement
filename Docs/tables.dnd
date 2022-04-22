@@ -1,66 +1,68 @@
 ::nav.left
-Tables::title
+::div
+  ::md
+    Tables::title
 
-Krugsbasement has a table feature for creating rollable tables.
-You can roll on a table by sending the <code>table</code> command.
+    Krugsbasement has a table feature for creating rollable tables.
+    You can roll on a table by sending the <code>table</code> command.
 
-For example:
-::div.chat
-  <b>anon:</b> table Weather
-  Weather❯Good: Sunny 
+    For example:
+    ::div.chat
+      <b>anon:</b> table Weather
+      Weather❯Good: Sunny 
 
-You name a table and it is rolled on. The result, including the chain of tables
-that were rolled on is then reported. The chain is included because entries in
-a table can be references to other tables, which will then be rolled on. As can
-be seen in the above example, the table Weather was first rolled on, and got
-the entry of Good. That was marked as a reference to another table, so the Good
-table was rolled on, giving the result of Sunny.
+    You name a table and it is rolled on. The result, including the chain of tables
+    that were rolled on is then reported. The chain is included because entries in
+    a table can be references to other tables, which will then be rolled on. As can
+    be seen in the above example, the table Weather was first rolled on, and got
+    the entry of Good. That was marked as a reference to another table, so the Good
+    table was rolled on, giving the result of Sunny.
 
-Every entry in a table has a weight, a string value and a checkbox of whether
-or not it is a reference to another table. If it is a reference to another
-table, it should be the name of that table.
+    Every entry in a table has a weight, a string value and a checkbox of whether
+    or not it is a reference to another table. If it is a reference to another
+    table, it should be the name of that table.
 
 
-Uploading/Downloading::md
-  You can download and upload tables to the server. The tables window has
-  a button for each of these purposes. You can only upload or download one
-  table at a time. The format of the table is json. An example of such json
-  is below:
-  ::pre
-    {
-     "name": "Weather",
-     "id": 4,
-     "entries": [
-      {
-       "weight": 1,
-       "value": "Bad",
-       "flags": 1
-      },
-      {
-       "weight": 1,
-       "value": "Good",
-       "flags": 1
-      },
-      {
-       "weight": 1,
-       "value": "Clear",
-       "flags": 0
-      },
-      {
-       "weight": 1,
-       "value": "Partly Cloudy",
-       "flags": 0
-      },
-      {
-       "weight": 1,
-       "value": "Overcast",
-       "flags": 0
-      }
-     ]
-    }
-  All of the fields are required. The actual value of the "id" field doesn't
-  matter, but it should be an integer. "flags" should be either 0 or 1. 1 indicates
-  that it is a reference to another table.
+    Uploading/Downloading::md
+      You can download and upload tables to the server. The tables window has
+      a button for each of these purposes. You can only upload or download one
+      table at a time. The format of the table is json. An example of such json
+      is below:
+      ::pre
+        {
+         "name": "Weather",
+         "id": 4,
+         "entries": [
+          {
+           "weight": 1,
+           "value": "Bad",
+           "flags": 1
+          },
+          {
+           "weight": 1,
+           "value": "Good",
+           "flags": 1
+          },
+          {
+           "weight": 1,
+           "value": "Clear",
+           "flags": 0
+          },
+          {
+           "weight": 1,
+           "value": "Partly Cloudy",
+           "flags": 0
+          },
+          {
+           "weight": 1,
+           "value": "Overcast",
+           "flags": 0
+          }
+         ]
+        }
+      All of the fields are required. The actual value of the "id" field doesn't
+      matter, but it should be an integer. "flags" should be either 0 or 1. 1 indicates
+      that it is a reference to another table.
 ::script #import
   anchors.js
 ::css #import

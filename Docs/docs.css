@@ -1,20 +1,35 @@
-body > div {
-    margin: auto;
-    width: 40em;
+* {
+    box-sizing: border-box;
+}
+body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    display: grid;
+    grid-template-columns: max-content auto;
+    grid-template-rows: 100%;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+body > * {
+	overflow-y: auto;
+	height: 100%;
+	overflow-x: hidden;
+	padding: 0.5em;
+}
+body > div > div {
+    margin-right: auto;
+    max-width: 44em;
+    display: block;
+    padding-bottom: 20em;
+    margin-left: 8em;
 }
 pre {
-    width: 42em;
+    max-width: 42em;
     padding: 0.0em 1em;
     font-family: ui-monospace, "Cascadia Mono", Consolas, monaco, monospace;
 }
 .indented p {
     margin-left: 3em;
-}
-.left {
-    position: fixed;
-    left: 0;
-    top: 0;
 }
 h2:hover {
     cursor: pointer;
@@ -25,5 +40,13 @@ h3:hover {
 @media only screen and (max-width: 66em) {
     .left {
         display: none;
+    }
+    body {
+    	grid-template-columns: 100%;
+    }
+    body > div > div{
+	margin: auto;
+	margin-left: auto;
+	margin-right: auto;
     }
 }

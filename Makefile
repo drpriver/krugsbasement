@@ -48,8 +48,8 @@ Generated/dungeon.html: client.dnd Generated/combined.js | Depends Depends/Gener
 Generated/demo.html: demo.dnd Generated/demo.js | Depends Depends/Generated
 	dndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
 
-Generated/%.html: Docs/%.dnd | Generated
-	dndc $< --output $@
+Generated/%.html: Docs/%.dnd | Generated Depends/Generated
+	dndc $< --output $@ --depends-path Depends/$@.dep
 
 Generated/%.dnd: %.dnd
 	cp $< $@
