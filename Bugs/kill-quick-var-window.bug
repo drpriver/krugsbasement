@@ -1,0 +1,7 @@
+created: 2022-04-22T04:34:55Z
+bugmagic^^^^
+Created Apr 22, 2022, 12:34AM::md.update
+Summary::md.summary
+  The quick var window was a failed experiment. Its contents need to be moved next to the macros themselves so that it is both more obvious and more convenient.
+
+  Floating windows suck for things you need to use all the time. If it is a primary part of the ui, it should have its own dedicated, fixed section so you can acquire muscle memory about where it is and that it is obvious to the user.
