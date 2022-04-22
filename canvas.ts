@@ -1006,9 +1006,26 @@ function center_view_at(view:DungeonMapView, x:number, y:number){
     request_render();
 }
 function change_active_map_view(idx: number, from_select:boolean, store:boolean){
+    let old_view = active_map_view_index >=0 && active_map_view_index < dungeon_map_views.length? dungeon_map_views[active_map_view_index]:null;
+    if(old_view && store){
+        store_local(StorageCategory.CANVAS, `camera.${active_map_view_index}`, [old_view.camera_x, old_view.camera_y, old_view.scale]);
+    }
     active_map_view_index = idx;
-    if(store)
+    if(store){
         store_local(StorageCategory.CANVAS, 'active_map_view_index', idx);
+    }
+    let camera = get_local(StorageCategory.CANVAS, `camera.${active_map_view_index}`);
+    if(camera !== undefined){
+        try {
+            let [cx, cy, scale] = camera;
+            let view = dungeon_map_views[active_map_view_index];
+            view.camera_x = cx;
+            view.camera_y = cy;
+            view.scale = scale;
+        }
+        catch(e){
+        }
+    }
     request_render();
     if(from_select)
         return;
@@ -1035,6 +1052,11 @@ function get_active_view(): DungeonMapView{
     }
     return dungeon_map_views[active_map_view_index];
 }
+document.addEventListener('visibilitychange', function(){
+    let view = get_active_view();
+    if(view)
+        store_local(StorageCategory.CANVAS, `camera.${active_map_view_index}`, [view.camera_x, view.camera_y, view.scale]);
+});
 function get_map(map_id:number): DungeonMap {
     if(MAPS.has(map_id))
         return MAPS.get(map_id)!;
@@ -6618,7 +6640,7 @@ const redo_canvas_cursor = (function(){
         prev_id = o?o.id:-1;
         if(view.selection_area.is_selecting)
             view.hovered_id = -1;
-        else 
+        else
             view.hovered_id = prev_id;
         if(!modified)
             for(let aa of view.action.areas){
