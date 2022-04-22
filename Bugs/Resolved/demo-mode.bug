@@ -1,5 +1,8 @@
 created: 2022-04-21T07:01:12Z
+resolved: 2022-04-22T02:50:33Z
 bugmagic^^^^
 Created Apr 21, 2022, 03:01AM::md.update
 Summary::md.summary
   Demo mode where all the socket calls are stubbed out.
+Resolved Apr 21, 2022, 10:50PM::md.update
+  Added this.
