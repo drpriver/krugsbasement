@@ -56,8 +56,8 @@ int main(){
         step /= 2;
     }
 
-    fprintf(stderr, "%d checks\n", i);
-    fprintf(stderr, "%d,%d\n", x_min, y_min);
+    // fprintf(stderr, "%d checks\n", i);
+    // fprintf(stderr, "%d,%d\n", x_min, y_min);
     fprintf(stdout, "%d,%d\n", x_min, y_min);
     int packed = pack(x_min, y_min);
     assert(packed);

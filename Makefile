@@ -104,6 +104,8 @@ mypy: flask_socketio.pyi
 
 Bin/%: C/%.c | Bin Depends/Bin
 	$(CC) -O3 $< -o $@ -IC -Wall -Wextra -MT $@ -MMD -MP -MF Depends/$@.dep
+Bin/pack:
+Bin/meta:
 
 Generated/subwindowdefs.ts Generated/dialogdefs.ts Generated/dungeon.temp.html: dungeon.dnd | Generated
 	dndc $< --output Generated/dungeon.temp.html --strip-spaces --allow-js-write --jsargs '{"temp":true}'
