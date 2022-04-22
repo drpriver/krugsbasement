@@ -59,7 +59,6 @@ def r(f:str) -> str:
         return fp.read()
 
 SCREEN = r('dungeon.html')
-DEMO   = r('demo.html')
 ip_ban_list = {} # type: Dict[str, float]
 ip_bad_attempts = {} # type: Dict[str, List[float]]
 FCACHE = pydndc.FileCache()
@@ -747,10 +746,7 @@ def get_campaign_request(campaign:str) -> str:
 if appconfig.DEV:
     @app.route('/demos/dungeon.html')
     def get_demo() -> str:
-        global DEMO
-        if appconfig.DEV:
-            DEMO = r('demo.html')
-        return DEMO
+        return r('demo.html')
 
     @app.route('/tiles/<tile>')
     def get_tile(tile:str) -> object:
@@ -764,6 +760,10 @@ if appconfig.DEV:
     @app.route('/favicon.ico')
     def get_favicon() -> object:
         return send_from_directory('.', 'favicon.ico')
+
+    @app.route('/docs/<doc>')
+    def get_doc(doc:str) -> object:
+        return r(doc)
 
     @socketio.on(FromClient.DEBUG)
     def log_debug(msg:str) -> None:

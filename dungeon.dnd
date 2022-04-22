@@ -59,6 +59,7 @@ David20::title #hide
           <button id="delete-macro">Delete</button>
           <button id="test-macro">Test</button>
           <button id="use-macro">Use</button>
+          <a target="_blank" href="/docs/macro-doc.html">Help</a>
         </div>
         <div style="display:table; width: 100%;">
           <div style="display:table-row; width: 100%;"><span style="display:table-cell; vertical-align:top; padding-left: 8px;">Name: </span><textarea spellcheck="false" id="macro-view-title" rows=1 style="display:table-cell;"></textarea></div>
