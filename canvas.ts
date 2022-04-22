@@ -8209,6 +8209,19 @@ document.addEventListener('DOMContentLoaded', function(){
                 whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
             },
             {
+                label: 'Reset Camera',
+                func: function(){
+                    remove_menu();
+                    let view = get_active_view();
+                    view.camera_x=0;
+                    view.camera_y=0;
+                    view.scale=1;
+                    request_render();
+                },
+                disabled: false,
+                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
+            },
+            {
                 label: 'Cancel',
                 func: function(){remove_menu();},
                 disabled: false,
