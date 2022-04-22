@@ -166,8 +166,9 @@ def handle_structured_input(userid:int, campaign:int, user:str, commands:List[Co
             result.append(plain('', ' '.join(stuff)))
         elif cc == ChatCommand.CHOOSE:
             options: List[str] = command[2] # type: ignore
-            choice = random.choice(options)
-            result.append(plain(apparent_user, choice))
+            if options:
+                choice = random.choice(options)
+                result.append(plain(apparent_user, choice))
         elif cc == ChatCommand.TABLE:
             table: str = command[2] # type: ignore
             try:

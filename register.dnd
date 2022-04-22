@@ -8,6 +8,10 @@
 ::div.login
   ::md.centered
     Have an account? [Login] now!
+
+    Or try out the [Demo].
+    ::links
+      Demo = /demos/dungeon.html
   Register::title
   ::raw #id(hidden)
     <form action="" method="post">

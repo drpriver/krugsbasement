@@ -1,0 +1,9 @@
+::comment
+  This is the actual file that makes the demo webclient.
+::import
+  dungeon.dnd
+::script #import
+  Generated/demo.js
+  Generated/combined.js
+::css #import
+  dungeon.css

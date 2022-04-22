@@ -35,7 +35,10 @@ function queue_sync_the_local_settings(){
     if(local_sync_in_flight)
         return;
     local_sync_in_flight = true;
-    setTimeout(sync_the_local_settings, 1000);
+    if(SETTINGS.demo)
+        sync_the_local_settings();
+    else
+        setTimeout(sync_the_local_settings, 1000);
 }
 
 function sync_local(category:StorageCategory, key:string, obj:any){

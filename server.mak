@@ -9,7 +9,7 @@ restore:
 	cp data/campaigns.db.bak data/campaigns.db
 
 .PHONY: unpack
-unpack: static/dungeon.html WebDnD imgs/tiles/packed
+unpack: static/dungeon.html WebDnD imgs/tiles/packed demos
 
 .PHONY: imgs/tiles/packed
 imgs/tiles/packed:
@@ -22,6 +22,10 @@ static/dungeon.html:
 	cp dist/*.css static
 	cp dist/*.js static
 	cp dist/pydndc.cpython-38-x86_64-linux-gnu.so .
+
+.PHONY: demos
+demos:
+	cp dist/demo.html demos/demos.html
 
 .PHONY: WebDnD
 WebDnD:

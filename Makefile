@@ -13,6 +13,8 @@ TSFILES:= internal_listeners.ts toplevel.ts chat.ts canvas.ts notes.ts utils.ts 
 ifneq ($(LOCALTSC),)
 Generated/combined.js: $(TSFILES) | Generated
 	$(LOCALTSC) $^ $(TSCFLAGS) --outFile $@
+Generated/demo.js: demo.ts Generated/messages.ts | Generated
+	$(LOCALTSC) $^ $(TSCFLAGS) --outFile $@
 else
 Generated/combined.js: $(TSFILES) | Generated
 	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc $(TSFILES) $(TSCFLAGS) --outFile $@ | cat"
@@ -38,10 +40,12 @@ appconfig.py:
 
 
 .PHONY: run
-run: Generated/dungeon.html WebDnD/messages.py | appconfig.py
+run: Generated/dungeon.html Generated/demo.html WebDnD/messages.py | appconfig.py
 	. venv/bin/activate && python3 -m WebDnD.app
 
 Generated/dungeon.html: client.dnd Generated/combined.js | Depends Depends/Generated
+	dndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
+Generated/demo.html: demo.dnd Generated/demo.js | Depends Depends/Generated
 	dndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
 
 Generated/%.html: Docs/%.dnd | Generated
@@ -65,6 +69,7 @@ dist.zip: Generated/dungeon.html Generated/packed.webp Generated/packed.png Gene
 	cp pydndc.cpython-38-x86_64-linux-gnu.so dist
 	cp server.mak dist
 	cp Generated/dungeon.html dist
+	cp Generated/demo.html dist
 	cp register.dnd dist
 	cp home.dnd dist
 	cp login.dnd dist

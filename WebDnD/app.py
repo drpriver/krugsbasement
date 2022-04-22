@@ -58,7 +58,8 @@ def r(f:str) -> str:
     with open(p) as fp:
         return fp.read()
 
-SCREEN     = r('dungeon.html')
+SCREEN = r('dungeon.html')
+DEMO   = r('demo.html')
 ip_ban_list = {} # type: Dict[str, float]
 ip_bad_attempts = {} # type: Dict[str, List[float]]
 FCACHE = pydndc.FileCache()
@@ -670,6 +671,7 @@ def get_html(info:db.CampaignInfo) -> str:
     vals = {
         'userid':0,
         'darkmode': 0,
+        'demo': 0,
         'chat': {'name':'anon'},
         'macros':{
             'macros':[],
@@ -742,18 +744,27 @@ def get_campaign_request(campaign:str) -> str:
         return abort(404)
     # logging.info('campaign: %r, campaign_id: %r', campaign, campaign_id)
     return get_html(info)
-
 if appconfig.DEV:
+    @app.route('/demos/dungeon.html')
+    def get_demo() -> str:
+        global DEMO
+        if appconfig.DEV:
+            DEMO = r('demo.html')
+        return DEMO
+
     @app.route('/tiles/<tile>')
     def get_tile(tile:str) -> object:
         return send_from_directory('Generated', tile)
+
     @app.route('/wasm/<wasm>')
     def get_wasm(wasm:str) -> object:
         logging.info('wasm: %r', wasm)
         return send_from_directory('wasm', wasm)
+
     @app.route('/favicon.ico')
     def get_favicon() -> object:
         return send_from_directory('.', 'favicon.ico')
+
     @socketio.on(FromClient.DEBUG)
     def log_debug(msg:str) -> None:
         campaign = get_campaign(request)

@@ -1,8 +1,8 @@
-declare let io: any;
 type Settings = {
     userid: number;
     darkmode: DarkMode;
     chat:{name: string;};
+    demo: boolean;
     macros: {
         macros: Array<SavedMacro>;
         variables: Array<ScriptVariable>;
@@ -10,6 +10,7 @@ type Settings = {
     };
 }
 declare let SETTINGS: Settings;
+declare let SOCKET: any;
 // This silly magic string gets replaced with user-specific settings server-side;
 "let SETTINGS = SETTINGS";
 let local_sync_in_flight = false;
@@ -64,7 +65,7 @@ function change_dark_mode(mode:DarkMode, postit:number){
     }
     // This is weird to use fetch when I use websockets everywhere
     // else.
-    if(postit){
+    if(postit && !SETTINGS.demo){
         fetch('/settings', {
             method: 'POST',
             headers: {
@@ -93,7 +94,6 @@ document.addEventListener('DOMContentLoaded', function(){
     set_zoomers(show);
 });
 
-let SOCKET = io({transports:["websocket"]});
 SOCKET.on('connect', () => {
     clear_disconnected();
     EMIT(FromClient.JOIN, window.location.pathname);
@@ -171,25 +171,6 @@ function get_state(which:string):void{
         link.href = `${window.location.pathname}/state`;
     }
     link.click();
-}
-
-function upload():void{
-    const inp = document.createElement('input');
-    inp.type = 'file';
-    function handlefiles(){
-        const files = inp.files;
-        if(!files)
-            return;
-        if(!files.length)
-            return;
-        const file = files[0];
-        fetch('/state', {
-            method: 'POST',
-            body: file,
-        });
-    }
-    inp.addEventListener("change", handlefiles, false);
-    inp.click();
 }
 
 let IS_TOUCH = false;
