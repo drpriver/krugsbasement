@@ -1,9 +1,10 @@
 Depends: ; mkdir -p $@
 Depends/Generated: ; mkdir -p $@
+Depends/Bin: ; mkdir -p $@
 Generated: ; mkdir -p $@
 Bin: ; mkdir -p $@
 Archives: ; mkdir -p $@
-DEPFILES:= $(wildcard Depends/*.dep Depends/Generated/*.dep)
+DEPFILES:= $(wildcard Depends/*.dep Depends/Generated/*.dep Depends/Bin/*.dep)
 include $(DEPFILES)
 TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError --strictFunctionTypes
 TSFILES:= internal_listeners.ts toplevel.ts chat.ts canvas.ts notes.ts utils.ts Generated/messages.ts \
@@ -50,7 +51,7 @@ Generated/demo.html: demo.dnd Generated/demo.js | Depends Depends/Generated
 
 Generated/%.html: Docs/%.dnd | Generated Depends/Generated
 	dndc $< --output $@ --depends-path Depends/$@.dep
-
+# This is so that the dev server can serve things from the Generated folder.
 Generated/%.dnd: %.dnd
 	cp $< $@
 Generated/%.css: %.css
@@ -62,25 +63,17 @@ Generated/messages.ts WebDnD/messages.py flask_socketio.pyi: types.shared Script
 	python3 Scripts/make_enums.py
 
 .PHONY: dist.zip
-dist.zip: Generated/dungeon.html Generated/packed.webp Generated/packed.png Generated/toks.webp Generated/toks.png Generated/packed.json
+dist.zip: Generated/dungeon.html Generated/demo.html Generated/packed.webp Generated/packed.png Generated/toks.webp Generated/toks.png Generated/packed.json
 	rm -rf dist dist.zip
-	mkdir -p dist
-	mkdir -p dist/packed
+	mkdir -p dist/packed dist/WebDnD
 	cp pydndc.cpython-38-x86_64-linux-gnu.so dist
 	cp server.mak dist
-	cp Generated/dungeon.html dist
-	cp Generated/demo.html dist
-	cp register.dnd dist
-	cp home.dnd dist
-	cp login.dnd dist
-	cp login.css dist
-	cp darkmode.js dist
+	cp Generated/dungeon.html Generated/demo.html register.dnd home.dnd login.dnd login.css darkmode.js dist
 	cp Generated/packed.json Generated/packed.png Generated/packed.webp Generated/toks.png Generated/toks.webp dist/packed
-	cat .git/refs/heads/master > dist/githash
-	mkdir -p dist/WebDnD
 	cp WebDnD/*.py dist/WebDnD
 	cp requirements.txt dist
 	cp setup.py dist
+	cat .git/refs/heads/master > dist/githash
 	zip -r dist dist
 	rm -rf dist
 
@@ -109,8 +102,9 @@ ship-docs: $(DOCS)
 mypy: flask_socketio.pyi
 	mypy -p WebDnD.app --namespace-packages --ignore-missing-imports --disallow-untyped-defs
 
-Bin/meta: C/meta.c | Bin
-	$(CC) $< -o $@ -IC -Wall -Wextra
+Bin/%: C/%.c | Bin Depends/Bin
+	$(CC) -O3 $< -o $@ -IC -Wall -Wextra -MT $@ -MMD -MP -MF Depends/$@.dep
+
 Generated/subwindowdefs.ts Generated/dialogdefs.ts Generated/dungeon.temp.html: dungeon.dnd | Generated
 	dndc $< --output Generated/dungeon.temp.html --strip-spaces --allow-js-write --jsargs '{"temp":true}'
 
@@ -122,11 +116,8 @@ clean:
 
 .PHONY: pack
 pack: Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.png Generated/toks.webp
-Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.webp Generated/toks.png: Scripts/pack.py Bin/pack | Generated
+Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.webp Generated/toks.png Generated/packed.ts: Scripts/pack.py Bin/pack | Generated
 	python3 Scripts/pack.py
-Generated/packed.ts: Scripts/pack.py
-Bin/pack: C/pack.c C/stb_rect_pack.h | Bin
-	$(CC) -O3 C/pack.c -o $@ -IC -Wall -Wextra
 .PHONY: echo-deployed-hash
 echo-deployed-hash:
 	ssh website "cd ~webdnd && cat dist/githash"
