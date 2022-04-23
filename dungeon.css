@@ -171,8 +171,10 @@ a {
   overflow-y: auto;
   height: 100%;
 }
-.window-group-list div {
+.window-group-list div span {
   padding: 8px;
+}
+.window-group-list > div {
   border-bottom: 1px solid black;
   cursor: pointer;
   -webkit-user-select: none;
@@ -624,7 +626,7 @@ html, body {
 }
 .macro-group {
   display: grid;
-  grid-template-columns: repeat(3, auto);
+  grid-template-columns: repeat(2, 1fr);
   max-width: 17em;
   padding-bottom: 6px;
   padding-top: 4px;
@@ -721,7 +723,7 @@ div.up-down {
   grid-template-rows: repeat(2, 1fr);
 }
 div.up-down button {
-  font-size: 15%;
+  font-size: 0.5rem;
   padding: 0 3px;
   margin: 0;
 }

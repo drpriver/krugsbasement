@@ -317,6 +317,8 @@ const enum ListViewFlags {
     // Can be renamed via the list view itself, handler will be called
     USER_RENAMABLE = 1 << 0,
     USER_DELETABLE = 1 << 1,
+    USER_MOVABLE   = 1 << 2,
+    ALL = USER_RENAMABLE|USER_DELETABLE|USER_MOVABLE
 }
 function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):ListView<K>{
     let result: ListView<K> = {
@@ -339,7 +341,8 @@ function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):Li
                 result.activate_handler(key);
         },
         add_item: function(text:string, key:K){
-            const el = elem_with_text('div', text);
+            let el = document.createElement('div');
+            elem_parent_text(el, 'span', text);
             let style = 'auto';
             if(flags & ListViewFlags.USER_RENAMABLE){
                 style += ' 32px';
@@ -448,9 +451,15 @@ type DualListView<K1, K2> = {
     activate2_handler?:(k1:K1, k2:K2)=>void;
     active1: K1 | undefined;
     active2: Map<K1, K2>;
+    user_rename_handler1?:(k:K1, text:string)=>void;
+    user_rename_handler2?:(k:K1, k2:K2, text:string)=>void;
+    move_handler1?:(k1:K1, old_idx:number, offset:number)=>void;
+    move_handler2?:(k1:K1, k2:K2, old_idx:number, offset:number) => void;
+    move1:(k1:K1, offset:number) => void;
+    move2:(k1:K1, k2:K2, offset:number) => void;
 };
 
-function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement):DualListView<K1, K2> {
+function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, flags1:ListViewFlags, flags2:ListViewFlags):DualListView<K1, K2> {
     let result:DualListView<K1,K2> = {
         column1: col1,
         column2: col2,
@@ -459,8 +468,12 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement):D
         activate0_handler: undefined,
         activate1_handler: undefined,
         activate2_handler: undefined,
+        user_rename_handler1: undefined,
+        user_rename_handler2: undefined,
         active1: undefined,
         active2: new Map(),
+        move_handler1:undefined,
+        move_handler2:undefined,
         make_active1: function(k1:K1){
             for(let [k, el] of result.items1){
                 el.classList.remove('active');
@@ -512,7 +525,49 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement):D
                     return;
                 }
             }
-            let item = elem_parent_text(result.column1, 'div', text);
+            let item = elem_with_parent(result.column1, 'div');
+            elem_parent_text(item, 'span', text);
+            let style = 'auto';
+            if(flags1 & ListViewFlags.USER_RENAMABLE){
+                style += ' 32px';
+                const rename = elem_parent_text(item, 'button', '✎');
+                rename.addEventListener('click', function(e:MouseEvent){
+                    e.stopPropagation();
+                    let dialog = get_dialog('simple-text');
+                    if(!dialog) return;
+                    let t = item.firstChild!.textContent;
+                    if(!t) t = "";
+                    dialog.title.innerText = 'Rename '+t;
+                    dialog.f.text.value = t;
+                    dialog.show_handler = function(){
+                        if(!IS_TOUCH) dialog.f.text.focus();
+                    };
+                    dialog.ok_handler = function(){
+                        let text = dialog.f.text.value.trim();
+                        if(!text) return;
+                        result.rename1(text, k1);
+                        if(result.user_rename_handler1)
+                            result.user_rename_handler1(k1, text);
+                    };
+                    dialog.show();
+                });
+            }
+            if(flags1 & ListViewFlags.USER_MOVABLE){
+                style += ' 32px';
+                const ud = elem('div', null, 'up-down');
+                const up = elem_parent_text(ud, 'button', '▲', null, 'up');
+                const down = elem_parent_text(ud, 'button', '▼', null, 'down');
+                up.onclick = function(e:MouseEvent){
+                    e.stopPropagation();
+                    result.move1(k1, -1);
+                };
+                down.onclick = function(e:MouseEvent){
+                    e.stopPropagation();
+                    result.move1(k1, +1);
+                }
+                item.appendChild(ud);
+            }
+            item.style.gridTemplateColumns = style;
             item.addEventListener('click', function(){
                 result.make_active1(k1);
             });
@@ -520,10 +575,52 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement):D
             result.items2.set(k1, []);
         },
         add_item2:function(text:string, k1:K1, k2:K2){
-            let item = elem_with_text('div', text);
+            let item = document.createElement('div');
+            elem_parent_text(item, 'span', text);
             item.addEventListener('click', function(){
                 result.make_active2(k1, k2);
             });
+            let style = 'auto';
+            if(flags2 & ListViewFlags.USER_RENAMABLE){
+                style += ' 32px';
+                const rename = elem_parent_text(item, 'button', '✎');
+                rename.addEventListener('click', function(e:MouseEvent){
+                    e.stopPropagation();
+                    let dialog = get_dialog('simple-text');
+                    if(!dialog) return;
+                    let t = item.firstChild!.textContent;
+                    if(!t) t = "";
+                    dialog.title.innerText = 'Rename '+t;
+                    dialog.f.text.value = t;
+                    dialog.show_handler = function(){
+                        if(!IS_TOUCH) dialog.f.text.focus();
+                    };
+                    dialog.ok_handler = function(){
+                        let text = dialog.f.text.value.trim();
+                        if(!text) return;
+                        result.rename2(text, k1, k2);
+                        if(result.user_rename_handler2)
+                            result.user_rename_handler2(k1, k2, text);
+                    };
+                    dialog.show();
+                });
+            }
+            if(flags2 & ListViewFlags.USER_MOVABLE){
+                style += ' 32px';
+                const ud = elem('div', null, 'up-down');
+                const up = elem_parent_text(ud, 'button', '▲', null, 'up');
+                const down = elem_parent_text(ud, 'button', '▼', null, 'down');
+                up.onclick = function(e:MouseEvent){
+                    e.stopPropagation();
+                    result.move2(k1, k2, -1);
+                };
+                down.onclick = function(e:MouseEvent){
+                    e.stopPropagation();
+                    result.move2(k1, k2, +1);
+                }
+                item.appendChild(ud);
+            }
+            item.style.gridTemplateColumns = style;
             let items = result.items2.get(k1);
             if(items === undefined){
                 items = [];
@@ -576,10 +673,73 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement):D
                 }
             }
         },
-
-
+        move1:function(k1:K1, offset:number){
+            let items = result.items1;
+            let idx = -1;
+            for(let i = 0; i < items.length; i++){
+                if(items[i][0] == k1){
+                    idx = i; break;
+                }
+            }
+            if(idx < 0) return;
+            if(idx + offset < 0)
+                offset = -idx;
+            if(idx + offset >= items.length)
+                offset = items.length - offset -1;
+            if(offset == 0)
+                return;
+            move_elem_by(items[idx][1], offset);
+            move_item_by(items, idx, offset);
+            if(result.move_handler1)
+                result.move_handler1(k1, idx, offset);
+        },
+        move2:function(k1:K1, k2:K2, offset:number){
+            let items = result.items2.get(k1)!;
+            let idx = -1;
+            for(let i = 0; i < items.length; i++){
+                if(items[i][0] == k2){
+                    idx = i; break;
+                }
+            }
+            if(idx < 0) return;
+            if(idx + offset < 0)
+                offset = -idx;
+            if(idx + offset >= items.length)
+                offset = items.length - offset -1;
+            if(offset == 0)
+                return;
+            move_elem_by(items[idx][1], offset);
+            move_item_by(items, idx, offset);
+            if(result.move_handler2)
+                result.move_handler2(k1, k2, idx, offset);
+        },
     };
     return result;
+}
+
+function move_item_by(arr:Array<any>, idx:number, off:number){
+	let new_idx = idx + off;
+	let item = arr[idx];
+	arr.splice(idx, 1);
+	arr.splice(new_idx, 0, item);
+}
+function move_elem_by(e:Node, off:number){
+    let parent = e.parentNode!;
+    let idx = -1;
+    for(let i = 0; i < parent.childNodes.length; i++){
+        if(parent.childNodes[i] === e){
+            idx = i;
+            break;
+        }
+    }
+    if(idx < 0) return;
+    let new_idx = idx + off;
+    parent.removeChild(e);
+    if(new_idx >= parent.childNodes.length){
+        parent.appendChild(e); return;
+    }
+    let sib = parent.childNodes[new_idx];
+    parent.insertBefore(e, sib);
 }
 
 type ChatInput = {
@@ -664,7 +824,8 @@ type TabView = {
     change_tab:(_:number) => void;
 };
 
-function make_tab_view(tabs:Array<HTMLElement>, views:Array<HTMLElement>):TabView {
+function make_tab_view(tabs:Array<HTMLElement>, views:Array<HTMLElement>, display_?:string):TabView {
+    let display = display_?display_:'initial';
     let tv: TabView = {
         active_tab_idx: 0,
         tabs: tabs,
@@ -679,7 +840,7 @@ function make_tab_view(tabs:Array<HTMLElement>, views:Array<HTMLElement>):TabVie
                 tv.on_change_handler(tv.active_tab_idx, idx);
             tv.active_tab_idx = idx;
             tv.tabs[tv.active_tab_idx].classList.add('active');
-            tv.views[tv.active_tab_idx].style.display = 'initial';
+            tv.views[tv.active_tab_idx].style.display = display;
         },
     };
     for(let i = 0; i < tabs.length; i++){
@@ -690,7 +851,7 @@ function make_tab_view(tabs:Array<HTMLElement>, views:Array<HTMLElement>):TabVie
         });
         views[i].style.display = 'none';
     }
-    views[0].style.display = 'initial';
+    views[0].style.display = display;
     tabs[0].classList.add('active');
     return tv;
 }

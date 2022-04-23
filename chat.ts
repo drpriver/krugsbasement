@@ -882,14 +882,13 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     function setup_macros(){
         macs.innerHTML = '';
-        for(let m of MACROS){
-            let macid = m.id;
-            let b = elem_parent_text(macs, 'button', m.name);
-            b.addEventListener('click', function(){
-                let macro = MACROS[macid];
-                if(!macro) return;
-                preproc_func(macro.body);
-            });
+        for(let gid of MACROGROUPID_ORDER){
+            let macros = MACROS.get(gid)!;
+            for(let m of macros){
+                let b = elem_parent_text(macs, 'button', m.name);
+                b.style.width = '100%';
+                b.onclick = function(){preproc_func(m.body)};
+            }
         }
     }
     listen_for(ListenEvent.MACROS_RENAMED, setup_macros);

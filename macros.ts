@@ -11,67 +11,45 @@ type Macro = {
     id: number;
 };
 let macrogroupid = 0;
+let ACTIVE_MACRO_GROUP_ID = 0;
 const MACROGROUPIDS: Map<number, string> = new Map();
+const MACROGROUPID_ORDER: Array<number> = [];
+const MACRO_BY_ID: Map<number, Macro> = new Map();
 function macro_group_id(g: string): number{
     for(let [k, v] of MACROGROUPIDS.entries()){
         if(v == g) return k;
     }
     let id = ++macrogroupid;
     MACROGROUPIDS.set(id, g);
+    MACROGROUPID_ORDER.push(id);
     return id;
 }
 
 let macro_id = 0;
-const MACROS: Array<Macro> = (function(){
+const MACROS: Map<number, Array<Macro>> = (function(){
     let saved:Array<SavedMacro> = SETTINGS.macros.macros;
     for(let i = 0; i < saved.length; i++){
         saved[i].id = i;
     }
     macro_id = saved.length;
-    let result: Array<Macro> = [];
+    let result = new Map();
+    for(let sm of saved)
+        result.set(macro_group_id(sm.group), []);
+
     for(let sm of saved){
-        result.push({
+        let macro: Macro = {
             groupid: macro_group_id(sm.group),
             name: sm.name,
             body: sm.body,
             id: sm.id,
-        });
+        };
+        result.get(macro_group_id(sm.group))!.push(macro);
+        MACRO_BY_ID.set(macro.id, macro);
     }
     return result;
 }());
-signal_for(ListenEvent.MACROS_RENAMED);
-const MACROGROUPS: Map<string, HTMLDivElement> = new Map();
 
-function save_macros(){
-    let to_save: Array<SavedMacro> = [];
-    for(let m of MACROS){
-        to_save.push({
-            group: MACROGROUPIDS.get(m.groupid)!,
-            name: m.name,
-            body: m.body,
-            id: m.id,
-        });
-    }
-    signal_for(ListenEvent.MACROS_RENAMED);
-    sync_local(StorageCategory.MACROS, 'macros', to_save);
-}
-
-function add_macro(m:Macro){
-    MACROS.push(m);
-    save_macros();
-}
-function add_macros(macros:Array<Macro>){
-    for(let m of macros)
-        MACROS.push(m);
-    save_macros();
-}
-function macro_by_id(id:number):Macro{
-    for(let m of MACROS){
-        if(m.id == id) return m;
-    }
-    throw new Error();
-}
-
+/*
 function add_macro_button(name:string, group:string, macro_index:number){
     const macro_button = elem_with_text('button', name, null, 'macro-button');
     macro_button.addEventListener('click', function(e:MouseEvent){
@@ -116,61 +94,86 @@ function add_macro_button(name:string, group:string, macro_index:number){
     }
     macrogroup.appendChild(macro_button);
 }
-function clear_macro_buttons(){
-    const macro_buttons = Array.from(document.getElementsByClassName('macro-button'));
-    for(let mb of macro_buttons){
-        mb.remove();
+*/
+function setup_macros(){
+    for(let child of Array.from(by_id('macro-tabs').children))
+        child.remove()
+    for(let child of Array.from(by_id('macro-buttons').children))
+        child.remove()
+    if(!MACROGROUPID_ORDER.length) return;
+    let tabs = [];
+    let views = [];
+    let macro_tab_el = by_id('macro-tabs');
+    let macro_buttons_el = by_id('macro-buttons');
+    for(let gid of MACROGROUPID_ORDER){
+        let name = MACROGROUPIDS.get(gid)!;
+        let d = elem_parent_text(macro_tab_el, 'div', name, null, 'macro-group-title')
+        tabs.push(d);
+        let macros = MACROS.get(gid)!;
+        let macro_group = elem_with_parent(macro_buttons_el, 'div', null, 'macro-group');
+        for(let mac of macros){
+            const macro_button = elem_parent_text(macro_group, 'button', mac.name, null, 'macro-button');
+            macro_button.addEventListener('click', function(e:MouseEvent){
+                e.stopPropagation();
+                preprocess_and_send_chat(mac.body);
+            });
+        }
+        views.push(macro_group);
     }
-    const macros_tabs = Array.from(by_id('macro-tabs').children);
-    for(let m of macros_tabs)
-        m.remove();
-    const macros_buttons = Array.from(by_id('macro-buttons').children);
-    for(let m of macros_buttons)
-        m.remove();
-    MACROGROUPS.clear();
+    let tv = make_tab_view(tabs, views, 'grid');
+    tv.change_tab(0);
 }
-
-function add_macro_and_button(m:Macro){
-    add_macro(m);
-    add_macro_button(m.name, MACROGROUPIDS.get(m.groupid)!, MACROS.length-1);
-}
-function add_macros_and_buttons(macros:Array<Macro>){
-    let start = MACROS.length;
-    add_macros(macros);
-    for(let m of macros){
-        add_macro_button(m.name, MACROGROUPIDS.get(m.groupid)!, start++);
-    }
-}
-function do_macro_buttons(){
-    clear_macro_buttons();
-    let i = 0;
-    for(let m of MACROS)
-        add_macro_button(m.name, MACROGROUPIDS.get(m.groupid)!, i++);
-}
-
 document.addEventListener('DOMContentLoaded', function(){
-    for(let i = 0; i < MACROS.length; i++){
-        const m = MACROS[i];
-        add_macro_button(m.name, MACROGROUPIDS.get(m.groupid)!, i);
-    }
+    setup_macros();
+    listen_for(ListenEvent.MACROS_RENAMED, setup_macros);
 });
+signal_for(ListenEvent.MACROS_RENAMED);
+
+function save_macros(){
+    let to_save: Array<SavedMacro> = [];
+    for(let gid of MACROGROUPID_ORDER){
+        let group = MACROGROUPIDS.get(gid)!;
+        let macros = MACROS.get(gid)!;
+        for(let m of macros){
+            to_save.push({
+                group:group,
+                name: m.name,
+                body: m.body,
+                id: m.id,
+            });
+        }
+    }
+    signal_for(ListenEvent.MACROS_RENAMED);
+    sync_local(StorageCategory.MACROS, 'macros', to_save);
+}
+
+function add_macro(m:Macro){
+    MACROS.get(m.groupid)!.push(m);
+    MACRO_BY_ID.set(m.id, m);
+    save_macros();
+}
+function macro_by_id(id:number):Macro{
+    return MACRO_BY_ID.get(id)!;
+}
+
 
 document.addEventListener('DOMContentLoaded', function(){
     let win = get_window('macros');
     const button = by_id('macros-button');
     win.hide_handler = function(){
-        do_macro_buttons();
+        signal_for(ListenEvent.MACROS_RENAMED);
     };
     button.addEventListener('click', function(){
         win.show();
     });
     let col1 = by_id('macros-group-list');
     let col2 = by_id('macros-list');
-    let dualview = make_dual_list_view<number, number>(col1, col2);
-    for(let macro of MACROS){
-        let gn = MACROGROUPIDS.get(macro.groupid);
-        dualview.add_item1(gn?gn:"General", macro.groupid);
-        dualview.add_item2(macro.name, macro.groupid, macro.id);
+    let dualview = make_dual_list_view<number, number>(col1, col2, ListViewFlags.USER_RENAMABLE|ListViewFlags.USER_MOVABLE, ListViewFlags.USER_MOVABLE);
+    for(let gid of MACROGROUPID_ORDER){
+        let name = MACROGROUPIDS.get(gid)!;
+        dualview.add_item1(name, gid);
+        for(let macro of MACROS.get(gid)!)
+            dualview.add_item2(macro.name, gid, macro.id);
     }
     const macro_area       = by_id('macro-view-edit');
     const editor_container = by_id('macro-editor');
@@ -179,16 +182,37 @@ document.addEventListener('DOMContentLoaded', function(){
     const new_macro        = by_id('new-macro');
     const new_category     = by_id('new-macro-group');
     const log              = by_id('macro-test-log');
-    const test_button = by_id('test-macro');
-    const use_button = by_id('use-macro');
+    const test_button      = by_id('test-macro');
+    const use_button       = by_id('use-macro');
     let m: Macro | undefined;
     function delete_macro(ma:Macro){
-        const index = MACROS.indexOf(ma);
-        MACROS.splice(index, 1);
+        let macros = MACROS.get(ma.groupid)!;
+        const index = macros.indexOf(ma);
+        macros.splice(index, 1);
         m = undefined;
         dualview.remove2(ma.groupid, ma.id);
         save_macros();
     }
+    dualview.user_rename_handler1 = function(groupid:number, newname:string){
+        MACROGROUPIDS.set(groupid, newname);
+        save_macros();
+    };
+    dualview.move_handler1 = function(groupid:number, old_idx:number, offset:number){
+        move_item_by(MACROGROUPID_ORDER, old_idx, offset);
+        save_macros();
+    };
+    dualview.move_handler2 = function(groupid: number, id:number, old_idx:number, offset:number){
+        let idx = -1;
+        let macros = MACROS.get(groupid)!
+        for(let i = 0 ; i < macros.length; i++){
+            if(macros[i].id != id) continue;
+            idx = i;
+            break;
+        }
+        if(idx == -1) return;
+        move_item_by(macros, idx, offset);
+        save_macros();
+    };
     dualview.activate2_handler = function(groupid:number, id:number){
         m = macro_by_id(id);
         (log as any).replaceChildren();
@@ -284,9 +308,13 @@ document.addEventListener('DOMContentLoaded', function(){
         dualview.rename2(m.name, m.groupid, m.id);
         save_macros();
     });
-    if(MACROS.length)
-        dualview.make_active2(MACROS[0].groupid, MACROS[0].id);
-
+    if(MACROGROUPID_ORDER.length){
+        let gid = MACROGROUPID_ORDER[0];
+        let macros = MACROS.get(gid)!;
+        if(macros.length){
+            dualview.make_active2(gid, macros[0].id);
+        }
+    }
 });
 
 // Variables
