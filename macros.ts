@@ -49,52 +49,6 @@ const MACROS: Map<number, Array<Macro>> = (function(){
     return result;
 }());
 
-/*
-function add_macro_button(name:string, group:string, macro_index:number){
-    const macro_button = elem_with_text('button', name, null, 'macro-button');
-    macro_button.addEventListener('click', function(e:MouseEvent){
-        e.stopPropagation();
-        e.preventDefault();
-        let macro = MACROS[macro_index];
-        if(!macro) return;
-        preprocess_and_send_chat(macro.body);
-    });
-    let macrogroup = MACROGROUPS.get(group);
-    if(!macrogroup){
-        const macro_tabs = by_id('macro-tabs');
-        const macro_buttons = by_id('macro-buttons');
-        const tab = elem_with_text('div', group?group:"General");
-        tab.classList.add('macro-group-title');
-        macro_tabs.appendChild(tab);
-        const is_first = macro_tabs.children.length == 1;
-        if(is_first){
-            tab.classList.add('active');
-        }
-        macrogroup = elem('div', null, 'macro-group');
-        if(!is_first)
-            macrogroup.style.display = 'none';
-        macro_buttons.appendChild(macrogroup);
-        MACROGROUPS.set(group, macrogroup);
-        tab.addEventListener('click', function(e:MouseEvent){
-            e.stopPropagation();
-            e.preventDefault();
-            for(let el of macro_tabs.children){
-                if(tab.isSameNode(el)){
-                    el.classList.add('active');
-                }
-                else {
-                    el.classList.remove('active');
-                }
-            }
-            for(let mg of MACROGROUPS.values()){
-                mg.style.display = 'none';
-            }
-            macrogroup!.style.display = 'grid';
-        });
-    }
-    macrogroup.appendChild(macro_button);
-}
-*/
 function setup_macros(){
     for(let child of Array.from(by_id('macro-tabs').children))
         child.remove()
