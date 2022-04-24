@@ -1,3 +1,8 @@
-Currently it is impossible ot reorder macros
-
-Update: You can now reorder them.
+created: 2022-04-22T04:35:30Z
+resolved: 2022-04-24T04:24:52Z
+bugmagic^^^^
+Created Apr 22, 2022, 12:35AM::md.update
+Summary::md.summary
+  It needs to be possible to reorder the macros. Currently their order is the order in which you add them which sucks.
+Resolved Apr 24, 2022, 12:24AM::md.update
+  This was done. A little ugly but it works.
