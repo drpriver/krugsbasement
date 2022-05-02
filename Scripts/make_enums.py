@@ -394,6 +394,13 @@ def make_python(filename:str, infos: List[Info]) -> None:
                 discrim = find_discrim(typename)
                 p(f"register_union_variant('{info.name}', {discrim}, '{typename}')")
             p('')
+        elif isinstance(info, MsgInfo):
+            for it in info.items:
+                if isinstance(it, Comment): continue
+                _, typename, _, _ = it
+                if typename.startswith('['):
+                    inner = typename[1:-1] # hack, only strip one layer off
+                    p(f"register_list('{typename}', '{inner}')")
 
     fp.flush()
     fp.close()

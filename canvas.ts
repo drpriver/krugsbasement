@@ -5940,7 +5940,7 @@ document.addEventListener('DOMContentLoaded', function(){
     ensure_window_is_completely_on_screen(container);
 });
 
-// NOTE: The 'Help' tool was removed (it was a proto dialog.futton).
+// NOTE: The 'Help' tool was removed (it was a proto dialog button).
 // There is now an empty slot due to this.
 const enum ToolType {
     PAN     = 0,
@@ -5977,7 +5977,7 @@ const TOOL_IDS_TO_TOOL = (function(){
     m.set('fixture-tool', ToolType.FIXTURE);
     m.set('tile-tool',    ToolType.TILE);
     m.set('submap-tool',  ToolType.SUBMAP);
-    m.set('shape-tool', ToolType.SHAPE);
+    m.set('shape-tool',   ToolType.SHAPE);
     return m;
 }());
 const TOOL_TO_TOOL_ID = [

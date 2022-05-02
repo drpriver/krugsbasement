@@ -6,7 +6,7 @@ else:
 from .persist import Persister, Dummy
 from enum import IntFlag, IntEnum
 from .logs import logging
-from .messages import CreateObjectMessage, StrippedObj, CanvasFlag, MapFlags, GridType, CanvasDeleteMessage, CanvasUpdateMessage, CreateObjectsMessage, InitializeMap
+from .messages import StrippedObj, CanvasFlag, MapFlags, GridType, CanvasDeleteMessage, CanvasUpdateMessage, CreateObjectsMessage, InitializeMap
 from . import db
 import appconfig
 
@@ -123,17 +123,18 @@ def delete_map(campaign:int, map_id:int) -> bool:
     MAPS[campaign][map_id].value = m.value._replace(flags=m.value.flags | MapFlags.DELETED)
     return True
 
-def handle_create(campaign:int, data:CreateObjectMessage) -> List[CreateObjectsMessage]:
+def handle_create(campaign:int, data:List[CreateObjectsMessage]) -> List[CreateObjectsMessage]:
     '''
     { map_id: 0, object:{...}, }
     '''
-    map_id = data['map_id']
-    obj_id = data['object'][1]
-    obj = data['object']
-    MAPS[campaign][map_id].value.objects.append(obj)
-    MAP_OBJS_BY_ID[campaign][map_id][obj_id] = obj
-    MAPS[campaign][map_id].dirty = True
-    return [{'map_id':data['map_id'], 'objects':[data['object']]}]
+    for d in data:
+        map_id = d['map_id']
+        for obj in d['objects']:
+            obj_id = obj[1]
+            MAPS[campaign][map_id].value.objects.append(obj)
+            MAP_OBJS_BY_ID[campaign][map_id][obj_id] = obj
+        MAPS[campaign][map_id].dirty = True
+    return data
 
 def handle_delete(campaign:int, data:CanvasDeleteMessage) -> CanvasDeleteMessage:
     '''

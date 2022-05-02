@@ -16,7 +16,7 @@ from . import chat
 from . import canvas
 from . import notes
 from .persist import Persister, RepeatTimer, AppKVPersister
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg
 from .validator import register_list, validated
 from . import db
 from .users import User
@@ -465,7 +465,8 @@ def post_join() -> None:
 
 @socketio.on(FromClient.CANVAS_CREATE_OBJECTS)
 @validated
-def handle_canvas_create(data:CreateObjectMessage) -> None:
+def handle_canvas_create(data:List[CreateObjectsMessage]) -> None:
+    dlog('data: %r', data)
     campaign = get_campaign(request)
     response = canvas.handle_create(campaign, data)
     if response:

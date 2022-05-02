@@ -810,10 +810,6 @@ enum MapFlags: int flag
     CANT_DELETE = 1 << 1
     NUMBERED = 1 << 2
 
-struct CreateObjectMessage: dict
-    map_id: int
-    object: StrippedObj
-
 struct CreateObjectsMessage: dict
     map_id: int
     objects: [StrippedObj]
@@ -958,7 +954,7 @@ message FromClientMsg: FromClient
     RETRIEVE_ROLL_TABLES = void
     UPDATE_ROLL_TABLES = RollTables
     # UPLOAD_ROLL_TABLE = RollTable
-    CANVAS_CREATE_OBJECTS = CreateObjectMessage
+    CANVAS_CREATE_OBJECTS = [CreateObjectsMessage]
     CANVAS_DELETE = CanvasDeleteMessage
     CANVAS_UPDATE = CanvasUpdateMessage
     CANVAS_GATHER = GatherMessage
