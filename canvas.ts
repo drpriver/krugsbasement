@@ -2109,25 +2109,30 @@ const enum UNDO_EVENT_TYPE {
     DELETE = 1,
     UPDATE = 2,
     MASS_CREATE = 3,
+    COMBO = 4, // more than one of the above, simultaneously
 }
 type UndoCreate = {
-    type: UNDO_EVENT_TYPE; // CREATE
+    type: UNDO_EVENT_TYPE.CREATE;
     id: number;
 }
 type UndoMassCreate = {
-    type: UNDO_EVENT_TYPE; // MASS_CREATE
+    type: UNDO_EVENT_TYPE.MASS_CREATE;
     ids: Array<number>;
 }
 type UndoDelete = {
-    type: UNDO_EVENT_TYPE; // DELETE
+    type: UNDO_EVENT_TYPE.DELETE;
     ids: Array<number>;
 }
 type UndoUpdate = {
-    type: UNDO_EVENT_TYPE; // UPDATE
+    type: UNDO_EVENT_TYPE.UPDATE;
     before: Array<StrippedObj>;
     after: Array<StrippedObj>;
 }
-type UndoEvent = UndoCreate | UndoMassCreate | UndoDelete | UndoUpdate;
+type UndoCombo = {
+    type: UNDO_EVENT_TYPE.COMBO;
+    events: Array<UndoCreate | UndoMassCreate | UndoDelete | UndoUpdate>;
+};
+type UndoEvent = UndoCreate | UndoMassCreate | UndoDelete | UndoUpdate | UndoCombo;
 
 function push_undo_event(map:DungeonMap, undo_event:UndoEvent):void{
     map.undo_stack.length = map.undo_position;
@@ -2166,21 +2171,32 @@ function note_mass_create_for_undo(map:DungeonMap, created_ids:Array<number>){
     };
     push_undo_event(map, undo_event);
 }
-function do_one_undo(map:DungeonMap):void{
-    if(!map.undo_position)
-        return;
-    map.undo_position--;
-    const undo_event = map.undo_stack[map.undo_position];
+function node_deletes_and_creates_for_undo(map:DungeonMap, deleted:Array<number>, created_ids:Array<number>){
+    const creat: UndoMassCreate = {
+        type: UNDO_EVENT_TYPE.MASS_CREATE,
+        ids: created_ids,
+    };
+    const delet:UndoDelete = {
+        type: UNDO_EVENT_TYPE.DELETE,
+        ids: deleted,
+    };
+    const combo: UndoCombo = {
+        type: UNDO_EVENT_TYPE.COMBO,
+        events:[delet, creat],
+    };
+    // console.log('combo', combo);
+    push_undo_event(map, combo);
+}
+
+function do_one_undo_event(map:DungeonMap, undo_event:UndoEvent){
     switch(undo_event.type){
         case UNDO_EVENT_TYPE.CREATE:{
-            const ue = undo_event as UndoCreate;
-            const obj = map.canvas_objs.get(ue.id)!;
+            const obj = map.canvas_objs.get(undo_event.id)!;
             obj.flags |= CanvasFlag.DELETED;
             publish_delete_by_ids(map.map_id, [obj.id]);
         }break;
         case UNDO_EVENT_TYPE.DELETE:{
-            const ue = undo_event as UndoDelete;
-            const ids = ue.ids;
+            const ids = undo_event.ids;
             const length = ids.length;
             const stripped = get_stripped_state_by_id(map, ids);
             for(let i = 0; i < length; i++){
@@ -2192,8 +2208,7 @@ function do_one_undo(map:DungeonMap):void{
             publish_obj_updates(map.map_id, stripped);
         }break;
         case UNDO_EVENT_TYPE.MASS_CREATE:{
-            const ue = undo_event as UndoMassCreate;
-            const ids = ue.ids;
+            const ids = undo_event.ids;
             const length = ids.length;
             for(let i = 0; i < length; i++){
                 const obj = map.canvas_objs.get(ids[i])!;
@@ -2202,52 +2217,65 @@ function do_one_undo(map:DungeonMap):void{
             publish_delete_by_ids(map.map_id, ids);
         }break;
         case UNDO_EVENT_TYPE.UPDATE:{
-            const ue = undo_event as UndoUpdate;
-            set_obj_states_from_stripped_objs(map, ue.before);
-            publish_obj_updates(map.map_id, ue.before);
+            set_obj_states_from_stripped_objs(map, undo_event.before);
+            publish_obj_updates(map.map_id, undo_event.before);
+        }break;
+        case UNDO_EVENT_TYPE.COMBO:{
+            for(let i = undo_event.events.length; --i >= 0; )
+                do_one_undo_event(map, undo_event.events[i]);
         }break;
     }
+}
+function do_one_undo(map:DungeonMap):void{
+    if(!map.undo_position)
+        return;
+    map.undo_position--;
+    const undo_event = map.undo_stack[map.undo_position];
+    do_one_undo_event(map, undo_event);
     request_render();
 }
-function do_one_redo(map:DungeonMap):void{
-    if(map.undo_position == map.undo_stack.length)
-        return;
-    const undo_event = map.undo_stack[map.undo_position];
+function do_one_redo_event(map:DungeonMap, undo_event:UndoEvent){
     switch(undo_event.type){
         case UNDO_EVENT_TYPE.CREATE:{
-            const ue = undo_event as UndoCreate;
-            const obj = map.canvas_objs.get(ue.id)!;
+            const obj = map.canvas_objs.get(undo_event.id)!;
             obj.flags &= ~CanvasFlag.DELETED;
-            const stripped = get_stripped_state_by_id(map, [ue.id]);
+            const stripped = get_stripped_state_by_id(map, [undo_event.id]);
             publish_obj_updates(map.map_id, stripped);
         }break;
         case UNDO_EVENT_TYPE.DELETE:{
-            const ue = undo_event as UndoDelete;
-            const ids = ue.ids;
+            const ids = undo_event.ids;
             const length = ids.length;
             for(let i = 0; i < length; i++){
                 const obj = map.canvas_objs.get(ids[i])!;
                 obj.flags |= CanvasFlag.DELETED;
             }
-            publish_delete_by_ids(map.map_id, ue.ids);
+            publish_delete_by_ids(map.map_id, undo_event.ids);
         }break;
         case UNDO_EVENT_TYPE.MASS_CREATE:{
-            const ue = undo_event as UndoMassCreate;
-            const ids = ue.ids;
+            const ids = undo_event.ids;
             const length = ids.length;
             for(let i = 0; i < length; i++){
                 const obj = map.canvas_objs.get(ids[i])!;
                 obj.flags &= ~ CanvasFlag.DELETED;
             }
-            const stripped = get_stripped_state_by_id(map, ue.ids);
+            const stripped = get_stripped_state_by_id(map, undo_event.ids);
             publish_obj_updates(map.map_id, stripped);
         }break;
         case UNDO_EVENT_TYPE.UPDATE:{
-            const ue = undo_event as UndoUpdate
-            set_obj_states_from_stripped_objs(map, ue.after);
-            publish_obj_updates(map.map_id, ue.after);
+            set_obj_states_from_stripped_objs(map, undo_event.after);
+            publish_obj_updates(map.map_id, undo_event.after);
+        }break;
+        case UNDO_EVENT_TYPE.COMBO:{
+            for(let ue of undo_event.events)
+                do_one_redo_event(map, ue);
         }break;
     }
+}
+function do_one_redo(map:DungeonMap):void{
+    if(map.undo_position == map.undo_stack.length)
+        return;
+    const undo_event = map.undo_stack[map.undo_position];
+    do_one_redo_event(map, undo_event);
     map.undo_position++;
     request_render();
 }
