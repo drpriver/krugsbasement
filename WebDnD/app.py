@@ -418,7 +418,8 @@ def handle_disconnect() -> None:
                 del user_id_to_sids[id]
         except Exception:
             pass
-
+# These legacy links need to be supported so that old urls
+# will continue working.
 LEGACY_CAMPAIGNS = {'horror_on_the_moors':3, 'greenskins1':5}
 
 @socketio.on(FromClient.JOIN)
