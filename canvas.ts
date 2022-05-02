@@ -3297,7 +3297,7 @@ function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number
         }
         else{
             m = REFERENCE.WIDTH-1;
-            }
+        }
         const m1 = m + 1;
         const aligned_old_x = base_x - (base_x & m);
         const aligned_old_y = base_y - (base_y & m);

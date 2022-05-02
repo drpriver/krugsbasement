@@ -65,7 +65,7 @@ FCACHE = pydndc.FileCache()
 FCACHE.store('login.css', r('login.css'))
 FCACHE.store('darkmode.js', r('darkmode.js'))
 
-class PageCtx:
+class PageTemplate:
     def __init__(self, filename:str, node_ids: Tuple[str, ...], ctx:pydndc.Context, handles:List[int]) -> None:
         self.filename = filename
         self.node_ids = node_ids
@@ -73,15 +73,16 @@ class PageCtx:
         self.handles = handles
 
     def clone(self) -> Tuple[pydndc.Context, List[pydndc.Node]]:
-        # if appconfig.DEV:
-            # self = self.setup(self.filename, *self.node_ids)
-        ctx = self.ctx.clone()
+        if appconfig.DEV:
+            self = self.setup(self.filename, self.node_ids)
+        ctx = self.ctx.pseudo_clone()
         return ctx, [ctx.node_from_int(h) for h in self.handles]
 
     @classmethod
-    def setup(cls, filename:str, *node_ids:str) -> 'PageCtx':
+    def setup(cls, filename:str, node_ids:Tuple[str, ...]) -> 'PageTemplate':
         text = r(filename)
         ctx = pydndc.Context(filecache=FCACHE)
+        ctx.logger = pydndc.stderr_logger
         ctx.root.parse(text)
         ctx.resolve_imports()
         ctx.gather_links()
@@ -89,9 +90,9 @@ class PageCtx:
         handles = [ctx.node_by_id(node_id).handle for node_id in node_ids] # type: ignore
         return cls(filename, node_ids, ctx, handles)
 
-HOMECTX     = PageCtx.setup('home.dnd', 'Campaigns', 'Your Campaigns', 'welcome', 'Create a Campaign')
-REGISTERCTX = PageCtx.setup('register.dnd', 'username-errors', 'email-errors', 'password-errors', 'password2-errors', 'hidden')
-LOGINCTX    = PageCtx.setup('login.dnd', 'username-errors', 'password-errors', 'hidden')
+HOMETEMPLATE     = PageTemplate.setup('home.dnd',     ('Campaigns', 'Your Campaigns', 'welcome', 'Create a Campaign'))
+REGISTERTEMPLATE = PageTemplate.setup('register.dnd', ('username-errors', 'email-errors', 'password-errors', 'password2-errors', 'hidden'))
+LOGINTEMPLATE    = PageTemplate.setup('login.dnd',    ('username-errors', 'password-errors', 'hidden'))
 
 
 def bad_attempt() -> None:
@@ -160,7 +161,7 @@ def register() -> object:
             return flask.redirect('/home')
         return flask.redirect(next_page)
     next_page = request.args.get('next')
-    ctx, nodes = REGISTERCTX.clone()
+    ctx, nodes = REGISTERTEMPLATE.clone()
     username_errors, email_errors, password_errors, password2_errors, hidden = nodes
 
     next_page = ('?'+url_encode({'next':next_page})) if next_page else ''
@@ -174,7 +175,7 @@ def register() -> object:
     hidden.append_child(form.hidden_tag())
     html = ctx.render()
     t1 = time.time()
-    logging.info('register rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
+    dlog('register rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
     return html
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -198,7 +199,7 @@ def login_page() -> object:
         if not next_page or url_parse(next_page).netloc != '':
             return flask.redirect('/home')
         return flask.redirect(next_page)
-    ctx, nodes = LOGINCTX.clone()
+    ctx, nodes = LOGINTEMPLATE.clone()
     username_errors, password_errors, hidden = nodes
     next_page = request.args.get('next')
     if next_page:
@@ -212,7 +213,7 @@ def login_page() -> object:
     hidden.append_child(form.hidden_tag())
     html = ctx.render()
     t1 = time.time()
-    logging.info('login rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
+    dlog('login rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
     return html
 
 
@@ -302,7 +303,7 @@ def home() -> object:
         # javascript can't handle large integers, so convert to string
         ownedcampaigns = [(a, markupsafe.escape(b), str(c) if c is not None else '') for a, b, c in ownedcampaigns]
     name = current_user.name if current_user.is_authenticated else 'Guest User'
-    ctx, nodes = HOMECTX.clone()
+    ctx, nodes = HOMETEMPLATE.clone()
     camp, your_campaigns, welcome, create = nodes
     if campaigns:
         camp.parse('Go to a Campaign:')
