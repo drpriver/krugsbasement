@@ -3778,9 +3778,25 @@ function publish_obj_by_id(map:DungeonMap, id:number):void{
         return;
     }
     const stripped_obj = strip_obj(obj);
-    let msg: CreateObjectMessage = {map_id:map.map_id, object:stripped_obj};
-    EMIT(FromClient.CANVAS_CREATE_OBJECTS, msg);
+    let msg: CreateObjectsMessage = {map_id:map.map_id, objects:[stripped_obj]};
+    EMIT(FromClient.CANVAS_CREATE_OBJECTS, [msg]);
 }
+
+function publish_objs_by_ids(map:DungeonMap, ids:Array<number>):void{
+    const objs = [];
+    for(let id of ids){
+        const obj = map.canvas_objs.get(id);
+        if(!obj){
+            console.log('invalid id given for publishing:', id);
+            return;
+        }
+        const stripped_obj = strip_obj(obj);
+        objs.push(stripped_obj);
+    }
+    let msg: CreateObjectsMessage = {map_id:map.map_id, objects:objs};
+    EMIT(FromClient.CANVAS_CREATE_OBJECTS, [msg]);
+}
+
 function get_stripped_state_by_id(map:DungeonMap, ids:Array<number>):Array<StrippedObj>{
     const length = ids.length;
     const updates = []
