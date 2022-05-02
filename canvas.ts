@@ -3131,6 +3131,29 @@ function obj_at(view:DungeonMapView, x0:number, y0:number, select_type:SELECTTYP
     }
     return null;
 }
+function tile_at(view:DungeonMapView, x0:number, y0:number):CanvasObject|null{
+    const canvas_obj_array = view.map.canvas_obj_array;
+    const length = canvas_obj_array.length;
+    for(let i = 0; i < length; ++i){
+        const obj = canvas_obj_array[i];
+        if(obj.flags & CanvasFlag.DELETED)
+            continue;
+        if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
+            continue;
+        if(obj.submap)
+            continue;
+        switch(obj.type){
+        case CanvasType.ICON_TILE:
+        case CanvasType.FILLED_TILE:
+        case CanvasType.TERRAIN_TILE:
+            break;
+        default: continue;
+        }
+        if(obj.base_x == x0 && obj.base_y == y0)
+            return obj;
+    }
+    return null;
+}
 function note_selections(view:DungeonMapView):void{
     const canvas_obj_array = view.map.canvas_obj_array;
     const length = canvas_obj_array.length;
@@ -7892,64 +7915,101 @@ document.addEventListener('DOMContentLoaded', function(){
 
             }break;
             case ToolType.TILE:{
-                let x:number;
-                let y:number;
-                if(view.map.grid_type & GridType.HEX){
-                    const [x_, y_] = event_to_coord_off(e, view, smoff);
-                    [x, y] = snap_down_to_hex_grid(x_, y_);
+                let deleted_ids: Array<number> = [];
+                let created_ids:Array<number> = [];
+                let drag = false;
+                function make_tile(e:PointerEvent){
+                    let x:number;
+                    let y:number;
+                    if(view.map.grid_type & GridType.HEX){
+                        const [x_, y_] = event_to_coord_off(e, view, smoff);
+                        [x, y] = snap_down_to_hex_grid(x_, y_);
+                    }
+                    else {
+                        let snap = get_snap_tl_func();
+                        [x, y] = event_to_coord_snapped_off(e, view, snap, smoff);
+                    }
+                    let old_tile = tile_at(view, x, y);
+                    if(drag){
+                        if(old_tile) return;
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
+                    else {
+                        if(old_tile){
+                            old_tile.flags |= CanvasFlag.DELETED;
+                            deleted_ids.push(old_tile.id);
+                        }
+                    }
+                    let id = get_new_id();
+                    created_ids.push(id);
+                    switch(current_tile_type){
+                        case TileType.FILLED:{
+                            let filled: FilledTile = {
+                                type: CanvasType.FILLED_TILE,
+                                id: id,
+                                base_x: x,
+                                base_y: y,
+                                flags: CanvasFlag.NONE,
+                                hidinguser: hiddenid(),
+                                submap:submapid,
+                                color: get_primary_color(),
+                                size: gridscale == GRIDSCALE.TEN?1:0.5,
+                            };
+                            add_canv_obj(view.map, filled);
+                        }break;
+                        case TileType.TERRAIN: {
+                            let terrain: TerrainTile = {
+                                type: CanvasType.TERRAIN_TILE,
+                                id: id,
+                                base_x: x,
+                                base_y: y,
+                                flags: CanvasFlag.NONE,
+                                hidinguser: hiddenid(),
+                                submap:submapid,
+                                terrain_id: current_terrain_id,
+                            };
+                            add_canv_obj(view.map, terrain);
+                        }break;
+                        case TileType.ICON: {
+                            let icon: IconTile = {
+                                type: CanvasType.ICON_TILE,
+                                id: id,
+                                base_x: x,
+                                base_y: y,
+                                flags: CanvasFlag.NONE,
+                                hidinguser: hiddenid(),
+                                submap:submapid,
+                                terrainicon_id: current_terrain_icon_id,
+                            };
+                            add_canv_obj(view.map, icon);
+                        }break;
+                        default:
+                            console.assert(false);
+                    }
+                    request_render();
                 }
-                else {
-                    let snap = get_snap_tl_func();
-                    [x, y] = event_to_coord_snapped_off(e, view, snap, smoff);
-                }
-                let id = get_new_id();
-                switch(current_tile_type){
-                    case TileType.FILLED:{
-                        let filled: FilledTile = {
-                            type: CanvasType.FILLED_TILE,
-                            id: id,
-                            base_x: x,
-                            base_y: y,
-                            flags: CanvasFlag.NONE,
-                            hidinguser: hiddenid(),
-                            submap:submapid,
-                            color: get_primary_color(),
-                            size: gridscale == GRIDSCALE.TEN?1:0.5,
-                        };
-                        add_canv_obj(view.map, filled);
-                    }break;
-                    case TileType.TERRAIN: {
-                        let terrain: TerrainTile = {
-                            type: CanvasType.TERRAIN_TILE,
-                            id: id,
-                            base_x: x,
-                            base_y: y,
-                            flags: CanvasFlag.NONE,
-                            hidinguser: hiddenid(),
-                            submap:submapid,
-                            terrain_id: current_terrain_id,
-                        };
-                        add_canv_obj(view.map, terrain);
-                    }break;
-                    case TileType.ICON: {
-                        let icon: IconTile = {
-                            type: CanvasType.ICON_TILE,
-                            id: id,
-                            base_x: x,
-                            base_y: y,
-                            flags: CanvasFlag.NONE,
-                            hidinguser: hiddenid(),
-                            submap:submapid,
-                            terrainicon_id: current_terrain_icon_id,
-                        };
-                        add_canv_obj(view.map, icon);
-                    }break;
-                    default:
-                        console.assert(false);
-                }
-                publish_obj_by_id(view.map, id);
-                note_create_by_id_for_undo(view.map, id);
-                request_render();
+                make_tile(e);
+                drag = true;
+                canvas.addEventListener('pointermove', make_tile);
+                function finish(){
+                    // console.log('created_ids', created_ids);
+                    // console.log('deleted ids', deleted_ids);
+                    canvas.removeEventListener('pointermove', make_tile);
+                    canvas.removeEventListener('pointerleave', finish);
+                    window.removeEventListener('pointerup', finish);
+                    publish_objs_by_ids(view.map, created_ids);
+                    if(deleted_ids.length){
+                        publish_delete_by_ids(view.map.map_id, deleted_ids);
+                        node_deletes_and_creates_for_undo(view.map, deleted_ids, created_ids);
+                    }
+                    else {
+                        note_mass_create_for_undo(view.map, created_ids);
+                    }
+                    request_render();
+                };
+                window.addEventListener('pointerup', finish);
+                canvas.addEventListener('pointerleave', finish);
             }break;
             case ToolType.SUBMAP:{
                 // Don't allow nested submaps
