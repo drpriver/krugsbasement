@@ -1,7 +1,7 @@
-bug.py: v0.0.1
-created: 2022-01-09T16:44:58.790898
-resolved: 2022-01-09T19:17:11.147676
-bugmagic^^^^
+Changelog::kv
+  bug.py: v0.0.1
+  created: 2022-01-09T16:44:58.790898
+  resolved: 2022-01-09T19:17:11.147676
 Summary::md.summary
   Dice parser is fucked. It does d20 +-1+2 as d20+ -(1+2).
 Resolved Jan 09, 2022, 07:17PM::md.update

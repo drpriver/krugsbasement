@@ -1,2 +1,3 @@
+Changelog::kv
 When you refresh, you go to map 0, instead of the last map you were looking at.
 Update: remembers.

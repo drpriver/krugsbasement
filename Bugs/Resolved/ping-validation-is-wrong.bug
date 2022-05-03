@@ -1,7 +1,7 @@
-bug.py: v0.0.1
-created: 2022-01-09T16:47:49.917483
-resolved: 2022-01-09T18:18:49.521725
-bugmagic^^^^
+Changelog::kv
+  bug.py: v0.0.1
+  created: 2022-01-09T16:47:49.917483
+  resolved: 2022-01-09T18:18:49.521725
 Summary::md.summary
   PingMessage is broken - stupid validation
 Resolved Jan 09, 2022, 06:18PM::md.update

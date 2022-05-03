@@ -1,6 +1,6 @@
-created: 2022-03-19T19:55:49Z
-resolved: 2022-03-19T20:22:36Z
-bugmagic^^^^
+Changelog::kv
+  created: 2022-03-19T19:55:49Z
+  resolved: 2022-03-19T20:22:36Z
 Created Mar 19, 2022, 03:55PM::md.update
 Summary::md.summary
   On touch screen uis, when you do a two-finger zoom in or out, the pan position starts jumping around like crazy. This is only reproducible on real touch screen device (ipad, phone, etc.)

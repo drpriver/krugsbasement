@@ -1,7 +1,7 @@
-bug.py: v0.0.1
-created: 2022-02-01T22:48:57.645617
-resolved: 2022-04-03T01:50:55Z
-bugmagic^^^^
+Changelog::kv
+  bug.py: v0.0.1
+  created: 2022-02-01T22:48:57.645617
+  resolved: 2022-04-03T01:50:55Z
 Summary::md .summary
   Hexgrid: canvas objects and grid are snapping to integer coordinates, which
   looks jumpy. Also they are rounding to different integer coordinates which

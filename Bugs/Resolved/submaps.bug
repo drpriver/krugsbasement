@@ -1,13 +1,13 @@
-created: 2022-03-10T18:33:13Z
-updated: 2022-03-11T01:23:18Z
-updated: 2022-03-11T04:36:46Z
-updated: 2022-03-11T20:20:45Z
-updated: 2022-03-13T06:40:58Z
-updated: 2022-03-14T06:32:52Z
-updated: 2022-03-14T07:03:59Z
-updated: 2022-03-14T18:09:36Z
-resolved: 2022-04-09T23:01:31Z
-bugmagic^^^^
+Changelog::kv
+  created: 2022-03-10T18:33:13Z
+  updated: 2022-03-11T01:23:18Z
+  updated: 2022-03-11T04:36:46Z
+  updated: 2022-03-11T20:20:45Z
+  updated: 2022-03-13T06:40:58Z
+  updated: 2022-03-14T06:32:52Z
+  updated: 2022-03-14T07:03:59Z
+  updated: 2022-03-14T18:09:36Z
+  resolved: 2022-04-09T23:01:31Z
 Created Mar 10, 2022, 01:33PM::md.update
 Summary::md.summary
   I want a feature that is submaps on top of the main map. It will be a bit difficult,

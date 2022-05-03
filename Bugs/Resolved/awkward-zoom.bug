@@ -1,7 +1,7 @@
-bug.py: v0.0.1
-created: 2022-01-06T22:31:25.062018
-resolved: 2022-01-07T01:24:18.747346
-bugmagic^^^^
+Changelog::kv
+  bug.py: v0.0.1
+  created: 2022-01-06T22:31:25.062018
+  resolved: 2022-01-07T01:24:18.747346
 Summary::md.summary
   It is a bit awkward to zoom when you don’t have a mouse or touch pad (aka the crappy controller for the oculus).
   I can’t figure out how to get it to give me access to the controller, which is really weird.

@@ -1,7 +1,7 @@
-bug.py: v0.0.1
-created: 2022-02-14T12:53:55.535725
-resolved: 2022-02-14T17:20:23.289043
-bugmagic^^^^
+Changelog::kv
+  bug.py: v0.0.1
+  created: 2022-02-14T12:53:55.535725
+  resolved: 2022-02-14T17:20:23.289043
 Summary::md.summary
   Selection moving objects with multiple objects selected seems broken
 Resolved Feb 14, 2022, 05:20PM::md.update

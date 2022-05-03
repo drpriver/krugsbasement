@@ -1,7 +1,7 @@
-bug.py: v0.0.1
-created: 2022-02-22T02:08:02.365682
-punt: 2022-04-07T07:47:57Z
-bugmagic^^^^
+Changelog::kv
+  bug.py: v0.0.1
+  created: 2022-02-22T02:08:02.365682
+  punted: 2022-04-07T07:47:57Z
 Summary::md.summary
   Users should be able to recover their account via email or whatever.
 Punted Apr 07, 2022, 03:47AM::md.update

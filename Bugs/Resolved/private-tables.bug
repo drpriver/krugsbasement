@@ -1,7 +1,7 @@
-bug.py: v0.0.1
-created: 2022-02-18T02:45:52.427324
-resolved: 2022-02-21T22:36:10.325529
-bugmagic^^^^
+Changelog::kv
+  bug.py: v0.0.1
+  created: 2022-02-18T02:45:52.427324
+  resolved: 2022-02-21T22:36:10.325529
 Summary::md.summary
   Private Tables.
 

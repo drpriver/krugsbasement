@@ -1,5 +1,5 @@
-resolved: 2022-01-08T00:32:01.738132
-bugmagic^^^^
+Changelog::kv
+  resolved: 2022-01-08T00:32:01.738132
 Summary::md.summary
   The error reporting just says one group that had a duplicate variable. It
   should say all of the groups that had that duplicate variable.

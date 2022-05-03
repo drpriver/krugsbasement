@@ -1,3 +1,4 @@
+Changelog::kv
 Localstorage is shared across a website, and is not normally namespaced per page.
 So, I am going to have to manually namespace the localstorage keys.
 Chatname should be per page and macros should be per page.

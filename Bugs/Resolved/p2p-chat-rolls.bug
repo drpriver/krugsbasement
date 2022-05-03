@@ -1,9 +1,9 @@
-bug.py: v0.0.1
-created: 2022-02-18T02:47:04.183622
-updated: 2022-02-21T22:36:24.111756
-updated: 2022-02-21T23:36:30.226147
-resolved: 2022-02-22T00:20:28.672785
-bugmagic^^^^
+Changelog::kv
+  bug.py: v0.0.1
+  created: 2022-02-18T02:47:04.183622
+  updated: 2022-02-21T22:36:24.111756
+  updated: 2022-02-21T23:36:30.226147
+  resolved: 2022-02-22T00:20:28.672785
 Summary::md.summary
   Player to Player chat/rolls.
 

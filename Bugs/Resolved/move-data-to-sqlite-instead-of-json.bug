@@ -1,7 +1,7 @@
-bug.py: v0.0.1
-created: 2022-01-23T14:49:46.060781
-resolved: 2022-01-25T03:06:00.963257
-bugmagic^^^^
+Changelog::kv
+  bug.py: v0.0.1
+  created: 2022-01-23T14:49:46.060781
+  resolved: 2022-01-25T03:06:00.963257
 Summary::md.summary
   Move data storage to sqlite.
 Resolved Jan 25, 2022, 03:06AM::md.update

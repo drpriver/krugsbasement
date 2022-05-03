@@ -1,3 +1,4 @@
+Changelog::kv
 * [ ] odd when diagonal corner meets non diagonal corner
 
 This is a visual bug. Drawing a path with a corner leads to a sharp corner, but drawing the invidual lines doesn't, which can look weird.

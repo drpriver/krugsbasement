@@ -1,3 +1,4 @@
+Changelog::kv
 * [x] Grid radio-button: whole grid, half grid, free grid.
   - [x] Affect Walls
   - [x] Affect doors

@@ -1,6 +1,6 @@
-created: 2022-02-28T08:28:50Z
-resolved: 2022-02-28T09:07:14Z
-bugmagic^^^^
+Changelog::kv
+  created: 2022-02-28T08:28:50Z
+  resolved: 2022-02-28T09:07:14Z
 Created Feb 28, 2022, 03:28AM::md.update
 Summary::md.summary
   The recently used colors pop up doesn’t have a z-index and so is below the tools window, which looks bad.

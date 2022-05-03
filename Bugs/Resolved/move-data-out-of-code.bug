@@ -1,7 +1,7 @@
-bug.py: v0.0.1
-created: 2022-01-25T04:16:12.207999
-resolved: 2022-01-25T18:20:45.524900
-bugmagic^^^^
+Changelog::kv
+  bug.py: v0.0.1
+  created: 2022-01-25T04:16:12.207999
+  resolved: 2022-01-25T18:20:45.524900
 Summary::md.summary
   Move Data out of Code
 

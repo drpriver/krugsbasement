@@ -1,5 +1,5 @@
-wontfix: 2022-01-03T23:13:05.933179
-bugmagic^^^^
+Changelog::kv
+  wontfix: 2022-01-03T23:13:05.933179
 Summary::md.summary
   Windows color input is fucked.
 

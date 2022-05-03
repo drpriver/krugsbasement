@@ -1,7 +1,7 @@
-bug.py: v0.0.1
-created: 2022-01-22T20:25:24.932478
-resolved: 2022-01-30T23:35:41.606315
-bugmagic^^^^
+Changelog::kv
+  bug.py: v0.0.1
+  created: 2022-01-22T20:25:24.932478
+  resolved: 2022-01-30T23:35:41.606315
 Summary::md.summary
   Add user accounts
 Resolved Jan 30, 2022, 11:35PM::md.update

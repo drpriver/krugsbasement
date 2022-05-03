@@ -1,5 +1,5 @@
-wontfix: 2022-01-07T03:35:42.346178
-bugmagic^^^^
+Changelog::kv
+  wontfix: 2022-01-07T03:35:42.346178
 Summary::md.summary
   If you define the same variable twice, there is no error checking for this.
 

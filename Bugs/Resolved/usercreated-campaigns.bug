@@ -1,7 +1,7 @@
-bug.py: v0.0.1
-created: 2022-01-30T23:46:44.980072
-resolved: 2022-02-03T02:46:30.824638
-bugmagic^^^^
+Changelog::kv
+  bug.py: v0.0.1
+  created: 2022-01-30T23:46:44.980072
+  resolved: 2022-02-03T02:46:30.824638
 Summary::md.summary
   Users can create campaigns
 Resolved Feb 03, 2022, 02:46AM::md.update

@@ -1,3 +1,4 @@
+Changelog::kv
 Make everything (within reason) obey the grid/half/free settings.
 
 Rectangle needs to snap to grid or not.

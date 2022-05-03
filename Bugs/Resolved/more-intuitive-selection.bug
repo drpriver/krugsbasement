@@ -1,8 +1,8 @@
-bug.py: v0.0.1
-created: 2022-01-17T01:02:44.327408
-updated: 2022-01-17T02:29:01.284492
-resolved: 2022-01-19T18:15:55.340933
-bugmagic^^^^
+Changelog::kv
+  bug.py: v0.0.1
+  created: 2022-01-17T01:02:44.327408
+  updated: 2022-01-17T02:29:01.284492
+  resolved: 2022-01-19T18:15:55.340933
 Summary::md.summary
   More intuitive selection
 

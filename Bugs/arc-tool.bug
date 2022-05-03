@@ -1,6 +1,6 @@
-created: 2022-04-18T17:57:11Z
-updated: 2022-04-18T17:58:55Z
-bugmagic^^^^
+Changelog::kv
+  created: 2022-04-18T17:57:11Z
+  updated: 2022-04-18T17:58:55Z
 Created Apr 18, 2022, 01:57PM::md.update
 Summary::md.summary
   Sometimes you need to draw semicircles or quarter circles. There should be a tool for that.

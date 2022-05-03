@@ -1,7 +1,7 @@
-bug.py: v0.0.1
-created: 2022-01-07T23:47:56.303449
-resolved: 2022-01-08T00:13:03.924714
-bugmagic^^^^
+Changelog::kv
+  bug.py: v0.0.1
+  created: 2022-01-07T23:47:56.303449
+  resolved: 2022-01-08T00:13:03.924714
 Summary::md.summary
   Edge/Chrome on Windows (probably other chromium browsers too) the iframe in the notes doesn’t inherit the background in dark mode apparently?
 Resolved Jan 08, 2022, 12:13AM::md.update

@@ -1,5 +1,5 @@
-resolved: 2022-01-07T02:36:36.173432
-bugmagic^^^^
+Changelog::kv
+  resolved: 2022-01-07T02:36:36.173432
 Summary::md.summary
   In firefox, the darkmode fonts are poopy for some of the new floating windows.
 

@@ -1,6 +1,6 @@
-created: 2022-03-19T19:54:06Z
-resolved: 2022-03-19T20:39:39Z
-bugmagic^^^^
+Changelog::kv
+  created: 2022-03-19T19:54:06Z
+  resolved: 2022-03-19T20:39:39Z
 Created Mar 19, 2022, 03:54PM::md.update
 Summary::md.summary
   While convenient on desktop, it’s annoying on touch screen uis to have the input autofocus as it pops up this giant fucking virtual keyboard.

@@ -1,1 +1,2 @@
+Changelog::kv
 The line bbox was being calculated incorrectly. It was not considering the base as a point.
