@@ -15,8 +15,6 @@
   Register::title
   ::raw #id(hidden)
     <form action="" method="post">
-  ::js
-    node.parent.children[2].add_child(Args.hidden);
   ::div.error-item #id(username-errors)
   ::div.login-item .hint
     ::raw
