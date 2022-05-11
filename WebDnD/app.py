@@ -1,7 +1,7 @@
 from __future__ import annotations
 import os
 import logging
-from typing import List, Dict, Optional, Set, Union, Any, NamedTuple, Tuple
+from typing import List, Dict, Optional, Set, Union, NamedTuple, Tuple
 
 from flask import Flask, jsonify, request, Response, send_from_directory, session, abort
 import flask
@@ -390,10 +390,10 @@ logging.info('session_id: %r', session_id.value)
 
 sid_to_campaign = {} # type: Dict[str, int]
 user_id_to_sids = {} # type: Dict[int, List[str]]
-def get_campaign(req:Any) -> int:
+def get_campaign(req:'flask.Request') -> int:
     return sid_to_campaign[req.sid]
 
-def record_campaign(req:Any, campaign:int) -> None:
+def record_campaign(req:'flask.Request', campaign:int) -> None:
     sid_to_campaign[req.sid] = campaign
     if current_user.is_authenticated:
         if current_user.userid not in user_id_to_sids:

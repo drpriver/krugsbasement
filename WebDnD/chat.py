@@ -133,13 +133,13 @@ def get_private_history(userid:int, campaign:int) -> List[ChatHistory]:
 
 def handle_structured_input(userid:int, campaign:int, user:str, commands:List[Command], private:bool, to:int=None) -> List[ChatMsg]:
     def echo(user:str, text:str) -> ChatMsg:
-        return (Msg.ECHOABLE_TEXT, user, text) # type: ignore
+        return [Msg.ECHOABLE_TEXT, user, text] # type: ignore
     def plain(user:str, text:str) -> ChatMsg:
-        return (Msg.PLAIN, user, text) # type: ignore
+        return [Msg.PLAIN, user, text] # type: ignore
     def dieroll(dice:Any) -> ChatMsg:
-        return (Msg.DICEROLL, '', dice) # type: ignore
+        return [Msg.DICEROLL, '', dice] # type: ignore
     def error(e:str) -> ChatMsg:
-        return (Msg.ERROR, '', e) # type: ignore
+        return [Msg.ERROR, '', e] # type: ignore
     apparent_user = user
     result = []
     for command in commands:
