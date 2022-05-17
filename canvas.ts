@@ -4274,6 +4274,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
         canvas_bbox.y0 *= HEX_Y_FIX_INV;
         canvas_bbox.y1 *= HEX_Y_FIX_INV;
     }
+    // TAG renderTILES
     {
         const bgtiles: Array<FilledTile> = [];
         const terraintiles: Array<TerrainTile> = [];
@@ -4429,6 +4430,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
         ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
     ctx.scale(SCALE, SCALE);
+    // TAG renderGRID
     ctx.fillStyle = map.grid_color.length?map.grid_color:'rgb(150, 150, 150)';
     if(map.grid_type & GridType.NOGRID){
     }
@@ -4542,6 +4544,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
         }
     }
     const one_selection = selected.size == 1;
+    // TAG renderOBJECTS
     for(let i = 0; i < length; ++i){
         let obj = canvas_obj_array[i];
         if(obj.flags & CanvasFlag.DELETED)
