@@ -88,12 +88,17 @@ def change_bg_color(campaign:int, map_id:int, bg_color:str) -> None:
     m = MAPS[campaign][map_id]
     MAPS[campaign][map_id].value = m.value._replace(bg_color=bg_color)
 
+# FIXME: actually sets flags, not numbered
 def set_numbered(campaign:int, map_id:int, numbered:MapFlags) -> None:
     m = MAPS[campaign][map_id]
     if numbered & MapFlags.NUMBERED:
         flags = m.value.flags | MapFlags.NUMBERED
     else:
         flags = m.value.flags & ~(MapFlags.NUMBERED)
+    if numbered & MapFlags.BIG_HEX:
+        flags = m.value.flags | MapFlags.BIG_HEX
+    else:
+        flags = m.value.flags & ~(MapFlags.BIG_HEX)
     MAPS[campaign][map_id].value = m.value._replace(flags=flags)
 
 def new_map_request(campaign:int, map_name:str, grid_type:GridType, flags:MapFlags, grid_color:str) -> int:

@@ -1130,12 +1130,18 @@ ONRECV(ToClient.CANVAS_GRID_TYPE, function(data:CanvasGridTypeMsg){
     map.grid_type = data.grid_type;
     request_render();
 });
+// FIXME: misnumbered
 ONRECV(ToClient.CANVAS_GRID_NUMBERED, function(data:CanvasGridNumberedMsg){
     const map = get_map(data.map_id);
-    if(data.numbered)
+    // FIXME: can twiddle the bits in fewer ops
+    if(data.numbered & MapFlags.NUMBERED)
         map.flags |= MapFlags.NUMBERED
     else
         map.flags &= ~(MapFlags.NUMBERED);
+    if(data.numbered & MapFlags.BIG_HEX)
+        map.flags |= MapFlags.BIG_HEX
+    else
+        map.flags &= ~(MapFlags.BIG_HEX);
     request_render();
 });
 ONRECV(ToClient.CANVAS_GRID_COLOR, function(data:CanvasColorMsg){
@@ -3131,7 +3137,7 @@ function obj_at(view:DungeonMapView, x0:number, y0:number, select_type:SELECTTYP
     }
     return null;
 }
-function tile_at(view:DungeonMapView, x0:number, y0:number):CanvasObject|null{
+function tile_at(view:DungeonMapView, x0:number, y0:number, tile_type:TileType):CanvasObject|null{
     const canvas_obj_array = view.map.canvas_obj_array;
     const length = canvas_obj_array.length;
     for(let i = 0; i < length; ++i){
@@ -3144,9 +3150,12 @@ function tile_at(view:DungeonMapView, x0:number, y0:number):CanvasObject|null{
             continue;
         switch(obj.type){
         case CanvasType.ICON_TILE:
+            if(tile_type != TileType.ICON) continue;
+            break;
         case CanvasType.FILLED_TILE:
         case CanvasType.TERRAIN_TILE:
-            break;
+            if(tile_type == TileType.FILLED || tile_type == TileType.TERRAIN) break;
+            continue;
         default: continue;
         }
         if(obj.base_x == x0 && obj.base_y == y0)
@@ -4452,6 +4461,33 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 ctx.stroke(p);
             }
             ctx.restore();
+            if(map.flags & MapFlags.BIG_HEX){
+                let big_base_y = fmod(camera_y*HEX_Y_FIX_INV, 6*REFERENCE.WIDTH);
+                let big_base_x = fmod(camera_x, 6*REFERENCE.WIDTH*2);
+                ctx.lineWidth = 4;
+                big_base_x -= 6*REFERENCE.WIDTH;
+                const half = 6*REFERENCE.WIDTH/2;
+                const full = 6*REFERENCE.WIDTH;
+                const p = new Path2D();
+                p.moveTo(-76, -half);
+                let n_y = Math.ceil(height/SCALE/REFERENCE.WIDTH/6)+3;
+                for(let i = 0; i < n_y; i++){
+                    p.lineTo(-76, i*full-half);
+                    p.lineTo(+54, i*full);
+                    p.lineTo(-76+full, i*full);
+                    p.lineTo(+54, i*full);
+                }
+                ctx.save();
+                ctx.translate(big_base_x-3*full+1, big_base_y-full);
+                let n_x = Math.ceil(width/SCALE/REFERENCE.WIDTH/6)+3;
+                for(let i = 0; i < n_x; i++){
+                    ctx.translate(full, -half);
+                    ctx.stroke(p);
+                    ctx.translate(full, +half);
+                    ctx.stroke(p);
+                }
+                ctx.restore();
+            }
         }
         ctx.save();
         ctx.scale(1, HEX_Y_FIX);
@@ -7929,7 +7965,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         let snap = get_snap_tl_func();
                         [x, y] = event_to_coord_snapped_off(e, view, snap, smoff);
                     }
-                    let old_tile = tile_at(view, x, y);
+                    let old_tile = tile_at(view, x, y, current_tile_type);
                     if(drag){
                         if(old_tile) return;
                         e.stopPropagation();
@@ -8379,6 +8415,7 @@ document.addEventListener('DOMContentLoaded', function(){
         hg.checked = !!(map.grid_type & GridType.HEX);
         ng.checked = !!(map.grid_type & GridType.NOGRID);
         dialog.f.numbered.checked = !!(map.flags & MapFlags.NUMBERED);
+        dialog.f.big.checked = !!(map.flags & MapFlags.BIG_HEX);
         dialog.ok_handler = function(){
             const value = dialog.f.name.value.trim();
             if(!value) return;
@@ -8396,10 +8433,13 @@ document.addEventListener('DOMContentLoaded', function(){
             let flags = MapFlags.NONE;
             if(dialog.f.numbered.checked)
                 flags |= MapFlags.NUMBERED
-            if((map.flags & MapFlags.NUMBERED) != flags){
+            if(dialog.f.big.checked)
+                flags |= MapFlags.BIG_HEX;
+            if((map.flags & (MapFlags.NUMBERED|MapFlags.BIG_HEX)) != flags){
                 let msg : CanvasGridNumberedMsg = {map_id:map.map_id, numbered:flags};
                 EMIT(FromClient.CANVAS_GRID_NUMBERED, msg);
             }
+
             let grid_color = dialog.f['grid-color-text'].value;
             if(grid_color == '#969696') grid_color = '';
             if(orig_grid_color != grid_color){
@@ -8459,6 +8499,7 @@ document.addEventListener('DOMContentLoaded', function(){
         ng.checked = false;
         const numbered = dialog.f.numbered;
         numbered.checked = false;
+        dialog.f.big.checked = false;
         dialog.show_handler = function(){
             if(!IS_TOUCH) dialog.f.name.focus();
         };
@@ -8470,6 +8511,8 @@ document.addEventListener('DOMContentLoaded', function(){
             let flags = MapFlags.NONE;
             if(numbered.checked)
                 flags |= MapFlags.NUMBERED
+            if(dialog.f.big.checked)
+                flags |= MapFlags.BIG_HEX;
             let grid_color = dialog.f['grid-color-text'].value;
             let bg_color = dialog.f['bg-color-text'].value
             if(bg_color == '#ffffff') bg_color = '';

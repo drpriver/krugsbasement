@@ -332,6 +332,10 @@ David20::title #hide
         <td>${label('numbered', 'Numbered')}
         <td>${checkbox('numbered')}
       </tr>
+      <tr>
+        <td>${label('big', 'BigHex')}
+        <td>${checkbox('big')}
+      </tr>
     </table>`);
   begin('map-delete');
   make(`

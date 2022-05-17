@@ -809,6 +809,7 @@ enum MapFlags: int flag
     DELETED = 1 << 0
     CANT_DELETE = 1 << 1
     NUMBERED = 1 << 2
+    BIG_HEX = 1 << 3 // draw a big border around every 6th hex. Might make this also for squares in the future.
 
 struct CreateObjectsMessage: dict
     map_id: int
@@ -836,6 +837,8 @@ struct NewMapRequest: dict
 struct CanvasGridTypeMsg: dict
     map_id: int
     grid_type: GridType
+
+# FIXME: wrong name, sets flags, not numbered
 struct CanvasGridNumberedMsg: dict
     map_id: int
     numbered: MapFlags

@@ -576,6 +576,8 @@ def change_bg_color(data:CanvasColorMsg) -> None:
     canvas.change_bg_color(campaign, map_id, bg_color)
     emit(ToClient.CANVAS_BG_COLOR, {'map_id':map_id, 'color':bg_color}, broadcast=True, include_self=True, to=str(campaign))
 
+
+# FIXME: wrong name, sets flags, not numbered
 @socketio.on(FromClient.CANVAS_GRID_NUMBERED)
 @validated
 def change_grid_numbered(data:CanvasGridNumberedMsg) -> None:
