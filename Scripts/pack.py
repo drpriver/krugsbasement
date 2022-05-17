@@ -190,7 +190,34 @@ TERRAIN_ICONS_ = [
     TerrainIconData(21, 'Crossbones',   'crossbones.png'),
     TerrainIconData(22, 'Dungeon',      'dungeon.png'   ),
     TerrainIconData(23, 'Windmill',     'windmill.png'  ),
+    TerrainIconData(24, 'TeePee',       'teepee.png'    ),
+    TerrainIconData(25, 'Trap',         'trap.png'      ),
+    TerrainIconData(26, 'WayStation',   'waystation.png'),
+    TerrainIconData(27, 'Bear',         'bear.png'      ),
+    TerrainIconData(28, 'Campsite',     'campsite.png'  ),
+    TerrainIconData(29, 'Catapult',     'catapult.png'  ),
+    TerrainIconData(30, 'Dragon',       'dragon.png'    ),
+    TerrainIconData(31, 'Crater',       'crater.png'    ),
+    TerrainIconData(32, 'Mines',        'mines.png'     ),
+    TerrainIconData(33, 'TombStone',    'tombstone.png' ),
+    TerrainIconData(34, 'Leaf',         'plant.png'     ),
+    TerrainIconData(35, 'Monolith',     'monolith.png'  ),
+    TerrainIconData(36, 'Lion',         'lion.png'      ),
+    TerrainIconData(37, 'Monument',     'monument.png'  ),
 ]
+def verify():
+    tiids = set()
+    tinames = set()
+    tips = set()
+    def c(s, i):
+        if i in s: raise Exception
+        s.add(i)
+    for ti in TERRAIN_ICONS_:
+        c(tiids, ti.id)
+        c(tinames, ti.name)
+        c(tips, ti.imgname)
+verify()
+del verify
 
 
 class FixtureData(NamedTuple):
