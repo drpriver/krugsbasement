@@ -8,11 +8,13 @@ class TagType(IntEnum):
     ENUM = 1
     GLOBAL = 2
     TYPE = 3
+    MISC = 4
 TYPE_TO_KIND = {
         TagType.FUNC:'f',
         TagType.ENUM: 'g',
         TagType.GLOBAL:'v',
         TagType.TYPE:'t',
+        TagType.MISC: 'v',
     }
 
 class TagLoc(NamedTuple):
@@ -20,11 +22,11 @@ class TagLoc(NamedTuple):
     query: str
     ident: str
     filename: str
-    lineno:int 
+    lineno:int
     is_global: bool
 
 IDENT = r'\b([A-Za-z0-9_]+)\b'
-RE = re.compile(r'\b(const\senum|function|type|enum|(^(let|const|var)))\b\s?'+IDENT)
+RE = re.compile(r'\b(const\senum|function|type|enum|TAG|(^(let|const|var)))\b\s?'+IDENT)
 MATCH_TO_TYPE = {
     'function': TagType.FUNC,
     'type': TagType.TYPE,
@@ -33,6 +35,7 @@ MATCH_TO_TYPE = {
     'var': TagType.GLOBAL,
     'enum': TagType.ENUM,
     'const enum':TagType.ENUM,
+    'TAG': TagType.MISC,
 }
 
 def analyze_line(filename:str, lineno:int, line:str) -> List[TagLoc]:
@@ -85,6 +88,7 @@ def write_files(tags:List[TagLoc]) -> None:
     variables = io.StringIO()
     types = io.StringIO()
     enum = io.StringIO()
+    misc = io.StringIO()
     shenum = io.StringIO()
     shtypes = io.StringIO()
     buffers = {
@@ -92,6 +96,7 @@ def write_files(tags:List[TagLoc]) -> None:
         TagType.ENUM: enum,
         TagType.GLOBAL: variables,
         TagType.TYPE: types,
+        TagType.MISC: misc,
     }
     shared_buffers = {
         TagType.ENUM: shenum,

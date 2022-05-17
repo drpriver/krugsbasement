@@ -7085,6 +7085,7 @@ document.addEventListener('DOMContentLoaded', function(){
     // this state variable is kind of janky.
     let ctxmenu_is_active = 0;
     let ez_token_color = '#ff3333';
+    // TAG toolimpl // TAG pointerdown // TAG click
     canvas.addEventListener('pointerdown', function(e:PointerEvent){
         if(gesturing) return;
         if(e.button !== 0 && e.button !== 1){ //0 is the 'primary' button
@@ -7123,7 +7124,7 @@ document.addEventListener('DOMContentLoaded', function(){
         }
         let snap = get_snap_func();
         switch(current_tool){
-            case ToolType.SELECT:{
+            case ToolType.SELECT:{ // TAG toolSELECT
                 let [clicked_x, clicked_y] = event_to_coord(e, view);
                 const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;
                 if(!modified) {
@@ -7304,7 +7305,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.addEventListener('pointerleave', finish_select);
                 }
             }break;
-            case ToolType.PAN:{
+            case ToolType.PAN:{ // TAG toolPAN
                 // don't use the helper as it includes view.camera_*
                 let clicked_x = e.offsetX/view.scale;
                 let clicked_y = e.offsetY/view.scale;
@@ -7336,7 +7337,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('pointerup', finish_pan);
                 canvas.addEventListener('pointerleave', finish_pan);
             }break;
-            case ToolType.LINE:{
+            case ToolType.LINE:{ // TAG toolLINE
                 let id = get_new_id();
                 const [x0, y0] = event_to_coord_off(e, view, smoff);
                 const thickness_input = by_id('line-thickness');
@@ -7360,7 +7361,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('pointerup', finish_point);
                 canvas.addEventListener('pointerleave', finish_point);
             }break;
-            case ToolType.SHAPE:{
+            case ToolType.SHAPE:{ // TAG toolSHAPE
                 let id = get_new_id();
                 let thickness = 4;
                 let color1 = get_primary_color();
@@ -7396,7 +7397,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('pointerup', finish_point);
                 canvas.addEventListener('pointerleave', finish_point);
             }break;
-            case ToolType.WALL:{
+            case ToolType.WALL:{ // TAG toolWALL
                 let id = get_new_id();
                 if(snapmode == SNAPMODE.FREE){
                     // copy paste from LINE above.
@@ -7442,7 +7443,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.addEventListener('pointerleave', finish_point);
                 }
             }break;
-            case ToolType.DOOR:{
+            case ToolType.DOOR:{ // TAG toolDOOR
                 const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
                 let x1 = x0;
                 let y1 = y0;
@@ -7504,7 +7505,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('pointerup', finish_door);
                 canvas.addEventListener('pointerleave', finish_door);
             }break;
-            case ToolType.RECT:{
+            case ToolType.RECT:{ // TAG toolRECT
                 switch(current_rect_type){
                     case RECTTYPE.HOLLOW:{
                         let id = get_new_id();
@@ -7588,7 +7589,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     }break;
                 }
             }break;
-            case ToolType.ELLIPSE:{
+            case ToolType.ELLIPSE:{ // TAG toolELLIPSE
                 let id = get_new_id();
                 const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
                 add_ellipse(view.map, id, x0, y0, submapid, get_primary_color(), get_secondary_color(), current_ellipse);
@@ -7633,7 +7634,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('pointerup', finish_point);
                 canvas.addEventListener('pointerleave', finish_point);
             }break;
-            case ToolType.TEXT:{
+            case ToolType.TEXT:{ // TAG toolTEXT
                 const [x0, y0] = event_to_coord_off(e, view, smoff);
                 let dialog = get_dialog('text-input');
                 if(!dialog) return;
@@ -7693,7 +7694,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 dialog.show();
 
             }break;
-            case ToolType.IMAGE:{
+            case ToolType.IMAGE:{ // TAG toolIMAGE
                 const [x0, y0] = event_to_coord_off(e, view, smoff);
                 let dialog = get_dialog('image-input');
                 if(!dialog) return;
@@ -7725,7 +7726,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 };
                 dialog.show();
             }break;
-            case ToolType.TOKEN:{
+            case ToolType.TOKEN:{ // TAG toolTOKEN
                 if(current_token_type == TOKENTYPE.EZ){
                     const [x0, y0] = event_to_coord_off(e, view, smoff);
                     let dialog = get_dialog('ez-token');
@@ -7802,7 +7803,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     dialog.show();
                 }
             }break;
-            case ToolType.FIXTURE:{
+            case ToolType.FIXTURE:{ // TAG toolFIXTURE
                 switch(current_fixture_type){
                     // Legacy: is its own impl
                     case FixtureType.STAIRS:{
@@ -7902,7 +7903,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     }break;
                 }
             }break;
-            case ToolType.MEASURE:{
+            case ToolType.MEASURE:{ // TAG toolMEASURE
                 let id = get_new_id();
                 let snap:(x:number, y:number)=>[number, number];
                 if(!submapid && view.map.grid_type & GridType.HEX){
@@ -7950,7 +7951,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 canvas.addEventListener('pointerleave', finish);
 
             }break;
-            case ToolType.TILE:{
+            case ToolType.TILE:{ // TAG toolTILE
                 let deleted_ids: Array<number> = [];
                 let created_ids:Array<number> = [];
                 let drag = false;
@@ -8047,7 +8048,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 window.addEventListener('pointerup', finish);
                 canvas.addEventListener('pointerleave', finish);
             }break;
-            case ToolType.SUBMAP:{
+            case ToolType.SUBMAP:{ // TAG toolSUBMAP
                 // Don't allow nested submaps
                 if(submapid) break;
                 let id = get_new_id();
