@@ -1221,7 +1221,7 @@ function zoom_out(view:DungeonMapView):void{
 //
 function resize_canvas():void{
     canvas = by_id('map');
-    ctx = canvas.getContext('2d')!;
+    ctx = canvas.getContext('2d', {alpha:false})!;
     const chat = by_id('chat');
     const ww = window.innerWidth;
     const wh = window.innerHeight;
@@ -4240,12 +4240,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
         view.selected.clear();
         note_selections(view);
     }
-    let background = '#ffffff';
-    if(DARKMODE)
-        background = '#333333';
+    let background = DARKMODE? '#333333' : '#ffffff';
     let cvs_bg = map.bg_color.length? map.bg_color : background;
-    if(canvas.style.backgroundColor != cvs_bg)
-        canvas.style.backgroundColor = cvs_bg;
     const SELECTED_COLOR = '#33ffdd';
     const COULD_SELECT_COLOR = '#aaccaa';
     const hovered_id = view.hovered_id;
@@ -4260,6 +4256,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
     const height = canvas.height;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = cvs_bg;
+    ctx.fillRect(0, 0, width, height);
     let SCALE = scale;
     const BACKGROUND = background;
     const canvas_bbox = {
