@@ -102,6 +102,7 @@ function save_macros(){
 }
 
 function add_macro(m:Macro){
+    if(!MACROS.has(m.groupid)) MACROS.set(m.groupid, []);
     MACROS.get(m.groupid)!.push(m);
     MACRO_BY_ID.set(m.id, m);
     save_macros();
