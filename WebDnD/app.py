@@ -85,7 +85,6 @@ class PageTemplate:
         ctx.logger = pydndc.stderr_logger
         ctx.root.parse(text)
         ctx.resolve_imports()
-        ctx.gather_links()
         ctx.resolve_links()
         handles = [ctx.node_by_id(node_id).handle for node_id in node_ids] # type: ignore
         return cls(filename, node_ids, ctx, handles)
