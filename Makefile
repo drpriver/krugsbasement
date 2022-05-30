@@ -19,6 +19,8 @@ Generated/demo.js: demo.ts Generated/messages.ts | Generated
 else
 Generated/combined.js: $(TSFILES) | Generated
 	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc $(TSFILES) $(TSCFLAGS) --outFile $@ | cat"
+Generated/demo.js: demo.ts Generated/messages.ts | Generated
+	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc demo.ts Generated/messages.ts $(TSCFLAGS) --outFile $@ | cat"
 endif
 
 .PHONY: watcher
