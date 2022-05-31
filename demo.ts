@@ -145,19 +145,19 @@ function do_emit(type:FromClient, arg?:any, cb?:any){
                 invoke_cb(ToClient.USER_RENAME, [SETTINGS.userid, JSON.parse(arg[2])]);
         }break;
         case FromClient.CHAT_STRUCTURED_INPUT:{
-            let responses = interpret_chat_input(arg.chatname, arg.commands);
+            let responses = interpret_chat_input((arg as ChatCommandMessage).chatname, (arg as ChatCommandMessage).commands);
             if(responses.length)
                 invoke_cb(ToClient.CHAT_STRUCTURED_MSG, responses);
         }break;
         case FromClient.CHAT_TEST_STRUCTURED_INPUT:{
-            let responses = interpret_chat_input(arg.chatname, arg.commands);
+            let responses = interpret_chat_input((arg as ChatCommandMessage).chatname, (arg as ChatCommandMessage).commands);
             if(responses.length)
                 invoke_cb(ToClient.CHAT_TEST_STRUCTURED_RESPONSE, responses);
         }break;
         case FromClient.CHAT_DM:{
             if(!arg) break;
-            let responses = interpret_chat_input(arg.chatname, arg.commands);
-            let msg = {users:[1, arg.to], msgs:responses};
+            let responses = interpret_chat_input((arg as ChatDirectCommandMessage).chatname, (arg as ChatDirectCommandMessage).commands);
+            let msg = {users:[1, (arg as ChatDirectCommandMessage).to], msgs:responses};
             invoke_cb(ToClient.CHAT_DIRECT_MSG, msg);
         }break;
         case FromClient.JOIN:
@@ -196,11 +196,11 @@ function do_emit(type:FromClient, arg?:any, cb?:any){
         case FromClient.CANVAS_NEW_MAP_REQUEST:{
             let new_map_id = map_ids++;
             invoke_cb(ToClient.CANVAS_CREATE_MAP, new_map_id);
-            invoke_cb(ToClient.CANVAS_NAME_MAP, {'map_id':new_map_id, 'map_name':arg.map_name});
-            invoke_cb(ToClient.CANVAS_GRID_TYPE, {'map_id':new_map_id, 'grid_type':arg.grid_type});
-            invoke_cb(ToClient.CANVAS_GRID_NUMBERED, {'map_id':new_map_id, 'numbered':arg.flags});
-            invoke_cb(ToClient.CANVAS_GRID_COLOR, {'map_id':new_map_id, 'color':arg.grid_color});
-            invoke_cb(ToClient.CANVAS_BG_COLOR, {'map_id':new_map_id, 'color':arg.bg_color});
+            invoke_cb(ToClient.CANVAS_NAME_MAP, {'map_id':new_map_id, 'map_name':(arg as NewMapRequest).name});
+            invoke_cb(ToClient.CANVAS_GRID_TYPE, {'map_id':new_map_id, 'grid_type':(arg as NewMapRequest).grid_type});
+            invoke_cb(ToClient.CANVAS_GRID_NUMBERED, {'map_id':new_map_id, 'numbered':(arg as NewMapRequest).flags});
+            invoke_cb(ToClient.CANVAS_GRID_COLOR, {'map_id':new_map_id, 'color':(arg as NewMapRequest).grid_color});
+            invoke_cb(ToClient.CANVAS_BG_COLOR, {'map_id':new_map_id, 'color':(arg as NewMapRequest).bg_color});
         }break;
         case FromClient.CANVAS_GRID_TYPE:
             invoke_cb(ToClient.CANVAS_GRID_TYPE, arg);
