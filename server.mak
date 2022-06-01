@@ -25,7 +25,7 @@ static/dungeon.html:
 
 .PHONY: demos
 demos:
-	cp dist/demo.html demos/demos.html
+	cp dist/demo.html demos/demos/dungeon.html
 
 .PHONY: WebDnD
 WebDnD:
