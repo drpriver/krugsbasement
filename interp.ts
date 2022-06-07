@@ -1,4 +1,8 @@
 //
+// Copyright © 2021-2022, David Priver
+//
+
+//
 // Definitions for Binary and Unary are shared between
 // client and server and so are in the shared types.
 //

@@ -1,4 +1,6 @@
 ::comment
+  Copyright © 2021-2022, David Priver
+::comment
   This is the actual file that makes the demo webclient.
 ::import
   dungeon.dnd

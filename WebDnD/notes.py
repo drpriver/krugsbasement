@@ -1,3 +1,7 @@
+#
+# Copyright © 2021-2022, David Priver
+#
+
 from typing import List, Dict, Union, NamedTuple, Optional
 from .persist import JsType, RepeatTimer
 from enum import IntFlag

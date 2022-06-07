@@ -1,3 +1,7 @@
+//
+// Copyright © 2021-2022, David Priver
+//
+
 const enum FUDGE {
     _ = 1,
 }

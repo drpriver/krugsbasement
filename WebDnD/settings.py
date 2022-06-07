@@ -1,3 +1,7 @@
+#
+# Copyright © 2021-2022, David Priver
+#
+
 from . import db
 from .logs import logging
 from .persist import RepeatTimer

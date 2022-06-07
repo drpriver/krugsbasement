@@ -1,7 +1,11 @@
+//
+// Copyright © 2021-2022, David Priver
+//
+
 // This file implements a listener abstraction where different pieces of code
 // can listen (subscribe) to notifications about a change.  This is not
 // comprehensive - new events will be added when there is more than one place
-// that needs to be updated. 
+// that needs to be updated.
 //
 // This is only necessary as the DOM is a horrible ui abstraction, so you need
 // to maintain a stateful tree of elements for your interface instead of just

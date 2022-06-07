@@ -1,3 +1,7 @@
+//
+// Copyright © 2021-2022, David Priver
+//
+
 "use strict";
 
 let cbs: Map<ToClient, any> = new Map();

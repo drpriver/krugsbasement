@@ -1,3 +1,7 @@
+//
+// Copyright © 2021-2022, David Priver
+//
+
 
 // This is for independent windows.
 // Independent windows have their position remembered across sessions, reopen

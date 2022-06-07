@@ -1,3 +1,7 @@
+#
+# Copyright © 2021-2022, David Priver
+#
+
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
 from wtforms.validators import DataRequired, EqualTo, ValidationError, InputRequired, Length, Email

@@ -1,3 +1,7 @@
+#
+# Copyright © 2021-2022, David Priver
+#
+
 from typing import List, Dict, Union, Any, Tuple, Optional
 import random
 from .persist import Persister, Dummy

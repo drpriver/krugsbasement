@@ -1,3 +1,7 @@
+#
+# Copyright © 2021-2022, David Priver
+#
+
 from . import db
 from typing import Optional, NamedTuple
 from werkzeug.security import generate_password_hash, check_password_hash

@@ -1,3 +1,7 @@
+#
+# Copyright © 2021-2022, David Priver
+#
+
 from typing import NamedTuple, Tuple, Callable, Any, List, Dict, TypeVar
 T = TypeVar('T')
 F = TypeVar('F')

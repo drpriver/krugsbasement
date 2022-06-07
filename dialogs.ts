@@ -1,3 +1,7 @@
+//
+// Copyright © 2021-2022, David Priver
+//
+
 type Dialog<Key extends keyof DialogIdMap> = {
     // the fields
     f: DialogIdMap[Key];

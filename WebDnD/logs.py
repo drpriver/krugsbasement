@@ -1,3 +1,7 @@
+#
+# Copyright © 2021-2022, David Priver
+#
+
 import logging
 import os
 logging.basicConfig(level=logging.INFO,format=f'{os.getpid()}'+'[%(asctime)s][%(levelname)s] - %(funcName)s: %(message)s')

@@ -1,3 +1,7 @@
+//
+// Copyright © 2021-2022, David Priver
+//
+
 type Note_ = {
     title: string;
     body: string;
