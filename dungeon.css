@@ -490,7 +490,7 @@ div.scale div {
 #line-thickness {
   width: 4em;
   pointer-events: auto;
-  grid-column: 2;
+  grid-column: 3;
 }
 
 html{

@@ -251,6 +251,21 @@ type FreehandLine = {
     last_by?:number;
 }
 
+const enum LineType {
+    PEN = 0,
+    LINE = 1,
+    ARROW = 2,
+}
+const enum LINETYPE {
+    MAX = 3,
+}
+const LINETYPE_TO_NAME = [
+    'Pen',
+    'Line',
+    'Arrow',
+];
+let current_line_type = LineType.PEN;
+
 // shape
 // -----
 // A shape is a shape enclosed by an arbitrary sequence of points.
@@ -1355,17 +1370,32 @@ function freehand_recalculate_path(obj:FreehandLine, base_x:number, base_y:numbe
     const length = points.length;
     const path = new Path2D();
     path.moveTo(x0, y0);
-    for(let i = 0; i < length; i+=2){
-        const x1 = points[i] + base_x
-        const y1 = points[i+1] + base_y;
-        const xc = (x0+x1)/2;
-        const yc = (y0+y1)/2;
-        path.quadraticCurveTo(x0, y0, xc, yc);
-        x0 = x1;
-        y0 = y1;
+    if(length == 2 || obj.flags & CanvasFlag.LINE_IS_ARROW){
+        const x1 = points[0] + base_x
+        const y1 = points[1] + base_y;
+        path.lineTo(x1, y1);
+        if(obj.flags & CanvasFlag.LINE_IS_ARROW){
+            const theta = Math.atan2(points[0], points[1]);
+            const theta_left = -theta - Math.PI/4;
+            const theta_right = -theta - 3*Math.PI/4;
+            path.lineTo(x1+Math.cos(theta_left)*obj.thickness*8, y1+Math.sin(theta_left)*obj.thickness*8);
+            path.moveTo(x1, y1);
+            path.lineTo(x1+Math.cos(theta_right)*obj.thickness*8, y1+Math.sin(theta_right)*obj.thickness*8);
+        }
     }
-    if(length > 2){
-        path.quadraticCurveTo(points[length-4]+base_x, points[length-3]+base_y, x0, y0);
+    else {
+        for(let i = 0; i < length; i+=2){
+            const x1 = points[i] + base_x
+            const y1 = points[i+1] + base_y;
+            const xc = (x0+x1)/2;
+            const yc = (y0+y1)/2;
+            path.quadraticCurveTo(x0, y0, xc, yc);
+            x0 = x1;
+            y0 = y1;
+        }
+        if(length > 2){
+            path.quadraticCurveTo(points[length-4]+base_x, points[length-3]+base_y, x0, y0);
+        }
     }
     obj.path = path;
 }
@@ -6625,6 +6655,9 @@ document.addEventListener('DOMContentLoaded', function():void{
             case ToolType.SHAPE:
                 setup_multi_option(toolel, 'shape-tool-menu', ToolType.SHAPE, function(i:number){current_shape=i}, SHAPETYPE_TO_NAME, SHAPETYPE_TO_SHORT_NAME, SHAPETYPE.MAX);
             break;
+            case ToolType.LINE:
+                setup_multi_option(toolel, 'line-tool-menu', ToolType.LINE, function(i:number){current_line_type=i}, LINETYPE_TO_NAME, LINETYPE_TO_NAME, LINETYPE.MAX);
+            break;
             default:
             break;
         }
@@ -7348,10 +7381,18 @@ document.addEventListener('DOMContentLoaded', function(){
                 const thickness_input = by_id('line-thickness');
                 const thickness = +thickness_input.value || 4;
                 add_freehand_line(view.map, id, x0, y0, submapid, get_primary_color(), thickness);
+                if(current_line_type == LineType.ARROW){
+                    let obj = view.map.canvas_objs.get(id) as FreehandLine;
+                    obj.flags |= CanvasFlag.LINE_IS_ARROW;
+                }
                 function add_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
                     const [x1, y1] = event_to_coord_off(e, view, smoff);
+                    if(current_line_type != LineType.PEN){
+                        let obj = view.map.canvas_objs.get(id) as FreehandLine;
+                        obj.points = [];
+                    }
                     add_freehand_point_by_id(view.map, id, x1, y1);
                     request_render();
                 }

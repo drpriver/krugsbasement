@@ -109,7 +109,7 @@ SOCKET.on('connect', () => {
 ONRECV(ToClient.API_VERSION, function(api_version:number){
     // Reloads the page if the version changes.
     // This is kind of meh, maybe only for DEV builds?
-    if(api_version != Api.VERSION) window.location.reload();
+    // if(api_version != Api.VERSION) window.location.reload();
 });
 function clear_disconnected(){
     const d = by_id('disconnect')!;

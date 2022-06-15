@@ -542,7 +542,9 @@ David20::title #hide
     ::div.tool-menu #id(fixture-tool-menu)
       ☰
     ::div.tool #id(line-tool)
-      Pen
+      Line
+    ::div.tool-menu #id(line-tool-menu)
+      ☰
     ::raw
       <input type="number" id="line-thickness" value="4" max="20" min="1">
     ::div.tool #id(rect-tool)
