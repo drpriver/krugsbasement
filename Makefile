@@ -40,6 +40,8 @@ appconfig.py:
 	@echo "# DON'T USE THIS ON THE HOST. SET IT TO AN ACTUAL RANDOM KEY" >> appconfig.py
 	@echo "# VIA os.urandom." >> appconfig.py
 	@echo "SECRET_KEY = 'dev'" >> appconfig.py
+	@echo "# set to blank to disable invite codes" >> appconfig.py
+	@echo "INVITE_CODE = 'dev'" >> appconfig.py
 
 
 .PHONY: run

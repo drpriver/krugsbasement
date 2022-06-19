@@ -4604,7 +4604,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
             is_selected = true;
         ctx.globalAlpha = is_hidden? 0.5 : 1;
         switch(obj.type){
-            case CanvasType.FREEHAND_LINE:{
+            case CanvasType.FREEHAND_LINE:{ // TAG renderFREEHAND_LINE
                 // This works well enough for now.
                 // If things get hairy, I could build a quadtree or whatever.
                 const line_bbox = {
@@ -4638,7 +4638,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 ctx.lineCap = oldcap;
                 ctx.lineJoin = oldjoin;
             }break;
-            case CanvasType.GRID_LINE:{
+            case CanvasType.GRID_LINE:{ // TAG renderGRID_LINE
                 const line_bbox = {
                     x0:obj.bbox.x0 + bx,
                     y0:obj.bbox.y0 + by,
@@ -4671,7 +4671,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 ctx.lineCap = oldcap;
                 ctx.lineJoin = oldjoin;
             }break;
-            case CanvasType.ELLIPSE:{
+            case CanvasType.ELLIPSE:{ // TAG renderELLIPSE
                 const bbox = {
                     x0:bx,
                     y0:by,
@@ -4724,7 +4724,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     }
                 }
             }break;
-            case CanvasType.FILLED_RECT:{
+            case CanvasType.FILLED_RECT:{ // TAG renderFILLED_RECT
                 const bbox = {
                     x0:bx,
                     y0:by,
@@ -4762,7 +4762,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     });
                 }
             }break;
-            case CanvasType.RECT:{
+            case CanvasType.RECT:{ // TAG renderRECT
                 const bbox = {
                     x0:bx,
                     y0:by,
@@ -4799,7 +4799,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     });
                 }
             }break;
-            case CanvasType.GRID_RECT:{
+            case CanvasType.GRID_RECT:{ // TAG renderGRID_RECT
                 const bbox = {
                     x0:bx,
                     y0:by,
@@ -4833,7 +4833,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     });
                 }
             }break;
-            case CanvasType.TEXT:{
+            case CanvasType.TEXT:{ // TAG renderTEXT
                 if(obj.text){
                     let y_off = 0;
                     ctx.font = obj.size + 'px sans-serif';
@@ -4946,7 +4946,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                         }
                 }
             }break;
-            case CanvasType.EZ_TOKEN:{
+            case CanvasType.EZ_TOKEN:{ // TAG renderEZ_TOKEN
                 // TODO: currently we don't consider radius_y
                 const radius_x = obj.width*REFERENCE.WIDTH/2;
                 const radius_y = obj.height*REFERENCE.WIDTH/2;
@@ -4991,7 +4991,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 ctx.fillText(obj.text, bx+radius_x, by+radius_y);
                 draw_status_icons(token_bbox, obj.statusflags, obj.width);
             }break;
-            case CanvasType.IMAGE:{
+            case CanvasType.IMAGE:{ // TAG renderIMAGE
                 const bbox = {
                     x0:bx,
                     y0:by,
@@ -5029,7 +5029,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     });
                 }
             }break;
-            case CanvasType.IMG_TOKEN:{
+            case CanvasType.IMG_TOKEN:{ // TAG renderIMG_TOKEN
                 // TODO: currently we don't consider radius_y
                 const radius_x = obj.width*REFERENCE.WIDTH/2;
                 const radius_y = obj.height*REFERENCE.WIDTH/2;
@@ -5065,7 +5065,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 }
                 draw_status_icons(token_bbox, obj.statusflags, obj.width);
             }break;
-            case CanvasType.DOOR:{
+            case CanvasType.DOOR:{ // TAG renderDOOR
                 const is_vertical = obj.orientation === Orientation.VERTICAL;
                 const w = obj.width;
                 const th = obj.width < 1.0? 0.5 : 1.0;
@@ -5576,7 +5576,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     }break;
                 }
             }break;
-            case CanvasType.STAIRS:{
+            case CanvasType.STAIRS:{ // TAG renderSTAIRS
                 if(!obj.width || !obj.height)
                     break;
                 const bbox = {
@@ -5668,7 +5668,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     });
                 }
             }break;
-            case CanvasType.MEASURE:{
+            case CanvasType.MEASURE:{ // TAG renderMEASURE
                 // this looks sus with the change to bx over obj.base_x
                 let x1 = obj.x1;
                 let y1 = obj.y1;
@@ -5719,7 +5719,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
 
                 ctx.fillText(measure_length, (bx+x1)/2-fontsize, (by+y1)/2-fontsize);
             }break;
-            case CanvasType.FIXTURE:{
+            case CanvasType.FIXTURE:{ // TAG renderFIXTURE
                 if(!obj.width || !obj.height)
                     break;
                 const bbox = {
@@ -5848,13 +5848,13 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     });
                 }
             }break;
-            case CanvasType.FILLED_TILE:{
+            case CanvasType.FILLED_TILE:{ // TAG renderFILLED_TILE
                 // drawn already
             }break;
-            case CanvasType.TERRAIN_TILE:{
+            case CanvasType.TERRAIN_TILE:{ // TAG renderTERRAIN_TILE
                 // drawn already
             }break;
-            case CanvasType.ICON_TILE:{
+            case CanvasType.ICON_TILE:{ // TAG renderICON_TILE
                 const icon = TERRAIN_ICON_BY_ID.get(obj.terrainicon_id);
                 if(is_selected){
                     ctx.fillStyle = sel_color+'aa';
@@ -5863,7 +5863,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 if(icon)
                     ctx.drawImage(PACKEDIMG, icon[2], icon[3], icon[4], icon[5], bx+4, by+4, 56, 56);
             }break;
-            case CanvasType.SUBMAP:{
+            case CanvasType.SUBMAP:{ // TAG renderSUBMAP
                 ctx.save();
                 // if(map.grid_type & GridType.HEX)
                     // ctx.scale(1, HEX_Y_FIX_INV);
@@ -5959,7 +5959,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
                     });
                 }
             }break;
-            case CanvasType.SHAPE:{
+            case CanvasType.SHAPE:{ // TAG renderSHAPE
                 // This works well enough for now.
                 // If things get hairy, I could build a quadtree or whatever.
                 const line_bbox = {
@@ -7123,7 +7123,9 @@ document.addEventListener('DOMContentLoaded', function(){
     // this state variable is kind of janky.
     let ctxmenu_is_active = 0;
     let ez_token_color = '#ff3333';
-    // TAG toolimpl // TAG pointerdown // TAG click
+    // TAG toolimpl
+    // TAG pointerdown
+    // TAG click
     canvas.addEventListener('pointerdown', function(e:PointerEvent){
         if(gesturing) return;
         if(e.button !== 0 && e.button !== 1){ //0 is the 'primary' button
@@ -7201,7 +7203,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             return;
                         }
                     }
-                    if(view.resize.handles.length){
+                    if(view.resize.handles.length){ // TAG resize
                         for(let rh of view.resize.handles){
                             if(point_in_rect(clicked_x, clicked_y, rh.bbox.x0, rh.bbox.y0, rh.bbox.x1, rh.bbox.y1)){
                                 const o = view.map.canvas_objs.get(rh.obj_id);
@@ -7685,7 +7687,8 @@ document.addEventListener('DOMContentLoaded', function(){
                 let dialog = get_dialog('text-input');
                 if(!dialog) return;
                 dialog.title.textContent = 'Enter Text';
-                dialog.f.size.value = '12';
+                if(!dialog.f.size.value)
+                    dialog.f.size.value = '12';
                 const [l, c, r] = [dialog.f.left, dialog.f.center, dialog.f.right];
                 l.checked = false;
                 c.checked = true;
@@ -7736,6 +7739,9 @@ document.addEventListener('DOMContentLoaded', function(){
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                     request_render();
+                };
+                dialog.show_handler = function(){
+                    if(!IS_TOUCH) dialog.f.text.focus();
                 };
                 dialog.show();
 

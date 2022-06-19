@@ -146,7 +146,8 @@ def register() -> object:
         return flask.redirect('/home')
     form = RegisterForm()
     if form.validate_on_submit():
-        if form.magic.data != 'balsamic':
+        # TODO: move invitation codes to the db
+        if not appconfig.INVITE_CODE or form.magic.data != appconfig.INVITE_CODE:
             bad_attempt()
             flask.flash('Invalid Magic Code')
             return flask.redirect(request.path)
@@ -456,7 +457,7 @@ def post_join() -> None:
     emit(ToClient.CANVAS_INITIALIZE_MAPS, canvas.get_state(campaign))
     emit(ToClient.CHAT_CLEAR)
     emit(ToClient.CHAT_CREATE, chat.get_history(campaign))
-    privmsgs = chat.get_private_history(current_user.userid, campaign)
+    # privmsgs = chat.get_private_history(current_user.userid, campaign)
     # dlog('privmsgs: %s', privmsgs)
     emit(ToClient.CHAT_PRIVATE_CREATE, chat.get_private_history(current_user.userid, campaign))
     emit(ToClient.NOTES_INITIALIZE, notes.get_notes_for_room(campaign))
