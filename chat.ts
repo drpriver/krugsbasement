@@ -207,6 +207,15 @@ function options_dialog(){
                     // @ts-ignore
                     const new_data = JSON.parse(fr.result);
                     initialize_maps(new_data);
+                    // Fix up our localid to avoid collisions.
+                    let highest = 0;
+                    for(let map of MAPS.values()){
+                        for(let o of map.canvas_obj_array){
+                            let local = o.id & 0xfffff;
+                            if(local > highest) highest = local;
+                        }
+                    }
+                    localid = highest;
                     dialog.hide();
                 };
                 fr.readAsText(file);
