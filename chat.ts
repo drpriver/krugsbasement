@@ -176,8 +176,8 @@ function preprocess_and_send_chat_with_usings(text:string){
     EMIT(FromClient.CHAT_STRUCTURED_INPUT, to_send);
 }
 
-let chat_options_init = false;
-function chat_options_dialog(){
+let options_init = false;
+function options_dialog(){
     let dialog = get_dialog('options');
     if(!dialog) return;
     const is_dev = SETTINGS.chat.name == 'dev';
@@ -185,8 +185,40 @@ function chat_options_dialog(){
     dialog.f.chatname.value = SETTINGS.chat.name;
     dialog.f.dev.style.display = is_dev?'block':'none';
     dialog.f.fps.checked = SHOW_FPS;
-    if(!chat_options_init){
-        chat_options_init = true;
+    dialog.f['export-map'].addEventListener('click', function(){
+        let data = export_maps();
+        let a = document.createElement('a');
+        a.download = 'maps.json'
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type:'text/plain'}));
+        a.click();
+    });
+    if (SETTINGS.demo){
+        dialog.f['import-map'].addEventListener('click', function(){
+            const inp = document.createElement('input');
+            inp.type = 'file';
+            inp.onchange = function(){
+                const files = inp.files;
+                if(!files) return;
+                if(!files.length) return;
+                const file = files[0];
+                const fr = new FileReader();
+                fr.onload = function(){
+                    if(!fr.result) return;
+                    // @ts-ignore
+                    const new_data = JSON.parse(fr.result);
+                    initialize_maps(new_data);
+                    dialog.hide();
+                };
+                fr.readAsText(file);
+            };
+            inp.click();
+        });
+    }
+    else{
+        dialog.f['import-map'].style.display = 'none';
+    }
+    if(!options_init){
+        options_init = true;
         dialog.f.fullscreen.addEventListener('click', function(){
             // @ts-ignore
             if(!document.fullscreenElement && ! document.webkitFullscreenElement) {
@@ -250,7 +282,7 @@ function chat_options_dialog(){
 document.addEventListener('DOMContentLoaded', function(){
     resize_chat();
 
-    by_id('chat-options').addEventListener('click', chat_options_dialog);
+    by_id('options-button').addEventListener('click', options_dialog);
 
     window.addEventListener('resize', resize_chat);
     const ta = by_id('chatinput');
@@ -446,12 +478,14 @@ let ROLLTABLES: {shared:Array<RollTable>, private:Array<RollTable>} = {
     private: []
 };
 
+// TAG handleROLL_TABLES
 ONRECV(ToClient.ROLL_TABLES, function(tables:RollTables){
     ROLLTABLES.shared = tables[0];
     ROLLTABLES.private = tables[1];
     signal_for(ListenEvent.ROLLTABLES_RECEIVED);
     signal_for(ListenEvent.ROLLTABLES_RENAMED);
 });
+// TAG handleROLL_TABLE_NAMES
 ONRECV(ToClient.ROLL_TABLE_NAMES, function(data:RollTableNames){
     // hack;
     let old_shared = ROLLTABLES.shared;
@@ -467,6 +501,7 @@ ONRECV(ToClient.ROLL_TABLE_NAMES, function(data:RollTableNames){
     ROLLTABLES.private = old_priv;
 });
 
+// TAG rolltables_window
 document.addEventListener('DOMContentLoaded',function(){
     let tablewindow = get_window('rolltable');
     let tbody = by_id('rolltable-body');
@@ -753,6 +788,7 @@ document.addEventListener('DOMContentLoaded',function(){
     by_id('tables-button').addEventListener('click', tablewindow.show);
 });
 
+// TAG chat
 document.addEventListener('DOMContentLoaded', function(){
     let USERS: Map<number, string> = new Map();
     let privateroll = get_window('privateroll');

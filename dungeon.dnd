@@ -456,6 +456,11 @@ David20::title #hide
         <span>(might need reload)</span>
         <br>
         ${button('fullscreen', 'Toggle Full Screen')}
+        <span>
+        <br>
+        ${button('export-map', 'Export Maps')}
+        ${button('import-map', 'Import Map')}
+        </span>
         <br>
     </div>
     ${tablebegin('dev')}
@@ -642,7 +647,7 @@ David20::title #hide
       ::raw
         <button id="notes-window-button">Notes…</button>
         <button id="tables-button">Tables…</button>
-        <button id="chat-options">Options…</button>
+        <button id="options-button">Options…</button>
     ::div.three-buttons
       ::raw
         <button id="macros-button">Macros…</button>

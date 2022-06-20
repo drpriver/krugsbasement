@@ -912,6 +912,25 @@ type DungeonMap = {
     submaps: Array<SubMap>;
 }
 
+function export_maps():Array<InitializeMap>{
+    let result = [];
+    for(let map of MAPS.values())
+        result.push(export_map(map));
+    return result;
+}
+
+function export_map(map:DungeonMap):InitializeMap{
+    return {
+        map_id: map.map_id,
+        map_name: map.map_name,
+        objects: strip_objs(map.canvas_obj_array),
+        flags: map.flags,
+        grid_type: map.grid_type,
+        grid_color: map.grid_color,
+        bg_color: map.bg_color,
+    };
+}
+
 type Ping = {
     t0?: DOMHighResTimeStamp; // we add this onto the PingMessage
     cx: number;
@@ -2689,7 +2708,7 @@ function delete_map(map_id:number){
 
 // cutnpaste from below. TODO: factor these.
 
-ONRECV(ToClient.CANVAS_INITIALIZE_MAPS, function(msgs:Array<InitializeMap>){
+function initialize_maps(msgs:Array<InitializeMap>){
     // Clear
     {
         for(let m of MAPS.values())
@@ -2744,7 +2763,8 @@ ONRECV(ToClient.CANVAS_INITIALIZE_MAPS, function(msgs:Array<InitializeMap>){
     }
     resize_canvas();
     request_render();
-});
+}
+ONRECV(ToClient.CANVAS_INITIALIZE_MAPS, initialize_maps);
 ONRECV(ToClient.CANVAS_CREATE_OBJECTS, function(msgs:Array<CreateObjectsMessage>){
     for(let msg of msgs){
         const map_id = msg.map_id;
@@ -2808,7 +2828,7 @@ function set_obj_states_from_stripped_objs(map:DungeonMap, obj_states:Array<Stri
     }
 }
 
-// These are a bit flags
+// These are bit flags
 // Select background things (walls, lines).
 const enum SELECTTYPE {
     MAP = 1 << 0,
@@ -3457,6 +3477,12 @@ function strip_obj(obj:CanvasObject): StrippedObj{
             return stripped_obj;
         }break;
     }
+}
+function strip_objs(objs:Array<CanvasObject>): Array<StrippedObj>{
+    let result = [];
+    for(let i = 0; i < objs.length; i++)
+        result.push(strip_obj(objs[i]));
+    return result;
 }
 //
 // Returns a brand new object that is the unstripped version of the given object.

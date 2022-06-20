@@ -250,11 +250,6 @@ function do_emit(type:FromClient, arg?:any, cb?:any){
     }
 }
 
-
-
-
-
-
 let SOCKET = {
     emit: do_emit,
     on: do_on,
