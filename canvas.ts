@@ -186,7 +186,7 @@ const SORTORDER = [
        1, // ICON_TILE
       10, // SUBMAP
 ];
-type Resizable = Rectangle | GridRectangle | FilledRectangle | Ellipse | ImageObj | SubMap;
+type Resizable = Rectangle | GridRectangle | FilledRectangle | Ellipse | ImageObj | SubMap | Arc;
 
 function is_resizable(obj:CanvasObject): obj is Resizable{
     switch(obj.type){
@@ -198,6 +198,7 @@ function is_resizable(obj:CanvasObject): obj is Resizable{
         // case CanvasType.STAIRS:
         case CanvasType.SUBMAP:
         case CanvasType.FIXTURE:
+        case CanvasType.ARC:
             return true
         default:
             return false;
@@ -681,7 +682,90 @@ type SubMap = {
     bg_color: string;
 }
 
-type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj | FilledTile | TerrainTile | IconTile | SubMap | Shape;
+// Arc
+// ---
+type Arc = {
+    type: CanvasType.ARC; // ARC
+    id: number;
+    base_x: number;
+    base_y: number
+    flags: CanvasFlag;
+    hidinguser: number;
+    submap: number;
+    width: number;
+    height: number;
+    start_arc: number;
+    end_arc: number;
+    thickness: number;
+    color: string;
+}
+
+const enum ArcType {
+    SEMI = 0,
+    QUARTER = 1,
+}
+
+const enum ARCTYPE {
+    MAX = 2,
+}
+
+const ARCTYPE_TO_NAME = ['Semi', 'Quarter'];
+let current_arc_type = ArcType.SEMI;
+function set_arc_type(i:number){
+    current_arc_type = i;
+    store_global(StorageCategory.CANVAS, 'arctype', current_arc_type);
+}
+
+function arc_components(obj:Arc, offx:number, offy:number):[number, number, number, number]{
+    let sa = obj.start_arc & 3;
+    let cx = obj.base_x;
+    let cy = obj.base_y;
+    let rx = obj.width;
+    let ry = obj.height;
+    if((obj.end_arc - obj.start_arc) == 1){
+        switch(sa){
+            case 0:
+                break;
+            case 1:
+                cx += obj.width;
+                break;
+            case 2:
+                cx += obj.width;
+                cy += obj.height;
+                break;
+            case 3:
+                cy += obj.height
+                break;
+        }
+    }
+    else {
+        switch(sa){
+            case 0:
+                rx /=2;
+                cx += rx;
+                break;
+            case 1:
+                cx += rx;
+                ry /=2 ;
+                cy += ry;
+                break;
+            case 2:
+                cy += ry;
+                rx /= 2;
+                cx += rx;
+                break;
+            case 3:
+                ry /= 2;
+                cy += ry;
+                break;
+        }
+    }
+    return [cx+offx, cy+offy, rx, ry];
+}
+
+
+
+type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj | FilledTile | TerrainTile | IconTile | SubMap | Shape | Arc;
 
 // Door subtypes
 // ------------
@@ -2617,6 +2701,12 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
             rotate_rectangleish(obj);
             return strip_obj(obj);
         }
+        case CanvasType.ARC:{
+            rotate_rectangleish(obj);
+            obj.start_arc++;
+            obj.end_arc++;
+            return strip_obj(obj);
+        }
     }
 }
 function rotate_everything_90(view:DungeonMapView){
@@ -3157,6 +3247,29 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
             };
             return bbox_overlaps(bbox, ftbbox);
         }
+        case CanvasType.ARC:{
+            const rect_bbox = {
+                x0:obj.base_x,
+                y0:obj.base_y,
+                x1:obj.base_x+obj.width,
+                y1:obj.base_y+obj.height,
+            };
+            if(!(selection_type & SELECTTYPE.MAP))
+                return false;
+	        // Ellipses are a little hard to click, fudge their size a bit.
+            const fudged = {
+                x0: bbox.x0-2,
+                x1: bbox.x1+2,
+                y0: bbox.y0-2,
+                y1: bbox.y1+2,
+            };
+            if(!bbox_overlaps(fudged, rect_bbox))
+                return false;
+            // if ellipse is inside our selection, return true
+            if(bbox_inside(fudged, rect_bbox)) return true;
+            let [cx, cy, rx, ry] = arc_components(obj, 0, 0);
+            return bbox_overlaps_ellipse_edge(fudged, cx, cy, rx, ry);
+        }
     }
 }
 function obj_at(view:DungeonMapView, x0:number, y0:number, select_type:SELECTTYPE):CanvasObject | null {
@@ -3474,6 +3587,11 @@ function strip_obj(obj:CanvasObject): StrippedObj{
         case CanvasType.SHAPE:{
             const stripped_obj: StrippedShape =
                 [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.color2, Array.from(obj.points), obj.thickness];
+            return stripped_obj;
+        }break;
+        case CanvasType.ARC:{
+            const stripped_obj: StrippedArc =
+                [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.width, obj.height, obj.start_arc, obj.end_arc, obj.thickness, obj.color];
             return stripped_obj;
         }break;
     }
@@ -3802,7 +3920,25 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             freehand_recalculate_bbox(obj);
             obj.path = undefined;
             return obj;
-            }break;
+        }break;
+        case CanvasType.ARC:{
+            const obj: Arc = {
+                type: CanvasType.ARC,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                submap: sobj[INDEX.SUBMAP],
+                width: (sobj as StrippedArc)[7],
+                height: (sobj as StrippedArc)[8],
+                start_arc: (sobj as StrippedArc)[9],
+                end_arc: (sobj as StrippedArc)[10],
+                thickness: (sobj as StrippedArc)[11],
+                color: (sobj as StrippedArc)[12],
+            };
+            return obj;
+        }break;
     }
 }
 
@@ -3954,6 +4090,8 @@ function edit_is_impossible(view:DungeonMapView):boolean{
         case CanvasType.SUBMAP:
             return false;
         case CanvasType.SHAPE:
+            return true;
+        case CanvasType.ARC:
             return true;
     }
 }
@@ -6023,6 +6161,54 @@ function render(timestamp:DOMHighResTimeStamp):void{
                 ctx.lineCap = oldcap;
                 ctx.lineJoin = oldjoin;
             }break;
+            case CanvasType.ARC:{ // TAG renderARC
+                const bbox = {
+                    x0:bx,
+                    y0:by,
+                    x1:bx+obj.width,
+                    y1:by+obj.height,
+                };
+                if(!bbox_overlaps(bbox, canvas_bbox))
+                    break;
+                let sa = obj.start_arc & 3;
+                let ea = obj.end_arc & 3;
+                let th0 = sa * Math.PI/2;
+                let th1 = ea * Math.PI/2;
+                let [cx, cy, rx, ry] = arc_components(obj, bx-obj.base_x, by-obj.base_y);
+                if(obj.width && obj.height){
+                    if(is_selected){
+                        ctx.lineWidth=8;
+                        ctx.strokeStyle = sel_color;
+                        ctx.beginPath();
+                        ctx.ellipse(cx, cy, rx, ry, 0, th0, th1);
+                        ctx.stroke();
+                    }
+                    ctx.lineWidth=obj.thickness;
+                    ctx.beginPath();
+                    // ctx.strokeStyle = '#000000';
+                    ctx.strokeStyle = obj.color;
+                    ctx.ellipse(cx, cy, rx, ry, 0, th0, th1);
+                    ctx.stroke();
+                    // ctx.strokeStyle = '#8f0000';
+                    // ctx.strokeRect(bbox.x0, bbox.y0, obj.width, obj.height);
+                    // ctx.fillText(`${obj.end_arc} - ${obj.start_arc} = ${obj.end_arc - obj.start_arc} (${sa}, ${ea})`, bx, by);
+                    if(one_selection && selected.has(obj.id)){
+                        ctx.fillStyle = sel_color;
+                        ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
+                        ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
+                        view.resize.handles.push({
+                            bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
+                            obj_id: obj.id,
+                            topleft:true,
+                        });
+                        view.resize.handles.push({
+                            bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
+                            obj_id: obj.id,
+                            topleft:false,
+                        });
+                    }
+                }
+            }
         }
     }
     ctx.globalAlpha = 1;
@@ -6107,22 +6293,23 @@ document.addEventListener('DOMContentLoaded', function(){
 // NOTE: The 'Help' tool was removed (it was a proto dialog button).
 // There is now an empty slot due to this.
 const enum ToolType {
-    PAN     = 0,
-    SELECT  = 1,
-    LINE    = 2,
-    ELLIPSE = 3,
-    WALL    = 4,
-    DOOR    = 5,
-    RECT    = 6,
-    TEXT    = 7,
-    TOKEN   = 8,
-    IMAGE   = 9,
-    // HELP    = 10,
+    PAN     =  0,
+    SELECT  =  1,
+    LINE    =  2,
+    ELLIPSE =  3,
+    WALL    =  4,
+    DOOR    =  5,
+    RECT    =  6,
+    TEXT    =  7,
+    TOKEN   =  8,
+    IMAGE   =  9,
+    // HELP = 10,
     MEASURE = 11,
     FIXTURE = 12,
     TILE    = 13,
     SUBMAP  = 14,
     SHAPE   = 15,
+    ARC     = 16,
 }
 const TOOL_IDS_TO_TOOL = (function(){
     const m: Map<string, ToolType> = new Map();
@@ -6142,6 +6329,7 @@ const TOOL_IDS_TO_TOOL = (function(){
     m.set('tile-tool',    ToolType.TILE);
     m.set('submap-tool',  ToolType.SUBMAP);
     m.set('shape-tool',   ToolType.SHAPE);
+    m.set('arc-tool',     ToolType.ARC);
     return m;
 }());
 const TOOL_TO_TOOL_ID = [
@@ -6177,6 +6365,8 @@ const TOOL_TO_TOOL_ID = [
     'submap-tool',
     // ToolType.SHAPE
     'shape-tool',
+    // ToolType.ARC
+    'arc-tool',
 ];
 let current_fixture_type = FixtureType.STAIRS;
 const enum TOKENTYPE {
@@ -6612,7 +6802,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 ]);
             });
         }
-        function setup_multi_option(toolel:HTMLElement, menu_id:string, t_type:ToolType, set_current:(_:number)=>void, t_to_name:Array<string>, t_to_short_name:Array<string>, t_max:number){
+        function setup_multi_option(toolel:HTMLElement, menu_id:string, t_type:ToolType, set_current:(_:number)=>void, t_to_name:Array<string>, t_to_short_name:Array<string>, t_max:number, current_value:number){
             const name = get_by_id<HTMLDivElement>(menu_id);
             function change_t(t:number){
                 set_current(t);
@@ -6623,7 +6813,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 func: change_t,
                 max_index: t_max,
             });
-            change_t(0);
+            change_t(current_value);
             function make_cb(t:number){
                 function cb(){
                     change_tool(t_type);
@@ -6646,25 +6836,56 @@ document.addEventListener('DOMContentLoaded', function():void{
                 }()));
             });
         }
+        // TAG setupMULTIOPTIONS
         switch(TOOL_IDS_TO_TOOL.get(toolel.id)){
             case ToolType.DOOR:
-                setup_multi_option(toolel, 'door-tool-menu', ToolType.DOOR, function(i:number){current_door=i}, DOOR_TO_NAMES, DOOR_TO_SHORT_NAMES, DoorType_MAX);
+                setup_multi_option(toolel, 'door-tool-menu', ToolType.DOOR,
+                                   function(i:number){
+                                       current_door=i;
+                                       store_global(StorageCategory.CANVAS, 'doortype', current_door);
+                                   },
+                                    DOOR_TO_NAMES, DOOR_TO_SHORT_NAMES, DoorType_MAX,
+                                    get_global_default(StorageCategory.CANVAS, 'doortype', current_door));
             break;
             case ToolType.TOKEN:
-                setup_multi_option(toolel, 'token-tool-menu', ToolType.TOKEN, function(i:number){current_token_type=i}, TOKEN_TO_NAME, TOKEN_TO_NAME, TOKENTYPE_MAX);
+                setup_multi_option(toolel, 'token-tool-menu', ToolType.TOKEN,
+                                   function(i:number){
+                                       current_token_type=i;
+                                       store_global(StorageCategory.CANVAS, 'tokentype', current_token_type);
+                                   },
+                                   TOKEN_TO_NAME, TOKEN_TO_NAME, TOKENTYPE_MAX,
+                                   get_global_default(StorageCategory.CANVAS, 'tokentype', current_token_type));
             break;
             case ToolType.RECT:
-                setup_multi_option(toolel, 'rect-tool-menu', ToolType.RECT, function(i:number){current_rect_type=i}, RECTTYPE_TO_NAME, RECTTYPE_TO_NAME, RECTTYPE_MAX);
+                setup_multi_option(toolel, 'rect-tool-menu', ToolType.RECT,
+                                   function(i:number){
+                                       current_rect_type=i;
+                                       store_global(StorageCategory.CANVAS, 'recttype', current_rect_type);
+                                   }, RECTTYPE_TO_NAME, RECTTYPE_TO_NAME, RECTTYPE_MAX,
+                                   get_global_default(StorageCategory.CANVAS, 'recttype', current_rect_type));
             break;
             case ToolType.ELLIPSE:
-                setup_multi_option(toolel, 'ellipse-tool-menu', ToolType.ELLIPSE, function(i:number){current_ellipse=i}, ELLIPSETYPE_TO_NAME, ELLIPSETYPE_TO_NAME, ELLIPSETYPE_MAX);
+                setup_multi_option(toolel, 'ellipse-tool-menu', ToolType.ELLIPSE,
+                                   function(i:number){
+                                       current_ellipse=i;
+                                       store_global(StorageCategory.CANVAS, 'ellipsetype', current_ellipse);
+                                   },
+                                   ELLIPSETYPE_TO_NAME, ELLIPSETYPE_TO_NAME, ELLIPSETYPE_MAX,
+                                   get_global_default(StorageCategory.CANVAS, 'ellipsetype', current_ellipse));
             break;
             case ToolType.FIXTURE:
-                setup_multi_option(toolel, 'fixture-tool-menu', ToolType.FIXTURE, function(i:number){current_fixture_type=i}, FixtureType_TO_NAME, FixtureType_TO_NAME, FixtureType_MAX);
+                setup_multi_option(toolel, 'fixture-tool-menu', ToolType.FIXTURE,
+                                   function(i:number){
+                                       current_fixture_type=i;
+                                       store_global(StorageCategory.CANVAS, 'fixturetype', current_fixture_type);
+                                   },
+                                   FixtureType_TO_NAME, FixtureType_TO_NAME, FixtureType_MAX,
+                                   get_global_default(StorageCategory.CANVAS, 'fixturetype', current_fixture_type));
             break;
             case ToolType.TILE:
                 setup_multi_option(toolel, 'tile-tool-menu', ToolType.TILE, function(i:number){
                     current_tile_type=i;
+                    store_global(StorageCategory.CANVAS, 'tiletype', current_tile_type);
                     switch(current_tile_type){
                         case TileType.FILLED:
                             hide_palette();
@@ -6676,13 +6897,32 @@ document.addEventListener('DOMContentLoaded', function():void{
                             make_terrain_icon_palette();
                             break;
                     }
-                }, TileType_TO_NAME, TileType_TO_NAME, TileType_MAX);
+                }, TileType_TO_NAME, TileType_TO_NAME, TileType_MAX,
+                get_global_default(StorageCategory.CANVAS, 'tiletype', current_tile_type));
             break;
             case ToolType.SHAPE:
-                setup_multi_option(toolel, 'shape-tool-menu', ToolType.SHAPE, function(i:number){current_shape=i}, SHAPETYPE_TO_NAME, SHAPETYPE_TO_SHORT_NAME, SHAPETYPE.MAX);
+                setup_multi_option(toolel, 'shape-tool-menu', ToolType.SHAPE,
+                                   function(i:number){
+                                       current_shape=i;
+                                       store_global(StorageCategory.CANVAS, 'shapetype', current_shape);
+                                   },
+                                   SHAPETYPE_TO_NAME, SHAPETYPE_TO_SHORT_NAME, SHAPETYPE.MAX,
+                                   get_global_default(StorageCategory.CANVAS, 'shapetype', current_shape));
             break;
             case ToolType.LINE:
-                setup_multi_option(toolel, 'line-tool-menu', ToolType.LINE, function(i:number){current_line_type=i}, LINETYPE_TO_NAME, LINETYPE_TO_NAME, LINETYPE.MAX);
+                setup_multi_option(toolel, 'line-tool-menu', ToolType.LINE,
+                                   function(i:number){
+                                        current_line_type=i;
+                                        store_global(StorageCategory.CANVAS, 'linetype', current_line_type);
+                                   },
+                                   LINETYPE_TO_NAME, LINETYPE_TO_NAME, LINETYPE.MAX,
+                                   get_global_default(StorageCategory.CANVAS, 'linetype', current_line_type));
+            break;
+            case ToolType.ARC:
+                setup_multi_option(toolel, 'arc-tool-menu', ToolType.ARC,
+                                   set_arc_type,
+                                   ARCTYPE_TO_NAME, ARCTYPE_TO_NAME, ARCTYPE.MAX,
+                                   get_global_default(StorageCategory.CANVAS, 'arctype', current_arc_type));
             break;
             default:
             break;
@@ -8176,6 +8416,127 @@ document.addEventListener('DOMContentLoaded', function(){
                     }
                     else {
                         view.map.submaps.push(submap);
+                        publish_obj_by_id(view.map, id);
+                        note_create_by_id_for_undo(view.map, id);
+                    }
+                    request_render();
+                }
+                window.addEventListener('pointerup', finish_point);
+                canvas.addEventListener('pointerleave', finish_point);
+            }break;
+            case ToolType.ARC:{ // TAG toolARC
+                let id = get_new_id();
+                const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
+                // const thickness_input = by_id('line-thickness');
+                const thickness = 6; // +thickness_input.value || 4;
+                let arc: Arc = {
+                    type: CanvasType.ARC,
+                    id: id,
+                    base_x: x0,
+                    base_y: y0,
+                    flags: CanvasFlag.NONE,
+                    hidinguser: hiddenid(),
+                    submap: 0,
+                    width: 0,
+                    height: 0,
+                    start_arc: 0,
+                    end_arc: 1,
+                    thickness: thickness,
+                    color: get_primary_color(),
+                };
+                add_canv_obj(view.map, arc);
+                view.placing_area.is_placing = true;
+                view.placing_area.is_line = false;
+                view.placing_area.x0 = arc.base_x+smoff[0];
+                view.placing_area.y0 = arc.base_y+smoff[1];
+                view.placing_area.x1 = arc.base_x+smoff[0];
+                view.placing_area.y1 = arc.base_y+smoff[1];
+                request_render();
+                function add_point(e:MouseEvent){
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
+                    let xmin = x0;
+                    let xmax = x0;
+                    let ymin = y0;
+                    let ymax = y0;
+
+                    if(x1 < xmin) xmin = x1;
+                    if(x1 > xmax) xmax = x1;
+                    if(y1 < ymin) ymin = y1;
+                    if(y1 > ymax) ymax = y1;
+
+                    arc.base_x = xmin;
+                    arc.base_y = ymin;
+                    arc.width = xmax - xmin;
+                    arc.height = ymax - ymin;
+                    let [rawx, rawy] = event_to_coord_off(e, view, smoff);
+                    let angle = Math.atan2(rawx-x0, rawy-y0) * 180/Math.PI;
+                    if(current_arc_type == ArcType.QUARTER){
+                        if(angle >= -180 && angle < -90){
+                            arc.start_arc = 3;
+                            arc.end_arc = 4;
+                        }
+                        else if(angle >= -90 && angle < 0){
+                            arc.start_arc = 0;
+                            arc.end_arc = 1;
+                        }
+                        else if(angle >= 0 && angle < 90){
+                            arc.start_arc = 1;
+                            arc.end_arc = 2;
+                        }
+                        else {
+                            arc.start_arc = 2;
+                            arc.end_arc = 3;
+                        }
+                    }
+                    else {
+                        if(angle < -135){
+                            arc.start_arc = 1;
+                            arc.end_arc = 3;
+                        }
+                        else if(angle < -90){
+                            arc.start_arc = 2;
+                            arc.end_arc = 4;
+                        }
+                        else if(angle < -45){
+                            arc.start_arc = 0;
+                            arc.end_arc = 2;
+                        }
+                        else if(angle < 0){
+                            arc.start_arc = 1;
+                            arc.end_arc = 3;
+                        }
+                        else if(angle < 45){
+                            arc.start_arc = 3;
+                            arc.end_arc = 5;
+                        }
+                        else if(angle < 90){
+                            arc.start_arc = 0;
+                            arc.end_arc = 2;
+                        }
+                        else if(angle < 135){
+                            arc.start_arc = 2;
+                            arc.end_arc = 4;
+                        }
+                        else {
+                            arc.start_arc = 3;
+                            arc.end_arc = 5;
+                        }
+                    }
+                    view.placing_area.x0 = arc.base_x+smoff[0];
+                    view.placing_area.y0 = arc.base_y+smoff[1];
+                    view.placing_area.x1 = arc.base_x+smoff[0]+arc.width;
+                    view.placing_area.y1 = arc.base_y+smoff[1]+arc.height;
+                    request_render();
+                }
+                canvas.addEventListener('pointermove', add_point);
+                function finish_point(){
+                    canvas.removeEventListener('pointermove', add_point);
+                    window.removeEventListener('pointerup', finish_point);
+                    canvas.removeEventListener('pointerleave', finish_point);
+                    view.placing_area.is_placing = false;
+                    if(arc.width && arc.height){
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                     }

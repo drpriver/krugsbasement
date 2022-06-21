@@ -564,6 +564,10 @@ David20::title #hide
       Elli<b>p</b>se
     ::div.tool-menu #id(ellipse-tool-menu)
       ☰
+    ::div.tool #id(arc-tool)
+      Arc
+    ::div.tool-menu #id(arc-tool-menu)
+      ☰
     ::div.tool #id(text-tool)
       <b>T</b>ext
     ::div.tool #id(token-tool)

@@ -78,3 +78,10 @@ function get_global(category:StorageCategory, key:string):any | undefined {
     if(!value) return undefined;
     return JSON.parse(value);
 }
+
+function get_global_default<T>(category:StorageCategory, key:string, def:T):T{
+    let k = `${category}.${key}`;
+    let value = localStorage.getItem(k);
+    if(!value) return def;
+    return JSON.parse(value);
+}

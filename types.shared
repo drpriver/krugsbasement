@@ -366,6 +366,7 @@ enum CanvasType: int
     ICON_TILE     = 17
     SUBMAP        = 18
     SHAPE         = 19
+    ARC           = 20
 
 #
 # flags
@@ -757,6 +758,22 @@ struct StrippedSubMap: array
     grid_color: color
     bg_color: color
 
+struct StrippedArc: array
+    type = CanvasType.ARC
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    submap: int
+    width: float
+    height: float
+    start_arc: int
+    end_arc: int
+    thickness: float
+    color: color
+
+
 // StrippedObj
 // -----------
 //  Each object has a "stripped" representation, which is
@@ -800,6 +817,7 @@ union StrippedObj: array
     StrippedIconTile
     StrippedSubMap
     StrippedShape
+    StrippedArc
 
 
 // GridType
