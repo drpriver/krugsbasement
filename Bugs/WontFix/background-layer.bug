@@ -1,0 +1,30 @@
+Changelog::kv
+  created: 2022-04-07T00:22:53Z
+  wontfix: 2022-06-21T01:24:55Z
+Created Apr 06, 2022, 08:22PM::md .update
+Summary::md .summary
+  I avoided having explicit layers as it makes it harder to think about things,
+  but I find myself wanting to have certain things that go under the gridlines.
+  For example:
+
+  * Images (slap down a map)
+  * Rectangles
+  * Shapes
+  * Rubble
+  * Etc.
+
+  Couple of ways to implement this:
+
+  1. Give all objects a layer attribute.
+  2. Make background a flag
+  3. Duplicate the relevant objects (have a background version).
+  Option 1 is the “cleanest” to implement, but adds the user interface
+  complication of the notion of a background.
+
+  I guess I could do option 1 but have the interface be like 2 or 3.
+
+  I don’t really love any of these to be honest. They all seem kind of crappy.
+  It’s nice to not have to think about layers as a user.
+
+WontFix Jun 20, 2022, 09:24PM::md .update
+  Not seeing the use case, might reopen later.
