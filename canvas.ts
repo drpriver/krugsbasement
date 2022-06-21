@@ -3405,6 +3405,7 @@ function selection_is_rigid(view:DungeonMapView):boolean{
             case CanvasType.GRID_RECT:
             case CanvasType.GRID_LINE:
             case CanvasType.IMAGE:
+            case CanvasType.ARC:
                 return snapmode != SNAPMODE.FREE;
             case CanvasType.DOOR:
             case CanvasType.STAIRS:
