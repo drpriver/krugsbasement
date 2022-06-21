@@ -1,5 +1,10 @@
 Changelog::kv
   created: 2022-06-21T03:42:14Z
-Created Jun 20, 2022, 11:42PM::md.update
-Summary::md.summary
+  updated: 2022-06-21T06:19:20Z
+Created Jun 20, 2022, 11:42PM::md .update
+Summary::md .summary
   Export a png of the current map.
+
+Updated Jun 21, 2022, 02:19AM::md .update
+  This works pretty well, but there is weird edge cases regarding the edge of
+  the image that I haven’t figured out yet.

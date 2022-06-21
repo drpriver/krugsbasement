@@ -1093,7 +1093,7 @@ function new_map_view(map_id:number): DungeonMapView{
         map: get_map(map_id),
         camera_x: 0,
         camera_y: 0,
-        scale: 1,
+        scale: 0.5,
         selected: new Set(),
         selection_area: {
             select_one: false,
@@ -2094,6 +2094,7 @@ function delay_load_obj_image(obj:ImageObj|ImgToken, width:number, height:number
         return;
     }
     const img = width && height? new Image(width, height): new Image();
+    img.crossOrigin = 'anonymous';
     img.addEventListener('load', function(){
         obj.img = img;
         if(!width || !height){
@@ -4421,16 +4422,76 @@ function fmod(a:number, n:number){
     return a < 0? (a % n)+n : a % n;
 }
 function render(timestamp:DOMHighResTimeStamp):void{
+    if(!ctx) return;
+    const view = get_active_view();
+    if(!view) return;
+    actually_render(timestamp, ctx, view);
+}
+function screenshot_canvas(view:DungeonMapView){
+    let canvas = document.createElement('canvas');
+    let dialog = get_dialog('screenshot-prefs');
+    dialog.f.gridsize.value = '32';
+    dialog.f.selection.checked = false;
+    dialog.ok_handler = function(){
+        let x0 = 999999999;
+        let y0 = 999999999;
+        let x1 = 0;
+        let y1 = 0;
+        let scale = (+dialog.f.gridsize.value)/64;
+        let fake_view: DungeonMapView = {
+            map: view.map,
+            camera_x: 0,
+            camera_y: 0,
+            scale: 1,
+            selected: new Set(),
+            selection_area: {is_selecting: false, select_one: false, x0: 0, x1: 0, y0: 0, y1: 0, submap: 0},
+            placing_area: {is_placing: false, is_line: false, x0: 0, x1: 0, y0: 0, y1: 0},
+            mouse: {x: 0, y: 0},
+            hovered_id: 0,
+            resize: {handles: [], resizing: false},
+            action: {areas: []},
+        };
+        if(dialog.f.selection.checked){
+            x0 = view.selection_area.x0;
+            y0 = view.selection_area.y0;
+            x1 = view.selection_area.x1;
+            y1 = view.selection_area.y1;
+            canvas.width = scale*(x1 - x0);
+            canvas.height = scale*(y1 - y0)+60;
+        }
+        else {
+            for(let o of view.map.canvas_obj_array){
+                if(o.flags & CanvasFlag.DELETED) continue;
+                if(o.base_x < x0) x0 = o.base_x;
+                if(o.base_x > x1) x1 = o.base_x;
+                if(o.base_y < y0) y0 = o.base_y;
+                if(o.base_y > y1) y1 = o.base_y;
+            }
+            canvas.width = scale*(x1 - x0 + 50);
+            canvas.height = scale*(y1 - y0 + 50);
+        }
+        fake_view.camera_x = -x0;
+        fake_view.camera_y = -y0;
+        fake_view.scale = scale;
+        fake_view.selection_area.is_selecting = false;
+        let ctx = canvas.getContext('2d', {alpha:true})!;
+        actually_render(0, ctx, fake_view);
+        canvas.toBlob(function(b:Blob|null){
+            if(!b) return;
+            let a = document.createElement('a');
+            a.href = URL.createObjectURL(b);
+            a.download = `${view.map.map_name}.png`;
+            a.click();
+        }, 'image/png', 1);
+    };
+    dialog.show();
+}
+
+function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingContext2D, view:DungeonMapView):void{
     // console.log('render', performance.now());
     const before = SHOW_FPS?performance.now():0;
     // console.log('ctx?', !!ctx);
-    if(!ctx)
-        return;
     ctx.imageSmoothingQuality = 'medium';
-    const view = get_active_view();
-    // console.log('view?', !!view);
-    if(!view)
-        return;
     view.resize.handles = [];
     view.action.areas = [];
     const map = view.map;
@@ -4451,8 +4512,8 @@ function render(timestamp:DOMHighResTimeStamp):void{
     const camera_y = view.camera_y;
     const scale = view.scale;
     animation_requested = false;
-    const width = canvas.width;
-    const height = canvas.height;
+    const width = ctx.canvas.width;
+    const height = ctx.canvas.height;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = cvs_bg;

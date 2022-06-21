@@ -192,6 +192,9 @@ function options_dialog(){
         a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type:'text/plain'}));
         a.click();
     });
+    dialog.f.screenshot.addEventListener('click', function(){
+        screenshot_canvas(get_active_view());
+    });
     if (SETTINGS.demo){
         dialog.f['import-map'].addEventListener('click', function(){
             const inp = document.createElement('input');

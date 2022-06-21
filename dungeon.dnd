@@ -460,6 +460,7 @@ David20::title #hide
         <br>
         ${button('export-map', 'Export Maps')}
         ${button('import-map', 'Import Map')}
+        ${button('screenshot', 'Screenshot')}
         </span>
         <br>
     </div>
@@ -487,6 +488,19 @@ David20::title #hide
       ${trbegin('can')}
         <td>${label('delete', 'Delete?')}
         <td>${checkbox('delete')}
+      </tr>
+    </table>`);
+  begin('screenshot-prefs');
+  make(`
+    ${title('Screenshot')}
+    <table class="input-container">
+      <tr>
+        <td>${label('gridsize', 'Grid Size:')}
+        <td>${numbox('gridsize')}
+      </tr>
+      <tr>
+        <td>${label('selection', 'Screenshot Selection')}
+        <td>${checkbox('selection')}
       </tr>
     </table>`);
   if(Args && Args.temp){
