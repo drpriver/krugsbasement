@@ -1,0 +1,9 @@
+Changelog::kv
+  created:  2022-04-30T05:16:02Z
+  resolved: 2022-06-22T05:05:29Z
+Created Apr 30, 2022, 01:16AM::md .update
+Summary::md .summary
+  The current <code>obj_in_bbox</code> just treats hexagons as squares.
+
+Resolved Jun 21, 2022, 10:05PM::md .update
+  Took a lot of math but this is fixed.

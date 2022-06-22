@@ -39,6 +39,9 @@ function bbox_inside(container:Bbox, needle:Bbox):boolean{
 function point_in_rect(x:number, y:number, x0:number, y0:number, x1:number, y1:number):boolean{
     return (x >= x0) && (x <= x1) && (y >= y0) && (y <= y1);
 }
+function point_in_bbox(x:number, y:number, bbox:Bbox):boolean{
+    return (x >= bbox.x0) && (x <= bbox.x1) && (y >= bbox.y0) && (y <= bbox.y1);
+}
 function line_overlaps_bbox(bbox:Bbox, x0:number, y0:number, x1:number, y1:number):boolean{
     // equation for the segment: F(x y) = (y1-y0)*x + (x0-x1)*y + (x1*y0-x0*y1)
     // rewrite to Ax+By+C
@@ -161,6 +164,57 @@ function bbox_overlaps_ellipse_edge(bbox:Bbox, cx:number, cy:number, rx:number, 
             || ((-inn - y0) <= dy && (-inn - y0) >= 0))
             return true;
     }
+    return false;
+}
+
+type Triangle = [number, number, number, number, number, number];
+
+function bbox_overlaps_triangle(bbox:Bbox, tri:Triangle):boolean{
+    if(line_overlaps_bbox(bbox, tri[0], tri[1], tri[2], tri[3]))
+        return true;
+    if(line_overlaps_bbox(bbox, tri[2], tri[3], tri[4], tri[5]))
+        return true;
+    if(line_overlaps_bbox(bbox, tri[4], tri[5], tri[0], tri[1]))
+        return true;
+    if(point_in_bbox(tri[0], tri[1], bbox))
+        return true;
+    return point_in_triangle(bbox.x0, bbox.y0, tri);
+}
+
+function point_in_triangle(x:number, y:number, tri:Triangle):boolean{
+
+    // tbh I copy-pasted this from stack overflow
+    const s = tri[1]*tri[4] - tri[0]*tri[5] + x*(tri[5] - tri[1]) + y*(tri[0] - tri[4]);
+    const t = tri[0]*tri[3] - tri[1]*tri[2] + x*(tri[1] - tri[3]) + y*(tri[2] - tri[0]);
+
+    if((s < 0) != (t < 0))
+        return false;
+
+    // shoelace algorithm
+    const A = -tri[3]*tri[4] + tri[1]*(tri[4] - tri[2]) + tri[0]*(tri[3] - tri[5]) + tri[2]*tri[5];
+
+    return A < 0 ?
+              (s <= 0 && s + t >= A)
+            : (s >= 0 && s + t <= A);
+    return false;
+}
+
+function bbox_overlaps_ref_unit_hexagon(bbox:Bbox, bx:number, by:number):boolean{
+    const inner_bbox = {
+        x0: bx+9,
+        x1: bx+REFERENCE.WIDTH-9,
+        y0: by,
+        y1: by+REFERENCE.WIDTH,
+    };
+    if(bbox_overlaps(bbox, inner_bbox)) return true;
+    if(bbox_overlaps_triangle(bbox, [bx+9,by, bx+9, by+REFERENCE.HALF_WIDTH, bx-9, by+REFERENCE.HALF_WIDTH]))
+        return true;
+    if(bbox_overlaps_triangle(bbox, [bx+9, by+REFERENCE.HALF_WIDTH, bx-9, by+REFERENCE.HALF_WIDTH, bx+9, by+REFERENCE.WIDTH]))
+        return true;
+    if(bbox_overlaps_triangle(bbox, [bx+REFERENCE.WIDTH-9, by, bx+REFERENCE.WIDTH-9, by+REFERENCE.HALF_WIDTH, bx+REFERENCE.WIDTH+9, by+REFERENCE.HALF_WIDTH]))
+        return true;
+    if(bbox_overlaps_triangle(bbox, [bx+REFERENCE.WIDTH-9, by+REFERENCE.HALF_WIDTH, bx+REFERENCE.WIDTH+9, by+REFERENCE.HALF_WIDTH, bx+REFERENCE.WIDTH-9, by+REFERENCE.WIDTH]))
+        return true;
     return false;
 }
 
@@ -2948,7 +3002,7 @@ function update_selection(view:DungeonMapView, x0:number, y0:number, x1:number, 
 }
 // Pray the JIT inlines this call.
 // FIXME: this shouldn't be looking at selection type, hoist to the caller.
-function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_type:SELECTTYPE):boolean{
+function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_type:SELECTTYPE, is_hex:boolean):boolean{
     switch(obj.type){
         case CanvasType.SHAPE: // hack
         case CanvasType.FREEHAND_LINE:
@@ -3215,38 +3269,71 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
         case CanvasType.ICON_TILE:{
             if(!(selection_type & SELECTTYPE.MAP))
                 return false;
-            // kind of cheesy.
-            const ftbbox = {
-                x0: obj.base_x,
-                x1: obj.base_x + REFERENCE.WIDTH,
-                y0: obj.base_y,
-                y1: obj.base_y + REFERENCE.WIDTH,
-            };
-            return bbox_overlaps(bbox, ftbbox);
+            if(is_hex){
+                const ftbbox = {
+                    x0: obj.base_x-9,
+                    x1: obj.base_x + REFERENCE.WIDTH+9,
+                    y0: obj.base_y,
+                    y1: obj.base_y + REFERENCE.WIDTH,
+                };
+                if(!bbox_overlaps(bbox, ftbbox)) return false;
+                return bbox_overlaps_ref_unit_hexagon(bbox, obj.base_x, obj.base_y);
+            }
+            else {
+                const ftbbox = {
+                    x0: obj.base_x,
+                    x1: obj.base_x + REFERENCE.WIDTH,
+                    y0: obj.base_y,
+                    y1: obj.base_y + REFERENCE.WIDTH,
+                };
+                return bbox_overlaps(bbox, ftbbox);
+            }
         }
         case CanvasType.FILLED_TILE:{
             if(!(selection_type & SELECTTYPE.BACKGROUND))
                 return false;
-            // kind of cheesy.
-            const ftbbox = {
-                x0: obj.base_x,
-                x1: obj.base_x + REFERENCE.WIDTH*obj.size,
-                y0: obj.base_y,
-                y1: obj.base_y + REFERENCE.WIDTH*obj.size,
-            };
-            return bbox_overlaps(bbox, ftbbox);
+            if(is_hex){
+                const ftbbox = {
+                    x0: obj.base_x-9,
+                    x1: obj.base_x + REFERENCE.WIDTH+9,
+                    y0: obj.base_y,
+                    y1: obj.base_y + REFERENCE.WIDTH,
+                };
+                if(!bbox_overlaps(bbox, ftbbox)) return false;
+                return bbox_overlaps_ref_unit_hexagon(bbox, obj.base_x, obj.base_y);
+            }
+            else {
+                const ftbbox = {
+                    x0: obj.base_x,
+                    x1: obj.base_x + REFERENCE.WIDTH,
+                    y0: obj.base_y,
+                    y1: obj.base_y + REFERENCE.WIDTH,
+                };
+                return bbox_overlaps(bbox, ftbbox);
+            }
         }
         case CanvasType.TERRAIN_TILE:{
             if(!(selection_type & SELECTTYPE.BACKGROUND))
                 return false;
-            // kind of cheesy.
-            const ftbbox = {
-                x0: obj.base_x,
-                x1: obj.base_x + REFERENCE.WIDTH,
-                y0: obj.base_y,
-                y1: obj.base_y + REFERENCE.WIDTH,
-            };
-            return bbox_overlaps(bbox, ftbbox);
+            if(is_hex){
+                const ftbbox = {
+                    x0: obj.base_x-9,
+                    x1: obj.base_x + REFERENCE.WIDTH+9,
+                    y0: obj.base_y,
+                    y1: obj.base_y + REFERENCE.WIDTH,
+                };
+                if(!bbox_overlaps(bbox, ftbbox)) return false;
+                return bbox_overlaps_ref_unit_hexagon(bbox, obj.base_x, obj.base_y);
+            }
+            else {
+                const ftbbox = {
+                    x0: obj.base_x,
+                    x1: obj.base_x + REFERENCE.WIDTH,
+                    y0: obj.base_y,
+                    y1: obj.base_y + REFERENCE.WIDTH,
+                };
+                return bbox_overlaps(bbox, ftbbox);
+            }
         }
         case CanvasType.ARC:{
             const rect_bbox = {
@@ -3297,10 +3384,10 @@ function obj_at(view:DungeonMapView, x0:number, y0:number, select_type:SELECTTYP
                 x1: bbox.x1-sm.base_x-sm.tlx,
                 y1: bbox.y1-sm.base_y-sm.tly,
             };
-            if(obj_in_bbox(obj, bbox_, select_type))
+            if(obj_in_bbox(obj, bbox_, select_type, !!(view.map.grid_type & GridType.HEX)))
                 return obj;
         }
-        else if(obj_in_bbox(obj, bbox, select_type))
+        else if(obj_in_bbox(obj, bbox, select_type, !!(view.map.grid_type & GridType.HEX)))
             return obj;
     }
     return null;
@@ -3356,12 +3443,12 @@ function note_selections(view:DungeonMapView):void{
                     x1: selection_bbox.x1-sm.base_x-sm.tlx,
                     y1: selection_bbox.y1-sm.base_y-sm.tly,
                 };
-                if(obj_in_bbox(obj, bbox_, select_type)){
+                if(obj_in_bbox(obj, bbox_, selection_type, !!(view.map.grid_type & GridType.HEX))){
                     selected.add(obj.id);
                     break;
                 }
             }
-            else if(obj_in_bbox(obj, selection_bbox, selection_type)){
+            else if(obj_in_bbox(obj, selection_bbox, selection_type, !!(view.map.grid_type & GridType.HEX))){
                 selected.add(obj.id);
                 break;
             }
@@ -3384,10 +3471,10 @@ function note_selections(view:DungeonMapView):void{
                     x1: selection_bbox.x1-sm.base_x-sm.tlx,
                     y1: selection_bbox.y1-sm.base_y-sm.tly,
                 };
-                if(obj_in_bbox(obj, bbox_, select_type))
+                if(obj_in_bbox(obj, bbox_, selection_type, !!(view.map.grid_type & GridType.HEX)))
                     selected.add(obj.id);
             }
-            else if(obj_in_bbox(obj, selection_bbox, selection_type)){
+            else if(obj_in_bbox(obj, selection_bbox, selection_type, !!(view.map.grid_type & GridType.HEX))){
                 selected.add(obj.id);
             }
         }
@@ -3429,7 +3516,7 @@ function there_are_selected_objs_at(view:DungeonMapView, x0:number, y0:number, x
         const obj = view.map.canvas_objs.get(id) as CanvasObject;
         if(obj.flags & CanvasFlag.DELETED)
             continue;
-        if(obj_in_bbox(obj, selection_bbox, selection_type))
+        if(obj_in_bbox(obj, selection_bbox, selection_type, !!(view.map.grid_type & GridType.HEX)))
             return true;
     }
     return false;
