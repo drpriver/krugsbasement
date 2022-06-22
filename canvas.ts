@@ -4432,12 +4432,19 @@ function screenshot_canvas(view:DungeonMapView){
     let dialog = get_dialog('screenshot-prefs');
     dialog.f.gridsize.value = '32';
     dialog.f.selection.checked = false;
+    dialog.show_handler = function(){
+        dialog.f.selection.checked = current_tool == ToolType.SELECT;
+    };
     dialog.ok_handler = function(){
         let x0 = 999999999;
         let y0 = 999999999;
         let x1 = 0;
         let y1 = 0;
-        let scale = (+dialog.f.gridsize.value)/64;
+        let scale = (+dialog.f.gridsize.value)
+        if(!scale) scale = 32;
+        if(scale > 256) scale = 256;
+        dialog.f.gridsize.value = ''+scale;
+        scale /= 64;
         let fake_view: DungeonMapView = {
             map: view.map,
             camera_x: 0,
@@ -4456,8 +4463,8 @@ function screenshot_canvas(view:DungeonMapView){
             y0 = view.selection_area.y0;
             x1 = view.selection_area.x1;
             y1 = view.selection_area.y1;
-            canvas.width = scale*(x1 - x0);
-            canvas.height = scale*(y1 - y0)+60;
+            canvas.width  = scale*(x1 - x0);
+            canvas.height = scale*(y1 - y0);
         }
         else {
             for(let o of view.map.canvas_obj_array){
@@ -4467,9 +4474,11 @@ function screenshot_canvas(view:DungeonMapView){
                 if(o.base_y < y0) y0 = o.base_y;
                 if(o.base_y > y1) y1 = o.base_y;
             }
-            canvas.width = scale*(x1 - x0 + 50);
-            canvas.height = scale*(y1 - y0 + 50);
+            canvas.width  = scale*(x1 - x0 + 64);
+            canvas.height = scale*(y1 - y0 + 64);
         }
+        if(fake_view.map.grid_type & GridType.HEX)
+            canvas.height *= HEX_Y_FIX;
         fake_view.camera_x = -x0;
         fake_view.camera_y = -y0;
         fake_view.scale = scale;
