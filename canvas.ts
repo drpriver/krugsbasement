@@ -273,20 +273,18 @@ function is_resizable(obj:CanvasObject): obj is Resizable{
 //     flags: CanvasFlag;
 // }
 //
-//  Additionally, each object also has a "stripped" representation, which is
-//  the minimal amount of information for that object. For several types
-//  this is the same as the regular one, but for others the unstripped
-//  representation would include things like an HTMLImageElement.
-//  Furthermore, the "stripped" representation can be converted to and from json,
-//  so it can be shipped to and from the server.
+// Additionally, each object also has a "stripped" representation, which is the
+// minimal amount of information for that object. These are defined in
+// types.shared. They are arrays instead of objects, as those are smaller when
+// serialized to json.
 //
 
-//  freehand-line
-//  -------------
-//  Freehand lines are a bag of sequenced points that are
-//  interpolated together with quadratic curves.
-//  The server can optimize the lines by removing redundant
-//  points.
+// freehand-line
+// -------------
+// Freehand lines are a bag of sequenced points that are
+// interpolated together with quadratic curves.
+// The server can optimize the lines by removing redundant
+// points.
 type FreehandLine = {
     type: CanvasType.FREEHAND_LINE; // FREEHAND_LINE
     id: number;
@@ -578,7 +576,6 @@ type ImgToken = {
 //  door
 //  ----
 //  A door.
-// stripped doors are the same as regular doors.
 type DoorObj = {
     type: CanvasType.DOOR,
     id: number,
@@ -594,7 +591,6 @@ type DoorObj = {
 }
 
 
-// stripped stairs are the same as regular stairs.
 type Stairs = {
     type: CanvasType.STAIRS,
     id: number,
@@ -611,7 +607,6 @@ type Stairs = {
 // Measure
 // -------
 // This is a weird object, but it is the measurement tool.
-// stripped measure is the same as regular measure.
 type MeasureObj = {
     type: CanvasType.MEASURE,
     id: number,
@@ -643,7 +638,6 @@ const FixtureType_TO_NAME = [
 // ----------
 // For dungeon fixtures, like rubble or pits.
 
-// stripped fixture obj is the same as regular fixtures.
 type FixtureObj = {
     type: CanvasType.FIXTURE,
     id: number,
