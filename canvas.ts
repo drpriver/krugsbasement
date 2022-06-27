@@ -7888,22 +7888,38 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.addEventListener('pointerleave', finish_point);
                 }
                 else{
-                    const [x0, y0] = event_to_coord_off(e, view, smoff);
+                    const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
+                    // const [x0, y0] = event_to_coord_off(e, view, smoff);
+                    let x1 = x0;
+                    let y1 = y0;
+                    view.placing_area.is_placing = true;
+                    view.placing_area.is_line = true;
+                    view.placing_area.x0 = x0+smoff[0];
+                    view.placing_area.y0 = y0+smoff[1];
+                    view.placing_area.x1 = x1+smoff[0];
+                    view.placing_area.y1 = y1+smoff[1];
+
                     add_gridline(view.map, id, x0, y0, submapid, get_primary_color());
                     function add_point(e:MouseEvent){
                         e.stopPropagation();
                         e.preventDefault();
-                        const [x1, y1] = event_to_coord_off(e, view, smoff);
-                        add_gridline_point_by_id(view.map, id, x1, y1);
+                        const [x, y] = event_to_coord_snapped_off(e, view, snap, smoff);
+                        x1 = x;
+                        y1 = y;
+                        view.placing_area.x1 = x1+smoff[0];
+                        view.placing_area.y1 = y1+smoff[1];
                         request_render();
                     }
                     canvas.addEventListener('pointermove', add_point);
                     function finish_point(){
+                        view.placing_area.is_placing = false;
+                        add_gridline_point_by_id(view.map, id, x1, y1);
                         canvas.removeEventListener('pointermove', add_point);
                         window.removeEventListener('pointerup', finish_point);
                         canvas.removeEventListener('pointerleave', finish_point);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
+                        request_render();
                     }
                     window.addEventListener('pointerup', finish_point);
                     canvas.addEventListener('pointerleave', finish_point);
