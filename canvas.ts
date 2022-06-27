@@ -1764,31 +1764,6 @@ function calc_square_length(map:DungeonMap, x0:number, y0:number, x1:number, y1:
     return length.toFixed(0) + "'";
 }
 
-function make_gridline(id:number, base_x:number, base_y:number, submap:number, color:string):GridLine{
-    let snap = get_snap_func();
-    base_x = snap(base_x);
-    base_y = snap(base_y);
-    const obj: GridLine =  {
-        type: CanvasType.GRID_LINE,
-        id: id,
-        base_x: base_x,
-        base_y: base_y,
-        flags: CanvasFlag.NONE,
-        hidinguser: hiddenid(),
-        submap:submap,
-        points: [],
-        color: color,
-        path: undefined,
-        bbox: { x0: 0, y0: 0, x1: 0, y1: 0, },
-        last_bx:undefined,
-        last_by:undefined,
-    };
-    return obj;
-}
-function add_gridline(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string):void{
-    const obj = make_gridline(id, base_x, base_y, submap, color);
-    add_canv_obj(map, obj);
-}
 function add_gridline_point(obj:GridLine, x:number, y:number):void{
     const points = obj.points;
     const last_x = points.length? points[points.length-2]+obj.base_x : obj.base_x;
@@ -2187,34 +2162,11 @@ function add_image(map:DungeonMap, id:number, base_x:number, base_y:number, widt
     const obj = make_image(id, base_x, base_y, width, height, submap, url);
     add_canv_obj(map, obj);
 }
-function make_stairs(id:number, base_x:number, base_y:number, submap:number): Stairs{
-    const snap = get_snap_func();
-    base_x = snap(base_x);
-    base_y = snap(base_y);
-    const obj:Stairs = {
-        type: CanvasType.STAIRS,
-        id: id,
-        base_x:base_x,
-        base_y:base_y,
-        flags: CanvasFlag.NONE,
-        hidinguser: hiddenid(),
-        submap:submap,
-        width: 0,
-        height: 0,
-        rotation: Rotation.UP,
-    };
-    return obj;
-}
-function add_stairs(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number){
-    const obj = make_stairs(id, base_x, base_y, submap);
-    add_canv_obj(map, obj);
-}
-function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number){
+function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number, snap:(_:number)=>number){
     const xdiff = x1-x0;
     const ydiff = y1-y0;
-    const snap = get_snap_func();
-    x0 = snap(x0);
-    y0 = snap(y0);
+    // x0 = snap(x0);
+    // y0 = snap(y0);
     x1 = snap(x1);
     y1 = snap(y1);
     if(x1 < x0){
@@ -2231,22 +2183,18 @@ function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number){
     obj.base_y = y0;
     obj.width = (x1 - x0)/REFERENCE.WIDTH;
     obj.height = (y1 - y0)/REFERENCE.WIDTH;
-    if(Math.abs(xdiff) > Math.abs(ydiff)){
-        if(xdiff > 0){
-            obj.rotation = Rotation.RIGHT;
-        }
-        else{
-            obj.rotation = Rotation.LEFT;
-        }
-    }
-    else {
-        if(ydiff > 0){
-            obj.rotation = Rotation.UP;
-        }
-        else{
-            obj.rotation = Rotation.DOWN;
-        }
-    }
+    let angle = Math.atan2(xdiff, ydiff);
+    angle /= Math.PI;
+    if(angle < -0.75)
+        obj.rotation = Rotation.DOWN;
+    else if(angle < -0.25)
+        obj.rotation = Rotation.LEFT;
+    else if(angle < 0.25)
+        obj.rotation = Rotation.UP;
+    else if(angle < 0.75)
+        obj.rotation = Rotation.RIGHT;
+    else
+        obj.rotation = Rotation.DOWN;
 }
 function make_measure(id:number, x:number, y:number, submap:number, color:string):MeasureObj{
     const obj:MeasureObj = {
@@ -7898,8 +7846,23 @@ document.addEventListener('DOMContentLoaded', function(){
                     view.placing_area.y0 = y0+smoff[1];
                     view.placing_area.x1 = x1+smoff[0];
                     view.placing_area.y1 = y1+smoff[1];
+                    let obj: GridLine = {
+                        type: CanvasType.GRID_LINE,
+                        id: id,
+                        base_x: x0,
+                        base_y: y0,
+                        flags: CanvasFlag.NONE,
+                        hidinguser: hiddenid(),
+                        submap:submapid,
+                        points: [],
+                        color: get_primary_color(),
+                        path: undefined,
+                        bbox: { x0: 0, y0: 0, x1: 0, y1: 0, },
+                        last_bx:undefined,
+                        last_by:undefined,
+                    };
+                    add_canv_obj(view.map, obj);
 
-                    add_gridline(view.map, id, x0, y0, submapid, get_primary_color());
                     function add_point(e:MouseEvent){
                         e.stopPropagation();
                         e.preventDefault();
@@ -7913,7 +7876,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.addEventListener('pointermove', add_point);
                     function finish_point(){
                         view.placing_area.is_placing = false;
-                        add_gridline_point_by_id(view.map, id, x1, y1);
+                        add_gridline_point(obj, x1, y1);
                         canvas.removeEventListener('pointermove', add_point);
                         window.removeEventListener('pointerup', finish_point);
                         canvas.removeEventListener('pointerleave', finish_point);
@@ -8294,23 +8257,35 @@ document.addEventListener('DOMContentLoaded', function(){
                     // Legacy: is its own impl
                     case FixtureType.STAIRS:{
                         let id = get_new_id();
-                        let [x0, y0] = event_to_coord_off(e, view, smoff);
-                        add_stairs(view.map, id, x0, y0, submapid);
+                        let [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
+                        let obj: Stairs = {
+                            type: CanvasType.STAIRS,
+                            id: id,
+                            base_x:x0,
+                            base_y:y0,
+                            flags: CanvasFlag.NONE,
+                            hidinguser: hiddenid(),
+                            submap:submapid,
+                            width: 0,
+                            height: 0,
+                            rotation: Rotation.UP,
+                        };
+                        add_canv_obj(view.map, obj);
                         view.placing_area.is_placing = true;
                         view.placing_area.is_line = false;
                         const stairs = view.map.canvas_objs.get(id)! as Stairs; // lazy
-                        view.placing_area.x0 = stairs.base_x+smoff[0];
-                        view.placing_area.y0 = stairs.base_y+smoff[1];
-                        view.placing_area.x1 = stairs.base_x+smoff[0];
-                        view.placing_area.y1 = stairs.base_y+smoff[1];
-                        x0 = stairs.base_x;
-                        y0 = stairs.base_y;
+                        view.placing_area.x0 = x0+smoff[0];
+                        view.placing_area.y0 = y0+smoff[1];
+                        view.placing_area.x1 = x0+smoff[0];
+                        view.placing_area.y1 = y0+smoff[1];
+                        // x0 = stairs.base_x;
+                        // y0 = stairs.base_y;
                         request_render();
                         function change_stairs_on_move(e:MouseEvent){
                             e.stopPropagation();
                             e.preventDefault();
                             const [ex0, ey0] = event_to_coord_off(e, view, smoff);
-                            change_stairs(stairs, x0, y0, ex0, ey0);
+                            change_stairs(stairs, x0, y0, ex0, ey0, snap);
                             view.placing_area.x0 = stairs.base_x+smoff[0];
                             view.placing_area.y0 = stairs.base_y+smoff[1];
                             view.placing_area.x1 = stairs.base_x+REFERENCE.WIDTH*stairs.width+smoff[0];
