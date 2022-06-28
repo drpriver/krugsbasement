@@ -1634,6 +1634,7 @@ function snap_to_quarter_grid(x:number):number{
 function snap_identity(x:number):number{
     return x;
 }
+
 function get_snap_func():(x:number)=>number{
     switch(snapmode){
         case SNAPMODE.GRID:
@@ -1647,6 +1648,60 @@ function get_snap_func():(x:number)=>number{
     }
 }
 
+// Rounds both dimensions to the grid.
+function snap_to_grid2(x:number, y:number):[number, number]{
+    return [snap_to_grid(x), snap_to_grid(y)];
+}
+function snap_to_half_grid2(x:number, y:number):[number, number]{
+    return [snap_to_half_grid(x), snap_to_half_grid(y)];
+}
+function snap_to_quarter_grid2(x:number, y:number):[number, number]{
+    return [snap_to_quarter_grid(x), snap_to_quarter_grid(y)];
+}
+function snap_identity2(x:number, y:number):[number, number]{
+    return [x, y];
+}
+
+function snap_to_hex_corner2(x:number, y:number): [number, number]{
+    let [cx, cy] = snap_to_hex_center(x, y);
+    let points: Array<[number, number]> = [
+        [cx,                        cy                     ],
+        [cx-REFERENCE.HALF_WIDTH+9, cy-REFERENCE.HALF_WIDTH],
+        [cx+REFERENCE.HALF_WIDTH-9, cy-REFERENCE.HALF_WIDTH],
+        [cx-REFERENCE.HALF_WIDTH-9, cy                     ],
+        [cx+REFERENCE.HALF_WIDTH+9, cy                     ],
+        [cx-REFERENCE.HALF_WIDTH+9, cy+REFERENCE.HALF_WIDTH],
+        [cx+REFERENCE.HALF_WIDTH-9, cy+REFERENCE.HALF_WIDTH],
+    ];
+    let bestd = 9999;
+    let bestp = points[0];
+    for(let p of points){
+        let d = Math.sqrt(Math.pow(p[0]-x, 2)+Math.pow(p[1]-y,2));
+        if(d < bestd){
+            bestd = d;
+            bestp = p;
+        }
+    }
+    return bestp;
+}
+
+function get_snap_corner_func(gt:GridType):(x:number, y:number)=>[number, number]{
+    if(gt & GridType.HEX) {
+        if(snapmode == SNAPMODE.FREE) return snap_identity2;
+        return snap_to_hex_corner2;
+    }
+
+    switch(snapmode){
+        case SNAPMODE.GRID:
+            return snap_to_grid2;
+        case SNAPMODE.HALF:
+            return snap_to_half_grid2;
+        case SNAPMODE.FREE:
+            return snap_identity2;
+        case SNAPMODE.QUARTER:
+            return snap_to_quarter_grid2;
+    }
+}
 function snap_to_grid_center(x:number):number{
     x = Math.round(x);
     x = x - (x & (REFERENCE.WIDTH-1)) + REFERENCE.WIDTH/2;
@@ -1766,57 +1821,8 @@ function calc_square_length(map:DungeonMap, x0:number, y0:number, x1:number, y1:
 
 function add_gridline_point(obj:GridLine, x:number, y:number):void{
     const points = obj.points;
-    const last_x = points.length? points[points.length-2]+obj.base_x : obj.base_x;
-    const last_y = points.length? points[points.length-1]+obj.base_y : obj.base_x;
-    const dist = Math.abs(last_x - x) + Math.abs(last_y - y);
-    switch(snapmode){
-        case SNAPMODE.HALF:{
-            if(dist < 30)
-                return;
-            if(dist < 64){
-                let xrem = Math.round(x) & ((REFERENCE.WIDTH>>1)-1);
-                let yrem = Math.round(y) & ((REFERENCE.WIDTH>>1)-1);
-                if((xrem > 8 && xrem < 24) || (yrem > 8 && yrem < 24)){
-                    return;
-                }
-            }
-            x = snap_to_half_grid(x);
-            y = snap_to_half_grid(y);
-        }break;
-        case SNAPMODE.QUARTER:{
-            if(dist < 15)
-                return;
-            if(dist < 32){
-                let xrem = Math.round(x) & ((REFERENCE.WIDTH>>2)-1);
-                let yrem = Math.round(y) & ((REFERENCE.WIDTH>>2)-1);
-                if((xrem > 4 && xrem < 12) || (yrem > 4 && yrem < 12)){
-                    return;
-                }
-            }
-            x = snap_to_quarter_grid(x);
-            y = snap_to_quarter_grid(y);
-        }break;
-        default:{
-            if(dist < 60)
-                return;
-            if(dist < 128){
-                let xrem = Math.round(x) & (REFERENCE.WIDTH-1);
-                let yrem = Math.round(y) & (REFERENCE.WIDTH-1);
-                if((xrem > 16 && xrem < 48) || (yrem > 16 && yrem < 48)){
-                    return;
-                }
-            }
-            x = snap_to_grid(x);
-            y = snap_to_grid(y);
-        }
-    }
     x -= obj.base_x;
     y -= obj.base_y;
-    if(points.length > 1){
-        const diff = Math.abs(points[points.length-2]-x) + Math.abs(points[points.length-1]-y);
-        if(diff < 2)
-            return;
-    }
     points.push(x);
     points.push(y);
     if(x < obj.bbox.x0){
@@ -1871,11 +1877,6 @@ function gridline_recalculate_path(obj:GridLine, base_x:number, base_y:number):v
     }
     obj.path = path;
 }
-function add_gridline_point_by_id(map:DungeonMap, id:number, x:number, y:number):void{
-    // this is the same as freehand
-    let obj = map.canvas_objs.get(id) as GridLine;
-    add_gridline_point(obj, x, y);
-}
 function make_gridrect(id:number, base_x:number, base_y:number, submap:number, color:string):GridRectangle{
     const obj:GridRectangle =  {
         type: CanvasType.GRID_RECT,
@@ -1910,7 +1911,6 @@ function change_gridrect(obj:GridRectangle, x0:number, y0:number, x1:number, y1:
     obj.base_y = y0;
     obj.width = x1 - x0;
     obj.height = y1 - y0;
-    request_render();
 }
 function change_gridrect_by_id(map:DungeonMap, id:number, x0:number, y0:number, x1:number, y1:number):void{
     let obj = map.canvas_objs.get(id) as GridRectangle;
@@ -7109,6 +7109,13 @@ function event_to_coord_snapped_off(e:MouseEvent, view:DungeonMapView, snap:(x:n
         : e.offsetY/view.scale - view.camera_y;
     return [snap(x-off[0]),snap(y-off[1])];
 }
+function event_to_coord_snapped_off2(e:MouseEvent, view:DungeonMapView, snap:(x:number, y:number)=>[number, number], off:[number, number]):[number, number]{
+    const x = e.offsetX/view.scale - view.camera_x
+    const y = view.map.grid_type & GridType.HEX?
+        HEX_Y_FIX_INV*(e.offsetY/view.scale - view.camera_y)
+        : e.offsetY/view.scale - view.camera_y;
+    return snap(x-off[0], y-off[1]);
+}
 
 function hiddenid():number {
     // This is pretty gross, but like who cares man.
@@ -7529,6 +7536,7 @@ document.addEventListener('DOMContentLoaded', function(){
             }
         }
         let snap = get_snap_func();
+        let snap_corn = get_snap_corner_func(view.map.grid_type);
         switch(current_tool){
             case ToolType.SELECT:{ // TAG toolSELECT
                 let [clicked_x, clicked_y] = event_to_coord(e, view);
@@ -7836,7 +7844,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     canvas.addEventListener('pointerleave', finish_point);
                 }
                 else{
-                    const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
+                    const [x0, y0] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
                     // const [x0, y0] = event_to_coord_off(e, view, smoff);
                     let x1 = x0;
                     let y1 = y0;
@@ -7866,7 +7874,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     function add_point(e:MouseEvent){
                         e.stopPropagation();
                         e.preventDefault();
-                        const [x, y] = event_to_coord_snapped_off(e, view, snap, smoff);
+                        const [x, y] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
                         x1 = x;
                         y1 = y;
                         view.placing_area.x1 = x1+smoff[0];
@@ -7889,7 +7897,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
             }break;
             case ToolType.DOOR:{ // TAG toolDOOR
-                const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
+                const [x0, y0] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
                 let x1 = x0;
                 let y1 = y0;
                 view.placing_area.is_placing = true;
@@ -7902,7 +7910,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 function change_point(e:MouseEvent){
                     e.stopPropagation();
                     e.preventDefault();
-                    [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
+                    [x1, y1] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
                     view.placing_area.x0 = x0+smoff[0];
                     view.placing_area.y0 = y0+smoff[1];
                     view.placing_area.x1 = x1+smoff[0];
