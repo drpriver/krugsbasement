@@ -7821,7 +7821,8 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
             case ToolType.WALL:{ // TAG toolWALL
                 let id = get_new_id();
-                if(snapmode == SNAPMODE.FREE){
+                if(0){
+                // if(snapmode == SNAPMODE.FREE){
                     // copy paste from LINE above.
                     const [x0, y0] = event_to_coord_off(e, view, smoff);
                     add_freehand_line(view.map, id, x0, y0, submapid, get_primary_color(), 4);
