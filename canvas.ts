@@ -1676,7 +1676,7 @@ function snap_to_hex_corner2(x:number, y:number): [number, number]{
     let bestd = 9999;
     let bestp = points[0];
     for(let p of points){
-        let d = Math.sqrt(Math.pow(p[0]-x, 2)+Math.pow(p[1]-y,2));
+        let d = Math.sqrt((p[0]-x)**2 + (p[1]-y)**2);
         if(d < bestd){
             bestd = d;
             bestp = p;
@@ -1806,14 +1806,14 @@ function calc_measure_length(map:DungeonMap, x0:number, y0:number, x1:number, y1
         return dist + " hexes";
     }
     else{
-        const h2 = Math.pow(x0-x1,2) + Math.pow(y0-y1,2);
+        const h2 = (x0-x1)**2 + (y0-y1)**2;
         const h = Math.sqrt(h2);
         const length = h * 10 / REFERENCE.WIDTH;
         return length.toFixed(0) + "'";
     }
 }
 function calc_square_length(map:DungeonMap, x0:number, y0:number, x1:number, y1:number):string{
-    const h2 = Math.pow(x0-x1,2) + Math.pow(y0-y1,2);
+    const h2 = (x0-x1)**2 + (y0-y1)**2;
     const h = Math.sqrt(h2);
     const length = h * 10 / REFERENCE.WIDTH;
     return length.toFixed(0) + "'";
