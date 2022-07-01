@@ -4772,7 +4772,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                 let big_base_y = fmod(camera_y*HEX_Y_FIX_INV, 6*REFERENCE.WIDTH);
                 let big_base_x = fmod(camera_x, 6*REFERENCE.WIDTH*2);
                 ctx.lineWidth = 4;
-                big_base_x -= 6*REFERENCE.WIDTH;
+                big_base_x -= 5.3333*REFERENCE.WIDTH;
                 const half = 6*REFERENCE.WIDTH/2;
                 const full = 6*REFERENCE.WIDTH;
                 const p = new Path2D();
@@ -4785,7 +4785,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                     p.lineTo(+54, i*full);
                 }
                 ctx.save();
-                ctx.translate(big_base_x-3*full+1, big_base_y-full);
+                ctx.translate(big_base_x-2*full+1, big_base_y-full);
                 let n_x = Math.ceil(width/SCALE/REFERENCE.WIDTH/6)+3;
                 for(let i = 0; i < n_x; i++){
                     ctx.translate(full, -half);
