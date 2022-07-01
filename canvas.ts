@@ -4515,8 +4515,10 @@ function screenshot_canvas(view:DungeonMapView){
             canvas.width  = scale*(x1 - x0 + 64);
             canvas.height = scale*(y1 - y0 + 64);
         }
-        if(fake_view.map.grid_type & GridType.HEX)
+        if(fake_view.map.grid_type & GridType.HEX){
             canvas.height *= HEX_Y_FIX;
+            y0 *= HEX_Y_FIX;
+        }
         fake_view.camera_x = -x0;
         fake_view.camera_y = -y0;
         fake_view.scale = scale;
