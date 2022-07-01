@@ -1055,7 +1055,7 @@ function export_map(map:DungeonMap):InitializeMap{
     return {
         map_id: map.map_id,
         map_name: map.map_name,
-        objects: strip_objs(map.canvas_obj_array),
+        objects: strip_objs(map.canvas_obj_array, true),
         flags: map.flags,
         grid_type: map.grid_type,
         grid_color: map.grid_color,
@@ -3627,10 +3627,19 @@ function strip_obj(obj:CanvasObject): StrippedObj{
         }break;
     }
 }
-function strip_objs(objs:Array<CanvasObject>): Array<StrippedObj>{
+function strip_objs(objs:Array<CanvasObject>, skip_deleted:boolean): Array<StrippedObj>{
     let result = [];
-    for(let i = 0; i < objs.length; i++)
-        result.push(strip_obj(objs[i]));
+    if(skip_deleted)
+        for(let i = 0; i < objs.length; i++){
+            let o = objs[i];
+            if(o.flags & CanvasFlag.DELETED) continue;
+            result.push(strip_obj(o));
+        }
+    else
+        for(let i = 0; i < objs.length; i++){
+            let o = objs[i];
+            result.push(strip_obj(o));
+        }
     return result;
 }
 //
