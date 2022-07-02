@@ -6398,7 +6398,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const container = by_id('tool-container');
     const handle = by_id('tool-container-handle');
     setup_movable_window(container, handle, WINDOWFLAGS.REMEMBER_POSITION);
-    setup_zsorted_window(container);
+    setup_zsorted_window(container)();
     ensure_window_is_completely_on_screen(container);
 });
 
