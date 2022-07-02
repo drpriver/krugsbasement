@@ -4517,6 +4517,7 @@ function screenshot_canvas(view:DungeonMapView){
         }
         if(fake_view.map.grid_type & GridType.HEX){
             canvas.height *= HEX_Y_FIX;
+            canvas.width += 9;
             y0 *= HEX_Y_FIX;
         }
         fake_view.camera_x = -x0;
