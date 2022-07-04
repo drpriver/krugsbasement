@@ -1,0 +1,7 @@
+Changelog::kv
+  created: 2022-07-03T20:35:16Z
+Created Jul 03, 2022, 01:35PM::md.update
+Summary::md.summary
+  When using the demo as a standalone mapping tool, the chat is mostly annoying (although it could be useful for procedurally generating rooms). There should be an option to hide it.
+
+  But we have to do this intelligently, as we need to keep the options buttons at the top still alive. But we want the canvas to fill where the chat would’ve been. so the options buttons need to sit on top of the canvas when the chat is hidden.
