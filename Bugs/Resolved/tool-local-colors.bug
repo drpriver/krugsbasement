@@ -1,0 +1,16 @@
+Changelog::kv
+  created:  2022-07-03T20:32:36Z
+  updated:  2022-07-03T20:33:23Z
+  resolved: 2022-07-04T18:43:34Z
+Created Jul 03, 2022, 01:32PM::md .update
+Summary::md .summary
+  Each tool and subtool should have its own associated color and color palette.
+  Switching between tools and having to also change colors all the time is
+  pretty annoying.
+
+Updated Jul 03, 2022, 01:33PM::md .update
+  The recently used selector should be shared though as that would make it easy
+  to switch to the same color between tools.
+
+Resolved Jul 04, 2022, 11:43AM::md .update
+  Done

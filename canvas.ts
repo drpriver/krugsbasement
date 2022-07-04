@@ -6423,6 +6423,7 @@ const enum ToolType {
     SHAPE   = 15,
     ARC     = 16,
 }
+const enum TOOLTYPE { MAX = 17}
 const TOOL_IDS_TO_TOOL = (function(){
     const m: Map<string, ToolType> = new Map();
     m.set('pan-tool',     ToolType.PAN);
@@ -6531,8 +6532,17 @@ function retrieve_colors(storage_key:string): Array<string>{
     else
         return JSON.parse(js);
 }
+function retrieve_tool_colors(color_key:string): Map<ToolType, string> {
+    let result = new Map();
+    for(let i = 0; i < TOOLTYPE.MAX; i++){
+        result.set(i, get_global_default(StorageCategory.CANVAS, `tools/${i}/${color_key}`, color_key==='primary_colors'?'#000000':'#ffffff'));
+    }
+    return result;
+}
 const primary_colors: Array<string> = retrieve_colors('primary_colors');
 const secondary_colors: Array<string> = retrieve_colors('secondary_colors');
+let primary_tool_colors: Map<ToolType, string> = retrieve_tool_colors('primary_colors');
+let secondary_tool_colors: Map<ToolType, string> = retrieve_tool_colors('secondary_colors');
 function add_recent_color(color:string, colors:Array<string>, storage_key:string){
     const index = colors.findIndex(function(e:string){return e==color;});
     if(index != -1){
@@ -6544,6 +6554,13 @@ function add_recent_color(color:string, colors:Array<string>, storage_key:string
     if(index == -1){
         store_global(StorageCategory.CANVAS, storage_key, colors);
     }
+    if(storage_key === 'primary_colors'){
+        primary_tool_colors.set(current_tool, color);
+    }
+    else {
+        secondary_tool_colors.set(current_tool, color);
+    }
+    store_global(StorageCategory.CANVAS, `tools/${current_tool}/${storage_key}`, color);
 }
 function get_primary_color():string{
     const color = color_picker_.value;
@@ -6554,6 +6571,13 @@ function get_secondary_color():string{
     const color = color_picker2_.value;
     add_recent_color(color, secondary_colors, 'secondary_colors');
     return color;
+}
+function get_tool_colors(tool:ToolType):[string, string]{
+    let a = primary_tool_colors.get(tool);
+    if(!a) a = '#000000';
+    let b = secondary_tool_colors.get(tool);
+    if(!b) b = '#ffffff';
+    return [a, b];
 }
 function make_color_menu(e:MouseEvent, colorpicker: HTMLInputElement, colors:Array<string>){
     // Piggy back on tri_menu stuff.
@@ -6782,6 +6806,9 @@ function change_tool(tool:ToolType):void{
             toolel.classList.add('selected');
         }
     }
+    let [primary, secondary] = get_tool_colors(tool);
+    color_picker_.value = primary;
+    color_picker2_.value = secondary;
 }
 let has_tri_menu = false;
 function make_tri_menu(e:MouseEvent, options:Array<{func:()=>void;text:string}>){
