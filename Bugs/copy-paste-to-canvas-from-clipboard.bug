@@ -2,6 +2,7 @@ Changelog::kv
   created: 2022-04-22T02:53:07Z
   updated: 2022-05-13T20:50:59Z
   wontfix: 2022-06-16T06:26:24Z
+  reopen:  2022-07-05T04:09:28Z
 Created Apr 21, 2022, 10:53PM::md .update
 Summary::md .summary
   There is a fake in game clipboard so the system one is unaffected. I should
@@ -15,3 +16,7 @@ Updated May 13, 2022, 04:50PM::md .update
 
 WontFix Jun 16, 2022, 02:26AM::md .update
   I can’t figure out why you would want this, so wontfix
+
+Reopened Jul 04, 2022, 09:09PM::md .update
+  Oh! This is so you can copy paste between campaigns so you can predraw
+  treasure maps, etc. as the Dm.
