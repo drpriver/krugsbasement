@@ -817,7 +817,7 @@ type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | Grid
 
 // Door subtypes
 // ------------
-const DoorType_MAX = DoorType.HALLWAY + 1;
+const DoorType_MAX = DoorType.WINDOW + 1;
 const DOOR_TO_NAMES = [
     // DoorType.DOOR
     'Door',
@@ -835,6 +835,8 @@ const DOOR_TO_NAMES = [
     'Curtains',
     // DoorType.HALLWAY
     'Hallway',
+    // DoorType.WINDOW
+    'Window',
 ];
 const DOOR_TO_SHORT_NAMES = [
     // DoorType.DOOR
@@ -853,6 +855,8 @@ const DOOR_TO_SHORT_NAMES = [
     'Curtain',
     // DoorType.HALLWAY
     'Hall',
+    // DoorType.WINDOW
+    'Window',
 ];
 let current_door = DoorType.DOOR;
 
@@ -5846,6 +5850,57 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                             case Orientation.TOPRIGHT_DOWNLEFT:
                                 ctx.moveTo(bx+22*w, by-22*w)
                                 ctx.lineTo(bx-22*w, by+22*w);
+                                break;
+                        }
+                        ctx.stroke();
+                    }break;
+                    case DoorType.WINDOW:{
+                        if(is_selected){
+                            ctx.strokeStyle = sel_color;
+                            ctx.lineWidth=12;
+                            ctx.beginPath();
+                            switch(obj.orientation){
+                                case Orientation.VERTICAL:
+                                    ctx.moveTo(bx, by-22*w)
+                                    ctx.lineTo(bx, by+22*w);
+                                    break;
+                                case Orientation.HORIZONTAL:
+                                    ctx.moveTo(bx-22*w, by)
+                                    ctx.lineTo(bx+22*w, by);
+                                    break;
+                                case Orientation.TOPLEFT_DOWNRIGHT:
+                                    ctx.moveTo(bx-22*w, by-22*w)
+                                    ctx.lineTo(bx+22*w, by+22*w);
+                                    break;
+                                case Orientation.TOPRIGHT_DOWNLEFT:
+                                    ctx.moveTo(bx+22*w, by-22*w)
+                                    ctx.lineTo(bx-22*w, by+22*w);
+                                    break;
+                            }
+                            ctx.stroke();
+                        }
+                        if(obj.color === '#000000')
+                            ctx.strokeStyle = '#73f9fd';
+                        else
+                            ctx.strokeStyle = obj.color;
+                        ctx.lineWidth=6;
+                        ctx.beginPath();
+                        switch(obj.orientation){
+                            case Orientation.VERTICAL:
+                                ctx.moveTo(bx, by-30*w+1)
+                                ctx.lineTo(bx, by+30*w);
+                                break;
+                            case Orientation.HORIZONTAL:
+                                ctx.moveTo(bx-30*w+1, by)
+                                ctx.lineTo(bx+30*w, by);
+                                break;
+                            case Orientation.TOPLEFT_DOWNRIGHT:
+                                ctx.moveTo(bx-30*w+1, by-30*w+1)
+                                ctx.lineTo(bx+30*w, by+30*w);
+                                break;
+                            case Orientation.TOPRIGHT_DOWNLEFT:
+                                ctx.moveTo(bx+30*w+1, by-30*w+1)
+                                ctx.lineTo(bx-30*w, by+30*w);
                                 break;
                         }
                         ctx.stroke();

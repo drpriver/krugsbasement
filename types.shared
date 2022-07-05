@@ -618,6 +618,7 @@ enum DoorType: int
     PORTAL = 5
     CURTAINS = 6
     HALLWAY = 7
+    WINDOW = 8
 
 enum Orientation: int
     VERTICAL = 0
