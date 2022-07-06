@@ -820,6 +820,8 @@ union StrippedObj: array
     StrippedShape
     StrippedArc
 
+validator: StrippedObj
+    ts
 
 // GridType
 // --------

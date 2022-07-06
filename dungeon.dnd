@@ -503,6 +503,15 @@ David20::title #hide
         <td>${checkbox('selection')}
       </tr>
     </table>`);
+  begin('clipboard');
+  make(`
+    ${title('Clipboard')}
+    <p><b>You or your browser has restricted reading the clipboard so we have
+          this crappy dialog instead.</b></p>
+    <p>Paste into the textbox then hit ok.</p>
+    ${textarea('json')}
+  `);
+
   if(Args && Args.temp){
     let ts = '// NOTE: this file was generated\n'
     ts += '// Do NOT edit it. Your edits will be overwritten!\n'

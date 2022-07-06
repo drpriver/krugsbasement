@@ -760,6 +760,19 @@ div.rolltable table{
 #rolltable-body input[type="text"] {
   width: 30em;
 }
+#clipboard-json {
+  font-family: monospace;
+  width: 90%;
+  height: 10ex;
+  margin: 16px;
+}
+#clipboard {
+  max-width: 30em;
+}
+#clipboard p {
+  padding: 8px;
+}
+
 /*@media (prefers-color-scheme: dark) {*/
   body.dark-mode #map {
     background-color: #333;

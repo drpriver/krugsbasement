@@ -2454,6 +2454,96 @@ function copy_selected_objs_to_copy_buffer(view:DungeonMapView):void{
     }
 }
 
+function copy_selected_objs_to_clipboard(view:DungeonMapView):void{
+    let objs = [];
+    for(let obj_id of view.selected){
+        const obj = view.map.canvas_objs.get(obj_id)!;
+        if(obj.flags & CanvasFlag.DELETED)
+            continue;
+        const stripped = strip_obj(obj);
+        objs.push(stripped);
+    }
+    let text = JSON.stringify(objs);
+    navigator.clipboard.writeText(text);
+}
+function paste_from_clipboard_at(map:DungeonMap, x:number, y:number, submapid:number):void{
+    x = snap_to_grid(x);
+    y = snap_to_grid(y);
+    function doit(objs:unknown){
+        if(!Array.isArray(objs)) return;
+        const length = objs.length;
+        if(!length) return;
+        const valid_objs = [];
+        for(let i = 0; i < length; ++i){
+            const o = v_StrippedObj(objs[i]);
+            // if(!o) console.log({o:objs[i]})
+            if(!o) return;
+            valid_objs.push(o);
+        }
+        // Do a pre-pass to get the top left corner of the objects.
+        let x0 = valid_objs[0][INDEX.BASE_X];
+        let y0 = valid_objs[0][INDEX.BASE_Y];
+        for(let i = 0; i < length; ++i){
+            const stripped = valid_objs[i];
+            if(stripped[INDEX.BASE_X] < x0)
+                x0 = stripped[INDEX.BASE_X];
+            if(stripped[INDEX.BASE_Y] < y0)
+                y0 = stripped[INDEX.BASE_Y];
+        }
+        // TODO: might be more intuitive to paste the center of the objects.
+        const dx = x - x0;
+        const dy = y - y0;
+        const new_ids = [];
+        for(let i = 0; i < valid_objs.length; i++){
+            let obj = unstrip_obj(valid_objs[i]);
+            obj.submap = submapid;
+            if(submapid && obj.type == CanvasType.SUBMAP)
+                continue;
+            let id = get_new_id();
+            obj.id = id;
+            translate_object(obj, dx, dy);
+            add_canv_obj(map, obj);
+            new_ids.push(obj.id);
+            publish_obj_by_id(map, obj.id);
+        }
+        note_mass_create_for_undo(map, new_ids);
+        request_render();
+    }
+    if(navigator.clipboard.readText){
+        navigator.clipboard.readText().then(
+            ct => {
+                let objs;
+                try{ objs = JSON.parse(ct); }catch(e){ return; }
+                doit(objs);
+            }
+        )
+        .catch((error)=>{
+            let dialog = get_dialog('clipboard');
+            dialog.f.json.value = '';
+            dialog.ok_handler = function(){
+                let text = dialog.f.json.value;
+                if(!text) return;
+                let objs;
+                try{ objs = JSON.parse(text); }catch(e){ return; }
+                doit(objs);
+            };
+            dialog.show();
+        });
+    }
+    else {
+        let dialog = get_dialog('clipboard');
+        dialog.f.json.value = '';
+        dialog.ok_handler = function(){
+            let text = dialog.f.json.value;
+            if(!text) return;
+            let objs;
+            try{ objs = JSON.parse(text); }catch(e){ return; }
+            doit(objs);
+        };
+        dialog.show();
+    }
+}
+
 function cut_selected_objs_to_copy_buffer(view:DungeonMapView):void{
     let deleted = [];
     for(let obj_id of view.selected){
@@ -9014,6 +9104,31 @@ document.addEventListener('DOMContentLoaded', function(){
                     remove_menu();
                 },
                 disabled: copied_objs.length === 0,
+                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
+            },
+            {
+                label: 'Copy to Clipboard',
+                func: function(){
+                    copy_selected_objs_to_clipboard(view);
+                    remove_menu();
+                },
+                disabled: view.selected.size === 0,
+                whenflags: CONTEXTMENUWHENFLAGS.ANY_SELECTED,
+            },
+            {
+                label: 'Paste from Clipboard',
+                func: function(){
+                    let submapid = 0;
+                    let sm = get_submap_at(view, click_x, click_y);
+                    if(sm){
+                        submapid = sm.id;
+                        click_x -= sm.base_x + sm.tlx;
+                        click_y -= sm.base_y + sm.tly;
+                    }
+                    paste_from_clipboard_at(view.map, click_x, click_y, submapid);
+                    remove_menu();
+                },
+                disabled: false,
                 whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
             },
             {
