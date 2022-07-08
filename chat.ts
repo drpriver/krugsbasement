@@ -265,6 +265,10 @@ function options_dialog(){
         dialog.f.showzoom.addEventListener('change', function(){
             set_zoomers(dialog.f.showzoom.checked);
         });
+        dialog.f.hidechat.checked = !!SETTINGS.hidechat;
+        dialog.f.hidechat.addEventListener('change', function(){
+            set_chat_vis(dialog.f.hidechat.checked);
+        });
         switch(SETTINGS.darkmode){
             case DarkMode.SYSTEM: dialog.f.system.checked = true; break;
             case DarkMode.DARK:   dialog.f.dark.checked   = true; break;

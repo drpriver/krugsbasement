@@ -7,6 +7,7 @@ type Settings = {
     darkmode: DarkMode;
     chat:{name: string;};
     demo: boolean;
+    hidechat: boolean;
     macros: {
         macros: Array<SavedMacro>;
         variables: Array<ScriptVariable>;
@@ -96,6 +97,31 @@ document.addEventListener('DOMContentLoaded', function(){
     // want boolean, not undefined or null
     let show = !!get_global(StorageCategory.SETTINGS, 'showzoomers');
     set_zoomers(show);
+});
+
+function set_chat_vis(show:boolean){
+    SETTINGS.hidechat = show;
+    if(SETTINGS.hidechat){
+        by_id('chat').style.height = 'auto';
+        by_id('notifications').style.display = 'none';
+        by_id('chat-history').style.display = 'none';
+        by_id('macros').style.display = 'none';
+        by_id('dice-history').style.display = 'none';
+        by_id('chatinput').style.display = 'none';
+    }
+    else {
+        by_id('chat').style.height = '100vh';
+        by_id('notifications').style.display = 'grid';
+        by_id('chat-history').style.display = 'initial';
+        by_id('macros').style.display = 'flex';
+        by_id('dice-history').style.display = 'initial';
+        by_id('chatinput').style.display = 'initial';
+    }
+    resize_canvas();
+    store_local(StorageCategory.SETTINGS, 'hidechat', show);
+}
+document.addEventListener('DOMContentLoaded', function(){
+    set_chat_vis(!!get_local(StorageCategory.SETTINGS, 'hidechat'));
 });
 
 SOCKET.on('connect', () => {

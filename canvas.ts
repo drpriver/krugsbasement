@@ -1399,8 +1399,16 @@ function resize_canvas():void{
     const chat = by_id('chat');
     const ww = window.innerWidth;
     const wh = window.innerHeight;
-    let width = chat.offsetLeft?chat.offsetLeft:ww;
-    let height = chat.offsetTop?chat.offsetTop:wh;
+    let width;
+    let height;
+    if(SETTINGS.hidechat){
+        width = ww;
+        height = wh;
+    }
+    else {
+        width = chat.offsetLeft?chat.offsetLeft:ww;
+        height = chat.offsetTop?chat.offsetTop:wh;
+    }
     width |= 0;
     height |= 0;
     canvas.width = width;

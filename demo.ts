@@ -261,6 +261,7 @@ let SETTINGS = {
     darkmode: 0,
     chat: {name:'anon'},
     demo: true,
+    hidechat: false,
     macros: {
         macros: [],
         variables: [],
