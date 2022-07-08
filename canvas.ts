@@ -240,7 +240,7 @@ const SORTORDER = [
        1, // ICON_TILE
       10, // SUBMAP
 ];
-type Resizable = Rectangle | GridRectangle | FilledRectangle | Ellipse | ImageObj | SubMap | Arc;
+type Resizable = Rectangle | GridRectangle | FilledRectangle | Ellipse | ImageObj | SubMap | Arc | Stairs;
 
 function is_resizable(obj:CanvasObject): obj is Resizable{
     switch(obj.type){
@@ -249,7 +249,7 @@ function is_resizable(obj:CanvasObject): obj is Resizable{
         case CanvasType.FILLED_RECT:
         case CanvasType.ELLIPSE:
         case CanvasType.IMAGE:
-        // case CanvasType.STAIRS:
+        case CanvasType.STAIRS:
         case CanvasType.SUBMAP:
         case CanvasType.FIXTURE:
         case CanvasType.ARC:
@@ -6081,7 +6081,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                     x += dx;
                     y += dy;
                 }
-                if(0 && one_selection && selected.has(obj.id)){
+                if(one_selection && selected.has(obj.id)){
                     ctx.fillStyle = sel_color;
                     ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
                     ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
@@ -7787,8 +7787,15 @@ document.addEventListener('DOMContentLoaded', function(){
                                     const [x1, y1] = event_to_coord_off(e, view, smoff);
                                     let x0 = obj.base_x; let y0 = obj.base_y;
                                     if(rh.topleft){
-                                        x0 += obj.width;
-                                        y0 += obj.height;
+                                        if(obj.type == CanvasType.STAIRS){
+                                            // stairs w/h are in squares
+                                            x0 += obj.width * REFERENCE.WIDTH;
+                                            y0 += obj.height * REFERENCE.WIDTH;
+                                        }
+                                        else {
+                                            x0 += obj.width;
+                                            y0 += obj.height;
+                                        }
                                         if(x1 > x0 || y1 > y0) return;
                                         const xdiff = snap(x0 - x1);
                                         const ydiff = snap(y0 - y1);
@@ -7798,6 +7805,11 @@ document.addEventListener('DOMContentLoaded', function(){
                                         obj.height = ydiff;
                                         obj.base_x = x0 - obj.width;
                                         obj.base_y = y0 - obj.height;
+                                        // stairs w/h are in squares
+                                        if(obj.type == CanvasType.STAIRS){
+                                            obj.width /= REFERENCE.WIDTH;
+                                            obj.height /= REFERENCE.WIDTH;
+                                        }
                                         if(obj.type == CanvasType.SUBMAP){
                                             obj.tlx -= old_w - obj.width;
                                             obj.tly -= old_h - obj.height;
@@ -7810,6 +7822,11 @@ document.addEventListener('DOMContentLoaded', function(){
                                         if(!xdiff && !ydiff) return;
                                         obj.width = xdiff;
                                         obj.height = ydiff;
+                                        // stairs w/h are in squares
+                                        if(obj.type == CanvasType.STAIRS){
+                                            obj.width /= REFERENCE.WIDTH;
+                                            obj.height /= REFERENCE.WIDTH;
+                                        }
                                     }
                                     request_render();
                                 }

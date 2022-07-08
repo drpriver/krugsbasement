@@ -1,7 +1,11 @@
 Changelog::kv
-Summary::md.summary
-  * [ ] Wide stairs
+  updated: 2022-07-08T03:03:13Z
+Summary::md .summary
+  * [x] Wide stairs
   * [ ] Diagonal stairs
 
-  These were from a collection of bugs reported by Jeff, but they are low
-  prio and so should be tracked separately.
+  These were from a collection of bugs reported by Jeff, but they are low prio
+  and so should be tracked separately.
+
+Updated Jul 07, 2022, 08:03PM::md .update
+  Wide stairs can now be achieved via resizing.
