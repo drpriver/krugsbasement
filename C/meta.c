@@ -6,40 +6,46 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <unistd.h>
-extern void*memmem(const void*, size_t, const void*, size_t);
+
+extern void* memmem(const void*, size_t, const void*, size_t);
 enum {
     FILE_ERROR = 1,
     FILE_NOT_OPENED = 2,
     FILE_RESULT_ALLOC_FAILURE = 3,
 };
 
-typedef struct LongString{
+typedef struct LongString LongString;
+struct LongString{
     size_t length;
     const char* text;
-}LongString;
+};
 
-typedef struct TextFileResult {
+typedef struct TextFileResult TextFileResult;
+struct TextFileResult {
     LongString result;
     int errored;
     int native_error;
-} TextFileResult;
+};
 
-typedef struct FileSizeResult {
+typedef struct FileSizeResult FileSizeResult;
+struct FileSizeResult {
     size_t result;
     int errored;
     int native_error;
-} FileSizeResult;
+};
 
-typedef struct StringView {
+typedef struct StringView StringView;
+struct StringView {
     size_t length;
     const char* text;
-} StringView;
+};
 
-typedef struct StringBuilder {
+typedef struct StringBuilder StringBuilder;
+struct StringBuilder {
     size_t cursor;
     size_t capacity;
     char* data;
-} StringBuilder;
+};
 
 static inline
 void
@@ -108,7 +114,7 @@ TextFileResult
 read_file(const char* filepath){
     TextFileResult result = {0};
     FILE* fp = fopen(filepath, "rb");
-    if(! fp)
+    if(!fp)
         return (TextFileResult){.errored=FILE_NOT_OPENED};
     if(isatty(fileno(fp))){
         StringBuilder sb = {0};
@@ -142,10 +148,9 @@ read_file(const char* filepath){
     }
     FileSizeResult size_e = file_size_from_fp(fp);
     if(size_e.errored){
-        fclose(fp);
         result.errored = size_e.errored;
         result.native_error = size_e.native_error;
-        return result;
+        goto finally;
     }
     size_t nbytes = size_e.result;
     char* text = malloc(nbytes+1);
@@ -173,6 +178,13 @@ static inline
 _Bool
 eq(const char* a, const char* b, int length){
     return memcmp(a, b, length) == 0;
+}
+
+static inline
+_Bool
+sveq(StringView a, StringView b){
+    if(a.length != b.length) return 0;
+    return eq(a.text, b.text, a.length);
 }
 
 const char*
@@ -224,10 +236,11 @@ get_tag_type(const char* tag, int length){
     return NULL;
 }
 
-typedef struct DynArray {
+typedef struct DynArray DynArray;
+struct DynArray {
     void* pointer;
     int count, capacity;
-} DynArray;
+};
 
 // 0 on success, 1 on failure.
 // On Failure, pointer is unaltered.
@@ -287,11 +300,9 @@ int main(int argc, char** argv){
         StringView sv = {.length=idend-id, .text=id};
         StringView* p = previous.pointer;
         for(int i = 0; i < previous.count; i++){
-            if(p[i].length == sv.length){
-                if(memcmp(p[i].text, sv.text, sv.length) == 0){
-                    fprintf(stderr, "Duplicate id: '%.*s'\n", (int)sv.length, sv.text);
-                    goto Continue;
-                }
+            if(sveq(p[i], sv)){
+                fprintf(stderr, "Duplicate id: '%.*s'\n", (int)sv.length, sv.text);
+                goto Continue;
             }
         }
         if(da_check(&previous, sizeof(StringView)) != 0){
