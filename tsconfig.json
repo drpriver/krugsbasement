@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "noImplicitAny": true,
+    "removeComments": true,
+    "noUnusedLocals": true,
+    "strictFunctionTypes": true,
+    "strict": true,
+    "noImplicitReturns": true,
+    "target": "es2020",
+    "noEmitOnError": true
+  },
+  "files": [
+    "internal_listeners.ts",
+    "toplevel.ts", 
+    "chat.ts",
+    "canvas.ts",
+    "notes.ts",
+    "utils.ts",
+    "Generated/messages.ts",
+    "interp.ts", 
+    "storage.ts",
+    "Generated/nodes.ts",
+    "dialogs.ts",
+    "Generated/dialogdefs.ts",
+    "subwindows.ts",
+    "Generated/subwindowdefs.ts",
+    "macros.ts",
+    "Generated/packed.ts"
+  ]
+}
