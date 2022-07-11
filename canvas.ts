@@ -3404,6 +3404,199 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
         }
     }
 }
+
+function get_bbox(obj:Readonly<CanvasObject>, is_hex:boolean):Bbox{
+    switch(obj.type){
+        case CanvasType.SHAPE: // hack
+        case CanvasType.FREEHAND_LINE:
+        case CanvasType.GRID_LINE:{
+            const outer_bbox: Bbox = {
+                x0:obj.bbox.x0 + obj.base_x,
+                y0:obj.bbox.y0 + obj.base_y,
+                x1:obj.bbox.x1 + obj.base_x,
+                y1:obj.bbox.y1 + obj.base_y,
+            };
+            return outer_bbox;
+        }break;
+        case CanvasType.SUBMAP: {
+            const th2 = 3;
+            const rect_bbox = {
+                x0:obj.base_x-th2,
+                y0:obj.base_y-th2,
+                x1:obj.base_x+obj.width+th2,
+                y1:obj.base_y+obj.height+th2,
+            };
+            return rect_bbox;
+        }break;
+        case CanvasType.RECT:{
+            const th2 = 3;
+            const rect_bbox = {
+                x0:obj.base_x-th2,
+                y0:obj.base_y-th2,
+                x1:obj.base_x+obj.width+th2,
+                y1:obj.base_y+obj.height+th2,
+            };
+            return rect_bbox;
+        }break;
+        case CanvasType.ELLIPSE:{
+            const rect_bbox = {
+                x0:obj.base_x,
+                y0:obj.base_y,
+                x1:obj.base_x+obj.width,
+                y1:obj.base_y+obj.height,
+            };
+            return rect_bbox;
+        }
+        case CanvasType.FILLED_RECT: // fall-through
+        case CanvasType.IMAGE: // fall-through
+        case CanvasType.GRID_RECT:{
+            const rect_bbox = {
+                x0:obj.base_x,
+                y0:obj.base_y,
+                x1:obj.base_x+obj.width,
+                y1:obj.base_y+obj.height,
+            };
+            return rect_bbox;
+        }break;
+        case CanvasType.IMG_TOKEN:// fall-through
+        case CanvasType.EZ_TOKEN:{
+            const w = obj.width * REFERENCE.WIDTH;
+            const h = obj.height * REFERENCE.WIDTH;
+            // const radius_x = obj.width*REFERENCE.WIDTH/2;
+            // const radius_y = obj.height*REFERENCE.WIDTH/2;
+            const token_bbox = {
+                x0: obj.base_x,
+                x1: obj.base_x + w,
+                y0: obj.base_y,
+                y1: obj.base_y + h,
+            };
+            return token_bbox;
+        }break;
+        case CanvasType.TEXT:{
+            const text_bbox = {
+                x0:obj.bbox.x0 + obj.base_x,
+                y0:obj.bbox.y0 + obj.base_y,
+                x1:obj.bbox.x1 + obj.base_x,
+                y1:obj.bbox.y1 + obj.base_y,
+            };
+            return text_bbox;
+        }break;
+        case CanvasType.DOOR:{
+            const is_vertical = obj.orientation === Orientation.VERTICAL;
+            if(!is_vertical){
+                // FIXME: I just hardcoded some random values.
+                const door_bbox = {
+                    x0 : obj.base_x - 32 * obj.width,
+                    x1 : obj.base_x + 32 * obj.width,
+                    y0 : obj.base_y - 5,
+                    y1 : obj.base_y + 5,
+                };
+                return door_bbox;
+            }
+            else {
+                // FIXME: I just hardcoded some random values.
+                const door_bbox = {
+                    x0 : obj.base_x - 5,
+                    x1 : obj.base_x + 5,
+                    y0 : obj.base_y - 32 * obj.width,
+                    y1 : obj.base_y + 32 * obj.width,
+                };
+                return door_bbox;
+            }
+        }break;
+        case CanvasType.STAIRS:{
+            const w = obj.width*REFERENCE.WIDTH;
+            const h = obj.height*REFERENCE.WIDTH;
+            const stairs_bbox = {
+                    x0 : obj.base_x,
+                    x1 : obj.base_x + w,
+                    y0 : obj.base_y,
+                    y1 : obj.base_y+h
+            };
+            return stairs_bbox;
+        }break;
+        case CanvasType.MEASURE:
+            return {x0:0, x1:0, y0:0, y1:0};
+        case CanvasType.FIXTURE:{
+            const f_bbox = {
+                    x0 : obj.base_x,
+                    x1 : obj.base_x + obj.width,
+                    y0 : obj.base_y,
+                    y1 : obj.base_y + obj.height
+            };
+            return f_bbox;
+        }
+        case CanvasType.ICON_TILE:{
+            if(is_hex){
+                const ftbbox = {
+                    x0: obj.base_x-9,
+                    x1: obj.base_x + REFERENCE.WIDTH+9,
+                    y0: obj.base_y,
+                    y1: obj.base_y + REFERENCE.WIDTH,
+                };
+                return ftbbox;
+            }
+            else {
+                const ftbbox = {
+                    x0: obj.base_x,
+                    x1: obj.base_x + REFERENCE.WIDTH,
+                    y0: obj.base_y,
+                    y1: obj.base_y + REFERENCE.WIDTH,
+                };
+                return ftbbox;
+            }
+        }
+        case CanvasType.FILLED_TILE:{
+            if(is_hex){
+                const ftbbox = {
+                    x0: obj.base_x-9,
+                    x1: obj.base_x + REFERENCE.WIDTH+9,
+                    y0: obj.base_y,
+                    y1: obj.base_y + REFERENCE.WIDTH,
+                };
+                return ftbbox;
+            }
+            else {
+                const ftbbox = {
+                    x0: obj.base_x,
+                    x1: obj.base_x + REFERENCE.WIDTH,
+                    y0: obj.base_y,
+                    y1: obj.base_y + REFERENCE.WIDTH,
+                };
+                return ftbbox;
+            }
+        }
+        case CanvasType.TERRAIN_TILE:{
+            if(is_hex){
+                const ftbbox = {
+                    x0: obj.base_x-9,
+                    x1: obj.base_x + REFERENCE.WIDTH+9,
+                    y0: obj.base_y,
+                    y1: obj.base_y + REFERENCE.WIDTH,
+                };
+                return ftbbox;
+            }
+            else {
+                const ftbbox = {
+                    x0: obj.base_x,
+                    x1: obj.base_x + REFERENCE.WIDTH,
+                    y0: obj.base_y,
+                    y1: obj.base_y + REFERENCE.WIDTH,
+                };
+                return ftbbox;
+            }
+        }
+        case CanvasType.ARC:{
+            const rect_bbox = {
+                x0:obj.base_x,
+                y0:obj.base_y,
+                x1:obj.base_x+obj.width,
+                y1:obj.base_y+obj.height,
+            };
+            return rect_bbox;
+        }
+    }
+}
 function obj_at(view:DungeonMapView, x0:number, y0:number, select_type:SELECTTYPE):CanvasObject | null {
     sort_canv_objs(view.map);
     const canvas_obj_array = view.map.canvas_obj_array;
@@ -4598,6 +4791,7 @@ function screenshot_canvas(view:DungeonMapView){
             resize: {handles: [], resizing: false},
             action: {areas: []},
         };
+        const is_hex = !!(fake_view.map.grid_type & GridType.HEX);
         if(dialog.f.selection.checked){
             x0 = view.selection_area.x0;
             y0 = view.selection_area.y0;
@@ -4609,13 +4803,36 @@ function screenshot_canvas(view:DungeonMapView){
         else {
             for(let o of view.map.canvas_obj_array){
                 if(o.flags & CanvasFlag.DELETED) continue;
-                if(o.base_x < x0) x0 = o.base_x;
-                if(o.base_x > x1) x1 = o.base_x;
-                if(o.base_y < y0) y0 = o.base_y;
-                if(o.base_y > y1) y1 = o.base_y;
+                if(o.hidinguser && o.hidinguser !== SETTINGS.userid) continue;
+                if(o.type == CanvasType.SUBMAP){
+                    if(o.flags & CanvasFlag.SUBMAP_IS_MINIMIZED) continue;
+                }
+                let bbox = get_bbox(o, is_hex);
+                if(o.submap){
+                    continue;
+                }
+                if(bbox.x0 == bbox.x1) continue;
+                if(bbox.y0 == bbox.y1) continue;
+                // if(bbox.y0 < y0) console.log('y0 < y0', bbox, o);
+                // if(bbox.x0 < x0) console.log('x0 < x0', bbox, o);
+                // if(bbox.x1 > x1) console.log('x1 > x1', bbox, o);
+                // if(bbox.y1 > y1) console.log('y1 > y1', bbox, o);
+
+                if(bbox.x0 < x0) x0 = bbox.x0;
+                if(bbox.y0 < y0) y0 = bbox.y0;
+                if(bbox.x1 > x1) x1 = bbox.x1;
+                if(bbox.y1 > y1) y1 = bbox.y1;
             }
-            canvas.width  = scale*(x1 - x0 + 64);
-            canvas.height = scale*(y1 - y0 + 64);
+            // console.log('x0, y0, x1, y1', x0, y0, x1, y1);
+
+            // add small buffer
+            const enum SMALL {BUFFER=12};
+            x0 -= SMALL.BUFFER;
+            y0 -= SMALL.BUFFER;
+            x1 += SMALL.BUFFER;
+            y1 += SMALL.BUFFER;
+            canvas.width  = scale*(x1 - x0);
+            canvas.height = scale*(y1 - y0);
         }
         if(fake_view.map.grid_type & GridType.HEX){
             canvas.height *= HEX_Y_FIX;
