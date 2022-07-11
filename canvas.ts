@@ -4765,9 +4765,12 @@ function screenshot_canvas(view:DungeonMapView){
     let dialog = get_dialog('screenshot-prefs');
     dialog.f.gridsize.value = '32';
     dialog.f.selection.checked = false;
-    dialog.show_handler = function(){
-        dialog.f.selection.checked = current_tool == ToolType.SELECT;
-    };
+    dialog.f.selection.checked = false;
+    if(current_tool == ToolType.SELECT){
+        if(view.selected.size != 0){
+            dialog.f.selection.checked = true;
+        }
+    }
     dialog.ok_handler = function(){
         let x0 = 999999999;
         let y0 = 999999999;
@@ -4811,8 +4814,7 @@ function screenshot_canvas(view:DungeonMapView){
                 if(o.submap){
                     continue;
                 }
-                if(bbox.x0 == bbox.x1) continue;
-                if(bbox.y0 == bbox.y1) continue;
+                if(bbox.x0 == bbox.x1 && bbox.y0 == bbox.y1) continue;
                 // if(bbox.y0 < y0) console.log('y0 < y0', bbox, o);
                 // if(bbox.x0 < x0) console.log('x0 < x0', bbox, o);
                 // if(bbox.x1 > x1) console.log('x1 > x1', bbox, o);
