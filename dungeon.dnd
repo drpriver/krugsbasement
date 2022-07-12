@@ -215,7 +215,7 @@ David20::title #hide
   }
   function textbox(name){
     items[current_prefix].push([name, 'HTMLInputElement']);
-    return `<input type="text" name="${name}" id="${name}" value="">`;
+    return `<input type="text" name="${name}" id="${name}" value="" spellcheck="false">`;
   }
   function title(text){
     items[current_prefix].push(['title', 'HTMLHeadingElement']);
@@ -509,6 +509,10 @@ David20::title #hide
       <tr>
         <td>${label('selection', 'Screenshot Selection')}
         <td>${checkbox('selection')}
+      </tr>
+      <tr>
+        <td>${label('submaps', 'Include Submaps')}
+        <td>${checkbox('submaps')}
       </tr>
     </table>`);
   begin('clipboard');

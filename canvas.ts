@@ -4758,20 +4758,21 @@ function render(timestamp:DOMHighResTimeStamp):void{
     if(!ctx) return;
     const view = get_active_view();
     if(!view) return;
-    actually_render(timestamp, ctx, view);
+    actually_render(timestamp, ctx, view, true);
 }
 function screenshot_canvas(view:DungeonMapView){
     let canvas = document.createElement('canvas');
     let dialog = get_dialog('screenshot-prefs');
-    dialog.f.gridsize.value = '32';
+    dialog.f.gridsize.value = '64';
     dialog.f.selection.checked = false;
-    dialog.f.selection.checked = false;
+    dialog.f.submaps.checked = false;
     if(current_tool == ToolType.SELECT){
         if(view.selected.size != 0){
             dialog.f.selection.checked = true;
         }
     }
     dialog.ok_handler = function(){
+        let include_submaps = dialog.f.submaps.checked;
         let x0 = 999999999;
         let y0 = 999999999;
         let x1 = 0;
@@ -4808,6 +4809,7 @@ function screenshot_canvas(view:DungeonMapView){
                 if(o.flags & CanvasFlag.DELETED) continue;
                 if(o.hidinguser && o.hidinguser !== SETTINGS.userid) continue;
                 if(o.type == CanvasType.SUBMAP){
+                    if(!include_submaps) continue;
                     if(o.flags & CanvasFlag.SUBMAP_IS_MINIMIZED) continue;
                 }
                 let bbox = get_bbox(o, is_hex);
@@ -4846,7 +4848,7 @@ function screenshot_canvas(view:DungeonMapView){
         fake_view.scale = scale;
         fake_view.selection_area.is_selecting = false;
         let ctx = canvas.getContext('2d', {alpha:true})!;
-        actually_render(0, ctx, fake_view);
+        actually_render(0, ctx, fake_view, include_submaps);
         canvas.toBlob(function(b:Blob|null){
             if(!b) return;
             let a = document.createElement('a');
@@ -4858,7 +4860,7 @@ function screenshot_canvas(view:DungeonMapView){
     dialog.show();
 }
 
-function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingContext2D, view:DungeonMapView):void{
+function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingContext2D, view:DungeonMapView, draw_submaps:boolean):void{
     // console.log('render', performance.now());
     const before = SHOW_FPS?performance.now():0;
     // console.log('ctx?', !!ctx);
@@ -5184,6 +5186,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
         let by = obj.base_y;
         let is_hidden = obj.hidinguser != 0;
         if(obj.submap){
+            if(!draw_submaps) continue;
             const sm = canvas_objs.get(obj.submap)! as SubMap;
             if(sm.flags & (CanvasFlag.SUBMAP_IS_MINIMIZED | CanvasFlag.DELETED))
                 continue;
@@ -6512,6 +6515,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                     ctx.drawImage(PACKEDIMG, icon[2], icon[3], icon[4], icon[5], bx+4, by+4, 56, 56);
             }break;
             case CanvasType.SUBMAP:{ // TAG renderSUBMAP
+                if(!draw_submaps) continue;
                 ctx.save();
                 // if(map.grid_type & GridType.HEX)
                     // ctx.scale(1, HEX_Y_FIX_INV);
