@@ -514,6 +514,10 @@ David20::title #hide
         <td>${label('submaps', 'Include Submaps')}
         <td>${checkbox('submaps')}
       </tr>
+      <tr>
+        <td>${label('darkmode', 'Darkmode')}
+        <td>${checkbox('darkmode')}
+      </tr>
     </table>`);
   begin('clipboard');
   make(`

@@ -4569,11 +4569,19 @@ const HEX_Y_FIX = 82/74;
 function fmod(a:number, n:number){
     return a < 0? (a % n)+n : a % n;
 }
+const enum RenderFlags {
+    NONE = 0,
+    DRAW_SUBMAPS = 1 << 0,
+    DARK_MODE = 1 << 1,
+}
 function render(timestamp:DOMHighResTimeStamp):void{
     if(!ctx) return;
     const view = get_active_view();
     if(!view) return;
-    actually_render(timestamp, ctx, view, true);
+    let flags = RenderFlags.DRAW_SUBMAPS;
+    if(DARKMODE)
+        flags |= RenderFlags.DARK_MODE;
+    actually_render(timestamp, ctx, view, flags);
 }
 function screenshot_canvas(view:DungeonMapView){
     let canvas = document.createElement('canvas');
@@ -4581,13 +4589,15 @@ function screenshot_canvas(view:DungeonMapView){
     dialog.f.gridsize.value = '64';
     dialog.f.selection.checked = false;
     dialog.f.submaps.checked = false;
+    dialog.f.darkmode.checked = DARKMODE;
     if(current_tool == ToolType.SELECT){
         if(view.selected.size != 0){
             dialog.f.selection.checked = true;
         }
     }
     dialog.ok_handler = function(){
-        let include_submaps = dialog.f.submaps.checked;
+        const include_submaps = dialog.f.submaps.checked;
+        const darkmode = dialog.f.darkmode.checked;
         let x0 = 999999999;
         let y0 = 999999999;
         let x1 = 0;
@@ -4663,7 +4673,10 @@ function screenshot_canvas(view:DungeonMapView){
         fake_view.scale = scale;
         fake_view.selection_area.is_selecting = false;
         let ctx = canvas.getContext('2d', {alpha:true})!;
-        actually_render(0, ctx, fake_view, include_submaps);
+        let flags = 0;
+        if(include_submaps) flags |= RenderFlags.DRAW_SUBMAPS;
+        if(darkmode) flags |= RenderFlags.DARK_MODE;
+        actually_render(0, ctx, fake_view, flags);
         canvas.toBlob(function(b:Blob|null){
             if(!b) return;
             let a = document.createElement('a');
@@ -4675,7 +4688,8 @@ function screenshot_canvas(view:DungeonMapView){
     dialog.show();
 }
 
-function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingContext2D, view:DungeonMapView, draw_submaps:boolean):void{
+function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingContext2D, view:DungeonMapView, flags:RenderFlags):void{
+    const draw_submaps = !!(flags & RenderFlags.DRAW_SUBMAPS);
     // console.log('render', performance.now());
     const before = SHOW_FPS?performance.now():0;
     // console.log('ctx?', !!ctx);
@@ -4688,7 +4702,8 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
         view.selected.clear();
         note_selections(view);
     }
-    let background = DARKMODE? '#333333' : '#ffffff';
+    let is_darkmode = !!(flags & RenderFlags.DARK_MODE);
+    let background = is_darkmode? '#333333' : '#ffffff';
     let cvs_bg = map.bg_color.length? map.bg_color : background;
     const SELECTED_COLOR = '#33ffdd';
     const COULD_SELECT_COLOR = '#aaccaa';
@@ -5315,7 +5330,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                             const height = bbox.y1-bbox.y0;
                             ctx.fillRect(x, y, width, height);
                             }
-                            if(DARKMODE){
+                            if(is_darkmode){
                                 if(obj.map_id != -1){
                                     ctx.fillStyle = '#99f';
                                 }
@@ -5934,7 +5949,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                             ctx.fillText('S', 0, 0);
                             }
                         ctx.font = '48px sans-serif';
-                        if(DARKMODE)
+                        if(is_darkmode)
                             ctx.fillStyle = '#888';
                         else
                             ctx.fillStyle = '#444';
@@ -6380,14 +6395,14 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                     ctx.font = '48px sans-serif';
                     ctx.textBaseline = 'middle';
                     ctx.textAlign = 'center';
-                    if(DARKMODE)
+                    if(is_darkmode)
                         ctx.fillStyle = '#ffffff';
                     else
                         ctx.fillStyle = '#000000';
                     ctx.fillText(obj.title, bx+obj.width/2, by+32);
                 }
-                ctx.fillStyle = DARKMODE?'#ffffff':'#000000';
-                ctx.strokeStyle = DARKMODE?'#ffffff':'#000000';
+                ctx.fillStyle = is_darkmode?'#ffffff':'#000000';
+                ctx.strokeStyle = is_darkmode?'#ffffff':'#000000';
                 const enum M {W=40, H=4};
                 const enum O {BASE=(64-M.W)/2, WIN=64-BASE, MARGIN=BASE/2};
                 ctx.lineWidth = M.H;
