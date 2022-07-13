@@ -4573,14 +4573,18 @@ const enum RenderFlags {
     NONE = 0,
     DRAW_SUBMAPS = 1 << 0,
     DARK_MODE = 1 << 1,
+    SHOW_FPS = 1 << 2,
+    DO_PINGS = 1 << 3,
 }
 function render(timestamp:DOMHighResTimeStamp):void{
     if(!ctx) return;
     const view = get_active_view();
     if(!view) return;
     let flags = RenderFlags.DRAW_SUBMAPS;
-    if(DARKMODE)
-        flags |= RenderFlags.DARK_MODE;
+    if(DARKMODE) flags |= RenderFlags.DARK_MODE;
+    if(SHOW_FPS) flags |= RenderFlags.SHOW_FPS;
+    flags |= RenderFlags.DO_PINGS;
+    animation_requested = false;
     actually_render(timestamp, ctx, view, flags);
 }
 function screenshot_canvas(view:DungeonMapView){
@@ -4691,7 +4695,7 @@ function screenshot_canvas(view:DungeonMapView){
 function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingContext2D, view:DungeonMapView, flags:RenderFlags):void{
     const draw_submaps = !!(flags & RenderFlags.DRAW_SUBMAPS);
     // console.log('render', performance.now());
-    const before = SHOW_FPS?performance.now():0;
+    const before = flags & RenderFlags.SHOW_FPS?performance.now():0;
     // console.log('ctx?', !!ctx);
     ctx.imageSmoothingQuality = 'medium';
     view.resize.handles = [];
@@ -4714,7 +4718,6 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
     const camera_x = view.camera_x;
     const camera_y = view.camera_y;
     const scale = view.scale;
-    animation_requested = false;
     const width = ctx.canvas.width;
     const height = ctx.canvas.height;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -6551,28 +6554,29 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
             ctx.strokeRect(a.x0-2, a.y0-2, w+4, h+4);
         }
     }
-    const PING_DURATION = 1000;
-    const PING_RADIUS = 64;
-    if(map.pings.length){
-        const new_pings = [];
-        ctx.lineWidth  = 8;
-        for(let p of map.pings){
-            if(!p.t0){
-                p.t0 = timestamp;
+    const enum PING {DURATION=1000, RADIUS=64};
+    if(flags & RenderFlags.DO_PINGS){
+        if(map.pings.length){
+            const new_pings = [];
+            ctx.lineWidth  = 8;
+            for(let p of map.pings){
+                if(!p.t0){
+                    p.t0 = timestamp;
+                }
+                const delta_t = timestamp - p.t0;
+                if(delta_t < PING.DURATION){
+                    new_pings.push(p);
+                    ctx.beginPath();
+                    ctx.strokeStyle = p.color;
+                    ctx.arc(p.cx, p.cy, PING.RADIUS*delta_t/PING.DURATION, 0, 2*Math.PI);
+                    ctx.stroke();
+                }
             }
-            const delta_t = timestamp - p.t0;
-            if(delta_t < PING_DURATION){
-                new_pings.push(p);
-                ctx.beginPath();
-                ctx.strokeStyle = p.color;
-                ctx.arc(p.cx, p.cy, PING_RADIUS*delta_t/PING_DURATION, 0, 2*Math.PI);
-                ctx.stroke();
-            }
+            map.pings = new_pings;
+            request_render();
         }
-        map.pings = new_pings;
-        request_render();
     }
-    if(SHOW_FPS){
+    if(flags & RenderFlags.SHOW_FPS){
         request_render();
         timings.push(performance.now()-before);
         while(timings.length > 30){
