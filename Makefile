@@ -10,7 +10,7 @@ TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFall
 TSFILES:= internal_listeners.ts toplevel.ts chat.ts canvas.ts notes.ts utils.ts Generated/messages.ts \
 	  interp.ts storage.ts Generated/nodes.ts dialogs.ts \
 	  Generated/dialogdefs.ts subwindows.ts Generated/subwindowdefs.ts macros.ts \
-	  Generated/packed.ts
+	  Generated/packed.ts geometry.ts
 ifneq ($(LOCALTSC),)
 Generated/combined.js: $(TSFILES) | Generated
 	$(LOCALTSC) $^ $(TSCFLAGS) --outFile $@

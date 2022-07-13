@@ -11,13 +11,13 @@
   },
   "files": [
     "internal_listeners.ts",
-    "toplevel.ts", 
+    "toplevel.ts",
     "chat.ts",
     "canvas.ts",
     "notes.ts",
     "utils.ts",
     "Generated/messages.ts",
-    "interp.ts", 
+    "interp.ts",
     "storage.ts",
     "Generated/nodes.ts",
     "dialogs.ts",
@@ -25,6 +25,7 @@
     "subwindows.ts",
     "Generated/subwindowdefs.ts",
     "macros.ts",
-    "Generated/packed.ts"
+    "Generated/packed.ts",
+    "geometry.ts"
   ]
 }
