@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', function(){
     function add_clicker(elem){
         elem.onclick = function(){
             location.hash = '#' + elem.id;
-            console.log(elem.id);
         }
     }
     for(let h of h2s)
