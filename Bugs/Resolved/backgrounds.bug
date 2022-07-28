@@ -1,0 +1,17 @@
+Changelog::kv
+  resolved: 2022-07-28T05:01:56Z
+Summary::md .summary
+  It's useful to be able to have a background image that won't get selected and
+  is basically read only.
+
+Update::md .update
+  In thinking about this, this isn't useful for dungeon maps. There are
+  situations this is useful, but it's for other use cases, which would need
+  their own optimized interface I believe.
+
+Update::md .update
+  I am closing this feature as WONTFIX.
+
+Resolved Jul 27, 2022, 10:01PM::md .update
+  I ended up actually implementing this. Images can have a flag set that they
+  are background images.

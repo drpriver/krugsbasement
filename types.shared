@@ -386,6 +386,8 @@ enum CanvasFlag: int flag
     duplicate TEXT_HAS_BACKGROUND = FLAG_C
     // FREEHAND_LINE
     duplicate LINE_IS_ARROW = FLAG_A
+    // IMAGE
+    duplicate IMG_IS_BACKGROUND = FLAG_A
 
 
 //  freehand-line

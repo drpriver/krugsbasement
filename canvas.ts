@@ -3018,8 +3018,20 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
                     break;
             }
         }
-        case CanvasType.FILLED_RECT: // fall-through
+        // @ts-expect-error // for fall-through
         case CanvasType.IMAGE: // fall-through
+            if(obj.flags & CanvasFlag.IMG_IS_BACKGROUND){
+                if(!(selection_type & SELECTTYPE.BACKGROUND)) return false;
+                const rect_bbox = {
+                    x0:obj.base_x,
+                    y0:obj.base_y,
+                    x1:obj.base_x+obj.width,
+                    y1:obj.base_y+obj.height,
+                };
+                return bbox_overlaps(bbox, rect_bbox);
+            }
+            // fall-through
+        case CanvasType.FILLED_RECT: // fall-through
         case CanvasType.GRID_RECT:{
             if(!(selection_type & SELECTTYPE.MAP))
                 return false;
@@ -4272,6 +4284,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
             dialog.f.width.value = ""+obj.width;
             dialog.f.height.value = ""+obj.height;
             dialog.f.url.value = obj.url;
+            dialog.f.background.checked = !!(obj.flags & CanvasFlag.IMG_IS_BACKGROUND);
             dialog.ok_handler = function(){
                 const text = dialog.f.url.value.trim();
                 if(!text)
@@ -4289,6 +4302,10 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 obj.width = width;
                 obj.height = height;
                 obj.url = text;
+                if(dialog.f.background.checked)
+                    obj.flags |= CanvasFlag.IMG_IS_BACKGROUND;
+                else
+                    obj.flags &= ~CanvasFlag.IMG_IS_BACKGROUND;
                 const after = strip_obj(obj);
                 delay_load_obj_image(obj, obj.width, obj.height, obj.width?obj.width:64, obj.height?obj.height:64);
                 note_updates_for_undo(view.map,[before], [after]);
@@ -8434,6 +8451,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 dialog.f.height.value = '';
                 dialog.f.url.value = '';
                 dialog.f.checkbox.checked = false;
+                dialog.f.background.checked = false;
                 dialog.show_handler = function(){
                     if(!IS_TOUCH) dialog.f.url.focus();
                 };
@@ -8451,6 +8469,8 @@ document.addEventListener('DOMContentLoaded', function(){
                     }
                     let id = get_new_id();
                     add_image(view.map, id, x0, y0, width, height, submapid, text);
+                    if(dialog.f.background.checked)
+                        view.map.canvas_objs.get(id)!.flags |= CanvasFlag.IMG_IS_BACKGROUND;
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                     request_render();

@@ -265,10 +265,13 @@ David20::title #hide
       <tr>
         <td>${label("width", "Width:")}${numbox("width")}
         <td>${label("height", "Height:")}${numbox("height")}
-        <td>${label("checkbox", "Round to Grid:")}${checkbox("checkbox")}
       </tr>
       <tr>
-        <td colspan="3">${label("url", "URL:")}${urlbox("url")}
+        <td>${label("checkbox", "Round to Grid:")}${checkbox("checkbox")}
+        <td>${label("background", "Background")}${checkbox("background")}
+      </tr>
+      <tr>
+        <td colspan="2">${label("url", "URL:")}${urlbox("url")}
       </tr>
     </table>
   `);
