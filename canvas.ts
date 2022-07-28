@@ -4575,6 +4575,7 @@ const enum RenderFlags {
     DARK_MODE = 1 << 1,
     SHOW_FPS = 1 << 2,
     DO_PINGS = 1 << 3,
+    DRAW_TEXT = 1 << 4,
 }
 function render(timestamp:DOMHighResTimeStamp):void{
     if(!ctx) return;
@@ -4584,6 +4585,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
     if(DARKMODE) flags |= RenderFlags.DARK_MODE;
     if(SHOW_FPS) flags |= RenderFlags.SHOW_FPS;
     flags |= RenderFlags.DO_PINGS;
+    flags |= RenderFlags.DRAW_TEXT;
     animation_requested = false;
     actually_render(timestamp, ctx, view, flags);
 }
@@ -4594,6 +4596,7 @@ function screenshot_canvas(view:DungeonMapView){
     dialog.f.selection.checked = false;
     dialog.f.submaps.checked = false;
     dialog.f.darkmode.checked = DARKMODE;
+    dialog.f.text.checked = true;
     if(current_tool == ToolType.SELECT){
         if(view.selected.size != 0){
             dialog.f.selection.checked = true;
@@ -4602,6 +4605,7 @@ function screenshot_canvas(view:DungeonMapView){
     dialog.ok_handler = function(){
         const include_submaps = dialog.f.submaps.checked;
         const darkmode = dialog.f.darkmode.checked;
+        const draw_text = dialog.f.text.checked;
         let x0 = 999999999;
         let y0 = 999999999;
         let x1 = 0;
@@ -4680,6 +4684,7 @@ function screenshot_canvas(view:DungeonMapView){
         let flags = 0;
         if(include_submaps) flags |= RenderFlags.DRAW_SUBMAPS;
         if(darkmode) flags |= RenderFlags.DARK_MODE;
+        if(draw_text) flags |= RenderFlags.DRAW_TEXT;
         actually_render(0, ctx, fake_view, flags);
         canvas.toBlob(function(b:Blob|null){
             if(!b) return;
@@ -4706,9 +4711,10 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
         view.selected.clear();
         note_selections(view);
     }
-    let is_darkmode = !!(flags & RenderFlags.DARK_MODE);
-    let background = is_darkmode? '#333333' : '#ffffff';
-    let cvs_bg = map.bg_color.length? map.bg_color : background;
+    const draw_text = !!(flags & RenderFlags.DRAW_TEXT);
+    const is_darkmode = !!(flags & RenderFlags.DARK_MODE);
+    const background = is_darkmode? '#333333' : '#ffffff';
+    const cvs_bg = map.bg_color.length? map.bg_color : background;
     const SELECTED_COLOR = '#33ffdd';
     const COULD_SELECT_COLOR = '#aaccaa';
     const hovered_id = view.hovered_id;
@@ -4724,7 +4730,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = cvs_bg;
     ctx.fillRect(0, 0, width, height);
-    let SCALE = scale;
+    const SCALE = scale;
     const BACKGROUND = background;
     const canvas_bbox = {
         // The 10s are so we can be sloppy with canvas/object intersection and
@@ -5267,6 +5273,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                 }
             }break;
             case CanvasType.TEXT:{ // TAG renderTEXT
+                if(!draw_text) continue;
                 if(obj.text){
                     let y_off = 0;
                     ctx.font = obj.size + 'px sans-serif';

@@ -515,6 +515,10 @@ David20::title #hide
         <td>${checkbox('submaps')}
       </tr>
       <tr>
+        <td>${label('text', 'Draw Text')}
+        <td>${checkbox('text')}
+      </tr>
+      <tr>
         <td>${label('darkmode', 'Darkmode')}
         <td>${checkbox('darkmode')}
       </tr>
