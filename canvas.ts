@@ -350,6 +350,18 @@ fetch('/tiles/packed.json') .then(response => response.json()) .then(data => {
         TERRAIN_ICON_BY_ID.set(t[0], t);
     for(let t of PACKED!.tokens)
         TOKEN_BY_PATH.set(`/tokens/${t[1]}`, t)
+    if(current_tool == ToolType.TILE){
+        switch(current_tile_type){
+            case TileType.ICON:
+                make_terrain_icon_palette();
+                break;
+            case TileType.TERRAIN:
+                make_terrain_palette();
+                break;
+            default:
+                break;
+        }
+    }
 });
 
 //  ez-token
