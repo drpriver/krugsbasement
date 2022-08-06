@@ -8718,22 +8718,11 @@ document.addEventListener('DOMContentLoaded', function(){
                 let deleted_ids: Array<number> = [];
                 let created_ids:Array<number> = [];
                 let drag = false;
-                function make_tile(e:PointerEvent){
-                    let x:number;
-                    let y:number;
-                    if(view.map.grid_type & GridType.HEX){
-                        const [x_, y_] = event_to_coord_off(e, view, smoff);
-                        [x, y] = snap_down_to_hex_grid(x_, y_);
-                    }
-                    else {
-                        let snap = get_snap_tl_func();
-                        [x, y] = event_to_coord_snapped_off(e, view, snap, smoff);
-                    }
+                let prevx:number|undefined = undefined; let prevy:number|undefined = undefined;
+                function do_tile(x:number, y:number){
                     let old_tile = tile_at(view, x, y, current_tile_type);
                     if(drag){
                         if(old_tile) return;
-                        e.stopPropagation();
-                        e.preventDefault();
                     }
                     else {
                         if(old_tile){
@@ -8788,6 +8777,39 @@ document.addEventListener('DOMContentLoaded', function(){
                             console.assert(false);
                     }
                     request_render();
+                }
+                function make_tile(e:PointerEvent){
+                    let x:number;
+                    let y:number;
+                    if(view.map.grid_type & GridType.HEX){
+                        const [x_, y_] = event_to_coord_off(e, view, smoff);
+                        [x, y] = snap_down_to_hex_grid(x_, y_);
+                    }
+                    else {
+                        let snap = get_snap_tl_func();
+                        [x, y] = event_to_coord_snapped_off(e, view, snap, smoff);
+                    }
+                    if(prevx !== undefined && prevy !== undefined){
+                        let xdiff = x - prevx;
+                        let ydiff = y - prevy;
+                        let snap = get_snap_tl_func();
+                        // there's a better way to do this, but whatever
+                        for(let i = 0; i < 10; i++){
+                            let x_ = prevx + i*xdiff/10;
+                            let y_ = prevy + i*ydiff/10;
+                            if(view.map.grid_type & GridType.HEX){
+                                [x_, y_] = snap_down_to_hex_grid(x_, y_);
+                            }
+                            else {
+                                x_ = snap(x_);
+                                y_ = snap(y_);
+                            }
+                            do_tile(x_, y_);
+                        }
+                    }
+                    do_tile(x, y);
+                    prevx = x;
+                    prevy = y;
                 }
                 make_tile(e);
                 drag = true;
