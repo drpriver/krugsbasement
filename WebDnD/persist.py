@@ -62,7 +62,7 @@ class Persister(Generic[T]):
             logging.error('Error saving %r: %s', self.name, e)
             return
         t1 = time.time()
-        logging.info('Saving %s took %.3fms', self.name, (t1-t0)*1000)
+        logging.info('Saving %r took %.3fms', self.name, (t1-t0)*1000)
         if hasattr(self.obj, 'dirty'):
             self.obj.dirty = False # type: ignore
 

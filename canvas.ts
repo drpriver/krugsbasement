@@ -1002,8 +1002,8 @@ function new_map_view(map_id:number): DungeonMapView{
     return view;
 }
 function center_view_at(view:DungeonMapView, x:number, y:number){
-    view.camera_x = -x + canvas.width/2/view.scale;
-    view.camera_y = -y + canvas.height/2/view.scale;
+    view.camera_x = -x + TheCanvas.width/2/view.scale;
+    view.camera_y = -y + TheCanvas.height/2/view.scale;
     request_render();
 }
 function change_active_map_view(idx: number, from_select:boolean, store:boolean){
@@ -1162,8 +1162,8 @@ ONRECV(ToClient.CANVAS_BG_COLOR, function(data:CanvasColorMsg){
 // Also if it changes, lots of things will probably break.
 const enum REFERENCE {WIDTH = 64, HALF_WIDTH=WIDTH/2, QUARTER_WIDTH=WIDTH/4}; // the size of a square at scale = 1.
 // The main canvas and its context. These are set once the content loads.
-let canvas:HTMLCanvasElement;
-let ctx:CanvasRenderingContext2D;
+let TheCanvas:HTMLCanvasElement;
+let TheCtx:CanvasRenderingContext2D;
 ONRECV(ToClient.CANVAS_GATHER, function(where:GatherMessage): void{
     change_map(where.map_id, false);
     const view = get_active_view();
@@ -1193,36 +1193,36 @@ function clamp_scale(scale:number): number{
     return scale;
 }
 function reset_zoom(view:DungeonMapView): void{
-    const center_x = canvas.width/2/view.scale - view.camera_x;
-    const center_y = canvas.height/2/view.scale - view.camera_y;
+    const center_x = TheCanvas.width/2/view.scale - view.camera_x;
+    const center_y = TheCanvas.height/2/view.scale - view.camera_y;
     view.scale = 1;
-    view.camera_x = canvas.width/2/view.scale - center_x;
-    view.camera_y = canvas.height/2/view.scale - center_y;
+    view.camera_x = TheCanvas.width/2/view.scale - center_x;
+    view.camera_y = TheCanvas.height/2/view.scale - center_y;
     request_render();
 }
 function zoom_in(view:DungeonMapView):void{
-    const center_x = canvas.width/2/view.scale - view.camera_x;
-    const center_y = canvas.height/2/view.scale - view.camera_y;
+    const center_x = TheCanvas.width/2/view.scale - view.camera_x;
+    const center_y = TheCanvas.height/2/view.scale - view.camera_y;
     view.scale *= 1.50;
     view.scale = clamp_scale(view.scale);
-    view.camera_x = canvas.width/2/view.scale - center_x;
-    view.camera_y = canvas.height/2/view.scale - center_y;
+    view.camera_x = TheCanvas.width/2/view.scale - center_x;
+    view.camera_y = TheCanvas.height/2/view.scale - center_y;
     request_render();
 }
 function zoom_out(view:DungeonMapView):void{
-    const center_x = canvas.width/2/view.scale - view.camera_x;
-    const center_y = canvas.height/2/view.scale - view.camera_y;
+    const center_x = TheCanvas.width/2/view.scale - view.camera_x;
+    const center_y = TheCanvas.height/2/view.scale - view.camera_y;
     view.scale /= 1.50;
     view.scale = clamp_scale(view.scale);
-    view.camera_x = canvas.width/2/view.scale - center_x;
-    view.camera_y = canvas.height/2/view.scale - center_y;
+    view.camera_x = TheCanvas.width/2/view.scale - center_x;
+    view.camera_y = TheCanvas.height/2/view.scale - center_y;
     request_render();
 }
 
 //
 function resize_canvas():void{
-    canvas = by_id('map');
-    ctx = canvas.getContext('2d', {alpha:false})!;
+    TheCanvas = by_id('map');
+    TheCtx = TheCanvas.getContext('2d', {alpha:false})!;
     const chat = by_id('chat');
     const ww = window.innerWidth;
     const wh = window.innerHeight;
@@ -1238,10 +1238,10 @@ function resize_canvas():void{
     }
     width |= 0;
     height |= 0;
-    canvas.width = width;
-    canvas.height = height ;
-    canvas.style.width = width + 'px';
-    canvas.style.height = height + 'px';
+    TheCanvas.width = width;
+    TheCanvas.height = height ;
+    TheCanvas.style.width = width + 'px';
+    TheCanvas.style.height = height + 'px';
     request_render();
 }
 
@@ -4607,7 +4607,7 @@ const enum RenderFlags {
     DRAW_TEXT = 1 << 4,
 }
 function render(timestamp:DOMHighResTimeStamp):void{
-    if(!ctx) return;
+    if(!TheCtx) return;
     const view = get_active_view();
     if(!view) return;
     let flags = RenderFlags.DRAW_SUBMAPS;
@@ -4616,7 +4616,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
     flags |= RenderFlags.DO_PINGS;
     flags |= RenderFlags.DRAW_TEXT;
     animation_requested = false;
-    actually_render(timestamp, ctx, view, flags);
+    actually_render(timestamp, TheCtx, view, flags);
 }
 function screenshot_canvas(view:DungeonMapView){
     let canvas = document.createElement('canvas');
@@ -6844,7 +6844,7 @@ function make_color_menu(e:MouseEvent, colorpicker: HTMLInputElement, colors:Arr
         }
         document.body.removeChild(trimenu);
         window.removeEventListener('pointerdown', remove_tri_menu);
-        canvas.removeEventListener('pointerdown', remove_tri_menu);
+        TheCanvas.removeEventListener('pointerdown', remove_tri_menu);
         has_tri_menu = false;
     }
     function make_cb(color: string){
@@ -6869,7 +6869,7 @@ function make_color_menu(e:MouseEvent, colorpicker: HTMLInputElement, colors:Arr
     }
     document.body.appendChild(trimenu);
     window.addEventListener('pointerdown', remove_tri_menu);
-    canvas.addEventListener('pointerdown', remove_tri_menu);
+    TheCanvas.addEventListener('pointerdown', remove_tri_menu);
 }
 document.addEventListener('DOMContentLoaded', function(){
     const cpt1 = by_id('color-picker-dropdown');
@@ -7074,7 +7074,7 @@ function make_tri_menu(e:MouseEvent, options:Array<{func:()=>void;text:string}>)
         }
         document.body.removeChild(trimenu);
         window.removeEventListener('pointerdown', remove_tri_menu);
-        canvas.removeEventListener('pointerdown', remove_tri_menu);
+        TheCanvas.removeEventListener('pointerdown', remove_tri_menu);
         has_tri_menu = false;
     }
     function make_cb(func:()=>void){
@@ -7097,7 +7097,7 @@ function make_tri_menu(e:MouseEvent, options:Array<{func:()=>void;text:string}>)
     }
     document.body.appendChild(trimenu);
     window.addEventListener('pointerdown', remove_tri_menu);
-    canvas.addEventListener('pointerdown', remove_tri_menu);
+    TheCanvas.addEventListener('pointerdown', remove_tri_menu);
 }
 document.addEventListener('DOMContentLoaded', function():void{
     tools = Array.from(document.getElementsByClassName('tool')) as Array<HTMLElement>;
@@ -7415,13 +7415,13 @@ const redo_canvas_cursor = (function(){
         if(view.resize.resizing) return;
         if(current_tool != ToolType.SELECT){
             view.hovered_id = -1;
-            if(canvas.style.cursor != 'initial')
-                canvas.style.cursor = 'initial';
+            if(TheCanvas.style.cursor != 'initial')
+                TheCanvas.style.cursor = 'initial';
             return;
         }
         for(let rh of view.resize.handles){
             if(point_in_rect(view.mouse.x, view.mouse.y, rh.bbox.x0, rh.bbox.y0, rh.bbox.x1, rh.bbox.y1)){
-                canvas.style.cursor = 'nwse-resize';
+                TheCanvas.style.cursor = 'nwse-resize';
                 prev_id = -1;
                 return;
             }
@@ -7445,13 +7445,13 @@ const redo_canvas_cursor = (function(){
             for(let aa of view.action.areas){
                 if(point_in_rect(view.mouse.x, view.mouse.y, aa.bbox.x0, aa.bbox.y0, aa.bbox.x1, aa.bbox.y1)){
                     request_render();
-                    canvas.style.cursor = 'pointer';
+                    TheCanvas.style.cursor = 'pointer';
                     prev_id = -1;
                     return;
                 }
             }
-        if(canvas.style.cursor != 'initial')
-            canvas.style.cursor = 'initial';
+        if(TheCanvas.style.cursor != 'initial')
+            TheCanvas.style.cursor = 'initial';
     }
     return redo_canvas_cursor;
 }());
@@ -7476,14 +7476,14 @@ function get_submap_at(view:DungeonMapView, x:number, y:number):SubMap | null {
 }
 
 document.addEventListener('DOMContentLoaded', function(){
-    canvas = document.getElementsByTagName('canvas')[0]!;
+    TheCanvas = document.getElementsByTagName('canvas')[0]!;
     let gesturing = false;
     let stop_pan: (()=>void)| null = null;
     (function(){
         let start_scale = 1.0;
         let start_x = 0;
         let start_y = 0;
-        canvas.addEventListener('gesturestart', function(e:any){
+        TheCanvas.addEventListener('gesturestart', function(e:any){
             e.stopPropagation();
             e.preventDefault();
             if(stop_pan) stop_pan();
@@ -7493,17 +7493,17 @@ document.addEventListener('DOMContentLoaded', function(){
             start_y = view.camera_y;
             gesturing = true;
         });
-        canvas.addEventListener('gesturechange', function(e:any){
+        TheCanvas.addEventListener('gesturechange', function(e:any){
             e.stopPropagation();
             e.preventDefault();
             if(stop_pan) stop_pan();
             const view = get_active_view();
             view.scale = start_scale * e.scale;
             view.scale = clamp_scale(view.scale);
-            let cx = start_x - canvas.width/2/start_scale;
-            let cy = start_y - canvas.height/2/start_scale;
-            cx += canvas.width/2/view.scale;
-            cy += canvas.height/2/view.scale;
+            let cx = start_x - TheCanvas.width/2/start_scale;
+            let cy = start_y - TheCanvas.height/2/start_scale;
+            cx += TheCanvas.width/2/view.scale;
+            cy += TheCanvas.height/2/view.scale;
             // cx = Math.round(cx);
             // cy = Math.round(cy);
             view.camera_x = cx;
@@ -7511,13 +7511,13 @@ document.addEventListener('DOMContentLoaded', function(){
 
             request_render();
         });
-        canvas.addEventListener('gestureend', function(e:any){
+        TheCanvas.addEventListener('gestureend', function(e:any){
             e.stopPropagation();
             e.preventDefault();
             gesturing = false;
         });
     })();
-    canvas.addEventListener('wheel', function(e:WheelEvent){
+    TheCanvas.addEventListener('wheel', function(e:WheelEvent){
         e.stopPropagation();
         e.preventDefault();
         const view = get_active_view();
@@ -7784,7 +7784,7 @@ document.addEventListener('DOMContentLoaded', function(){
     // TAG toolimpl
     // TAG pointerdown
     // TAG click
-    canvas.addEventListener('pointerdown', function(e:PointerEvent){
+    TheCanvas.addEventListener('pointerdown', function(e:PointerEvent){
         if(gesturing) return;
         if(e.button !== 0 && e.button !== 1){ //0 is the 'primary' button
             return;
@@ -7855,7 +7855,7 @@ document.addEventListener('DOMContentLoaded', function(){
                                 }
                                 change_map(o.map_id, false);
                                 view.selected.clear();
-                                canvas.style.cursor = 'initial';
+                                TheCanvas.style.cursor = 'initial';
                                 return;
                             }
                             request_render();
@@ -7923,14 +7923,14 @@ document.addEventListener('DOMContentLoaded', function(){
                                     }
                                     request_render();
                                 }
-                                canvas.addEventListener('pointermove', change_wh);
+                                TheCanvas.addEventListener('pointermove', change_wh);
                                 const before = strip_obj(obj);
                                 function finish(){
                                     view.resize.resizing = false;
                                     redo_canvas_cursor(view, false);
-                                    canvas.removeEventListener('pointermove', change_wh);
+                                    TheCanvas.removeEventListener('pointermove', change_wh);
                                     window.removeEventListener('pointerup', finish);
-                                    canvas.removeEventListener('pointerup', finish);
+                                    TheCanvas.removeEventListener('pointerup', finish);
                                     request_render();
                                     if(o_x != obj.base_x || o_y != obj.base_y || o_w != obj.width || o_h != obj.height){
                                         const after = strip_obj(obj);
@@ -7939,7 +7939,7 @@ document.addEventListener('DOMContentLoaded', function(){
                                     }
                                 }
                                 window.addEventListener('pointerup', finish);
-                                canvas.addEventListener('pointerleave', finish);
+                                TheCanvas.addEventListener('pointerleave', finish);
                                 return;
                             }
                         }
@@ -7980,11 +7980,11 @@ document.addEventListener('DOMContentLoaded', function(){
                         clicked_x = move_x;
                         clicked_y = move_y;
                     }
-                    canvas.addEventListener('pointermove', move);
+                    TheCanvas.addEventListener('pointermove', move);
                     function finish_move(){
-                        canvas.removeEventListener('pointermove', move);
+                        TheCanvas.removeEventListener('pointermove', move);
                         window.removeEventListener('pointerup', finish_move);
-                        canvas.removeEventListener('pointerleave', finish_move);
+                        TheCanvas.removeEventListener('pointerleave', finish_move);
                         if(!changed)
                             return;
                         const after_update = get_stripped_state_by_id(view.map, Array.from(view.selected));
@@ -7992,7 +7992,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         note_updates_for_undo(view.map, before_update, after_update);
                     }
                     window.addEventListener('pointerup', finish_move);
-                    canvas.addEventListener('pointerleave', finish_move);
+                    TheCanvas.addEventListener('pointerleave', finish_move);
                 }
                 else {
                     sort_canv_objs(view.map);
@@ -8010,15 +8010,15 @@ document.addEventListener('DOMContentLoaded', function(){
                         update_selection(view, clicked_x, clicked_y, select_x, select_y);
                         request_render();
                     }
-                    canvas.addEventListener('pointermove', select);
+                    TheCanvas.addEventListener('pointermove', select);
                     function finish_select(){
                         finalize_selection(view);
-                        canvas.removeEventListener('pointermove', select);
+                        TheCanvas.removeEventListener('pointermove', select);
                         window.removeEventListener('pointerup', finish_select);
-                        canvas.removeEventListener('pointerleave', finish_select);
+                        TheCanvas.removeEventListener('pointerleave', finish_select);
                     }
                     window.addEventListener('pointerup', finish_select);
-                    canvas.addEventListener('pointerleave', finish_select);
+                    TheCanvas.addEventListener('pointerleave', finish_select);
                 }
             }break;
             case ToolType.PAN:{ // TAG toolPAN
@@ -8038,20 +8038,20 @@ document.addEventListener('DOMContentLoaded', function(){
                     clicked_y = pan_y;
                     request_render();
                 }
-                canvas.addEventListener('pointermove', pan);
+                TheCanvas.addEventListener('pointermove', pan);
                 function finish_pan(){
                     stop_pan = null;
                     if(prev_tool){
                         current_tool = prev_tool;
                         prev_tool = ToolType.PAN;
                     }
-                    canvas.removeEventListener('pointermove', pan);
+                    TheCanvas.removeEventListener('pointermove', pan);
                     window.removeEventListener('pointerup', finish_pan);
-                    canvas.removeEventListener('pointerleave', finish_pan);
+                    TheCanvas.removeEventListener('pointerleave', finish_pan);
                 }
                 stop_pan = finish_pan;
                 window.addEventListener('pointerup', finish_pan);
-                canvas.addEventListener('pointerleave', finish_pan);
+                TheCanvas.addEventListener('pointerleave', finish_pan);
             }break;
             case ToolType.LINE:{ // TAG toolLINE
                 let id = get_new_id();
@@ -8074,16 +8074,16 @@ document.addEventListener('DOMContentLoaded', function(){
                     add_freehand_point_by_id(view.map, id, x1, y1);
                     request_render();
                 }
-                canvas.addEventListener('pointermove', add_point);
+                TheCanvas.addEventListener('pointermove', add_point);
                 function finish_point(){
-                    canvas.removeEventListener('pointermove', add_point);
+                    TheCanvas.removeEventListener('pointermove', add_point);
                     window.removeEventListener('pointerup', finish_point);
-                    canvas.removeEventListener('pointerleave', finish_point);
+                    TheCanvas.removeEventListener('pointerleave', finish_point);
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                 }
                 window.addEventListener('pointerup', finish_point);
-                canvas.addEventListener('pointerleave', finish_point);
+                TheCanvas.addEventListener('pointerleave', finish_point);
             }break;
             case ToolType.SHAPE:{ // TAG toolSHAPE
                 let id = get_new_id();
@@ -8108,18 +8108,18 @@ document.addEventListener('DOMContentLoaded', function(){
                     add_freehand_point(o, x1, y1);
                     request_render();
                 }
-                canvas.addEventListener('pointermove', add_point);
+                TheCanvas.addEventListener('pointermove', add_point);
                 function finish_point(){
-                    canvas.removeEventListener('pointermove', add_point);
+                    TheCanvas.removeEventListener('pointermove', add_point);
                     window.removeEventListener('pointerup', finish_point);
-                    canvas.removeEventListener('pointerleave', finish_point);
+                    TheCanvas.removeEventListener('pointerleave', finish_point);
                     add_freehand_point(o, x0, y0);
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                     request_render();
                 }
                 window.addEventListener('pointerup', finish_point);
-                canvas.addEventListener('pointerleave', finish_point);
+                TheCanvas.addEventListener('pointerleave', finish_point);
             }break;
             case ToolType.WALL:{ // TAG toolWALL
                 let id = get_new_id();
@@ -8135,16 +8135,16 @@ document.addEventListener('DOMContentLoaded', function(){
                         add_freehand_point_by_id(view.map, id, x1, y1);
                         request_render();
                     }
-                    canvas.addEventListener('pointermove', add_point);
+                    TheCanvas.addEventListener('pointermove', add_point);
                     function finish_point(){
-                        canvas.removeEventListener('pointermove', add_point);
+                        TheCanvas.removeEventListener('pointermove', add_point);
                         window.removeEventListener('pointerup', finish_point);
-                        canvas.removeEventListener('pointerleave', finish_point);
+                        TheCanvas.removeEventListener('pointerleave', finish_point);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                     }
                     window.addEventListener('pointerup', finish_point);
-                    canvas.addEventListener('pointerleave', finish_point);
+                    TheCanvas.addEventListener('pointerleave', finish_point);
                 }
                 else{
                     const [x0, y0] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
@@ -8184,19 +8184,19 @@ document.addEventListener('DOMContentLoaded', function(){
                         view.placing_area.y1 = y1+smoff[1];
                         request_render();
                     }
-                    canvas.addEventListener('pointermove', add_point);
+                    TheCanvas.addEventListener('pointermove', add_point);
                     function finish_point(){
                         view.placing_area.is_placing = false;
                         add_gridline_point(obj, x1, y1);
-                        canvas.removeEventListener('pointermove', add_point);
+                        TheCanvas.removeEventListener('pointermove', add_point);
                         window.removeEventListener('pointerup', finish_point);
-                        canvas.removeEventListener('pointerleave', finish_point);
+                        TheCanvas.removeEventListener('pointerleave', finish_point);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                         request_render();
                     }
                     window.addEventListener('pointerup', finish_point);
-                    canvas.addEventListener('pointerleave', finish_point);
+                    TheCanvas.addEventListener('pointerleave', finish_point);
                 }
             }break;
             case ToolType.DOOR:{ // TAG toolDOOR
@@ -8220,12 +8220,12 @@ document.addEventListener('DOMContentLoaded', function(){
                     view.placing_area.y1 = y1+smoff[1];
                     request_render();
                 }
-                canvas.addEventListener('pointermove', change_point);
+                TheCanvas.addEventListener('pointermove', change_point);
                 function finish_door(){
                     view.placing_area.is_placing = false;
-                    canvas.removeEventListener('pointermove', change_point);
+                    TheCanvas.removeEventListener('pointermove', change_point);
                     window.removeEventListener('pointerup', finish_door);
-                    canvas.removeEventListener('pointerleave', finish_door);
+                    TheCanvas.removeEventListener('pointerleave', finish_door);
                     if(x0 !== x1 || y0 !== y1){
                         let id = get_new_id();
                         let orientation;
@@ -8259,7 +8259,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     request_render()
                 }
                 window.addEventListener('pointerup', finish_door);
-                canvas.addEventListener('pointerleave', finish_door);
+                TheCanvas.addEventListener('pointerleave', finish_door);
             }break;
             case ToolType.RECT:{ // TAG toolRECT
                 switch(current_rect_type){
@@ -8274,16 +8274,16 @@ document.addEventListener('DOMContentLoaded', function(){
                             change_rect_by_id(view.map, id, x1, y1, x0, y0);
                             request_render();
                         }
-                        canvas.addEventListener('pointermove', add_point);
+                        TheCanvas.addEventListener('pointermove', add_point);
                         function finish_point(){
-                            canvas.removeEventListener('pointermove', add_point);
+                            TheCanvas.removeEventListener('pointermove', add_point);
                             window.removeEventListener('pointerup', finish_point);
-                            canvas.removeEventListener('pointerleave', finish_point);
+                            TheCanvas.removeEventListener('pointerleave', finish_point);
                             publish_obj_by_id(view.map, id);
                             note_create_by_id_for_undo(view.map, id);
                         }
                         window.addEventListener('pointerup', finish_point);
-                        canvas.addEventListener('pointerleave', finish_point);
+                        TheCanvas.addEventListener('pointerleave', finish_point);
                     }break;
                     case RECTTYPE.FILLED:{
                         let id = get_new_id();
@@ -8296,16 +8296,16 @@ document.addEventListener('DOMContentLoaded', function(){
                             change_filled_rect_by_id(view.map, id, x1, y1, x0, y0);
                             request_render();
                         }
-                        canvas.addEventListener('pointermove', add_point);
+                        TheCanvas.addEventListener('pointermove', add_point);
                         function finish_point(){
-                            canvas.removeEventListener('pointermove', add_point);
+                            TheCanvas.removeEventListener('pointermove', add_point);
                             window.removeEventListener('pointerup', finish_point);
-                            canvas.removeEventListener('pointerleave', finish_point);
+                            TheCanvas.removeEventListener('pointerleave', finish_point);
                             publish_obj_by_id(view.map, id);
                             note_create_by_id_for_undo(view.map, id);
                         }
                         window.addEventListener('pointerup', finish_point);
-                        canvas.addEventListener('pointerleave', finish_point);
+                        TheCanvas.addEventListener('pointerleave', finish_point);
                     }break;
                     case RECTTYPE.SOLID:{
                         let id = get_new_id();
@@ -8330,18 +8330,18 @@ document.addEventListener('DOMContentLoaded', function(){
                             view.placing_area.y1 = gridrect.base_y + gridrect.height+smoff[1];
                             request_render();
                         }
-                        canvas.addEventListener('pointermove', add_point);
+                        TheCanvas.addEventListener('pointermove', add_point);
                         function finish_point(){
-                            canvas.removeEventListener('pointermove', add_point);
+                            TheCanvas.removeEventListener('pointermove', add_point);
                             window.removeEventListener('pointerup', finish_point);
-                            canvas.removeEventListener('pointerleave', finish_point);
+                            TheCanvas.removeEventListener('pointerleave', finish_point);
                             view.placing_area.is_placing = false;
                             request_render();
                             publish_obj_by_id(view.map, id);
                             note_create_by_id_for_undo(view.map, id);
                         }
                         window.addEventListener('pointerup', finish_point);
-                        canvas.addEventListener('pointerleave', finish_point);
+                        TheCanvas.addEventListener('pointerleave', finish_point);
                     }break;
                 }
             }break;
@@ -8377,18 +8377,18 @@ document.addEventListener('DOMContentLoaded', function(){
                     view.placing_area.y1 = ellipse.base_y + ellipse.height+smoff[1];
                     request_render();
                 }
-                canvas.addEventListener('pointermove', add_point);
+                TheCanvas.addEventListener('pointermove', add_point);
                 function finish_point(){
-                    canvas.removeEventListener('pointermove', add_point);
+                    TheCanvas.removeEventListener('pointermove', add_point);
                     window.removeEventListener('pointerup', finish_point);
-                    canvas.removeEventListener('pointerleave', finish_point);
+                    TheCanvas.removeEventListener('pointerleave', finish_point);
                     view.placing_area.is_placing = false;
                     request_render();
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                 }
                 window.addEventListener('pointerup', finish_point);
-                canvas.addEventListener('pointerleave', finish_point);
+                TheCanvas.addEventListener('pointerleave', finish_point);
             }break;
             case ToolType.TEXT:{ // TAG toolTEXT
                 const [x0, y0] = event_to_coord_off(e, view, smoff);
@@ -8606,13 +8606,13 @@ document.addEventListener('DOMContentLoaded', function(){
                             view.placing_area.y1 = stairs.base_y+REFERENCE.WIDTH*stairs.height+smoff[1];
                             request_render();
                         }
-                        canvas.addEventListener('pointermove', change_stairs_on_move);
+                        TheCanvas.addEventListener('pointermove', change_stairs_on_move);
                         function finish_point(){
                             view.placing_area.is_placing = false;
                             request_render();
-                            canvas.removeEventListener('pointermove', change_stairs_on_move);
+                            TheCanvas.removeEventListener('pointermove', change_stairs_on_move);
                             window.removeEventListener('pointerup', finish_point);
-                            canvas.removeEventListener('pointerleave', finish_point);
+                            TheCanvas.removeEventListener('pointerleave', finish_point);
                             if(stairs.width != 0 && stairs.height != 0){
                                 publish_obj_by_id(view.map, id);
                                 note_create_by_id_for_undo(view.map, id);
@@ -8622,7 +8622,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             }
                         }
                         window.addEventListener('pointerup', finish_point);
-                        canvas.addEventListener('pointerleave', finish_point);
+                        TheCanvas.addEventListener('pointerleave', finish_point);
                     }break;
                     default:{
                         let id = get_new_id();
@@ -8658,13 +8658,13 @@ document.addEventListener('DOMContentLoaded', function(){
                             view.placing_area.y1 = y1+smoff[1];
                             request_render();
                         }
-                        canvas.addEventListener('pointermove', move);
+                        TheCanvas.addEventListener('pointermove', move);
                         function finish(){
                             view.placing_area.is_placing = false;
                             request_render();
-                            canvas.removeEventListener('pointermove', move);
+                            TheCanvas.removeEventListener('pointermove', move);
                             window.removeEventListener('pointerup', finish);
-                            canvas.removeEventListener('pointerleave', finish);
+                            TheCanvas.removeEventListener('pointerleave', finish);
                             if(fixture.width != 0 && fixture.height != 0){
                                 publish_obj_by_id(view.map, id);
                                 note_create_by_id_for_undo(view.map, id);
@@ -8674,7 +8674,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             }
                         }
                         window.addEventListener('pointerup', finish);
-                        canvas.addEventListener('pointerleave', finish);
+                        TheCanvas.addEventListener('pointerleave', finish);
                     }break;
                 }
             }break;
@@ -8713,17 +8713,17 @@ document.addEventListener('DOMContentLoaded', function(){
                     publish_obj_updates(view.map.map_id, [stripped]);
                     request_render();
                 }
-                canvas.addEventListener('pointermove', move);
+                TheCanvas.addEventListener('pointermove', move);
                 function finish(){
                     publish_delete_by_ids(view.map.map_id, [id]);
                     measure.flags |= CanvasFlag.DELETED;
                     request_render();
-                    canvas.removeEventListener('pointermove', move);
+                    TheCanvas.removeEventListener('pointermove', move);
                     window.removeEventListener('pointerup', finish);
-                    canvas.removeEventListener('pointerleave', finish);
+                    TheCanvas.removeEventListener('pointerleave', finish);
                 }
                 window.addEventListener('pointerup', finish);
-                canvas.addEventListener('pointerleave', finish);
+                TheCanvas.addEventListener('pointerleave', finish);
 
             }break;
             case ToolType.TILE:{ // TAG toolTILE
@@ -8825,12 +8825,12 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
                 make_tile(e);
                 drag = true;
-                canvas.addEventListener('pointermove', make_tile);
+                TheCanvas.addEventListener('pointermove', make_tile);
                 function finish(){
                     // console.log('created_ids', created_ids);
                     // console.log('deleted ids', deleted_ids);
-                    canvas.removeEventListener('pointermove', make_tile);
-                    canvas.removeEventListener('pointerleave', finish);
+                    TheCanvas.removeEventListener('pointermove', make_tile);
+                    TheCanvas.removeEventListener('pointerleave', finish);
                     window.removeEventListener('pointerup', finish);
                     publish_objs_by_ids(view.map, created_ids);
                     if(deleted_ids.length){
@@ -8843,7 +8843,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     request_render();
                 };
                 window.addEventListener('pointerup', finish);
-                canvas.addEventListener('pointerleave', finish);
+                TheCanvas.addEventListener('pointerleave', finish);
             }break;
             case ToolType.SUBMAP:{ // TAG toolSUBMAP
                 // Don't allow nested submaps
@@ -8885,11 +8885,11 @@ document.addEventListener('DOMContentLoaded', function(){
                     submap.height = height;
                     request_render();
                 }
-                canvas.addEventListener('pointermove', add_point);
+                TheCanvas.addEventListener('pointermove', add_point);
                 function finish_point(){
-                    canvas.removeEventListener('pointermove', add_point);
+                    TheCanvas.removeEventListener('pointermove', add_point);
                     window.removeEventListener('pointerup', finish_point);
-                    canvas.removeEventListener('pointerleave', finish_point);
+                    TheCanvas.removeEventListener('pointerleave', finish_point);
                     if(submap.width == 0 || submap.height == 0){
                         submap.flags |= CanvasFlag.DELETED;
                     }
@@ -8901,7 +8901,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     request_render();
                 }
                 window.addEventListener('pointerup', finish_point);
-                canvas.addEventListener('pointerleave', finish_point);
+                TheCanvas.addEventListener('pointerleave', finish_point);
             }break;
             case ToolType.ARC:{ // TAG toolARC
                 let id = get_new_id();
@@ -9009,11 +9009,11 @@ document.addEventListener('DOMContentLoaded', function(){
                     view.placing_area.y1 = arc.base_y+smoff[1]+arc.height;
                     request_render();
                 }
-                canvas.addEventListener('pointermove', add_point);
+                TheCanvas.addEventListener('pointermove', add_point);
                 function finish_point(){
-                    canvas.removeEventListener('pointermove', add_point);
+                    TheCanvas.removeEventListener('pointermove', add_point);
                     window.removeEventListener('pointerup', finish_point);
-                    canvas.removeEventListener('pointerleave', finish_point);
+                    TheCanvas.removeEventListener('pointerleave', finish_point);
                     view.placing_area.is_placing = false;
                     if(arc.width && arc.height){
                         publish_obj_by_id(view.map, id);
@@ -9022,14 +9022,14 @@ document.addEventListener('DOMContentLoaded', function(){
                     request_render();
                 }
                 window.addEventListener('pointerup', finish_point);
-                canvas.addEventListener('pointerleave', finish_point);
+                TheCanvas.addEventListener('pointerleave', finish_point);
             }break;
             default:{
                 console.log('unknown tool:', current_tool);
             }break;
         }
     });
-    canvas.addEventListener('pointermove', function(e:PointerEvent){
+    TheCanvas.addEventListener('pointermove', function(e:PointerEvent){
         let view = get_active_view();
         // NOTE: obj_at handles submap
         let [mx, my] = event_to_coord(e, view);
@@ -9039,7 +9039,7 @@ document.addEventListener('DOMContentLoaded', function(){
         redo_canvas_cursor(view, modified);
 
     });
-    canvas.addEventListener('dblclick', function(e:MouseEvent){
+    TheCanvas.addEventListener('dblclick', function(e:MouseEvent){
         let view = get_active_view();
         if(current_tool != ToolType.SELECT)
             return;
@@ -9051,7 +9051,7 @@ document.addEventListener('DOMContentLoaded', function(){
         }
         launch_edit_dialog(view);
     });
-    canvas.addEventListener('contextmenu', function(e:MouseEvent){
+    TheCanvas.addEventListener('contextmenu', function(e:MouseEvent){
         e.preventDefault();
         e.stopPropagation();
         ctxmenu_is_active++;
@@ -9061,11 +9061,11 @@ document.addEventListener('DOMContentLoaded', function(){
         ctxmenu.style.top = e.clientY + 'px';
         const view = get_active_view();
         let [x, y] = event_to_coord(e, view);
-        x -= canvas.width/2/view.scale;
-        y -= canvas.height/2/view.scale;
+        x -= TheCanvas.width/2/view.scale;
+        y -= TheCanvas.height/2/view.scale;
         let [click_x, click_y] = event_to_coord(e, view);
         function remove_menu(e?:MouseEvent){
-            canvas.removeEventListener('pointerdown', remove_menu);
+            TheCanvas.removeEventListener('pointerdown', remove_menu);
             document.body.removeChild(ctxmenu);
             ctxmenu_is_active--;
             if(e){
@@ -9089,7 +9089,7 @@ document.addEventListener('DOMContentLoaded', function(){
         else
             whenflags |= CONTEXTMENUWHENFLAGS.GRID_FIVE;
 
-        canvas.addEventListener('pointerdown', remove_menu);
+        TheCanvas.addEventListener('pointerdown', remove_menu);
         type itemtype = {
             label:string;
             func: () => void;
