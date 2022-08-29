@@ -5,3 +5,4 @@ wtforms
 flask-wtf
 git+https://github.com/maxcountryman/flask-login.git#egg=Flask-Login
 email-validator
+pydndc

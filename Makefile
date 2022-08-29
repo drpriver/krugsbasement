@@ -49,12 +49,12 @@ run: Generated/dungeon.html Generated/demo.html WebDnD/messages.py | appconfig.p
 	. venv/bin/activate && python3 -m WebDnD.app
 
 Generated/dungeon.html: client.dnd Generated/combined.js | Depends Depends/Generated
-	dndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
+	. venv/bin/activate && python3 -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
 Generated/demo.html: demo.dnd Generated/demo.js | Depends Depends/Generated
-	dndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
+	. venv/bin/activate && python3 -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
 
 Generated/%.html: Docs/%.dnd | Generated Depends/Generated
-	dndc $< --output $@ --depends-path Depends/$@.dep
+	. venv/bin/activate && python3 -m pydndc $< --output $@ --depends-path Depends/$@.dep
 # This is so that the dev server can serve things from the Generated folder.
 Generated/%.dnd: %.dnd
 	cp $< $@
@@ -112,7 +112,7 @@ Bin/pack:
 Bin/meta:
 
 Generated/subwindowdefs.ts Generated/dialogdefs.ts Generated/dungeon.temp.html: dungeon.dnd | Generated
-	dndc $< --output Generated/dungeon.temp.html --strip-spaces --allow-js-write --jsargs '{"temp":true}'
+	. venv/bin/activate && python3 -m pydndc $< --output Generated/dungeon.temp.html --strip-spaces --allow-js-write --jsargs '{"temp":true}'
 
 Generated/nodes.ts: Bin/meta Generated/dungeon.temp.html | Generated
 	Bin/meta Generated/dungeon.temp.html $@
