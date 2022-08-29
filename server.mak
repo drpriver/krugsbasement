@@ -21,7 +21,6 @@ static/dungeon.html:
 	cp dist/*.dnd static
 	cp dist/*.css static
 	cp dist/*.js static
-	cp dist/pydndc.cpython-38-x86_64-linux-gnu.so .
 
 .PHONY: demos
 demos:

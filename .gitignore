@@ -31,3 +31,4 @@ Bin
 Generated
 appconfig.py
 flask_socketio.pyi
+*.so_

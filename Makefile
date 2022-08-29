@@ -70,7 +70,6 @@ Generated/messages.ts WebDnD/messages.py flask_socketio.pyi: types.shared Script
 dist.zip: Generated/dungeon.html Generated/demo.html Generated/packed.webp Generated/packed.png Generated/toks.webp Generated/toks.png Generated/packed.json
 	rm -rf dist dist.zip
 	mkdir -p dist/packed dist/WebDnD
-	cp pydndc.cpython-38-x86_64-linux-gnu.so dist
 	cp server.mak dist
 	cp Generated/dungeon.html Generated/demo.html register.dnd home.dnd login.dnd login.css darkmode.js dist
 	cp Generated/packed.json Generated/packed.png Generated/packed.webp Generated/toks.png Generated/toks.webp dist/packed
