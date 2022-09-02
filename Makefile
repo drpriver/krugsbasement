@@ -78,6 +78,7 @@ dist.zip: Generated/dungeon.html Generated/demo.html Generated/packed.webp Gener
 	zip -r dist dist
 	rm -rf dist
 
+# I don't think I use this anymore?
 .PHONY: shrink-tokens
 shrink-tokens:
 	python3 shrink_tokens.py
@@ -124,3 +125,20 @@ Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.
 .PHONY: echo-deployed-hash
 echo-deployed-hash:
 	ssh website "cd ~webdnd && cat dist/githash"
+ifneq ($(OS),Windows_NT) # shells out to unix commands
+.PHONY: list
+list:
+	@LC_ALL=C $(MAKE) -npRrq : 2>/dev/null \
+		| awk -v RS= -F: '{if ($$1 !~ "^[#.]") {print $$1}}' \
+		| sort \
+		| uniq \
+		| egrep -v \
+			-e '^[^[:alnum:]]' \
+			-e '^$@$$' \
+			-e '%' \
+			-e '.(dnd|dep|[ch]|css|ts|png|webp|json|temp.html)$$' \
+			-e '^(Bin|Depends|Objs|VendObjs|Archives|Docs|WebDnD)' \
+			-e '^(tokens|tilesorig|miscimgs|iconorig)' \
+			-e '^(conn.js|appconfig.py)'
+
+endif
