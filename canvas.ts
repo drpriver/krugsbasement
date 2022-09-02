@@ -2948,8 +2948,13 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
                 x1: obj.base_x+obj.width+th2,
                 y1: obj.base_y+obj.height+th2,
             };
-            for(let b of [left, top, right, bottom]){
-                if(bbox_overlaps(b, bbox)) return true;
+            if(obj.flags & CanvasFlag.SUBMAP_IS_MINIMIZED){
+                if(bbox_overlaps(top, bbox)) return true;
+            }
+            else {
+                for(let b of [left, top, right, bottom]){
+                    if(bbox_overlaps(b, bbox)) return true;
+                }
             }
             return false;
         }break;
