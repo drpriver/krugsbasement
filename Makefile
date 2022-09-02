@@ -6,26 +6,24 @@ Bin: ; mkdir -p $@
 Archives: ; mkdir -p $@
 DEPFILES:= $(wildcard Depends/*.dep Depends/Generated/*.dep Depends/Bin/*.dep)
 include $(DEPFILES)
-TSCFLAGS:=--noImplicitAny --strict --noUnusedLocals --noImplicitReturns --noFallthroughCasesInSwitch --removeComments --target es2020 --noEmitOnError --strictFunctionTypes
-TSFILES:= internal_listeners.ts toplevel.ts chat.ts canvas.ts notes.ts utils.ts Generated/messages.ts \
-	  interp.ts storage.ts Generated/nodes.ts dialogs.ts \
+TSCFLAGS:=--noImplicitAny \
+	  --strict \
+	  --noUnusedLocals \
+	  --noImplicitReturns \
+	  --noFallthroughCasesInSwitch \
+	  --removeComments \
+	  --target es2020 \
+	  --noEmitOnError \
+	  --strictFunctionTypes
+TSFILES:= internal_listeners.ts toplevel.ts chat.ts canvas.ts notes.ts utils.ts \
+	  Generated/messages.ts interp.ts storage.ts Generated/nodes.ts dialogs.ts \
 	  Generated/dialogdefs.ts subwindows.ts Generated/subwindowdefs.ts macros.ts \
 	  Generated/packed.ts geometry.ts
-ifneq ($(LOCALTSC),)
 Generated/combined.js: $(TSFILES) | Generated
-	$(LOCALTSC) $^ $(TSCFLAGS) --outFile $@
+	$(TSC) $^ $(TSCFLAGS) --outFile $@
 Generated/demo.js: demo.ts Generated/messages.ts | Generated
-	$(LOCALTSC) $^ $(TSCFLAGS) --outFile $@
-else
-Generated/combined.js: $(TSFILES) | Generated
-	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc $(TSFILES) $(TSCFLAGS) --outFile $@ | cat"
-Generated/demo.js: demo.ts Generated/messages.ts | Generated
-	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc demo.ts Generated/messages.ts $(TSCFLAGS) --outFile $@ | cat"
-endif
+	$(TSC) $^ $(TSCFLAGS) --outFile $@
 
-.PHONY: watcher
-watcher:
-	docker run --rm -it -v "$$PWD:/WebDnD" tsc bash -c "cd /WebDnD && tsc -w $(TSFILES) $(TSCFLAGS) --outFile Generated/combined.js"
 .DEFAULT_GOAL:=Generated/dungeon.html
 
 appconfig.py:
