@@ -6771,7 +6771,7 @@ let current_tool:ToolType = (function(){
         }
     }
     return show_pan?ToolType.PAN:ToolType.SELECT;
-    }());
+}());
 let color_picker_:HTMLInputElement;
 let color_picker2_:HTMLInputElement;
 function retrieve_colors(storage_key:string): Array<string>{
@@ -7060,6 +7060,7 @@ function change_tool(tool:ToolType):void{
     let [primary, secondary] = get_tool_colors(tool);
     color_picker_.value = primary;
     color_picker2_.value = secondary;
+    redo_canvas_cursor(get_active_view(), true);
 }
 let has_tri_menu = false;
 function make_tri_menu(e:MouseEvent, options:Array<{func:()=>void;text:string}>){
@@ -7414,10 +7415,27 @@ function hiddenid():number {
     return 0;
 }
 
+let GRABBING = false;
+let SELECTING = false;
 const redo_canvas_cursor = (function(){
     let prev_id = -1;
     function redo_canvas_cursor(view: DungeonMapView, modified:boolean){
         if(view.resize.resizing) return;
+        if(GRABBING){
+            if(TheCanvas.style.cursor != 'grabbing')
+                TheCanvas.style.cursor = 'grabbing';
+            return;
+        }
+        if(SELECTING){
+            if(TheCanvas.style.cursor != 'crosshair')
+                TheCanvas.style.cursor = 'crosshair';
+            return;
+        }
+        if(current_tool == ToolType.PAN){
+            if(TheCanvas.style.cursor != 'grab')
+                TheCanvas.style.cursor = 'grab';
+            return;
+        }
         if(current_tool != ToolType.SELECT){
             view.hovered_id = -1;
             if(TheCanvas.style.cursor != 'initial')
@@ -7436,10 +7454,14 @@ const redo_canvas_cursor = (function(){
         if(o){
             if(prev_id != o.id)
                 request_render();
+            if(TheCanvas.style.cursor != 'default')
+                TheCanvas.style.cursor = 'default';
         }
         else {
             if(prev_id != -1)
                 request_render();
+            if(TheCanvas.style.cursor != 'crosshair')
+                TheCanvas.style.cursor = 'crosshair';
         }
         prev_id = o?o.id:-1;
         if(view.selection_area.is_selecting)
@@ -7455,8 +7477,6 @@ const redo_canvas_cursor = (function(){
                     return;
                 }
             }
-        if(TheCanvas.style.cursor != 'initial')
-            TheCanvas.style.cursor = 'initial';
     }
     return redo_canvas_cursor;
 }());
@@ -7942,6 +7962,7 @@ document.addEventListener('DOMContentLoaded', function(){
                                         note_updates_for_undo(view.map, [before], [after]);
                                         publish_obj_updates(view.map.map_id, [after]);
                                     }
+                                    redo_canvas_cursor(view, false);
                                 }
                                 window.addEventListener('pointerup', finish);
                                 TheCanvas.addEventListener('pointerleave', finish);
@@ -8021,9 +8042,13 @@ document.addEventListener('DOMContentLoaded', function(){
                         TheCanvas.removeEventListener('pointermove', select);
                         window.removeEventListener('pointerup', finish_select);
                         TheCanvas.removeEventListener('pointerleave', finish_select);
+                        SELECTING = false;
+                        redo_canvas_cursor(view, false);
                     }
                     window.addEventListener('pointerup', finish_select);
                     TheCanvas.addEventListener('pointerleave', finish_select);
+                    SELECTING = true;
+                    redo_canvas_cursor(view, false);
                 }
             }break;
             case ToolType.PAN:{ // TAG toolPAN
@@ -8031,6 +8056,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 let clicked_x = e.offsetX/view.scale;
                 let clicked_y = e.offsetY/view.scale;
                 let pointer_id = e.pointerId;
+                GRABBING = true;
                 function pan(e:PointerEvent){
                     e.stopPropagation();
                     e.preventDefault();
@@ -8046,17 +8072,23 @@ document.addEventListener('DOMContentLoaded', function(){
                 TheCanvas.addEventListener('pointermove', pan);
                 function finish_pan(){
                     stop_pan = null;
+                    GRABBING = false;
                     if(prev_tool){
                         current_tool = prev_tool;
                         prev_tool = ToolType.PAN;
                     }
+                    if(prev_tool == ToolType.PAN || !prev_tool){
+                        TheCanvas.style.cursor = 'grab';
+                    }
                     TheCanvas.removeEventListener('pointermove', pan);
                     window.removeEventListener('pointerup', finish_pan);
                     TheCanvas.removeEventListener('pointerleave', finish_pan);
+                    redo_canvas_cursor(view, false);
                 }
                 stop_pan = finish_pan;
                 window.addEventListener('pointerup', finish_pan);
                 TheCanvas.addEventListener('pointerleave', finish_pan);
+                redo_canvas_cursor(view, false);
             }break;
             case ToolType.LINE:{ // TAG toolLINE
                 let id = get_new_id();
