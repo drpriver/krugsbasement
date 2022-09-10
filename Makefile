@@ -64,14 +64,46 @@ Generated/%.js: %.js
 Generated/messages.ts WebDnD/messages.py flask_socketio.pyi: types.shared Scripts/make_enums.py | Generated
 	python3 Scripts/make_enums.py
 
-.PHONY: dist.zip
-dist.zip: Generated/dungeon.html Generated/demo.html Generated/packed.webp Generated/packed.png Generated/toks.webp Generated/toks.png Generated/packed.json
+PACKEDFILES=\
+	  Generated/packed.json \
+	  Generated/packed.png \
+	  Generated/packed.webp \
+	  Generated/toks.webp \
+	  Generated/toks.png \
+
+DISTFILES=\
+	  Generated/dungeon.html \
+	  Generated/demo.html \
+	  register.dnd \
+	  home.dnd \
+	  login.dnd \
+	  login.css \
+	  darkmode.js \
+
+WEBDNDFILES=\
+	    WebDnD/app.py \
+	    WebDnD/canvas.py \
+	    WebDnD/chat.py \
+	    WebDnD/db.py \
+	    WebDnD/forms.py \
+	    WebDnD/logs.py \
+	    WebDnD/messages.py \
+	    WebDnD/notes.py \
+	    WebDnD/persist.py \
+	    WebDnD/settings.py \
+	    WebDnD/users.py \
+	    WebDnD/validator.py \
+
+ZIPFILES=$(PACKEDFILES) $(DISTFILES) $(WEBDNDFILESS) \
+	 requirements.txt setup.py server.mak
+
+dist.zip: $(ZIPFILES)
 	rm -rf dist dist.zip
-	mkdir -p dist/packed dist/WebDnD
+	mkdir dist dist/packed dist/WebDnD
 	cp server.mak dist
-	cp Generated/dungeon.html Generated/demo.html register.dnd home.dnd login.dnd login.css darkmode.js dist
-	cp Generated/packed.json Generated/packed.png Generated/packed.webp Generated/toks.png Generated/toks.webp dist/packed
-	cp WebDnD/*.py dist/WebDnD
+	cp $(DISTFILES) dist
+	cp $(PACKEDFILES) dist/packed
+	cp $(WEBDNDFILES) dist/WebDnD
 	cp requirements.txt dist
 	cp setup.py dist
 	cat .git/refs/heads/master > dist/githash
