@@ -28,6 +28,7 @@ static const void* memmem(const void* hay_, size_t haylen, const void* needle, s
 #define isatty _isatty
 #define fileno _fileno
 #else
+#include <unistd.h>
 extern void* memmem(const void*, size_t, const void*, size_t);
 #endif
 
