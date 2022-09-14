@@ -1,5 +1,9 @@
 ::comment
   Copyright © 2021-2022, David Priver
+::comment
+  This is imported by client.dnd and demo.dnd.
+  It is only built directly to generate types and to look
+  for ids.
 David20::title #hide
 ::meta
   name="apple-mobile-web-app-capable" content="yes"
