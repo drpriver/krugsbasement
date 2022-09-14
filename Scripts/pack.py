@@ -1,9 +1,9 @@
 from __future__ import annotations
 import PIL # type: ignore
 from PIL import Image
-import subprocess
 import ast
 import json
+import packrect
 from typing import NamedTuple, Optional, Type, List, Union, Dict, get_type_hints
 class StatusIconData(NamedTuple):
     id: int
@@ -368,9 +368,9 @@ Thing = Union[StatusIcon, Terrain, TerrainIcon, Fixture, Token]
 OutTypes = [StatusIcon, Terrain, TerrainIcon, Fixture, Token]
 ICONDIM=64
 def run_pack(data:List[Data], path_locs:Dict[str, List]) -> Image:
-    proc = subprocess.Popen('Bin/pack', stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     boxless = []
-    for i, d in enumerate(data):
+    boxed = []
+    for d in data:
         p = d.path()
         if p.endswith('/'):
             boxless.append(d)
@@ -380,21 +380,17 @@ def run_pack(data:List[Data], path_locs:Dict[str, List]) -> Image:
         else:
             img = Image.open(p)
             w, h = img.size
-        proc.stdin.write((f'{i},{w},{h}\n').encode('utf-8')) # type: ignore
-    proc.stdin.close() # type: ignore
-    res = []
-    for line in proc.stdout: # type: ignore
-        res.append(line.decode('utf-8').strip())
-    w, h = ast.literal_eval(res[0])
+        boxed.append((w, h, d))
+    res, w, h = packrect.pack(boxed, max_iters=25)
     out = Image.new('RGBA', (w, h))
-    for line in res[1:]:
-        i, x, y, w, h = ast.literal_eval(line)
-        path = data[i].path()
+    for rect in res:
+        x, y, w, h, d = rect
+        path = d.path()
         img = Image.open(path)
         if 'iconorig' in path:
             img.thumbnail((ICONDIM, ICONDIM))
         out.paste(img, (x, y))
-        th = data[i].as_thing(x, y, w, h)
+        th = d.as_thing(x, y, w, h)
         path_locs[th.key()].append(list(th))
 
     for d in boxless:
