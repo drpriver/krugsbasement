@@ -1,3 +1,6 @@
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS 1
+#endif
 #define STB_RECT_PACK_IMPLEMENTATION
 #include "stb_rect_pack.h"
 #include <stdio.h>

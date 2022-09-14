@@ -17,7 +17,7 @@ TSC?=tsc
 RMRF?=rm -rf
 else
 PYTHON?=py
-CC?=clang
+CC=clang
 CP?=copy
 ZIP?=
 ACTIVATE?=venv\Scripts\activate
@@ -27,7 +27,9 @@ endif
 include $(DEPFILES)
 venv:
 	$(PYTHON) -m venv venv
+	$(ACTIVATE) && $(PYTHON) -m pip install wheel
 	$(ACTIVATE) && $(PYTHON) -m pip install -r requirements.txt
+	$(ACTIVATE) && $(PYTHON) -m pip install pillow
 TSCFLAGS:=--noImplicitAny \
 	  --strict \
 	  --noUnusedLocals \
@@ -181,12 +183,12 @@ Generated/nodes.ts: $(META) Generated/dungeon.temp.html | Generated
 	$(META) Generated/dungeon.temp.html $@
 .PHONY: clean
 clean:
-	$(RM) $(wildcard Generated/*) Generated/dungeon.html
+	$(RMRF) Generated
 
 .PHONY: pack
 pack: Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.png Generated/toks.webp
 Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.webp Generated/toks.png Generated/packed.ts: Scripts/pack.py $(PACK) | Generated
-	$(PYTHON) Scripts/pack.py
+	$(ACTIVATE) && $(PYTHON) Scripts/pack.py
 .PHONY: echo-deployed-hash
 echo-deployed-hash:
 	ssh website "cd ~webdnd && cat dist/githash"

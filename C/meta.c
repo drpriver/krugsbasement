@@ -1,3 +1,6 @@
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS 1
+#endif
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -5,9 +8,29 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <errno.h>
-#include <unistd.h>
-
+#ifdef _WIN32
+static const void* memmem(const void* hay_, size_t haylen, const void* needle, size_t needlen){
+    if(!needlen) return NULL;
+    const char* hay = hay_;
+    char first = *(const char*)needle;
+    const char* hayend = hay+haylen;
+    while(hay != hayend){
+        hay = memchr(hay, first, hayend-hay);
+        if(!hay) return NULL;
+        if((size_t)(hayend - hay) < needlen)
+            return NULL;
+        if(memcmp(hay, needle, needlen) == 0) return hay;
+        hay++;
+    }
+    return NULL;
+}
+#include <io.h>
+#define isatty _isatty
+#define fileno _fileno
+#else
 extern void* memmem(const void*, size_t, const void*, size_t);
+#endif
+
 enum {
     FILE_ERROR = 1,
     FILE_NOT_OPENED = 2,
