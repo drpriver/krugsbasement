@@ -1,11 +1,33 @@
-Depends: ; mkdir -p $@
-Depends/Generated: ; mkdir -p $@
-Depends/Bin: ; mkdir -p $@
-Generated: ; mkdir -p $@
-Bin: ; mkdir -p $@
-Archives: ; mkdir -p $@
+Depends: ; mkdir $@
+Depends/Generated: | Depends
+	mkdir $@
+Depends/Bin: | Depends
+	mkdir $@
+Generated: ; mkdir $@
+Bin: ; mkdir $@
+Archives: ; mkdir $@
 DEPFILES:= $(wildcard Depends/*.dep Depends/Generated/*.dep Depends/Bin/*.dep)
+ifneq ($(OS),Windows_NT)
+PYTHON?=python3
+CC?=clang
+CP?=cp
+ZIP?=zip
+ACTIVATE?=. venv/bin/activate
+TSC?=tsc
+RMRF?=rm -rf
+else
+PYTHON?=py
+CC?=clang
+CP?=copy
+ZIP?=
+ACTIVATE?=venv\Scripts\activate
+TSC?=tsc
+RMRF?=del /q
+endif
 include $(DEPFILES)
+venv:
+	$(PYTHON) -m venv venv
+	$(ACTIVATE) && $(PYTHON) -m pip install -r requirements.txt
 TSCFLAGS:=--noImplicitAny \
 	  --strict \
 	  --noUnusedLocals \
@@ -43,26 +65,26 @@ appconfig.py:
 
 
 .PHONY: run
-run: Generated/dungeon.html Generated/demo.html WebDnD/messages.py | appconfig.py
-	. venv/bin/activate && python3 -m WebDnD.app
+run: Generated/dungeon.html Generated/demo.html WebDnD/messages.py | appconfig.py venv
+	$(ACTIVATE) && $(PYTHON) -m WebDnD.app
 
-Generated/dungeon.html: client.dnd Generated/combined.js | Depends Depends/Generated
-	. venv/bin/activate && python3 -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
-Generated/demo.html: demo.dnd Generated/demo.js | Depends Depends/Generated
-	. venv/bin/activate && python3 -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
+Generated/dungeon.html: client.dnd Generated/combined.js | Depends Depends/Generated venv
+	$(ACTIVATE) && $(PYTHON) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
+Generated/demo.html: demo.dnd Generated/demo.js | Depends Depends/Generated venv
+	$(ACTIVATE) && $(PYTHON) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
 
-Generated/%.html: Docs/%.dnd | Generated Depends/Generated
-	. venv/bin/activate && python3 -m pydndc $< --output $@ --depends-path Depends/$@.dep
+Generated/%.html: Docs/%.dnd | Generated Depends/Generated venv
+	$(ACTIVATE) && $(PYTHON) -m pydndc $< --output $@ --depends-path Depends/$@.dep
 # This is so that the dev server can serve things from the Generated folder.
 Generated/%.dnd: %.dnd
-	cp $< $@
+	$(CP) $< $@
 Generated/%.css: %.css
-	cp $< $@
+	$(CP) $< $@
 Generated/%.js: %.js
-	cp $< $@
+	$(CP) $< $@
 
 Generated/messages.ts WebDnD/messages.py flask_socketio.pyi: types.shared Scripts/make_enums.py | Generated
-	python3 Scripts/make_enums.py
+	$(PYTHON) Scripts/make_enums.py
 
 PACKEDFILES=\
 	  Generated/packed.json \
@@ -98,22 +120,22 @@ ZIPFILES=$(PACKEDFILES) $(DISTFILES) $(WEBDNDFILESS) \
 	 requirements.txt setup.py server.mak
 
 dist.zip: $(ZIPFILES)
-	rm -rf dist dist.zip
+	$(RMRF) dist dist.zip
 	mkdir dist dist/packed dist/WebDnD
-	cp server.mak dist
-	cp $(DISTFILES) dist
-	cp $(PACKEDFILES) dist/packed
-	cp $(WEBDNDFILES) dist/WebDnD
-	cp requirements.txt dist
-	cp setup.py dist
-	cat .git/refs/heads/master > dist/githash
-	zip -r dist dist
-	rm -rf dist
+	$(CP) server.mak dist
+	$(CP) $(DISTFILES) dist
+	$(CP) $(PACKEDFILES) dist/packed
+	$(CP) $(WEBDNDFILES) dist/WebDnD
+	$(CP) requirements.txt dist
+	$(CP) setup.py dist
+	$(CP) .git/refs/heads/master dist/githash
+	$(PYTHON) -m zipfile -c dist.zip dist
+	$(RMRF) dist
 
 # I don't think I use this anymore?
 .PHONY: shrink-tokens
 shrink-tokens:
-	python3 shrink_tokens.py
+	$(PYTHON) shrink_tokens.py
 
 ship-it: dist.zip
 	scp dist.zip david@website:/home/david/dist.zip
@@ -122,9 +144,9 @@ ship-it: dist.zip
 backup: | Archives
 	ssh david@website "cd ~webdnd && bash backup.sh"
 	scp "david@website:~webdnd/data/campaigns.db.bak" campaigns.db
-	cp campaigns.db Archives/campaigns.db.$$(date '+%Y-%m-%d-%T').bak
+	$(CP) campaigns.db Archives/campaigns.db.$$(date '+%Y-%m-%d-%T').bak
 tags: *.ts Scripts/tag_ts.py types.shared
-	python3 -m Scripts.tag_ts
+	$(PYTHON) -m Scripts.tag_ts
 
 DOCS=Generated/macro-doc.html Generated/tables.html
 
@@ -134,26 +156,37 @@ ship-docs: $(DOCS)
 
 .PHONY: mypy
 mypy: flask_socketio.pyi
-	mypy -p WebDnD.app --namespace-packages --ignore-missing-imports --disallow-untyped-defs
+	$(PYTHON) -m mypy -p WebDnD.app --namespace-packages --ignore-missing-imports --disallow-untyped-defs
 
+ifneq ($(OS),Windows_NT)
 Bin/%: C/%.c | Bin Depends/Bin
 	$(CC) -O3 $< -o $@ -IC -Wall -Wextra -MT $@ -MMD -MP -MF Depends/$@.dep
 Bin/pack:
 Bin/meta:
+META=Bin/meta
+PACK=Bin/pack
+else
+Bin/%.exe: C/%.c | Bin Depends/Bin
+	$(CC) -O3 $< -o $@ -IC -Wall -Wextra -MT $@ -MMD -MP -MF Depends/$@.dep
+Bin/pack.exe:
+Bin/meta.exe:
+META=Bin/meta.exe
+PACK=Bin/pack.exe
+endif
 
-Generated/subwindowdefs.ts Generated/dialogdefs.ts Generated/dungeon.temp.html: dungeon.dnd | Generated
-	. venv/bin/activate && python3 -m pydndc $< --output Generated/dungeon.temp.html --strip-spaces --allow-js-write --jsargs '{"temp":true}'
+Generated/subwindowdefs.ts Generated/dialogdefs.ts Generated/dungeon.temp.html: dungeon.dnd | Generated venv
+	$(ACTIVATE) && $(PYTHON) -m pydndc $< --output Generated/dungeon.temp.html --strip-spaces --allow-js-write --jsargs '{"temp":true}'
 
-Generated/nodes.ts: Bin/meta Generated/dungeon.temp.html | Generated
-	Bin/meta Generated/dungeon.temp.html $@
+Generated/nodes.ts: $(META) Generated/dungeon.temp.html | Generated
+	$(META) Generated/dungeon.temp.html $@
 .PHONY: clean
 clean:
 	$(RM) $(wildcard Generated/*) Generated/dungeon.html
 
 .PHONY: pack
 pack: Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.png Generated/toks.webp
-Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.webp Generated/toks.png Generated/packed.ts: Scripts/pack.py Bin/pack | Generated
-	python3 Scripts/pack.py
+Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.webp Generated/toks.png Generated/packed.ts: Scripts/pack.py $(PACK) | Generated
+	$(PYTHON) Scripts/pack.py
 .PHONY: echo-deployed-hash
 echo-deployed-hash:
 	ssh website "cd ~webdnd && cat dist/githash"
