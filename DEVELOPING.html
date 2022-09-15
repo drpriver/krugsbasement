@@ -1,0 +1,84 @@
+<style>
+.decimal {
+  list-style-type: decimal;
+}
+.alpha {
+  list-style-type: lower-alpha;
+}
+section.notes {
+  max-width: 44em;
+  font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+  margin: auto;
+}
+a.unvisited {
+    color: blue;
+}
+tt {
+    font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
+    font-size: 12px;
+}
+
+</style>
+<section class=notes>
+<h2 id="tools">Tools</h2>
+<p>
+To develop/run this webapp, you'll need the following tools:
+
+<ol class=decimal>
+  <li>Python (3.8+)
+  <li>GNU Make
+    <ol class=alpha>
+      <li>On macos, whatever comes with the xcode tools is fine.
+      <li>On linux, just install a gnu make (you probably already have it).
+      <li>On windows, grab it from 
+          <a href=http://gnuwin32.sourceforge.net/packages/make.htm>here.</a>
+        <ul>
+          <li>It's old af but it works fine.
+        </ul>
+    </ol>
+  <li>tsc (TypeScript Compiler)
+    <ol class=alpha>
+      <li>See <a href=https://www.typescriptlang.org/download>here</a>
+      <li>There's other janky ways to get tsc without node or npm, 
+          but I am not going to list them here.
+    </ol>
+</ol>
+
+<h2 id="running-locally">Running Locally</h2>
+<p>
+If you have the above tools installed, you can just do <tt>make run</tt> and
+you'll get a server running. You can then visit it at 
+<a href=http://localhost:5000 class=unvisited>http://localhost:5000.</a>
+The first time you run the server it will create an empty database.
+
+<p>
+Make will be called whenever you visit a page. TypeScript is the slowest part,
+so you might want to execute it in watch mode so that it recompiles the
+typescript whenever you save.
+
+<p>
+For the stand-alone demo page, do <tt>make Generated/demo.html</tt> then
+open that file in a browser. If you have the server running you can also go to
+<a href=http://localhost:5000/demos/dungeon.html class=unvisited>http://localhost:5000/demos/dungeon.html</a>,
+which will rebuild it when you visit
+that url.
+
+<p>
+In DEV mode, static assets are served by the running webserver.
+
+<h2 id="the-appconfig">The AppConfig</h2>
+<p>
+This is just a simple python file that is imported. Make will generate one when
+do <tt>make run</tt> or you can do <tt>make appconfig.py</tt> yourself.
+
+<p>
+The values are pretty self explanatory.
+
+<h2 id="running-on-a-server">Running on a Server</h2>
+<p>
+Put a reverse proxy like nginx in front of this so it can handle stuff like TLS
+and serving static files.
+
+<p>
+I use the makefile server.mak to run the server.
+</section>

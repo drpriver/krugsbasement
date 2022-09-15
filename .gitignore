@@ -33,3 +33,4 @@ appconfig.py
 flask_socketio.pyi
 *.so_
 private.mak
+!DEVELOPING.html
