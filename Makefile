@@ -7,14 +7,12 @@ DEPFILES:= $(wildcard Depends/*.dep Depends/Generated/*.dep)
 ifneq ($(OS),Windows_NT)
 PY?=python3
 CP?=cp
-ZIP?=zip
 ACTIVATE?=. venv/bin/activate
 TSC?=tsc
 RMRF?=rm -rf
 else
 PY?=py
 CP?=copy
-ZIP?=
 ACTIVATE?=venv\Scripts\activate
 TSC?=tsc
 RMRF?=del /q

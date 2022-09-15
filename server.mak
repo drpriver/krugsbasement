@@ -4,6 +4,7 @@ backup:
 	-mv data/campaigns.db.bak data/campaigns.db.bak.bak
 	sqlite3 data/campaigns.db '.backup data/campaigns.db.bak'
 
+.PHONY: restore
 restore:
 	rm -f data/campaigns.db
 	cp data/campaigns.db.bak data/campaigns.db
