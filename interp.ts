@@ -147,11 +147,11 @@ const evaluate_script = (function(){
                 let lower = tok.text.toLowerCase();
                 if(lower == "if")
                     tok.kind = TokenKind.IF;
-                if(lower == "else")
+                else if(lower == "else")
                     tok.kind = TokenKind.ELSE;
-                if(lower == "use")
+                else if(lower == "use")
                     tok.kind = TokenKind.USE;
-                if(lower == "using")
+                else if(lower == "using")
                     tok.kind = TokenKind.USE;
                 result.push(tok);
                 i--;
