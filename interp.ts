@@ -151,6 +151,8 @@ const evaluate_script = (function(){
                     tok.kind = TokenKind.ELSE;
                 if(lower == "use")
                     tok.kind = TokenKind.USE;
+                if(lower == "using")
+                    tok.kind = TokenKind.USE;
                 result.push(tok);
                 i--;
                 continue;
