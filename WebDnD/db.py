@@ -641,7 +641,7 @@ def create_campaign(name:str, owner:int=None) -> int:
             (?, ?)
         ;
         ''', (name, owner))
-        return cur.lastrowid
+        return cur.lastrowid # type: ignore
 
 
 def get_chat(id:int) -> list:
