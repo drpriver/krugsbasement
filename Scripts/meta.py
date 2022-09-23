@@ -66,6 +66,10 @@ def run(infile: str, outfile:str) -> None:
         g.p('}')
     depfile = 'Depends/'+os.path.basename(outfile)+'.dep'
     def m(s:str) -> str:
+        try:
+            s = os.path.relpath(s) # can throw on windows
+        except:
+            pass
         return s.replace(' ', r'\ ')
     with open(depfile, 'w') as fp:
         fp.write(m(outfile)+': ' + m(infile) + ' ' + m(__file__)+'\n')
