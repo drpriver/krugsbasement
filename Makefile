@@ -14,7 +14,9 @@ ifneq ($(OS),Windows_NT)
 # linux/macos
 PY?=python3
 CP?=cp
-ACTIVATE?=. venv/bin/activate
+# using `.` is the portable way to source a shell file
+DEV_ACTIVATE?=. dev_venv/bin/activate
+SERV_ACTIVATE?=. serv_venv/bin/activate
 TSC?=tsc
 RMRF?=rm -rf
 
@@ -22,17 +24,28 @@ else
 # Windows
 PY?=py
 CP?=copy
-ACTIVATE?=venv\Scripts\activate
+DEV_ACTIVATE?=dev_venv\Scripts\activate
+SERV_ACTIVATE?=serv_venv\Scripts\activate
 TSC?=tsc
 RMRF?=del /q
 
 endif
 
-venv:
-	$(PY) -m venv venv
-	$(ACTIVATE) && $(PY) -m pip install wheel
-	$(ACTIVATE) && $(PY) -m pip install -r requirements.txt
-	$(ACTIVATE) && $(PY) -m pip install -r dev_requirements.txt
+SERVPY=$(SERV_ACTIVATE) && $(PY)
+DEVPY=$(DEV_ACTIVATE) && $(PY)
+
+# To try to prevent accidental dependency on dev tools in the server,
+# we use two separate venvs.
+
+serv_venv:
+	$(PY) -m venv $@
+	$(SERVPY) -m pip install wheel
+	$(SERVPY) -m pip install -r requirements.txt
+
+dev_venv:
+	$(PY) -m venv $@
+	$(DEVPY) -m pip install wheel
+	$(DEVPY) -m pip install -r dev_requirements.txt
 
 TSCFLAGS:=--noImplicitAny \
 	  --strict \
@@ -58,16 +71,16 @@ appconfig.py:
 	$(CP) defaultconfig.py $@
 
 .PHONY: run
-run: Generated/dungeon.html Generated/demo.html WebDnD/messages.py | appconfig.py venv
-	$(ACTIVATE) && $(PY) -m WebDnD.app
+run: Generated/dungeon.html Generated/demo.html WebDnD/messages.py | appconfig.py serv_venv
+	$(SERVPY) -m WebDnD.app
 
-Generated/dungeon.html: client.dnd Generated/combined.js | Depends Depends/Generated venv
-	$(ACTIVATE) && $(PY) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
-Generated/demo.html: demo.dnd Generated/demo.js Generated/combined.js | Depends Depends/Generated venv
-	$(ACTIVATE) && $(PY) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
+Generated/dungeon.html: client.dnd Generated/combined.js | Depends Depends/Generated dev_venv
+	$(DEVPY) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
+Generated/demo.html: demo.dnd Generated/demo.js Generated/combined.js | Depends Depends/Generated dev_venv
+	$(DEVPY) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
 
-Generated/%.html: Docs/%.dnd | Generated Depends/Generated venv
-	$(ACTIVATE) && $(PY) -m pydndc $< --output $@ --depends-path Depends/$@.dep
+Generated/%.html: Docs/%.dnd | Generated Depends/Generated dev_venv
+	$(DEVPY) -m pydndc $< --output $@ --depends-path Depends/$@.dep
 # This is so that the dev server can serve things from the Generated folder.
 Generated/%.dnd: %.dnd
 	$(CP) $< $@
@@ -76,8 +89,8 @@ Generated/%.css: %.css
 Generated/%.js: %.js
 	$(CP) $< $@
 
-Generated/messages.ts WebDnD/messages.py flask_socketio.pyi: types.shared Scripts/make_enums.py | Generated
-	$(PY) Scripts/make_enums.py
+Generated/messages.ts WebDnD/messages.py flask_socketio.pyi: types.shared Scripts/make_enums.py | Generated dev_venv
+	$(DEVPY) Scripts/make_enums.py
 
 PACKEDFILES=\
 	  Generated/packed.json \
@@ -127,21 +140,21 @@ dist.zip: $(ZIPFILES)
 
 # I don't think I use this anymore?
 .PHONY: shrink-tokens
-shrink-tokens:
-	$(PY) shrink_tokens.py
+shrink-tokens: | dev_venv
+	$(DEVPY) shrink_tokens.py
 
-tags: *.ts Scripts/tag_ts.py types.shared
-	$(PY) -m Scripts.tag_ts
+tags: *.ts Scripts/tag_ts.py types.shared | dev_venv
+	$(DEVPY) -m Scripts.tag_ts
 
 .PHONY: mypy
-mypy: flask_socketio.pyi
-	$(PY) -m mypy -p WebDnD.app --namespace-packages --ignore-missing-imports --disallow-untyped-defs
+mypy: flask_socketio.pyi | dev_venv
+	$(DEVPY) -m mypy -p WebDnD.app --namespace-packages --ignore-missing-imports --disallow-untyped-defs
 
-Generated/subwindowdefs.ts Generated/dialogdefs.ts Generated/dungeon.temp.html: dungeon.dnd | Generated venv
-	$(ACTIVATE) && $(PY) -m pydndc $< --output Generated/dungeon.temp.html --strip-spaces --allow-js-write --jsargs '{"temp":true}'
+Generated/subwindowdefs.ts Generated/dialogdefs.ts Generated/dungeon.temp.html: dungeon.dnd | Generated dev_venv
+	$(DEVPY) -m pydndc $< --output Generated/dungeon.temp.html --strip-spaces --allow-js-write --jsargs '{"temp":true}'
 
-Generated/nodes.ts: Generated/dungeon.temp.html | Generated Depends
-	$(PY) Scripts/meta.py $< $@
+Generated/nodes.ts: Generated/dungeon.temp.html | Generated Depends dev_venv
+	$(DEVPY) Scripts/meta.py $< $@
 
 .PHONY: clean
 clean:
@@ -149,8 +162,8 @@ clean:
 
 .PHONY: pack
 pack: Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.png Generated/toks.webp
-Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.webp Generated/toks.png Generated/packed.ts: Scripts/pack.py | Generated venv Depends
-	$(ACTIVATE) && $(PY) Scripts/pack.py
+Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.webp Generated/toks.png Generated/packed.ts: Scripts/pack.py | Generated dev_venv Depends
+	$(DEVPY) Scripts/pack.py
 
 include $(wildcard private.mak)
 
