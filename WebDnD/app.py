@@ -780,6 +780,11 @@ if appconfig.DEV:
         logging.info('campaign: %r - %r', campaign, msg)
         msg: ChatPlainMsg = (Msg.PLAIN, '', str(msg), )
         emit(ToClient.CHAT_STRUCTURED_MSG, [msg])
+
+    @app.route('/kill', methods=['POST'])
+    def kill() -> object:
+        import os
+        os._exit(0)
 else:
     @socketio.on(FromClient.DEBUG)
     def log_debug(msg:str) -> None:
