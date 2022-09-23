@@ -1,28 +1,39 @@
+# directories
 Depends: ; mkdir $@
 Depends/Generated: | Depends
 	mkdir $@
 Generated: ; mkdir $@
 Archives: ; mkdir $@
+
+# Include make-style dependency files
 DEPFILES:= $(wildcard Depends/*.dep Depends/Generated/*.dep)
+include $(DEPFILES)
+
+# paper over OS difference in shell commands
 ifneq ($(OS),Windows_NT)
+# linux/macos
 PY?=python3
 CP?=cp
 ACTIVATE?=. venv/bin/activate
 TSC?=tsc
 RMRF?=rm -rf
+
 else
+# Windows
 PY?=py
 CP?=copy
 ACTIVATE?=venv\Scripts\activate
 TSC?=tsc
 RMRF?=del /q
+
 endif
-include $(DEPFILES)
+
 venv:
 	$(PY) -m venv venv
 	$(ACTIVATE) && $(PY) -m pip install wheel
 	$(ACTIVATE) && $(PY) -m pip install -r requirements.txt
 	$(ACTIVATE) && $(PY) -m pip install -r dev_requirements.txt
+
 TSCFLAGS:=--noImplicitAny \
 	  --strict \
 	  --noUnusedLocals \
@@ -44,20 +55,7 @@ Generated/demo.js: demo.ts Generated/messages.ts | Generated
 .DEFAULT_GOAL:=Generated/dungeon.html
 
 appconfig.py:
-	@echo "# this config is for development." > appconfig.py
-	@echo "# Use different settings on the server" >> appconfig.py
-	@echo "# This should be False on the server" >> appconfig.py
-	@echo "DEV = True " >> appconfig.py
-	@echo "# Where the database is" >> appconfig.py
-	@echo "DBNAME = 'campaigns.db'" >> appconfig.py
-	@echo "# Where static files are" >> appconfig.py
-	@echo "STATICDIR = 'Generated'" >> appconfig.py
-	@echo "# DON'T USE THIS ON THE HOST. SET IT TO AN ACTUAL RANDOM KEY" >> appconfig.py
-	@echo "# VIA os.urandom." >> appconfig.py
-	@echo "SECRET_KEY = 'dev'" >> appconfig.py
-	@echo "# set to blank to disable invite codes" >> appconfig.py
-	@echo "INVITE_CODE = 'dev'" >> appconfig.py
-
+	$(CP) defaultconfig.py $@
 
 .PHONY: run
 run: Generated/dungeon.html Generated/demo.html WebDnD/messages.py | appconfig.py venv
@@ -135,8 +133,6 @@ shrink-tokens:
 tags: *.ts Scripts/tag_ts.py types.shared
 	$(PY) -m Scripts.tag_ts
 
-DOCS=Generated/macro-doc.html Generated/tables.html
-
 .PHONY: mypy
 mypy: flask_socketio.pyi
 	$(PY) -m mypy -p WebDnD.app --namespace-packages --ignore-missing-imports --disallow-untyped-defs
@@ -155,23 +151,7 @@ clean:
 pack: Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.png Generated/toks.webp
 Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.webp Generated/toks.png Generated/packed.ts: Scripts/pack.py | Generated venv Depends
 	$(ACTIVATE) && $(PY) Scripts/pack.py
-ifneq ($(OS),Windows_NT) # shells out to unix commands
-.PHONY: list
-list:
-	@LC_ALL=C $(MAKE) -npRrq : 2>/dev/null \
-		| awk -v RS= -F: '{if ($$1 !~ "^[#.]") {print $$1}}' \
-		| sort \
-		| uniq \
-		| egrep -v \
-			-e '^[^[:alnum:]]' \
-			-e '^$@$$' \
-			-e '%' \
-			-e '.(dnd|dep|[ch]|css|ts|png|webp|json|temp.html)$$' \
-			-e '^(Generated|Depends|Objs|VendObjs|Archives|Docs|WebDnD)' \
-			-e '^(tokens|tilesorig|miscimgs|iconorig)' \
-			-e '^(conn.js|appconfig.py)'
 
-endif
 include $(wildcard private.mak)
 
 .PHONY: all
