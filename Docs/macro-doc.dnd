@@ -4,7 +4,7 @@
     Expanded Macro Processor::title
     The expanded functionality of the chat processor can now insert
     variables into your roll expressions. You can also do basic conditional
-    statements with <code>if</code>.
+    statements with <tt>if</tt>.
 
     Chat Commands::md
 
@@ -15,14 +15,14 @@
 
       The current commands are:
         Roll::md.indented .command
-            <code>roll, r, /roll, /r</code> or any line of text that can be successfully
+            <tt>roll, r, /roll, /r</tt> or any line of text that can be successfully
             parsed as a dice expression.
 
             The server parses the command as a dice expression, rolls the dice
             and displays the result.
 
         Shuffle::md.indented .command
-            <code>shuffle, shuf, shuff, /shuffle, /shuff, /shuffle</code> stuff
+            <tt>shuffle, shuf, shuff, /shuffle, /shuff, /shuffle</tt> stuff
 
             The text after the shuffle is split on whitespace (although quoted
             text is treated as a single thing) and then shuffled. The result is
@@ -30,13 +30,13 @@
             some things.
 
         Choose::md.indented .command
-            <code>choose, /choose</code> stuff
+            <tt>choose, /choose</tt> stuff
 
             The text after the choose is broken up the same way as with the
             shuffle command. One of them is chosen and sent back.
 
         Table::md.indented .command
-            <code>table, /table</code> tablename
+            <tt>table, /table</tt> tablename
 
             The named table is looked up and rolled on (which can trigger a roll
             on a different table). The result is then sent back. See
@@ -45,7 +45,7 @@
               tablesweb = tables.html
 
         Name::md.indented .command
-            <code>/name</code> some name
+            <tt>/name</tt> some name
 
             Your chatname is temporarily changed to the given name for display
             purposes in this collection of lines.
@@ -57,7 +57,7 @@
             some text.
 
         Say::md.indented .command
-            <code>/say</code> some text
+            <tt>/say</tt> some text
 
             Says the text, without trying to parse it as a die roll.
 
@@ -119,20 +119,20 @@
       Expressions::md.comment
         To understand how the system works, it is important to understand what
         is an expression for a roll command, in descending precedence.
-        1. Dice literal, for example "<code>3d6</code>" or "<code>d20</code>".
-        2. Integer literal, for example "<code>3</code>" or "<code>42</code>".
+        1. Dice literal, for example "<tt>3d6</tt>" or "<tt>d20</tt>".
+        2. Integer literal, for example "<tt>3</tt>" or "<tt>42</tt>".
         3. Variable, such as "attack" above.
-        4. Parenthesized group, like "<code>(3 + d6)</code>" or "<code>(2*3)</code>."
-        5. Unary operations, like "<code>!4</code>" or "<code>-d6</code>". The
-           unary operations are "<code>!</code>" (not, turns 0 to 1 and all other
-           values to 0), "<code>-</code>" (negative), and "<code>+</code>" (which
+        4. Parenthesized group, like "<tt>(3 + d6)</tt>" or "<tt>(2*3)</tt>."
+        5. Unary operations, like "<tt>!4</tt>" or "<tt>-d6</tt>". The
+           unary operations are "<tt>!</tt>" (not, turns 0 to 1 and all other
+           values to 0), "<tt>-</tt>" (negative), and "<tt>+</tt>" (which
            does nothing).
-        4. Multiplication and division, like "<code>3 * 3d6</code>",
-           or "<code>attack/2</code>".
-        5. Addition and subtraction, like "<code>d20+4</code>", or "<code>d6 - 1</code>".
-        6. Comparisons, like "<code>d6 == 1</code>" or "<code>d10 <= 2</code>".
-           The comparison operatiors are "<code>=</code>", "<code><</code>",
-           "<code><=</code>", "<code>></code>", <code>>=</code>", "<code>!=</code>".
+        4. Multiplication and division, like "<tt>3 * 3d6</tt>",
+           or "<tt>attack/2</tt>".
+        5. Addition and subtraction, like "<tt>d20+4</tt>", or "<tt>d6 - 1</tt>".
+        6. Comparisons, like "<tt>d6 == 1</tt>" or "<tt>d10 <= 2</tt>".
+           The comparison operatiors are "<tt>=</tt>", "<tt><</tt>",
+           "<tt><=</tt>", "<tt>></tt>", <tt>>=</tt>", "<tt>!=</tt>".
 
         When substituted, variables are implicitly grouped. This means that
         something like:
@@ -142,8 +142,8 @@
         will evaluate to 15, as you would expect.
 
         Integer literals are always positive, but since unary operations are
-        high enough precedence, "<code>-4 + 2</code>" works in the normal way,
-        producing <code>-2</code>.
+        high enough precedence, "<tt>-4 + 2</tt>" works in the normal way,
+        producing <tt>-2</tt>.
       Rounding::md.comment
         As per the usual rules of rpgs, if you are left with a fractional
         result, that result is rounded down. That is still ambiguous, so to be
@@ -184,9 +184,9 @@
         number of variables defined in it.
 
         To actually access a variable in a macro, you need to bring it into the
-        local context. To do that, we have the <code>use</code> statement.
-        Imagine you have a variable group where you have defined <code>bab</code>
-        to be 3 and <code>dex</code> to be 2, named <code>Yowa</code>.
+        local context. To do that, we have the <tt>use</tt> statement.
+        Imagine you have a variable group where you have defined <tt>bab</tt>
+        to be 3 and <tt>dex</tt> to be 2, named <tt>Yowa</tt>.
         You can then do this:
       ::pre.macro
         use Yowa
@@ -221,9 +221,9 @@
           These variables are stored as strings, but they must succesfully
           parse as an expression in order to be used. You can still take
           advantage of lazy evaluation of variables.  For example,
-          "<code>d20 + attack</code>" is a legal expression, but
-          "<code>d20 +</code>" is not as there is no
-          postfix "<code>+</code>" operator and so it is an incomplete add
+          "<tt>d20 + attack</tt>" is a legal expression, but
+          "<tt>d20 +</tt>" is not as there is no
+          postfix "<tt>+</tt>" operator and so it is an incomplete add
           expression, missing the right hand side.
 
           Expression variables are very powerful due to the lazy evaluation.
@@ -234,7 +234,7 @@
 
       If Statements::md.comment
         The last major feature is conditional execution. This is done
-        using <code>if</code> and <code>else</code>. An example:
+        using <tt>if</tt> and <tt>else</tt>. An example:
       ::pre.macro
         rapid = 1
         if rapid:
@@ -243,7 +243,7 @@
         else:
           /roll d20
       ::md.comment
-        The <code>if</code> statement is written as "if" "expression" ":".
+        The <tt>if</tt> statement is written as "if" "expression" ":".
         The trailing colon is mandatory. Without it, it is considered a regular
         line of text.
 
@@ -251,10 +251,10 @@
         and if the result is non-zero, it is considered "true". If it's true, then
         the indented statements after the if are evaluated.
 
-        An <code>if</code> can have an <code>else</code>, which looks like in
+        An <tt>if</tt> can have an <tt>else</tt>, which looks like in
         the above example. The indented statements after the else are run if
-        the expression turned out to be false (0). An <code>if</code> doesn't
-        have to have an <code>else</code>. There's also <code>else if</code>.
+        the expression turned out to be false (0). An <tt>if</tt> doesn't
+        have to have an <tt>else</tt>. There's also <tt>else if</tt>.
 
         With the if you can conditionally send roll commands and also conditionally
         set variables. For example:
