@@ -13,21 +13,21 @@ include $(DEPFILES)
 ifneq ($(OS),Windows_NT)
 # linux/macos
 PY?=python3
-CP?=cp
+CP=cp
 # using `.` is the portable way to source a shell file
-DEV_ACTIVATE?=. dev_venv/bin/activate
-SERV_ACTIVATE?=. serv_venv/bin/activate
+DEV_ACTIVATE=. dev_venv/bin/activate
+SERV_ACTIVATE=. serv_venv/bin/activate
 TSC?=tsc
-RMRF?=rm -rf
+RMRF=rm -rf
 
 else
 # Windows
 PY?=py
-CP?=copy
-DEV_ACTIVATE?=dev_venv\Scripts\activate
-SERV_ACTIVATE?=serv_venv\Scripts\activate
+CP=copy
+DEV_ACTIVATE=dev_venv\Scripts\activate
+SERV_ACTIVATE=serv_venv\Scripts\activate
 TSC?=tsc
-RMRF?=del /q
+RMRF=del /q
 
 endif
 
