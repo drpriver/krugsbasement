@@ -138,11 +138,6 @@ dist.zip: $(ZIPFILES)
 	$(PY) -m zipfile -c dist.zip dist
 	$(RMRF) dist
 
-# I don't think I use this anymore?
-.PHONY: shrink-tokens
-shrink-tokens: | dev_venv
-	$(DEVPY) shrink_tokens.py
-
 tags: *.ts Scripts/tag_ts.py types.shared | dev_venv
 	$(DEVPY) -m Scripts.tag_ts
 
