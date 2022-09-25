@@ -535,39 +535,27 @@ const evaluate_script = (function(){
                 if(lhs === null) return null;
                 if(rhs === null) return null;
                 switch(expr.btype){
-                    case Binary.ADD:
-                        return lhs + rhs;
-                    case Binary.SUB:
-                        return lhs - rhs;
-                    case Binary.MUL:
-                        return lhs * rhs;
+                    case Binary.ADD: return lhs + rhs;
+                    case Binary.SUB: return lhs - rhs;
+                    case Binary.MUL: return lhs * rhs;
                     case Binary.DIV:
                         if(!rhs) return 0;
                         return (lhs / rhs) | 0;
-                    case Binary.EQ:
-                        return lhs == rhs? 1 : 0;
-                    case Binary.NE:
-                        return lhs != rhs? 1 : 0;
-                    case Binary.LT:
-                        return lhs < rhs? 1 : 0;
-                    case Binary.LE:
-                        return lhs <= rhs? 1 : 0;
-                    case Binary.GT:
-                        return lhs > rhs? 1 : 0;
-                    case Binary.GE:
-                        return lhs >= rhs? 1 : 0;
+                    case Binary.EQ: return lhs == rhs? 1 : 0;
+                    case Binary.NE: return lhs != rhs? 1 : 0;
+                    case Binary.LT: return lhs <  rhs? 1 : 0;
+                    case Binary.LE: return lhs <= rhs? 1 : 0;
+                    case Binary.GT: return lhs >  rhs? 1 : 0;
+                    case Binary.GE: return lhs >= rhs? 1 : 0;
                 }
             }
             case EXPR.Unary:{
                 let v = eval_expr(expr.expr, namespaces, vars);
                 if(v === null) return null;
                 switch(expr.utype){
-                    case Unary.PLUS:
-                        return v;
-                    case Unary.NOT:
-                        return !v? 1 : 0;
-                    case Unary.NEG:
-                        return -v;
+                    case Unary.PLUS: return v;
+                    case Unary.NOT:  return !v? 1 : 0;
+                    case Unary.NEG:  return -v;
                 }
             }
 
