@@ -318,6 +318,10 @@ function preprocess_command(value:string, flags:EvaluateFlags):Array<Command> {
         alert(""+e);
         console.log(e);
     }
+    if(result.length > 25){
+        alert("Your command results in too much output. Do less");
+        return [];
+    }
     return result;
 }
 
@@ -472,21 +476,6 @@ function format_new_die_roll(roll_result:RolledExpr, tight:boolean):[number, str
             return result;
         }
     }
-}
-
-function err_dialog(html:string){
-    const errpop = elem('section', null, 'hover');
-    html += `
-        <div class="hover-button-container">
-            <button type="button" class="errpop-ok">Ok</button>
-        </div>
-        `;
-    errpop.innerHTML = html;
-    document.body.appendChild(errpop);
-    const oks = errpop.getElementsByClassName('errpop-ok');
-    oks[0]!.addEventListener('click', function(){
-        errpop.remove();
-    });
 }
 
 let ROLLTABLES: {shared:Array<RollTable>, private:Array<RollTable>} = {
