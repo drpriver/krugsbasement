@@ -169,6 +169,8 @@ const evaluate_script = (function(){
                     tok.kind = TokenKind.REPEAT;
                 else if(lower == "loop")
                     tok.kind = TokenKind.REPEAT;
+                else if(lower == "times")
+                    tok.kind = TokenKind.REPEAT;
                 result.push(tok);
                 i--;
                 continue;
@@ -1133,19 +1135,30 @@ const evaluate_script = (function(){
             case StatementKind.ROLL:{
                 let unrolled = expand_dice(statement.expr, namespaces, vars, false, new Set());
                 if(!unrolled){
-                    return "failed to expand";
+                    let mess = "Failed to expand a variable in '";
+                    for(let tok of statement.contents)
+                        mess += tok.text;
+                    mess += "'";
+                    return mess;
                 }
                 outcommands.push([ChatCommand.ROLL, stringify_unrolled_dice(unrolled), unrolled]);
                 return "";
             }break;
             case StatementKind.BLOCK:{
-                for(let s of statement.statements)
-                    interpret(s, namespaces, vars, outcommands);
+                for(let s of statement.statements){
+                    let e = interpret(s, namespaces, vars, outcommands);
+                    if(e) return e;
+                }
                 return "";
             }break;
             case StatementKind.IF:{
-                if(eval_expr(statement.test, namespaces, vars)){
-                    interpret(statement.iftrue, namespaces, vars, outcommands);
+                let cond = eval_expr(statement.test, namespaces, vars);
+                if(cond === null){
+                    return "Failed to evaluate in if statement.";
+                }
+                if(cond){
+                    let e = interpret(statement.iftrue, namespaces, vars, outcommands);
+                    if(e) return e;
                 }
                 else {
                     let handled = false;
@@ -1153,12 +1166,14 @@ const evaluate_script = (function(){
                         let t2 = eval_expr(elif.test, namespaces, vars);
                         if(t2){
                             handled = true;
-                            interpret(elif.block, namespaces, vars, outcommands);
+                            let e = interpret(elif.block, namespaces, vars, outcommands);
+                            if(e) return e;
                             return "";
                         }
                     }
                     if(!handled && statement.iffalse !== null){
-                        interpret(statement.iffalse, namespaces, vars, outcommands);
+                        let e = interpret(statement.iffalse, namespaces, vars, outcommands);
+                        if(e) return e;
                     }
                 }
                 return "";
@@ -1166,10 +1181,11 @@ const evaluate_script = (function(){
             case StatementKind.REPEAT:{
                 let n = eval_expr(statement.expr, namespaces, vars);
                 if(n === null){
-                    return "";
+                    return "Failed to evaluate repeat statement times.";
                 }
                 for(let i = 0; i < n; i++){
-                    interpret(statement.block, namespaces, vars, outcommands);
+                    let e = interpret(statement.block, namespaces, vars, outcommands);
+                    if(e) return e;
                 }
                 return "";
             }

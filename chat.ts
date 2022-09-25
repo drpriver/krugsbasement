@@ -315,11 +315,17 @@ function preprocess_command(value:string, flags:EvaluateFlags):Array<Command> {
             result.push(e);
         }
     }catch(e){
-        alert(""+e);
-        console.log(e);
+        const log = by_id('chat-history');
+        const errmess: ChatErrorMsg = [Msg.ERROR, '', ""+e];
+        add_chat_msgs(log, [errmess], undefined);
+        log.scrollTo({behavior:'smooth', top:log.scrollHeight});
+        return [];
     }
     if(result.length > 25){
-        alert("Your command results in too much output. Do less");
+        const log = by_id('chat-history');
+        const errmess: ChatErrorMsg = [Msg.ERROR, '', "Your command results in too much output. Do less."];
+        add_chat_msgs(log, [errmess], undefined);
+        log.scrollTo({behavior:'smooth', top:log.scrollHeight});
         return [];
     }
     return result;
