@@ -9,38 +9,42 @@
 const evaluate_script = (function(){
     const enum TokenKind {
         // 0 is reserved for "not a token"
-        IDENT    = 1,
-        IF       = 2,
-        ELSE     = 3,
-        NUMBER   = 4,
-        DIE      = 5,
-        OTHER    = 6,
-        USE      = 7,
-        REPEAT   = 8,
+        IDENT    =  1,
+        IF       =  2, // if
+        ELSE     =  3, // else
+        NUMBER   =  4,
+        DIE      =  5,
+        OTHER    =  6,
+        USE      =  7, // use, using
+        REPEAT   =  8, // repeat, loop, times
 
-        LPAREN   = 9,
-        RPAREN   = 10,
+        LPAREN   =  9, // (
+        RPAREN   = 10, // )
         LT       = 11,
         GT       = 12,
-        LE       = 13,  // ≤
-        GE       = 14,  // ≥
-        NE       = 15,  // ≠
-        BANG     = 16,
-        STAR     = 17,
-        PLUS     = 18,
-        SLASH    = 19,
-        COLON    = 20,
-        BACKTICK = 21,
-        EQUALS   = 22,
-        MINUS    = 23,
+        LE       = 13, // ≤
+        GE       = 14, // ≥
+        NE       = 15, // ≠
+        BANG     = 16, // !
+        STAR     = 17, // *
+        PLUS     = 18, // +
+        SLASH    = 19, // /
+        COLON    = 20, // :
+        BACKTICK = 21, // `
+        EQUALS   = 22, // =
+        MINUS    = 23, // -
 
         SPACE    = 24,
         ENDLINE  = 25,
 
-        DQUOTE   = 26,
-        SQUOTE   = 27,
+        DQUOTE   = 26, // "
+        SQUOTE   = 27, // '
 
-        DOT      = 28,
+        DOT      = 28, // .
+        COMMENT  = 29, // # ...
+    }
+    function is_end(t:TokenKind):boolean{
+        return t == TokenKind.ENDLINE || t == TokenKind.COMMENT;
     }
     type Token = {
         kind: TokenKind,
@@ -222,12 +226,14 @@ const evaluate_script = (function(){
                 case '"': result.push({kind:TokenKind.DQUOTE,  text:c}); continue;
                 case "'": result.push({kind:TokenKind.SQUOTE,  text:c}); continue;
                 case '.': result.push({kind:TokenKind.DOT,     text:c}); continue;
-                case '#':
+                case '#':{
+                    let start = i;
                     for(i++; i < text.length; i++){
                         if(text[i] == '\n') break;
                     }
-                    result.push({kind:TokenKind.ENDLINE, text:'\n'});
+                    result.push({kind:TokenKind.COMMENT, text:text.slice(start, i)});
                     continue;
+                }
                 default:
                     result.push({kind:TokenKind.OTHER, text:c});
                     continue;
@@ -677,6 +683,7 @@ const evaluate_script = (function(){
                 case TokenKind.USE:
                     return parse_use();
                 case TokenKind.ENDLINE:
+                case TokenKind.COMMENT:
                     index++;
                     return;
                 case TokenKind.SLASH:{
@@ -728,7 +735,7 @@ const evaluate_script = (function(){
             let item = '';
             for(;;){
                 let t = take();
-                if(t.kind == TokenKind.ENDLINE)
+                if(is_end(t.kind))
                     break;
                 text += t.text;
                 if(!quoted && t.kind == TokenKind.SPACE){
@@ -786,7 +793,7 @@ const evaluate_script = (function(){
             let rhs = [];
             for(;;){
                 let tok = take();
-                if(tok.kind == TokenKind.ENDLINE)
+                if(is_end(tok.kind))
                     break;
                 rhs.push(tok);
             }
@@ -801,7 +808,7 @@ const evaluate_script = (function(){
             let contents = [];
             for(;;){
                 let tok = take();
-                if(tok.kind == TokenKind.ENDLINE)
+                if(is_end(tok.kind))
                     break;
                 contents.push(tok);
             }
@@ -843,7 +850,7 @@ const evaluate_script = (function(){
             let condtokens = [];
             for(;;){
                 let tok = take();
-                if(tok.kind == TokenKind.ENDLINE)
+                if(is_end(tok.kind))
                     return parse_as_raw();
                 if(tok.kind == TokenKind.COLON)
                     break;
@@ -853,7 +860,7 @@ const evaluate_script = (function(){
             if(!expr) return parse_as_raw();
             skip_spaces();
             let endline = take();
-            if(endline.kind != TokenKind.ENDLINE){
+            if(!is_end(endline.kind)){
                 return parse_as_raw();
                 // return err(endline, "Need a newline after colon");
             }
@@ -881,7 +888,7 @@ const evaluate_script = (function(){
             let condtokens = [];
             for(;;){
                 let tok = take();
-                if(tok.kind == TokenKind.ENDLINE)
+                if(is_end(tok.kind))
                     return parse_as_raw();
                 if(tok.kind == TokenKind.COLON)
                     break;
@@ -891,7 +898,7 @@ const evaluate_script = (function(){
             if(!expr) return parse_as_raw();
             skip_spaces();
             let endline = take();
-            if(endline.kind != TokenKind.ENDLINE){
+            if(!is_end(endline.kind)){
                 return parse_as_raw();
                 // return err(endline, "Need a newline after colon");
             }
@@ -929,7 +936,7 @@ const evaluate_script = (function(){
             skip_spaces();
             if(col_or_if.kind == TokenKind.COLON){
                 let end = take();
-                if(end.kind != TokenKind.ENDLINE)
+                if(!is_end(end.kind))
                     return parse_as_raw();
                     // return err(end, "Expected end of line after colon");
                 if(prev_statement.iffalse !== null)
@@ -946,7 +953,7 @@ const evaluate_script = (function(){
             let condtokens = [];
             for(;;){
                 let tok = take();
-                if(tok.kind == TokenKind.ENDLINE)
+                if(is_end(tok.kind))
                     return parse_as_raw();
                 if(tok.kind == TokenKind.COLON)
                     break;
@@ -956,7 +963,7 @@ const evaluate_script = (function(){
             if(!expr) return parse_as_raw();
             skip_spaces();
             let end = take();
-            if(end.kind != TokenKind.ENDLINE)
+            if(!is_end(end.kind))
                 return parse_as_raw();
                 // return err(end, "Expected end of line after the colon after an if expression");
             let newblock = make_block(currentblock, indentation);
@@ -986,7 +993,7 @@ const evaluate_script = (function(){
             }
             skip_spaces();
             let end = take();
-            if(end.kind != TokenKind.ENDLINE){
+            if(!is_end(end.kind)){
                 return parse_as_raw();
                 // return err(end, "Expected endline after identifier of use");
             }
@@ -1008,6 +1015,11 @@ const evaluate_script = (function(){
             }
             for(;;){
                 let tok = take();
+                if(tok.kind == TokenKind.COMMENT){
+                    raw.content += tok.text;
+                    raw.original += tok.text;
+                    break;
+                }
                 if(tok.kind == TokenKind.ENDLINE)
                     break;
                 raw.content += tok.text;
