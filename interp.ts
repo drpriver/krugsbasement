@@ -16,25 +16,31 @@ const evaluate_script = (function(){
         DIE      = 5,
         OTHER    = 6,
         USE      = 7,
+        REPEAT   = 8,
 
-        LPAREN   = 8,
-        RPAREN   = 9,
-        LT       = 10,
-        GT       = 11,
-        BANG     = 12,
-        STAR     = 13,
-        PLUS     = 14,
-        SLASH    = 15,
-        COLON    = 16,
-        BACKTICK = 17,
-        EQUALS   = 18,
-        MINUS    = 19,
+        LPAREN   = 9,
+        RPAREN   = 10,
+        LT       = 11,
+        GT       = 12,
+        LE       = 13,  // ≤
+        GE       = 14,  // ≥
+        NE       = 15,  // ≠
+        BANG     = 16,
+        STAR     = 17,
+        PLUS     = 18,
+        SLASH    = 19,
+        COLON    = 20,
+        BACKTICK = 21,
+        EQUALS   = 22,
+        MINUS    = 23,
 
-        SPACE    = 20,
-        ENDLINE  = 21,
+        SPACE    = 24,
+        ENDLINE  = 25,
 
-        DQUOTE = 22,
-        SQUOTE = 23,
+        DQUOTE   = 26,
+        SQUOTE   = 27,
+
+        DOT      = 28,
     }
     type Token = {
         kind: TokenKind,
@@ -49,6 +55,7 @@ const evaluate_script = (function(){
         ASSIGN = 4,
         USE    = 5,
         RAW    = 6,
+        REPEAT = 7,
     }
 
     type RawStatement = {
@@ -101,14 +108,19 @@ const evaluate_script = (function(){
         kind: StatementKind.USE,
         name: Token,
     }
+    type RepeatStatement = {
+        kind: StatementKind.REPEAT,
+        expr: Expression,
+        block: BlockStatement,
+    }
 
-    type Statement = RollStatement | IfStatement | AssignStatement | BlockStatement | UseStatement | RawStatement | ListStatement;
+    type Statement = RollStatement | IfStatement | AssignStatement | BlockStatement | UseStatement | RawStatement | ListStatement | RepeatStatement;
 
     function isstartident(char:string):boolean{
         return (/[a-zA-Z]/).test(char);
     }
     function iscontinueident(char:string):boolean{
-        return (/[a-zA-Z_0-9\.]/).test(char);
+        return (/[a-zA-Z_0-9]/).test(char);
     }
     function isnum(char:string):boolean{
         return (/[0-9]/).test(char);
@@ -153,6 +165,10 @@ const evaluate_script = (function(){
                     tok.kind = TokenKind.USE;
                 else if(lower == "using")
                     tok.kind = TokenKind.USE;
+                else if(lower == "repeat")
+                    tok.kind = TokenKind.REPEAT;
+                else if(lower == "loop")
+                    tok.kind = TokenKind.REPEAT;
                 result.push(tok);
                 i--;
                 continue;
@@ -190,6 +206,9 @@ const evaluate_script = (function(){
                 case ')': result.push({kind:TokenKind.RPAREN,  text:c}); continue;
                 case '<': result.push({kind:TokenKind.LT,      text:c}); continue;
                 case '>': result.push({kind:TokenKind.GT,      text:c}); continue;
+                case '≤': result.push({kind:TokenKind.LE,      text:c}); continue;
+                case '≥': result.push({kind:TokenKind.GE,      text:c}); continue;
+                case '≠': result.push({kind:TokenKind.NE,      text:c}); continue;
                 case '!': result.push({kind:TokenKind.BANG,    text:c}); continue;
                 case '*': result.push({kind:TokenKind.STAR,    text:c}); continue;
                 case '+': result.push({kind:TokenKind.PLUS,    text:c}); continue;
@@ -200,6 +219,7 @@ const evaluate_script = (function(){
                 case '-': result.push({kind:TokenKind.MINUS,   text:c}); continue;
                 case '"': result.push({kind:TokenKind.DQUOTE,  text:c}); continue;
                 case "'": result.push({kind:TokenKind.SQUOTE,  text:c}); continue;
+                case '.': result.push({kind:TokenKind.DOT,     text:c}); continue;
                 case '#':
                     for(i++; i < text.length; i++){
                         if(text[i] == '\n') break;
@@ -225,12 +245,13 @@ const evaluate_script = (function(){
     }
 
     const enum EXPR {
-        NUMBER = 0,
-        DICE = 1,
-        GROUP = 2,
-        Binary = 3,
-        Unary = 4,
-        IDENT = 5,
+        NUMBER       = 0,
+        DICE         = 1,
+        GROUP        = 2,
+        Binary       = 3,
+        Unary        = 4,
+        IDENT        = 5,
+        DOTTED_IDENT = 6,
     }
     type NumberExpression = {
         type: EXPR.NUMBER,
@@ -243,6 +264,11 @@ const evaluate_script = (function(){
     }
     type IdentExpression = {
         type: EXPR.IDENT,
+        ident: string,
+    }
+    type DottedIdentExpression = {
+        type: EXPR.DOTTED_IDENT,
+        namespace: string,
         ident: string,
     }
     type GroupExpression = {
@@ -260,7 +286,7 @@ const evaluate_script = (function(){
         utype: Unary,
         expr: Expression,
     }
-    type Expression = NumberExpression | DiceExpression | IdentExpression | GroupExpression | BinaryExpression | UnaryExpression;
+    type Expression = NumberExpression | DiceExpression | IdentExpression | GroupExpression | BinaryExpression | UnaryExpression | DottedIdentExpression;
 
 
     function parse_expression(tokens: Array<Token>): Expression | null{
@@ -273,6 +299,15 @@ const evaluate_script = (function(){
                 };
             }
             return tokens[index];
+        }
+        function peek():Token {
+            if(index+1 >= tokens.length){
+                return {
+                    kind: TokenKind.ENDLINE,
+                    text: '\n',
+                };
+            }
+            return tokens[index+1];
         }
         function skip_spaces(){
             while(current().kind == TokenKind.SPACE)
@@ -288,14 +323,38 @@ const evaluate_script = (function(){
             }
             return null;
         }
+        function match1(k1:TokenKind):boolean {
+            if(current().kind == k1){
+                index++;
+                return true;
+            }
+            return false;
+        }
+        function match2(k1:TokenKind, k2:TokenKind): boolean {
+            if(current().kind == k1 && peek().kind == k2){
+                index += 2;
+                return true;
+            }
+            return false;
+        }
         function parse_comparison(): Expression | null {
             skip_spaces();
             let lhs = parse_addplus();
             if(!lhs) return lhs;
             skip_spaces();
             let c;
-            while(c = match([TokenKind.BANG, TokenKind.LT, TokenKind.GT, TokenKind.EQUALS])){
-                let c2 = match([TokenKind.EQUALS]);
+            while(c = match([TokenKind.BANG, TokenKind.LT, TokenKind.GT, TokenKind.EQUALS, TokenKind.LE, TokenKind.GE, TokenKind.NE])){
+                let c2 = null;
+                switch(c){
+                    case TokenKind.LT:
+                    case TokenKind.GT:
+                    case TokenKind.BANG:
+                    case TokenKind.EQUALS:
+                        c2 = match1(TokenKind.EQUALS);
+                        break;
+                    default:
+                        break;
+                }
                 if(c == TokenKind.BANG && !c2) return null;
                 let rhs = parse_addplus();
                 if(!rhs) return rhs;
@@ -305,6 +364,9 @@ const evaluate_script = (function(){
                     case TokenKind.BANG: op = Binary.NE; break;
                     case TokenKind.LT: op = c2? Binary.LE : Binary.LT; break;
                     case TokenKind.GT: op = c2? Binary.GE : Binary.GT; break;
+                    case TokenKind.GE: op = Binary.GE; break;
+                    case TokenKind.LE: op = Binary.LE; break;
+                    case TokenKind.NE: op = Binary.NE; break;
                     default: return null;
                 }
                 lhs = {
@@ -381,7 +443,7 @@ const evaluate_script = (function(){
                     let expr = parse_comparison();
                     if(!expr) return null;
                     skip_spaces();
-                    if(!match([TokenKind.RPAREN]))
+                    if(!match1(TokenKind.RPAREN))
                         return null
                     return {
                         type: EXPR.GROUP,
@@ -405,9 +467,18 @@ const evaluate_script = (function(){
                     };
                 }
                 case TokenKind.IDENT:{
+                    let ident = t.text;
+                    let spec = peek().text;
+                    if(match2(TokenKind.DOT, TokenKind.IDENT)){
+                        return {
+                            type: EXPR.DOTTED_IDENT,
+                            namespace: ident,
+                            ident: spec,
+                        };
+                    }
                     return {
                         type: EXPR.IDENT,
-                        ident: t.text,
+                        ident: ident,
                     };
                 }
                 default:
@@ -420,7 +491,22 @@ const evaluate_script = (function(){
         if(index != tokens.length) return null;
         return result;
     }
-    function eval_expr(expr: Expression, vars:Map<string, Array<Token>>): number | null{
+
+    function lookup(ident: string, vars: NameSpace): Array<Token> | null {
+        let tokens = vars.get(ident.toLowerCase());
+        if(!tokens) return null;
+        return tokens;
+    }
+
+    function lookup_ns(ns_ident:string, ident:string, namespaces:Map<string, NameSpace>): Array<Token> | null{
+        let ns = namespaces.get(ns_ident.toLowerCase());
+        if(!ns) return null;
+        let tokens = ns.get(ident.toLowerCase());
+        if(!tokens) return null;
+        return tokens;
+    }
+
+    function eval_expr(expr: Expression, namespaces:Map<string, Map<string, Array<Token>>>, vars:Map<string, Array<Token>>): number | null{
         switch(expr.type){
             case EXPR.NUMBER:
                 return expr.value;
@@ -428,17 +514,24 @@ const evaluate_script = (function(){
             case EXPR.DICE:
                 return null;
             case EXPR.IDENT:{
-                let tokens = vars.get(expr.ident.toLowerCase());
+                let tokens = lookup(expr.ident, vars);
                 if(!tokens) return null;
                 let subexpr = parse_expression(tokens);
                 if(!subexpr) return subexpr;
-                return eval_expr(subexpr, vars);
+                return eval_expr(subexpr, namespaces, vars);
+            }
+            case EXPR.DOTTED_IDENT:{
+                let tokens = lookup_ns(expr.namespace, expr.ident, namespaces);
+                if(!tokens) return null;
+                let subexpr = parse_expression(tokens);
+                if(!subexpr) return subexpr;
+                return eval_expr(subexpr, namespaces, vars);
             }
             case EXPR.GROUP:
-                return eval_expr(expr.expr, vars);
+                return eval_expr(expr.expr, namespaces, vars);
             case EXPR.Binary:{
-                let lhs = eval_expr(expr.lhs, vars);
-                let rhs = eval_expr(expr.rhs, vars);
+                let lhs = eval_expr(expr.lhs, namespaces, vars);
+                let rhs = eval_expr(expr.rhs, namespaces, vars);
                 if(lhs === null) return null;
                 if(rhs === null) return null;
                 switch(expr.btype){
@@ -466,7 +559,7 @@ const evaluate_script = (function(){
                 }
             }
             case EXPR.Unary:{
-                let v = eval_expr(expr.expr, vars);
+                let v = eval_expr(expr.expr, namespaces, vars);
                 if(v === null) return null;
                 switch(expr.utype){
                     case Unary.PLUS:
@@ -587,6 +680,8 @@ const evaluate_script = (function(){
                     return parse_roll(0);
                 case TokenKind.IF:
                     return parse_if(indentation);
+                case TokenKind.REPEAT:
+                    return parse_repeat(indentation);
                 case TokenKind.ELSE:
                     return parse_else(indentation);
                 case TokenKind.USE:
@@ -782,6 +877,42 @@ const evaluate_script = (function(){
             currentblock.statements.push(newif);
             currentblock = newif.iftrue;
         }
+        function parse_repeat(indentation:number){
+            const startidx = index;
+            function parse_as_raw(){
+                index = startidx;
+                return parse_raw(ChatCommand.SAY, 0);
+            }
+            let repeat = take();
+            if(repeat.kind != TokenKind.REPEAT)
+                return parse_as_raw();
+                // return err(if_, "Assertion error, should've been if");
+            skip_spaces();
+            let condtokens = [];
+            for(;;){
+                let tok = take();
+                if(tok.kind == TokenKind.ENDLINE)
+                    return parse_as_raw();
+                if(tok.kind == TokenKind.COLON)
+                    break;
+                condtokens.push(tok);
+            }
+            let expr = parse_expression(condtokens);
+            if(!expr) return parse_as_raw();
+            skip_spaces();
+            let endline = take();
+            if(endline.kind != TokenKind.ENDLINE){
+                return parse_as_raw();
+                // return err(endline, "Need a newline after colon");
+            }
+            let newrepeat:RepeatStatement = {
+                kind: StatementKind.REPEAT,
+                expr: expr,
+                block: make_block(currentblock, indentation),
+            };
+            currentblock.statements.push(newrepeat);
+            currentblock = newrepeat.block;
+        }
         function parse_else(indentation:number){
             // this one doesn't add a statement to the currentblock
             // It just modifies the previous if statement at the right level.
@@ -906,22 +1037,26 @@ const evaluate_script = (function(){
         return error;
     }
 
-    function expand_dice(expr: Expression, vars:Map<string, Array<Token>>, muldiv:boolean): UnrolledDiceExpr | null {
+
+    type NameSpace = Map<string, Array<Token>>;
+
+
+    function expand_dice(expr: Expression, namespaces:Map<string, NameSpace>, vars:NameSpace, muldiv:boolean, visited:Set<string>): UnrolledDiceExpr | null {
         switch(expr.type){
             case EXPR.NUMBER:
                 return [DieExprTypes.NUMBER, expr.value];
             case EXPR.DICE:
                 return [DieExprTypes.DICE, expr.n, expr.base];
             case EXPR.GROUP:{
-                let e = expand_dice(expr.expr, vars, false);
+                let e = expand_dice(expr.expr, namespaces, vars, false, visited);
                 if(!e) return e;
                 return [DieExprTypes.GROUP, e];
             }
             case EXPR.Binary:{
                 let childmuldiv = expr.btype == Binary.MUL || expr.btype == Binary.DIV;
-                let lhs = expand_dice(expr.lhs, vars, childmuldiv);
+                let lhs = expand_dice(expr.lhs, namespaces, vars, childmuldiv, visited);
                 if(!lhs) return lhs;
-                let rhs = expand_dice(expr.rhs, vars, childmuldiv);
+                let rhs = expand_dice(expr.rhs, namespaces, vars, childmuldiv, visited);
                 if(!rhs) return rhs;
                 let result: UnrolledDiceExpr = [DieExprTypes.Binary, expr.btype, lhs, rhs];
                 if(muldiv && !childmuldiv)
@@ -929,67 +1064,127 @@ const evaluate_script = (function(){
                 return result;
             }
             case EXPR.Unary:{
-                let e = expand_dice(expr.expr, vars, false);
+                let e = expand_dice(expr.expr, namespaces, vars, false, visited);
                 if(!e) return e;
                 return [DieExprTypes.Unary, expr.utype, e];
             }
             case EXPR.IDENT:{
-                let toks = vars.get(expr.ident.toLowerCase());
+                let key = expr.ident;
+                if(visited.has(key)) return null;
+                visited.add(key);
+                let toks = lookup(expr.ident, vars);
                 if(!toks) return null;
                 let e = parse_expression(toks);
                 if(!e) return null;
-                return expand_dice(e, vars, muldiv);
+                return expand_dice(e, namespaces, vars, muldiv, visited);
+            }
+            case EXPR.DOTTED_IDENT:{
+                let key = expr.namespace+'.'+expr.ident;
+                if(visited.has(key)) return null;
+                visited.add(key);
+                let toks = lookup_ns(expr.namespace, expr.ident, namespaces);
+                if(!toks) return null;
+                let e = parse_expression(toks);
+                if(!e) return null;
+                return expand_dice(e, namespaces, vars, muldiv, visited);
             }
         }
     }
 
-    function interpret(statement:Statement, vars:Map<string, Array<Token>>, namespaces:Map<string, Map<string, Array<Token>>>, outcommands:Array<Command>):string{
+    function stringify_unrolled_dice(expr: UnrolledDiceExpr):string{
+        switch(expr[0]){
+            case DieExprTypes.NUMBER:
+                return ""+expr[1];
+            case DieExprTypes.DICE:{
+                let n = expr[1];
+                let base = expr[2];
+                if(n != 1){
+                    return ""+n+"d"+base;
+                }
+                return "d"+base;
+            }
+            case DieExprTypes.GROUP:
+                return "("+stringify_unrolled_dice(expr[1])+")";
+            case DieExprTypes.Unary:{
+                switch(expr[1]){
+                    case Unary.NEG:
+                        return "-"+stringify_unrolled_dice(expr[2]);
+                    case Unary.NOT:
+                        return "!"+stringify_unrolled_dice(expr[2]);
+                    case Unary.PLUS:
+                        return "+"+stringify_unrolled_dice(expr[2]);
+                }
+            }
+            case DieExprTypes.Binary:{
+                let lhs = stringify_unrolled_dice(expr[2]);
+                let rhs = stringify_unrolled_dice(expr[3]);
+                let op = "";
+                switch(expr[1]){
+                    case Binary.ADD: op = " + " ; break;
+                    case Binary.SUB: op = " - " ; break;
+                    case Binary.MUL: op = "*"   ; break;
+                    case Binary.DIV: op = "/"   ; break;
+                    case Binary.EQ:  op = " = " ; break;
+                    case Binary.NE:  op = " ≠ "; break;
+                    case Binary.GT:  op = " > " ; break;
+                    case Binary.GE:  op = " ≥ "; break;
+                    case Binary.LT:  op = " < " ; break;
+                    case Binary.LE:  op = " ≤ "; break;
+                }
+                return lhs + op + rhs;
+            };
+        }
+    }
+
+    function interpret(statement:Statement, namespaces:Map<string, NameSpace>, vars:NameSpace, outcommands:Array<Command>):string{
         switch(statement.kind){
             case StatementKind.LIST:{
                 outcommands.push([statement.command, statement.content, statement.items]);
                 return "";
             }
             case StatementKind.ROLL:{
-                let s = '';
-                for(let tok of statement.contents){
-                    if(tok.kind == TokenKind.IDENT)
-                        s += expand(vars, tok.text, new Set());
-                    else
-                        s += tok.text;
-                }
-                let unrolled = expand_dice(statement.expr, vars, false);
+                let unrolled = expand_dice(statement.expr, namespaces, vars, false, new Set());
                 if(!unrolled){
-                    outcommands.push([ChatCommand.SAY, s]);
-                    return "";
+                    return "failed to expand";
                 }
-                outcommands.push([ChatCommand.ROLL, s, unrolled]);
+                outcommands.push([ChatCommand.ROLL, stringify_unrolled_dice(unrolled), unrolled]);
                 return "";
             }break;
             case StatementKind.BLOCK:{
                 for(let s of statement.statements)
-                    interpret(s, vars, namespaces, outcommands);
+                    interpret(s, namespaces, vars, outcommands);
                 return "";
             }break;
             case StatementKind.IF:{
-                if(eval_expr(statement.test, vars)){
-                    interpret(statement.iftrue, vars, namespaces, outcommands);
+                if(eval_expr(statement.test, namespaces, vars)){
+                    interpret(statement.iftrue, namespaces, vars, outcommands);
                 }
                 else {
                     let handled = false;
                     for(let elif of statement.elifs){
-                        let t2 = eval_expr(elif.test, vars);
+                        let t2 = eval_expr(elif.test, namespaces, vars);
                         if(t2){
                             handled = true;
-                            interpret(elif.block, vars, namespaces, outcommands);
+                            interpret(elif.block, namespaces, vars, outcommands);
                             return "";
                         }
                     }
                     if(!handled && statement.iffalse !== null){
-                        interpret(statement.iffalse, vars, namespaces, outcommands);
+                        interpret(statement.iffalse, namespaces, vars, outcommands);
                     }
                 }
                 return "";
             }break;
+            case StatementKind.REPEAT:{
+                let n = eval_expr(statement.expr, namespaces, vars);
+                if(n === null){
+                    return "";
+                }
+                for(let i = 0; i < n; i++){
+                    interpret(statement.block, namespaces, vars, outcommands);
+                }
+                return "";
+            }
             case StatementKind.ASSIGN:{
                 vars.set(statement.lhs.text.toLowerCase(), statement.rhs);
                 return "";
@@ -1016,45 +1211,15 @@ const evaluate_script = (function(){
             }break;
         }
     }
-    function expand(vars:Map<string, Array<Token>>, ident:string, visited:Set<string>):string{
-        let toks = expand_tokens(vars, ident, visited);
-        let s = ""
-        for(let tok of toks){
-            s += tok.text;
-        }
-        return s;
-    }
-    function expand_tokens(vars:Map<string, Array<Token>>, ident:string, visited:Set<string>):Array<Token>{
-        ident = ident.toLowerCase();
-        if(visited.has(ident)) return [];
-        visited.add(ident);
-        let result:Array<Token> = [];
-        let v = vars.get(ident);
-        if(v !== undefined){
-            for(let tok of v){
-                if(tok.kind == TokenKind.IDENT){
-                    for(let t of expand_tokens(vars, tok.text, visited))
-                        result.push(t);
-                }
-                else {
-                    result.push(tok);
-                }
-            }
-        }
-        else {
-            result.push({kind:TokenKind.IDENT, text:ident});
-        }
-        return result;
-    }
 
-    function really_eval_script(text:string, vars:Map<string, Array<Token>>, namespaces:Map<string, Map<string, Array<Token>>>):Array<Command>{
+    function really_eval_script(text:string, namespaces:Map<string, NameSpace>, vars:NameSpace):Array<Command>{
         // const before = performance.now();
         let outlines: Array<Command> = [];
         let glob = make_block(null, -1);
         let tokens = tokenize(text);
         let err = parse(tokens, glob);
         if(err !== null) throw new Error(err);
-        let err2 = interpret(glob, vars, namespaces, outlines);
+        let err2 = interpret(glob, namespaces, vars, outlines);
         if(err2.length) throw new Error(err2);
         // const after = performance.now();
         // outlines.push(`Parsing took: ${after-before}ms`);
@@ -1090,7 +1255,7 @@ const evaluate_script = (function(){
             }
             newnamespaces.set(name, newnamespace);
         }
-        return really_eval_script(text, newvars, newnamespaces);
+        return really_eval_script(text, newnamespaces, newvars);
     }
     return eval_script;
 })();

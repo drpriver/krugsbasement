@@ -158,16 +158,16 @@
           /roll 2/3*3
 
 
-          # This produces 0, left side is 
-          # rounded down to 1, which is not 
+          # This produces 0, left side is
+          # rounded down to 1, which is not
           # greater than 1
           /roll 3/2 > 1
 
 
-          # This produces 2, as the left side of 
-          # the plus and the right side of the 
+          # This produces 2, as the left side of
+          # the plus and the right side of the
           # plus are both rounded to 1.
-          /roll 3/2 + 3/2 
+          /roll 3/2 + 3/2
 
         This means that division is not distributive. It is associative.
 
@@ -183,10 +183,25 @@
         are created through the variables window. A variable group can have any
         number of variables defined in it.
 
-        To actually access a variable in a macro, you need to bring it into the
-        local context. To do that, we have the <tt>use</tt> statement.
-        Imagine you have a variable group where you have defined <tt>bab</tt>
-        to be 3 and <tt>dex</tt> to be 2, named <tt>Yowa</tt>.
+        There are two ways to access variables: you can explicitly reference them
+        via a "dotted" identifier or invoke a <tt>use</tt> statement.
+
+        Imagine you have a variable group named <tt>Yowa</tt> which has <tt>bab</tt>
+        as 3 and <tt>dex</tt> as 2c.
+
+        An example of a dotted identifier is as follows:
+      ::pre.macro
+        attack = d20 + Yowa.bab + Yowa.dex
+        /roll attack
+      ::md.comment
+        In the above example, <tt>bab</tt> and <tt>dex</tt> were explicitly accessed
+        from the <tt>Yowa</tt> variable group. The above substitutes to:
+      ::pre.macro
+        /roll d20 + 3 +2
+      ::md.comment
+        This can get pretty repetitive, so to bring all of the variables from a variable
+        group into the local context, you can use the <tt>use</tt> statement.
+
         You can then do this:
       ::pre.macro
         use Yowa
@@ -231,6 +246,24 @@
           defined variables in your macros.
 
           You can think of these variables as formulas.
+
+      Repeat Statements::md.comment
+        You might need to roll certain dice multiple times and don't want to just
+        copy paste the command (as if you want to change it you'd have to edit each line).
+        To facilitate that, there is a repeat statement that will execute the contents
+        of it a certain number of times. It looks like this:
+      ::pre.macro
+        repeat 4:
+          d20 + 3
+      ::md.comment
+        Which will roll <tt>d20 + 3</tt> four times, as four different statements.
+
+        The <tt>4</tt> in the above example can also be a variable or an expression. It cannot
+        contain a dice expression and must evaluate to a number. If it evaluates to a
+        negative number or zero, the contents of the repeat statement are executed
+        zero times.
+
+        <tt>repeat</tt> can alternatively be spelled as <tt>loop</tt>.
 
       If Statements::md.comment
         The last major feature is conditional execution. This is done
