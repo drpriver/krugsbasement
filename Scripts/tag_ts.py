@@ -45,10 +45,10 @@ def analyze_line(filename:str, lineno:int, line:str) -> List[TagLoc]:
         t = MATCH_TO_TYPE[m[1]]
         if m.start() == 0:
             is_global = True
-            query = '/^'+m[0]+'/'
+            query = '/^'+m[0]+r'\>/'
         else:
             is_global = False
-            query = '/'+m[0]+'/'
+            query = '/'+m[0]+r'\>/'
         result.append(TagLoc(t, query, m[4], filename, lineno, is_global))
     return result
 
