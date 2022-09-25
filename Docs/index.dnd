@@ -1,0 +1,17 @@
+::css #import 
+  docs.css
+::script #import
+  anchors.js
+
+::nav.left
+::div
+  Documentation::md
+    This is the (work-in-progress) documentation for the features on krug's
+    basement that need a longform explanation.
+
+    * [Macros and Chat Commands]
+    * [Tables]
+
+::links
+  Tables = https://krugsbasement.com/docs/tables.html
+  Macros and Chat Commands = https://krugsbasement.com/docs/macro-doc.html
