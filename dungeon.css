@@ -20,9 +20,6 @@ a {
   border: 1px solid black;
   contain: strict;
 }
-#float-variables-window {
-  contain: initial;
-}
 .window-handle {
   grid-row: 1;
   cursor: grab;
@@ -105,9 +102,6 @@ a {
   border-bottom: 1px solid #fff;
 }
 
-#float-variables-container {
-  flex-direction: column;
-}
 #notes-window-iframe-container {
   margin: auto;
   border: none;

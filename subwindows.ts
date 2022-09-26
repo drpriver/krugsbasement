@@ -63,8 +63,11 @@ function make_window(name:keyof SubWindowIdMap): SubWindow {
     setup_movable_window(outer, handle, WINDOWFLAGS.REMEMBER_POSITION);
     setup_closable_window(outer, close_x, result.hide);
     // handle.addEventListener('dblclick', result.hide);
-    // hack:
-    if(name != 'float-variables')
-        setup_window_size(outer);
+    setup_window_size(outer);
+    // hack
+    if(outer.id == 'variables-window'){
+        outer.style.width = '600px';
+        outer.style.height = '400px';
+    }
     return result;
 }

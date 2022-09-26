@@ -87,7 +87,6 @@ David20::title #hide
             <div style="display:table-cell;"><b>Type</b></div>
             <div style="display:table-cell;"><b>Name</b></div>
             <div style="display:table-cell;"><b>Value</b></div>
-            <div style="display:table-cell;"><b>UI</b></div>
             <div style="display:table-cell;"><b>Delete</b></div>
           </div>
           <div style="display:table-row;" class="variables-row">
@@ -101,10 +100,6 @@ David20::title #hide
           </div>
         </div>
       </div>
-    </div>
-  `);
-  make_window('float-variables', 'Quick Vars', `
-    <div id="float-variables-container" class="window-container" style="min-height:100px;">
     </div>
   `);
   make_window('rolltable', 'Roll Tables',
@@ -706,10 +701,7 @@ David20::title #hide
       ::raw
         <button id="macros-button">Macros…</button>
         <button id="variables-button">Variables…</button>
-        <button id="quickvar-button">QuickVar…</button>
-    ::div.three-buttons
-      ::raw
-        <button id="privateroll-button">Private Rolls</button>
+        <button id="privateroll-button">DMs…</button>
   ::div #id(notifications)
   ::div.log #id(chat-history)
   ::div #id(macros)

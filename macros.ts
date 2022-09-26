@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     test_button.addEventListener('click', function(){
         if(!m) return;
-        let commands = evaluate(m.body, EvaluateFlags.NONE);
+        let commands = evaluate(m.body);
         if(commands.length){
             let to_send: ChatCommandMessage = {chatname:SETTINGS.chat.name, commands:commands};
             EMIT(FromClient.CHAT_TEST_STRUCTURED_INPUT, to_send);
@@ -285,7 +285,7 @@ const enum ScriptVariableType {
 const enum ScriptVariableFlags {
     NONE = 0,
     // actually means it rarely changes
-    UI = 1 << 0,
+    UI = 1 << 0, // deprecated
     DELETED = 1 << 1,
 }
 
@@ -353,7 +353,6 @@ function get_script_variables():Map<string, Map<string, number|string>>{
 document.addEventListener('DOMContentLoaded', function(){
     const var_button = by_id('variables-button');
     let variables = get_window('variables');
-    const floater = get_window('float-variables');
     const var_groups = by_id('variables-group-list');
     let listview = make_list_view<number>(var_groups, ListViewFlags.USER_RENAMABLE|ListViewFlags.USER_DELETABLE);
     listview.activate_handler = function(groupid:number|undefined){
@@ -427,15 +426,8 @@ document.addEventListener('DOMContentLoaded', function(){
         if(!variables.hidden) return;
         setup();
     });
-    let floater_was_visible = false;;
     variables.hide_handler = function(){
-        if(floater_was_visible)
-            floater.show();
         actually_save_the_variables();
-    };
-    variables.show_handler = function(){
-        floater_was_visible = !floater.hidden;
-        floater.hide();
     };
     function add_table_row(sv:ScriptVariable){
         let row = elem_with_parent(var_table, 'div', null, 'variables-row');
@@ -528,19 +520,6 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
         }
         d = elem_with_parent(row, 'div');
-        let uicheck = elem_with_parent(d, 'input');
-        uicheck.type = "checkbox";
-        uicheck.checked = !!(sv.flags & ScriptVariableFlags.UI);
-        uicheck.addEventListener('change', function(){
-            if(uicheck.checked){
-                sv.flags |= ScriptVariableFlags.UI;
-            }
-            else {
-                sv.flags &= ~ScriptVariableFlags.UI;
-            }
-            save_variables();
-        });
-        d = elem_with_parent(row, 'div');
         let delbutton = elem_with_parent(d, 'button');
         delbutton.innerText = '✘';
         delbutton.addEventListener('click', function(){
@@ -569,140 +548,5 @@ document.addEventListener('DOMContentLoaded', function(){
         if(a > b) return 1;
         return 0;
     }
-    const float_container = by_id('float-variables-container');
-    floater.show_handler = function(){
-        SCRIPTVARIABLES.sort((a, b) =>{
-            if(a.group == b.group) return 0;
-            if(a.group == 'Global') return -1;
-            if(b.group == 'Global') return 1;
-            return strcmp(a.group, b.group)
-        });
-        (float_container as any).replaceChildren();
-        let has_any = false;
-        let last_group = '';
-        let n = 0;
-        let holder:HTMLDivElement|null = null;;
-        let new_used_groups:Set<string> = new Set();
-        const group_checkboxes:Map<string, HTMLInputElement> = new Map();
-        for(let sv of SCRIPTVARIABLES){
-            if(sv.flags & ScriptVariableFlags.DELETED)
-                continue;
-            has_any = true;
-            if(sv.group != last_group){
-                let d = elem_with_parent(float_container, 'div');
-                const h = elem_with_parent(d, 'h3');
-                h.style.margin = '0';
-                h.style.display = 'inline';
-                const l = elem_with_parent(h, 'label');
-                l.textContent = sv.group;
-                if(sv.group != 'Global'){
-                    let gid = `use-group-for-${sv.group}`;
-                    l.htmlFor = gid;
-                    const inp = elem_with_parent(d, 'input');
-                    group_checkboxes.set(sv.group, inp);
-                    inp.type = 'checkbox';
-                    inp.id = gid;
-                    if(USED_VARIABLE_GROUPS.has(sv.group)){
-                        inp.checked = true;
-                        new_used_groups.add(sv.group);
-                    }
-                    inp.addEventListener('change', function(){
-                        if(inp.checked){
-                            add_to_used_variable_group_consistently(sv.group);
-                            for(let [k, v] of group_checkboxes.entries()){
-                                if(USED_VARIABLE_GROUPS.has(k))
-                                    v.checked = true;
-                                else
-                                    v.checked = false;
-                            }
-                        }
-                        else
-                            USED_VARIABLE_GROUPS.delete(sv.group);
-                        sync_local(StorageCategory.MACROS, 'used_variables', Array.from(USED_VARIABLE_GROUPS));
-                    });
-                }
-                last_group = sv.group;
-                holder = elem_with_parent(float_container, 'div');
-                holder.style.display = 'table';
-            }
-            if(!(sv.flags & ScriptVariableFlags.UI))
-                continue;
-            const row = elem_with_parent(holder!, 'div');
-            row.style.display = 'table-row';
-            const name = elem_with_parent(row, 'label');
-            name.textContent = sv.name;
-            name.style.width = '4em';
-            name.style.display = 'table-cell';
-            let id = 'float-var-id-'+n++;
-            name.htmlFor = id;
-            const inpwrap = elem_with_parent(row, 'div');
-            inpwrap.style.width = '4em';
-            inpwrap.style.display = 'table-cell';
-            const inp = elem_with_parent(inpwrap, 'input');
-            inp.style.width = '4em';
-            inp.id = id;
-            switch(sv.type){
-                case ScriptVariableType.BOOLEAN:
-                    inp.type = 'checkbox';
-                    inp.checked = !!sv.value;
-                    inp.addEventListener('change', function(){
-                        sv.value = +inp.checked;
-                        save_variables();
-                    });
-                break;
-                case ScriptVariableType.NUMBER:
-                    inp.type = 'number';
-                    inp.value = ""+sv.value;
-                    inp.addEventListener('input', function(){
-                        sv.value = +inp.value;
-                        save_variables();
-                    });
-                break;
-                case ScriptVariableType.STRING:
-                    inp.value = ""+sv.value;
-                    inp.addEventListener('input', function(){
-                        sv.value = inp.value;
-                        save_variables();
-                    });
-                break;
-            }
-        }
-        if(!has_any){
-        }
-        USED_VARIABLE_GROUPS = new_used_groups;
-        sync_local(StorageCategory.MACROS, 'used_variables', Array.from(USED_VARIABLE_GROUPS));
-    };
-    floater.hide_handler = function(){
-    };
     listview.make_active(0);
-    const quickvar_button = by_id('quickvar-button');
-    quickvar_button.addEventListener('click', function(){
-        if(variables.hidden)
-            floater.show();
-    });
 });
-
-let USED_VARIABLE_GROUPS: Set<string> = (function():Set<string>{
-    return new Set(SETTINGS.macros.used_variables);
-})();
-
-function add_to_used_variable_group_consistently(group:string){
-    let vars = get_script_variables();
-    let these_vars = vars.get(group.toLowerCase());
-    if(!these_vars || these_vars.size == 0){
-        USED_VARIABLE_GROUPS.add(group);
-        return;
-    }
-    for(let g of USED_VARIABLE_GROUPS){
-        let v = vars.get(g.toLowerCase());
-        if(!v || v.size == 0)
-            continue;
-        for(let k of these_vars.keys()){
-            if(v.has(k.toLowerCase())){
-                USED_VARIABLE_GROUPS.delete(g);
-                break;
-            }
-        }
-    }
-    USED_VARIABLE_GROUPS.add(group);
-}

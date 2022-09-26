@@ -163,14 +163,7 @@ function add_dice_history_commands(commands: Array<Command>){
 }
 
 function preprocess_and_send_chat(text:string){
-    let commands = preprocess_command(text, EvaluateFlags.NONE);
-    let to_send: ChatCommandMessage = {chatname:SETTINGS.chat.name, commands:commands};
-    add_dice_history_commands(commands);
-    EMIT(FromClient.CHAT_STRUCTURED_INPUT, to_send);
-}
-
-function preprocess_and_send_chat_with_usings(text:string){
-    let commands = preprocess_command(text, EvaluateFlags.USE_USINGS);
+    let commands = preprocess_command(text);
     let to_send: ChatCommandMessage = {chatname:SETTINGS.chat.name, commands:commands};
     add_dice_history_commands(commands);
     EMIT(FromClient.CHAT_STRUCTURED_INPUT, to_send);
@@ -302,15 +295,15 @@ document.addEventListener('DOMContentLoaded', function(){
 
     window.addEventListener('resize', resize_chat);
     const ta = by_id('chatinput');
-    setup_chat(ta, preprocess_and_send_chat_with_usings);
+    setup_chat(ta, preprocess_and_send_chat);
 });
 
-function preprocess_command(value:string, flags:EvaluateFlags):Array<Command> {
+function preprocess_command(value:string):Array<Command> {
     let result = [];
     value = value.replace(/[“”]/g,'"');
     value = value.replace(/[‘’]/g,"'");
     try {
-        let evaled = evaluate(value, flags);
+        let evaled = evaluate(value);
         for(let e of evaled){
             result.push(e);
         }
@@ -331,57 +324,13 @@ function preprocess_command(value:string, flags:EvaluateFlags):Array<Command> {
     return result;
 }
 
-const enum EvaluateFlags {
-    NONE = 0,
-    USE_USINGS = 1 << 0,
-}
-function evaluate(text:string, flags:EvaluateFlags):Array<Command>{
+function evaluate(text:string):Array<Command>{
     let ns = get_script_variables();
     let vars: Map<string, number|string>;
     if(ns.has('global'))
         vars = ns.get('global')!;
     else
         vars = new Map();
-    if(flags & EvaluateFlags.USE_USINGS){
-        for(let g of Array.from(USED_VARIABLE_GROUPS).sort()){
-            let more = ns.get(g.toLowerCase());
-            if(!more) continue;
-            for(let k of more.keys()){
-                if(vars.has(k)){
-                    const conflictingroups = [];
-                    for(let g2 of Array.from(USED_VARIABLE_GROUPS).sort()){
-                        let more2 = ns.get(g2.toLowerCase());
-                        if(!more2) continue;
-                        if(more2.has(k))
-                            conflictingroups.push(g2);
-                    }
-                    const gs = conflictingroups.join("', '");
-                    const errmess: Array<ChatErrorMsg> = [
-                        [
-                            Msg.ERROR,
-                            '',
-                            `Duplicate variable: '${k}'.`
-                        ],
-                        [
-                            Msg.ERROR,
-                            '',
-                            `This error was detected for groups: '${gs}'.`
-                        ],
-                        [
-                            Msg.ERROR,
-                            '',
-                            'Uncheck one of these groups to resolve this error.',
-                        ]
-                    ];
-                    const log = by_id('chat-history');
-                    add_chat_msgs(log, errmess, preprocess_and_send_chat);
-                    log.scrollTo({behavior:'smooth', top:log.scrollHeight});
-                    return [];
-                }
-            }
-            vars = new Map([...vars, ...more]);
-        }
-    }
     return evaluate_script(text, vars, ns);
 }
 function format_new_die_roll_result(roll_result:RolledExpr):string{
@@ -823,7 +772,7 @@ document.addEventListener('DOMContentLoaded', function(){
     let notifications: Array<HTMLElement> = [];
 
     function preproc_func(text:string){
-        let commands = preprocess_command(text, EvaluateFlags.NONE);
+        let commands = preprocess_command(text);
         let to_send: ChatDirectCommandMessage = {chatname:SETTINGS.chat.name, to:lv.active?lv.active:SETTINGS.userid, commands:commands};
         EMIT(FromClient.CHAT_DM, to_send);
     }
