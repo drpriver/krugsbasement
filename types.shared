@@ -154,6 +154,7 @@ struct TableCommand: array
     original: str
     table: str
 
+# This is for rolling private tables
 struct MyTableCommand: array
     type = ChatCommand.MYTABLE
     original: str
