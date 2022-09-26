@@ -35,3 +35,4 @@ flask_socketio.pyi
 *.so_
 private.mak
 !DEVELOPING.html
+nginx
