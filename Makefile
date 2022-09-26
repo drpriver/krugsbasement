@@ -74,9 +74,9 @@ appconfig.py:
 run: Generated/dungeon.html Generated/demo.html WebDnD/messages.py | appconfig.py serv_venv
 	$(SERVPY) -m WebDnD.app
 
-Generated/dungeon.html: client.dnd Generated/combined.js | Depends Depends/Generated dev_venv
+Generated/dungeon.html: client.dnd Generated/combined.js | Depends/Generated dev_venv
 	$(DEVPY) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
-Generated/demo.html: demo.dnd Generated/demo.js Generated/combined.js | Depends Depends/Generated dev_venv
+Generated/demo.html: demo.dnd Generated/demo.js Generated/combined.js | Depends/Generated dev_venv
 	$(DEVPY) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
 
 Generated/%.html: Docs/%.dnd | Generated Depends/Generated dev_venv
@@ -145,7 +145,8 @@ tags: *.ts Scripts/tag_ts.py types.shared | dev_venv
 mypy: flask_socketio.pyi | dev_venv
 	$(DEVPY) -m mypy -p WebDnD.app --namespace-packages --ignore-missing-imports --disallow-untyped-defs
 
-Generated/subwindowdefs.ts Generated/dialogdefs.ts Generated/dungeon.temp.html: dungeon.dnd | Generated dev_venv
+Generated/subwindowdefs.ts Generated/dialogdefs.ts \
+Generated/dungeon.temp.html: dungeon.dnd | Generated dev_venv
 	$(DEVPY) -m pydndc $< --output Generated/dungeon.temp.html --strip-spaces --allow-js-write --jsargs '{"temp":true}'
 
 Generated/nodes.ts: Generated/dungeon.temp.html | Generated Depends dev_venv
@@ -156,11 +157,23 @@ clean:
 	$(RMRF) Generated Depends dist.zip
 
 .PHONY: pack
-pack: Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.png Generated/toks.webp
-Generated/packed.json Generated/packed.webp Generated/packed.png Generated/toks.webp Generated/toks.png Generated/packed.ts: Scripts/pack.py | Generated dev_venv Depends
+pack: Generated/packed.json Generated/packed.webp \
+	Generated/packed.png Generated/toks.png \
+	Generated/toks.webp
+
+Generated/packed.json Generated/packed.webp \
+Generated/packed.png Generated/toks.webp \
+Generated/toks.png Generated/packed.ts: Scripts/pack.py | Generated dev_venv Depends
 	$(DEVPY) Scripts/pack.py
 
-include $(wildcard private.mak)
+DOCS=Generated/macro-doc.html \
+     Generated/tables.html \
+     Generated/index.html
+.PHONY: docs
+docs: $(DOCS)
 
 .PHONY: all
 all: dist.zip
+
+
+include $(wildcard private.mak)
