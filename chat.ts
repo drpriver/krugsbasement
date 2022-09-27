@@ -11,7 +11,7 @@ function setchatname(name:string){
 }
 // @ts-ignore
 
-function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:string)=>void){
+function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:string, _:number, _:number)=>void){
     for(let i = 0; i < msgs.length; i++){
         const msg = msgs[i];
         const entry = elem_with_parent(log, 'div');
@@ -41,7 +41,7 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:st
                     e.stopPropagation();
                     e.preventDefault();
                     if(label_target)
-                        label_target(msg_data);
+                        label_target(msg_data, -1, -1);
                 });
             }break;
             case Msg.ERROR:{
@@ -117,7 +117,7 @@ function add_dice_history_command(log:HTMLDivElement, text:string):number {
     span.addEventListener('click', function(e){
         e.stopPropagation();
         e.preventDefault();
-        preprocess_and_send_chat(text);
+        preprocess_and_send_chat(text, -1, -1);
     });
     span.addEventListener('contextmenu', function(e){
         e.stopPropagation();
@@ -162,8 +162,8 @@ function add_dice_history_commands(commands: Array<Command>){
     }
 }
 
-function preprocess_and_send_chat(text:string){
-    let commands = preprocess_command(text);
+function preprocess_and_send_chat(text:string, character_id:number, macro_id:number){
+    let commands = preprocess_command(text, character_id, macro_id);
     let to_send: ChatCommandMessage = {chatname:SETTINGS.chat.name, commands:commands};
     add_dice_history_commands(commands);
     EMIT(FromClient.CHAT_STRUCTURED_INPUT, to_send);
@@ -298,12 +298,12 @@ document.addEventListener('DOMContentLoaded', function(){
     setup_chat(ta, preprocess_and_send_chat);
 });
 
-function preprocess_command(value:string):Array<Command> {
+function preprocess_command(value:string, character_id:number, macro_id:number):Array<Command> {
     let result = [];
     value = value.replace(/[“”]/g,'"');
     value = value.replace(/[‘’]/g,"'");
     try {
-        let evaled = evaluate(value);
+        let evaled = evaluate(value, character_id, macro_id);
         for(let e of evaled){
             result.push(e);
         }
@@ -324,13 +324,8 @@ function preprocess_command(value:string):Array<Command> {
     return result;
 }
 
-function evaluate(text:string):Array<Command>{
-    let ns = get_script_variables();
-    let vars: Map<string, number|string>;
-    if(ns.has('global'))
-        vars = ns.get('global')!;
-    else
-        vars = new Map();
+function evaluate(text:string, character_id:number, macro_id:number):Array<Command>{
+    let [ns, vars] = get_script_variables(character_id, macro_id);
     return evaluate_script(text, vars, ns);
 }
 function format_new_die_roll_result(roll_result:RolledExpr):string{
@@ -771,8 +766,8 @@ document.addEventListener('DOMContentLoaded', function(){
     // just your notification).
     let notifications: Array<HTMLElement> = [];
 
-    function preproc_func(text:string){
-        let commands = preprocess_command(text);
+    function preproc_func(text:string, _:number, __:number){
+        let commands = preprocess_command(text, -1, -1);
         let to_send: ChatDirectCommandMessage = {chatname:SETTINGS.chat.name, to:lv.active?lv.active:SETTINGS.userid, commands:commands};
         EMIT(FromClient.CHAT_DM, to_send);
     }
@@ -869,25 +864,25 @@ document.addEventListener('DOMContentLoaded', function(){
             let name = tb.name;
             let b = elem_parent_text(shtbs, 'button', name);
             b.addEventListener('click', function(){
-                preproc_func(`table ${name}`);
+                preproc_func(`table ${name}`, -1, -1);
             });
         }
         for(let tb of ROLLTABLES.private){
             let name = tb.name;
             let b = elem_parent_text(prtbs, 'button', name);
             b.addEventListener('click', function(){
-                preproc_func(`mytable ${name}`);
+                preproc_func(`mytable ${name}`, -1, -1);
             });
         }
     });
     function setup_macros(){
         macs.innerHTML = '';
-        for(let gid of MACROGROUPID_ORDER){
-            let macros = MACROS.get(gid)!;
-            for(let m of macros){
+        for(let ch of CHARACTERS.values()){
+            for(let mid of ch.macros){
+                let m = MACROS.get(mid)!;
                 let b = elem_parent_text(macs, 'button', m.name);
                 b.style.width = '100%';
-                b.onclick = function(){preproc_func(m.body)};
+                b.onclick = function(){preproc_func(m.body, ch.id, m.id)};
             }
         }
     }

@@ -8,10 +8,10 @@ type Settings = {
     chat:{name: string;};
     demo: boolean;
     hidechat: boolean;
-    macros: {
-        macros: Array<SavedMacro>;
-        variables: Array<ScriptVariable>;
-        used_variables: Array<string>;
+    macros:{
+        macros: Array<Macro>;
+        variables: Array<Variable>;
+        characters: Array<Character>;
     };
 }
 declare let SETTINGS: Settings;

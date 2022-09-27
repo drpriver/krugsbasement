@@ -127,6 +127,10 @@ a {
   height: 100%;
   width: 100%;
   padding-right: 12px;
+  padding-left: 12px;
+  display: grid;
+  grid-template-columns: 100%;
+  grid-template-rows: max-content max-content 250px 250px;
 }
 #note-view-title, #macro-view-title, #macro-view-group {
   resize: none;
@@ -145,12 +149,28 @@ a {
   height: 50%;
 }
 #macro-view-edit {
-  height: 50%;
+  height: 100%;
+}
+#local-vars {
+  width: 200px;
+}
+label.variable {
+  display: grid;
+  grid-template-columns: auto 6em max-content;
+  padding-left: 8px;
+}
+/* This should have a better name */
+#asdf-variable {
+  display: grid;
+  width: 100%;
+  grid-template-columns: auto max-content;
 }
 #note-view-editor-log, #macro-test-log {
-  height: 20%;
   border: 1px solid grey;
   overflow-y: auto;
+}
+#note-view-editor-log {
+  height: 20%;
 }
 #macro-test-log {
   margin: 8px;

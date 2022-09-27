@@ -5,7 +5,7 @@
 import os
 import threading
 import sqlite3
-from typing import Optional, Dict, Tuple, List, Any, NamedTuple
+from typing import Optional, Dict, Tuple, List, Any, NamedTuple, Set
 import json
 import datetime
 from .logs import logging
@@ -17,7 +17,7 @@ atexit.register(lambda: (logging.info('closing db'), conn.close())) # type: igno
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 13
+DBVERSION = 14
 with conn:
     conn.execute("PRAGMA encoding = 'UTF-8';")
     conn.execute('PRAGMA foreign_keys = ON;')
@@ -289,7 +289,100 @@ def setup_tables() -> None:
             SET objects = ?
             WHERE campaignid = ? AND mapid = ?;
             ''',(objs_, campid, mapid))
+    if version < 14:
+        macrodata = conn.execute('''
+        SELECT userid, campaignid, category, key, value
+        FROM usercampprefs
+        WHERE category = 'macros';
+        ''').fetchall()
+        conn.execute('''
+        DELETE FROM usercampprefs
+        WHERE category = 'macros';
+        ''')
+        variables:Dict[Tuple[int, int], str] = {}
+        macros:Dict[Tuple[int, int], str] = {}
+        ids: Set[Tuple[int, int]] = set()
+        for (uid, cid, cat, key, value) in macrodata:
+            assert cat == 'macros'
+            if key == 'used_variables':
+                assert value == '[]'
+                continue
+            if key == 'variables' and value != '[]':
+                variables[(uid, cid)] = value
+                continue
+            if key == 'macros' and value != '[]':
+                macros[(uid, cid)] = value
+                continue
+        ids.update(variables.keys())
+        ids.update(macros.keys())
 
+        for idp in ids:
+            m = json.loads(macros.get(idp, '[]'))
+            v = json.loads(variables.get(idp, '[]'))
+            groups = {}
+            gcounter = 0
+            mcounter = 0
+            vcounter = 0
+            newmacros = []
+            newvars = []
+            for mac in m:
+                if mac['group'] not in groups:
+                    gcounter += 1
+                    groups[mac['group']] = {
+                        'id':gcounter,
+                        'name': mac['group'],
+                        'macros': [],
+                        'variables': [],
+                    }
+                mcounter += 1
+                newmac = {
+                    'id': mcounter,
+                    'name': mac['name'],
+                    'body':mac['body'],
+                    'variables': [],
+                }
+                groups[mac['group']]['macros'].append(newmac['id'])
+                newmacros.append(newmac)
+                del mac
+            for var in v:
+                if var['group'] not in groups:
+                    gcounter += 1
+                    groups[var['group']] = {
+                        'id':gcounter,
+                        'name': var['group'],
+                        'macros': [],
+                        'variables': [],
+                    }
+                vcounter += 1
+                newvar = {
+                    'id': vcounter,
+                    'name': var['name'],
+                    'type': var['type'],
+                    'value': var['value'],
+                }
+                groups[var['group']]['variables'].append(newvar['id'])
+                newvars.append(newvar)
+            conn.execute('''
+            INSERT INTO
+                usercampprefs(userid, campaignid, category, key, value)
+            VALUES
+                (?, ?, ?, ?, ?)
+            ;
+            ''', (idp[0], idp[1], 'macros', 'macros', json.dumps(newmacros)))
+            conn.execute('''
+            INSERT INTO
+                usercampprefs(userid, campaignid, category, key, value)
+            VALUES
+                (?, ?, ?, ?, ?)
+            ;
+            ''', (idp[0], idp[1], 'macros', 'variables', json.dumps(newvars)))
+            conn.execute('''
+            INSERT INTO
+                usercampprefs(userid, campaignid, category, key, value)
+            VALUES
+                (?, ?, ?, ?, ?)
+            ;
+            ''', (idp[0], idp[1], 'macros', 'characters', json.dumps(list(groups.values()))))
 
 
 with conn:

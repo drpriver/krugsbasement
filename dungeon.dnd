@@ -53,12 +53,13 @@ David20::title #hide
   make_window('macros', 'Macros', `
     <div id="macros-container" class="window-container">
       <div id="macros-group-list" class="window-group-list">
-        <button id="new-macro-group">+ New Category</button>
+        <button id="new-macro-group">+ New Group</button>
       </div>
       <div id="macros-list" class="window-group-list">
-        <button id="new-macro">
-          + New Macro
-        </button>
+        <button id="new-macro">+ New Macro</button>
+      </div>
+      <div id="macro-var-list" class="window-group-list">
+        <button id="new-variable">+ New Variable</button>
       </div>
       <div id="macro-editor" style="visibility:hidden;">
         <div id="macros-buttons">
@@ -68,37 +69,18 @@ David20::title #hide
           <a target="_blank" href="/docs/macro-doc.html">Help</a>
         </div>
         <div style="display:table; width: 100%;">
-          <div style="display:table-row; width: 100%;"><span style="display:table-cell; vertical-align:top; padding-left: 8px;">Name: </span><textarea spellcheck="false" id="macro-view-title" rows=1 style="display:table-cell;"></textarea></div>
+          <div style="width: 100%; display:table-row">
+            <label style="display: table-cell; padding-left: 8px;"> Name: <textarea spellcheck="false" id="macro-view-title" rows=1 style="width: 80%"></textarea>
+            </label>
+          </div>
         </div>
-        <textarea spellcheck="false" id="macro-view-edit"></textarea>
+        <div id="asdf-variable">
+          <textarea spellcheck="false" id="macro-view-edit"></textarea>
+          <div id="local-vars" class="window-group-list">
+            <button id="new-local-var">+ New Macro Var</button>
+          </div>
+        </div>
         <div id="macro-test-log"></div>
-      </div>
-    </div>
-  `);
-  make_window('variables', 'Variables', `
-    <div id="variables-container" class="window-container">
-      <div id="variables-group-list" class="window-group-list">
-        <button id="variables-add-category">+ Add Category</button>
-      </div>
-      <div id="variables-editor">
-        <button id="variable-add-variable">+ Add Variable</button>
-        <div style="display:table;" id="variables-table">
-          <div style="display:table-row;" class="variables-row variable-table-row" id="variables-table-header">
-            <div style="display:table-cell;"><b>Type</b></div>
-            <div style="display:table-cell;"><b>Name</b></div>
-            <div style="display:table-cell;"><b>Value</b></div>
-            <div style="display:table-cell;"><b>Delete</b></div>
-          </div>
-          <div style="display:table-row;" class="variables-row">
-            <input style="display:table-cell;" value="Str">
-            <select style="display:table-cell;">
-              <option value="number">Number</option>
-              <option value="boolean">Boolean</option>
-            </select>
-            <input style="display: table-cell;" type="number" value="0">
-            <input style="display:table-cell;" type="checkbox">
-          </div>
-        </div>
       </div>
     </div>
   `);
@@ -491,6 +473,24 @@ David20::title #hide
       </tr>
     </table>
     `);
+  begin('make-variable');
+  make(`
+    ${title("Variable")}
+    <table class="input-container">
+      <tr>
+        <td>${label('type', 'Type')}
+        <td>${selectbegin('type')}
+            <option value="0">Number</option>
+            <option value="1">Boolean</option>
+            <option value="2">Expression</option>
+          </select>
+      </tr>
+      <tr>
+        <td>${label('name', 'Name')}
+        <td>${textbox('name')}
+      </tr>
+    </table>
+    `);
   begin('simple-delete');
   make(`
     ${title('Delete')}
@@ -700,7 +700,6 @@ David20::title #hide
     ::div.three-buttons
       ::raw
         <button id="macros-button">Macros…</button>
-        <button id="variables-button">Variables…</button>
         <button id="privateroll-button">DMs…</button>
   ::div #id(notifications)
   ::div.log #id(chat-history)

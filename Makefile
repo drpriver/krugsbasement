@@ -74,9 +74,9 @@ appconfig.py:
 run: Generated/dungeon.html Generated/demo.html WebDnD/messages.py | appconfig.py serv_venv
 	$(SERVPY) -m WebDnD.app
 
-Generated/dungeon.html: client.dnd Generated/combined.js | Depends/Generated dev_venv
+Generated/dungeon.html: client.dnd Generated/combined.js dungeon.css | Depends/Generated dev_venv
 	$(DEVPY) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
-Generated/demo.html: demo.dnd Generated/demo.js Generated/combined.js | Depends/Generated dev_venv
+Generated/demo.html: demo.dnd Generated/demo.js Generated/combined.js dungeon.css | Depends/Generated dev_venv
 	$(DEVPY) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
 
 Generated/%.html: Docs/%.dnd | Generated Depends/Generated dev_venv

@@ -684,7 +684,7 @@ def get_html(info:db.CampaignInfo) -> str:
         'macros':{
             'macros':[],
             'variables':[],
-            'used_variables':[],
+            'characters':[],
         }
     }
     def update_vals(orig:dict, to_update:dict) -> None:

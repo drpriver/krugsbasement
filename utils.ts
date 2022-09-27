@@ -751,10 +751,10 @@ type ChatInput = {
     current_text: string
     set_text: string;
     history: Array<string>;
-    enter_func: (_:string)=>void;
+    enter_func: (_:string, __:number, ___:number)=>void;
     set_history: (_:Array<string>)=>void;
 };
-function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string)=>void){
+function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string, __:number, ___:number)=>void){
     const hist: ChatInput = {
         index: 0,
         current_text: "",
@@ -779,7 +779,7 @@ function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string)=>void){
                 const value = chat.value;
                 if(value.length){
                     chat.value = "";
-                    hist.enter_func(value);
+                    hist.enter_func(value, -1, -1);
                     if(!(hist.history.length && value == hist.history[hist.history.length-1])){
                         hist.history.push(value);
                     }
@@ -855,8 +855,10 @@ function make_tab_view(tabs:Array<HTMLElement>, views:Array<HTMLElement>, displa
         });
         views[i].style.display = 'none';
     }
-    views[0].style.display = display;
-    tabs[0].classList.add('active');
+    if(views.length)
+        views[0].style.display = display;
+    if(tabs.length)
+        tabs[0].classList.add('active');
     return tv;
 }
 
