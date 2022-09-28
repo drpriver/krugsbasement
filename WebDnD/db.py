@@ -328,40 +328,19 @@ def setup_tables() -> None:
             for mac in m:
                 if mac['group'] not in groups:
                     gcounter += 1
-                    groups[mac['group']] = {
-                        'id':gcounter,
-                        'name': mac['group'],
-                        'macros': [],
-                        'variables': [],
-                    }
+                    groups[mac['group']] = [gcounter, mac['group'], [], []]
                 mcounter += 1
-                newmac = {
-                    'id': mcounter,
-                    'name': mac['name'],
-                    'body':mac['body'],
-                    'variables': [],
-                }
-                groups[mac['group']]['macros'].append(newmac['id'])
+                newmac = [mcounter, mac['name'], mac['body'], []]
+                groups[mac['group']][2].append(mcounter)
                 newmacros.append(newmac)
                 del mac
             for var in v:
                 if var['group'] not in groups:
                     gcounter += 1
-                    groups[var['group']] = {
-                        'id':gcounter,
-                        'name': var['group'],
-                        'macros': [],
-                        'variables': [],
-                        'ui': 0,
-                    }
+                    groups[var['group']] = [gcounter, var['group'], [], []]
                 vcounter += 1
-                newvar = {
-                    'id': vcounter,
-                    'name': var['name'],
-                    'type': var['type'],
-                    'value': var['value'],
-                }
-                groups[var['group']]['variables'].append(newvar['id'])
+                newvar = [vcounter, var['name'], var['type'], var['value'], 0]
+                groups[var['group']][3].append(vcounter)
                 newvars.append(newvar)
             conn.execute('''
             INSERT INTO

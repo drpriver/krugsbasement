@@ -878,11 +878,11 @@ document.addEventListener('DOMContentLoaded', function(){
     function setup_macros(){
         macs.innerHTML = '';
         for(let ch of CHARACTERS.values()){
-            for(let mid of ch.macros){
+            for(let mid of ch[2]){
                 let m = MACROS.get(mid)!;
-                let b = elem_parent_text(macs, 'button', m.name);
+                let b = elem_parent_text(macs, 'button', m[1]);
                 b.style.width = '100%';
-                b.onclick = function(){preproc_func(m.body, ch.id, m.id)};
+                b.onclick = function(){preproc_func(m[2], ch[0], m[0])};
             }
         }
     }

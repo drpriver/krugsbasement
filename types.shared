@@ -826,6 +826,39 @@ union StrippedObj: array
 validator: StrippedObj
     ts
 
+enum ScriptVariableType: int
+    NUMBER = 0
+    BOOLEAN = 1
+    STRING = 2
+    ABILITY_SCORE = 3 # 3.5 style
+
+struct Variable: array
+    id: int
+    name: str
+    type: ScriptVariableType
+    value: str
+    ui: int
+
+struct Macro: array
+    id: int
+    name: str
+    body: str
+    variables: [int]
+
+struct Character: array
+    id: int
+    name: str
+    macros: [int]
+    variables: [int]
+
+struct ExportedMacro: array
+    variables: [Variable]
+    macros: [Macro]
+    characters: [Character]
+
+validator: ExportedMacro
+    ts
+
 // GridType
 // --------
 // It looks weird that you can have NOGRID and HEX set at the same time,

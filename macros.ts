@@ -2,35 +2,6 @@
 // Copyright © 2021-2022, David Priver
 //
 
-const enum ScriptVariableType {
-    NUMBER        = 0,
-    BOOLEAN       = 1,
-    STRING        = 2,
-    ABILITY_SCORE = 3,
-}
-
-type Variable = {
-    id: number;
-    name: string;
-    type: ScriptVariableType;
-    value: string;
-    ui: number;
-}
-
-type Macro = {
-    id: number;
-    name: string;
-    body: string
-    variables: Array<number>;
-}
-
-type Character = {
-    id: number;
-    name: string;
-    macros: Array<number>;
-    variables: Array<number>;
-}
-
 let CHARACTERS: Map<number, Character> = new Map();
 let charactercounter = 0;
 let MACROS: Map<number, Macro> = new Map();
@@ -41,12 +12,7 @@ let active_character = 0;
 
 function alloc_macro():Macro{
     let id = ++macrocounter;
-    let result:Macro = {
-        id:id,
-        name: "Untitled",
-        body: "",
-        variables: [],
-    };
+    let result:Macro = [id, "Untitled", "", []];
     MACROS.set(id, result);
     return result;
 }
@@ -55,24 +21,18 @@ function del_macro(id:number){
     let m = MACROS.get(id)!;
     MACROS.delete(id);
     for(let c of CHARACTERS.values()){
-        let idx = c.macros.indexOf(id);
+        let idx = c[2].indexOf(id);
         if(idx > -1){
-            c.macros.splice(idx, 1);
+            c[2].splice(idx, 1);
         }
     }
-    for(let v of m.variables)
+    for(let v of m[3])
         del_variable(v);
 }
 
 function alloc_variable():Variable {
     let id = ++variablecounter;
-    let result:Variable = {
-        id:id,
-        name: "",
-        value: "",
-        type: ScriptVariableType.NUMBER,
-        ui: 0,
-    };
+    let result:Variable = [id, "", ScriptVariableType.NUMBER, "0", 0];
     VARIABLES.set(id, result);
     return result;
 }
@@ -80,15 +40,15 @@ function alloc_variable():Variable {
 function del_variable(id:number){
     VARIABLES.delete(id);
     for(let c of CHARACTERS.values()){
-        let idx = c.variables.indexOf(id);
+        let idx = c[3].indexOf(id);
         if(idx > -1){
-            c.variables.splice(idx, 1);
+            c[3].splice(idx, 1);
         }
     }
     for(let m of MACROS.values()){
-        let idx = m.variables.indexOf(id);
+        let idx = m[3].indexOf(id);
         if(idx > -1){
-            m.variables.splice(idx, 1);
+            m[3].splice(idx, 1);
         }
     }
     if(VARINPUTS.has(id))
@@ -97,12 +57,7 @@ function del_variable(id:number){
 
 function alloc_character():Character{
     let id = ++charactercounter;
-    let result: Character = {
-        id:id,
-        name: "",
-        macros: [],
-        variables: [],
-    };
+    let result: Character = [id, "", [], []];
     CHARACTERS.set(id, result);
     return result;
 }
@@ -110,26 +65,26 @@ function alloc_character():Character{
 function del_character(id:number){
     let c = CHARACTERS.get(id)!;
     CHARACTERS.delete(id);
-    for(let v of c.variables)
+    for(let v of c[3])
         del_variable(v);
-    for(let m of c.macros)
+    for(let m of c[2])
         del_macro(m);
 }
 (function(){
     for(let m of SETTINGS.macros.macros){
-        MACROS.set(m.id, m);
-        if(m.id > macrocounter) macrocounter = m.id;
+        MACROS.set(m[0], m);
+        if(m[0] > macrocounter) macrocounter = m[0];
     }
     for(let v of SETTINGS.macros.variables){
-        VARIABLES.set(v.id, v);
-        if(v.id > variablecounter) variablecounter = v.id;
+        VARIABLES.set(v[0], v);
+        if(v[0] > variablecounter) variablecounter = v[0];
     }
     let first = true;
     for(let c of SETTINGS.macros.characters){
-        if(first) active_character = c.id;
+        if(first) active_character = c[0];
         first = false;
-        CHARACTERS.set(c.id, c);
-        if(c.id > charactercounter) charactercounter = c.id;
+        CHARACTERS.set(c[0], c);
+        if(c[0] > charactercounter) charactercounter = c[0];
     }
 }());
 
@@ -137,7 +92,7 @@ let VARINPUTS:Map<number, Map<string, HTMLInputElement>> = new Map();
 function reg_var_input(vid:number, name:string, inp:HTMLInputElement){
     if(!VARINPUTS.has(vid))
         VARINPUTS.set(vid, new Map());
-    VARINPUTS.get(vid)!.set(name,inp);
+    VARINPUTS.get(vid)!.set(name, inp);
 }
 
 function update_var(vid:number, val:string){
@@ -149,7 +104,7 @@ function update_var(vid:number, val:string){
             v.value = val;
         }
     }
-    VARIABLES.get(vid)!.value = val;
+    VARIABLES.get(vid)![3] = val;
     save_variables();
 }
 
@@ -170,60 +125,60 @@ function setup_macro_panel(){
     function make_var(parent:HTMLElement, v:Variable){
         const l = elem_with_parent(parent, 'label');
         l.classList.add('panel-variable');
-        elem_parent_text(l, 'span', v.name+' ');
+        elem_parent_text(l, 'span', v[1]+' ');
         const inp = elem_with_parent(l, 'input');
-        switch(v.type){
+        switch(v[2]){
             case ScriptVariableType.NUMBER:
                 inp.type = 'number';
-                inp.value = v.value;
+                inp.value = v[3];
                 break;
             case ScriptVariableType.ABILITY_SCORE:
                 inp.type = 'number';
-                inp.value = v.value;
+                inp.value = v[3];
                 break;
             case ScriptVariableType.BOOLEAN:
                 inp.type = 'checkbox';
-                inp.checked = v.value=="1";
+                inp.checked = v[3]=="1";
                 break;
             case ScriptVariableType.STRING:
                 inp.type = 'text';
-                inp.value = v.value;
+                inp.value = v[3];
                 break;
         }
-        reg_var_input(v.id, 'macro-panel', inp);
+        reg_var_input(v[0], 'macro-panel', inp);
         inp.addEventListener('input', function(){
-            if(v.type == ScriptVariableType.BOOLEAN)
-                update_var(v.id, inp.checked?"1":"0");
+            if(v[2] == ScriptVariableType.BOOLEAN)
+                update_var(v[0], inp.checked?"1":"0");
             else
-                update_var(v.id, inp.value);
+                update_var(v[0], inp.value);
         });
     }
     for(let [id, ch] of CHARACTERS.entries()){
-        let name = ch.name;
+        let name = ch[1];
         if(name.toLowerCase() == 'global' || name.toLowerCase() == 'globals')
             continue;
         let d = elem_parent_text(pt, 'div', name, null, 'macro-group-title')
         tabs.push(d);
         let macro_group = elem_with_parent(pb, 'div',null, 'macro-panel-container');
-        let vardiv = elem_with_parent(macro_group, 'div', null, 'macro-panel-vars');
         let macrodiv = elem_with_parent(macro_group, 'div', null, 'macro-panel-macros');
-        for(let mid of ch.macros){
+        let vardiv = elem_with_parent(macro_group, 'div', null, 'macro-panel-vars');
+        for(let mid of ch[2]){
             let m = MACROS.get(mid)!;
             const mbdiv = elem_with_parent(macrodiv, 'div', null, 'mb-div');
-            const macro_button = elem_parent_text(mbdiv, 'button', m.name, null, 'macro-button');
-            for(let vid of m.variables){
+            const macro_button = elem_parent_text(mbdiv, 'button', m[1], null, 'macro-button');
+            for(let vid of m[3]){
                 const v = VARIABLES.get(vid)!;
-                if(!v.ui) continue;
+                if(!v[4]) continue;
                 make_var(mbdiv, v);
             }
             macro_button.addEventListener('click', function(e:MouseEvent){
                 e.stopPropagation();
-                preprocess_and_send_chat(m.body, id, mid);
+                preprocess_and_send_chat(m[2], id, mid);
             });
         }
-        for(let vid of ch.variables){
+        for(let vid of ch[3]){
             let v = VARIABLES.get(vid)!;
-            if(!v.ui) continue;
+            if(!v[4]) continue;
             make_var(vardiv, v);
         }
         views.push(macro_group);
@@ -289,11 +244,11 @@ document.addEventListener('DOMContentLoaded', function(){
     let col2 = by_id('macros-list');
     let dualview = make_dual_list_view<number, number>(col1, col2, ListViewFlags.USER_RENAMABLE, ListViewFlags.USER_RENAMABLE);
     for(let ch of CHARACTERS.values()){
-        let name = ch.name;
-        dualview.add_item1(name, ch.id);
-        for(let mid of ch.macros){
+        let name = ch[1];
+        dualview.add_item1(name, ch[0]);
+        for(let mid of ch[2]){
             let macro = MACROS.get(mid)!;
-            dualview.add_item2(macro.name, ch.id, mid);
+            dualview.add_item2(macro[1], ch[0], mid);
         }
     }
     const macro_area       = by_id('macro-view-edit');
@@ -311,9 +266,9 @@ document.addEventListener('DOMContentLoaded', function(){
     const new_var_button   = by_id('new-variable');
     let m: Macro | undefined;
     function delete_macro(ma:Macro){
-        del_macro(ma.id);
+        del_macro(ma[0]);
         m = undefined;
-        dualview.remove2(dualview.active1!, ma.id);
+        dualview.remove2(dualview.active1!, ma[0]);
         save_mcv_and_signal();
     }
     function add_var(parent:HTMLElement, v:Variable){
@@ -322,44 +277,44 @@ document.addEventListener('DOMContentLoaded', function(){
         let eyec = elem_with_parent(eye, 'input');
         let l = elem_with_parent(di, 'label');
         l.classList.add('variable')
-        elem_parent_text(l, 'span', v.name+' ');
+        elem_parent_text(l, 'span', v[1]+' ');
         eyec.type = 'checkbox';
         let inp = elem_with_parent(l, 'input');
         let x = elem_parent_text(l, 'button', '×');
         x.addEventListener('click', function(){
             di.remove();
-            del_variable(v.id);
+            del_variable(v[0]);
             save_variables();
         });
         inp.spellcheck = false;
-        switch(v.type){
+        switch(v[2]){
             case ScriptVariableType.NUMBER:
                 inp.type = 'number';
-                inp.value = v.value;
+                inp.value = v[3];
                 break;
             case ScriptVariableType.ABILITY_SCORE:
                 inp.type = 'number';
-                inp.value = v.value;
+                inp.value = v[3];
                 break;
             case ScriptVariableType.BOOLEAN:
                 inp.type = 'checkbox';
-                inp.checked = v.value=="1";
+                inp.checked = v[3]=="1";
                 break;
             case ScriptVariableType.STRING:
                 inp.type = 'text';
-                inp.value = v.value;
+                inp.value = v[3];
                 break;
         }
-        reg_var_input(v.id, 'editor', inp);
+        reg_var_input(v[0], 'editor', inp);
         inp.addEventListener('input', function(){
             if(inp.type == 'checkbox')
-                update_var(v.id, inp.checked?"1":"0");
+                update_var(v[0], inp.checked?"1":"0");
             else
-                update_var(v.id, inp.value);
+                update_var(v[0], inp.value);
         });
-        eyec.checked = !!v.ui;
+        eyec.checked = !!v[4];
         eyec.addEventListener('change', function(){
-            v.ui = eyec.checked?1:0;
+            v[4] = eyec.checked?1:0;
             save_variables();
             // XXX: wrong signal
             signal_for(ListenEvent.MACROS_RENAMED);
@@ -367,7 +322,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
     }
     dualview.user_rename_handler1 = function(groupid:number, newname:string){
-        CHARACTERS.get(groupid)!.name = newname;
+        CHARACTERS.get(groupid)![1] = newname;
         save_characters();
         // XXX: wrong signal
         signal_for(ListenEvent.MACROS_RENAMED);
@@ -375,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function(){
     dualview.user_rename_handler2 = function(k:number, k2:number, text:string){
         let m = MACROS.get(k2);
         if(m === undefined) return;
-        m.name = text;
+        m[1] = text;
         save_macros();
         // XXX: wrong signal
         signal_for(ListenEvent.MACROS_RENAMED);
@@ -402,16 +357,16 @@ document.addEventListener('DOMContentLoaded', function(){
         (locals as any).replaceChildren();
         locals.appendChild(local_var_button);
         editor_container.style.visibility = 'visible';
-        macro_area.value = m.body;
-        macro_title_area.innerText = m.name;
-        for(let vid of m.variables)
+        macro_area.value = m[2];
+        macro_title_area.innerText = m[1];
+        for(let vid of m[3])
             add_var(locals, VARIABLES.get(vid)!);
 
         (var_list as any).replaceChildren();
         var_list.appendChild(new_var_button);
         let ch = CHARACTERS.get(groupid);
         if(ch===undefined) return;
-        for(let vid of ch.variables)
+        for(let vid of ch[3])
             add_var(var_list, VARIABLES.get(vid)!);
     };
     dualview.activate1_handler = function(groupid: number){
@@ -424,17 +379,17 @@ document.addEventListener('DOMContentLoaded', function(){
         var_list.appendChild(new_var_button);
         let ch = CHARACTERS.get(groupid);
         if(ch===undefined) return;
-        for(let vid of ch.variables)
+        for(let vid of ch[3])
             add_var(var_list, VARIABLES.get(vid)!);
     };
     new_macro.addEventListener('click', function(){
         if(dualview.active1 === undefined)
             return;
         let new_macro = alloc_macro();
-        CHARACTERS.get(dualview.active1!)!.macros.push(new_macro.id);
+        CHARACTERS.get(dualview.active1!)![2].push(new_macro[0]);
         save_mcv_and_signal();
-        dualview.add_item2(new_macro.name, dualview.active1, new_macro.id);
-        dualview.make_active2(dualview.active1, new_macro.id);
+        dualview.add_item2(new_macro[1], dualview.active1, new_macro[0]);
+        dualview.make_active2(dualview.active1, new_macro[0]);
     });
     new_category.addEventListener('click', function(){
         let dialog = get_dialog('simple-text');
@@ -445,9 +400,9 @@ document.addEventListener('DOMContentLoaded', function(){
             let text = dialog.f.text.value.trim();
             if(!text) return;
             let c = alloc_character();
-            c.name = text;
-            dualview.add_item1(text, c.id);
-            dualview.make_active1(c.id);
+            c[1] = text;
+            dualview.add_item1(text, c[0]);
+            dualview.make_active1(c[0]);
             save_mcv_and_signal();
         };
         dialog.show_handler = function(){
@@ -463,7 +418,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if(!m) return;
         let commands;
         try{
-            commands = evaluate(m.body, dualview.active1!, m.id);
+            commands = evaluate(m[2], dualview.active1!, m[0]);
         }catch(e){
             const log = by_id('macro-test-log');
             const errmess: ChatErrorMsg = [Msg.ERROR, '', ""+e];
@@ -485,7 +440,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     use_button.addEventListener('click', function(){
         if(!m) return;
-        preprocess_and_send_chat(m.body, dualview.active1!, m.id);
+        preprocess_and_send_chat(m[2], dualview.active1!, m[0]);
     });
     del_macro_button.addEventListener('click', function(){
         if(!m) return;
@@ -501,7 +456,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     macro_area.addEventListener('input', function(){
         if(!m) return;
-        m.body = macro_area.value;
+        m[2] = macro_area.value;
         save_macros();
     });
     local_var_button.addEventListener('click', function(){
@@ -516,11 +471,11 @@ document.addEventListener('DOMContentLoaded', function(){
             if(!name) return;
             if(!m) return;
             let v = alloc_variable();
-            v.name = name;
-            v.type = +dialog.f.type.value;
-            if(v.type == ScriptVariableType.BOOLEAN)
-                v.value = '0';
-            m.variables.push(v.id);
+            v[1] = name;
+            v[2] = +dialog.f.type.value;
+            if(v[2] == ScriptVariableType.BOOLEAN)
+                v[3] = '0';
+            m[3].push(v[0]);
             save_mcv_and_signal();
             add_var(locals, v);
         };
@@ -538,12 +493,12 @@ document.addEventListener('DOMContentLoaded', function(){
             if(!name) return;
             if(dualview.active1 === undefined) return;
             let v = alloc_variable();
-            v.name = name;
-            v.type = +dialog.f.type.value;
-            if(v.type == ScriptVariableType.BOOLEAN)
-                v.value = '0';
+            v[1] = name;
+            v[2] = +dialog.f.type.value;
+            if(v[2] == ScriptVariableType.BOOLEAN)
+                v[3] = '0';
             let ch = CHARACTERS.get(dualview.active1!)!;
-            ch.variables.push(v.id);
+            ch[3].push(v[0]);
             save_variables();
             save_characters();
             add_var(var_list, v);
@@ -552,13 +507,63 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     let c = CHARACTERS.get(active_character);
     if(c !== undefined){
-        if(c.macros)
-            dualview.make_active2(c.id, c.macros[0]);
+        if(c[2])
+            dualview.make_active2(c[0], c[2][0]);
         else
-            dualview.make_active1(c.id);
+            dualview.make_active1(c[0]);
     }
     else
         dualview.make_active1(active_character);
+    by_id('export-macro').addEventListener('click', function(){
+        let x:ExportedMacro = [SETTINGS.macros.variables, SETTINGS.macros.macros, SETTINGS.macros.characters];
+        let data = JSON.stringify(x);
+        let a = document.createElement('a');
+        a.download = 'macros.json';
+        a.href = URL.createObjectURL(new Blob([data], {type:'application/json'}));
+        a.click();
+    });
+    by_id('import-macro').addEventListener('click', function(){
+        const inp = document.createElement('input');
+        inp.type = 'file';
+        inp.onchange = function(){
+            const files = inp.files;
+            if(!files) return;
+            if(!files.length) return;
+            const file = files[0];
+            const fr = new FileReader();
+            fr.onload = function(){
+                if(!fr.result) return;
+                const new_data = JSON.parse(fr.result as string);
+                const x = v_ExportedMacro(new_data);
+                if(x === null) return;
+                MACROS.clear();
+                VARIABLES.clear();
+                CHARACTERS.clear();
+                macrocounter = 0;
+                variablecounter = 0;
+                charactercounter = 0;
+                for(let m of x[1]){
+                    MACROS.set(m[0], m);
+                    if(m[0] > macrocounter) macrocounter = m[0];
+                }
+                for(let v of x[0]){
+                    VARIABLES.set(v[0], v);
+                    if(v[0] > variablecounter) variablecounter = v[0];
+                }
+                let first = true;
+                for(let c of x[2]){
+                    if(first) active_character = c[0];
+                    first = false;
+                    CHARACTERS.set(c[0], c);
+                    if(c[0] > charactercounter) charactercounter = c[0];
+                }
+                save_mcv_and_signal();
+            };
+            fr.readAsText(file);
+        };
+        inp.click();
+    });
+
 });
 
 function ability_score_to_modifier(score:number){
@@ -573,14 +578,14 @@ function get_script_variables(character_id:number, macro_id:number):[Map<string,
         character_id = active_character;
     for(let ch of CHARACTERS.values()){
         let ns = new Map();
-        for(let vid of ch.variables){
+        for(let vid of ch[3]){
             let v = VARIABLES.get(vid)!;
-            let value = v.value;
-            if(v.type == ScriptVariableType.ABILITY_SCORE)
+            let value = v[3];
+            if(v[2] == ScriptVariableType.ABILITY_SCORE)
                 value = ""+ability_score_to_modifier(+value);
-            ns.set(v.name.toLowerCase(), value);
+            ns.set(v[1].toLowerCase(), value);
         }
-        namespaces.set(ch.name.toLowerCase(), ns);
+        namespaces.set(ch[1].toLowerCase(), ns);
     }
     // First, globals
     for(let key of ['global', 'globals']){
@@ -592,22 +597,22 @@ function get_script_variables(character_id:number, macro_id:number):[Map<string,
     }
     if(character_id > 0){
         let ch = CHARACTERS.get(character_id)!;
-        for(let vid of ch.variables){
+        for(let vid of ch[3]){
             let v = VARIABLES.get(vid)!;
-            let value = v.value;
-            if(v.type == ScriptVariableType.ABILITY_SCORE)
+            let value = v[3];
+            if(v[2] == ScriptVariableType.ABILITY_SCORE)
                 value = ""+ability_score_to_modifier(+value);
-            vars.set(v.name.toLowerCase(), value);
+            vars.set(v[1].toLowerCase(), value);
         }
     }
     if(macro_id > 0){
         let mac = MACROS.get(macro_id)!;
-        for(let vid of mac.variables){
+        for(let vid of mac[3]){
             let v = VARIABLES.get(vid)!;
-            let value = v.value;
-            if(v.type == ScriptVariableType.ABILITY_SCORE)
+            let value = v[3];
+            if(v[2] == ScriptVariableType.ABILITY_SCORE)
                 value = ""+ability_score_to_modifier(+value);
-            vars.set(v.name.toLowerCase(), value);
+            vars.set(v[1].toLowerCase(), value);
         }
     }
     return [namespaces, vars];

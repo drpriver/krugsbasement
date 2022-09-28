@@ -66,6 +66,8 @@ David20::title #hide
           <button id="delete-macro">Delete</button>
           <button id="test-macro">Test</button>
           <button id="use-macro">Use</button>
+          <button id="export-macro">Export</button>
+          <button id="import-macro">Import</button>
           <a target="_blank" href="/docs/macro-doc.html">Help</a>
         </div>
         <div style="display:table; width: 100%;">

@@ -863,8 +863,6 @@ div.rolltable table{
 }
 .macro-panel-macros button {
   height: 1.5em;
-  padding-left: 3em;
-  padding-right: 3em;
 }
 .macro-panel-vars {
   display: flex;
