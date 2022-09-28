@@ -96,6 +96,7 @@ function reg_var_input(vid:number, name:string, inp:HTMLInputElement){
 }
 
 function update_var_value(vid:number, val:string){
+    if(!val.length) return;
     if(VARINPUTS.has(vid)){
         let vs = VARINPUTS.get(vid)!;
         for(let v of vs.values()){
