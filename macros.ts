@@ -394,7 +394,7 @@ document.addEventListener('DOMContentLoaded', function(){
     new_category.addEventListener('click', function(){
         let dialog = get_dialog('simple-text');
         if(!dialog) return;
-        dialog.title.textContent = 'Character Name';
+        dialog.title.textContent = 'Group Name';
         dialog.f.text.value = '';
         dialog.ok_handler = function(){
             let text = dialog.f.text.value.trim();
