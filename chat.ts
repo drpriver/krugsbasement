@@ -36,13 +36,15 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:st
                 const span = elem_with_text('span', data);
                 entry.appendChild(span);
                 span.style.cursor = 'pointer';
-                let msg_data = data;
-                span.addEventListener('click', function(e){
-                    e.stopPropagation();
-                    e.preventDefault();
-                    if(label_target)
+                if(label_target){
+                    entry.classList.add('clickable');
+                    let msg_data = data;
+                    span.addEventListener('click', function(e){
+                        e.stopPropagation();
+                        e.preventDefault();
                         label_target(msg_data, -1, -1);
-                });
+                    });
+                }
             }break;
             case Msg.ERROR:{
                 const data = msg[2];
