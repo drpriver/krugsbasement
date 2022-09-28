@@ -1,142 +1,152 @@
-::nav.left
+::toc .left
 ::div
-  ::md.comment
+  ::md .comment
     Expanded Macro Processor::title
-    The expanded functionality of the chat processor can now insert
-    variables into your roll expressions. You can also do basic conditional
-    statements with <tt>if</tt>.
+    The expanded functionality of the chat processor can now insert variables
+    into your roll expressions. You can also do basic conditional statements
+    with <tt>if</tt>.
 
     Chat Commands::md
-
-      As a refresher, the server checks if a line of input from a chat
-      message is a command. If it is not a command, it is just text and is just
-      echoed to all users. If it is a command, then something special happens.
-      The server considers a collection of lines all at once.
+      As a refresher, the server checks if a line of input from a chat message
+      is a command. If it is not a command, it is just text and is just echoed
+      to all users. If it is a command, then something special happens. The
+      server considers a collection of lines all at once.
 
       The current commands are:
-        Roll::md.indented .command
-            <tt>roll, r, /roll, /r</tt> or any line of text that can be successfully
-            parsed as a dice expression.
 
-            The server parses the command as a dice expression, rolls the dice
-            and displays the result.
+      Roll::md .indented .command
+        <tt>roll, r, /roll, /r</tt> or any line of text that can be successfully
+        parsed as a dice expression.
 
-        Shuffle::md.indented .command
-            <tt>shuffle, shuf, shuff, /shuffle, /shuff, /shuffle</tt> stuff
+        The server parses the command as a dice expression, rolls the dice and
+        displays the result.
 
-            The text after the shuffle is split on whitespace (although quoted
-            text is treated as a single thing) and then shuffled. The result is
-            then sent back. This is useful for if you need a random order of
-            some things.
+      Shuffle::md .indented .command
+        <tt>shuffle, shuf, shuff, /shuffle, /shuff, /shuffle</tt> stuff
 
-        Choose::md.indented .command
-            <tt>choose, /choose</tt> stuff
+        The text after the shuffle is split on whitespace (although quoted text
+        is treated as a single thing) and then shuffled. The result is then sent
+        back. This is useful for if you need a random order of some things.
 
-            The text after the choose is broken up the same way as with the
-            shuffle command. One of them is chosen and sent back.
+      Choose::md .indented .command
+        <tt>choose, /choose</tt> stuff
 
-        Table::md.indented .command
-            <tt>table, /table</tt> tablename
+        The text after the choose is broken up the same way as with the shuffle
+        command. One of them is chosen and sent back.
 
-            The named table is looked up and rolled on (which can trigger a roll
-            on a different table). The result is then sent back. See
-            [tables. | tablesweb]
-            ::links
-              tablesweb = tables.html
+      Table::md .indented .command
+        <tt>table, /table</tt> tablename
 
-        Name::md.indented .command
-            <tt>/name</tt> some name
+        The named table is looked up and rolled on (which can trigger a roll on
+        a different table). The result is then sent back. See
+        [tables. | tablesweb]
 
-            Your chatname is temporarily changed to the given name for display
-            purposes in this collection of lines.
+        ::links
+          tablesweb = tables.html
+      Name::md .indented .command
+        <tt>/name</tt> some name
 
-        Chat::md.indented .command
-            Any general text.
+        Your chatname is temporarily changed to the given name for display
+        purposes in this collection of lines.
 
-            Not really a command, but here for completeness's sake. Just send
-            some text.
+      Chat::md .indented .command
+        Any general text.
 
-        Say::md.indented .command
-            <tt>/say</tt> some text
+        Not really a command, but here for completeness's sake. Just send some
+        text.
 
-            Says the text, without trying to parse it as a die roll.
+      Say::md .indented .command
+        <tt>/say</tt> some text
+
+        Says the text, without trying to parse it as a die roll.
 
     Macro Processor::md
-      Now for the extra functionality. Basically, a preprocessing step interprets
-      the input, altering the lines that are sent to the server.
+      Now for the extra functionality. Basically, a preprocessing step
+      interprets the input, altering the lines that are sent to the server.
 
       Example::md
         Here's an example, we will then explain afterwards.
-      ::pre.macro
+
+      ::pre .macro
         bonus = 4
         attack = d20 + bonus
         /roll attack
-      ::md.comment
+      ::md .comment
         I'll break it down line by line.
-      ::pre.macro
+
+      ::pre .macro
         bonus = 4
-      ::md.comment
-        The above creates a local variable, setting it to 4.
-        Assignment statements are "identifier" "=" "whatever stuff"
-      ::pre.macro
+      ::md .comment
+        The above creates a local variable, setting it to 4. Assignment
+        statements are "identifier" "=" "whatever stuff"
+
+      ::pre .macro
         attack = d20 + bonus
-      ::md.comment
-        The above also creates a local variable, named attack.
-        This one indirectly references the local variable we created before.
-        When it comes time to use this variable, multiple expansions will need to
+      ::md .comment
+        The above also creates a local variable, named attack. This one
+        indirectly references the local variable we created before. When it
+        comes time to use this variable, multiple expansions will need to
         happen. I'll explain that in a second
-      ::pre.macro
+
+      ::pre .macro
         /roll attack
-      ::md.comment
-        The above is a roll statement, so we try to replace any terms we can with
-        known variables. After the first substitution, we end up with:
-      ::pre.macro
+      ::md .comment
+        The above is a roll statement, so we try to replace any terms we can
+        with known variables. After the first substitution, we end up with:
+
+      ::pre .macro
         /roll d20 + bonus
-      ::md.comment
+      ::md .comment
         There is still a variable in this statement, so it is substituted again.
-      ::pre.macro
+
+      ::pre .macro
         /roll d20 + 4
-      ::md.comment
-        which is the final line. This line is what will end up being sent to
-        the server.
-      ::md.comment
-        Variables only have to be defined when you get to actually substituting them.
-        This means that we could have written the above as:
-      ::pre.macro
+      ::md .comment
+        which is the final line. This line is what will end up being sent to the
+        server.
+
+      ::md .comment
+        Variables only have to be defined when you get to actually substituting
+        them. This means that we could have written the above as:
+
+      ::pre .macro
         attack = d20 + bonus
         bonus = 4
         /roll attack
-      ::md.comment
+      ::md .comment
         As variables are lazily substituted, this just works.
 
-      ::md.comment
+      ::md .comment
         Variables are case insensitive. These lines are the same:
-      ::pre.macro
+
+      ::pre .macro
         /roll attack
         /roll ATTACK
         /roll Attack
 
-      Expressions::md.comment
+      Expressions::md .comment
         To understand how the system works, it is important to understand what
         is an expression for a roll command, in descending precedence.
+
         1. Dice literal, for example "<tt>3d6</tt>" or "<tt>d20</tt>".
         2. Integer literal, for example "<tt>3</tt>" or "<tt>42</tt>".
         3. Variable, such as "attack" above.
         4. Parenthesized group, like "<tt>(3 + d6)</tt>" or "<tt>(2*3)</tt>."
-        5. Unary operations, like "<tt>!4</tt>" or "<tt>-d6</tt>". The
-           unary operations are "<tt>!</tt>" (not, turns 0 to 1 and all other
-           values to 0), "<tt>-</tt>" (negative), and "<tt>+</tt>" (which
-           does nothing).
-        4. Multiplication and division, like "<tt>3 * 3d6</tt>",
-           or "<tt>attack/2</tt>".
-        5. Addition and subtraction, like "<tt>d20+4</tt>", or "<tt>d6 - 1</tt>".
-        6. Comparisons, like "<tt>d6 == 1</tt>" or "<tt>d10 <= 2</tt>".
-           The comparison operatiors are "<tt>=</tt>", "<tt><</tt>",
-           "<tt><=</tt>", "<tt>></tt>", <tt>>=</tt>", "<tt>!=</tt>".
-
+        5. Unary operations, like "<tt>!4</tt>" or "<tt>-d6</tt>". The unary
+           operations are "<tt>!</tt>" (not, turns 0 to 1 and all other values
+           to 0), "<tt>-</tt>" (negative), and "<tt>+</tt>" (which does
+           nothing).
+        6. Multiplication and division, like "<tt>3 * 3d6</tt>", or
+           "<tt>attack/2</tt>".
+        7. Addition and subtraction, like "<tt>d20+4</tt>", or "<tt>d6 -
+           1</tt>".
+        8. Comparisons, like "<tt>d6 == 1</tt>" or "<tt>d10 <= 2</tt>". The
+           comparison operatiors are "<tt>=</tt>", "<tt><</tt>", "<tt><=</tt>",
+           "<tt>></tt>", <tt>>=</tt>", "<tt>!=</tt>".
         When substituted, variables are implicitly grouped. This means that
         something like:
-        ::pre.macro
+
+        ::pre .macro
           x = 3 + 2
           /roll 3*x
         will evaluate to 15, as you would expect.
@@ -144,16 +154,19 @@
         Integer literals are always positive, but since unary operations are
         high enough precedence, "<tt>-4 + 2</tt>" works in the normal way,
         producing <tt>-2</tt>.
-      Rounding::md.comment
+
+      Rounding::md .comment
         As per the usual rules of rpgs, if you are left with a fractional
         result, that result is rounded down. That is still ambiguous, so to be
         explicit, rounding will occur at these times:
+
         * Before adding, subtracting, or comparing two values.
         * The final total will be rounded.
 
-        This basically works as you would expect, but gives a couple non-obvious results.
+        This basically works as you would expect, but gives a couple non-obvious
+        results.
 
-        ::pre.macro
+        ::pre .macro
           # This produces 2
           /roll 2/3*3
 
@@ -171,75 +184,104 @@
 
         This means that division is not distributive. It is associative.
 
-
         Rounding is truncation towards 0.
-        ::pre.macro
+
+        ::pre .macro
           /roll -3/2 # produces -1
-      Variable Groups::md.comment
+      Grouped Variables::md .comment
         It's annoying to have to define all your variables in every script,
         especially when they are values you'll want to use in many places, like
-        your strength bonus or your base attack bonus. To help with this, there are
-        variable groups. You can't create variable groups inside a macro - they
-        are created through the variables window. A variable group can have any
-        number of variables defined in it.
+        your strength bonus or your base attack bonus. To help with this, you
+        can define variables in 3 places outside of a macro's body:
 
-        There are two ways to access variables: you can explicitly reference them
-        via a "dotted" identifier or invoke a <tt>use</tt> statement.
+        1. Attached to the macro (a local variable).
+        2. Attached to the macro group (a group variable).
+        3. In the special "globals" group (a global variable).
+        Each of these locations can have any number of variables.
 
-        Imagine you have a variable group named <tt>Yowa</tt> which has <tt>bab</tt>
-        as 3 and <tt>dex</tt> as 2c.
+        A local variable is always visible in the macro, but cannot be accessed
+        from other macros.
+
+        A group variable is visible to macros in that group, but can also be
+        accessed from other groups via a "dotted" identifier or by a
+        <tt>use</tt> statement.
+
+        A global variable is visible to all macros.
+
+        If these variables conflict, the first in the list is used:
+
+        1. Variables defined in the body of the macro (from <tt>x = 3</tt> for
+           example).
+           * Variables introduced via <tt>use</tt> are also at this level.
+
+        2. Local variables.
+        3. Group variables.
+        4. Global variables.
+        Not only are these variables accessible in a macro, they are also
+        available in the chat box. You can select which group is active by
+        clicking on its tab above the chat. The command from the chat box is
+        then treated as if it were a macro in that group for the purposed of
+        variable visibility.
+
+      Dotted Identifier and Use::md .comment
+        Imagine you have a variable group named <tt>Yowa</tt> which has
+        <tt>bab</tt> as 3 and <tt>dex</tt> as 2c.
 
         An example of a dotted identifier is as follows:
-      ::pre.macro
+
+      ::pre .macro
         attack = d20 + Yowa.bab + Yowa.dex
         /roll attack
-      ::md.comment
-        In the above example, <tt>bab</tt> and <tt>dex</tt> were explicitly accessed
-        from the <tt>Yowa</tt> variable group. The above substitutes to:
-      ::pre.macro
+      ::md .comment
+        In the above example, <tt>bab</tt> and <tt>dex</tt> were explicitly
+        accessed from the <tt>Yowa</tt> variable group. The above substitutes
+        to:
+
+      ::pre .macro
         /roll d20 + 3 +2
-      ::md.comment
-        This can get pretty repetitive, so to bring all of the variables from a variable
-        group into the local context, you can use the <tt>use</tt> statement.
+      ::md .comment
+        This can get pretty repetitive, so to bring all of the variables from a
+        variable group into the local context, you can use the <tt>use</tt>
+        statement.
 
         You can then do this:
-      ::pre.macro
+
+      ::pre .macro
         use Yowa
         attack = d20 + bab + dex
         /roll attack
-      ::md.comment
-        In the above example, all of the variables from Yowa will then be available
-        and the /roll attack substitutes to:
-      ::pre.macro
+      ::md .comment
+        In the above example, all of the variables from Yowa will then be
+        available and the /roll attack substitutes to:
+
+      ::pre .macro
         /roll d20 + 3 + 2
-      ::md.comment
+      ::md .comment
         Variable groups are also case insensitive.
 
-        There is a special variable group. If you create a variable group named
-        'Global', (or 'global'), that group is implicitly "used" in all of your
-        macros and even in your chat box. You can check the box next to the
-        global's name in the mini variable window to enable a using for the
-        chat box (so you can type d20 + bab in the chat window and have it get
-        substituted).
+      Variable Kinds::md .comment
+        There are four kinds of variables that can be defined.
 
-      Variable Kinds::md.comment
-        There are three kinds of variables that can be defined.
         * [Number     | number variables]
         * [Boolean    | boolean variables]
         * [Expression | expression variables]
-        Number Variables::md.comment
-          These are pretty straightforward, they are negative or positive integers.
-        Boolean Variables::md.comment
+        * [Ability Score | ability score variables]
+
+        Number Variables::md .comment
+          These are pretty straightforward, they are negative or positive
+          integers.
+
+        Boolean Variables::md .comment
           These variables can only take the value of true or false, which are
           treated as 1 and 0 respectively.
-        Expression Variables::md.comment
-          These variables are stored as strings, but they must succesfully
-          parse as an expression in order to be used. You can still take
-          advantage of lazy evaluation of variables.  For example,
-          "<tt>d20 + attack</tt>" is a legal expression, but
-          "<tt>d20 +</tt>" is not as there is no
-          postfix "<tt>+</tt>" operator and so it is an incomplete add
-          expression, missing the right hand side.
+
+        Expression Variables::md .comment
+          These variables are stored as strings, but they must succesfully parse
+          as an expression in order to be used. You can still take advantage of
+          lazy evaluation of variables. For example, "<tt>d20 + attack</tt>" is
+          a legal expression, but "<tt>d20 +</tt>" is not as there is no postfix
+          "<tt>+</tt>" operator and so it is an incomplete add expression,
+          missing the right hand side.
 
           Expression variables are very powerful due to the lazy evaluation.
           Globally defined expression variables can thus refer to locally
@@ -247,61 +289,72 @@
 
           You can think of these variables as formulas.
 
-      Repeat Statements::md.comment
-        You might need to roll certain dice multiple times and don't want to just
-        copy paste the command (as if you want to change it you'd have to edit each line).
-        To facilitate that, there is a repeat statement that will execute the contents
-        of it a certain number of times. It looks like this:
-      ::pre.macro
+        Ability Score Variables::md .comment
+          These are the same as number variables, but their actual value is the 3.5
+          ability score modifier that number would produce. For example, a
+          17 would be treated as a 3 in macros.
+
+      Repeat Statements::md .comment
+        You might need to roll certain dice multiple times and don't want to
+        just copy paste the command (as if you want to change it you'd have to
+        edit each line). To facilitate that, there is a repeat statement that
+        will execute the contents of it a certain number of times. It looks like
+        this:
+
+      ::pre .macro
         repeat 4:
           d20 + 3
-      ::md.comment
-        Which will roll <tt>d20 + 3</tt> four times, as four different statements.
+      ::md .comment
+        Which will roll <tt>d20 + 3</tt> four times, as four different
+        statements.
 
-        The <tt>4</tt> in the above example can also be a variable or an expression. It cannot
-        contain a dice expression and must evaluate to a number. If it evaluates to a
-        negative number or zero, the contents of the repeat statement are executed
-        zero times.
+        The <tt>4</tt> in the above example can also be a variable or an
+        expression. It cannot contain a dice expression and must evaluate to a
+        number. If it evaluates to a negative number or zero, the contents of
+        the repeat statement are executed zero times.
 
         <tt>repeat</tt> can alternatively be spelled as <tt>loop</tt>.
 
-      If Statements::md.comment
-        The last major feature is conditional execution. This is done
-        using <tt>if</tt> and <tt>else</tt>. An example:
-      ::pre.macro
+      If Statements::md .comment
+        The last major feature is conditional execution. This is done using
+        <tt>if</tt> and <tt>else</tt>. An example:
+
+      ::pre .macro
         rapid = 1
         if rapid:
           /roll d20 - 2
           /roll d20 - 2
         else:
           /roll d20
-      ::md.comment
-        The <tt>if</tt> statement is written as "if" "expression" ":".
-        The trailing colon is mandatory. Without it, it is considered a regular
-        line of text.
+      ::md .comment
+        The <tt>if</tt> statement is written as "if" "expression" ":". The
+        trailing colon is mandatory. Without it, it is considered a regular line
+        of text.
 
-        An expression evaluator is then run
-        and if the result is non-zero, it is considered "true". If it's true, then
-        the indented statements after the if are evaluated.
+        An expression evaluator is then run and if the result is non-zero, it is
+        considered "true". If it's true, then the indented statements after the
+        if are evaluated.
 
-        An <tt>if</tt> can have an <tt>else</tt>, which looks like in
-        the above example. The indented statements after the else are run if
-        the expression turned out to be false (0). An <tt>if</tt> doesn't
-        have to have an <tt>else</tt>. There's also <tt>else if</tt>.
+        An <tt>if</tt> can have an <tt>else</tt>, which looks like in the above
+        example. The indented statements after the else are run if the
+        expression turned out to be false (0). An <tt>if</tt> doesn't have to
+        have an <tt>else</tt>. There's also <tt>else if</tt>.
 
-        With the if you can conditionally send roll commands and also conditionally
-        set variables. For example:
-      ::pre.macro
+        With the if you can conditionally send roll commands and also
+        conditionally set variables. For example:
+
+      ::pre .macro
         prone = 1
         if prone:
           penalty = 4
         else:
           penalty = 0
         /roll d20 - penalty
-      ::md.comment
-        With all that, we can finally arrive at our final example which uses all of
-        these features:
-      ::pre.macro
+      ::md .comment
+        With all that, we can finally arrive at our final example which uses all
+        of these features:
+
+      ::pre .macro
         /name Yowa
         use Yowa
         attack = d20 + dex + bab
@@ -311,30 +364,35 @@
           /roll attack - 2
         else:
           /roll attack
-      No Dice in Ifs::md.comment
-        Note! if conditions cannot contain dice expressions, directly or indirectly.
-      Escaping::md.comment
-        Rarely, you want to type something that looks like a roll expression, but
-        isn't, such as telling someone how to roll something:
-      ::pre.macro
+      No Dice in Ifs::md .comment
+        Note! if conditions cannot contain dice expressions, directly or
+        indirectly.
+
+      Escaping::md .comment
+        Rarely, you want to type something that looks like a roll expression,
+        but isn't, such as telling someone how to roll something:
+
+      ::pre .macro
         To roll a strength check, type:
         Roll d20 + str
-      ::md.comment
-        Variable substitution and expression evaluation will be attempted on this,
-        which would be confusing as it would come out as "Roll d20 + 3" if you had
-        a str variable set to 3, which would then get rolled! To avoid this, you
-        can prefix with a "/say " which will cause the rest to be processed as
-        literal text. You can also use a leading backtick (`) to the same effect.
-        Do not use a trailing backtick.
-      ::pre.macro
+      ::md .comment
+        Variable substitution and expression evaluation will be attempted on
+        this, which would be confusing as it would come out as "Roll d20 + 3" if
+        you had a str variable set to 3, which would then get rolled! To avoid
+        this, you can prefix with a "/say " which will cause the rest to be
+        processed as literal text. You can also use a leading backtick (`) to
+        the same effect. Do not use a trailing backtick.
+
+      ::pre .macro
         /say Roll d20 + str
         `Roll d20 + str
-      ::md.comment
-        Generally, slash commands other than /roll are not substituted, so if future
-        slash commands are added there will be no problem.
+      ::md .comment
+        Generally, slash commands other than /roll are not substituted, so if
+        future slash commands are added there will be no problem.
 
-        The roll command has to succesfully parse as a dice expression in order for
-        substitution to get involved, so this is a pretty rare occurrence.
+        The roll command has to succesfully parse as a dice expression in order
+        for substitution to get involved, so this is a pretty rare occurrence.
+
 ::css #import
   docs.css
 ::css
@@ -347,3 +405,4 @@
   /*endcss*/
 ::script #import
   anchors.js
+
