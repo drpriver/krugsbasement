@@ -436,9 +436,8 @@ type DualListView<K1, K2> = {
     // sane results for '===' and when put in a Map.
     column1: HTMLDivElement;
     column2: HTMLDivElement;
+    remove1: (k1:K1)=>void;
     remove2:(k1:K1, k2:K2)=>void;
-    // remove1: (k1:K1)=>void;
-    // should there be a remove handler?
     items1: Array<[K1, HTMLDivElement]>;
     items2: Map<K1, Array<[K2, HTMLDivElement]> >;
     add_item1:(text:string, k1:K1) =>void;
@@ -461,6 +460,8 @@ type DualListView<K1, K2> = {
     move_handler2?:(k1:K1, k2:K2, old_idx:number, offset:number) => void;
     move1:(k1:K1, offset:number) => void;
     move2:(k1:K1, k2:K2, offset:number) => void;
+    user_remove_handler1?:(k:K1)=>void;
+    user_remove_handler2?:(k1:K1, k2:K2)=>void;
 };
 
 function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, flags1:ListViewFlags, flags2:ListViewFlags):DualListView<K1, K2> {
@@ -478,6 +479,8 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
         active2: new Map(),
         move_handler1:undefined,
         move_handler2:undefined,
+        user_remove_handler1:undefined,
+        user_remove_handler2:undefined,
         make_active1: function(k1:K1){
             for(let [k, el] of result.items1){
                 el.classList.remove('active');
@@ -571,6 +574,24 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                 }
                 item.appendChild(ud);
             }
+            if(flags1 & ListViewFlags.USER_DELETABLE){
+                style += ' 32px';
+                const del = elem_parent_text(item, 'button', '✘');
+                del.addEventListener('click', function(e:MouseEvent){
+                    e.stopPropagation();
+                    let dialog = get_dialog('simple-delete');
+                    if(!dialog) return;
+                    dialog.title.innerText = 'Delete '+item.firstChild!.textContent;
+                    dialog.f.delete.checked = false;
+                    dialog.ok_handler = function(){
+                        if(!dialog.f.delete.checked) return;
+                        result.remove1(k1);
+                        if(result.user_remove_handler1)
+                            result.user_remove_handler1(k1);
+                    };
+                    dialog.show();
+                });
+            }
             item.style.gridTemplateColumns = style;
             item.addEventListener('click', function(){
                 result.make_active1(k1);
@@ -624,6 +645,24 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                 }
                 item.appendChild(ud);
             }
+            if(flags1 & ListViewFlags.USER_DELETABLE){
+                style += ' 32px';
+                const del = elem_parent_text(item, 'button', '✘');
+                del.addEventListener('click', function(e:MouseEvent){
+                    e.stopPropagation();
+                    let dialog = get_dialog('simple-delete');
+                    if(!dialog) return;
+                    dialog.title.innerText = 'Delete '+item.firstChild!.textContent;
+                    dialog.f.delete.checked = false;
+                    dialog.ok_handler = function(){
+                        if(!dialog.f.delete.checked) return;
+                        result.remove2(k1, k2);
+                        if(result.user_remove_handler2)
+                            result.user_remove_handler2(k1, k2);
+                    };
+                    dialog.show();
+                });
+            }
             item.style.gridTemplateColumns = style;
             let items = result.items2.get(k1);
             if(items === undefined){
@@ -649,6 +688,34 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
             for(let [k, el] of items){
                 if(k === k2){
                     el.firstChild!.textContent = text;
+                    return;
+                }
+            }
+        },
+        remove1:function(k1:K1){
+            let it2 = result.items2.get(k1);
+            if(it2 !== undefined){
+                for(let [_, el] of it2){
+                    el.remove();
+                }
+            }
+            result.items2.delete(k1);
+            result.active2.delete(k1);
+            for(let i = 0; i < result.items1.length; i++){
+                let [k, el] = result.items1[i];
+                if(k === k1){
+                    el.remove();
+                    result.items1.splice(i, 1);
+                    if(k1 === result.active1){
+                        if(!result.items1.length){
+                            result.active1 = undefined;
+                        }
+                        else if(i == 0){
+                            result.make_active1(result.items1[0][0]);
+                        }
+                        else
+                            result.make_active1(result.items1[i-1][0]);
+                    }
                     return;
                 }
             }

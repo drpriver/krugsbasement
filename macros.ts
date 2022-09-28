@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     let col1 = by_id('macros-group-list');
     let col2 = by_id('macros-list');
-    let dualview = make_dual_list_view<number, number>(col1, col2, ListViewFlags.USER_RENAMABLE, ListViewFlags.USER_RENAMABLE);
+    let dualview = make_dual_list_view<number, number>(col1, col2, ListViewFlags.USER_RENAMABLE|ListViewFlags.USER_DELETABLE, ListViewFlags.USER_RENAMABLE|ListViewFlags.USER_DELETABLE);
     for(let ch of CHARACTERS.values()){
         let name = ch[1];
         dualview.add_item1(name, ch[0]);
@@ -254,7 +254,6 @@ document.addEventListener('DOMContentLoaded', function(){
     const macro_area       = by_id('macro-view-edit');
     const editor_container = by_id('macro-editor');
     const macro_title_area = by_id('macro-view-title');
-    const del_macro_button = by_id('delete-macro');
     const new_macro        = by_id('new-macro');
     const new_category     = by_id('new-macro-group');
     const log              = by_id('macro-test-log');
@@ -265,12 +264,17 @@ document.addEventListener('DOMContentLoaded', function(){
     const var_list         = by_id('macro-var-list');
     const new_var_button   = by_id('new-variable');
     let m: Macro | undefined;
-    function delete_macro(ma:Macro){
-        del_macro(ma[0]);
-        m = undefined;
-        dualview.remove2(dualview.active1!, ma[0]);
+    dualview.user_remove_handler1 = function(ch:number){
+        del_character(ch);
+        // XXX: wrong signal
         save_mcv_and_signal();
-    }
+    };
+    dualview.user_remove_handler2 = function(ch:number, mid:number){
+        del_macro(mid);
+        if(m !== undefined && m[0] == mid)
+            m = undefined;
+        save_mcv_and_signal();
+    };
     function add_var(parent:HTMLElement, v:Variable){
         let di = elem_with_parent(parent, 'div', null, 'variable');
         let eye = elem_parent_text(di, 'label', 'ui');
@@ -441,18 +445,6 @@ document.addEventListener('DOMContentLoaded', function(){
     use_button.addEventListener('click', function(){
         if(!m) return;
         preprocess_and_send_chat(m[2], dualview.active1!, m[0]);
-    });
-    del_macro_button.addEventListener('click', function(){
-        if(!m) return;
-        let dialog = get_dialog('macro-deletion');
-        if(!dialog) return;
-        dialog.f.checkbox.checked = false;
-        dialog.ok_handler = function(){
-            const should_delete = dialog.f.checkbox.checked;
-            if(should_delete && m)
-                delete_macro(m);
-        };
-        dialog.show();
     });
     macro_area.addEventListener('input', function(){
         if(!m) return;

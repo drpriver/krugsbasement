@@ -63,7 +63,6 @@ David20::title #hide
       </div>
       <div id="macro-editor" style="visibility:hidden;">
         <div id="macros-buttons">
-          <button id="delete-macro">Delete</button>
           <button id="test-macro">Test</button>
           <button id="use-macro">Use</button>
           <button id="export-macro">Export</button>
