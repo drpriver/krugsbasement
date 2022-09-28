@@ -70,8 +70,7 @@ David20::title #hide
         </div>
         <div style="display:table; width: 100%;">
           <div style="width: 100%; display:table-row">
-            <label style="display: table-cell; padding-left: 8px;"> Name: <textarea spellcheck="false" id="macro-view-title" rows=1 style="width: 80%"></textarea>
-            </label>
+            <h2 id="macro-view-title"></h2>
           </div>
         </div>
         <div id="asdf-variable">
@@ -483,6 +482,7 @@ David20::title #hide
             <option value="0">Number</option>
             <option value="1">Boolean</option>
             <option value="2">Expression</option>
+            <option value="3">3.5 Ability Score</option>
           </select>
       </tr>
       <tr>
@@ -703,9 +703,10 @@ David20::title #hide
         <button id="privateroll-button">DMs…</button>
   ::div #id(notifications)
   ::div.log #id(chat-history)
-  ::div #id(macros)
-    ::div #id(macro-tabs)
-    ::div #id(macro-buttons)
+  ::div #id(macro-panel)
+    ::div #id(macro-panel-tabs)
+    ::div #id(macro-panel-body)
   ::div.log #id(dice-history)
   ::raw
     <textarea spellcheck="false" id="chatinput" rows="4"></textarea>
+

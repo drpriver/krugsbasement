@@ -105,7 +105,7 @@ function set_chat_vis(show:boolean){
         by_id('chat').style.height = 'auto';
         by_id('notifications').style.display = 'none';
         by_id('chat-history').style.display = 'none';
-        by_id('macros').style.display = 'none';
+        by_id('macro-panel').style.display = 'none';
         by_id('dice-history').style.display = 'none';
         by_id('chatinput').style.display = 'none';
     }
@@ -113,7 +113,7 @@ function set_chat_vis(show:boolean){
         by_id('chat').style.height = '100vh';
         by_id('notifications').style.display = 'grid';
         by_id('chat-history').style.display = 'initial';
-        by_id('macros').style.display = 'flex';
+        by_id('macro-panel').style.display = 'grid';
         by_id('dice-history').style.display = 'initial';
         by_id('chatinput').style.display = 'initial';
     }

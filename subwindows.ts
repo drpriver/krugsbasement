@@ -65,9 +65,9 @@ function make_window(name:keyof SubWindowIdMap): SubWindow {
     // handle.addEventListener('dblclick', result.hide);
     setup_window_size(outer);
     // hack
-    if(outer.id == 'variables-window'){
-        outer.style.width = '600px';
-        outer.style.height = '400px';
+    if(outer.id == 'macros-window'){
+        outer.style.width = '1400px';
+        outer.style.height = '700px';
     }
     return result;
 }

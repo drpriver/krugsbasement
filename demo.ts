@@ -262,10 +262,60 @@ let SETTINGS = {
     chat: {name:'anon'},
     demo: true,
     hidechat: false,
+    // macros: {
+        // variables: [],
+        // macros: [],
+        // characters: [],
+    // }
+    // NOMERGE
     macros: {
-        macros: [],
-        variables: [],
-        used_variables: [],
+        variables: [
+            {
+                id:1,
+                name: 'bar',
+                type: 1,
+                value: "1",
+            },
+            {
+                id:2,
+                name: 'hello',
+                type: 0,
+                value: "1",
+            },
+            {
+                id:3,
+                name: 'ranged',
+                type: 2,
+                value: "x-y+dex",
+            },
+            {
+                id:4,
+                name: 'dex',
+                type: 3,
+                value: "18",
+            },
+            {
+                id: 5,
+                name: 'x',
+                type: 0,
+                value: "2",
+            },
+            {
+                id: 6,
+                name: 'y',
+                type: 0,
+                value: "1",
+            },
+        ],
+        macros: [{
+            id:1,
+            name:'foo',
+            body:'roll d20 + bar',
+            variables:[6],
+        }],
+        characters: [
+            {id:1,name:'hello',macros:[1], variables:[1, 2, 3, 4, 5]},
+        ],
     },
 };
 

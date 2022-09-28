@@ -130,12 +130,17 @@ a {
   padding-left: 12px;
   display: grid;
   grid-template-columns: 100%;
-  grid-template-rows: max-content max-content 250px 250px;
+  grid-template-rows: max-content max-content 250px auto;
 }
-#note-view-title, #macro-view-title, #macro-view-group {
+#note-view-title, #macro-view-group {
   resize: none;
   width: 100%;
   font-family: monospace;
+}
+#macro-view-title {
+  text-align: center;
+  padding: 4px;
+  margin: 0;
 }
 #macro-view-group::after{
   content: "Group: ";
@@ -151,19 +156,49 @@ a {
 #macro-view-edit {
   height: 100%;
 }
-#local-vars {
-  width: 200px;
+.mb-div {
+  display: grid;
+  grid-template-columns: auto 4em;
+  flex-direction: column;
+  width: 12em;
+}
+
+div.variable {
+  display: grid;
+  grid-template-columns: max-content auto;
+  width: 100%;
+  text-align: center;
+}
+#macros-window label.variable span {
+  padding: 0px;
+  padding-right: 4px;
+}
+#macros-window .window-group-list{
+  padding-left: 4px;
+  padding-right: 4px;
 }
 label.variable {
   display: grid;
-  grid-template-columns: auto 6em max-content;
+  grid-template-columns: auto 6em 2em;
   padding-left: 8px;
+}
+label.variable span {
+  text-align: right;
+}
+label.panel-variable {
+  display: grid;
+  grid-template-columns: auto 3em;
+  padding-left: 8px;
+}
+label.panel-variable span {
+  text-align: right;
 }
 /* This should have a better name */
 #asdf-variable {
   display: grid;
   width: 100%;
-  grid-template-columns: auto max-content;
+  grid-template-columns: 55% 45%;
+  padding: 8px;
 }
 #note-view-editor-log, #macro-test-log {
   border: 1px solid grey;
@@ -189,7 +224,6 @@ label.variable {
   padding: 8px;
 }
 .window-group-list > div {
-  border-bottom: 1px solid black;
   cursor: pointer;
   -webkit-user-select: none;
   user-select: none;
@@ -607,19 +641,8 @@ html, body {
   line-height: 2.5ex;
   height: 12.5ex;
 }
-#macros{
-  margin-top: auto;
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid black;
-}
-#macro-tabs {
-  display: flex;
-  align-items: stretch;
-  width: 100%;
-  padding: 0 .3em;
-}
-#macro-tabs > div, #privateroll-tables-tabs > div{
+#privateroll-tables-tabs > div,
+#macro-panel-tabs > div {
   background-color: lightgray;
   border-top: 1px solid black;
   border-left: 1px solid black;
@@ -631,18 +654,14 @@ html, body {
   font-size: 12px;
   white-space: nowrap;
 }
-#macro-tabs > div.active, #privateroll-tables-tabs > div.active {
+
+#privateroll-tables-tabs > div.active,
+#macro-panel-tabs > div.active {
   background-color: white;
   border-bottom: 2px solid white;
   z-index: 1;
 }
 
-#macro-buttons {
-  border-top: 1px solid black;
-  border-bottom: 1px solid black;
-  height: 10ex;
-  overflow-y: auto;
-}
 .macro-group {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -792,6 +811,74 @@ div.rolltable table{
   padding: 8px;
 }
 
+#macros-group-list,
+#macros-list {
+  width: auto;
+  min-width: 12em;
+}
+#macro-var-list {
+  width: 32em;
+}
+
+#macro-panel {
+  width: 17em;
+  display: none;
+  grid-template-rows: 1.5em auto;
+}
+#macro-panel-tabs > div {
+  cursor: pointer;
+  border: 1px solid black;
+  padding: 8px;
+  padding-bottom: 2px;
+  padding-top: 2px;
+}
+#macro-panel-tabs > div:hover {
+  background-color: lightgrey;
+}
+#macro-panel-tabs {
+  display: flex;
+  flex-direction: row;
+}
+#macro-panel-body {
+  width: 100%;
+}
+.macro-panel-container {
+  display: grid;
+  min-height: 4em;
+  background-color: white;
+}
+#macro-panel-tabs > div {
+  background-color: white;
+}
+.macro-panel-container > div {
+  overflow-y: auto;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.macro-panel-macros {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 6em;
+}
+.macro-panel-macros button {
+  height: 1.5em;
+  padding-left: 3em;
+  padding-right: 3em;
+}
+.macro-panel-vars {
+  display: flex;
+  flex-direction: row;
+  border-right: 1px solid rgb(40, 40, 40);
+  padding-bottom: 1em;
+  min-height: 4em;
+  /*min-width: 7em;*/
+}
+.macro-panel-vars > label.panel-variable{
+  height: 1.5em;
+}
+
+
 /*@media (prefers-color-scheme: dark) {*/
   body.dark-mode #map {
     background-color: #333;
@@ -839,13 +926,13 @@ div.rolltable table{
   body.dark-mode div.hover, body.dark-mode section.hover {
     background-color: #666;
   }
-  body.dark-mode #macro-tabs > div.active,
-  body.dark-mode #privateroll-tables-tabs > div.active {
+  body.dark-mode #privateroll-tables-tabs > div.active,
+  body.dark-mode #macro-panel-tabs > div.active {
     border-bottom: 1px solid #666;
     background-color: #666;
   }
-  body.dark-mode #macro-tabs > div ,
-  body.dark-mode #privateroll-tables-tabs > div {
+  body.dark-mode #privateroll-tables-tabs > div,
+  body.dark-mode #macro-panel-tabs > div {
     background-color: #505050;
     color: white;
   }
@@ -868,16 +955,15 @@ div.rolltable table{
   }
   body.dark-mode .window-group-list div {
     color: #aaa;
-    background-color: #111;
   }
   body.dark-mode .window-group-list div:hover {
-    background-color: #113;
+    background-color: #447;
   }
   body.dark-mode .window-group-list div.active:hover {
-    background-color: #446;
+    background-color: #448;
   }
   body.dark-mode .window-group-list div.active {
-    background-color: #335;
+    background-color: #337;
   }
   body.dark-mode .window-closer:hover {
     background-color: rgba(255, 255, 255, 0.1);
@@ -900,6 +986,12 @@ div.rolltable table{
   }
   body.dark-mode a {
     color: #8888ff;
+  }
+  body.dark-mode .macro-panel-container {
+    background-color: #333;
+  }
+  body.dark-mode #macro-panel-tabs > div {
+    background-color: #333;
   }
   @supports (-moz-appearance:none) {
     body.dark-mode textarea {
@@ -928,7 +1020,7 @@ div.rolltable table{
 @media only screen and (hover: none) and (pointer: coarse) and (max-width: 450px),
 @media only screen and (hover: none) and (pointer: coarse) and (max-height: 450px),
 {
-  .window, #tool-container, .three-buttons, #macros, #dice-history, #notifications {
+  .window, #tool-container, .three-buttons, #macro-panel, #dice-history, #notifications {
     display: none !important;
   }
   #chat {

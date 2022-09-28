@@ -352,6 +352,7 @@ def setup_tables() -> None:
                         'name': var['group'],
                         'macros': [],
                         'variables': [],
+                        'ui': 0,
                     }
                 vcounter += 1
                 newvar = {
