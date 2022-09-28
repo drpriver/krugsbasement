@@ -841,10 +841,10 @@ div.rolltable table{
 }
 #macro-panel-body {
   width: 100%;
+  min-height: 8em;
 }
 .macro-panel-container {
   display: grid;
-  min-height: 4em;
   background-color: white;
 }
 #macro-panel-tabs > div {
@@ -859,7 +859,6 @@ div.rolltable table{
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: 6em;
 }
 .macro-panel-macros button {
   height: 1.5em;
@@ -869,13 +868,14 @@ div.rolltable table{
   flex-direction: row;
   border-right: 1px solid rgb(40, 40, 40);
   padding-bottom: 1em;
-  min-height: 4em;
-  /*min-width: 7em;*/
 }
 .macro-panel-vars > label.panel-variable{
   height: 1.5em;
 }
 
+#import-macro, #export-macro {
+  display: none;
+}
 
 /*@media (prefers-color-scheme: dark) {*/
   body.dark-mode #map {

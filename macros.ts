@@ -95,7 +95,7 @@ function reg_var_input(vid:number, name:string, inp:HTMLInputElement){
     VARINPUTS.get(vid)!.set(name, inp);
 }
 
-function update_var(vid:number, val:string){
+function update_var_value(vid:number, val:string){
     if(VARINPUTS.has(vid)){
         let vs = VARINPUTS.get(vid)!;
         for(let v of vs.values()){
@@ -148,9 +148,9 @@ function setup_macro_panel(){
         reg_var_input(v[0], 'macro-panel', inp);
         inp.addEventListener('input', function(){
             if(v[2] == ScriptVariableType.BOOLEAN)
-                update_var(v[0], inp.checked?"1":"0");
+                update_var_value(v[0], inp.checked?"1":"0");
             else
-                update_var(v[0], inp.value);
+                update_var_value(v[0], inp.value);
         });
     }
     for(let [id, ch] of CHARACTERS.entries()){
@@ -312,9 +312,9 @@ document.addEventListener('DOMContentLoaded', function(){
         reg_var_input(v[0], 'editor', inp);
         inp.addEventListener('input', function(){
             if(inp.type == 'checkbox')
-                update_var(v[0], inp.checked?"1":"0");
+                update_var_value(v[0], inp.checked?"1":"0");
             else
-                update_var(v[0], inp.value);
+                update_var_value(v[0], inp.value);
         });
         eyec.checked = !!v[4];
         eyec.addEventListener('change', function(){
