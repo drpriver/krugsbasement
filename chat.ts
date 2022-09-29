@@ -122,6 +122,7 @@ function add_dice_history_command(log:HTMLDivElement, text:string):number {
         preprocess_and_send_chat(text, -1, -1);
     });
     span.addEventListener('contextmenu', function(e){
+        if(e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
         e.stopPropagation();
         e.preventDefault();
         by_id('chatinput').value = text;
