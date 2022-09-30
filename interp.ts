@@ -634,7 +634,7 @@ const evaluate_script = (function(){
                 }
             }
         }
-        function parse_line(){
+        function parse_line():void{
             let token = current();
             let indentation = 0;
             if(token.kind == TokenKind.SPACE){
@@ -645,7 +645,7 @@ const evaluate_script = (function(){
                 find_parent(indentation);
             switch(token.kind){
                 case TokenKind.SPACE:
-                    return err(token, "Assertion Error");
+                    return;
                 case TokenKind.IDENT:
                     switch(token.text.toLowerCase()){
                         case 'r': case 'roll': case 'ro': case 'rol': case 'rolll': case 'rl': case 'rll':
@@ -783,12 +783,10 @@ const evaluate_script = (function(){
             let ident = take();
             if(ident.kind != TokenKind.IDENT)
                 return parse_as_raw();
-                // return err(ident, "Assertion error, should've been an ident");
             skip_spaces();
             let equals = take();
             if(equals.kind != TokenKind.EQUALS)
                 return parse_as_raw();
-                // return err(equals, "Assertion error, should've been an equals");
             skip_spaces();
             let rhs = [];
             for(;;){
@@ -845,7 +843,6 @@ const evaluate_script = (function(){
             let if_ = take();
             if(if_.kind != TokenKind.IF)
                 return parse_as_raw();
-                // return err(if_, "Assertion error, should've been if");
             skip_spaces();
             let condtokens = [];
             for(;;){
@@ -859,10 +856,12 @@ const evaluate_script = (function(){
             let expr = parse_expression(condtokens);
             if(!expr) return parse_as_raw();
             skip_spaces();
-            let endline = take();
-            if(!is_end(endline.kind)){
-                return parse_as_raw();
-                // return err(endline, "Need a newline after colon");
+            let aftertokens = [];
+            for(;;){
+                let t = take();
+                if(is_end(t.kind))
+                    break;
+                aftertokens.push(t);
             }
             let newif:IfStatement = {
                 kind: StatementKind.IF,
@@ -872,7 +871,13 @@ const evaluate_script = (function(){
                 elifs: [],
             };
             currentblock.statements.push(newif);
-            currentblock = newif.iftrue;
+            if(aftertokens.length){
+                newif.iftrue.indentation = -1;
+                parse(aftertokens, newif.iftrue);
+                newif.iftrue.indentation = indentation;
+            }
+            else
+                currentblock = newif.iftrue;
         }
         function parse_repeat(indentation:number){
             const startidx = index;
@@ -883,7 +888,6 @@ const evaluate_script = (function(){
             let repeat = take();
             if(repeat.kind != TokenKind.REPEAT)
                 return parse_as_raw();
-                // return err(if_, "Assertion error, should've been if");
             skip_spaces();
             let condtokens = [];
             for(;;){
@@ -897,10 +901,12 @@ const evaluate_script = (function(){
             let expr = parse_expression(condtokens);
             if(!expr) return parse_as_raw();
             skip_spaces();
-            let endline = take();
-            if(!is_end(endline.kind)){
-                return parse_as_raw();
-                // return err(endline, "Need a newline after colon");
+            let aftertokens = [];
+            for(;;){
+                let t = take();
+                if(is_end(t.kind))
+                    break;
+                aftertokens.push(t);
             }
             let newrepeat:RepeatStatement = {
                 kind: StatementKind.REPEAT,
@@ -908,7 +914,13 @@ const evaluate_script = (function(){
                 block: make_block(currentblock, indentation),
             };
             currentblock.statements.push(newrepeat);
-            currentblock = newrepeat.block;
+            if(aftertokens.length){
+                newrepeat.block.indentation = -1;
+                parse(aftertokens, newrepeat.block);
+                newrepeat.block.indentation = indentation;
+            }
+            else
+                currentblock = newrepeat.block;
         }
         function parse_else(indentation:number){
             // this one doesn't add a statement to the currentblock
@@ -921,16 +933,13 @@ const evaluate_script = (function(){
             let else_ = take();
             if(!currentblock.statements.length){
                 return parse_as_raw();
-                // return err(else_, "No previous if for this else");
             }
             let prev_statement = currentblock.statements[currentblock.statements.length-1];
             if(prev_statement.kind != StatementKind.IF){
                 return parse_as_raw();
-                // return err(else_, "No previous if for this else");
             }
             if(else_.kind != TokenKind.ELSE)
                 return parse_as_raw();
-                // return err(else_, "assertion error, must have been an else");
             skip_spaces();
             let col_or_if = take();
             skip_spaces();
@@ -938,10 +947,8 @@ const evaluate_script = (function(){
                 let end = take();
                 if(!is_end(end.kind))
                     return parse_as_raw();
-                    // return err(end, "Expected end of line after colon");
                 if(prev_statement.iffalse !== null)
                     return parse_as_raw();
-                    // return err(else_, "Duplicated else for if statement");
                 let newblock= make_block(currentblock, indentation);
                 prev_statement.iffalse = newblock;
                 currentblock = newblock;
@@ -949,7 +956,6 @@ const evaluate_script = (function(){
             }
             if(col_or_if.kind != TokenKind.IF)
                 return parse_as_raw();
-                // return err(col_or_if, "Must be a colon or an if");
             let condtokens = [];
             for(;;){
                 let tok = take();
@@ -965,7 +971,6 @@ const evaluate_script = (function(){
             let end = take();
             if(!is_end(end.kind))
                 return parse_as_raw();
-                // return err(end, "Expected end of line after the colon after an if expression");
             let newblock = make_block(currentblock, indentation);
             let elif:Elif = {
                 test: expr,
@@ -983,19 +988,16 @@ const evaluate_script = (function(){
             let use = take();
             if(use.kind != TokenKind.USE){
                 return parse_as_raw();
-                // return err(use, "Unexpected error, use begins with use");
             }
             skip_spaces();
             let ident = take();
             if(ident.kind != TokenKind.IDENT){
                 return parse_as_raw();
-                // return err(ident, "Expected an identifier for the target of the use statement");
             }
             skip_spaces();
             let end = take();
             if(!is_end(end.kind)){
                 return parse_as_raw();
-                // return err(end, "Expected endline after identifier of use");
             }
             let usestatement:UseStatement = {
                 kind: StatementKind.USE,
