@@ -1043,6 +1043,7 @@ document.addEventListener('DOMContentLoaded', function(){
     select.addEventListener('input', function(e:Event){
         e.stopPropagation();
         change_map(+select.value, true);
+        map_hist.add(+select.value);
         select.blur();
     });
 });
@@ -1068,8 +1069,6 @@ function get_map(map_id:number): DungeonMap {
         grid_color: '',
         bg_color: '',
         flags: MapFlags.NONE,
-        // TODO: these shouldn't be on the map itself, this prevents having multiple
-        // dungeon_map_views into the same map.
 
         canvas_obj_array: [],
         canvas_objs: new Map(),
@@ -1091,6 +1090,69 @@ function get_map(map_id:number): DungeonMap {
     select.options.add(option);
     return new_map;
 }
+
+function update_disabled_forward_back(){
+    by_id('back-map-button').disabled = !map_hist.can_go_back();
+    by_id('forward-map-button').disabled = !map_hist.can_go_forward();
+}
+
+// Map History stack for going forward and backward when clicking on map links
+// or using the map changer dropdown.
+const map_hist = (function(){
+    const h:{
+        idx: number;
+        ids: Array<number>;
+        go_back:()=>void;
+        go_forward:()=>void;
+        can_go_back:()=>boolean;
+        can_go_forward:()=>boolean;
+        add:(_:number)=>void;
+        clear:()=>void;
+    } = {
+        idx: -1,
+        ids: [],
+        go_back:()=>{
+            if(h.idx<=0) return;
+            let id = h.ids[--h.idx];
+            change_map(id, false);
+            update_disabled_forward_back();
+        },
+        go_forward:()=>{
+            if(h.idx>=h.ids.length-1) return;
+            let id = h.ids[++h.idx];
+            change_map(id, false);
+            update_disabled_forward_back();
+        },
+        can_go_back:()=>{
+            return h.idx > 0;
+        },
+        can_go_forward:()=>{
+            return h.idx < h.ids.length-1;
+        },
+        add:(id:number)=>{
+            if(h.idx >=0 && h.ids[h.idx] == id)
+                return;
+            if(h.idx == h.ids.length - 1){
+                // Infinitely grows, but in practice it won't, and they're just
+                // numbers anyway.
+                h.ids.push(id);
+                h.idx++;
+                update_disabled_forward_back();
+                return;
+            }
+            h.ids[++h.idx] = id;
+            h.ids.splice(h.idx+1);
+            update_disabled_forward_back();
+        },
+        clear:()=>{
+            h.ids.splice(0);
+            h.idx = -1;
+            update_disabled_forward_back();
+        },
+    };
+    return h;
+}());
+
 function change_map(map_id:number, from_select:boolean){
     for(let i = 0; i < dungeon_map_views.length; ++i){
         const mv = dungeon_map_views[i];
@@ -1166,6 +1228,7 @@ let TheCanvas:HTMLCanvasElement;
 let TheCtx:CanvasRenderingContext2D;
 ONRECV(ToClient.CANVAS_GATHER, function(where:GatherMessage): void{
     change_map(where.map_id, false);
+    map_hist.add(where.map_id);
     const view = get_active_view();
     view.camera_x = where.x;
     view.camera_y = where.y;
@@ -1173,6 +1236,7 @@ ONRECV(ToClient.CANVAS_GATHER, function(where:GatherMessage): void{
 });
 ONRECV(ToClient.CANVAS_BATTLE, function(where:GatherMessage): void{
     change_map(where.map_id, false);
+    map_hist.add(where.map_id);
     const view = get_active_view();
     view.camera_x = where.x;
     view.camera_y = where.y;
@@ -2777,6 +2841,8 @@ function initialize_maps(msgs:Array<InitializeMap>){
         if(old_idx < dungeon_map_views.length && old_idx >= 0)
             change_active_map_view(old_idx, false, false);
     }
+    map_hist.clear();
+    map_hist.add(get_active_view().map.map_id);
     resize_canvas();
     request_render();
 }
@@ -7432,6 +7498,14 @@ const redo_canvas_cursor = (function(){
             return;
         }
         if(current_tool == ToolType.PAN){
+            if(!modified)
+                for(let aa of view.action.areas){
+                    if(point_in_rect(view.mouse.x, view.mouse.y, aa.bbox.x0, aa.bbox.y0, aa.bbox.x1, aa.bbox.y1)){
+                        TheCanvas.style.cursor = 'pointer';
+                        prev_id = -1;
+                        return;
+                    }
+                }
             if(TheCanvas.style.cursor != 'grab')
                 TheCanvas.style.cursor = 'grab';
             return;
@@ -7879,6 +7953,7 @@ document.addEventListener('DOMContentLoaded', function(){
                                     return;
                                 }
                                 change_map(o.map_id, false);
+                                map_hist.add(o.map_id);
                                 view.selected.clear();
                                 TheCanvas.style.cursor = 'initial';
                                 return;
@@ -8052,6 +8127,48 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
             }break;
             case ToolType.PAN:{ // TAG toolPAN
+                { // copy-pasta from above
+                    let [clicked_x, clicked_y] = event_to_coord(e, view);
+                    const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;
+                    if(!modified) {
+                        for(let aa of view.action.areas){
+                            if(point_in_rect(clicked_x, clicked_y, aa.bbox.x0, aa.bbox.y0, aa.bbox.x1, aa.bbox.y1)){
+                                let o = view.map.canvas_objs.get(aa.obj_id);
+                                if(!o) break;
+                                if(o.flags & CanvasFlag.DELETED) break;
+                                if(o.hidinguser && o.hidinguser !== SETTINGS.userid) break;
+                                if(o.type == CanvasType.SUBMAP){
+                                    let before = strip_obj(o);
+                                    o.flags ^= CanvasFlag.SUBMAP_IS_MINIMIZED;
+                                    let after = strip_obj(o);
+                                    note_updates_for_undo(view.map, [before], [after]);
+                                    publish_obj_updates(view.map.map_id, [after]);
+                                }
+                                else if (o.type == CanvasType.TEXT){
+                                    if(o.flags & CanvasFlag.TEXT_LINKS_TO_SUBMAP){
+                                        let sm = view.map.canvas_objs.get(o.map_id) as (SubMap | undefined);
+                                        if(!sm) return;
+                                        let before = strip_obj(sm);
+                                        sm.flags &= ~CanvasFlag.SUBMAP_IS_MINIMIZED;
+                                        let after = strip_obj(sm);
+                                        note_updates_for_undo(view.map, [before], [after]);
+                                        publish_obj_updates(view.map.map_id, [after]);
+                                        center_view_at(view, sm.base_x+sm.width/2, sm.base_y+sm.height/2);
+                                        request_render();
+                                        return;
+                                    }
+                                    change_map(o.map_id, false);
+                                    map_hist.add(o.map_id);
+                                    view.selected.clear();
+                                    TheCanvas.style.cursor = 'initial';
+                                    return;
+                                }
+                                request_render();
+                                return;
+                            }
+                        }
+                    }
+                }
                 // don't use the helper as it includes view.camera_*
                 let clicked_x = e.offsetX/view.scale;
                 let clicked_y = e.offsetY/view.scale;
@@ -9135,6 +9252,18 @@ document.addEventListener('DOMContentLoaded', function(){
         };
         const items: Array<itemtype> = [
             {
+                label: 'Back',
+                func: function(){map_hist.go_back();remove_menu();},
+                disabled: !map_hist.can_go_back(),
+                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
+            },
+            {
+                label: 'Forward',
+                func: function(){map_hist.go_forward();remove_menu();},
+                disabled: !map_hist.can_go_forward(),
+                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
+            },
+            {
                 label: 'Ping',
                 func: function(){ping_at(view.map, click_x, click_y);remove_menu();},
                 disabled: false,
@@ -9369,7 +9498,6 @@ document.addEventListener('DOMContentLoaded', function(){
 document.addEventListener('DOMContentLoaded', function(){
     const edit_map_button = by_id('edit-map-button');
     const new_map_button = by_id('new-map-button');
-    const delete_map_button = by_id('delete-map-button');
     edit_map_button.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
@@ -9379,6 +9507,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if(!dialog) return;
         dialog.title.textContent = 'Edit Map';
         dialog.f.name.value = map.map_name;
+        dialog.f.delete.checked = false;
         const orig_grid_color = map.grid_color;
         link_input_value(orig_grid_color.length?orig_grid_color:'#969696',
             dialog.f['grid-color'], 'onchange', dialog.f['grid-color-text'], 'oninput', function(){
@@ -9398,6 +9527,27 @@ document.addEventListener('DOMContentLoaded', function(){
         dialog.f.numbered.checked = !!(map.flags & MapFlags.NUMBERED);
         dialog.f.big.checked = !!(map.flags & MapFlags.BIG_HEX);
         dialog.ok_handler = function(){
+            if(dialog.f.delete.checked){
+                let dialog = get_dialog('map-delete');
+                if(!dialog) return;
+                const cant_delete = map.flags & MapFlags.CANT_DELETE;
+                dialog.title.innerText = 'Delete Map?';
+                if(cant_delete){
+                    dialog.f.can.style.display = 'none';
+                    dialog.f.cant.style.display = 'initial';
+                }
+                else {
+                    dialog.f.can.style.display = 'initial';
+                    dialog.f.cant.style.display = 'none';
+                }
+                dialog.f.delete.checked = false;
+                dialog.ok_handler = function(){
+                    if(!dialog.f.delete.checked) return;
+                    EMIT(FromClient.CANVAS_DELETE_MAP_REQUEST, active_view.map.map_id);
+                };
+                dialog.show();
+                return;
+            }
             const value = dialog.f.name.value.trim();
             if(!value) return;
             if(value != map.map_name){
@@ -9441,29 +9591,6 @@ document.addEventListener('DOMContentLoaded', function(){
         };
         dialog.show();
     });
-    delete_map_button.addEventListener('click', function(e:MouseEvent){
-        e.stopPropagation();
-        e.preventDefault();
-        const active_view = get_active_view();
-        const cant_delete = active_view.map.flags & MapFlags.CANT_DELETE;
-        let dialog = get_dialog('map-delete');
-        if(!dialog) return;
-        dialog.title.innerText = 'Delete Map?';
-        if(cant_delete){
-            dialog.f.can.style.display = 'none';
-            dialog.f.cant.style.display = 'initial';
-        }
-        else {
-            dialog.f.can.style.display = 'initial';
-            dialog.f.cant.style.display = 'none';
-        }
-        dialog.f.delete.checked = false;
-        dialog.ok_handler = function(){
-            if(!dialog.f.delete.checked) return;
-            EMIT(FromClient.CANVAS_DELETE_MAP_REQUEST, active_view.map.map_id);
-        };
-        dialog.show();
-    });
     new_map_button.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
@@ -9503,5 +9630,11 @@ document.addEventListener('DOMContentLoaded', function(){
         };
         dialog.cancel_handler = undefined;
         dialog.show();
+    });
+    by_id('back-map-button').addEventListener('click', function(){
+        map_hist.go_back();
+    });
+    by_id('forward-map-button').addEventListener('click', function(){
+        map_hist.go_forward();
     });
 });

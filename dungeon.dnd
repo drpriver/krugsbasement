@@ -326,6 +326,10 @@ David20::title #hide
         <td>${label('big', 'BigHex')}
         <td>${checkbox('big')}
       </tr>
+      <tr>
+        <td>${label('delete', 'Delete Map')}
+        <td>${checkbox('delete')}
+      </tr>
     </table>`);
   begin('map-delete');
   make(`
@@ -688,11 +692,11 @@ David20::title #hide
   ::div #id(tree)
     ::div
       ::raw
-        <span style="font-size:0.8rem;">Map</span>
-        <select style="width: 50%; text-overflow:ellipsis;" name="current-map-name" id="current-map-name"></select>
-          <button style="margin:0;" id="new-map-button">+</button>
-          <button style="margin:0;" id="edit-map-button">✎</button>
-          <button style="margin:0;" id="delete-map-button">✘</button>
+        <select title="Current Map" style="width: 50%; text-overflow:ellipsis;" name="current-map-name" id="current-map-name"></select>
+          <button disabled title="Previous Map" style="margin:0;" id="back-map-button">←</button>
+          <button disabled title="Next Map" style="margin:0;" id="forward-map-button">→</button>
+          <button title="New Map" style="margin:0;" id="new-map-button">+</button>
+          <button title="Edit Map" style="margin:0;" id="edit-map-button">✎</button>
     ::div.three-buttons
       ::raw
         <button id="notes-window-button">Notes…</button>
