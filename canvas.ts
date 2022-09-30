@@ -9244,46 +9244,46 @@ document.addEventListener('DOMContentLoaded', function(){
             whenflags |= CONTEXTMENUWHENFLAGS.GRID_FIVE;
 
         TheCanvas.addEventListener('pointerdown', remove_menu);
-        type itemtype = {
+        type ItemType = {
             label:string;
             func: () => void;
             disabled: boolean;
             whenflags: CONTEXTMENUWHENFLAGS;
         };
-        const items: Array<itemtype> = [
+        const items: Array<ItemType> = [
+            {
+                label: 'Ping',
+                func: function(){ping_at(view.map, click_x, click_y);},
+                disabled: false,
+                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
+            },
             {
                 label: 'Back',
-                func: function(){map_hist.go_back();remove_menu();},
+                func: map_hist.go_back,
                 disabled: !map_hist.can_go_back(),
                 whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
             },
             {
                 label: 'Forward',
-                func: function(){map_hist.go_forward();remove_menu();},
+                func: map_hist.go_forward,
                 disabled: !map_hist.can_go_forward(),
                 whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
             },
             {
-                label: 'Ping',
-                func: function(){ping_at(view.map, click_x, click_y);remove_menu();},
-                disabled: false,
-                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
-            },
-            {
                 label: 'Zoom In',
-                func: function(){zoom_in(view);remove_menu();},
+                func: function(){zoom_in(view);},
                 disabled: false,
                 whenflags: CONTEXTMENUWHENFLAGS.NO_SELECTION,
             },
             {
                 label: 'Zoom Out',
-                func: function(){zoom_out(view);remove_menu();},
+                func: function(){zoom_out(view);},
                 disabled: false,
                 whenflags: CONTEXTMENUWHENFLAGS.NO_SELECTION,
             },
             {
                 label: 'Reset Zoom',
-                func: function(){reset_zoom(view);remove_menu();},
+                func: function(){reset_zoom(view);},
                 disabled: false,
                 whenflags: CONTEXTMENUWHENFLAGS.NO_SELECTION,
             },
@@ -9291,7 +9291,6 @@ document.addEventListener('DOMContentLoaded', function(){
                 label: 'Gather Party',
                 func: function(){
                     EMIT(FromClient.CANVAS_GATHER, {x:-x, y:-y, map_id:view.map.map_id});
-                    remove_menu();
                 },
                 disabled: false,
                 whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
@@ -9300,7 +9299,6 @@ document.addEventListener('DOMContentLoaded', function(){
                 label: 'Battlemode',
                 func: function(){
                     EMIT(FromClient.CANVAS_BATTLE, {x:-x, y:-y, map_id:view.map.map_id});
-                    remove_menu();
                 },
                 disabled: false,
                 whenflags: CONTEXTMENUWHENFLAGS.GRID_TEN,
@@ -9309,14 +9307,13 @@ document.addEventListener('DOMContentLoaded', function(){
                 label: 'Dungeonmode',
                 func: function(){
                     EMIT(FromClient.CANVAS_DUNGEON_MODE);
-                    remove_menu();
                 },
                 disabled: false,
                 whenflags: CONTEXTMENUWHENFLAGS.GRID_FIVE,
             },
             {
                 label: 'Rotate Everything',
-                func: function(){rotate_everything_90(view);remove_menu();},
+                func: function(){rotate_everything_90(view);},
                 disabled: false,
                 whenflags: CONTEXTMENUWHENFLAGS.NO_SELECTION,
             },
@@ -9340,7 +9337,6 @@ document.addEventListener('DOMContentLoaded', function(){
                         publish_obj_updates(view.map.map_id, after);
                         request_render();
                     }
-                    remove_menu();
                 },
                 disabled: false,
                 whenflags: CONTEXTMENUWHENFLAGS.ANY_SELECTED,
@@ -9365,7 +9361,6 @@ document.addEventListener('DOMContentLoaded', function(){
                         publish_obj_updates(view.map.map_id, after);
                         request_render();
                     }
-                    remove_menu();
                 },
                 disabled: false,
                 whenflags: CONTEXTMENUWHENFLAGS.ANY_SELECTED,
@@ -9374,7 +9369,6 @@ document.addEventListener('DOMContentLoaded', function(){
                 label: 'Edit',
                 func: function(){
                     launch_edit_dialog(view);
-                    remove_menu();
                 },
                 disabled: edit_is_impossible(view),
                 whenflags: CONTEXTMENUWHENFLAGS.ONE_SELECTED,
@@ -9384,7 +9378,6 @@ document.addEventListener('DOMContentLoaded', function(){
                 func: function(){
                     clear_copy_buffer();
                     cut_selected_objs_to_copy_buffer(view);
-                    remove_menu();
                 },
                 disabled: view.selected.size === 0,
                 whenflags: CONTEXTMENUWHENFLAGS.ANY_SELECTED,
@@ -9394,7 +9387,6 @@ document.addEventListener('DOMContentLoaded', function(){
                 func: function(){
                     clear_copy_buffer();
                     copy_selected_objs_to_copy_buffer(view);
-                    remove_menu();
                 },
                 disabled: view.selected.size === 0,
                 whenflags: CONTEXTMENUWHENFLAGS.ANY_SELECTED,
@@ -9410,7 +9402,6 @@ document.addEventListener('DOMContentLoaded', function(){
                         click_y -= sm.base_y + sm.tly;
                     }
                     paste_from_copy_buffer_at(view.map, click_x, click_y, submapid);
-                    remove_menu();
                 },
                 disabled: copied_objs.length === 0,
                 whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
@@ -9419,7 +9410,6 @@ document.addEventListener('DOMContentLoaded', function(){
                 label: 'Copy to Clipboard',
                 func: function(){
                     copy_selected_objs_to_clipboard(view);
-                    remove_menu();
                 },
                 disabled: view.selected.size === 0,
                 whenflags: CONTEXTMENUWHENFLAGS.ANY_SELECTED,
@@ -9435,7 +9425,6 @@ document.addEventListener('DOMContentLoaded', function(){
                         click_y -= sm.base_y + sm.tly;
                     }
                     paste_from_clipboard_at(view.map, click_x, click_y, submapid);
-                    remove_menu();
                 },
                 disabled: false,
                 whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
@@ -9444,7 +9433,6 @@ document.addEventListener('DOMContentLoaded', function(){
                 label: 'Undo',
                 func: function(){
                     do_one_undo(view.map);
-                    remove_menu();
                 },
                 disabled: undo_is_impossible(view.map),
                 whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
@@ -9453,7 +9441,6 @@ document.addEventListener('DOMContentLoaded', function(){
                 label: 'Redo',
                 func: function(){
                     do_one_redo(view.map);
-                    remove_menu();
                 },
                 disabled: redo_is_impossible(view.map),
                 whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
@@ -9461,7 +9448,6 @@ document.addEventListener('DOMContentLoaded', function(){
             {
                 label: 'Reset Camera',
                 func: function(){
-                    remove_menu();
                     let view = get_active_view();
                     view.camera_x=0;
                     view.camera_y=0;
@@ -9473,7 +9459,7 @@ document.addEventListener('DOMContentLoaded', function(){
             },
             {
                 label: 'Cancel',
-                func: function(){remove_menu();},
+                func: function(){},
                 disabled: false,
                 whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
             },
@@ -9487,7 +9473,7 @@ document.addEventListener('DOMContentLoaded', function(){
             if(item.disabled){
                 menuitem.classList.add('disabled');
             }
-            menuitem.addEventListener('click', item.func);
+            menuitem.addEventListener('click', function(){item.func();remove_menu();});
             menuitem.appendChild(document.createTextNode(item.label));
             ctxmenu.appendChild(menuitem);
         }
