@@ -2,6 +2,8 @@
 // Copyright © 2021-2022, David Priver
 //
 
+
+(function(){
 type Note_ = {
     title: string;
     body: string;
@@ -386,3 +388,4 @@ document.addEventListener('DOMContentLoaded', function(){
             update_iframe();
     });
 });
+}());

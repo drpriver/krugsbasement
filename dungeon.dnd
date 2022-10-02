@@ -65,8 +65,6 @@ David20::title #hide
         <div id="macros-buttons">
           <button id="test-macro">Test</button>
           <button id="use-macro">Use</button>
-          <button id="export-macro">Export</button>
-          <button id="import-macro">Import</button>
           <a target="_blank" href="/docs/macro-doc.html">Help</a>
         </div>
         <div style="display:table; width: 100%;">
@@ -121,15 +119,12 @@ David20::title #hide
       <textarea spellcheck="false" id="privateroll-input" rows="4"></textarea>
       <div id="privateroll-tables">
         <div id="privateroll-tables-tabs">
-          <div id="privateroll-macros-tab">Macros</div>
           <div id="privateroll-tables-tab">Tables</div>
           <div id="privateroll-mytables-tab">MyTables</div>
         </div>
         <div id="privateroll-tables-shared">
         </div>
         <div id="privateroll-tables-private">
-        </div>
-        <div id="privateroll-macros">
         </div>
       </div>
     </div>
@@ -664,21 +659,21 @@ David20::title #hide
     ::div.scale
       ::raw
         <div>Scale:</div>
-        <input type="radio" id="grid-10" name="grid-scales" value="10" checked>
+        <input type="radio" id="grid-10" name="grid-scales" checked>
         <label for="grid-10">10'</label>
-        <input type="radio" id="grid-5" name="grid-scales" value="5">
+        <input type="radio" id="grid-5" name="grid-scales">
         <label for="grid-5">5'</label>
         <span></span>
         <span></span>
       ::raw
         <div>Snap:</div>
-        <input type="radio" id="grid-snap-grid" name="snap-to-grid" value="GRID" checked>
+        <input type="radio" id="grid-snap-grid" name="snap-to-grid" checked>
         <label for="grid-snap-grid">10'</label>
-        <input type="radio" id="grid-snap-half" name="snap-to-grid" value="HALF">
+        <input type="radio" id="grid-snap-half" name="snap-to-grid">
         <label for="grid-snap-half">5'</label>
-        <input type="radio" id="grid-snap-quarter" name="snap-to-grid" value="QUARTER">
+        <input type="radio" id="grid-snap-quarter" name="snap-to-grid">
         <label for="grid-snap-quarter">2½' </label>
-        <input type="radio" id="grid-snap-free" name="snap-to-grid" value="FREE">
+        <input type="radio" id="grid-snap-free" name="snap-to-grid">
         <label for="grid-snap-free">Free</label>
 
 ::raw

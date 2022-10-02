@@ -2,10 +2,6 @@
 // Copyright © 2021-2022, David Priver
 //
 
-// we just use local storage for now, but this
-// indirection means I can swap out the storage for
-// something better later.
-
 // local vs global refers to the website - whether it
 // is for this page or for the entire site.
 
@@ -17,6 +13,10 @@ const enum StorageCategory {
     SETTINGS = 'settings',
     WINDOW = 'window',
 }
+
+const THISPAGE = window.location.pathname;
+let local_sync_in_flight = false;
+let local_needs_sync:Array<[string, string]> = [];
 
 function sync_the_local_settings(){
     let emitted:Map<string, Set<string>> = new Map();

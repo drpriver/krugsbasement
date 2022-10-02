@@ -2,13 +2,70 @@
 // Copyright © 2021-2022, David Priver
 //
 
-let CHARACTERS: Map<number, Character> = new Map();
+// TODO: only the macro panel listens for MACROS_RENAMED
+// Maybe this listen_for/signal_for thing is actually a bad idea
+const get_script_variables:(character_id:number, macro_id:number)=>[Map<string, Map<string, string>>, Map<string, string>] = (function(){
+const CHARACTERS: Map<number, Character> = new Map();
 let charactercounter = 0;
-let MACROS: Map<number, Macro> = new Map();
+const MACROS: Map<number, Macro> = new Map();
 let macrocounter = 0;
-let VARIABLES: Map<number, Variable> = new Map();
+const VARIABLES: Map<number, Variable> = new Map();
 let variablecounter = 0;
 let active_character = 0;
+let macro_panel_idx = 0;
+
+function get_script_variables(character_id:number, macro_id:number):[Map<string, Map<string, string>>, Map<string, string>]{
+    let namespaces:Map<string, Map<string, string>> = new Map();
+    let vars:Map<string, string> = new Map();
+    // This is kind of hacky.
+    if(character_id == -1)
+        character_id = active_character;
+    for(let ch of CHARACTERS.values()){
+        let ns = new Map();
+        for(let vid of ch[3]){
+            let v = VARIABLES.get(vid)!;
+            let value = v[3];
+            if(v[2] == ScriptVariableType.ABILITY_SCORE)
+                value = ""+ability_score_to_modifier(+value);
+            ns.set(v[1].toLowerCase(), value);
+        }
+        namespaces.set(ch[1].toLowerCase(), ns);
+    }
+    // First, globals
+    for(let key of ['global', 'globals']){
+        let ns = namespaces.get(key)!;
+        if(ns === undefined)
+            continue;
+        for(let[k, v] of ns.entries())
+            vars.set(k, v);
+    }
+    // Then, the current character
+    if(character_id > 0){
+        let ch = CHARACTERS.get(character_id)!;
+        for(let vid of ch[3]){
+            let v = VARIABLES.get(vid)!;
+            let value = v[3];
+            if(v[2] == ScriptVariableType.ABILITY_SCORE)
+                value = ""+ability_score_to_modifier(+value);
+            vars.set(v[1].toLowerCase(), value);
+        }
+    }
+    // Then, the macro's variables
+    if(macro_id > 0){
+        let mac = MACROS.get(macro_id)!;
+        for(let vid of mac[3]){
+            let v = VARIABLES.get(vid)!;
+            let value = v[3];
+            if(v[2] == ScriptVariableType.ABILITY_SCORE)
+                value = ""+ability_score_to_modifier(+value);
+            vars.set(v[1].toLowerCase(), value);
+        }
+    }
+    return [namespaces, vars];
+}
+
+
+const VARINPUTS:Map<number, Map<string, HTMLInputElement>> = new Map();
 
 function alloc_macro():Macro{
     let id = ++macrocounter;
@@ -70,25 +127,27 @@ function del_character(id:number){
     for(let m of c[2])
         del_macro(m);
 }
-(function(){
-    for(let m of SETTINGS.macros.macros){
-        MACROS.set(m[0], m);
-        if(m[0] > macrocounter) macrocounter = m[0];
-    }
-    for(let v of SETTINGS.macros.variables){
-        VARIABLES.set(v[0], v);
-        if(v[0] > variablecounter) variablecounter = v[0];
-    }
-    let first = true;
-    for(let c of SETTINGS.macros.characters){
-        if(first) active_character = c[0];
-        first = false;
-        CHARACTERS.set(c[0], c);
-        if(c[0] > charactercounter) charactercounter = c[0];
-    }
-}());
 
-let VARINPUTS:Map<number, Map<string, HTMLInputElement>> = new Map();
+function save_macros(){
+    let to_save: Array<Macro> = Array.from(MACROS.values());
+    sync_local(StorageCategory.MACROS, 'macros', to_save);
+}
+function save_characters(){
+    let to_save: Array<Character> = Array.from(CHARACTERS.values());
+    sync_local(StorageCategory.MACROS, 'characters', to_save);
+}
+function save_variables(){
+    let to_save: Array<Variable> = Array.from(VARIABLES.values());
+    sync_local(StorageCategory.MACROS, 'variables', to_save);
+}
+
+function save_mcv_and_signal(){
+    save_macros();
+    save_characters();
+    save_variables();
+    signal_for(ListenEvent.MACROS_RENAMED);
+}
+
 function reg_var_input(vid:number, name:string, inp:HTMLInputElement){
     if(!VARINPUTS.has(vid))
         VARINPUTS.set(vid, new Map());
@@ -109,12 +168,33 @@ function update_var_value(vid:number, val:string){
     save_variables();
 }
 
-let macro_panel_idx = 0;
+
+(function(){
+    for(let m of SETTINGS.macros.macros){
+        MACROS.set(m[0], m);
+        if(m[0] > macrocounter) macrocounter = m[0];
+    }
+    for(let v of SETTINGS.macros.variables){
+        VARIABLES.set(v[0], v);
+        if(v[0] > variablecounter) variablecounter = v[0];
+    }
+    let first = true;
+    for(let c of SETTINGS.macros.characters){
+        if(first) active_character = c[0];
+        first = false;
+        CHARACTERS.set(c[0], c);
+        if(c[0] > charactercounter) charactercounter = c[0];
+    }
+}());
+
+
 function setup_macro_panel(){
     const pt = by_id('macro-panel-tabs');
-    (pt as any).replaceChildren();
+    // @ts-ignore
+    pt.replaceChildren();
     const pb = by_id('macro-panel-body');
-    (pb as any).replaceChildren();
+    // @ts-ignore
+    pb.replaceChildren();
     if(MACROS.size)
         by_id('macro-panel').style.display = 'grid';
     else {
@@ -208,26 +288,6 @@ document.addEventListener('DOMContentLoaded', function(){
     setup_macro_panel();
 });
 signal_for(ListenEvent.MACROS_RENAMED);
-
-function save_macros(){
-    let to_save: Array<Macro> = Array.from(MACROS.values());
-    sync_local(StorageCategory.MACROS, 'macros', to_save);
-}
-function save_characters(){
-    let to_save: Array<Character> = Array.from(CHARACTERS.values());
-    sync_local(StorageCategory.MACROS, 'characters', to_save);
-}
-function save_variables(){
-    let to_save: Array<Variable> = Array.from(VARIABLES.values());
-    sync_local(StorageCategory.MACROS, 'variables', to_save);
-}
-
-function save_mcv_and_signal(){
-    save_macros();
-    save_characters();
-    save_variables();
-    signal_for(ListenEvent.MACROS_RENAMED);
-}
 
 document.addEventListener('DOMContentLoaded', function(){
     let win = get_window('macros');
@@ -342,24 +402,12 @@ document.addEventListener('DOMContentLoaded', function(){
         if(k2 == dualview.active2.get(dualview.active1!))
             macro_title_area.innerText = text;
     };
-    //dualview.move_handler1 = function(groupid:number, old_idx:number, offset:number){
-    //    // move_item_by(MACROGROUPID_ORDER, old_idx, offset);
-    //    // save_macros();
-    //};
-    //dualview.move_handler2 = function(groupid: number, id:number, old_idx:number, offset:number){
-    //    let ch = CHARACTERS.get(groupid)!;
-    //    let macros = ch.macros;
-    //    let idx = macros.indexOf(id);
-    //    if(idx == -1) return;
-    //    move_item_by(macros, idx, offset);
-    //    save_macros();
-    //    // XXX: wrong signal
-    //    signal_for(ListenEvent.MACROS_RENAMED);
-    //};
     dualview.activate2_handler = function(groupid:number, id:number){
         m = MACROS.get(id)!;
-        (log as any).replaceChildren();
-        (locals as any).replaceChildren();
+        // @ts-ignore
+        log.replaceChildren();
+        // @ts-ignore
+        locals.replaceChildren();
         locals.appendChild(local_var_button);
         editor_container.style.visibility = 'visible';
         macro_area.value = m[2];
@@ -367,7 +415,8 @@ document.addEventListener('DOMContentLoaded', function(){
         for(let vid of m[3])
             add_var(locals, VARIABLES.get(vid)!);
 
-        (var_list as any).replaceChildren();
+        // @ts-ignore
+        var_list.replaceChildren();
         var_list.appendChild(new_var_button);
         let ch = CHARACTERS.get(groupid);
         if(ch===undefined) return;
@@ -380,7 +429,8 @@ document.addEventListener('DOMContentLoaded', function(){
         macro_area.value = ''
         macro_title_area.innerText = '';
 
-        (var_list as any).replaceChildren();
+        // @ts-ignore
+        var_list.replaceChildren();
         var_list.appendChild(new_var_button);
         let ch = CHARACTERS.get(groupid);
         if(ch===undefined) return;
@@ -416,7 +466,8 @@ document.addEventListener('DOMContentLoaded', function(){
         dialog.show();
     });
     ONRECV(ToClient.CHAT_TEST_STRUCTURED_RESPONSE, function(response:Array<ChatMsg>){
-        (log as any).replaceChildren();
+        // @ts-ignore
+        log.replaceChildren();
         add_chat_msgs(log, response, undefined);
     });
     test_button.addEventListener('click', function(){
@@ -507,106 +558,11 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     else
         dualview.make_active1(active_character);
-    by_id('export-macro').addEventListener('click', function(){
-        let x:ExportedMacro = [SETTINGS.macros.variables, SETTINGS.macros.macros, SETTINGS.macros.characters];
-        let data = JSON.stringify(x);
-        let a = document.createElement('a');
-        a.download = 'macros.json';
-        a.href = URL.createObjectURL(new Blob([data], {type:'application/json'}));
-        a.click();
-    });
-    by_id('import-macro').addEventListener('click', function(){
-        const inp = document.createElement('input');
-        inp.type = 'file';
-        inp.onchange = function(){
-            const files = inp.files;
-            if(!files) return;
-            if(!files.length) return;
-            const file = files[0];
-            const fr = new FileReader();
-            fr.onload = function(){
-                if(!fr.result) return;
-                const new_data = JSON.parse(fr.result as string);
-                const x = v_ExportedMacro(new_data);
-                if(x === null) return;
-                MACROS.clear();
-                VARIABLES.clear();
-                CHARACTERS.clear();
-                macrocounter = 0;
-                variablecounter = 0;
-                charactercounter = 0;
-                for(let m of x[1]){
-                    MACROS.set(m[0], m);
-                    if(m[0] > macrocounter) macrocounter = m[0];
-                }
-                for(let v of x[0]){
-                    VARIABLES.set(v[0], v);
-                    if(v[0] > variablecounter) variablecounter = v[0];
-                }
-                let first = true;
-                for(let c of x[2]){
-                    if(first) active_character = c[0];
-                    first = false;
-                    CHARACTERS.set(c[0], c);
-                    if(c[0] > charactercounter) charactercounter = c[0];
-                }
-                save_mcv_and_signal();
-            };
-            fr.readAsText(file);
-        };
-        inp.click();
-    });
-
 });
 
 function ability_score_to_modifier(score:number){
     return Math.floor((score-10)/2);
 }
 
-function get_script_variables(character_id:number, macro_id:number):[Map<string, Map<string, string>>, Map<string, string>]{
-    let namespaces:Map<string, Map<string, string>> = new Map();
-    let vars:Map<string, string> = new Map();
-    // This is kind of hacky.
-    if(character_id == -1)
-        character_id = active_character;
-    for(let ch of CHARACTERS.values()){
-        let ns = new Map();
-        for(let vid of ch[3]){
-            let v = VARIABLES.get(vid)!;
-            let value = v[3];
-            if(v[2] == ScriptVariableType.ABILITY_SCORE)
-                value = ""+ability_score_to_modifier(+value);
-            ns.set(v[1].toLowerCase(), value);
-        }
-        namespaces.set(ch[1].toLowerCase(), ns);
-    }
-    // First, globals
-    for(let key of ['global', 'globals']){
-        let ns = namespaces.get(key)!;
-        if(ns === undefined)
-            continue;
-        for(let[k, v] of ns.entries())
-            vars.set(k, v);
-    }
-    if(character_id > 0){
-        let ch = CHARACTERS.get(character_id)!;
-        for(let vid of ch[3]){
-            let v = VARIABLES.get(vid)!;
-            let value = v[3];
-            if(v[2] == ScriptVariableType.ABILITY_SCORE)
-                value = ""+ability_score_to_modifier(+value);
-            vars.set(v[1].toLowerCase(), value);
-        }
-    }
-    if(macro_id > 0){
-        let mac = MACROS.get(macro_id)!;
-        for(let vid of mac[3]){
-            let v = VARIABLES.get(vid)!;
-            let value = v[3];
-            if(v[2] == ScriptVariableType.ABILITY_SCORE)
-                value = ""+ability_score_to_modifier(+value);
-            vars.set(v[1].toLowerCase(), value);
-        }
-    }
-    return [namespaces, vars];
-}
+return get_script_variables;
+}());

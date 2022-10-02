@@ -884,10 +884,6 @@ div.rolltable table{
   height: 1.5em;
 }
 
-#import-macro, #export-macro {
-  display: none;
-}
-
 /*@media (prefers-color-scheme: dark) {*/
   body.dark-mode #map {
     background-color: #333;

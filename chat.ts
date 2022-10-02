@@ -2,16 +2,24 @@
 // Copyright © 2021-2022, David Priver
 //
 
-const THISPAGE = window.location.pathname;
+// Where should this go?
+function evaluate(text:string, character_id:number, macro_id:number):Array<Command>{
+    let [ns, vars] = get_script_variables(character_id, macro_id);
+    return evaluate_script(text, vars, ns);
+}
+
+const {
+    preprocess_and_send_chat,
+    add_chat_msgs,
+} = (function(){
 
 function setchatname(name:string){
     if(name) name = name.trim();
     if(!name) name = 'anon';
     sync_local(StorageCategory.CHAT, 'name', name);
 }
-// @ts-ignore
 
-function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:string, _:number, _:number)=>void){
+function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:string, __:number, ___:number)=>void){
     for(let i = 0; i < msgs.length; i++){
         const msg = msgs[i];
         const entry = elem_with_parent(log, 'div');
@@ -180,7 +188,7 @@ function options_dialog(){
     const pan_tool = by_id('pan-tool');
     dialog.f.chatname.value = SETTINGS.chat.name;
     dialog.f.dev.style.display = is_dev?'block':'none';
-    dialog.f.fps.checked = SHOW_FPS;
+    dialog.f.fps.checked = showing_fps();
     dialog.f['export-map'].addEventListener('click', function(){
         let data = export_maps();
         let a = document.createElement('a');
@@ -189,7 +197,7 @@ function options_dialog(){
         a.click();
     });
     dialog.f.screenshot.addEventListener('click', function(){
-        screenshot_canvas(get_active_view());
+        screenshot();
     });
     if (SETTINGS.demo){
         dialog.f['import-map'].addEventListener('click', function(){
@@ -205,16 +213,7 @@ function options_dialog(){
                     if(!fr.result) return;
                     // @ts-ignore
                     const new_data = JSON.parse(fr.result);
-                    initialize_maps(new_data);
-                    // Fix up our localid to avoid collisions.
-                    let highest = 0;
-                    for(let map of MAPS.values()){
-                        for(let o of map.canvas_obj_array){
-                            let local = o.id & 0xfffff;
-                            if(local > highest) highest = local;
-                        }
-                    }
-                    localid = highest;
+                    import_maps(new_data);
                     dialog.hide();
                 };
                 fr.readAsText(file);
@@ -278,11 +277,7 @@ function options_dialog(){
         if(!IS_TOUCH) dialog.f.chatname.focus();
     }
     dialog.ok_handler = function(){
-        if(is_dev){
-            const show_fps = dialog.f.fps;
-            SHOW_FPS = show_fps.checked;
-            request_render();
-        }
+        if(is_dev) debug_show_fps(dialog.f.fps.checked);
         if(SETTINGS.chat.name != dialog.f.chatname.value.trim()){
             setchatname(dialog.f.chatname.value);
             sync_local(StorageCategory.CHAT, 'name', dialog.f.chatname.value);
@@ -327,10 +322,6 @@ function preprocess_command(value:string, character_id:number, macro_id:number):
     return result;
 }
 
-function evaluate(text:string, character_id:number, macro_id:number):Array<Command>{
-    let [ns, vars] = get_script_variables(character_id, macro_id);
-    return evaluate_script(text, vars, ns);
-}
 function format_new_die_roll_result(roll_result:RolledExpr):string{
     let [total, text] = format_new_die_roll(roll_result, false);
     total = rounddown(total);
@@ -843,19 +834,15 @@ document.addEventListener('DOMContentLoaded', function(){
         for(let e of notifications)
             e.remove()
         notifications = [];
-        setup_macros();
         lv.make_active(lv.active);
         if(!IS_TOUCH)chat.focus();
     };
-    let macs = by_id('privateroll-macros');
     make_tab_view(
         [
-            by_id('privateroll-macros-tab'),
             by_id('privateroll-tables-tab'),
             by_id('privateroll-mytables-tab'),
         ],
         [
-            macs,
             shtbs,
             prtbs,
         ]
@@ -878,18 +865,6 @@ document.addEventListener('DOMContentLoaded', function(){
             });
         }
     });
-    function setup_macros(){
-        macs.innerHTML = '';
-        for(let ch of CHARACTERS.values()){
-            for(let mid of ch[2]){
-                let m = MACROS.get(mid)!;
-                let b = elem_parent_text(macs, 'button', m[1]);
-                b.style.width = '100%';
-                b.onclick = function(){preproc_func(m[2], ch[0], m[0])};
-            }
-        }
-    }
-    listen_for(ListenEvent.MACROS_RENAMED, setup_macros);
     ONRECV(ToClient.USER_LIST, function(users:Array<UserListItem>){
         lv.clear();
         log.innerHTML = '';
@@ -922,3 +897,9 @@ document.addEventListener('DOMContentLoaded', function(){
             lv.activate_handler!(lv.active);
     });
 });
+return {
+    preprocess_and_send_chat,
+    add_chat_msgs,
+    evaluate,
+};
+}());

@@ -18,9 +18,6 @@ declare let SETTINGS: Settings;
 declare let SOCKET: any;
 // This silly magic string gets replaced with user-specific settings server-side;
 "let SETTINGS = SETTINGS";
-let local_sync_in_flight = false;
-let local_needs_sync:Array<[string, string]> = [];
-let SHOW_FPS = false;
 //
 // Misc notes
 // ----------
@@ -139,13 +136,11 @@ ONRECV(ToClient.API_VERSION, function(api_version:number){
 });
 function clear_disconnected(){
     const d = by_id('disconnect')!;
-    if(d)
-        d.style.display = 'none';
+    if(d) d.style.display = 'none';
 }
 function set_disconnected(){
     const d = by_id('disconnect')!;
-    if(d)
-        d.style.display = 'initial';
+    if(d) d.style.display = 'initial';
 }
 SOCKET.on('disconnect', function(reason:string){
     switch(reason){
@@ -165,13 +160,8 @@ SOCKET.on('disconnect', function(reason:string){
 let session_id = 0;
 let show_pan = (function(){
     let sp = get_global(StorageCategory.SETTINGS, 'showpan');
-    if(sp === undefined)
-        sp = localStorage.getItem('showpan');
-    if(sp == '1')
-        return true;
-    if(sp == '0')
-        return false;
-    return true;
+    if(sp === undefined) return true;
+    return sp === '1';
 })();
 document.addEventListener('DOMContentLoaded', function(){
     const pan_tool = by_id('pan-tool');
@@ -189,19 +179,6 @@ function change_pan_visibility(visible:boolean){
 ONRECV(ToClient.SESSION_ID, function(resp:number){
     session_id = resp;
 });
-
-function get_state(which:string):void{
-    const link = document.createElement('a');
-    if(which){
-        link.download = which + '.json';
-        link.href = `${window.location.pathname}/state?which=${which}`;
-    }
-    else{
-        link.download = 'state.json';
-        link.href = `${window.location.pathname}/state`;
-    }
-    link.click();
-}
 
 let IS_TOUCH = false;
 document.addEventListener('DOMContentLoaded', function(){

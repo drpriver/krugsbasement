@@ -2,6 +2,16 @@
 // Copyright © 2021-2022, David Priver
 //
 
+const {
+    export_maps,
+    import_maps,
+    screenshot,
+    request_render,
+    resize_canvas,
+    debug_show_fps,
+    showing_fps,
+} = (function(){
+let SHOW_FPS = false;
 const enum FUDGE {
     _ = 1,
 }
@@ -518,12 +528,6 @@ type TerrainTile = {
     terrain_id: number;
 }
 
-type TerrainInfo = {
-    img?: HTMLImageElement;
-    color: string;
-    name: string;
-}
-
 let current_terrain_icon_id: number = 0;
 // IconTile
 // --------
@@ -688,8 +692,8 @@ const DOOR_TO_SHORT_NAMES = [
 let current_door = DoorType.DOOR;
 
 const enum GRIDSCALE {
-    FIVE = "5",
-    TEN = "10",
+    FIVE = 0,
+    TEN  = 1,
 };
 let gridscale = GRIDSCALE.TEN;
 function change_gridscale(newscale:GRIDSCALE){
@@ -718,45 +722,40 @@ function visually_set_gridscale(newscale:GRIDSCALE){
     }
 }
 document.addEventListener('DOMContentLoaded', function(){
-    function do_it(id:string, scale:GRIDSCALE){
-        const grid10: HTMLInputElement = get_by_id(id);
-        grid10.addEventListener('change', function(){
-            change_gridscale(grid10.value as GRIDSCALE);
-        });
-        if(grid10.checked)
-            gridscale = scale;
-    }
-    do_it('grid-10', GRIDSCALE.TEN);
-    do_it('grid-5', GRIDSCALE.FIVE);
+    // Checking if the elements is checked
+    by_id('grid-10').addEventListener('change', function(){
+        change_gridscale(GRIDSCALE.TEN);
+    });
+    if(by_id('grid-10').checked) gridscale = GRIDSCALE.TEN;
+    by_id('grid-5').addEventListener('change', function(){
+        change_gridscale(GRIDSCALE.FIVE);
+    });
+    if(by_id('grid-5').checked) gridscale = GRIDSCALE.FIVE;
 });
 
 const enum SNAPMODE {
-    GRID = "GRID",
-    HALF = "HALF",
-    QUARTER = "QUARTER",
-    FREE = "FREE",
+    GRID    = 0, // "GRID",
+    HALF    = 1, // "HALF",
+    QUARTER = 2, // "QUARTER",
+    FREE    = 3, // "FREE",
 }
 let snapmode: SNAPMODE = SNAPMODE.GRID;
 function invisibly_change_snapmode(mode:SNAPMODE){
     snapmode = mode;
 }
 function visually_set_snapmode(mode:SNAPMODE){
-    const snap_grid    = by_id('grid-snap-grid');
-    const snap_half    = by_id('grid-snap-half');
-    const snap_quarter = by_id('grid-snap-quarter');
-    const snap_free    = by_id('grid-snap-free');
     switch(mode){
         case SNAPMODE.GRID:
-            snap_grid.click();
+            by_id('grid-snap-grid').click();
             break;
         case SNAPMODE.HALF:
-            snap_half.click();
+            by_id('grid-snap-half').click();
             break;
         case SNAPMODE.QUARTER:
-            snap_quarter.click();
+            by_id('grid-snap-quarter').click();
             break;
         case SNAPMODE.FREE:
-            snap_free.click();
+            by_id('grid-snap-free').click();
             break;
     }
 }
@@ -764,10 +763,10 @@ document.addEventListener('DOMContentLoaded', function(){
     function do_it(id:string, mode:SNAPMODE){
         const snap: HTMLInputElement = get_by_id(id);
         snap.addEventListener('change', function(){
-            invisibly_change_snapmode(snap.value as SNAPMODE);
+            invisibly_change_snapmode(mode);
         });
-        if(snap.checked)
-            snapmode = mode;
+        if(snap.checked) snapmode = mode;
+
     }
     do_it('grid-snap-grid',    SNAPMODE.GRID);
     do_it('grid-snap-half',    SNAPMODE.HALF);
@@ -880,6 +879,19 @@ function export_maps():Array<InitializeMap>{
     for(let map of MAPS.values())
         result.push(export_map(map));
     return result;
+}
+
+function import_maps(msgs:Array<InitializeMap>){
+    initialize_maps(msgs);
+    // Fix up our localid to avoid collisions.
+    let highest = 0;
+    for(let map of MAPS.values()){
+        for(let o of map.canvas_obj_array){
+            let local = o.id & 0xfffff;
+            if(local > highest) highest = local;
+        }
+    }
+    localid = highest;
 }
 
 function export_map(map:DungeonMap):InitializeMap{
@@ -1678,6 +1690,8 @@ function snap_to_hex_center(x0:number, y0:number):[number, number]{
         return [hx*REFERENCE.WIDTH+REFERENCE.WIDTH/2, hy*REFERENCE.WIDTH+REFERENCE.WIDTH/2];
     }
 }
+// unused apparently?
+// @ts-ignore
 function cube_to_oddq(x:number, y:number, z:number):[number, number]{
     let col = x;
     let row = (z + (x-(x&1)) >> 1);
@@ -2328,11 +2342,11 @@ function undo_is_impossible(map:DungeonMap):boolean{
 function redo_is_impossible(map:DungeonMap):boolean{
     return map.undo_position == map.undo_stack.length;
 }
-let localid = 0;
 // Combines the session id with the local id to create a
 // unique id for an object
 // If you get more up to more than 1,048,576 objects in a single session we'll be in trouble.
 // That's actually kind of a FIXME...
+let localid = 0;
 function get_new_id(): number{
     ++localid;
     let id = (session_id << 20) | localid;
@@ -2715,6 +2729,7 @@ function rotate_everything_90(view:DungeonMapView){
     publish_obj_updates(view.map.map_id, after_rotate);
     request_render();
 }
+
 function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number, submapid:number):void{
     x = snap_to_grid(x);
     y = snap_to_grid(y);
@@ -2832,11 +2847,6 @@ function initialize_maps(msgs:Array<InitializeMap>){
         }
     }
     let old_idx = get_local(StorageCategory.CANVAS, 'active_map_view_index');
-    if(old_idx === undefined){
-        const old_idx_s = localStorage.getItem(`${THISPAGE}/active_map_view_index`);
-        if(old_idx_s)
-            old_idx = +old_idx_s;
-    }
     if(old_idx !== undefined){
         if(old_idx < dungeon_map_views.length && old_idx >= 0)
             change_active_map_view(old_idx, false, false);
@@ -4795,6 +4805,9 @@ function screenshot_canvas(view:DungeonMapView){
         }, 'image/png', 1);
     };
     dialog.show();
+}
+function screenshot(){
+    screenshot_canvas(get_active_view());
 }
 
 function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingContext2D, view:DungeonMapView, flags:RenderFlags):void{
@@ -7388,6 +7401,8 @@ document.addEventListener('DOMContentLoaded', function():void{
     change_tool(current_tool);
 });
 
+// unused??
+// @ts-ignore
 // Extracts the session id from an object's id so that we can ignore objects we
 // created.
 function get_session_id_from_obj_id(objid:number):number{
@@ -9624,3 +9639,20 @@ document.addEventListener('DOMContentLoaded', function(){
         map_hist.go_forward();
     });
 });
+function debug_show_fps(b:boolean){
+    SHOW_FPS = b;
+    request_render();
+}
+function showing_fps():boolean{
+    return SHOW_FPS;
+}
+return {
+    export_maps,
+    import_maps,
+    screenshot,
+    request_render,
+    resize_canvas,
+    debug_show_fps,
+    showing_fps,
+};
+}());
