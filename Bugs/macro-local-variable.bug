@@ -1,7 +1,0 @@
-Changelog::kv
-  created: 2022-04-22T04:33:37Z
-Created Apr 22, 2022, 12:33AM::md.update
-Summary::md.summary
-  Me and jeff were talking and one thing we seized upon are that variables and macros are way too disconnected.
-
-  One of the things that came up is that each macro could have one macro-local variable that you can adjust inline in your macro panel. This would be useful for like booleans and power attack and stuff.
