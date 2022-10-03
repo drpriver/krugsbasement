@@ -1,9 +1,17 @@
 <style>
+* { box-sizing: border-box; }
+body {
+  background-color: white;
+  color: black;
+}
 .decimal {
   list-style-type: decimal;
 }
 .alpha {
   list-style-type: lower-alpha;
+}
+.bullet {
+  list-style-type: disc;
 }
 section.notes {
   max-width: 44em;
@@ -26,20 +34,24 @@ To develop/run this webapp, you'll need the following tools:
 
 <ol class=decimal>
   <li>Python (3.8+)
+      <ul class=bullet>
+        <li>The makefile will setup the venvs and install the requirements so you
+            don't have to pollute your environment or manage them yourself.
+      </ul>
   <li>GNU Make
-    <ol class=alpha>
+    <ul>
       <li>On macos, whatever comes with the xcode tools is fine.
       <li>On linux, just install a gnu make (you probably already have it).
-      <li>On windows, grab it from 
+      <li>On windows, grab it from
           <a href=http://gnuwin32.sourceforge.net/packages/make.htm>here.</a>
-        <ul>
+        <ul class=bullet>
           <li>It's old af but it works fine.
         </ul>
-    </ol>
+    </ul>
   <li>tsc (TypeScript Compiler)
     <ol class=alpha>
       <li>See <a href=https://www.typescriptlang.org/download>here</a>
-      <li>There's other janky ways to get tsc without node or npm, 
+      <li>There's other janky ways to get tsc without node or npm,
           but I am not going to list them here.
     </ol>
 </ol>
@@ -47,7 +59,7 @@ To develop/run this webapp, you'll need the following tools:
 <h2 id="running-locally">Running Locally</h2>
 <p>
 If you have the above tools installed, you can just do <tt>make run</tt> and
-you'll get a server running. You can then visit it at 
+you'll get a server running. You can then visit it at
 <a href=http://localhost:5000 class=unvisited>http://localhost:5000.</a>
 The first time you run the server it will create an empty database.
 
@@ -57,7 +69,7 @@ so you might want to execute it in watch mode so that it recompiles the
 typescript whenever you save.
 
 <p>
-For the stand-alone demo page, do <tt>make Generated/demo.html</tt> then
+For the stand-alone demo page, do <tt>make <a href=Generated/demo.html>Generated/demo.html</a></tt> then
 open that file in a browser. If you have the server running you can also go to
 <a href=http://localhost:5000/demos/dungeon.html class=unvisited>http://localhost:5000/demos/dungeon.html</a>,
 which will rebuild it when you visit
@@ -69,7 +81,9 @@ In DEV mode, static assets are served by the running webserver.
 <h2 id="the-appconfig">The AppConfig</h2>
 <p>
 This is just a simple python file that is imported. Make will generate one when
-do <tt>make run</tt> or you can do <tt>make appconfig.py</tt> yourself.
+do <tt>make run</tt> or you can do
+<tt>make <a href=appconfig.py type=text>appconfig.py</a></tt> yourself.
+See <tt><a href=defaultconfig.py type=text>defaultconfig.py</a></tt>.
 
 <p>
 The values are pretty self explanatory.
@@ -80,5 +94,17 @@ Put a reverse proxy like nginx in front of this so it can handle stuff like TLS
 and serving static files.
 
 <p>
-I use the makefile server.mak to run the server.
+I use the makefile <tt><a href=server.mak type=text>server.mak</a></tt> to run
+the server.
+
+<h2 id="bug-tracking">Bug Tracking</h2>
+
+<p>
+Bugs are tracked locally in the repo itself in the <tt><a href=Bugs>Bugs</a></tt> folder.
+The bugs are human-readable, but you will probably want to use the local web UI
+to view and manage them. You can do so with <tt>make bug</tt>.
+
+<p>
+Generally, you should resolve the bug in the same commit that resolves it.
+
 </section>
