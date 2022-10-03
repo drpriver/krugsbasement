@@ -40,7 +40,6 @@ def getbuglist():
         result['links'] += '  ' + str(i) + ' = /' + str(i) + '\n'
         result['links'] += '  ' + parts[-1] + ' = /' + str(i) + '\n'
         result['links'] += '  ' + parts[-1][:-4] + ' = /' + str(i) + '\n'
-    print(result['links'])
     return result
 
 
@@ -176,13 +175,7 @@ def appendhandler(action:str, bugid:int):
     new_entry.classes.add('update')
     new_entry.parse(content)
     text = ctx.format_tree()
-    print('fromfolder', fromfolder)
-    print('tofolder', tofolder)
-    print('bug', bug)
-    print('name', name)
     dst = tofolder + '/' + name
-    print('src', src)
-    print('dst', dst)
     with open(src, 'w', encoding='utf-8') as fp:
         fp.write(text)
     if src != dst:
