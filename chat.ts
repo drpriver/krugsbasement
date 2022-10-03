@@ -44,6 +44,7 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:st
                 const span = elem_with_text('span', data);
                 entry.appendChild(span);
                 span.style.cursor = 'pointer';
+                span.setAttribute('role', 'button');
                 if(label_target){
                     entry.classList.add('clickable');
                     let msg_data = data;
@@ -123,6 +124,7 @@ function add_dice_history_command(log:HTMLDivElement, text:string):number {
     entry.style.display = 'flex';
     const span = elem_with_text('span', text);
     span.style.cursor = 'pointer';
+    span.setAttribute('role', 'button');
     entry.appendChild(span);
     span.addEventListener('click', function(e){
         e.stopPropagation();
@@ -900,6 +902,5 @@ document.addEventListener('DOMContentLoaded', function(){
 return {
     preprocess_and_send_chat,
     add_chat_msgs,
-    evaluate,
 };
 }());
