@@ -1,3 +1,4 @@
+import sys
 import pydndc
 import flask
 import glob
@@ -236,7 +237,7 @@ BUG=r'''
   ::h #id(bugname)
   ::js
     let title = ctx.select_nodes({type:NodeType.TITLE})[0];
-    title.header = `Bugs - WebDnd`
+    title.header = `Bugs - WebDnD`
     if(Args.links)
       ctx.root.parse(Args.links);
     let bugname = ctx.select_nodes({id:'bugname'})[0];
@@ -653,4 +654,7 @@ if __name__ == '__main__':
     from gevent.pywsgi import WSGIServer
     http_server = WSGIServer(("127.0.0.1", PORT), app)
     threading.Thread(target=lambda:( print(f'http://localhost:{PORT}'),webbrowser.open(f'http://localhost:{PORT}'))).start()
-    http_server.serve_forever()
+    try:
+        http_server.serve_forever()
+    except KeyboardInterrupt:
+        sys.exit(0)
