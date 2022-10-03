@@ -28,6 +28,31 @@ tt {
 
 </style>
 <section class=notes>
+<h1 id=webdnd>WebDnD</h1>
+<p>
+This is a webapp for hosting a shared tabletop, chat and dice roller for
+playing tabletop roleplaying games. A single-user demo of this app can be accessed
+<a href=https://krugsbasement.com/demos/dungeon.html target=_blank title=Demo>at krugsbasement</a>.
+A full multi-user version of this app is at
+<a href=https://krugsbasement.com/register target=_blank title=Register>krugsbasement.com</a>,
+but requires an invitation code.
+
+<h2 id=features>Features</h2>
+This app has several features that differentiates from other products:
+<ul>
+  <li>Shared canvas optimized for players drawing the map (like in old school games).
+  <li>On-map links.
+  <li>Submaps
+  <li>Advanced macros and variables.
+  <li>In-game direct messages.
+  <li>Rollable Tables.
+  <li>Role-less &mdash; all users have as much power as any other user.
+    <ul>
+      <li>However, you can still hide objects on the map from other users,
+          make rolls only you can see, etc.
+    </ul>
+</ul>
+
 <h2 id="tools">Tools</h2>
 <p>
 To develop/run this webapp, you'll need the following tools:
@@ -92,6 +117,7 @@ The values are pretty self explanatory.
 <p>
 Put a reverse proxy like nginx in front of this so it can handle stuff like TLS
 and serving static files.
+Set DEV mode in the appconfig to false.
 
 <p>
 I use the makefile <tt><a href=server.mak type=text>server.mak</a></tt> to run
@@ -106,5 +132,13 @@ to view and manage them. You can do so with <tt>make bug</tt>.
 
 <p>
 Generally, you should resolve the bug in the same commit that resolves it.
+
+<h2 id=license>License</h2>
+<p>
+Free for personal use.
+
+<h2 id=copyright>Copyright</h2>
+<p>
+Copyright © 2021-2022, David Priver
 
 </section>
