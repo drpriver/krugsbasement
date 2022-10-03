@@ -39,11 +39,13 @@ DEVPY=$(DEV_ACTIVATE) && $(PY)
 
 serv_venv:
 	$(PY) -m venv $@
+	$(SERVPY) -m pip install -U pip
 	$(SERVPY) -m pip install wheel
 	$(SERVPY) -m pip install -r requirements.txt
 
 dev_venv:
 	$(PY) -m venv $@
+	$(DEVPY) -m pip install -U pip
 	$(DEVPY) -m pip install wheel
 	$(DEVPY) -m pip install -r dev_requirements.txt
 
@@ -172,8 +174,13 @@ DOCS=Generated/macro-doc.html \
 .PHONY: docs
 docs: $(DOCS)
 
+# bug tracking
+.PHONY: bug
+bug: | dev_venv
+	$(DEVPY) Scripts/bug.py
+
 .PHONY: all
 all: dist.zip
 
-
+# For private operations like server admin
 include $(wildcard private.mak)

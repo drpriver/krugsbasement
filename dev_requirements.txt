@@ -1,5 +1,7 @@
 --prefer-binary
 pillow
 packrect
-pydndc
+pydndc>=0.29.3
 mypy
+flask
+gevent
