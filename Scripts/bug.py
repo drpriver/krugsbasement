@@ -197,7 +197,6 @@ BUG=r'''
         <span id="bugtab" class="active">${Args.thisbugname.replace(/-/g, ' ')}</span>
         <span id="newtab">New Bug</span>
       `);
-      //endjs
     ::css
       #tabs {
         display: grid;
@@ -233,7 +232,6 @@ BUG=r'''
       body.darkmode #tabs span:hover {
         background-color: #444;
       }
-      /*endcss*/
   Bugs -::title #hide
   ::h #id(bugname)
   ::js
@@ -243,7 +241,6 @@ BUG=r'''
       ctx.root.parse(Args.links);
     let bugname = ctx.select_nodes({id:'bugname'})[0];
     bugname.header = Args.thisbugname.replace(/-/g, ' ');
-    //endjs
   ::md #id(thisbug)
     ::js
       if(Args.thisbug){
@@ -263,7 +260,6 @@ BUG=r'''
 
           Congratulations!
           `);
-      //endjs
   ::md #id(update-inputs)
     ::raw
       <textarea></textarea>
@@ -283,19 +279,15 @@ BUG=r'''
   Bugs::details
     ::js
       node.parent.parse(Args.buglist.replace(/-/g, ' '));
-      //endjs
   Resolved::details
     ::js
       node.parent.parse(Args.rbuglist.replace(/-/g, ' '));
-      //endjs
   WontFix::details
     ::js
       node.parent.parse(Args.wfbuglist.replace(/-/g, ' '));
-      //endjs
   Punted::details
     ::js
       node.parent.parse(Args.puntbuglist.replace(/-/g, ' '));
-      //endjs
 ::div #id(right)
   ::raw #id(shutraw)
     <button id="shutdown">Shutdown</button>
@@ -316,7 +308,6 @@ BUG=r'''
   let sc = ctx.root.make_child(NodeType.SCRIPTS)
   sc.add_child(`let bugid=${Args.bugid};`);
   sc.add_child(`let bugkind=${Args.bugkind};`);
-  //endjs
 ::script
   function system_prefers_darkmode(){
     return window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -478,7 +469,6 @@ BUG=r'''
       });
     }
   });
-  //endjs
 ::css
   * {
     box-sizing: border-box;
@@ -652,7 +642,6 @@ BUG=r'''
     font-style: italic;
     border: none;
   }
-  /*endcss*/
 '''
 
 CTX = pydndc.Context()
