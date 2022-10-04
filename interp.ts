@@ -65,7 +65,7 @@ const evaluate_script = (function(){
     type RawStatement = {
         kind: StatementKind.RAW,
         content: string,
-        command: ChatCommand.TABLE | ChatCommand.SAY | ChatCommand.NAME | ChatCommand.MYTABLE,
+        command: ChatCommand.TABLE | ChatCommand.SAY | ChatCommand.NAME | ChatCommand.MYTABLE | ChatCommand.STYLE,
         original: string, // for table
     }
 
@@ -662,7 +662,6 @@ const evaluate_script = (function(){
                             return parse_raw(ChatCommand.MYTABLE, 1);
                         case 'say':
                             return parse_raw(ChatCommand.SAY, 1);
-
                     }
                     if(peek_no_space().kind == TokenKind.EQUALS)
                         return parse_assignment();
@@ -705,7 +704,7 @@ const evaluate_script = (function(){
                             return parse_raw(ChatCommand.NAME, 2)
                         case 'sh': case 'shuffle': case 'shuff': case 'shuf':
                             return parse_list(ChatCommand.SHUFFLE, 2);
-                        case 'c': case 'choose':
+                        case 'ch': case 'choose':
                             return parse_list(ChatCommand.CHOOSE, 2);
                         case 't': case 'tab': case 'table':
                             return parse_raw(ChatCommand.TABLE, 2);
@@ -713,6 +712,13 @@ const evaluate_script = (function(){
                             return parse_raw(ChatCommand.MYTABLE, 2);
                         case 's': case 'say':
                             return parse_raw(ChatCommand.SAY, 2);
+                        case 'color': case 'colour':
+                        case 'bold': case 'italic':
+                        case 'anon': case 'reset':
+                        case 'underline': case 'underlined':
+                        case 'box': case 'boxed':
+                        case 'big':
+                            return parse_raw(ChatCommand.STYLE, 1);
                     }
                     return parse_raw(ChatCommand.SAY, 0);
                 }
@@ -1005,7 +1011,7 @@ const evaluate_script = (function(){
             };
             currentblock.statements.push(usestatement);
         }
-        function parse_raw(command:ChatCommand.SAY | ChatCommand.TABLE | ChatCommand.MYTABLE | ChatCommand.NAME, nskip:number){
+        function parse_raw(command:ChatCommand.SAY | ChatCommand.TABLE | ChatCommand.MYTABLE | ChatCommand.NAME | ChatCommand.STYLE, nskip:number){
             let raw: RawStatement = {
                 kind: StatementKind.RAW,
                 content: '',

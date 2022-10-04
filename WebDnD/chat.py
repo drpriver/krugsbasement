@@ -10,7 +10,7 @@ from . import db
 import datetime
 import json
 
-from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg, UnrolledDiceExpr, Binary, Unary, RolledExpr, RollTableFlags, RollTable, RollTables, ChatHistory
+from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg, UnrolledDiceExpr, Binary, Unary, RolledExpr, RollTableFlags, RollTable, RollTables, ChatHistory, StyleFlags
 
 from enum import IntEnum, IntFlag
 
@@ -136,6 +136,8 @@ def get_private_history(userid:int, campaign:int) -> List[ChatHistory]:
     return result # type: ignore
 
 def handle_structured_input(userid:int, campaign:int, user:str, commands:List[Command], private:bool, to:int=None) -> List[ChatMsg]:
+    color = ''
+    styleflags = StyleFlags.NONE
     def echo(user:str, text:str) -> ChatMsg:
         return [Msg.ECHOABLE_TEXT, user, text] # type: ignore
     def plain(user:str, text:str) -> ChatMsg:
@@ -144,19 +146,64 @@ def handle_structured_input(userid:int, campaign:int, user:str, commands:List[Co
         return [Msg.DICEROLL, '', dice] # type: ignore
     def error(e:str) -> ChatMsg:
         return [Msg.ERROR, '', e] # type: ignore
+    def styled(user:str, text:str) -> ChatMsg:
+        return [Msg.STYLED_TEXT, user, [text, styleflags, color]] # type: ignore
+
+    def parse_style(line:str) -> None:
+        nonlocal styleflags
+        nonlocal color
+        toks = line.lower().split()
+        i = 0
+        TOKS = frozenset({'bold', 'italic', 'anon', 'underline', 'underlined', 'box', 'boxed', 'reset', 'color', 'colour', 'big'})
+        while i < len(toks):
+            tok = toks[i]
+            if tok not in TOKS:
+                i+= 1
+                continue
+            if tok == 'bold':
+                styleflags ^= StyleFlags.BOLD
+            elif tok == 'italic':
+                styleflags ^= StyleFlags.ITALIC
+            elif tok == 'anon':
+                styleflags ^= StyleFlags.ANON
+            elif tok == 'underline' or tok == 'underlined':
+                styleflags ^= StyleFlags.UNDERLINE
+            elif tok == 'box' or tok == 'boxed':
+                styleflags ^= StyleFlags.BOXED
+            elif tok == 'reset':
+                styleflags = StyleFlags.NONE
+            elif tok == 'big':
+                styleflags ^= StyleFlags.BIG
+            elif tok == 'color' or tok == 'colour':
+                peek = toks[i+1] if i + 1 < len(toks) else ''
+                if peek in TOKS:
+                    peek = ''
+                color = peek
+                if peek:
+                    styleflags |= StyleFlags.COLORED
+                    i += 1
+                else:
+                    styleflags &= ~StyleFlags.COLORED
+            i += 1
+
     apparent_user = user
     result = []
     for command in commands:
         cc = ChatCommand(command[0])
-        if cc != ChatCommand.NAME:
+        if cc != ChatCommand.NAME and cc != ChatCommand.STYLE:
             line = command[1]
             if cc != ChatCommand.SAY:
                 result.append(echo(apparent_user, line))
+            elif styleflags:
+                result.append(styled(apparent_user, line))
             else:
                 result.append(plain(apparent_user, line))
             del line
 
-        if cc == ChatCommand.ROLL:
+        if cc == ChatCommand.STYLE:
+            line = command[1]
+            parse_style(line)
+        elif cc == ChatCommand.ROLL:
             dice: UnrolledDiceExpr = command[2] # type: ignore
             structured_roll_die(dice)
             result.append(dieroll(dice))

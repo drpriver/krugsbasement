@@ -212,6 +212,7 @@ label.panel-variable span {
   padding: 8px;
   -webkit-user-select: initial;
   user-select: text;
+  line-height: 1.2;
 }
 .window-group-list {
   display: flex;
@@ -616,6 +617,7 @@ html, body {
   overflow-y: scroll;
   /*height: 800px;*/
   width: 17em;
+  line-height: 1.2;
 }
 #privateroll-history {
   overflow-y: scroll;

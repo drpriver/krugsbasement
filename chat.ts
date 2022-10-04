@@ -34,6 +34,34 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:st
                 }
                 const text = document.createTextNode(data);
                 entry.appendChild(text);
+
+            }break;
+            case Msg.STYLED_TEXT:{
+                const data = msg[2];
+                const text = data[0]
+                const flags = data[1];
+                const color = data[2];
+                if(user_ && !(flags & StyleFlags.ANON)){
+                    const user = elem_with_text('b', user_+': ');
+                    entry.appendChild(user);
+                }
+                const sp = elem_parent_text(entry,'span', text)
+                if(flags & StyleFlags.BOLD)
+                    sp.style.fontWeight = 'bold';
+                if(flags & StyleFlags.ITALIC)
+                    sp.style.fontStyle = 'italic';
+                if(flags & StyleFlags.COLORED)
+                    sp.style.color = color;
+                if(flags & StyleFlags.UNDERLINE)
+                    sp.style.textDecoration = 'underline';
+                if(flags & StyleFlags.BOXED){
+                    sp.style.border = '1px solid';
+                    sp.style.padding = '4px 8px';
+                    sp.style.lineHeight = '2';
+                }
+                if(flags & StyleFlags.BIG){
+                    sp.style.fontSize = '150%';
+                }
             }break;
             case Msg.ECHOABLE_TEXT:{
                 if(user_){
