@@ -1,3 +1,8 @@
+::css
+  .command ul {
+    list-style: none;
+  }
+  /*endcss*/
 ::toc .left
 ::div
   ::md .comment
@@ -59,6 +64,38 @@
         <tt>/say</tt> some text
 
         Says the text, without trying to parse it as a die roll.
+
+      Style::md .indented .command
+        - <tt>/color red</tt>
+        - <tt>/bold</tt>
+        - <tt>/italic</tt>
+        - <tt>/underline</tt>
+        - <tt>/big</tt>
+        - <tt>/boxed</tt>
+        - <tt>/anon</tt>
+        - <tt>/reset</tt>
+
+        Applies a style to the rest of the chat commands in the current
+        macro/multiline input. Color can be a valid CSS color.
+        bold, italic, underline, big, boxed and anon are all toggles.
+        Issuing them a second time will turn them off.
+        Reset will clear all currently applied styles.
+
+        Unlike other commands, multiple styles can be applied at once. For example:
+        ::pre.macro.indented
+          /name Jon
+          /color red bold italic
+          Danger!
+          /reset
+          This is plain.
+        which will make the "Danger!" red, bold and italic.
+        ::raw
+          <div style="border: 1px solid black; margin-left: 3em; padding:1em;">
+            <div><b>Jon:</b> <span style="color:red; font-weight:bold; font-style:italic">Danger!</span></div>
+            <div><b>Jon:</b> <span>This is plain.</span></div>
+          </div>
+
+
 
     Macro Processor::md
       Now for the extra functionality. Basically, a preprocessing step

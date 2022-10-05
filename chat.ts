@@ -57,7 +57,7 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:st
                 if(flags & StyleFlags.BOXED){
                     sp.style.border = '1px solid';
                     sp.style.padding = '4px 8px';
-                    sp.style.lineHeight = '2';
+                    sp.style.display = 'inline-block';
                 }
                 if(flags & StyleFlags.BIG){
                     sp.style.fontSize = '150%';
