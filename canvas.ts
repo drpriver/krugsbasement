@@ -9646,6 +9646,7 @@ function debug_show_fps(b:boolean){
 function showing_fps():boolean{
     return SHOW_FPS;
 }
+listen_for(ListenEvent.DARKMODE_CHANGED, request_render);
 return {
     export_maps,
     import_maps,
