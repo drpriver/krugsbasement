@@ -2,7 +2,8 @@
 // Copyright © 2021-2022, David Priver
 //
 
-
+// Don't bother trying to split notes into core vs. ui as they are their
+// own self-contained thing.
 (function(){
 type Note_ = {
     title: string;
@@ -13,7 +14,6 @@ type Note_ = {
     need_receive: boolean;
 }
 const NOTES: Map<number, Note_> = new Map();
-// We need this so we can update the option's text when the note's title changes.
 
 const make_dnd_html = (function(){
     let wasm_instance: WebAssembly.Instance;
@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const notes_area = by_id('note-view-edit');
     const notes_title_area = by_id('note-view-title');
     const iframe = by_id('current-note-view');
-    const editor_log = by_id('note-view-editor-log');
+;   const editor_log = by_id('note-view-editor-log');
     const edit_notes_button = by_id('edit-notes-button');
     let listview = make_list_view<number>(by_id('notes-list'), 0);
     by_id('delete-note').addEventListener('click', function(){
@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', function(){
         +'  }\n');
     let current_note_id = -1;
     function onget(n_:Note){
-	const n: Note_ = n_ as Note_;
+        const n: Note_ = n_ as Note_;
         n.need_receive = false;
         n.need_send = false;
         NOTES.set(n.id, n);
@@ -234,9 +234,7 @@ document.addEventListener('DOMContentLoaded', function(){
         let title = notes_title_area.value;
         let s = title + '::title\n' + notes_area.value + '\n' + boilerplate;
         make_dnd_html(s, function(html:string, errors:Array<string>){
-            while(editor_log.childNodes.length){
-              editor_log.removeChild(editor_log.lastChild!);
-            }
+            (editor_log as any).replaceChildren();
             for(let error of errors){
               const pp = document.createElement('pre');
               pp.innerHTML = error;
