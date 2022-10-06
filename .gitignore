@@ -36,3 +36,4 @@ flask_socketio.pyi
 private.mak
 !DEVELOPING.html
 nginx
+Decls
