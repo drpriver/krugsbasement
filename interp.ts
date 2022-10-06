@@ -201,7 +201,7 @@ const evaluate_script = (function(){
             }
             if(isspace(c)){
                 for(i++; i < text.length; i++){
-                    if(!isspace(text[i])) break;
+                    if(text[i] == '\n' || !isspace(text[i])) break;
                 }
                 result.push({kind:TokenKind.SPACE, text:text.slice(start, i)});
                 i--;
@@ -223,8 +223,16 @@ const evaluate_script = (function(){
                 case '`': result.push({kind:TokenKind.BACKTICK,text:c}); continue;
                 case '=': result.push({kind:TokenKind.EQUALS,  text:c}); continue;
                 case '-': result.push({kind:TokenKind.MINUS,   text:c}); continue;
-                case '"': result.push({kind:TokenKind.DQUOTE,  text:c}); continue;
-                case "'": result.push({kind:TokenKind.SQUOTE,  text:c}); continue;
+                case '“':
+                case '”':
+                case '"':
+                    result.push({kind:TokenKind.DQUOTE,  text:c});
+                    continue;
+                case "‘":
+                case "’":
+                case "'":
+                    result.push({kind:TokenKind.SQUOTE,  text:c});
+                    continue;
                 case '.': result.push({kind:TokenKind.DOT,     text:c}); continue;
                 case '#':{
                     let start = i;
@@ -737,7 +745,7 @@ const evaluate_script = (function(){
             }
 
             let items = [];
-            let quoted = '';
+            let quoted = 0;
             let item = '';
             for(;;){
                 let t = take();
@@ -750,9 +758,9 @@ const evaluate_script = (function(){
                     item = '';
                     continue;
                 }
-                if(t.text == quoted){
+                if(t.kind == quoted){
                     item += t.text;
-                    quoted = '';
+                    quoted = 0;
                     items.push(item);
                     item = '';
                     continue;
@@ -762,7 +770,7 @@ const evaluate_script = (function(){
                     continue;
                 }
                 if(t.kind == TokenKind.DQUOTE || t.kind == TokenKind.SQUOTE){
-                    quoted = t.text;
+                    quoted = t.kind;
                     item = t.text;
                     continue;
                 }
