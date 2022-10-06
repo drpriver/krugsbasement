@@ -33,6 +33,7 @@
     "char-ui.ts",
     "macros-ui.ts",
     "rolltables-ui.ts",
-    "darkmode.ts"
+    "darkmode.ts",
+    "settings.ts"
   ]
 }

@@ -58,7 +58,8 @@ TSCFLAGS:=--noImplicitAny \
 	  --target es2020 \
 	  --noEmitOnError \
 	  --strictFunctionTypes
-TSFILES:= internal_listeners.ts toplevel.ts darkmode.ts \
+TSFILES:= settings.ts internal_listeners.ts\
+	  toplevel.ts darkmode.ts \
 	  chat.ts \
 	  canvas.ts notes.ts utils.ts \
 	  Generated/messages.ts interp.ts storage.ts Generated/nodes.ts dialogs.ts \
