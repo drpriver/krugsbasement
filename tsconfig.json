@@ -35,6 +35,10 @@
     "rolltables-ui.ts",
     "darkmode.ts",
     "settings.ts",
-    "touch.ts"
+    "touch.ts",
+    "chat-input.ts",
+    "list-view.ts",
+    "tab-view.ts",
+    "table-view.ts"
   ]
 }

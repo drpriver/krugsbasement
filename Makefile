@@ -66,7 +66,9 @@ TSFILES:= settings.ts internal_listeners.ts\
 	  Generated/dialogdefs.ts subwindows.ts Generated/subwindowdefs.ts macros.ts \
 	  Generated/packed.ts geometry.ts options.ts \
 	  rolltables.ts dms.ts chat-ui.ts macros-ui.ts \
-	  rolltables-ui.ts
+	  rolltables-ui.ts chat-input.ts \
+	  list-view.ts tab-view.ts \
+	  table-view.ts
 Generated/combined.js: $(TSFILES) | Generated
 	$(TSC) $^ $(TSCFLAGS) --outFile $@
 Generated/demo.js: demo.ts Generated/messages.ts | Generated
