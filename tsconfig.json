@@ -10,6 +10,7 @@
     "noEmitOnError": true
   },
   "files": [
+    "socket.d.ts",
     "internal_listeners.ts",
     "toplevel.ts",
     "chat.ts",

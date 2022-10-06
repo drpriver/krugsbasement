@@ -2,8 +2,6 @@
 // Copyright © 2021-2022, David Priver
 //
 
-declare let SOCKET: any;
-
 (function(){
 SOCKET.on('connect', () => {
     clear_disconnected();
