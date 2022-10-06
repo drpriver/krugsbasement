@@ -61,7 +61,9 @@ TSCFLAGS:=--noImplicitAny \
 TSFILES:= internal_listeners.ts toplevel.ts chat.ts canvas.ts notes.ts utils.ts \
 	  Generated/messages.ts interp.ts storage.ts Generated/nodes.ts dialogs.ts \
 	  Generated/dialogdefs.ts subwindows.ts Generated/subwindowdefs.ts macros.ts \
-	  Generated/packed.ts geometry.ts
+	  Generated/packed.ts geometry.ts options.ts \
+	  rolltables.ts dms.ts chat-ui.ts macros-ui.ts \
+	  rolltables-ui.ts
 Generated/combined.js: $(TSFILES) | Generated
 	$(TSC) $^ $(TSCFLAGS) --outFile $@
 Generated/demo.js: demo.ts Generated/messages.ts | Generated

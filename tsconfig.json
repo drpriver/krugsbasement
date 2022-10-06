@@ -26,6 +26,12 @@
     "Generated/subwindowdefs.ts",
     "macros.ts",
     "Generated/packed.ts",
-    "geometry.ts"
+    "geometry.ts",
+    "options.ts",
+    "rolltables.ts",
+    "dms.ts",
+    "char-ui.ts",
+    "macros-ui.ts",
+    "rolltables-ui.ts"
   ]
 }
