@@ -76,44 +76,46 @@ function options_dialog(){
     const pan_tool = by_id('pan-tool');
     dialog.f.chatname.value = SETTINGS.chat.name;
     dialog.f.dev.style.display = is_dev?'block':'none';
-    dialog.f.fps.checked = showing_fps();
-    dialog.f['export-map'].addEventListener('click', function(){
-        let data = export_maps();
-        let a = document.createElement('a');
-        a.download = 'maps.json'
-        a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type:'text/plain'}));
-        a.click();
-    });
-    dialog.f.screenshot.addEventListener('click', function(){
-        screenshot();
-    });
-    if (SETTINGS.demo){
-        dialog.f['import-map'].addEventListener('click', function(){
-            const inp = document.createElement('input');
-            inp.type = 'file';
-            inp.onchange = function(){
-                const files = inp.files;
-                if(!files) return;
-                if(!files.length) return;
-                const file = files[0];
-                const fr = new FileReader();
-                fr.onload = function(){
-                    if(!fr.result) return;
-                    // @ts-ignore
-                    const new_data = JSON.parse(fr.result);
-                    import_maps(new_data);
-                    dialog.hide();
-                };
-                fr.readAsText(file);
-            };
-            inp.click();
-        });
-    }
-    else{
-        dialog.f['import-map'].style.display = 'none';
-    }
     if(!options_init){
         options_init = true;
+        dialog.f['export-map'].addEventListener('click', function(){
+            // @ts-ignore
+            let data = export_maps();
+            let a = document.createElement('a');
+            a.download = 'maps.json'
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type:'text/plain'}));
+            a.click();
+        });
+        dialog.f.screenshot.addEventListener('click', function(){
+            // @ts-ignore
+            screenshot();
+        });
+        if (SETTINGS.demo){
+            dialog.f['import-map'].addEventListener('click', function(){
+                const inp = document.createElement('input');
+                inp.type = 'file';
+                inp.onchange = function(){
+                    const files = inp.files;
+                    if(!files) return;
+                    if(!files.length) return;
+                    const file = files[0];
+                    const fr = new FileReader();
+                    fr.onload = function(){
+                        if(!fr.result) return;
+                        // @ts-ignore
+                        const new_data = JSON.parse(fr.result);
+                        // @ts-ignore
+                        import_maps(new_data);
+                        dialog.hide();
+                    };
+                    fr.readAsText(file);
+                };
+                inp.click();
+            });
+        }
+        else{
+            dialog.f['import-map'].style.display = 'none';
+        }
         dialog.f.fullscreen.addEventListener('click', function(){
             // @ts-ignore
             if(!document.fullscreenElement && ! document.webkitFullscreenElement) {
