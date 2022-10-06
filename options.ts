@@ -2,12 +2,71 @@
 // Copyright © 2021-2022, David Priver
 //
 
+let show_pan = (function(){
+    let sp = get_global(StorageCategory.SETTINGS, 'showpan');
+    if(sp === undefined) return true;
+    return sp === '1';
+})();
+
 (function(){
+// idk where to put this
+let SHOW_ZOOMERS = false;
+function set_zoomers(show:boolean){
+    by_id('zoomers').style.display = show?'block':'none';
+    store_global(StorageCategory.SETTINGS, 'showzoomers', show);
+    SHOW_ZOOMERS = show;
+}
+document.addEventListener('DOMContentLoaded', function(){
+    // want boolean, not undefined or null
+    let show = !!get_global(StorageCategory.SETTINGS, 'showzoomers');
+    set_zoomers(show);
+});
+
 function setchatname(name:string){
     if(name) name = name.trim();
     if(!name) name = 'anon';
     sync_local(StorageCategory.CHAT, 'name', name);
 }
+
+function set_chat_vis(show:boolean){
+    SETTINGS.hidechat = show;
+    if(SETTINGS.hidechat){
+        by_id('chat').style.height = 'auto';
+        by_id('notifications').style.display = 'none';
+        by_id('chat-history').style.display = 'none';
+        by_id('macro-panel').style.display = 'none';
+        by_id('dice-history').style.display = 'none';
+        by_id('chatinput').style.display = 'none';
+    }
+    else {
+        by_id('chat').style.height = '100vh';
+        by_id('notifications').style.display = 'grid';
+        by_id('chat-history').style.display = 'initial';
+        by_id('macro-panel').style.display = 'grid';
+        by_id('dice-history').style.display = 'initial';
+        by_id('chatinput').style.display = 'initial';
+    }
+    signal_for(ListenEvent.LAYOUT_CHANGED);
+    store_local(StorageCategory.SETTINGS, 'hidechat', show);
+}
+document.addEventListener('DOMContentLoaded', function(){
+    set_chat_vis(!!get_local(StorageCategory.SETTINGS, 'hidechat'));
+});
+
+document.addEventListener('DOMContentLoaded', function(){
+    const pan_tool = by_id('pan-tool');
+    pan_tool.style.display = show_pan? 'initial': 'none';
+});
+function change_pan_visibility(visible:boolean){
+    show_pan = visible;
+    if(visible)
+        store_global(StorageCategory.SETTINGS, 'showpan', '1');
+    else
+        store_global(StorageCategory.SETTINGS, 'showpan', '0');
+    const pan_tool = by_id('pan-tool');
+    pan_tool.style.display = visible? 'initial': 'none';
+}
+
 
 let options_init = false;
 function options_dialog(){

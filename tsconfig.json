@@ -34,6 +34,7 @@
     "macros-ui.ts",
     "rolltables-ui.ts",
     "darkmode.ts",
-    "settings.ts"
+    "settings.ts",
+    "touch.ts"
   ]
 }

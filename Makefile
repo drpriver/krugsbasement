@@ -60,7 +60,7 @@ TSCFLAGS:=--noImplicitAny \
 	  --strictFunctionTypes
 TSFILES:= settings.ts internal_listeners.ts\
 	  toplevel.ts darkmode.ts \
-	  chat.ts \
+	  touch.ts chat.ts \
 	  canvas.ts notes.ts utils.ts \
 	  Generated/messages.ts interp.ts storage.ts Generated/nodes.ts dialogs.ts \
 	  Generated/dialogdefs.ts subwindows.ts Generated/subwindowdefs.ts macros.ts \

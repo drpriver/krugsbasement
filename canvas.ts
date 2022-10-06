@@ -9647,6 +9647,7 @@ function showing_fps():boolean{
     return SHOW_FPS;
 }
 listen_for(ListenEvent.DARKMODE_CHANGED, request_render);
+listen_for(ListenEvent.LAYOUT_CHANGED, resize_canvas);
 return {
     export_maps,
     import_maps,
