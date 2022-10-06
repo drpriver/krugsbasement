@@ -8,8 +8,6 @@ const {
     screenshot,
     request_render,
     resize_canvas,
-    debug_show_fps,
-    showing_fps,
 } = (function(){
 let SHOW_FPS = false;
 const enum FUDGE {
@@ -9639,13 +9637,6 @@ document.addEventListener('DOMContentLoaded', function(){
         map_hist.go_forward();
     });
 });
-function debug_show_fps(b:boolean){
-    SHOW_FPS = b;
-    request_render();
-}
-function showing_fps():boolean{
-    return SHOW_FPS;
-}
 listen_for(ListenEvent.DARKMODE_CHANGED, request_render);
 listen_for(ListenEvent.LAYOUT_CHANGED, resize_canvas);
 return {
@@ -9654,7 +9645,5 @@ return {
     screenshot,
     request_render,
     resize_canvas,
-    debug_show_fps,
-    showing_fps,
 };
 }());

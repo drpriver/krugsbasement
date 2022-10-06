@@ -167,7 +167,6 @@ function options_dialog(){
         if(!IS_TOUCH) dialog.f.chatname.focus();
     }
     dialog.ok_handler = function(){
-        if(is_dev) debug_show_fps(dialog.f.fps.checked);
         if(SETTINGS.chat.name != dialog.f.chatname.value.trim()){
             setchatname(dialog.f.chatname.value);
             sync_local(StorageCategory.CHAT, 'name', dialog.f.chatname.value);
