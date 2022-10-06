@@ -169,10 +169,16 @@ clean:
 pack: Generated/packed.json Generated/packed.webp \
 	Generated/packed.png Generated/toks.png \
 	Generated/toks.webp
-
-Generated/packed.json Generated/packed.webp \
-Generated/packed.png Generated/toks.webp \
-Generated/toks.png Generated/packed.ts: Scripts/pack.py | Generated dev_venv Depends
+# Hack so that make doesn't try to build each of these,
+# instead builds them at once
+Generated/packed.json: pack_
+Generated/packed.webp: pack_
+Generated/packed.png: pack_
+Generated/toks.webp: pack_
+Generated/toks.png: pack_
+Generated/packed.ts: pack_
+.INTERMEDIATE: pack_
+pack_: Scripts/pack.py | Generated dev_venv Depends
 	$(DEVPY) Scripts/pack.py
 
 DOCS=Generated/macro-doc.html \

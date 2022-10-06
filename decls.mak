@@ -26,7 +26,8 @@ Decls/nodes.d.ts: Generated/nodes.ts
 Decls/packed.d.ts: Generated/packed.ts
 	$(DECL)
 
-Decls/subwindows.d.ts: subwindows.ts Generated/subwindowdefs.ts Decls/utils.d.ts
+Decls/subwindows.d.ts: subwindows.ts Generated/subwindowdefs.ts \
+  Decls/utils.d.ts
 	$(DECL)
 
 Decls/internal_listeners.d.ts: internal_listeners.ts
@@ -38,16 +39,28 @@ Decls/geometry.d.ts: geometry.ts
 Decls/touch.d.ts: touch.ts Decls/nodes.d.ts
 	$(DECL)
 
-Decls/toplevel.d.ts: toplevel.ts socket.d.ts Decls/messages.d.ts Decls/nodes.d.ts
+Decls/toplevel.d.ts: toplevel.ts socket.d.ts \
+  Decls/messages.d.ts Decls/nodes.d.ts
 	$(DECL)
 
-Decls/darkmode.d.ts: darkmode.ts Decls/messages.d.ts Decls/settings.d.ts Decls/internal_listeners.d.ts
+Decls/darkmode.d.ts: darkmode.ts Decls/messages.d.ts \
+  Decls/settings.d.ts Decls/internal_listeners.d.ts
 	$(DECL)
 
-Decls/options.d.ts: options.ts Decls/storage.d.ts Decls/internal_listeners.d.ts Decls/darkmode.d.ts Decls/settings.d.ts Decls/touch.d.ts Decls/nodes.d.ts Decls/messages.d.ts Decls/dialogs.d.ts
+Decls/options.d.ts: options.ts Decls/storage.d.ts \
+  Decls/internal_listeners.d.ts Decls/darkmode.d.ts \
+  Decls/settings.d.ts Decls/touch.d.ts \
+  Decls/nodes.d.ts Decls/messages.d.ts \
+  Decls/dialogs.d.ts
 	$(DECL)
 
-Decls/canvas.d.ts: canvas.ts Decls/nodes.d.ts Decls/messages.d.ts Decls/dialogs.d.ts Decls/settings.d.ts Decls/internal_listeners.d.ts Decls/geometry.d.ts Decls/touch.d.ts Decls/storage.d.ts Decls/utils.d.ts Decls/packed.d.ts Decls/toplevel.d.ts Decls/options.d.ts Decls/darkmode.d.ts
+Decls/canvas.d.ts: canvas.ts Decls/nodes.d.ts \
+  Decls/messages.d.ts Decls/dialogs.d.ts \
+  Decls/settings.d.ts Decls/internal_listeners.d.ts \
+  Decls/geometry.d.ts Decls/touch.d.ts \
+  Decls/storage.d.ts Decls/utils.d.ts \
+  Decls/packed.d.ts Decls/toplevel.d.ts \
+  Decls/options.d.ts Decls/darkmode.d.ts
 	$(DECL)
 
 Decls/chat-input.d.ts: chat-input.ts
@@ -56,34 +69,62 @@ Decls/chat-input.d.ts: chat-input.ts
 Decls/interp.d.ts: interp.ts Decls/messages.d.ts
 	$(DECL)
 
-Decls/macros.d.ts: macros.ts Decls/messages.d.ts Decls/internal_listeners.d.ts Decls/storage.d.ts Decls/settings.d.ts
+Decls/macros.d.ts: macros.ts Decls/messages.d.ts \
+  Decls/internal_listeners.d.ts Decls/storage.d.ts \
+  Decls/settings.d.ts
 	$(DECL)
 
-Decls/chat.d.ts: chat.ts Decls/messages.d.ts Decls/macros.d.ts Decls/utils.d.ts Decls/interp.d.ts
+Decls/chat.d.ts: chat.ts Decls/messages.d.ts Decls/macros.d.ts \
+  Decls/utils.d.ts Decls/interp.d.ts
 	$(DECL)
 
-Decls/chat-ui.d.ts: chat-ui.ts Decls/messages.d.ts Decls/nodes.d.ts Decls/storage.d.ts Decls/chat.d.ts Decls/utils.d.ts Decls/settings.d.ts Decls/chat-input.d.ts
+Decls/chat-ui.d.ts: chat-ui.ts Decls/messages.d.ts \
+  Decls/nodes.d.ts Decls/storage.d.ts \
+  Decls/chat.d.ts Decls/utils.d.ts \
+  Decls/settings.d.ts Decls/chat-input.d.ts
 	$(DECL)
 
-Decls/dms.d.ts: dms.ts Decls/messages.d.ts Decls/settings.d.ts Decls/nodes.d.ts Decls/touch.d.ts Decls/utils.d.ts Decls/chat.d.ts Decls/list-view.d.ts Decls/subwindows.d.ts Decls/chat-input.d.ts Decls/internal_listeners.d.ts Decls/rolltables.d.ts Decls/tab-view.d.ts
+Decls/dms.d.ts: dms.ts Decls/messages.d.ts \
+  Decls/settings.d.ts Decls/nodes.d.ts \
+  Decls/touch.d.ts Decls/utils.d.ts \
+  Decls/chat.d.ts Decls/list-view.d.ts \
+  Decls/subwindows.d.ts Decls/chat-input.d.ts \
+  Decls/internal_listeners.d.ts Decls/rolltables.d.ts \
+  Decls/tab-view.d.ts
 	$(DECL)
 
-Decls/list-view.d.ts: list-view.ts Decls/utils.d.ts Decls/touch.d.ts Decls/dialogs.d.ts
+Decls/list-view.d.ts: list-view.ts Decls/utils.d.ts \
+  Decls/touch.d.ts Decls/dialogs.d.ts
 	$(DECL)
 
 Decls/tab-view.d.ts: tab-view.ts
 	$(DECL)
 
-Decls/rolltables.d.ts: rolltables.ts Decls/messages.d.ts Decls/internal_listeners.d.ts
+Decls/rolltables.d.ts: rolltables.ts Decls/messages.d.ts \
+  Decls/internal_listeners.d.ts
 	$(DECL)
 
-Decls/macros-ui.d.ts: macros-ui.ts Decls/messages.d.ts Decls/touch.d.ts Decls/dialogs.d.ts Decls/macros.d.ts Decls/internal_listeners.d.ts Decls/settings.d.ts Decls/chat-ui.d.ts Decls/nodes.d.ts Decls/utils.d.ts Decls/subwindows.d.ts Decls/list-view.d.ts Decls/chat.d.ts Decls/tab-view.d.ts
+Decls/macros-ui.d.ts: macros-ui.ts Decls/messages.d.ts \
+  Decls/touch.d.ts Decls/dialogs.d.ts \
+  Decls/macros.d.ts Decls/internal_listeners.d.ts \
+  Decls/settings.d.ts Decls/chat-ui.d.ts \
+  Decls/nodes.d.ts Decls/utils.d.ts \
+  Decls/subwindows.d.ts Decls/list-view.d.ts \
+  Decls/chat.d.ts Decls/tab-view.d.ts
 	$(DECL)
 
-Decls/notes.d.ts: notes.ts Decls/messages.d.ts Decls/subwindows.d.ts Decls/nodes.d.ts Decls/list-view.d.ts Decls/dialogs.d.ts Decls/darkmode.d.ts
+Decls/notes.d.ts: notes.ts Decls/messages.d.ts \
+  Decls/subwindows.d.ts Decls/nodes.d.ts \
+  Decls/list-view.d.ts Decls/dialogs.d.ts \
+  Decls/darkmode.d.ts
 	$(DECL)
 
-Decls/rolltables-ui.d.ts: rolltables-ui.ts Decls/rolltables.d.ts Decls/messages.d.ts Decls/internal_listeners.d.ts Decls/touch.d.ts Decls/utils.d.ts Decls/dialogs.d.ts Decls/nodes.d.ts Decls/list-view.d.ts Decls/subwindows.d.ts Decls/table-view.d.ts
+Decls/rolltables-ui.d.ts: rolltables-ui.ts Decls/rolltables.d.ts \
+	Decls/messages.d.ts Decls/internal_listeners.d.ts \
+	Decls/touch.d.ts Decls/utils.d.ts \
+	Decls/dialogs.d.ts Decls/nodes.d.ts \
+	Decls/list-view.d.ts Decls/subwindows.d.ts \
+	Decls/table-view.d.ts
 	$(DECL)
 
 Decls/table-view.d.ts: table-view.ts
