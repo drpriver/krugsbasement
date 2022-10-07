@@ -5,7 +5,7 @@
 ::import
   dungeon.dnd
 ::script #import
-  Generated/demo.js
-  Generated/combined.js
+  ../Generated/demo.js
+  ../Generated/combined.js
 ::css #import
   dungeon.css

@@ -2,6 +2,8 @@
 Depends: ; mkdir $@
 Depends/Generated: | Depends
 	mkdir $@
+Depends/WebClient: | Depends
+	mkdir $@
 Generated: ; mkdir $@
 Archives: ; mkdir $@
 
@@ -59,40 +61,40 @@ TSCFLAGS:=--noImplicitAny \
 	  --noEmitOnError \
 	  --strictFunctionTypes
 # NOTE(dpriver): the order does matter (but this is not the only valid order).
-TSFILES:= socket.d.ts \
-	  settings.ts \
-	  options.ts \
-	  storage.ts \
-	  internal_listeners.ts\
-	  toplevel.ts \
-	  darkmode.ts \
-	  touch.ts \
+TSFILES:= WebClient/socket.d.ts \
+	  WebClient/settings.ts \
+	  WebClient/options.ts \
+	  WebClient/storage.ts \
+	  WebClient/internal_listeners.ts\
+	  WebClient/toplevel.ts \
+	  WebClient/darkmode.ts \
+	  WebClient/touch.ts \
 	  Generated/messages.ts \
-	  chat.ts \
-	  canvas.ts \
-	  notes.ts \
-	  utils.ts \
-	  interp.ts \
+	  WebClient/chat.ts \
+	  WebClient/canvas.ts \
+	  WebClient/notes.ts \
+	  WebClient/utils.ts \
+	  WebClient/interp.ts \
 	  Generated/nodes.ts \
-	  dialogs.ts \
+	  WebClient/dialogs.ts \
 	  Generated/dialogdefs.ts \
-	  subwindows.ts \
+	  WebClient/subwindows.ts \
 	  Generated/subwindowdefs.ts \
-	  macros.ts \
+	  WebClient/macros.ts \
 	  Generated/packed.ts \
-	  geometry.ts \
-	  rolltables.ts \
-	  dms.ts \
-	  chat-ui.ts \
-	  macros-ui.ts \
-	  rolltables-ui.ts \
-	  chat-input.ts \
-	  list-view.ts \
-	  tab-view.ts \
-	  table-view.ts
+	  WebClient/geometry.ts \
+	  WebClient/rolltables.ts \
+	  WebClient/dms.ts \
+	  WebClient/chat-ui.ts \
+	  WebClient/macros-ui.ts \
+	  WebClient/rolltables-ui.ts \
+	  WebClient/chat-input.ts \
+	  WebClient/list-view.ts \
+	  WebClient/tab-view.ts \
+	  WebClient/table-view.ts
 Generated/combined.js: $(TSFILES) | Generated
 	$(TSC) $^ $(TSCFLAGS) --outFile $@
-Generated/demo.js: demo.ts Generated/messages.ts | Generated
+Generated/demo.js: WebClient/demo.ts Generated/messages.ts | Generated
 	$(TSC) $^ $(TSCFLAGS) --outFile $@
 
 .DEFAULT_GOAL:=Generated/dungeon.html
@@ -104,19 +106,19 @@ appconfig.py:
 run: Generated/dungeon.html Generated/demo.html Server/WebDnD/messages.py | appconfig.py serv_venv
 	$(SERVPY) -m Server.WebDnD.app
 
-Generated/dungeon.html: client.dnd Generated/combined.js dungeon.css | Depends/Generated dev_venv
+Generated/dungeon.html: WebClient/client.dnd Generated/combined.js WebClient/dungeon.css | Depends/Generated dev_venv
 	$(DEVPY) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
-Generated/demo.html: demo.dnd Generated/demo.js Generated/combined.js dungeon.css | Depends/Generated dev_venv
+Generated/demo.html: WebClient/demo.dnd Generated/demo.js Generated/combined.js WebClient/dungeon.css | Depends/Generated dev_venv
 	$(DEVPY) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
 
 Generated/%.html: Docs/%.dnd | Generated Depends/Generated dev_venv
 	$(DEVPY) -m pydndc $< --output $@ --depends-path Depends/$@.dep
 # This is so that the dev server can serve things from the Generated folder.
-Generated/%.dnd: %.dnd
+Generated/%.dnd: WebSite/%.dnd
 	$(CP) $< $@
-Generated/%.css: %.css
+Generated/%.css: WebSite/%.css
 	$(CP) $< $@
-Generated/%.js: %.js
+Generated/%.js: WebSite/%.js
 	$(CP) $< $@
 
 Generated/messages.ts Server/WebDnD/messages.py flask_socketio.pyi: types.shared Scripts/make_enums.py | Generated dev_venv
@@ -132,11 +134,11 @@ PACKEDFILES=\
 DISTFILES=\
 	  Generated/dungeon.html \
 	  Generated/demo.html \
-	  register.dnd \
-	  home.dnd \
-	  login.dnd \
-	  login.css \
-	  darkmode.js \
+	  WebSite/register.dnd \
+	  WebSite/home.dnd \
+	  WebSite/login.dnd \
+	  WebSite/login.css \
+	  WebSite/darkmode.js \
 
 WEBDNDFILES=\
 	    Server/WebDnD/app.py \
@@ -168,7 +170,7 @@ dist.zip: $(ZIPFILES)
 	$(PY) -m zipfile -c dist.zip dist
 	$(RMRF) dist
 
-tags: *.ts Scripts/tag_ts.py types.shared | dev_venv
+tags: WebClient/*.ts Scripts/tag_ts.py types.shared | dev_venv
 	$(DEVPY) -m Scripts.tag_ts
 
 .PHONY: mypy
@@ -176,7 +178,7 @@ mypy: flask_socketio.pyi Server/WebDnD/messages.py | dev_venv
 	$(DEVPY) -m mypy -p Server.WebDnD.app --namespace-packages --ignore-missing-imports --disallow-untyped-defs
 
 Generated/subwindowdefs.ts Generated/dialogdefs.ts \
-Generated/dungeon.temp.html: dungeon.dnd | Generated dev_venv
+Generated/dungeon.temp.html: WebClient/dungeon.dnd | Generated dev_venv
 	$(DEVPY) -m pydndc $< --output Generated/dungeon.temp.html --strip-spaces --allow-js-write --jsargs '{"temp":true}'
 
 Generated/nodes.ts: Generated/dungeon.temp.html | Generated Depends dev_venv
