@@ -763,12 +763,11 @@ if appconfig.DEV:
 
     @app.route('/wasm/<wasm>')
     def get_wasm(wasm:str) -> object:
-        logging.info('wasm: %r', wasm)
         return send_from_directory('wasm', wasm)
 
     @app.route('/favicon.ico')
     def get_favicon() -> object:
-        return send_from_directory('.', 'favicon.ico')
+        return send_from_directory('Generated', 'favicon.ico')
 
     @app.route('/docs/<doc>')
     def get_doc(doc:str) -> object:

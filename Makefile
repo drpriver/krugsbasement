@@ -103,7 +103,7 @@ appconfig.py:
 	$(CP) defaultconfig.py $@
 
 .PHONY: run
-run: Generated/dungeon.html Generated/demo.html Server/WebDnD/messages.py | appconfig.py serv_venv
+run: Generated/dungeon.html Generated/demo.html Server/WebDnD/messages.py Generated/favicon.ico | appconfig.py serv_venv
 	$(SERVPY) -m Server.WebDnD.app
 
 Generated/dungeon.html: WebClient/client.dnd Generated/combined.js WebClient/dungeon.css | Depends/Generated dev_venv
@@ -119,6 +119,8 @@ Generated/%.dnd: WebSite/%.dnd
 Generated/%.css: WebSite/%.css
 	$(CP) $< $@
 Generated/%.js: WebSite/%.js
+	$(CP) $< $@
+Generated/favicon.ico: WebSite/favicon.ico
 	$(CP) $< $@
 
 Generated/messages.ts Server/WebDnD/messages.py flask_socketio.pyi: types.shared Scripts/make_enums.py | Generated dev_venv
