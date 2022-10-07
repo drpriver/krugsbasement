@@ -14,7 +14,6 @@ tags
 *.json
 *.gz
 *.bak
-wasm
 Server/WebDnD/messages.py
 Generated
 appconfig.py

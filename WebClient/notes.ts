@@ -43,9 +43,6 @@ const make_dnd_html = (function(){
     let errors: Array<string> = [];
     let imports = {
       env: {
-          logi32: function(i:number) {
-              errors.push(""+i);
-          },
           log_string: function(p:number, len:number){
               let sub = memory.subarray(p, p+len);
               errors.push(decoder.decode(sub));
