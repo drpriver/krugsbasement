@@ -224,7 +224,7 @@ bug: | dev_venv
 .PHONY: all
 all: dist.zip
 
-include decls.mak
+include WebClient/decls.mak
 
 # For private operations like server admin
 include $(wildcard private.mak)
