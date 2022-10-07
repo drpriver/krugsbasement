@@ -1,5 +1,5 @@
-import WebDnD.db as db
-from WebDnD.messages import CANVASTYPE
+import Server.WebDnD.db as db
+from Server.WebDnD.messages import CANVASTYPE
 import json
 import os
 

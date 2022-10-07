@@ -101,8 +101,8 @@ appconfig.py:
 	$(CP) defaultconfig.py $@
 
 .PHONY: run
-run: Generated/dungeon.html Generated/demo.html WebDnD/messages.py | appconfig.py serv_venv
-	$(SERVPY) -m WebDnD.app
+run: Generated/dungeon.html Generated/demo.html Server/WebDnD/messages.py | appconfig.py serv_venv
+	$(SERVPY) -m Server.WebDnD.app
 
 Generated/dungeon.html: client.dnd Generated/combined.js dungeon.css | Depends/Generated dev_venv
 	$(DEVPY) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
@@ -119,7 +119,7 @@ Generated/%.css: %.css
 Generated/%.js: %.js
 	$(CP) $< $@
 
-Generated/messages.ts WebDnD/messages.py flask_socketio.pyi: types.shared Scripts/make_enums.py | Generated dev_venv
+Generated/messages.ts Server/WebDnD/messages.py flask_socketio.pyi: types.shared Scripts/make_enums.py | Generated dev_venv
 	$(DEVPY) Scripts/make_enums.py
 
 PACKEDFILES=\
@@ -139,18 +139,18 @@ DISTFILES=\
 	  darkmode.js \
 
 WEBDNDFILES=\
-	    WebDnD/app.py \
-	    WebDnD/canvas.py \
-	    WebDnD/chat.py \
-	    WebDnD/db.py \
-	    WebDnD/forms.py \
-	    WebDnD/logs.py \
-	    WebDnD/messages.py \
-	    WebDnD/notes.py \
-	    WebDnD/persist.py \
-	    WebDnD/settings.py \
-	    WebDnD/users.py \
-	    WebDnD/validator.py \
+	    Server/WebDnD/app.py \
+	    Server/WebDnD/canvas.py \
+	    Server/WebDnD/chat.py \
+	    Server/WebDnD/db.py \
+	    Server/WebDnD/forms.py \
+	    Server/WebDnD/logs.py \
+	    Server/WebDnD/messages.py \
+	    Server/WebDnD/notes.py \
+	    Server/WebDnD/persist.py \
+	    Server/WebDnD/settings.py \
+	    Server/WebDnD/users.py \
+	    Server/WebDnD/validator.py \
 
 ZIPFILES=$(PACKEDFILES) $(DISTFILES) $(WEBDNDFILESS) \
 	 requirements.txt setup.py server.mak
@@ -172,8 +172,8 @@ tags: *.ts Scripts/tag_ts.py types.shared | dev_venv
 	$(DEVPY) -m Scripts.tag_ts
 
 .PHONY: mypy
-mypy: flask_socketio.pyi | dev_venv
-	$(DEVPY) -m mypy -p WebDnD.app --namespace-packages --ignore-missing-imports --disallow-untyped-defs
+mypy: flask_socketio.pyi Server/WebDnD/messages.py | dev_venv
+	$(DEVPY) -m mypy -p Server.WebDnD.app --namespace-packages --ignore-missing-imports --disallow-untyped-defs
 
 Generated/subwindowdefs.ts Generated/dialogdefs.ts \
 Generated/dungeon.temp.html: dungeon.dnd | Generated dev_venv

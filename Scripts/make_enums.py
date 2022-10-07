@@ -259,7 +259,7 @@ def get_values(filename:str) -> List[Info]:
     return result
 
 def make_python(filename:str, infos: List[Info]) -> None:
-    fp = open('WebDnD/messages.py', 'w', encoding='utf-8')
+    fp = open('Server/WebDnD/messages.py', 'w', encoding='utf-8')
     def p(*args, **kwargs):
         print(*args, **kwargs, file=fp)
     p('# Generated via', os.path.relpath(__file__))
@@ -441,7 +441,7 @@ def make_python(filename:str, infos: List[Info]) -> None:
     fp = open('flask_socketio.pyi', 'w')
     p('from typing import Callable, Union, Dict, Type, Optional, Any, Mapping, overload, Literal')
     p('JSType = Union[str, int, float, dict, list, tuple, Mapping]')
-    p('from WebDnD.messages import *')
+    p('from Server.WebDnD.messages import *')
     # p('def emit(event:Union[str,int], *args:JSType, **kwargs:JSType) -> None:
     # p('    ...
     for info in infos:
