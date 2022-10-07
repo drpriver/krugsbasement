@@ -10,7 +10,7 @@ class StatusIconData(NamedTuple):
     name: str
     imgname: str
     def path(self) -> str:
-        return f'iconorig/{self.imgname}'
+        return f'Imgs/iconorig/{self.imgname}'
     def as_thing(self, x:int, y:int, w:int, h:int) -> StatusIcon:
         return StatusIcon(self.id, self.name, x, y, w, h)
 
@@ -64,7 +64,7 @@ class TerrainData(NamedTuple):
     bg_color: str
     imgname: str
     def path(self) -> str:
-        return f'tilesorig/{self.imgname}'
+        return f'Imgs/tilesorig/{self.imgname}'
     def as_thing(self, x:int, y:int, w:int, h:int) -> Terrain:
         return Terrain(self.id, self.name, self.bg_color, x, y, w, h)
 
@@ -150,7 +150,7 @@ class TerrainIconData(NamedTuple):
     name: str
     imgname: str
     def path(self) -> str:
-        return f'tilesorig/{self.imgname}'
+        return f'Imgs/tilesorig/{self.imgname}'
     def as_thing(self, x:int, y:int, w:int, h:int) -> TerrainIcon:
         return TerrainIcon(self.id, self.name, x, y, w, h)
 
@@ -225,7 +225,7 @@ class FixtureData(NamedTuple):
     name: str
     imgname: str
     def path(self) -> str:
-        return f'miscimgs/{self.imgname}'
+        return f'Imgs/miscimgs/{self.imgname}'
     def as_thing(self, x:int, y:int, w:int, h:int) -> Fixture:
         return Fixture(self.id, self.name, x, y, w, h)
 
@@ -249,7 +249,7 @@ class TokenData(NamedTuple):
     name: str
     imgname: str
     def path(self) -> str:
-        return f'tokens/{self.imgname}'
+        return f'Imgs/tokens/{self.imgname}'
     def as_thing(self, x:int, y:int, w:int, h:int) -> Token:
         return Token(self.id, self.name, x, y, w, h)
 

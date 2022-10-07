@@ -8,7 +8,6 @@ __pycache__
 .mypy_cache
 *.so
 BadDb
-imgs
 *.html
 *.zip
 combined.js
