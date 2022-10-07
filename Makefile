@@ -58,16 +58,37 @@ TSCFLAGS:=--noImplicitAny \
 	  --target es2020 \
 	  --noEmitOnError \
 	  --strictFunctionTypes
-TSFILES:= socket.d.ts settings.ts internal_listeners.ts\
-	  toplevel.ts darkmode.ts \
-	  touch.ts chat.ts \
-	  canvas.ts notes.ts utils.ts \
-	  Generated/messages.ts interp.ts storage.ts Generated/nodes.ts dialogs.ts \
-	  Generated/dialogdefs.ts subwindows.ts Generated/subwindowdefs.ts macros.ts \
-	  Generated/packed.ts geometry.ts options.ts \
-	  rolltables.ts dms.ts chat-ui.ts macros-ui.ts \
-	  rolltables-ui.ts chat-input.ts \
-	  list-view.ts tab-view.ts \
+# NOTE(dpriver): the order does matter (but this is not the only valid order).
+TSFILES:= socket.d.ts \
+	  settings.ts \
+	  options.ts \
+	  storage.ts \
+	  internal_listeners.ts\
+	  toplevel.ts \
+	  darkmode.ts \
+	  touch.ts \
+	  Generated/messages.ts \
+	  chat.ts \
+	  canvas.ts \
+	  notes.ts \
+	  utils.ts \
+	  interp.ts \
+	  Generated/nodes.ts \
+	  dialogs.ts \
+	  Generated/dialogdefs.ts \
+	  subwindows.ts \
+	  Generated/subwindowdefs.ts \
+	  macros.ts \
+	  Generated/packed.ts \
+	  geometry.ts \
+	  rolltables.ts \
+	  dms.ts \
+	  chat-ui.ts \
+	  macros-ui.ts \
+	  rolltables-ui.ts \
+	  chat-input.ts \
+	  list-view.ts \
+	  tab-view.ts \
 	  table-view.ts
 Generated/combined.js: $(TSFILES) | Generated
 	$(TSC) $^ $(TSCFLAGS) --outFile $@

@@ -1,1 +1,1 @@
-declare let SOCKET: any;
+declare const SOCKET: any;

@@ -1,1 +1,1 @@
-let SOCKET = io({transports:["websocket"]});
+const SOCKET = io({transports:["websocket"]});
