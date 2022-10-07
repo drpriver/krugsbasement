@@ -4,7 +4,7 @@
 
 from typing import NamedTuple, Tuple, Callable, Any, List, Dict, TypeVar
 T = TypeVar('T')
-F = TypeVar('F')
+F = TypeVar('F', bound=Any)
 import enum
 import functools
 
@@ -120,8 +120,8 @@ def validate(name:str, obj:T) -> T:
     return TYPES[name](obj)
 
 def validated(func:F) -> F:
-    @functools.wraps(func) # type: ignore
-    def wrapped(*args, **kwargs): # type: ignore
+    @functools.wraps(func)
+    def wrapped(*args:Any, **kwargs:Any) -> Any:
         kwargs.update(dict(zip(func.__code__.co_varnames, args)))
         for k, t in func.__annotations__.items():
             if k == 'return': continue

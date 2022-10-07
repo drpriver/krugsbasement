@@ -438,7 +438,7 @@ def make_python(filename:str, infos: List[Info]) -> None:
 
     fp.flush()
     fp.close()
-    fp = open('flask_socketio.pyi', 'w')
+    fp = open('Server/flask_socketio.pyi', 'w')
     p('from typing import Callable, Union, Dict, Type, Optional, Any, Mapping, overload, Literal')
     p('JSType = Union[str, int, float, dict, list, tuple, Mapping]')
     p('from Server.WebDnD.messages import *')

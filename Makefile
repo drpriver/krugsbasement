@@ -123,7 +123,7 @@ Generated/%.js: WebSite/%.js
 Generated/favicon.ico: WebSite/favicon.ico
 	$(CP) $< $@
 
-Generated/messages.ts Server/WebDnD/messages.py flask_socketio.pyi: types.shared Scripts/make_enums.py | Generated dev_venv
+Generated/messages.ts Server/WebDnD/messages.py Server/flask_socketio.pyi: types.shared Scripts/make_enums.py | Generated dev_venv
 	$(DEVPY) Scripts/make_enums.py
 
 PACKEDFILES=\
@@ -180,8 +180,8 @@ tags: WebClient/*.ts Scripts/tag_ts.py types.shared | dev_venv
 	$(DEVPY) -m Scripts.tag_ts
 
 .PHONY: mypy
-mypy: flask_socketio.pyi Server/WebDnD/messages.py | dev_venv
-	$(DEVPY) -m mypy -p Server.WebDnD.app --namespace-packages --ignore-missing-imports --disallow-untyped-defs
+mypy: Server/flask_socketio.pyi Server/WebDnD/messages.py | dev_venv
+	$(DEVPY) -m mypy -p Server.WebDnD.app
 
 Generated/subwindowdefs.ts Generated/dialogdefs.ts \
 Generated/dungeon.temp.html: WebClient/dungeon.dnd | Generated dev_venv

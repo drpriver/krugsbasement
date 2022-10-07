@@ -5,7 +5,7 @@
 from __future__ import annotations
 import os
 import logging
-from typing import List, Dict, Optional, Set, Union, NamedTuple, Tuple
+from typing import List, Dict, Optional, Set, Union, NamedTuple, Tuple, Any
 
 from flask import Flask, jsonify, request, Response, send_from_directory, session, abort
 import flask
@@ -128,10 +128,10 @@ def block_method() -> None:
         ip_ban_list[ip] += 30
         flask.abort(404)
 
-def pydndclog(kind, filename, line, col, mes) -> None: # type: ignore
+def pydndclog(kind:int, filename:str, line:int, col:int, mes:str) -> None:
     logging.warning('%r:%d:%d: %r', filename, line+1, col, mes)
 
-def add_errors(node:pydndc.Node, error_list:List[str]) -> None:
+def add_errors(node:pydndc.Node, error_list:Optional[Union[List[str], List[Tuple[str,str]]]]) -> None:
     if not error_list: return
     raw = node.make_child(pydndc.NodeType.RAW)
     raw.append_child('<ul class="error">')
@@ -140,7 +140,7 @@ def add_errors(node:pydndc.Node, error_list:List[str]) -> None:
     raw.append_child('</ul>')
 
 @app.route('/register', methods=['GET', 'POST'])
-def register() -> object:
+def register() -> Any:
     t0 = time.time()
     if current_user.is_authenticated:
         return flask.redirect('/home')
@@ -183,7 +183,7 @@ def register() -> object:
     return html
 
 @app.route('/login', methods=['GET', 'POST'])
-def login_page() -> object:
+def login_page() -> Any:
     t0 = time.time()
     if current_user.is_authenticated:
         next_page = request.args.get('next')
@@ -222,18 +222,18 @@ def login_page() -> object:
 
 
 @app.route('/logout')
-def logout() -> object:
+def logout() -> Any:
     logout_user()
     return flask.redirect('/login')
 
 
 @app.route('/campaigns', methods=['GET', 'POST'])
 @login_required
-def campa() -> object:
+def campa() -> Any:
     if request.method == 'GET':
         return flask.redirect('/home')
     try:
-        body = request.json
+        body: Any = request.json
         action = body['action']
         if action == 'createmagic':
             uid = current_user.userid
@@ -261,17 +261,18 @@ def campa() -> object:
 
 
 @app.route('/settings', methods=['GET'])
-def get_settings() -> object:
+def get_settings() -> Any:
     if not current_user.is_authenticated:
         return flask.jsonify({})
     return flask.jsonify(settings.get_global(current_user.userid))
 
 @app.route('/settings', methods=['POST'])
-def post_settings() -> object:
+def post_settings() -> Any:
     if not current_user.is_authenticated:
         return {}
     dlog('Settings for %r: %r', current_user.userid, request.json)
-    for k, v in request.json.items():
+    json: Any = request.json
+    for k, v in json.items():
         settings.set_global(current_user.userid, k, v)
     return {}
 
@@ -282,7 +283,7 @@ def store_campaign_setting(data: LocalSetting) -> None:
     userid = current_user.userid
     if campaign is None:
         return
-    logging.info('sid: %r storing campaign setting for %r: %r', request.sid, current_user, data[:2])
+    logging.info('sid: %r storing campaign setting for %r: %r', request.sid, current_user, data[:2]) # type: ignore
     settings.set_local(userid, campaign, *data)
     if data[0] == 'chat' and data[1] == 'name':
         emit(ToClient.USER_RENAME, [userid, json.loads(data[2])], to=str(campaign), broadcast=True) # type: ignore
@@ -290,7 +291,7 @@ def store_campaign_setting(data: LocalSetting) -> None:
 
 @app.route('/home', methods=['GET','POST'])
 @login_required
-def home() -> object:
+def home() -> Any:
     t0 = time.time()
     form = CampaignForm()
     if form.validate_on_submit():
@@ -395,14 +396,14 @@ logging.info('session_id: %r', session_id.value)
 sid_to_campaign = {} # type: Dict[str, int]
 user_id_to_sids = {} # type: Dict[int, List[str]]
 def get_campaign(req:'flask.Request') -> int:
-    return sid_to_campaign[req.sid]
+    return sid_to_campaign[req.sid] # type: ignore
 
 def record_campaign(req:'flask.Request', campaign:int) -> None:
-    sid_to_campaign[req.sid] = campaign
+    sid_to_campaign[req.sid] = campaign # type: ignore
     if current_user.is_authenticated:
         if current_user.userid not in user_id_to_sids:
             user_id_to_sids[current_user.userid] = []
-        user_id_to_sids[current_user.userid].append(req.sid)
+        user_id_to_sids[current_user.userid].append(req.sid) # type: ignore
 
 
 @socketio.on('connect')
@@ -413,12 +414,12 @@ def handle_connection() -> None:
 
 @socketio.on('disconnect')
 def handle_disconnect() -> None:
-    if request.sid in sid_to_campaign:
-        del sid_to_campaign[request.sid]
+    if request.sid in sid_to_campaign: # type: ignore
+        del sid_to_campaign[request.sid] # type: ignore
     if current_user.is_authenticated:
         id = current_user.userid
         try:
-            user_id_to_sids[id].remove(request.sid)
+            user_id_to_sids[id].remove(request.sid) # type: ignore
             if not user_id_to_sids[id]:
                 del user_id_to_sids[id]
         except Exception:
@@ -709,12 +710,12 @@ def get_html(info:db.CampaignInfo) -> str:
     return result
 
 @app.route('/')
-def index() -> str:
+def index() -> Any:
     return flask.redirect('/home')
 
 @app.route('/campaigns/<campaign>')
 @login_required
-def get_campaign_request(campaign:str) -> str:
+def get_campaign_request(campaign:str) -> Any:
     # logging.info('campaign: %r', campaign)
     campaign_id: Optional[int]
     try:
@@ -732,12 +733,12 @@ def get_campaign_request(campaign:str) -> str:
     # logging.info('info: %r', info)
     if info is None:
         return abort(404)
-    magic = request.args.get('magic')
-    # logging.info('magic: %r', magic)
-    if magic is not None:
-        logging.info('magic: %r', magic)
+    magicstr = request.args.get('magic')
+    # logging.info('magic: %r', magicstr)
+    if magicstr is not None:
+        logging.info('magic: %r', magicstr)
         try:
-            magic = int(magic)
+            magic = int(magicstr)
         except ValueError:
             pass
         else:
@@ -758,23 +759,23 @@ if appconfig.DEV:
         return r('demo.html')
 
     @app.route('/tiles/<tile>')
-    def get_tile(tile:str) -> object:
+    def get_tile(tile:str) -> Any:
         return send_from_directory('Generated', tile)
 
     @app.route('/wasm/<wasm>')
-    def get_wasm(wasm:str) -> object:
+    def get_wasm(wasm:str) -> Any:
         return send_from_directory('wasm', wasm)
 
     @app.route('/favicon.ico')
-    def get_favicon() -> object:
+    def get_favicon() -> Any:
         return send_from_directory('Generated', 'favicon.ico')
 
     @app.route('/docs/<doc>')
-    def get_doc(doc:str) -> object:
+    def get_doc(doc:str) -> Any:
         return r(doc)
 
     @app.route('/js/socket.io.js')
-    def get_socket_io() -> object:
+    def get_socket_io() -> Any:
         return send_from_directory('WebClient', 'socket.io.js')
 
     @socketio.on(FromClient.DEBUG)
@@ -785,7 +786,7 @@ if appconfig.DEV:
         emit(ToClient.CHAT_STRUCTURED_MSG, [msg])
 
     @app.route('/kill', methods=['POST'])
-    def kill() -> object:
+    def kill() -> Any:
         import os
         os._exit(0)
 else:
