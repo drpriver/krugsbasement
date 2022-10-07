@@ -5,7 +5,7 @@
 ::import
   dungeon.dnd
 ::script #noinline
-  https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js
+  /js/socket.io.js
 ::script #import
   conn.js
   ../Generated/combined.js

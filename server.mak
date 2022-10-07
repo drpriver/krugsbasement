@@ -10,7 +10,11 @@ restore:
 	cp data/campaigns.db.bak data/campaigns.db
 
 .PHONY: unpack
-unpack: static/dungeon.html WebDnD imgs/tiles/packed demos
+unpack: static/dungeon.html WebDnD imgs/tiles/packed demos js
+
+.PHONY: js
+js:
+	cp dist/js/* js/js
 
 .PHONY: imgs/tiles/packed
 imgs/tiles/packed:

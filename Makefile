@@ -156,12 +156,16 @@ WEBDNDFILES=\
 	    Server/WebDnD/users.py \
 	    Server/WebDnD/validator.py \
 
-ZIPFILES=$(PACKEDFILES) $(DISTFILES) $(WEBDNDFILESS) \
+JSFILES=\
+	WebClient/socket.io.js \
+
+ZIPFILES=$(PACKEDFILES) $(DISTFILES) $(WEBDNDFILESS) $(JSFILES) \
 	 requirements.txt setup.py server.mak
 
 dist.zip: $(ZIPFILES)
 	$(RMRF) dist dist.zip
-	mkdir dist dist/packed dist/WebDnD
+	mkdir dist dist/packed dist/WebDnD dist/js
+	$(CP) $(JSFILES) dist/js
 	$(CP) server.mak dist
 	$(CP) $(DISTFILES) dist
 	$(CP) $(PACKEDFILES) dist/packed

@@ -773,6 +773,10 @@ if appconfig.DEV:
     def get_doc(doc:str) -> object:
         return r(doc)
 
+    @app.route('/js/socket.io.js')
+    def get_socket_io() -> object:
+        return send_from_directory('WebClient', 'socket.io.js')
+
     @socketio.on(FromClient.DEBUG)
     def log_debug(msg:str) -> None:
         campaign = get_campaign(request)
