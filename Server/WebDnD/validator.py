@@ -125,6 +125,8 @@ def validated(func:F) -> F:
         kwargs.update(dict(zip(func.__code__.co_varnames, args)))
         for k, t in func.__annotations__.items():
             if k == 'return': continue
+            if k not in kwargs:
+                return
             kwargs[k] = validate(t, kwargs[k])
         return func(**kwargs)
 
