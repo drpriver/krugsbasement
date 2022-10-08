@@ -160,11 +160,13 @@ JSFILES=\
 	WebClient/socket.io.js \
 
 ZIPFILES=$(PACKEDFILES) $(DISTFILES) $(WEBDNDFILESS) $(JSFILES) \
-	 requirements.txt setup.py Server/server.mak
+	 requirements.txt setup.py Server/server.mak \
+	 wasm/dndc.wasm
 
 dist.zip: $(ZIPFILES)
 	$(RMRF) dist dist.zip
-	mkdir dist dist/packed dist/WebDnD dist/js
+	mkdir dist dist/packed dist/WebDnD dist/js dist/wasm
+	$(CP) wasm/dndc.wasm dist/wasm
 	$(CP) $(JSFILES) dist/js
 	$(CP) Server/server.mak dist
 	$(CP) $(DISTFILES) dist
