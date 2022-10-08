@@ -20,7 +20,7 @@ from . import chat
 from . import canvas
 from . import notes
 from .persist import Persister, RepeatTimer, AppKVPersister
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode
 from .validator import register_list, validated
 from . import db
 from .users import User
@@ -424,18 +424,21 @@ def handle_disconnect() -> None:
                 del user_id_to_sids[id]
         except Exception:
             pass
-# These legacy links need to be supported so that old urls
-# will continue working.
-LEGACY_CAMPAIGNS = {'horror_on_the_moors':3, 'greenskins1':5}
 
 @socketio.on(FromClient.JOIN)
 @validated
 def join(room:str) -> None:
-    campaign  = room.split('/')[-1] if '/' in room else ''
+    parts = room.split('/')
     try:
-        campaignid = int(campaign)
+        if len(parts) >= 1 and parts[-1].isnumeric():
+            campaignid = int(parts[-1])
+        elif len(parts) >= 2 and parts[-2].isnumeric():
+            campaignid = int(parts[-2])
+        else:
+            return disconnect()
     except ValueError:
-        campaignid  = LEGACY_CAMPAIGNS[campaign]
+        return disconnect()
+
     may_access = False
     if campaignid == 1:
         may_access = True
@@ -673,7 +676,7 @@ def update_roll_tables(tables:RollTables) -> None:
     # logging.info('%r', tables);
     chat.update_roll_tables(current_user.userid, campaign, tables)
 
-def get_html(info:db.CampaignInfo) -> str:
+def get_html(info:db.CampaignInfo, mode:UiMode) -> str:
     global SCREEN
     if appconfig.DEV:
         SCREEN = r('dungeon.html')
@@ -686,7 +689,8 @@ def get_html(info:db.CampaignInfo) -> str:
             'macros':[],
             'variables':[],
             'characters':[],
-        }
+        },
+        'uimode': int(mode),
     }
     def update_vals(orig:dict, to_update:dict) -> None:
         for k in orig:
@@ -713,19 +717,32 @@ def get_html(info:db.CampaignInfo) -> str:
 def index() -> Any:
     return flask.redirect('/home')
 
+# These legacy links need to be supported so that old urls
+# will continue working.
+LEGACY_CAMPAIGNS = {'horror_on_the_moors':3, 'greenskins1':5}
+
+@app.route('/campaigns/<campaign>/<mode_s>')
 @app.route('/campaigns/<campaign>')
 @login_required
-def get_campaign_request(campaign:str) -> Any:
+def get_campaign_request(campaign:str, mode_s:str='full') -> Any:
+    if len(campaign) > 10: return abort(404)
+    mode = {
+        'full': UiMode.NORMAL,
+        'chat': UiMode.CHAT,
+        'notes': UiMode.NOTES,
+        'macros': UiMode.MACROS,
+    }.get(mode_s)
+    if mode is None:
+        return abort(404)
     # logging.info('campaign: %r', campaign)
     campaign_id: Optional[int]
     try:
         campaign_id = int(campaign)
     except ValueError:
-        # TODO: do a redirect instead once peoples macros and stuff are on
-        # the server.
         campaign_id = LEGACY_CAMPAIGNS.get(campaign)
         if campaign_id is not None:
-            return flask.redirect(f'/campaigns/{campaign_id}')
+            dest = f'/campaigns/{campaign_id}/{mode_s}' if mode_s != 'full' else f'/campaigns/{campaign_id}'
+            return flask.redirect(dest)
     # logging.info('campaign_id: %r', campaign_id)
     if campaign_id is None:
         return abort(404)
@@ -735,7 +752,7 @@ def get_campaign_request(campaign:str) -> Any:
         return abort(404)
     magicstr = request.args.get('magic')
     # logging.info('magic: %r', magicstr)
-    if magicstr is not None:
+    if magicstr is not None and len(magicstr) < 25:
         logging.info('magic: %r', magicstr)
         try:
             magic = int(magicstr)
@@ -752,7 +769,7 @@ def get_campaign_request(campaign:str) -> Any:
     if not db.user_may_access_campaign(current_user.userid, campaign_id):
         return abort(404)
     # logging.info('campaign: %r, campaign_id: %r', campaign, campaign_id)
-    return get_html(info)
+    return get_html(info, mode)
 if appconfig.DEV:
     @app.route('/demos/dungeon.html')
     def get_demo() -> str:

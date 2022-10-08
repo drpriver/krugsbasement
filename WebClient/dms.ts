@@ -171,5 +171,10 @@ document.addEventListener('DOMContentLoaded', function(){
         if(lv.active !== undefined)
             lv.activate_handler!(lv.active);
     });
+    if(SETTINGS.uimode == UiMode.CHAT){
+        privateroll.show();
+        privateroll.make_fullscreen();
+        privateroll.outer.style.width = '50vw';
+    }
 });
 }());

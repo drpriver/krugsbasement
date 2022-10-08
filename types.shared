@@ -1079,3 +1079,8 @@ enum DarkMode: int
     DARK = 1
     LIGHT = 2
 
+enum UiMode: int
+    NORMAL = 0
+    CHAT = 1
+    NOTES = 2
+    MACROS = 3

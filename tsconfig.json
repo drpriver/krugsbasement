@@ -31,7 +31,7 @@
     "WebClient/options.ts",
     "WebClient/rolltables.ts",
     "WebClient/dms.ts",
-    "WebClient/char-ui.ts",
+    "WebClient/chat-ui.ts",
     "WebClient/macros-ui.ts",
     "WebClient/rolltables-ui.ts",
     "WebClient/darkmode.ts",

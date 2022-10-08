@@ -365,6 +365,11 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     else
         dualview.make_active1(get_active_char());
+    if(SETTINGS.uimode == UiMode.MACROS){
+        win.make_fullscreen();
+        win.show();
+        use_button.style.display = 'none';
+    }
 });
 
 

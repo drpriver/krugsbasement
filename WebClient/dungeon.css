@@ -20,6 +20,18 @@ a {
   border: 1px solid black;
   contain: strict;
 }
+.window.fullscreen-window {
+  top: 0px;
+  right: 0px;
+  width: 100%;
+  height: 100%;
+  resize: none;
+  box-shadow: none;
+  border-radius: 0px;
+}
+.window.fullscreen-window .window-handle {
+  display: none;
+}
 .window-handle {
   grid-row: 1;
   cursor: grab;
@@ -55,6 +67,9 @@ a {
   display: flex;
   flex-direction: row;
   height: calc(100% - 32px);
+}
+.window.fullscreen-window .window-container {
+  height: 100%;
 }
 #rolltable-container {
   display: grid;
@@ -575,6 +590,29 @@ html, body {
   /* This thing is the bane of my existence on windows*/
   /* Just overflow: hidden it */
   /*overflow: hidden;*/
+}
+#chat.fullscreen {
+  width: 50vw;
+  grid-template-columns: 50vw;
+}
+#chat.fullscreen #tree select,
+#chat.fullscreen #tree #back-map-button,
+#chat.fullscreen #tree #forward-map-button,
+#chat.fullscreen #tree #new-map-button,
+#chat.fullscreen #tree #edit-map-button,
+#chat.fullscreen #tree #notes-window-button,
+#chat.fullscreen #tree #privateroll-button
+{
+  display: none;
+}
+#chat.fullscreen #chat-history {
+  width: 100%;
+}
+#chat.fullscreen #macro-panel{
+  width: 100%;
+}
+#chat.fullscreen #dice-history{
+  width: 100%;
 }
 #privateroll-container {
   display: grid;

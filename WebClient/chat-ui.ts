@@ -130,6 +130,10 @@ document.addEventListener('DOMContentLoaded', function(){
     window.addEventListener('resize', resize_chat);
     const ta = by_id('chatinput');
     setup_chat(ta, preprocess_and_send_chat);
+    if(SETTINGS.uimode == UiMode.CHAT){
+        const chat = by_id('chat');
+        chat.classList.add('fullscreen');
+    }
 });
 return {
     preprocess_and_send_chat,

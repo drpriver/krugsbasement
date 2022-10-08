@@ -4661,6 +4661,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
 // need to keep track of this.
 let animation_requested = false;
 function request_render():void{
+    if(SETTINGS.uimode != UiMode.NORMAL) return;
     if(animation_requested){
         return;
     }

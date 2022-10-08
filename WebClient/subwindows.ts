@@ -30,6 +30,7 @@ type SubWindow = {
     show: ()=>void;
     hide: ()=>void;
     hidden: boolean;
+    make_fullscreen:()=>void;
 }
 function make_window(name:keyof SubWindowIdMap): SubWindow {
     let outer = get_by_id<HTMLDivElement>(name+'-window');
@@ -59,6 +60,14 @@ function make_window(name:keyof SubWindowIdMap): SubWindow {
             outer.style.display = 'none';
         },
         hidden: true,
+        make_fullscreen: function(){
+            outer.classList.add('fullscreen-window');
+            outer.style.top = '0px';
+            outer.style.left = '0px';
+            outer.style.right = '0px';
+            outer.style.width = '100vw';
+            outer.style.height = '100vh';
+        },
     };
     setup_movable_window(outer, handle, WINDOWFLAGS.REMEMBER_POSITION);
     setup_closable_window(outer, close_x, result.hide);

@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
     // let notes_is_open = false;
     const boilerplate = (''
-        +'::css @inline\n'
+        +'::css\n'
         +'  body {\n'
         +'    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;\n'
         +'  }\n'
@@ -386,5 +386,9 @@ document.addEventListener('DOMContentLoaded', function(){
         if(current_note_id == data.note_id)
             update_iframe();
     });
+    if(SETTINGS.uimode == UiMode.NOTES){
+        notes_window.show()
+        notes_window.make_fullscreen();
+    }
 });
 }());

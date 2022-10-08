@@ -13,6 +13,7 @@ type Settings = {
         variables: Array<Variable>;
         characters: Array<Character>;
     };
+    uimode: UiMode;
 }
 declare let SETTINGS: Settings;
 // This silly magic string gets replaced with user-specific settings server-side;
