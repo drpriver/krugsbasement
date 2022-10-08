@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const notes_area = by_id('note-view-edit');
     const notes_title_area = by_id('note-view-title');
     const iframe = by_id('current-note-view');
-;   const editor_log = by_id('note-view-editor-log');
+    const editor_log = by_id('note-view-editor-log');
     const edit_notes_button = by_id('edit-notes-button');
     let listview = make_list_view<number>(by_id('notes-list'), 0);
     by_id('delete-note').addEventListener('click', function(){
@@ -359,7 +359,11 @@ document.addEventListener('DOMContentLoaded', function(){
             note.need_send = false;
             add_note(note.id, note);
         }
-        if(notes.length)listview.make_active(notes[0].id);
+        if(notes.length){
+            if(!notes_window.hidden) listview.make_active(notes[0].id);
+            else
+                current_note_id = notes[0].id;
+        }
     });
     ONRECV(ToClient.NEW_NOTE, function(note_id:number){
         add_note(note_id, {flags:0, title:'Untitled', body:'', id:note_id, need_send:false, need_receive:false});
