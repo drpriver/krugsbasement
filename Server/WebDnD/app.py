@@ -456,22 +456,25 @@ def join(room:str) -> None:
     # notes.create_notes_for_room(room)
 
 @socketio.on(FromClient.POST_JOIN)
-def post_join() -> None:
+@validated
+def post_join(mode:UiMode) -> None:
     campaign = get_campaign(request)
-    emit(ToClient.CANVAS_INITIALIZE_MAPS, canvas.get_state(campaign))
-    emit(ToClient.CHAT_CLEAR)
-    emit(ToClient.CHAT_CREATE, chat.get_history(campaign))
-    # privmsgs = chat.get_private_history(current_user.userid, campaign)
-    # dlog('privmsgs: %s', privmsgs)
-    emit(ToClient.CHAT_PRIVATE_CREATE, chat.get_private_history(current_user.userid, campaign))
-    emit(ToClient.NOTES_INITIALIZE, notes.get_notes_for_room(campaign))
-    userids = db.get_users_in_campaign(campaign)
-    userlist = []
-    for uid in userids:
-        chatname = settings.get_local_ckvd(uid, campaign, 'chat', 'name', 'anon')
-        dlog('chatname for uid (%s): %r', uid, chatname)
-        userlist.append((uid, chatname))
-    emit(ToClient.USER_LIST, userlist)
+    if mode == UiMode.NORMAL:
+        emit(ToClient.CANVAS_INITIALIZE_MAPS, canvas.get_state(campaign))
+    if mode == UiMode.NORMAL or mode == UiMode.CHAT:
+        emit(ToClient.CHAT_CLEAR)
+        emit(ToClient.CHAT_CREATE, chat.get_history(campaign))
+        emit(ToClient.CHAT_PRIVATE_CREATE, chat.get_private_history(current_user.userid, campaign))
+    if mode == UiMode.NORMAL or mode == UiMode.NOTES:
+        emit(ToClient.NOTES_INITIALIZE, notes.get_notes_for_room(campaign))
+    if mode == UiMode.NORMAL or mode == UiMode.CHAT:
+        userids = db.get_users_in_campaign(campaign)
+        userlist = []
+        for uid in userids:
+            chatname = settings.get_local_ckvd(uid, campaign, 'chat', 'name', 'anon')
+            dlog('chatname for uid (%s): %r', uid, chatname)
+            userlist.append((uid, chatname))
+        emit(ToClient.USER_LIST, userlist)
 
 @socketio.on(FromClient.CANVAS_CREATE_OBJECTS)
 @validated

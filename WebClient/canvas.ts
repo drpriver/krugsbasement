@@ -9,6 +9,24 @@ const {
     request_render,
     resize_canvas,
 } = (function(){
+if(SETTINGS.uimode != UiMode.NORMAL){
+    function dummy_export():Array<InitializeMap>{
+        return [];
+    }
+    function dummy_import(msgs:Array<InitializeMap>){
+        return;
+    }
+    function dummy_screenshot(){}
+    function dummy_request_render(){}
+    function dummy_resize_canvas(){}
+    return {
+        export_maps: dummy_export,
+        import_maps: dummy_import,
+        screenshot: dummy_screenshot,
+        request_render: dummy_request_render,
+        resize_canvas: dummy_resize_canvas,
+    };
+}
 let SHOW_FPS = false;
 const enum FUDGE {
     _ = 1,
@@ -343,34 +361,38 @@ PACKEDIMG.addEventListener('error', function(){
     // try again with png
     PACKEDIMG.src = '/tiles/packed.png';
 }, {once:true});
-PACKEDIMG.src = '/tiles/packed.webp'
+if(SETTINGS.uimode == UiMode.NORMAL) 
+    PACKEDIMG.src = '/tiles/packed.webp'
 let TOKENIMG = new Image();
 TOKENIMG.addEventListener('error', function(){
     // try again with png
     TOKENIMG.src = '/tiles/toks.png';
 }, {once:true});
-TOKENIMG.src = '/tiles/toks.webp'
-fetch('/tiles/packed.json') .then(response => response.json()) .then(data => {
-    PACKED=data;
-    for(let t of PACKED!.terrain)
-        TERRAIN_BY_ID.set(t[0], t);
-    for(let t of PACKED!.terrain_icons)
-        TERRAIN_ICON_BY_ID.set(t[0], t);
-    for(let t of PACKED!.tokens)
-        TOKEN_BY_PATH.set(`/tokens/${t[1]}`, t)
-    if(current_tool == ToolType.TILE){
-        switch(current_tile_type){
-            case TileType.ICON:
-                make_terrain_icon_palette();
-                break;
-            case TileType.TERRAIN:
-                make_terrain_palette();
-                break;
-            default:
-                break;
+if(SETTINGS.uimode == UiMode.NORMAL)
+    TOKENIMG.src = '/tiles/toks.webp'
+
+if(SETTINGS.uimode == UiMode.NORMAL)
+    fetch('/tiles/packed.json') .then(response => response.json()) .then(data => {
+        PACKED=data;
+        for(let t of PACKED!.terrain)
+            TERRAIN_BY_ID.set(t[0], t);
+        for(let t of PACKED!.terrain_icons)
+            TERRAIN_ICON_BY_ID.set(t[0], t);
+        for(let t of PACKED!.tokens)
+            TOKEN_BY_PATH.set(`/tokens/${t[1]}`, t)
+        if(current_tool == ToolType.TILE){
+            switch(current_tile_type){
+                case TileType.ICON:
+                    make_terrain_icon_palette();
+                    break;
+                case TileType.TERRAIN:
+                    make_terrain_palette();
+                    break;
+                default:
+                    break;
+            }
         }
-    }
-});
+    });
 
 //  ez-token
 //  --------

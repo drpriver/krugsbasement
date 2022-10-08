@@ -9,7 +9,7 @@ SOCKET.on('connect', () => {
     SOCKET.emitBuffered();
     // Flush the buffer here so that the post-join gives us
     // our own objects.
-    EMIT(FromClient.POST_JOIN);
+    EMIT(FromClient.POST_JOIN, SETTINGS.uimode);
 });
 ONRECV(ToClient.API_VERSION, function(api_version:number){
     // Reloads the page if the version changes.

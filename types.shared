@@ -1042,7 +1042,7 @@ message ToClientMsg: ToClient
 
 message FromClientMsg: FromClient
     JOIN = str
-    POST_JOIN = void
+    POST_JOIN = UiMode
     CHAT_STRUCTURED_INPUT = ChatCommandMessage
     CHAT_TEST_STRUCTURED_INPUT = ChatCommandMessage
     # CHAT_PRIVATE_INPUT = ChatCommandMessage
