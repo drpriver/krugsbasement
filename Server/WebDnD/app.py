@@ -59,7 +59,7 @@ def r(f:str) -> str:
     p = os.path.join(appconfig.STATICDIR, f)
     if appconfig.DEV:
         os.system('make ' + p)
-    with open(p) as fp:
+    with open(p, encoding='utf-8') as fp:
         return fp.read()
 
 SCREEN = r('dungeon.html')

@@ -162,7 +162,7 @@ def appendhandler(action:str, bugid:int):
     content = flask.request.data.decode('utf-8')
     src = fromfolder + '/' + name
 
-    with open(src, 'r', encoding='utf-8') as fp:
+    with textopen(src, 'r') as fp:
         body = fp.read()
     ctx = pydndc.Context(flags = 
             pydndc.Flags.INPUT_IS_UNTRUSTED
@@ -180,7 +180,7 @@ def appendhandler(action:str, bugid:int):
     new_entry.parse(content)
     text = ctx.format_tree()
     dst = tofolder + '/' + name
-    with open(src, 'w', encoding='utf-8') as fp:
+    with textopen(src, 'w') as fp:
         fp.write(text)
     if src != dst:
         os.replace(src, dst)

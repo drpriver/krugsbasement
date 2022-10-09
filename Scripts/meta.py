@@ -1,6 +1,8 @@
 import argparse
 import html.parser
 import os
+def textopen(*args, **kwargs):
+    return open(*args, **kwargs, encoding='utf-8')
 
 TYPES = {
     "a":        "HTMLAnchorElement",
@@ -51,10 +53,10 @@ def main() -> None:
     run(**vars(args))
 
 def run(infile: str, outfile:str) -> None:
-    with open(infile) as fp:
+    with textopen(infile) as fp:
         text = fp.read()
 
-    with open(outfile, 'w') as fp:
+    with textopen(outfile, 'w') as fp:
         g = ByIdGenerator(infile, fp)
         g.feed(text)
         g.p('}')
@@ -72,7 +74,7 @@ def run(infile: str, outfile:str) -> None:
         except:
             pass
         return s.replace(' ', r'\ ')
-    with open(depfile, 'w') as fp:
+    with textopen(depfile, 'w') as fp:
         fp.write(m(outfile)+': ' + m(infile) + ' ' + m(__file__)+'\n')
 
 if __name__ == '__main__':
