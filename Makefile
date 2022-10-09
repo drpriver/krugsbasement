@@ -92,7 +92,7 @@ TSFILES:= WebClient/socket.d.ts \
 	  WebClient/list-view.ts \
 	  WebClient/tab-view.ts \
 	  WebClient/table-view.ts
-Generated/combined.js: $(TSFILES) | Generated
+Generated/client.js: $(TSFILES) | Generated
 	$(TSC) $^ $(TSCFLAGS) --outFile $@
 Generated/demo.js: WebClient/demo.ts Generated/messages.ts | Generated
 	$(TSC) $^ $(TSCFLAGS) --outFile $@
@@ -106,9 +106,9 @@ appconfig.py:
 run: Generated/dungeon.html Generated/demo.html Server/WebDnD/messages.py Generated/favicon.ico | appconfig.py serv_venv
 	$(SERVPY) -m Server.WebDnD.app
 
-Generated/dungeon.html: WebClient/client.dnd Generated/combined.js WebClient/dungeon.css | Depends/Generated dev_venv
+Generated/dungeon.html: WebClient/client.dnd WebClient/dungeon.css | Depends/Generated dev_venv
 	$(DEVPY) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
-Generated/demo.html: WebClient/demo.dnd Generated/demo.js Generated/combined.js WebClient/dungeon.css | Depends/Generated dev_venv
+Generated/demo.html: WebClient/demo.dnd Generated/demo.js Generated/client.js WebClient/dungeon.css | Depends/Generated dev_venv
 	$(DEVPY) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
 
 Generated/%.html: Docs/%.dnd | Generated Depends/Generated dev_venv
@@ -158,6 +158,7 @@ WEBDNDFILES=\
 
 JSFILES=\
 	WebClient/socket.io.js \
+	Generated/client.js
 
 ZIPFILES=$(PACKEDFILES) $(DISTFILES) $(WEBDNDFILESS) $(JSFILES) \
 	 requirements.txt setup.py Server/server.mak \
@@ -224,7 +225,7 @@ bug: | dev_venv
 	$(DEVPY) Scripts/bug.py
 
 .PHONY: all
-all: dist.zip
+all: $(ZIPFILES)
 
 include WebClient/decls.mak
 

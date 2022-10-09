@@ -6,6 +6,6 @@
   dungeon.dnd
 ::script #import
   ../Generated/demo.js
-  ../Generated/combined.js
+  ../Generated/client.js
 ::css #import
   dungeon.css

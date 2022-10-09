@@ -7,7 +7,9 @@
 ::script #noinline
   /js/socket.io.js
 ::script #import
+  settings.js
   conn.js
-  ../Generated/combined.js
+::script #noinline
+  /js/client.js
 ::css #import
   dungeon.css

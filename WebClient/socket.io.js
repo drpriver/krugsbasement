@@ -3,16 +3,9 @@
  * (c) 2014-2021 Guillermo Rauch
  * Released under the MIT License.
  */
-(function webpackUniversalModuleDefinition(root, factory) {
-	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory();
-	else if(typeof define === 'function' && define.amd)
-		define([], factory);
-	else if(typeof exports === 'object')
-		exports["io"] = factory();
-	else
-		root["io"] = factory();
-})(self, function() {
+const io = (function webpackUniversalModuleDefinition(factory) {
+    return factory();
+})(function() {
 return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};

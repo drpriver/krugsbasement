@@ -16,5 +16,3 @@ type Settings = {
     uimode: UiMode;
 }
 declare let SETTINGS: Settings;
-// This silly magic string gets replaced with user-specific settings server-side;
-"let SETTINGS = SETTINGS";
