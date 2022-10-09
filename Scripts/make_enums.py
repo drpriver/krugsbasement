@@ -4,6 +4,8 @@ import textwrap
 from typing import List, Tuple, Union, Optional, Set, NamedTuple, Dict
 import hashlib
 import re
+def textopen(*args, **kwargs):
+    return open(*args, **kwargs, encoding='utf-8')
 Comment = str
 TypeName = str
 class CommentInfo:
@@ -200,7 +202,7 @@ def get_values(filename:str) -> List[Info]:
     sh.update(b)
     ver = int.from_bytes(sh.digest()[:4], 'little', signed=False)
 
-    fp = open(filename, encoding='utf-8')
+    fp = textopen(filename)
     result:List[Info] = []
     current_info: Info = None # type: ignore
     result = []
@@ -259,7 +261,7 @@ def get_values(filename:str) -> List[Info]:
     return result
 
 def make_python(filename:str, infos: List[Info]) -> None:
-    fp = open('Server/WebDnD/messages.py', 'w', encoding='utf-8')
+    fp = textopen('Server/WebDnD/messages.py', 'w')
     def p(*args, **kwargs):
         print(*args, **kwargs, file=fp)
     p('# Generated via', os.path.relpath(__file__))
@@ -438,7 +440,7 @@ def make_python(filename:str, infos: List[Info]) -> None:
 
     fp.flush()
     fp.close()
-    fp = open('Server/flask_socketio.pyi', 'w')
+    fp = textopen('Server/flask_socketio.pyi', 'w')
     p('from typing import Callable, Union, Dict, Type, Optional, Any, Mapping, overload, Literal')
     p('JSType = Union[str, int, float, dict, list, tuple, Mapping]')
     p('from Server.WebDnD.messages import *')
@@ -498,7 +500,7 @@ def make_python(filename:str, infos: List[Info]) -> None:
 
 
 def make_ts(filename:str, infos:List[Info]) -> None:
-    fp = open('Generated/messages.ts', 'w', encoding='utf-8')
+    fp = textopen('Generated/messages.ts', 'w')
     def p(*args, **kwargs):
         print(*args, **kwargs, file=fp)
     p('//', 'messages.ts')
@@ -800,7 +802,7 @@ def make_ts(filename:str, infos:List[Info]) -> None:
     fp.close();
 
 def make_c(infos:List[Info], cf=False) -> None:
-    fp = open('Generated/messages.h', 'w', encoding='utf-8')
+    fp = textopen('Generated/messages.h', 'w')
     def p(*args, **kwargs):
         print(*args, **kwargs, file=fp)
     p('#ifndef WEBDND_MESSAGES_H')

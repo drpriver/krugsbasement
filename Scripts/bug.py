@@ -15,6 +15,9 @@ BUGS.sort()
 app = flask.Flask('Bug')
 PORT=2471
 
+def textopen(*args, **kwargs):
+    return open(*args, **kwargs, encoding='utf-8')
+
 def getbuglist():
     result = {
         'buglist':'',
@@ -79,7 +82,7 @@ def gethandler(bugid:int):
         else:
             bugkind = 0
     try:
-        with open('Bugs/'+bug, 'r', encoding='utf-8') as fp:
+        with textopen('Bugs/'+bug, 'r') as fp:
             text = fp.read()
     except IOError:
         return flask.abort(404)
@@ -115,7 +118,7 @@ def newhandler():
         'Summary::md.summary\n' + 
         textwrap.indent(content, '  ') + '\n'
     )
-    with open('Bugs/' + title, 'w', encoding='utf-8') as fp:
+    with textopen('Bugs/' + title, 'w') as fp:
         fp.write(ctx.format_tree())
     BUGS.append(title)
     return {'bugid':len(BUGS)-1}

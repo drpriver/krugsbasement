@@ -797,9 +797,10 @@ if appconfig.DEV:
     @app.route('/js/socket.io.js')
     def get_socket_io() -> Any:
         return send_from_directory('WebClient', 'socket.io.js')
+
     @app.route('/js/client.js')
     def get_client() -> Any:
-        return send_from_directory('Generated', 'client.js')
+        return r('client.js')
 
     @socketio.on(FromClient.DEBUG)
     def log_debug(msg:str) -> None:

@@ -3,6 +3,7 @@ import html.parser
 import os
 
 TYPES = {
+    "a":        "HTMLAnchorElement",
     "h1":       "HTMLHeadingElement",
     "h2":       "HTMLHeadingElement",
     "h3":       "HTMLHeadingElement",

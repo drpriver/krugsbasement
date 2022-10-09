@@ -5,6 +5,8 @@ import ast
 import json
 import packrect
 from typing import NamedTuple, Optional, Type, List, Union, Dict, get_type_hints
+def textopen(*args, **kwargs):
+    return open(*args, **kwargs, encoding='utf-8')
 class StatusIconData(NamedTuple):
     id: int
     name: str
@@ -424,10 +426,10 @@ def main() -> None:
     # That's new enough to keep the png codepath.
     out.save('Generated/packed.png')
     out.save('Generated/packed.webp')
-    with open('Generated/packed.json', 'w') as fp:
+    with textopen('Generated/packed.json', 'w') as fp:
         json.dump(path_locs, fp, indent=None)
 
-    with open('Generated/packed.ts', 'w') as s:
+    with textopen('Generated/packed.ts', 'w') as s:
         for t in OutTypes:
             print(ts_def(t), file=s)
         print('type Packed = {', file=s)
@@ -435,7 +437,7 @@ def main() -> None:
             print(f'    {ot.key()}: Array<{ot.__name__}>;', file=s)
         print('}', file=s)
 
-    with open('Depends/packed.dep', 'w') as fp:
+    with textopen('Depends/packed.dep', 'w') as fp:
         print('Generated/packed.ts: Scripts/pack.py', file=fp)
         print('Generated/packed.webp Generated/packed.png Generated/packed.json: Scripts/pack.py', file=fp, end=' \\\n')
         add_deps(data, fp)

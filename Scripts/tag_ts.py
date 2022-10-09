@@ -9,6 +9,8 @@ class TagType(IntEnum):
     GLOBAL = 2
     TYPE = 3
     MISC = 4
+def textopen(*args, **kwargs):
+    return open(*args, **kwargs, encoding='utf-8')
 TYPE_TO_KIND = {
         TagType.FUNC:'f',
         TagType.ENUM: 'g',
@@ -54,7 +56,7 @@ def analyze_line(filename:str, lineno:int, line:str) -> List[TagLoc]:
 
 def get_tags(filename:str) -> List[TagLoc]:
     tags = []
-    with open(filename) as fp:
+    with textopen(filename) as fp:
         for lineno, line in enumerate(fp):
             tags.extend(analyze_line(filename, lineno+1, line))
     return tags
@@ -111,13 +113,13 @@ def write_files(tags:List[TagLoc]) -> None:
             buff = shared_buffers[tag.type]
             buff.write(' ')
             buff.write(tag.ident)
-    with open('tags', 'w') as fp:
+    with textopen('tags', 'w') as fp:
         fp.write('!_TAG_FILE_FORMAT\t2\n')
         fp.write('!_TAG_FILE_SORTED\t1\n')
         fp.write('!_TAG_FILE_AUTHOR\tDavid\n')
         fp.write(tag_s.getvalue())
 
-    with open('.vimrc', 'w') as fp:
+    with textopen('.vimrc', 'w') as fp:
         fp.write('set path=.,,Generated,WebSite/**,WebClient/**,Server/**,Scripts,\n')
         fp.write('au BufEnter *.ts,*.js setlocal ts=4 sw=4 sts=4 et\n')
         fp.write('if &diff\n\nelse\n  au BufEnter *.ts,*.js setlocal foldmethod=indent\nendif\n')
