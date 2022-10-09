@@ -497,8 +497,6 @@ def make_python(filename:str, infos: List[Info]) -> None:
     fp.flush()
     fp.close()
 
-
-
 def make_ts(filename:str, infos:List[Info]) -> None:
     fp = textopen('Generated/messages.ts', 'w')
     def p(*args, **kwargs):
@@ -801,158 +799,6 @@ def make_ts(filename:str, infos:List[Info]) -> None:
     fp.flush()
     fp.close();
 
-def make_c(infos:List[Info], cf=False) -> None:
-    fp = textopen('Generated/messages.h', 'w')
-    def p(*args, **kwargs):
-        print(*args, **kwargs, file=fp)
-    p('#ifndef WEBDND_MESSAGES_H')
-    p('#define WEBDND_MESSAGES_H')
-    p('#include <stdint.h> // integer types')
-    p('#include <stddef.h> // size_t')
-    if cf:
-        p('#import <CoreFoundation/CFString.h>')
-        p('typedef CFStringRef String;')
-    else:
-        p('typedef struct String {')
-        p('    const char* text;')
-        p('    size_t length;')
-        p('} String;')
-    p('typedef float Color[4];')
-    enums = {}
-    structs = {}
-    unions = {}
-    for info in infos:
-        if isinstance(info, EnumInfo):
-            p('typedef enum', info.name, info.name+';')
-            enums[info.name] = info
-        elif isinstance(info, StructInfo):
-            p('typedef struct', info.name, info.name+';')
-            structs[info.name] = info
-        elif isinstance(info, UnionInfo):
-            p('typedef union', info.name, info.name+';')
-            unions[info.name] = info
-        elif isinstance(info, MsgInfo):
-            p(f'typedef union {info.name} {info.name};')
-    p('')
-    def fix_type(t):
-        if '[' in t[1:]:
-            t, n = t.split('[')
-            n = '[' + n
-        else:
-            n = ''
-        if t == 'str' and n:
-            return 'char', n
-        typenames = {
-            'str': 'String',
-            'int': 'int64_t',
-            'color': 'Color',
-        }
-        if t in typenames:
-            return typenames[t], n
-        if t in unions:
-            return t+'*', n
-        return t, n
-    for info in infos:
-        if isinstance(info, EnumInfo):
-            p('enum', info.name, '{')
-            for item in info.items:
-                if isinstance(item, Comment):
-                    p('    //', item)
-                    continue
-                if info.type == 'str':
-                    p('   ', f'{info.name}_{item[0]},')
-                else:
-                    p('   ', f'{info.name}_{item[0]} = {item[1]},')
-            p('};')
-            if info.type == 'str':
-                p('static const String', info.name+'_Strings[] = {')
-                for item in info.items:
-                    if isinstance(item, Comment):
-                        p('    //', item)
-                        continue
-                    p('    {.text=', f'"{item[1]}", .length=sizeof("{item[1]}")-1', '},')
-                p('};')
-        elif isinstance(info, StructInfo):
-            p('struct', info.name, '{')
-            for member in info.members:
-                if isinstance(member, Comment):
-                    p('    //', member)
-                    continue
-                name, type, comment = member
-                if comment:
-                    p('    //', comment)
-                if '.' in type:
-                    type = type.split('.')[0]
-                if type[0] == '[':
-                    type = type[1:-1]
-                    type, n = fix_type(type)
-                    p('    struct {')
-                    if type.endswith('*'):
-                        p(f'        {type} data{n};')
-                    else:
-                        p(f'        {type}* data{n};')
-                    # int is justified by the fact we're not
-                    # going to receive 2 billion items as json
-                    p(f'        int count, capacity;')
-                    p('    }', name+';')
-                else:
-                    type, n = fix_type(type)
-                    p('   ', type, name+n+';')
-            p('};')
-            p('')
-        elif isinstance(info, UnionInfo):
-            p('union', info.name, '{')
-            first = next(v for v in info.variants if not isinstance(v, Comment))
-            first = next(m for m in structs[first[0]].members if not isinstance(m, Comment))
-            discrimtype = first[1].split('.')[0]
-            p('    struct {', discrimtype, 'type; } discrim;')
-            for variant in info.variants:
-                if isinstance(variant, Comment): 
-                    p('    //', variant)
-                    continue
-                typename, _ = variant
-                p('   ', typename, typename+'_;')
-            p('};')
-            p('')
-        elif isinstance(info, MsgInfo):
-            p('union', info.name, '{')
-            p('  struct {', info.enu, 'type; } discrim;')
-            i = 1
-            for it in info.items:
-                if isinstance(it, Comment):
-                    p('    //', it)
-                    continue
-                ty, arg, cb, comment = it
-                # p('  _Static_assert(', f'{info.enu}_{ty}', '==', i, ', "Bad enum");')
-                if comment:
-                    p('     //', comment)
-                if arg == 'void':
-                    continue
-                    p('  struct {', info.enu, f'_type;', '}', ty+ ';')
-                elif arg[0] == '[':
-                    arg = arg[1:-1]
-                    arg, n = fix_type(arg)
-                    if not arg.endswith('*'): arg += '*'
-                    p('  struct {',end ='')
-                    p(info.enu, f'_type;',end='')
-                    p(' struct {', arg+' data'+n+';', end='')
-                    p(' int count, capacity;', end='')
-                    p(' }', 'data'+'; }', ty+ ';')
-                else:
-                    arg,n = fix_type(arg)
-                    p('  struct {', info.enu, f'_type;', arg, 'data'+n+'; }', ty+ ';')
-                i += 1
-            p('};')
-        elif isinstance(info, CommentInfo):
-            if info.comments:
-                p('')
-            for comment in info.comments:
-                p(f'//{comment}')
-
-
-    p('#endif')
-
-
 def make_tags(infos:List[Info]) -> List['TagLoc']: #type: ignore
     # copy-pasted from tag_ts.py
     from enum import IntEnum
@@ -1028,5 +874,3 @@ if __name__ == '__main__':
     infos = get_values(INPUT)
     make_python(INPUT, infos)
     make_ts(INPUT, infos)
-    # make_c(infos)
-    # make_c(infos, cf=True)

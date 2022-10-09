@@ -24,7 +24,7 @@ enum FromClient: int
     # -----------
     RETRIEVE_ROLL_TABLES = 5
     UPDATE_ROLL_TABLES = 6
-    UPLOAD_ROLL_TABLE = 7
+    # UPLOAD_ROLL_TABLE = 7
     GET_ROLL_TABLE_NAMES = 30
     # Canvas Messages
     # ---------------
@@ -1049,7 +1049,6 @@ message FromClientMsg: FromClient
     CHAT_DM = ChatDirectCommandMessage
     RETRIEVE_ROLL_TABLES = void
     UPDATE_ROLL_TABLES = RollTables
-    # UPLOAD_ROLL_TABLE = RollTable
     CANVAS_CREATE_OBJECTS = [CreateObjectsMessage]
     CANVAS_DELETE = CanvasDeleteMessage
     CANVAS_UPDATE = CanvasUpdateMessage
