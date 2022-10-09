@@ -188,7 +188,7 @@ mypy: Server/flask_socketio.pyi Server/WebDnD/messages.py | dev_venv
 
 Generated/subwindowdefs.ts Generated/dialogdefs.ts \
 Generated/dungeon.temp.html: WebClient/dungeon.dnd | Generated dev_venv
-	$(DEVPY) -m pydndc $< --output Generated/dungeon.temp.html --strip-spaces --allow-js-write --jsargs '{"temp":true}'
+	$(DEVPY) -m pydndc $< --output Generated/dungeon.temp.html --strip-spaces --allow-js-write --jsargs "{temp:true}"
 
 Generated/nodes.ts: Generated/dungeon.temp.html | Generated Depends dev_venv
 	$(DEVPY) Scripts/meta.py $< $@
