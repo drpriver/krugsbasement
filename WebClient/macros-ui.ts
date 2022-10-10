@@ -369,6 +369,10 @@ document.addEventListener('DOMContentLoaded', function(){
         win.make_fullscreen();
         win.show();
         use_button.style.display = 'none';
+        by_id('mac-link').style.display = 'none';
+    }
+    else {
+        by_id('mac-link').href = window.location.pathname + '/macros';
     }
 });
 
