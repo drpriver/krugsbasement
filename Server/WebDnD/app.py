@@ -56,7 +56,7 @@ def load_user(id:str) -> Optional[User]:
     return User.lookup_by_id(int(id))
 
 def r(f:str) -> str:
-    p = os.path.join(appconfig.STATICDIR, f)
+    p = '/'.join([appconfig.STATICDIR, f])
     if appconfig.DEV:
         os.system('make ' + p)
     with open(p, encoding='utf-8') as fp:
@@ -809,7 +809,7 @@ if appconfig.DEV:
         msg: ChatPlainMsg = (Msg.PLAIN, '', str(msg), )
         emit(ToClient.CHAT_STRUCTURED_MSG, [msg])
 
-    @app.route('/kill', methods=['POST'])
+    @app.route('/kill')
     def kill() -> Any:
         import os
         os._exit(0)
