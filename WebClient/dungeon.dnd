@@ -66,6 +66,7 @@ David20::title #hide
           <button id="test-macro">Test</button>
           <button id="use-macro">Use</button>
           <a target="_blank" href="/docs/macro-doc.html">Help</a>
+          <a target="_blank" href="macros" id="mac-link">Macro Page</a>
         </div>
         <div style="display:table; width: 100%;">
           <div style="width: 100%; display:table-row">

@@ -194,6 +194,7 @@ enum DieExprTypes: int
     GROUP  = 2 # Example: (2d6+4)
     Unary  = 3 # Example: -3
     Binary = 4 # Example: d6*2
+    NGROUP = 5 # Example: 3{d6>1}
 
 enum Unary: int
     PLUS = 0 # +
@@ -240,6 +241,10 @@ struct RolledBinary: array
     left: RolledExpr
     right: RolledExpr
 
+struct RolledNGroup: array
+    type = DieExprTypes.NGROUP
+    values: [RolledExpr]
+
 # RolledExpr
 # ----------
 # Use the type field to discriminate
@@ -249,6 +254,7 @@ union RolledExpr: array
     RolledGroup
     RolledUnary
     RolledBinary
+    RolledNGroup
 
 # Client sends unrolled dice
 struct UnrolledDice: array
@@ -271,6 +277,11 @@ struct UnrolledBinary: array
     left: UnrolledDiceExpr
     right: UnrolledDiceExpr
 
+struct UnrolledNGroup: array
+    type = DieExprTypes.NGROUP
+    count: int
+    expr: UnrolledDiceExpr
+
 # UnrolledDiceExpr
 # ----------------
 # Use the type field to discriminate
@@ -280,6 +291,7 @@ union UnrolledDiceExpr: array
     UnrolledGroup
     UnrolledUnary
     UnrolledBinary
+    UnrolledNGroup
 
 # Msg
 # ---

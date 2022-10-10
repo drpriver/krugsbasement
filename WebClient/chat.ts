@@ -147,6 +147,18 @@ function format_new_die_roll(roll_result:RolledExpr, tight:boolean):[number, str
             let [total, text] = format_new_die_roll(roll_result[1], false);
             return [total, '( ' + text + ' )'];
         }
+        case DieExprTypes.NGROUP:{
+            let total = 0;
+            let text = '';
+            for(let subexpr of roll_result[1]){
+                let [subtotal, subtext] = format_new_die_roll(subexpr, false);
+                total += subtotal;
+                text += '<tr><td>'+subtext + '</td><td> → ' + subtotal + '</td></tr>';
+            }
+            text = '<table class="ngroup">' + text + '</table>';
+            if(tight) text = '(<br>' + text + ')';
+            return [total, text];
+        }
         case DieExprTypes.Unary:{
             let [total, text] = format_new_die_roll(roll_result[2], true);
             switch(roll_result[1]){

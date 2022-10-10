@@ -42,6 +42,9 @@ const evaluate_script = (function(){
 
         DOT      = 28, // .
         COMMENT  = 29, // # ...
+
+        LBRACKET = 30, // {
+        RBRACKET = 31, // }
     }
     function is_end(t:TokenKind):boolean{
         return t == TokenKind.ENDLINE || t == TokenKind.COMMENT;
@@ -210,6 +213,8 @@ const evaluate_script = (function(){
             switch(c){
                 case '(': result.push({kind:TokenKind.LPAREN,  text:c}); continue;
                 case ')': result.push({kind:TokenKind.RPAREN,  text:c}); continue;
+                case '{': result.push({kind:TokenKind.LBRACKET,  text:c}); continue;
+                case '}': result.push({kind:TokenKind.RBRACKET,  text:c}); continue;
                 case '<': result.push({kind:TokenKind.LT,      text:c}); continue;
                 case '>': result.push({kind:TokenKind.GT,      text:c}); continue;
                 case '≤': result.push({kind:TokenKind.LE,      text:c}); continue;
@@ -268,6 +273,7 @@ const evaluate_script = (function(){
         Unary        = 4,
         IDENT        = 5,
         DOTTED_IDENT = 6,
+        NGROUP       = 7,
     }
     type NumberExpression = {
         type: EXPR.NUMBER,
@@ -302,7 +308,12 @@ const evaluate_script = (function(){
         utype: Unary,
         expr: Expression,
     }
-    type Expression = NumberExpression | DiceExpression | IdentExpression | GroupExpression | BinaryExpression | UnaryExpression | DottedIdentExpression;
+    type NGroupExpression = {
+        type: EXPR.NGROUP,
+        count: number,
+        expr: Expression,
+    }
+    type Expression = NumberExpression | DiceExpression | IdentExpression | GroupExpression | BinaryExpression | UnaryExpression | DottedIdentExpression | NGroupExpression;
 
 
     function parse_expression(tokens: Array<Token>): Expression | null{
@@ -467,6 +478,18 @@ const evaluate_script = (function(){
                     };
                 }
                 case TokenKind.NUMBER:{
+                    if(match([TokenKind.LBRACKET, TokenKind.LPAREN])){
+                        skip_spaces();
+                        let expr = parse_comparison();
+                        if(!expr) return null;
+                        skip_spaces();
+                        if(!match([TokenKind.RBRACKET, TokenKind.RPAREN])) return null;
+                        return {
+                            type: EXPR.NGROUP,
+                            count: +t.text,
+                            expr: expr,
+                        };
+                    }
                     return {
                         type: EXPR.NUMBER,
                         value: +t.text,
@@ -573,6 +596,11 @@ const evaluate_script = (function(){
                     case Unary.NOT:  return !v? 1 : 0;
                     case Unary.NEG:  return -v;
                 }
+            }
+            case EXPR.NGROUP:{
+                let v = eval_expr(expr.expr, namespaces, vars);
+                if(v === null) return null;
+                return expr.count * v;
             }
 
         }
@@ -1106,6 +1134,11 @@ const evaluate_script = (function(){
                 if(!e) return null;
                 return expand_dice(e, namespaces, vars, muldiv, visited);
             }
+            case EXPR.NGROUP:{
+                let e = expand_dice(expr.expr, namespaces, vars, false, visited);
+                if(!e) return e;
+                return [DieExprTypes.NGROUP, expr.count, e];
+            }
         }
     }
 
@@ -1123,6 +1156,8 @@ const evaluate_script = (function(){
             }
             case DieExprTypes.GROUP:
                 return "("+stringify_unrolled_dice(expr[1])+")";
+            case DieExprTypes.NGROUP:
+                return ""+expr[1] + "(" +stringify_unrolled_dice(expr[2])+ ")";
             case DieExprTypes.Unary:{
                 switch(expr[1]){
                     case Unary.NEG:

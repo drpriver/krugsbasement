@@ -728,7 +728,7 @@ def get_chat(id:int) -> list:
                 campaignid = ?
             ORDER BY
                 msgid DESC
-            LIMIT 100;
+            LIMIT 500;
         ''', (id,))
         rows = cur.fetchall()
     result = [[row[0], row[1], json.loads(row[2])] for row in rows]

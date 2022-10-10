@@ -169,6 +169,7 @@
         2. Integer literal, for example "<tt>3</tt>" or "<tt>42</tt>".
         3. Variable, such as "attack" above.
         4. Parenthesized group, like "<tt>(3 + d6)</tt>" or "<tt>(2*3)</tt>."
+        5. Repeated group, like "<tt>3{d20+4>=20}</tt>".
         5. Unary operations, like "<tt>!4</tt>" or "<tt>-d6</tt>". The unary
            operations are "<tt>!</tt>" (not, turns 0 to 1 and all other values
            to 0), "<tt>-</tt>" (negative), and "<tt>+</tt>" (which does
@@ -191,6 +192,14 @@
         Integer literals are always positive, but since unary operations are
         high enough precedence, "<tt>-4 + 2</tt>" works in the normal way,
         producing <tt>-2</tt>.
+
+        Parenthesized vs Repeated groups::md.comment
+          A parenthesized group can be anywhere in an expression and is just
+          for changing precedence. A repeated roll must always start with an
+          integer and is for evaluating the bracketed group multiple time,
+          summing their results. Brackets were chosen to avoid conflating it
+          with multiplication like you would get with parentheses.
+
 
       Rounding::md .comment
         As per the usual rules of rpgs, if you are left with a fractional

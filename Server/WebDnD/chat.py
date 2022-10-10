@@ -9,6 +9,7 @@ from .logs import logging
 from . import db
 import datetime
 import json
+import copy
 
 from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg, UnrolledDiceExpr, Binary, Unary, RolledExpr, RollTableFlags, RollTable, RollTables, ChatHistory, StyleFlags
 
@@ -132,7 +133,7 @@ def get_private_history(userid:int, campaign:int) -> List[ChatHistory]:
         by_chat[group].append([type, chatname, json.loads(data)]) # type: ignore
     # FIXME: this means we are building potentially large list in memory
     # instead of limiting this at the DB level.
-    result = [[k, v[-100:]] for k, v in by_chat.items()]
+    result = [[k, v[-500:]] for k, v in by_chat.items()]
     return result # type: ignore
 
 def handle_structured_input(userid:int, campaign:int, user:str, commands:List[Command], private:bool, to:int=None) -> List[ChatMsg]:
@@ -257,7 +258,7 @@ def structured_roll_die(die:UnrolledDiceExpr) -> None:
     t = die[0]
     if t == DieExprTypes.NUMBER:
         return
-    if t == DieExprTypes.DICE:
+    elif t == DieExprTypes.DICE:
         vals = []
         for _ in range(die[1]):
             hi = die[2] # type: ignore
@@ -267,11 +268,26 @@ def structured_roll_die(die:UnrolledDiceExpr) -> None:
                 vals.append(random.randint(1, die[2])) # type: ignore
         die.append(vals) # type: ignore
         return
-    if t == DieExprTypes.GROUP:
+    elif t == DieExprTypes.GROUP:
         return structured_roll_die(die[1]) # type: ignore
-    if t == DieExprTypes.Unary:
+    elif t == DieExprTypes.Unary:
         return structured_roll_die(die[2]) # type: ignore
-    if t == DieExprTypes.Binary:
+    elif t == DieExprTypes.Binary:
         structured_roll_die(die[2]) # type: ignore
         structured_roll_die(die[3]) # type: ignore
-
+        return
+    elif t == DieExprTypes.NGROUP:
+        if die[1] > 100 or die[1] < 0:
+            # XXX: do we need a way to express errors when rolling dice?
+            del die[2] # type: ignore
+            die[0] = DieExprTypes.NUMBER # type: ignore
+            die[1] = 0 # type: ignore
+            return
+        exprs = []
+        for _ in range(die[1]):
+            expr = copy.deepcopy(die[2]) # type: ignore
+            structured_roll_die(expr) # type: ignore
+            exprs.append(expr)
+        die[1] = exprs # type: ignore
+        del die[2] # type: ignore
+        return

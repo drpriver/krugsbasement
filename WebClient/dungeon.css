@@ -923,6 +923,9 @@ div.rolltable table{
 .macro-panel-vars > label.panel-variable{
   height: 1.5em;
 }
+table.ngroup {
+  font-size: 75%;
+}
 
 /*@media (prefers-color-scheme: dark) {*/
   body.dark-mode #map {
