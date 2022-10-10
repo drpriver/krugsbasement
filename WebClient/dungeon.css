@@ -683,13 +683,13 @@ html, body {
   padding: 2px 12px;
   font-family: "Helvetica Neue", "Segoe UI", sans-serif;
 }
-#chat-history div.clickable span {
+.log div.clickable span {
   background-color: #eee;
 }
-body.dark-mode #chat-history div.clickable span {
+body.dark-mode .log div.clickable span {
   background-color: #555;
 }
-#chat-history div.clickable span {
+.log div.clickable span {
   padding: 2px 0.5em;
   border-radius: 8px;
   display: inline-block;
