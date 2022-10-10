@@ -325,6 +325,7 @@ span.color-picker-dropdown {
 }
 #disconnect {
   background-color: #800;
+  color: white;
   font-size: 1.5rem;
   position: fixed;
   top: 0;
