@@ -63,10 +63,10 @@ TSCFLAGS:=--noImplicitAny \
 # NOTE(dpriver): the order does matter (but this is not the only valid order).
 TSFILES:= WebClient/socket.d.ts \
 	  WebClient/settings.ts \
+	  WebClient/toplevel.ts \
 	  WebClient/options.ts \
 	  WebClient/storage.ts \
 	  WebClient/internal_listeners.ts\
-	  WebClient/toplevel.ts \
 	  WebClient/darkmode.ts \
 	  WebClient/touch.ts \
 	  Generated/messages.ts \

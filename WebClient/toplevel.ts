@@ -3,14 +3,17 @@
 //
 
 (function(){
-SOCKET.on('connect', () => {
+function onconnect(){
     clear_disconnected();
     EMIT(FromClient.JOIN, window.location.pathname);
     SOCKET.emitBuffered();
     // Flush the buffer here so that the post-join gives us
     // our own objects.
     EMIT(FromClient.POST_JOIN, SETTINGS.uimode);
-});
+}
+if(SOCKET.connected)
+    onconnect();
+SOCKET.on('connect', onconnect);
 ONRECV(ToClient.API_VERSION, function(api_version:number){
     // Reloads the page if the version changes.
     // This is kind of meh, maybe only for DEV builds?
