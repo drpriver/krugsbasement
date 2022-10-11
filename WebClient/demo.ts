@@ -255,6 +255,7 @@ let SOCKET = {
     on: do_on,
     emitBuffered: function(){
     },
+    connected: false,
 };
 type Settings = {
     userid: number;
@@ -267,6 +268,7 @@ type Settings = {
         variables: Array<Variable>;
         characters: Array<Character>;
     };
+    uimode: UiMode;
 }
 let SETTINGS:Settings = {
     userid: 1,
@@ -278,7 +280,8 @@ let SETTINGS:Settings = {
         variables: [],
         macros: [],
         characters: [],
-    }
+    },
+    uimode: UiMode.NORMAL,
 };
 
 document.addEventListener('DOMContentLoaded', function(){
