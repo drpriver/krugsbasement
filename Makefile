@@ -106,7 +106,7 @@ appconfig.py:
 run: Generated/dungeon.html Generated/demo.html Server/WebDnD/messages.py Generated/favicon.ico | appconfig.py serv_venv
 	$(SERVPY) -m Server.WebDnD.app
 
-Generated/dungeon.html: WebClient/client.dnd WebClient/dungeon.css | Depends/Generated dev_venv
+Generated/dungeon.html: WebClient/client.dnd | Depends/Generated dev_venv
 	$(DEVPY) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
 Generated/demo.html: WebClient/demo.dnd Generated/demo.js Generated/client.js WebClient/dungeon.css | Depends/Generated dev_venv
 	$(DEVPY) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
@@ -117,6 +117,8 @@ Generated/%.html: Docs/%.dnd | Generated Depends/Generated dev_venv
 Generated/%.dnd: WebSite/%.dnd
 	$(CP) $< $@
 Generated/%.css: WebSite/%.css
+	$(CP) $< $@
+Generated/%.css: WebClient/%.css
 	$(CP) $< $@
 Generated/%.js: WebSite/%.js
 	$(CP) $< $@
@@ -158,7 +160,9 @@ WEBDNDFILES=\
 
 JSFILES=\
 	WebClient/socket.io.js \
-	Generated/client.js
+	Generated/client.js \
+	WebClient/dungeon.css
+
 
 ZIPFILES=$(PACKEDFILES) $(DISTFILES) $(WEBDNDFILESS) $(JSFILES) \
 	 requirements.txt setup.py Server/server.mak \

@@ -12,9 +12,9 @@ function setup_macro_panel(){
     // @ts-ignore
     pb.replaceChildren();
     if(MACROS.size)
-        by_id('macro-panel').style.display = 'grid';
+        by_id('macro-panel').classList.add('has-macros');
     else {
-        by_id('macro-panel').style.display = 'none';
+        by_id('macro-panel').classList.remove('has-macros');
         return;
     }
     let tabs = [];

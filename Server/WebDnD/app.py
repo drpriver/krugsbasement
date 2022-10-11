@@ -800,7 +800,11 @@ if appconfig.DEV:
 
     @app.route('/js/client.js')
     def get_client() -> Any:
-        return r('client.js')
+        return Response(r('client.js'), mimetype='application/javascript')
+
+    @app.route('/js/dungeon.css')
+    def get_css() -> Any:
+        return Response(r('dungeon.css'), mimetype='text/css')
 
     @socketio.on(FromClient.DEBUG)
     def log_debug(msg:str) -> None:

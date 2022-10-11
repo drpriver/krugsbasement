@@ -180,6 +180,5 @@ function point_in_triangle(x:number, y:number, tri:Triangle):boolean{
     return A < 0 ?
               (s <= 0 && s + t >= A)
             : (s >= 0 && s + t <= A);
-    return false;
 }
 

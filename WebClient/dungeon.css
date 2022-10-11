@@ -886,6 +886,9 @@ div.rolltable table{
   display: none;
   grid-template-rows: 1.5em auto;
 }
+#macro-panel.has-macros {
+  display: grid;
+}
 #macro-panel-tabs > div {
   cursor: pointer;
   border: 1px solid black;
@@ -1075,11 +1078,14 @@ table.ngroup {
 #tool-container, #palette{
   touch-action: none;
 }
-@media only screen and (hover: none) and (pointer: coarse) and (max-width: 450px),
-@media only screen and (hover: none) and (pointer: coarse) and (max-height: 450px),
+@media only screen and (hover: none) and (pointer: coarse),
+@media only screen and (hover: none) and (pointer: coarse)
 {
-  .window, #tool-container, .three-buttons, #macro-panel, #dice-history, #notifications {
-    display: none !important;
+  .window, #tool-container, #macro-panel, #dice-history, #notifications {
+    display: none;
+  }
+  .three-buttons {
+   display: none;
   }
   #chat {
     grid-template-rows: max-content auto max-content;
@@ -1087,7 +1093,7 @@ table.ngroup {
     grid-template-columns: auto;
     max-width: 50vw;
   }
-  @media only screen and (max-width: 450px){
+  /*@media only screen and (max-width: 450px){*/
     #chat {
       top: auto;
       bottom: 0;
@@ -1097,7 +1103,7 @@ table.ngroup {
       width: 100vw;
       max-width: 100vw;
     }
-  }
+  /*}*/
   #chat-history {
     width: auto;
   }

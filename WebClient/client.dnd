@@ -9,7 +9,13 @@
 ::script #import
   settings.js
   conn.js
-::script #noinline
+::script #noinline #id(js)
   /js/client.js
-::css #import
-  dungeon.css
+::css #noinline #id(css)
+  /js/dungeon.css
+::js
+  const VERSION = 2;
+  for(let id of ['js', 'css']){
+    ctx.select_nodes({id})[0].children[0].header += `?v=${VERSION}`
+  }
+  //endjs
