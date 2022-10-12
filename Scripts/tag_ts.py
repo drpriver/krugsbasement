@@ -66,6 +66,7 @@ def get_all_tags() -> List[TagLoc]:
     tsfiles.extend(glob.glob('Generated/*.ts'))
     tags = []
     for filename in tsfiles:
+        if 'messages' in filename: continue
         tags.extend(get_tags(filename))
     from . import make_enums
     tags.extend(make_enums.make_tags(make_enums.get_values('types.shared')))
