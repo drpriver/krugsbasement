@@ -7899,8 +7899,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
                 break;
             case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':{
-                if(ctrl_or_cmd_is_pressed)
-                    return;
+                if(modified) return;
                 const index = (+e.key) - 1;
                 if(index < numeric_hot_key.max_index)
                     numeric_hot_key.func(index);
