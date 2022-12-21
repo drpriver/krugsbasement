@@ -27,11 +27,10 @@ function randint(min:number, max:number):number{
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function roll_dice(die:any){
-    let t = die[0];
-    switch(t){
+function roll_dice(die:UnrolledDiceExpr):RolledExpr{
+    switch(die[0]){
         case DieExprTypes.NUMBER:
-            return;
+            return die;
         case DieExprTypes.DICE:{
             let vals = [];
             for(let i = 0; i < die[1]; i++){
@@ -41,18 +40,21 @@ function roll_dice(die:any){
                 else
                     vals.push(randint(1, die[2]));
             }
-            die.push(vals);
-        }return;
+            return [...die, vals];
+        }
         case DieExprTypes.GROUP:
-            roll_dice(die[1]);
-            return;
+            return [DieExprTypes.GROUP, roll_dice(die[1])];
         case DieExprTypes.Unary:
-            roll_dice(die[2]);
-            return;
+            return [DieExprTypes.Unary, die[1], roll_dice(die[2])];
         case DieExprTypes.Binary:
-            roll_dice(die[2]);
-            roll_dice(die[3]);
-            return;
+            return [die[0], die[1], roll_dice(die[2]), roll_dice(die[3])];
+        case DieExprTypes.NGROUP:{
+            let values = [];
+            for(let i = 0; i < die[1]; i++){
+                values.push(roll_dice(die[2]));
+            }
+            return [DieExprTypes.NGROUP, values];
+        }
     }
 }
 
@@ -66,7 +68,7 @@ function interpret_chat_input(chatname:string, commands:Array<Command>):Array<an
     function plain(user:string, text:string){
         responses.push([Msg.PLAIN, user, text]);
     }
-    function dieroll(dice:any){
+    function dieroll(dice:RolledExpr){
         responses.push([Msg.DICEROLL, '', dice]);
     }
     function styled(user:string, text:string){
@@ -139,13 +141,12 @@ function interpret_chat_input(chatname:string, commands:Array<Command>):Array<an
             else
                 plain(apparent_user, line);
         }
-        switch(cc){
+        switch(command[0]){
             case ChatCommand.STYLE:
                 parse_style(command[1]);
                 break;
             case ChatCommand.ROLL:
-                roll_dice(command[2]);
-                dieroll(command[2]);
+                dieroll(roll_dice(command[2]));
                 break;
             case ChatCommand.SAY:
                 break;
@@ -153,15 +154,11 @@ function interpret_chat_input(chatname:string, commands:Array<Command>):Array<an
                 apparent_user = command[1];
                 break;
             case ChatCommand.SHUFFLE:
-                // @ts-ignore
                 shuffle(command[2]);
-                // @ts-ignore
                 plain('', command[2].join(' '));
                 break;
             case ChatCommand.CHOOSE:
-                // @ts-ignore
                 if(command[2].length)
-                    // @ts-ignore
                     plain('', shuffle_array(command[2])[0]);
                 break;
             case ChatCommand.TABLE:
@@ -173,6 +170,19 @@ function interpret_chat_input(chatname:string, commands:Array<Command>):Array<an
         }
     }
     return responses;
+}
+
+function shuffle_array<T>(arr:Array<T>):Array<T>{
+    if(arr.length < 2){
+        return arr;
+    }
+    for(let i = 0; i < arr.length; i++){
+        let j = randint(0, arr.length-i-1)+i;
+        let tmp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = tmp;
+    }
+    return arr;
 }
 
 let buffered: Array<any> = [];
