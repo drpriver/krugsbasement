@@ -58,6 +58,8 @@ function roll_dice(die:any){
 
 function interpret_chat_input(chatname:string, commands:Array<Command>):Array<any>{
     let responses: Array<any> = [];
+    let styleflags: StyleFlags = 0;
+    let color = '';
     function echo(user:string, text:string){
         responses.push([Msg.ECHOABLE_TEXT, user, text]);
     }
@@ -67,6 +69,59 @@ function interpret_chat_input(chatname:string, commands:Array<Command>):Array<an
     function dieroll(dice:any){
         responses.push([Msg.DICEROLL, '', dice]);
     }
+    function styled(user:string, text:string){
+        responses.push([Msg.STYLED_TEXT, user, [text, styleflags, color]]);
+    }
+    function parse_style(line:string){
+        const toks = line.toLowerCase().split(/\s/);
+        for(let i = 0; i < toks.length; i++){
+            const tok = toks[i];
+            switch(tok){
+                case 'bold':
+                    styleflags ^= StyleFlags.BOLD;
+                    break;
+                case 'italic':
+                    styleflags ^= StyleFlags.ITALIC;
+                    break;
+                case 'anon':
+                    styleflags ^= StyleFlags.ANON;
+                    break;
+                case 'underline':
+                case 'underlined':
+                    styleflags ^= StyleFlags.UNDERLINE;
+                    break;
+                case 'box':
+                case 'boxed':
+                    styleflags ^= StyleFlags.BOXED;
+                    break;
+                case 'reset':
+                    styleflags = StyleFlags.NONE;
+                    break;
+                case 'big':
+                    styleflags ^= StyleFlags.BIG;
+                    break;
+                case 'color':
+                case 'colour':
+                {
+                    let peek = i+1<toks.length? toks[i+1] : '';
+                    for (let t of ['bold', 'italic', 'anon', 'underline', 'underlined', 'box', 'boxed', 'reset', 'color', 'colour', 'big']){
+                        if(t == peek){
+                            peek = '';
+                            break;
+                        }
+                    }
+                    color = peek;
+                    if(peek){
+                        styleflags |= StyleFlags.COLORED;
+                        i++;
+                    }
+                    else {
+                        styleflags &= ~StyleFlags.COLORED;
+                    }
+                }break;
+            }
+        }
+    }
     /*
     function error(e:string){
         responses.push([Msg.ERROR, '', e])
@@ -75,14 +130,19 @@ function interpret_chat_input(chatname:string, commands:Array<Command>):Array<an
     let apparent_user = chatname;
     for(let command of commands){
         let cc = command[0];
-        if(cc != ChatCommand.NAME){
+        if(cc != ChatCommand.NAME && cc != ChatCommand.STYLE){
             let line = command[1];
             if(cc != ChatCommand.SAY)
                 echo(apparent_user, line);
+            else if(styleflags)
+                styled(apparent_user, line);
             else
                 plain(apparent_user, line);
         }
         switch(cc){
+            case ChatCommand.STYLE:
+                parse_style(command[1]);
+                break;
             case ChatCommand.ROLL:
                 roll_dice(command[2]);
                 dieroll(command[2]);
