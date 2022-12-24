@@ -1007,7 +1007,7 @@ table.ngroup {
   body.dark-mode #colors, body.dark-mode #zoomers {
     background-color: #333;
   }
-  body.dark-mode .window {
+  body.dark-mode .window, body.dark-mode .tracker-grid {
     background-color: #333;
   }
   body.dark-mode .window-handle, body.dark-mode #tool-container-handle {
@@ -1059,7 +1059,7 @@ table.ngroup {
       color: #eee;
       background-color: #1e1e1e;
     }
-    body.dark-mode .window, body.dark-mode .hover {
+    body.dark-mode .window, body.dark-mode .hover, body.dark-mode .tracker-grid {
       color: #fff;
     }
     body.dark-mode input {
@@ -1081,7 +1081,7 @@ table.ngroup {
 @media only screen and (hover: none) and (pointer: coarse),
 @media only screen and (hover: none) and (pointer: coarse)
 {
-  .window, #tool-container, #macro-panel, #dice-history, #notifications {
+  .window, #tool-container, #macro-panel, #dice-history, #notifications, .tracker-grid {
     display: none;
   }
   .three-buttons {
@@ -1123,5 +1123,75 @@ body.mobile input[type="email"],
 body.mobile input[type="tel"],
 body.mobile input[type="password"] {
     font-size: 16px;
-  }
+}
 /*}*/
+
+/* XXX move to a better spot */
+.tracker {
+  display: grid;
+  grid-template-rows: 32px auto;
+}
+
+.tracker-grid {
+  position: fixed;
+  top: 10%;
+  left: 10%;
+  z-index: 4;
+  padding: 0px;
+  /*border-radius: 8px 8px 8px 8px;*/
+  box-shadow: 3px 3px 3px 3px rgba(0,0,0,0.3);
+  background-color: white;
+  -webkit-user-select: none;
+  user-select: none;
+  /*border: 1px solid black;*/
+  display: grid;
+  width: max-content;
+  height: max-content;
+}
+.tracker-grid div {
+  display: inline-block;
+}
+.tracker-head {
+  font-weight: bold;
+  text-transform: capitalize;
+  padding: 4px 12px;
+}
+.tracker-head, .tracker-cell {
+  text-align: center;
+  border: 1px solid;
+  border-color: rgb(140,140,140);
+  font-size: 16px;
+  margin: -1px 0 0 -1px;
+}
+.tracker-cell {
+  padding: 2px 8px;
+}
+.tracker-cell.editing {
+  border: 1px solid cyan;
+  padding: 0px;
+  z-index: 5;
+}
+.tracker-plus-div {
+  text-align: center;
+  padding: 2px;
+}
+.tracker-plus {
+  width: 75%;
+  height: 20px;
+}
+.tracker-grid .tracker-cell input {
+  margin: 0;
+  padding: 0;
+  border: none;
+  height: 100%;
+  text-align: center;
+  background-color: rgba(0,0,0,0);
+  font-size: 100%;
+}
+
+.tracker-grid input:focus{
+    outline: none;
+}
+.tracker-head:hover {
+  background-color: rgb(70, 70, 70);
+}

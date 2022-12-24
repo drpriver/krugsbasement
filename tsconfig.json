@@ -40,6 +40,7 @@
     "WebClient/chat-input.ts",
     "WebClient/list-view.ts",
     "WebClient/tab-view.ts",
-    "WebClient/table-view.ts"
+    "WebClient/table-view.ts",
+    "WebClient/tracker.ts"
   ]
 }

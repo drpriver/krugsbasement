@@ -253,7 +253,8 @@ def handle_structured_input(userid:int, campaign:int, user:str, commands:List[Co
             for msg in result:
                 db.save_chat_msg(campaign, msg[0], msg[1], msg[2], created=utcnow, userid=userid)
     return result
-
+# FIXME: probably worth it to return a new expr instead of modifying in
+# place.  This works, but is pretty hairy.
 def structured_roll_die(die:UnrolledDiceExpr) -> None:
     t = die[0]
     if t == DieExprTypes.NUMBER:

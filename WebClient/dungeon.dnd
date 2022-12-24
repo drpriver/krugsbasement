@@ -461,7 +461,7 @@ David20::title #hide
         <td>${checkbox('fps')} ${label('fps', 'Show FPS')}
       </tr>
     </table>
-    <a style="color:#00f; margin:auto;" href="/logout">Log Out</a>
+    <a style="margin:auto; -webkit-appearance: button;" href="/logout">Log Out</a>
     `);
   begin('simple-text');
   make(`
@@ -533,6 +533,33 @@ David20::title #hide
           this crappy dialog instead.</b></p>
     <p>Paste into the textbox then hit ok.</p>
     ${textarea('json')}
+  `);
+  begin('tracker');
+  make(`
+    ${title('New Tracker')}
+    <table class="input-container">
+      <tr>
+        <td>${label('name', 'Name:')}
+        <td>${textbox('name')}
+      </tr>
+      <tr>
+        <td>${label('col1', 'Col1:')}
+        <td>${textbox('col1')}
+      </tr>
+      <tr>
+        <td>${label('col2', 'Col2:')}
+        <td>${textbox('col2')}
+      </tr>
+      <tr>
+        <td>${label('col3', 'Col3:')}
+        <td>${textbox('col3')}
+      </tr>
+      <tr>
+        <td>${label('col4', 'Col4:')}
+        <td>${textbox('col4')}
+      </tr>
+    </table>
+
   `);
 
   if(Args && Args.temp){
@@ -693,6 +720,9 @@ David20::title #hide
           <button disabled title="Next Map" style="margin:0;" id="forward-map-button">→</button>
           <button title="New Map" style="margin:0;" id="new-map-button">+</button>
           <button title="Edit Map" style="margin:0;" id="edit-map-button">✎</button>
+    ::div
+      ::raw
+        <button title="New Tracker" id="new-tracker-button">+</button>
     ::div.three-buttons
       ::raw
         <button id="notes-window-button">Notes…</button>
