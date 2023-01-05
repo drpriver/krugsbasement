@@ -19,10 +19,10 @@ DBLOCK = threading.RLock()
 
 DBVERSION = 15
 with conn:
-    conn.execute("PRAGMA encoding = 'UTF-8';")
-    conn.execute('PRAGMA foreign_keys = ON;')
-    conn.execute('PRAGMA synchronous = NORMAL;')
-    conn.execute('PRAGMA journal_mode = WAL;')
+    conn.execute('''PRAGMA encoding = 'UTF-8';''')
+    conn.execute('''PRAGMA foreign_keys = ON;''')
+    conn.execute('''PRAGMA synchronous = NORMAL;''')
+    conn.execute('''PRAGMA journal_mode = WAL;''')
 def setup_tables() -> None:
     version = conn.execute('PRAGMA user_version;').fetchone()[0]
     if version == DBVERSION:
