@@ -20,7 +20,7 @@ else:
 from .messages import SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetData, SpreadSheetFlags
 
 def sheets_reaper() -> None:
-    with sheetslock:
+    with SHEETSLOCK:
         t = time.time()
         for campaign, sheets in list(SPREADSHEETS.items()):
             if should_unload(sheets, t):
@@ -250,8 +250,8 @@ def get_sheet(campaign:int, id:int) -> Optional[SpreadSheet]:
     dlog('Unable to find spreadsheet (%r, %r)', campaign, id)
     return None
 
-# access must be protected with sheetslock
-sheetslock = RLock()
+# access must be protected with SHEETSLOCK
+SHEETSLOCK = RLock()
 SPREADSHEETS = {} # type: dict[int, list[SpreadSheet]]
 
 def load_spreadsheets(campaign:int) -> None:
@@ -266,7 +266,7 @@ def load_spreadsheets(campaign:int) -> None:
 def handle(campaign:int, msg:SpreadSheetMsg) -> Optional[SpreadSheetMsg]:
     if msg[0] == SpreadSheetMsgType.SHOW:
         return msg
-    with sheetslock:
+    with SHEETSLOCK:
         if campaign not in SPREADSHEETS:
             load_spreadsheets(campaign)
         if msg[0] == SpreadSheetMsgType.DELETE:
@@ -296,7 +296,7 @@ def handle(campaign:int, msg:SpreadSheetMsg) -> Optional[SpreadSheetMsg]:
         return msg
 
 def get_spreadsheets(campaign:int) -> list[SpreadSheetData]:
-    with sheetslock:
+    with SHEETSLOCK:
         if campaign not in SPREADSHEETS:
             load_spreadsheets(campaign)
         return [s.as_data() for s in SPREADSHEETS[campaign]]
