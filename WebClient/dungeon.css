@@ -790,7 +790,7 @@ section.color-menuitem:hover {
 section.menuitem.disabled {
   color: gray;
 }
-section.menuitem:hover {
+section.menuitem:hover:not(.disabled) {
   background-color: #2962D8;
   color: #fff;
 }

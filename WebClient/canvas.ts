@@ -7847,7 +7847,7 @@ document.addEventListener('DOMContentLoaded', function(){
     // TAG pointerdown
     // TAG click
     TheCanvas.addEventListener('pointerdown', function(e:PointerEvent){
-        if(remove_ctx_menu()) return;
+        if(did_remove_ctx_menu()) return;
         if(gesturing) return;
         if(e.button !== 0 && e.button !== 1){ //0 is the 'primary' button
             return;

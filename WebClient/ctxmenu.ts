@@ -1,15 +1,17 @@
 let _ctxmenu_remover:undefined|(()=>void);
 
 // Removes the current ctx menu and returns whether there was one active.
-function remove_ctx_menu():boolean{
+function did_remove_ctx_menu():boolean{
     if(_ctxmenu_remover){
         _ctxmenu_remover();
         _ctxmenu_remover = undefined;
         return true;
     }
     return false;
-
 };
+function remove_ctx_menu(){
+    did_remove_ctx_menu();
+}
 
 type CtxMenu = {
     menu: HTMLElement;
@@ -32,11 +34,13 @@ function ctx_menu(e:MouseEvent):CtxMenu{
         disabled:function(txt:string):void{
             const d = elem_parent_text(result.menu, 'section', txt, null, 'menuitem');
             d.classList.add('disabled');
+            d.onpointerdown = function(e){e.stopPropagation();};
         },
         item:function(txt:string, cb?:(()=>void)|((e:MouseEvent)=>void)){
             const d = elem_parent_text(result.menu, 'section', txt, null, 'menuitem');
-            d.addEventListener('click', remove_ctx_menu);
-            if(cb) d.addEventListener('click', cb);
+            // the window.onpointerdown at the bottom will remove it.
+            // d.addEventListener('pointerdown', remove_ctx_menu);
+            if(cb) d.addEventListener('pointerdown', cb);
         },
         install:function(){
             remove_ctx_menu();
