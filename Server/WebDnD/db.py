@@ -1011,3 +1011,10 @@ def save_sheet_flags(campaign:int, id:int, flags:int) -> None:
             WHERE campaignid = ? AND sheetid = ?;
         ''', (flags, campaign, id))
 
+def delete_sheet(campaign:int, id:int) -> None:
+    with DBLOCK:
+        conn.execute('''
+        DELETE FROM sheets
+        WHERE campaignid = ? AND sheetid = ?;
+        ''', (campaign, id))
+

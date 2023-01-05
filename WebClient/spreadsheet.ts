@@ -107,6 +107,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             remove(e);
             EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.SHOW, result.id]);
         };
+        elem_with_parent(menu, 'section', null, 'menuseparator');
         elem_parent_text(menu, 'section', 'Toggle Numbers', null, 'menuitem').onclick = function(e:MouseEvent){
             remove(e);
             EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.FLAG, result.id, result.flags ^ SpreadSheetFlags.NUMBERED]);
@@ -132,6 +133,19 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.FLAG, result.id, result.flags ^ flag]);
             };
         }
+        elem_with_parent(menu, 'section', null, 'menuseparator');
+        elem_parent_text(menu, 'section', 'Delete Spreadsheet', null, 'menuitem').onclick = function(e){
+            remove(e);
+            const diag = get_dialog('simple-delete');
+            if(!diag) return;
+            diag.f.delete.checked = false;
+            diag.ok_handler = function(){
+                if(diag.f.delete.checked)
+                    EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE, result.id]);
+            };
+            diag.show();
+        };
+        elem_with_parent(menu, 'section', null, 'menuseparator');
         elem_parent_text(menu, 'section', 'Cancel', null, 'menuitem').onclick = remove;
         document.body.appendChild(menu);
     }
@@ -145,6 +159,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         show: function(){
             store_local(StorageCategory.WINDOW, openid, '1');
             w.style.display = 'grid';
+            result.make_top();
         },
         hide: function(){ w.style.display = 'none'; },
         cells: [],
@@ -426,7 +441,10 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
                 e.preventDefault();
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELL, result.id, row_idx, col_idx, '']);
                 return;
+            case 'Shift':
+                return;
             default:
+                if(e.metaKey || e.altKey) return;
                 edit_cell(cell);
                 break;
         }
@@ -934,6 +952,21 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg){
             let ss = SPREADSHEETS.get(arg[1]);
             if(!ss) break;
             ss.set_flags(arg[2]);
+        }break;
+        case SpreadSheetMsgType.DELETE:{
+            const id = arg[1];
+            let ss = SPREADSHEETS.get(id);
+            if(!ss) break;
+            // Should there be a delete method on the spreadsheet instead of
+            // doing it inline here?
+            ss.w.remove();
+            SPREADSHEETS.delete(id);
+            for(const o of by_id('current-spreadsheet').options){
+                if(o.value == ''+id){
+                    o.remove();
+                    break;
+                }
+            }
         }break;
 
     }

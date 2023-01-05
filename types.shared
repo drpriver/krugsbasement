@@ -1136,6 +1136,7 @@ enum SpreadSheetMsgType: int
     SHOW = 11
     FLAG = 12
     NAME = 13
+    DELETE = 14
 
 struct SpreadSheetDeleteRow: array
     type = SpreadSheetMsgType.DELETE_ROW
@@ -1209,6 +1210,10 @@ struct SpreadSheetName: array
     sheet_id = int
     name: str
 
+struct SpreadSheetDelete: array
+    type = SpreadSheetMsgType.DELETE
+    sheet_id = int
+
 
 union SpreadSheetMsg: array
     SpreadSheetDeleteRow
@@ -1225,3 +1230,4 @@ union SpreadSheetMsg: array
     SpreadSheetShow
     SpreadSheetFlag
     SpreadSheetName
+    SpreadSheetDelete

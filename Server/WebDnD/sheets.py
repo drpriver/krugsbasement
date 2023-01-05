@@ -269,6 +269,10 @@ def handle(campaign:int, msg:SpreadSheetMsg) -> Optional[SpreadSheetMsg]:
     with sheetslock:
         if campaign not in SPREADSHEETS:
             load_spreadsheets(campaign)
+        if msg[0] == SpreadSheetMsgType.DELETE:
+            db.delete_sheet(campaign, msg[1])
+            SPREADSHEETS[campaign] = [s for s in SPREADSHEETS[campaign] if s.id != msg[1]]
+            return msg
         if msg[0] == SpreadSheetMsgType.NEW_SHEET:
             if SPREADSHEETS[campaign]:
                 id = max(s.id for s in SPREADSHEETS[campaign]) + 1
