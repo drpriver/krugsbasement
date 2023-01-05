@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 
 function elem_with_text<K extends keyof HTMLElementTagNameMap>(tag: K, content:string, id?:string|null, class_?:string|null): HTMLElementTagNameMap[K]{
@@ -60,6 +60,7 @@ function setup_zsorted_window(win:HTMLDivElement):()=>void{
 const enum WINDOWFLAGS {
     NONE = 1 << 0,
     REMEMBER_POSITION = 1 << 1,
+    LOCAL_REMEMBER = 1 << 2,
 }
 function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: WINDOWFLAGS){
     let dragging = false;
@@ -90,12 +91,19 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
             if(save_in_flight) return;
             save_in_flight = true;
             setTimeout(function(){
-                store_global(StorageCategory.WINDOW, win.id, [x+'%', y+'%']);
+                if(flags & WINDOWFLAGS.LOCAL_REMEMBER)
+                    store_local(StorageCategory.WINDOW, win.id, [x+'%', y+'%']);
+                else
+                    store_global(StorageCategory.WINDOW, win.id, [x+'%', y+'%']);
                 save_in_flight = false;
             }, 100);
         }
     }
-    let old_pos = get_global(StorageCategory.WINDOW, win.id);
+    let old_pos;
+    if(flags & WINDOWFLAGS.LOCAL_REMEMBER)
+        old_pos = get_local(StorageCategory.WINDOW, win.id);
+    else
+        old_pos = get_global(StorageCategory.WINDOW, win.id);
     if(old_pos !== undefined){
         const [old_x, old_y] = old_pos;
         if(typeof old_x === 'string'){
