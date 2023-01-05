@@ -51,23 +51,11 @@ function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):Li
                 const menu = ctx_menu(e);
                 if(flags & ListViewFlags.USER_RENAMABLE){
                     menu.item('Rename', function(){
-                        const dialog = get_dialog('simple-text');
-                        if(!dialog) return;
-                        let t = el.firstChild!.textContent;
-                        if(!t) t = "";
-                        dialog.title.innerText = 'Rename '+t;
-                        dialog.f.text.value = t;
-                        dialog.show_handler = function(){
-                            if(!IS_TOUCH) dialog.f.text.focus();
-                        };
-                        dialog.ok_handler = function(){
-                            let text = dialog.f.text.value.trim();
-                            if(!text) return;
-                            result.rename(text, key);
+                        user_edit_element(el.firstChild! as HTMLElement, function(v:string){
+                            result.rename(v, key);
                             if(result.user_rename_handler)
-                                result.user_rename_handler(key, text);
-                        };
-                        dialog.show();
+                                result.user_rename_handler(key, v);
+                        });
                     });
                 }
                 if(flags & ListViewFlags.USER_DELETABLE){
@@ -234,28 +222,14 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
             }
             let item = elem_with_parent(result.column1, 'div');
             item.oncontextmenu = function(e){
-                console.log('ctx menu');
                 const menu = ctx_menu(e);
                 if(flags1 & ListViewFlags.USER_RENAMABLE){
                     menu.item('Rename', function(){
-                        const dialog = get_dialog('simple-text');
-                        if(!dialog) return;
-                        // TODO: use editable element util
-                        let t = item.firstChild!.textContent;
-                        if(!t) t = "";
-                        dialog.title.innerText = 'Rename ' + t;
-                        dialog.f.text.value = t;
-                        dialog.show_handler = function(){
-                            if(!IS_TOUCH) dialog.f.text.focus();
-                        };
-                        dialog.ok_handler = function(){
-                            let text = dialog.f.text.value.trim();
-                            if(!text) return;
-                            result.rename1(text, k1);
+                        user_edit_element(item.firstChild! as HTMLElement, function(v:string){
+                            result.rename1(v, k1);
                             if(result.user_rename_handler1)
-                                result.user_rename_handler1(k1, text);
-                        };
-                        dialog.show();
+                                result.user_rename_handler1(k1, v);
+                        });
                     });
                 }
                 if(flags1 & ListViewFlags.USER_DELETABLE){
@@ -311,23 +285,11 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                 const menu = ctx_menu(e);
                 if(flags2 & ListViewFlags.USER_RENAMABLE){
                     menu.item('Rename', function(){
-                        const dialog = get_dialog('simple-text');
-                        if(!dialog) return;
-                        let t = item.firstChild!.textContent;
-                        if(!t) t = "";
-                        dialog.title.innerText = 'Rename '+t;
-                        dialog.f.text.value = t;
-                        dialog.show_handler = function(){
-                            if(!IS_TOUCH) dialog.f.text.focus();
-                        };
-                        dialog.ok_handler = function(){
-                            let text = dialog.f.text.value.trim();
-                            if(!text) return;
-                            result.rename2(text, k1, k2);
+                        user_edit_element(item.firstChild! as HTMLElement, function(v:string){
+                            result.rename2(v, k1, k2);
                             if(result.user_rename_handler2)
-                                result.user_rename_handler2(k1, k2, text);
-                        };
-                        dialog.show();
+                                result.user_rename_handler2(k1, k2, v);
+                        });
                     });
                 }
                 if(flags2 & ListViewFlags.USER_DELETABLE){
