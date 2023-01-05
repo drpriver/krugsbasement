@@ -2,7 +2,6 @@
 // Copyright © 2021-2023, David Priver
 //
 
-// TODO: global context menu registry.
 // TODO: formulas
 //       These should be calculated client side. Might need to optimize or write
 //       the implementation in wasm.
