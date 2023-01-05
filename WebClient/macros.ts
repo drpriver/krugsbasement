@@ -119,15 +119,13 @@ function del_variable(id:number){
     VARIABLES.delete(id);
     for(let c of CHARACTERS.values()){
         let idx = c[3].indexOf(id);
-        if(idx > -1){
+        if(idx > -1)
             c[3].splice(idx, 1);
-        }
     }
     for(let m of MACROS.values()){
         let idx = m[3].indexOf(id);
-        if(idx > -1){
+        if(idx > -1)
             m[3].splice(idx, 1);
-        }
     }
     if(VARINPUTS.has(id))
         VARINPUTS.delete(id);

@@ -22,7 +22,7 @@ const enum ListViewFlags {
     // Can be renamed via the list view itself, handler will be called
     USER_RENAMABLE = 1 << 0,
     USER_DELETABLE = 1 << 1,
-    USER_MOVABLE   = 1 << 2,
+    USER_MOVABLE   = 1 << 2, // unused apparently?
     ALL = USER_RENAMABLE|USER_DELETABLE|USER_MOVABLE
 }
 function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):ListView<K>{
@@ -47,50 +47,49 @@ function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):Li
         },
         add_item: function(text:string, key:K){
             let el = document.createElement('div');
+            el.oncontextmenu = function(e){
+                const menu = ctx_menu(e);
+                if(flags & ListViewFlags.USER_RENAMABLE){
+                    menu.item('Rename', function(){
+                        const dialog = get_dialog('simple-text');
+                        if(!dialog) return;
+                        let t = el.firstChild!.textContent;
+                        if(!t) t = "";
+                        dialog.title.innerText = 'Rename '+t;
+                        dialog.f.text.value = t;
+                        dialog.show_handler = function(){
+                            if(!IS_TOUCH) dialog.f.text.focus();
+                        };
+                        dialog.ok_handler = function(){
+                            let text = dialog.f.text.value.trim();
+                            if(!text) return;
+                            result.rename(text, key);
+                            if(result.user_rename_handler)
+                                result.user_rename_handler(key, text);
+                        };
+                        dialog.show();
+                    });
+                }
+                if(flags & ListViewFlags.USER_DELETABLE){
+                    menu.item('Delete', function(){
+                        const dialog = get_dialog('simple-delete');
+                        if(!dialog) return;
+                        dialog.title.innerText = 'Delete '+el.firstChild!.textContent;
+                        dialog.f.delete.checked = false;
+                        dialog.ok_handler = function(){
+                            if(!dialog.f.delete.checked) return;
+                            result.remove(key);
+                            if(result.user_remove_handler)
+                                result.user_remove_handler(key);
+                        };
+                        dialog.show();
+                    });
+                }
+                menu.item('Cancel');
+                menu.install();
+            };
             elem_parent_text(el, 'span', text);
             let style = 'auto';
-            if(flags & ListViewFlags.USER_RENAMABLE){
-                style += ' 32px';
-                const rename = elem_parent_text(el, 'button', '✎');
-                rename.addEventListener('click', function(e:MouseEvent){
-                    e.stopPropagation();
-                    let dialog = get_dialog('simple-text');
-                    if(!dialog) return;
-                    let t = el.firstChild!.textContent;
-                    if(!t) t = "";
-                    dialog.title.innerText = 'Rename '+t;
-                    dialog.f.text.value = t;
-                    dialog.show_handler = function(){
-                        if(!IS_TOUCH) dialog.f.text.focus();
-                    };
-                    dialog.ok_handler = function(){
-                        let text = dialog.f.text.value.trim();
-                        if(!text) return;
-                        result.rename(text, key);
-                        if(result.user_rename_handler)
-                            result.user_rename_handler(key, text);
-                    };
-                    dialog.show();
-                });
-            }
-            if(flags & ListViewFlags.USER_DELETABLE){
-                style += ' 32px';
-                const del = elem_parent_text(el, 'button', '✘');
-                del.addEventListener('click', function(e:MouseEvent){
-                    e.stopPropagation();
-                    let dialog = get_dialog('simple-delete');
-                    if(!dialog) return;
-                    dialog.title.innerText = 'Delete '+el.firstChild!.textContent;
-                    dialog.f.delete.checked = false;
-                    dialog.ok_handler = function(){
-                        if(!dialog.f.delete.checked) return;
-                        result.remove(key);
-                        if(result.user_remove_handler)
-                            result.user_remove_handler(key);
-                    };
-                    dialog.show();
-                });
-            }
             el.style.gridTemplateColumns = style;
             el.addEventListener('click', function(e:MouseEvent){
                 e.preventDefault();
@@ -234,32 +233,51 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                 }
             }
             let item = elem_with_parent(result.column1, 'div');
+            item.oncontextmenu = function(e){
+                console.log('ctx menu');
+                const menu = ctx_menu(e);
+                if(flags1 & ListViewFlags.USER_RENAMABLE){
+                    menu.item('Rename', function(){
+                        const dialog = get_dialog('simple-text');
+                        if(!dialog) return;
+                        // TODO: use editable element util
+                        let t = item.firstChild!.textContent;
+                        if(!t) t = "";
+                        dialog.title.innerText = 'Rename ' + t;
+                        dialog.f.text.value = t;
+                        dialog.show_handler = function(){
+                            if(!IS_TOUCH) dialog.f.text.focus();
+                        };
+                        dialog.ok_handler = function(){
+                            let text = dialog.f.text.value.trim();
+                            if(!text) return;
+                            result.rename1(text, k1);
+                            if(result.user_rename_handler1)
+                                result.user_rename_handler1(k1, text);
+                        };
+                        dialog.show();
+                    });
+                }
+                if(flags1 & ListViewFlags.USER_DELETABLE){
+                    menu.item('Delete', function(){
+                        const dialog = get_dialog('simple-delete');
+                        if(!dialog) return;
+                        dialog.title.innerText = 'Delete '+item.firstChild!.textContent;
+                        dialog.f.delete.checked = false;
+                        dialog.ok_handler = function(){
+                            if(!dialog.f.delete.checked) return;
+                            result.remove1(k1);
+                            if(result.user_remove_handler1)
+                                result.user_remove_handler1(k1);
+                        };
+                        dialog.show();
+                    });
+                }
+                menu.item('Cancel');
+                menu.install();
+            };
             elem_parent_text(item, 'span', text);
             let style = 'auto';
-            if(flags1 & ListViewFlags.USER_RENAMABLE){
-                style += ' 32px';
-                const rename = elem_parent_text(item, 'button', '✎');
-                rename.addEventListener('click', function(e:MouseEvent){
-                    e.stopPropagation();
-                    let dialog = get_dialog('simple-text');
-                    if(!dialog) return;
-                    let t = item.firstChild!.textContent;
-                    if(!t) t = "";
-                    dialog.title.innerText = 'Rename '+t;
-                    dialog.f.text.value = t;
-                    dialog.show_handler = function(){
-                        if(!IS_TOUCH) dialog.f.text.focus();
-                    };
-                    dialog.ok_handler = function(){
-                        let text = dialog.f.text.value.trim();
-                        if(!text) return;
-                        result.rename1(text, k1);
-                        if(result.user_rename_handler1)
-                            result.user_rename_handler1(k1, text);
-                    };
-                    dialog.show();
-                });
-            }
             if(flags1 & ListViewFlags.USER_MOVABLE){
                 style += ' 32px';
                 const ud = elem('div', null, 'up-down');
@@ -275,24 +293,6 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                 }
                 item.appendChild(ud);
             }
-            if(flags1 & ListViewFlags.USER_DELETABLE){
-                style += ' 32px';
-                const del = elem_parent_text(item, 'button', '✘');
-                del.addEventListener('click', function(e:MouseEvent){
-                    e.stopPropagation();
-                    let dialog = get_dialog('simple-delete');
-                    if(!dialog) return;
-                    dialog.title.innerText = 'Delete '+item.firstChild!.textContent;
-                    dialog.f.delete.checked = false;
-                    dialog.ok_handler = function(){
-                        if(!dialog.f.delete.checked) return;
-                        result.remove1(k1);
-                        if(result.user_remove_handler1)
-                            result.user_remove_handler1(k1);
-                    };
-                    dialog.show();
-                });
-            }
             item.style.gridTemplateColumns = style;
             item.addEventListener('click', function(){
                 result.make_active1(k1);
@@ -307,29 +307,46 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                 result.make_active2(k1, k2);
             });
             let style = 'auto';
-            if(flags2 & ListViewFlags.USER_RENAMABLE){
-                style += ' 32px';
-                const rename = elem_parent_text(item, 'button', '✎');
-                rename.addEventListener('click', function(e:MouseEvent){
-                    e.stopPropagation();
-                    let dialog = get_dialog('simple-text');
-                    if(!dialog) return;
-                    let t = item.firstChild!.textContent;
-                    if(!t) t = "";
-                    dialog.title.innerText = 'Rename '+t;
-                    dialog.f.text.value = t;
-                    dialog.show_handler = function(){
-                        if(!IS_TOUCH) dialog.f.text.focus();
-                    };
-                    dialog.ok_handler = function(){
-                        let text = dialog.f.text.value.trim();
-                        if(!text) return;
-                        result.rename2(text, k1, k2);
-                        if(result.user_rename_handler2)
-                            result.user_rename_handler2(k1, k2, text);
-                    };
-                    dialog.show();
-                });
+            item.oncontextmenu = function(e){
+                const menu = ctx_menu(e);
+                if(flags2 & ListViewFlags.USER_RENAMABLE){
+                    menu.item('Rename', function(){
+                        const dialog = get_dialog('simple-text');
+                        if(!dialog) return;
+                        let t = item.firstChild!.textContent;
+                        if(!t) t = "";
+                        dialog.title.innerText = 'Rename '+t;
+                        dialog.f.text.value = t;
+                        dialog.show_handler = function(){
+                            if(!IS_TOUCH) dialog.f.text.focus();
+                        };
+                        dialog.ok_handler = function(){
+                            let text = dialog.f.text.value.trim();
+                            if(!text) return;
+                            result.rename2(text, k1, k2);
+                            if(result.user_rename_handler2)
+                                result.user_rename_handler2(k1, k2, text);
+                        };
+                        dialog.show();
+                    });
+                }
+                if(flags2 & ListViewFlags.USER_DELETABLE){
+                    menu.item('Delete', function(){
+                        const dialog = get_dialog('simple-delete');
+                        if(!dialog) return;
+                        dialog.title.innerText = 'Delete '+item.firstChild!.textContent;
+                        dialog.f.delete.checked = false;
+                        dialog.ok_handler = function(){
+                            if(!dialog.f.delete.checked) return;
+                            result.remove2(k1, k2);
+                            if(result.user_remove_handler2)
+                                result.user_remove_handler2(k1, k2);
+                        };
+                        dialog.show();
+                    });
+                }
+                menu.item('Cancel');
+                menu.install();
             }
             if(flags2 & ListViewFlags.USER_MOVABLE){
                 style += ' 32px';
@@ -345,24 +362,6 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                     result.move2(k1, k2, +1);
                 }
                 item.appendChild(ud);
-            }
-            if(flags1 & ListViewFlags.USER_DELETABLE){
-                style += ' 32px';
-                const del = elem_parent_text(item, 'button', '✘');
-                del.addEventListener('click', function(e:MouseEvent){
-                    e.stopPropagation();
-                    let dialog = get_dialog('simple-delete');
-                    if(!dialog) return;
-                    dialog.title.innerText = 'Delete '+item.firstChild!.textContent;
-                    dialog.f.delete.checked = false;
-                    dialog.ok_handler = function(){
-                        if(!dialog.f.delete.checked) return;
-                        result.remove2(k1, k2);
-                        if(result.user_remove_handler2)
-                            result.user_remove_handler2(k1, k2);
-                    };
-                    dialog.show();
-                });
             }
             item.style.gridTemplateColumns = style;
             let items = result.items2.get(k1);
