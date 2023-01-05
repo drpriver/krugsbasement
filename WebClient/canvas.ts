@@ -9188,228 +9188,139 @@ document.addEventListener('DOMContentLoaded', function(){
         else
             whenflags |= CONTEXTMENUWHENFLAGS.GRID_FIVE;
 
-        type ItemType = {
-            label:string;
-            func: () => void;
-            disabled: boolean;
-            whenflags: CONTEXTMENUWHENFLAGS;
-        };
-        const items: Array<ItemType> = [
-            {
-                label: 'Ping',
-                func: function(){ping_at(view.map, click_x, click_y);},
-                disabled: false,
-                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
-            },
-            {
-                label: 'Back',
-                func: map_hist.go_back,
-                disabled: !map_hist.can_go_back(),
-                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
-            },
-            {
-                label: 'Forward',
-                func: map_hist.go_forward,
-                disabled: !map_hist.can_go_forward(),
-                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
-            },
-            {
-                label: 'Zoom In',
-                func: function(){zoom_in(view);},
-                disabled: false,
-                whenflags: CONTEXTMENUWHENFLAGS.NO_SELECTION,
-            },
-            {
-                label: 'Zoom Out',
-                func: function(){zoom_out(view);},
-                disabled: false,
-                whenflags: CONTEXTMENUWHENFLAGS.NO_SELECTION,
-            },
-            {
-                label: 'Reset Zoom',
-                func: function(){reset_zoom(view);},
-                disabled: false,
-                whenflags: CONTEXTMENUWHENFLAGS.NO_SELECTION,
-            },
-            {
-                label: 'Gather Party',
-                func: function(){
-                    EMIT(FromClient.CANVAS_GATHER, {x:-x, y:-y, map_id:view.map.map_id});
-                },
-                disabled: false,
-                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
-            },
-            {
-                label: 'Battlemode',
-                func: function(){
+        if(whenflags & CONTEXTMENUWHENFLAGS.NO_SELECTION){
+            menu.item('Ping', function(){ping_at(view.map, click_x, click_y);});
+            menu.item('Gather Party', function(){
+                EMIT(FromClient.CANVAS_GATHER, {x:-x, y:-y, map_id:view.map.map_id});
+            });
+            if(whenflags & CONTEXTMENUWHENFLAGS.GRID_TEN){
+                menu.item('Battlemode', function(){
                     EMIT(FromClient.CANVAS_BATTLE, {x:-x, y:-y, map_id:view.map.map_id});
-                },
-                disabled: false,
-                whenflags: CONTEXTMENUWHENFLAGS.GRID_TEN,
-            },
-            {
-                label: 'Dungeonmode',
-                func: function(){
+                });
+            }
+            if(whenflags & CONTEXTMENUWHENFLAGS.GRID_FIVE){
+                menu.item('Dungeonmode', function(){
                     EMIT(FromClient.CANVAS_DUNGEON_MODE);
-                },
-                disabled: false,
-                whenflags: CONTEXTMENUWHENFLAGS.GRID_FIVE,
-            },
-            {
-                label: 'Rotate Everything',
-                func: function(){rotate_everything_90(view);},
-                disabled: false,
-                whenflags: CONTEXTMENUWHENFLAGS.NO_SELECTION,
-            },
-            {
-                label: 'Hide',
-                func: function(){
-                    let changed = false;;
-                    let before = [];
-                    let after = [];
-                    for(let obj_id of view.selected){
-                        let o = view.map.canvas_objs.get(obj_id)!;
-                        if(o.hidinguser == SETTINGS.userid)
-                            continue;
-                        before.push(strip_obj(o));
-                        o.hidinguser = SETTINGS.userid;
-                        after.push(strip_obj(o));
-                        changed = true;
-                    }
-                    if(changed){
-                        note_updates_for_undo(view.map, before, after);
-                        publish_obj_updates(view.map.map_id, after);
-                        request_render();
-                    }
-                },
-                disabled: false,
-                whenflags: CONTEXTMENUWHENFLAGS.ANY_SELECTED,
-            },
-            {
-                label: 'Unhide',
-                func: function(){
-                    let changed = false;;
-                    let before = [];
-                    let after = [];
-                    for(let obj_id of view.selected){
-                        let o = view.map.canvas_objs.get(obj_id)!;
-                        if(o.hidinguser == 0)
-                            continue;
-                        before.push(strip_obj(o));
-                        o.hidinguser = 0;
-                        after.push(strip_obj(o));
-                        changed = true;
-                    }
-                    if(changed){
-                        note_updates_for_undo(view.map, before, after);
-                        publish_obj_updates(view.map.map_id, after);
-                        request_render();
-                    }
-                },
-                disabled: false,
-                whenflags: CONTEXTMENUWHENFLAGS.ANY_SELECTED,
-            },
-            {
-                label: 'Edit',
-                func: function(){
-                    launch_edit_dialog(view);
-                },
-                disabled: edit_is_impossible(view),
-                whenflags: CONTEXTMENUWHENFLAGS.ONE_SELECTED,
-            },
-            {
-                label: 'Cut',
-                func: function(){
-                    clear_copy_buffer();
-                    cut_selected_objs_to_copy_buffer(view);
-                },
-                disabled: view.selected.size === 0,
-                whenflags: CONTEXTMENUWHENFLAGS.ANY_SELECTED,
-            },
-            {
-                label: 'Copy',
-                func: function(){
-                    clear_copy_buffer();
-                    copy_selected_objs_to_copy_buffer(view);
-                },
-                disabled: view.selected.size === 0,
-                whenflags: CONTEXTMENUWHENFLAGS.ANY_SELECTED,
-            },
-            {
-                label: 'Paste',
-                func: function(){
-                    let submapid = 0;
-                    let sm = get_submap_at(view, click_x, click_y);
-                    if(sm){
-                        submapid = sm.id;
-                        click_x -= sm.base_x + sm.tlx;
-                        click_y -= sm.base_y + sm.tly;
-                    }
-                    paste_from_copy_buffer_at(view.map, click_x, click_y, submapid);
-                },
-                disabled: copied_objs.length === 0,
-                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
-            },
-            {
-                label: 'Copy to Clipboard',
-                func: function(){
-                    copy_selected_objs_to_clipboard(view);
-                },
-                disabled: view.selected.size === 0,
-                whenflags: CONTEXTMENUWHENFLAGS.ANY_SELECTED,
-            },
-            {
-                label: 'Paste from Clipboard',
-                func: function(){
-                    let submapid = 0;
-                    let sm = get_submap_at(view, click_x, click_y);
-                    if(sm){
-                        submapid = sm.id;
-                        click_x -= sm.base_x + sm.tlx;
-                        click_y -= sm.base_y + sm.tly;
-                    }
-                    paste_from_clipboard_at(view.map, click_x, click_y, submapid);
-                },
-                disabled: false,
-                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
-            },
-            {
-                label: 'Undo',
-                func: function(){
-                    do_one_undo(view.map);
-                },
-                disabled: undo_is_impossible(view.map),
-                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
-            },
-            {
-                label: 'Redo',
-                func: function(){
-                    do_one_redo(view.map);
-                },
-                disabled: redo_is_impossible(view.map),
-                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
-            },
-            {
-                label: 'Reset Camera',
-                func: function(){
-                    let view = get_active_view();
-                    view.camera_x=0;
-                    view.camera_y=0;
-                    view.scale=1;
-                    request_render();
-                },
-                disabled: false,
-                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
-            },
-        ];
-        for(let i = 0; i < items.length; i++){
-            const item = items[i];
-            if(!(item.whenflags & whenflags))
-                continue;
-            if(item.disabled)
-                menu.disabled(item.label);
+                });
+            }
+            menu.separator();
+            if(map_hist.can_go_back())
+                menu.item('Back', map_hist.go_back);
             else
-                menu.item(item.label, item.func);
+                menu.disabled('Back');
+            if(map_hist.can_go_forward())
+                menu.item('Forward', map_hist.go_forward);
+            else
+                menu.disabled('Forward');
+            menu.separator();
+            if(undo_is_impossible(view.map))
+                menu.disabled('Undo');
+            else
+                menu.item('Undo', function(){do_one_undo(view.map);});
+            if(redo_is_impossible(view.map))
+                menu.disabled('Redo');
+            else
+                menu.item('Redo', function(){do_one_redo(view.map);});
+            menu.separator();
+            menu.item('Zoom In', function(){zoom_in(view);});
+            menu.item('Zoom Out', function(){zoom_out(view);});
+            menu.item('Reset Zoom', function(){reset_zoom(view);});
+            menu.item('Reset Camera', function(){
+                let view = get_active_view();
+                view.camera_x=0;
+                view.camera_y=0;
+                view.scale=1;
+                request_render();
+            });
+            menu.separator();
+            menu.item('Rotate Everything', function(){
+                rotate_everything_90(view);
+            });
+            menu.separator();
+        }
+        else {
+            if(whenflags & CONTEXTMENUWHENFLAGS.ONE_SELECTED){
+                if(edit_is_impossible(view))
+                    menu.disabled('Edit');
+                else
+                    menu.item('Edit', function(){launch_edit_dialog(view);});
+            }
+            menu.item('Cut', function(){
+                clear_copy_buffer();
+                cut_selected_objs_to_copy_buffer(view);
+            });
+            menu.item('Copy', function(){
+                clear_copy_buffer();
+                copy_selected_objs_to_copy_buffer(view);
+            });
+            menu.item('Copy to Clipboard', function(){
+                copy_selected_objs_to_clipboard(view);
+            });
+        }
+        if(copied_objs.length === 0)
+            menu.disabled('Paste');
+        else
+            menu.item('Paste', function(){
+                let submapid = 0;
+                let sm = get_submap_at(view, click_x, click_y);
+                if(sm){
+                    submapid = sm.id;
+                    click_x -= sm.base_x + sm.tlx;
+                    click_y -= sm.base_y + sm.tly;
+                }
+                paste_from_copy_buffer_at(view.map, click_x, click_y, submapid);
+            });
+        menu.item('Paste from Clipboard', function(){
+            let submapid = 0;
+            let sm = get_submap_at(view, click_x, click_y);
+            if(sm){
+                submapid = sm.id;
+                click_x -= sm.base_x + sm.tlx;
+                click_y -= sm.base_y + sm.tly;
+            }
+            paste_from_clipboard_at(view.map, click_x, click_y, submapid);
+        });
+        menu.separator();
+        if(whenflags & CONTEXTMENUWHENFLAGS.ANY_SELECTED){
+            menu.item('Hide', function(){
+                let changed = false;
+                let before = [];
+                let after = [];
+                for(let obj_id of view.selected){
+                    let o = view.map.canvas_objs.get(obj_id)!;
+                    if(o.hidinguser == SETTINGS.userid)
+                        continue;
+                    before.push(strip_obj(o));
+                    o.hidinguser = SETTINGS.userid;
+                    after.push(strip_obj(o));
+                    changed = true;
+                }
+                if(changed){
+                    note_updates_for_undo(view.map, before, after);
+                    publish_obj_updates(view.map.map_id, after);
+                    request_render();
+                }
+            });
+            menu.item('Unhide', function(){
+                let changed = false;
+                let before = [];
+                let after = [];
+                for(let obj_id of view.selected){
+                    let o = view.map.canvas_objs.get(obj_id)!;
+                    if(o.hidinguser == 0)
+                        continue;
+                    before.push(strip_obj(o));
+                    o.hidinguser = 0;
+                    after.push(strip_obj(o));
+                    changed = true;
+                }
+                if(changed){
+                    note_updates_for_undo(view.map, before, after);
+                    publish_obj_updates(view.map.map_id, after);
+                    request_render();
+                }
+            });
+            menu.separator();
         }
         menu.item('Cancel');
         menu.install();
