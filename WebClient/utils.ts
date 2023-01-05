@@ -256,3 +256,34 @@ function link_input_value(value:string, inp1:HTMLInputElement, event1:'onchange'
         if(cb) cb();
     };
 }
+
+function user_edit_element(cell:HTMLElement, onfinish:(txt:string)=>void){
+    const w = '' + (cell.getBoundingClientRect().width-2) + 'px';
+    const h = '' + (cell.getBoundingClientRect().height-2) + 'px';
+    let oldtxt = cell.textContent;
+    if(!oldtxt) oldtxt = '';
+    cell.textContent = '';
+    const inp = elem_with_parent(cell, 'input');
+    inp.style.width = w;
+    inp.style.height = h;
+    inp.value = oldtxt;
+    inp.onkeydown = function(e){
+        e.stopPropagation();
+        switch(e.key){
+            case 'Escape':
+            case 'Enter':{
+                e.preventDefault();
+                inp.blur();
+            }return;
+        }
+    };
+    inp.onblur = function(){
+        const v = inp.value.trim();
+        cell.textContent = v;
+        if(oldtxt != v){
+            onfinish(v);
+        }
+        inp.remove();
+    };
+    inp.focus();
+}

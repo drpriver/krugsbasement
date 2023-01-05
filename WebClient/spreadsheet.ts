@@ -3,7 +3,6 @@
 //
 
 // TODO: global context menu registry.
-// TODO: reusable edit element component
 // TODO: formulas
 //       These should be calculated client side. Might need to optimize or write
 //       the implementation in wasm.
@@ -70,38 +69,9 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         removes.push(remove);
         elem_parent_text(menu, 'section', 'Rename', null, 'menuitem').onclick = function(e:MouseEvent){
             remove(e);
-            // TODO: reusable edit elem
-            const cell = t;
-            const w = '' + (cell.getBoundingClientRect().width-2) + 'px';
-            const h = '' + (cell.getBoundingClientRect().height-2) + 'px';
-            let oldtxt = cell.textContent;
-            if(!oldtxt) oldtxt = '';
-            // cell.classList.add('editing');
-            cell.textContent = '';
-            const inp = elem_with_parent(cell, 'input');
-            inp.style.width = w;
-            inp.style.height = h;
-            inp.value = oldtxt;
-            inp.onkeydown = function(e){
-                e.stopPropagation();
-                switch(e.key){
-                    case 'Escape':
-                    case 'Enter':{
-                        e.preventDefault();
-                        inp.blur();
-                    }return;
-                }
-            };
-            inp.onblur = function(){
-                const v = inp.value.trim();
-                cell.textContent = v;
-                if(oldtxt != v){
-                    EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NAME, result.id, v]);
-                }
-                // cell.classList.remove('editing');
-                inp.remove();
-            };
-            inp.focus();
+            user_edit_element(t, function(v:string){
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NAME, result.id, v]);
+            });
         };
         elem_parent_text(menu, 'section', 'Show Other People', null, 'menuitem').onclick = function(e){
             remove(e);
