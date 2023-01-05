@@ -1,0 +1,15 @@
+Changelog::kv
+  bug.py:   v0.0.1
+  created:  2022-02-22T02:08:02.365682
+  punted:   2022-04-07T07:47:57Z
+  reopened: 2023-01-05T02:40:53.174583
+Summary::md .summary
+  Users should be able to recover their account via email or whatever.
+
+Punted Apr 07, 2022, 03:47AM::md .update
+  Need to make the website publicly available first for this to matter. reopen
+  if I want to get serious, but I don’t know how I’ll recoup hosting costs
+  or scale up if I want to do that.
+
+Reopened Jan 04, 2023, 06:40PM::md .update
+  There’s got to be a way to do a low volume version of this for cheap/free.
