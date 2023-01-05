@@ -159,6 +159,7 @@ WEBDNDFILES=\
 	    Server/WebDnD/settings.py \
 	    Server/WebDnD/users.py \
 	    Server/WebDnD/validator.py \
+	    Server/WebDnD/sheets.py \
 
 JSFILES=\
 	WebClient/socket.io.js \
