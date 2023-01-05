@@ -1,3 +1,6 @@
+/*
+ * Copyright © 2021-2023, David Priver
+ */
 a {
   color: #0000ff;
 }
@@ -12,13 +15,15 @@ a {
   grid-template-rows: 32px auto;
   height: auto;
   padding: 0px;
-  border-radius: 8px 8px 8px 8px;
-  box-shadow: 3px 3px 3px 3px rgba(0,0,0,0.3);
+  border-radius: 8px 8px 0px 0px;
+  box-shadow: 0px 10px 24px rgba(0,0,0,0.3);
   background-color: white;
   -webkit-user-select: none;
   user-select: none;
-  border: 1px solid black;
   contain: strict;
+}
+body.dark-mode .window, body.dark-mode .tracker-grid, body.dark-mode #disconnect {
+  box-shadow: 0px 10px 24px rgba(0,0,0,0.7);
 }
 .window.fullscreen-window {
   top: 0px;
@@ -35,13 +40,12 @@ a {
 .window-handle {
   grid-row: 1;
   cursor: grab;
-  background-color: rgb(221,221,221);
+  background-color: #f0f0f0;
   border-radius: 8px 8px 0px 0px;
   display: grid;
   grid-template-columns: 48px auto 48px;
   height: 32px;
   min-width: 32px;
-  background: linear-gradient(#fff, 30%, #ddd);
   -webkit-user-select: none;
   user-select: none;
 }
@@ -93,7 +97,6 @@ a {
   grid-row: 1;
   grid-column: 2/3;
   height: 36px;
-  /*display: flex;*/
   margin-right: auto;
 }
 .window-tab span {
@@ -150,7 +153,7 @@ a {
 #note-view-title, #macro-view-group {
   resize: none;
   width: 100%;
-  font-family: monospace;
+  font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
 }
 #macro-view-title {
   text-align: center;
@@ -162,7 +165,7 @@ a {
 }
 #note-view-edit, #macro-view-edit {
   resize: none;
-  font-family: monospace;
+  font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
   width: 100%;
 }
 #note-view-edit {
@@ -256,7 +259,8 @@ label.panel-variable span {
 }
 .window-closer {
   text-align: center;
-  font-size: 24px;
+  font-size: 18px;
+  font-weight: bold;
   padding: 4px 12px;
   cursor: pointer;
   height: 32px;
@@ -267,7 +271,8 @@ label.panel-variable span {
 }
 .window-title {
   text-align: center;
-  font-size: 24px;
+  font-size: 18px;
+  font-weight: bold;
   padding: 4px 12px;
   cursor: pointer;
   height: 32px;
@@ -335,7 +340,7 @@ span.color-picker-dropdown {
   margin: auto;
   padding: 12px;
   border: 2px solid #a00;
-  box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.5);
+  box-shadow: 0px 10px 24px rgba(0,0,0,0.3);
   border-radius: 12px;
   max-width: 40ch;
   z-index: 999999;
@@ -350,7 +355,7 @@ span.color-picker-dropdown {
 #help-menu tbody tr td:nth-child(2){
   white-space: nowrap;
   border-right: 1px dotted #aaa;
-  font-family: monospace;
+  font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
   text-align: center;
 }
 #help-menu td{
@@ -451,11 +456,11 @@ button {
 }
 
 #palette input[type="radio"]:checked+label {
-  box-shadow: inset 2px 2px 2px 2px rgba(0,0,0,0.3);
+  box-shadow: inset 1px 2px 3px rgba(0,0,0,0.3);
   border: 2px solid red;
 }
 #palette input[type="radio"]+label {
-  box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.3);
+  box-shadow: 1px 2px 3px rgba(0,0,0,0.3);
   border: 1px solid gray;
   cursor: pointer;
   padding: 4px;
@@ -524,13 +529,13 @@ div.tool {
   padding: 4px;
   cursor: pointer;
   background-color: #eee;
-  box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.3);
+  box-shadow: 1px 2px 3px rgba(0,0,0,0.3);
   text-align: center;
-  font-family: "Helvetica Neue", "Segoe UI", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }
 #tools > div.tool.selected {
   background-color: #fff;
-  box-shadow: inset 1px 1px 1px 1px rgba(0,0,0,0.3);
+  box-shadow: inset 1px 2px 3px rgba(0,0,0,0.3);
 }
 #tools > div.tool:hover{
   background-color: #ccc;
@@ -540,11 +545,11 @@ div.tool {
 }
 #stuff input[type="radio"]:checked+label {
   background-color: #fff;
-  box-shadow: inset 1px 1px 1px 1px rgba(0,0,0,0.3);
+  box-shadow: inset 1px 2px 3px rgba(0,0,0,0.3);
 }
 #stuff input[type="radio"]+label {
   background-color: #eee;
-  box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.3);
+  box-shadow: 1px 2px 3px rgba(0,0,0,0.3);
   border: 1px solid gray;
   cursor: pointer;
   padding: 4px;
@@ -591,7 +596,7 @@ html, body {
   height: 100vh;
   display: grid;
   flex-direction: column;
-  border-left: 1px solid black;
+  border-left: 1px solid #aeaeae;
   overflow-wrap: break-word;
   z-index: 1;
   grid-template-rows: max-content max-content auto max-content max-content max-content;
@@ -682,7 +687,7 @@ html, body {
   /*border: 1px dotted gray;*/
   margin:-1px 0 0 -1px;
   padding: 2px 12px;
-  font-family: "Helvetica Neue", "Segoe UI", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }
 .log div.clickable span {
   background-color: #eee;
@@ -757,19 +762,27 @@ canvas {
 }
 section.menu {
   position: absolute;
-  background-color: white;
-  border: 1px solid black;
-  box-shadow: 4px 4px rgba(0,0,0,0.18);
-  border-radius: 3px;
+  background-color: #efefef;
+  border: 1px solid #B4B4B4;
+  box-shadow: 0px 6px 18px rgba(0,0,0,0.25);
+  border-radius: 8px;
   margin: 0;
   -webkit-user-select: none;
   user-select: none;
   z-index: 2;
+  padding: 6px 6px;
 }
 section.menuitem, section.color-menuitem {
-  padding: 4px 4px 4px 4px;
-  font-family: "Helvetica Neue", "Segoe UI", sans-serif;
-  cursor: pointer;
+  padding: 3.5px 8px;
+  border-radius: 4px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  cursor: default;
+  font-size: 10pt;
+}
+section.menuseparator {
+  border-bottom: 1px solid #c8c8c8;
+  margin-top: 4px;
+  margin-bottom: 4px;
 }
 section.color-menuitem:hover {
   border: 2px solid yellow !important;
@@ -778,7 +791,8 @@ section.menuitem.disabled {
   color: gray;
 }
 section.menuitem:hover {
-  background-color: #ccc;
+  background-color: #2962D8;
+  color: #fff;
 }
 div.hover, section.hover {
   resize: both;
@@ -791,8 +805,8 @@ div.hover, section.hover {
   background-color: white;
   border-radius: 8px;
   border: 1px solid black;
-  box-shadow: 3px 3px 3px 3px rgba(0,0,0,0.3);
-  font-family: sans-serif;
+  box-shadow: 0px 6px 18px rgba(0,0,0,0.25);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   overflow-y: auto;
   max-height: 90%;
   z-index: 16777216;
@@ -860,7 +874,7 @@ div.rolltable table{
   width: 30em;
 }
 #clipboard-json {
-  font-family: monospace;
+  font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
   width: 90%;
   height: 10ex;
   margin: 16px;
@@ -979,10 +993,8 @@ table.ngroup {
   }
   body.dark-mode section.menu {
     background-color: #333;
-    color: #aaa;
-  }
-  body.dark-mode section.menuitem:hover {
-    background-color: #666;
+    color: #fff;
+    border-color: #666;
   }
   body.dark-mode div.hover, body.dark-mode section.hover {
     background-color: #666;
@@ -1012,7 +1024,6 @@ table.ngroup {
   }
   body.dark-mode .window-handle, body.dark-mode #tool-container-handle {
     background-color: #444;
-    background: linear-gradient(#444444, 30%, #222222);
   }
   body.dark-mode .window-group-list div {
     color: #aaa;
