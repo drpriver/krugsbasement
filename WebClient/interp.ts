@@ -865,7 +865,6 @@ const evaluate_script = (function(){
                         return s;
                     }()),
                 };
-                console.log(result);
                 currentblock.statements.push(result);
                 return;
             }

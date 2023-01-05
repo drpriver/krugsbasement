@@ -10,6 +10,5 @@ document.addEventListener('DOMContentLoaded', function(){
         add_clicker(h);
     for(let h of h3s){
         add_clicker(h);
-        console.log(h)
     }
 });

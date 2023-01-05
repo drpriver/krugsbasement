@@ -723,6 +723,7 @@ function spreadsheet_from_data(data:SpreadSheetData){
     by_id('current-spreadsheet').selectedIndex = -1;
     ss.set_flags(data.flags);
 }
+// TAG newtrackerbutton
 document.addEventListener('DOMContentLoaded', function(){
     by_id('current-spreadsheet').oninput = function(e:Event){
         const s = e.target as HTMLSelectElement;
@@ -753,6 +754,7 @@ document.addEventListener('DOMContentLoaded', function(){
     };
 });
 
+// TAG ToClientSPREADSHEET
 ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg){
     // console.log(arg);
     switch(arg[0]){
