@@ -1,5 +1,5 @@
 #
-# Copyright © 2021-2022, David Priver
+# Copyright © 2021-2023, David Priver
 #
 
 from . import db
@@ -112,7 +112,7 @@ def set_global(userid:int, key:str, value:Any) -> None:
     with settingslock:
         get_settings(userid).set_global(key, value)
 
-def reaper() -> None:
+def settings_reaper() -> None:
     with settingslock:
         items = list(all_settings.items())
         t = time.time()
@@ -122,6 +122,6 @@ def reaper() -> None:
                 logging.info('Unloading settings for userid: %r', setting.userid)
                 del all_settings[k]
             del setting
-Reaper = RepeatTimer(60, reaper)
+Reaper = RepeatTimer(60, settings_reaper)
 Reaper.start()
-atexit.register(reaper)
+atexit.register(settings_reaper)

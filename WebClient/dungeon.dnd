@@ -1,5 +1,5 @@
 ::comment
-  Copyright © 2021-2022, David Priver
+  Copyright © 2021-2023, David Priver
 ::comment
   This is imported by client.dnd and demo.dnd.
   It is only built directly to generate types and to look
@@ -461,7 +461,7 @@ David20::title #hide
         <td>${checkbox('fps')} ${label('fps', 'Show FPS')}
       </tr>
     </table>
-    <a style="color:#00f; margin:auto;" href="/logout">Log Out</a>
+    <a style="margin:auto; -webkit-appearance: button;" href="/logout">Log Out</a>
     `);
   begin('simple-text');
   make(`
@@ -533,6 +533,21 @@ David20::title #hide
           this crappy dialog instead.</b></p>
     <p>Paste into the textbox then hit ok.</p>
     ${textarea('json')}
+  `);
+  begin('tracker');
+  make(`
+    ${title('New Tracker')}
+    <table class="input-container">
+      <tr>
+        <td>${label('name', 'Name:')}
+        <td>${textbox('name')}
+      </tr>
+      <tr>
+        <td>${label('numbered', 'Numbered')}
+        <td>${checkbox('numbered')}
+      </tr>
+    </table>
+
   `);
 
   if(Args && Args.temp){
@@ -693,6 +708,10 @@ David20::title #hide
           <button disabled title="Next Map" style="margin:0;" id="forward-map-button">→</button>
           <button title="New Map" style="margin:0;" id="new-map-button">+</button>
           <button title="Edit Map" style="margin:0;" id="edit-map-button">✎</button>
+    ::div
+      ::raw
+        <select title="Spreadsheet" style="width: 50%; text-overflow-ellipsis;" name="current-spreadsheet" id="current-spreadsheet"></select>
+        <button title="New Tracker" id="new-tracker-button">+</button>
     ::div.three-buttons
       ::raw
         <button id="notes-window-button">Notes…</button>

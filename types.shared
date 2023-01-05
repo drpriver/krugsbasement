@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 
 # FromClient
@@ -56,6 +56,7 @@ enum FromClient: int
     # Settings
     # --------
     STORE_LOCAL_SETTING = 27
+    SPREADSHEET = 28
 
 # ToClient
 # --------
@@ -112,6 +113,7 @@ enum ToClient: int
     NEW_NOTE_RESPONSE = 28
     # Init?
     API_VERSION = 35
+    SPREADSHEET = 38
 
 
 # ChatCommand
@@ -194,7 +196,7 @@ enum DieExprTypes: int
     GROUP  = 2 # Example: (2d6+4)
     Unary  = 3 # Example: -3
     Binary = 4 # Example: d6*2
-    NGROUP = 5 # Example: 3{d6>1}
+    NGROUP = 5 # Example: 3(d6>1)
 
 enum Unary: int
     PLUS = 0 # +
@@ -1051,6 +1053,7 @@ message ToClientMsg: ToClient
     GOT_NOTE = Note
     NEW_NOTE_RESPONSE = int
     API_VERSION = int
+    SPREADSHEET = SpreadSheetMsg
 
 message FromClientMsg: FromClient
     JOIN = str
@@ -1084,14 +1087,141 @@ message FromClientMsg: FromClient
     DEBUG = str
     STORE_LOCAL_SETTING = LocalSetting
     GET_ROLL_TABLE_NAMES = void
+    SPREADSHEET = SpreadSheetMsg
 
 enum DarkMode: int
     SYSTEM = 0
     DARK = 1
     LIGHT = 2
 
+# TODO: spreadsheet mode?
 enum UiMode: int
     NORMAL = 1
     CHAT = 2
     NOTES = 3
     MACROS = 4
+
+enum SpreadSheetFlags: int flag
+    NONE                   = 0
+    CAN_ADD_ROW            = 1 << 0
+    CAN_ADD_COL            = 1 << 1
+    CAN_SORT_COLS          = 1 << 2
+    ADD_ROW_ON_ENTER       = 1 << 3
+    CAN_DEL_ROW            = 1 << 4
+    CAN_DEL_COL            = 1 << 5
+    NUMBERED               = 1 << 6
+    CAN_MOVE_COLUMNS       = 1 << 7
+    CAN_MOVE_ROWS          = 1 << 8
+    ALL                    = NONE | CAN_ADD_ROW | CAN_ADD_COL | CAN_SORT_COLS | ADD_ROW_ON_ENTER | CAN_DEL_ROW | CAN_DEL_COL | NUMBERED | CAN_MOVE_COLUMNS | CAN_MOVE_ROWS
+
+struct SpreadSheetData: dict
+    id: int
+    name: str
+    flags: SpreadSheetFlags
+    column_names: [str]
+    cells: [str]
+
+enum SpreadSheetMsgType: int
+    DELETE_ROW = 0
+    DELETE_COL = 1
+    RENAME_COL = 2
+    EDIT_CELL = 3
+    ADD_ROW = 4
+    ADD_COL = 5
+    NEW_SHEET = 6
+    SORT = 7
+    INITIALIZE = 8
+    MOVE_COL = 9
+    MOVE_ROW = 10
+    SHOW = 11
+    FLAG = 12
+    NAME = 13
+
+struct SpreadSheetDeleteRow: array
+    type = SpreadSheetMsgType.DELETE_ROW
+    sheet_id: int
+    row_idx: int
+
+struct SpreadSheetDeleteCol: array
+    type = SpreadSheetMsgType.DELETE_COL
+    sheet_id: int
+    col_idx: int
+
+struct SpreadSheetRenameCol: array
+    type = SpreadSheetMsgType.RENAME_COL
+    sheet_id: int
+    col_idx: int
+    name: str
+
+struct SpreadSheetMoveCol: array
+    type = SpreadSheetMsgType.MOVE_COL
+    sheet_id: int
+    from_col_idx: int
+    to_col_idx: int
+
+struct SpreadSheetMoveRow: array
+    type = SpreadSheetMsgType.MOVE_ROW
+    sheet_id: int
+    from_row_idx: int
+    to_row_idx: int
+
+struct SpreadSheetEditCell: array
+    type = SpreadSheetMsgType.EDIT_CELL
+    sheet_id: int
+    row_idx: int
+    col_idx: int
+    value: str
+
+struct SpreadSheetAddRow: array
+    type = SpreadSheetMsgType.ADD_ROW
+    sheet_id: int
+    whence: int
+
+struct SpreadSheetAddCol: array
+    type = SpreadSheetMsgType.ADD_COL
+    sheet_id: int
+    whence: int
+
+struct SpreadSheetSort: array
+    type = SpreadSheetMsgType.SORT
+    sheet_id: int
+    idxes: [int]
+
+struct SpreadSheetNewSheet: array
+    type = SpreadSheetMsgType.NEW_SHEET
+    data: SpreadSheetData
+
+struct SpreadSheetInitialize: array
+    type = SpreadSheetMsgType.INITIALIZE
+    data: [SpreadSheetData]
+
+struct SpreadSheetShow: array
+    type = SpreadSheetMsgType.SHOW
+    sheet_id = int
+
+struct SpreadSheetFlag: array
+    type = SpreadSheetMsgType.FLAG
+    sheet_id = int
+    flags: int
+
+struct SpreadSheetName: array
+    type = SpreadSheetMsgType.NAME
+    sheet_id = int
+    name: str
+
+
+union SpreadSheetMsg: array
+    SpreadSheetDeleteRow
+    SpreadSheetDeleteCol
+    SpreadSheetRenameCol
+    SpreadSheetMoveCol
+    SpreadSheetMoveRow
+    SpreadSheetEditCell
+    SpreadSheetAddRow
+    SpreadSheetAddCol
+    SpreadSheetNewSheet
+    SpreadSheetSort
+    SpreadSheetInitialize
+    SpreadSheetShow
+    SpreadSheetFlag
+    SpreadSheetName

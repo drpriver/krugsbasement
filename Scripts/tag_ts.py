@@ -1,3 +1,6 @@
+#
+# Copyright © 2021-2023, David Priver
+#
 import glob
 from enum import IntEnum
 from typing import NamedTuple, List
@@ -35,8 +38,8 @@ MATCH_TO_TYPE = {
     'let': TagType.GLOBAL,
     'const': TagType.GLOBAL,
     'var': TagType.GLOBAL,
-    'enum': TagType.ENUM,
-    'const enum':TagType.ENUM,
+    'enum': TagType.TYPE,
+    'const enum':TagType.TYPE,
     'TAG': TagType.MISC,
 }
 

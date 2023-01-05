@@ -1,5 +1,5 @@
 ::comment
-  Copyright © 2021-2022, David Priver
+  Copyright © 2021-2023, David Priver
 
 ::meta
   property="og:title" content="Register"
@@ -8,6 +8,7 @@
   property="og:url" content="https://krugsbasement.com/login"
   property="og:description" content="Play rpgs with your friends!"
   property="og:site_name" content="Krug's Basement"
+  name="apple-mobile-web-app-capable" content="yes"
 ::div.login
   ::md.centered
     No account? [Register] now!

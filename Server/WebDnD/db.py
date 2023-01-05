@@ -1,7 +1,7 @@
 #
-# Copyright © 2021-2022, David Priver
+# Copyright © 2021-2023, David Priver
 #
-
+from __future__ import annotations
 import os
 import threading
 import sqlite3
@@ -17,7 +17,7 @@ atexit.register(lambda: (logging.info('closing db'), conn.close())) # type: igno
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 14
+DBVERSION = 15
 with conn:
     conn.execute("PRAGMA encoding = 'UTF-8';")
     conn.execute('PRAGMA foreign_keys = ON;')
@@ -363,6 +363,19 @@ def setup_tables() -> None:
                 (?, ?, ?, ?, ?)
             ;
             ''', (idp[0], idp[1], 'macros', 'characters', json.dumps(list(groups.values()))))
+    if version < 15:
+        conn.execute('''
+            CREATE TABLE sheets (
+                campaignid INTEGER NOT NULL,
+                sheetid INTEGER NOT NULL, /* generated in app layer */
+                name TEXT NOT NULL,
+                flags INTEGER NOT NULL,
+                column_names BLOB NOT NULL, /* json dump */
+                cells BLOB NOT NULL, /* json dump */
+                FOREIGN KEY(campaignid) REFERENCES campaigns(id),
+                PRIMARY KEY(campaignid, sheetid)
+            );
+        ''')
 
 
 with conn:
@@ -931,4 +944,70 @@ def get_users_in_campaign(campaign:int) -> List[int]:
         ''', (campaign,)).fetchall()
         return [r[0] for r in rows]
 
+def get_sheets(campaignid:int) -> list[dict]:
+    result = []
+    with DBLOCK:
+        for row in conn.execute('''
+        SELECT
+            sheetid, name, flags, column_names, cells
+        FROM
+            sheets
+        WHERE
+            campaignid = ?
+        ;
+        ''', (campaignid,)):
+            result.append({
+                'id':row[0],
+                'name': row[1],
+                'flags': row[2],
+                'column_names': json.loads(row[3]),
+                'cells': json.loads(row[4]),
+            })
+    return result
+
+def save_sheet(campaign:int, id:int, name:str, flags:int, column_names:list[str], cells:list[str]) -> None:
+    cns = json.dumps(column_names, separators=(',',':'))
+    c = json.dumps(cells, separators=(',',':'))
+    with DBLOCK:
+        conn.execute('''
+        INSERT INTO
+            sheets(campaignid, sheetid, name, flags, column_names, cells)
+        VALUES
+            (?, ?, ?, ?, ?, ?)
+        ;
+        ''', (campaign, id, name, flags, cns, c))
+
+def save_sheet_cells(campaign:int, id:int, cells:list[str]) -> None:
+    c = json.dumps(cells, separators=(',',':'))
+    with DBLOCK:
+        conn.execute('''
+            UPDATE sheets
+            SET cells = ?
+            WHERE campaignid = ? AND sheetid = ?;
+        ''', (c, campaign, id))
+
+def save_sheet_col_names(campaign:int, id:int, column_names:list[str]) -> None:
+    cns = json.dumps(column_names, separators=(',',':'))
+    with DBLOCK:
+        conn.execute('''
+            UPDATE sheets
+            SET column_names = ?
+            WHERE campaignid = ? AND sheetid = ?;
+        ''', (cns, campaign, id))
+
+def save_sheet_name(campaign:int, id:int, name:str) -> None:
+    with DBLOCK:
+        conn.execute('''
+            UPDATE sheets
+            SET name = ?
+            WHERE campaignid = ? AND sheetid = ?;
+        ''', (name, campaign, id))
+
+def save_sheet_flags(campaign:int, id:int, flags:int) -> None:
+    with DBLOCK:
+        conn.execute('''
+            UPDATE sheets
+            SET flags = ?
+            WHERE campaignid = ? AND sheetid = ?;
+        ''', (flags, campaign, id))
 
