@@ -41,6 +41,6 @@
     "WebClient/list-view.ts",
     "WebClient/tab-view.ts",
     "WebClient/table-view.ts",
-    "WebClient/tracker.ts"
+    "WebClient/spreadsheet.ts"
   ]
 }

@@ -1,11 +1,17 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 
 (function(){
 function onconnect(){
     clear_disconnected();
     EMIT(FromClient.JOIN, window.location.pathname);
+    // Spreadsheet relies on synchronization, so don't emit those.
+    if(SOCKET.sendBuffer)
+        SOCKET.sendBuffer = SOCKET.sendBuffer.filter(function(el:any){
+            if(el.type != 2) return true;
+            return el.data[0] != FromClient.SPREADSHEET;
+        });
     SOCKET.emitBuffered();
     // Flush the buffer here so that the post-join gives us
     // our own objects.

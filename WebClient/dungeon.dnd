@@ -1,5 +1,5 @@
 ::comment
-  Copyright © 2021-2022, David Priver
+  Copyright © 2021-2023, David Priver
 ::comment
   This is imported by client.dnd and demo.dnd.
   It is only built directly to generate types and to look
@@ -543,20 +543,8 @@ David20::title #hide
         <td>${textbox('name')}
       </tr>
       <tr>
-        <td>${label('col1', 'Col1:')}
-        <td>${textbox('col1')}
-      </tr>
-      <tr>
-        <td>${label('col2', 'Col2:')}
-        <td>${textbox('col2')}
-      </tr>
-      <tr>
-        <td>${label('col3', 'Col3:')}
-        <td>${textbox('col3')}
-      </tr>
-      <tr>
-        <td>${label('col4', 'Col4:')}
-        <td>${textbox('col4')}
+        <td>${label('numbered', 'Numbered')}
+        <td>${checkbox('numbered')}
       </tr>
     </table>
 
@@ -722,6 +710,7 @@ David20::title #hide
           <button title="Edit Map" style="margin:0;" id="edit-map-button">✎</button>
     ::div
       ::raw
+        <select title="Spreadsheet" style="width: 50%; text-overflow-ellipsis;" name="current-spreadsheet" id="current-spreadsheet"></select>
         <button title="New Tracker" id="new-tracker-button">+</button>
     ::div.three-buttons
       ::raw

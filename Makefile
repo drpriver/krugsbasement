@@ -92,7 +92,8 @@ TSFILES:= WebClient/socket.d.ts \
 	  WebClient/list-view.ts \
 	  WebClient/tab-view.ts \
 	  WebClient/table-view.ts \
-	  WebClient/tracker.ts
+	  WebClient/spreadsheet.ts \
+
 Generated/client.js: $(TSFILES) | Generated
 	$(TSC) $^ $(TSCFLAGS) --outFile $@
 Generated/demo.js: WebClient/demo.ts Generated/messages.ts | Generated

@@ -1,5 +1,5 @@
 #
-# Copyright © 2021-2022, David Priver
+# Copyright © 2021-2023, David Priver
 #
 
 from __future__ import annotations
@@ -19,8 +19,9 @@ from .logs import logging
 from . import chat
 from . import canvas
 from . import notes
+from . import sheets
 from .persist import Persister, RepeatTimer, AppKVPersister
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize
 from .validator import register_list, validated
 from . import db
 from .users import User
@@ -475,6 +476,9 @@ def post_join(mode:UiMode) -> None:
             dlog('chatname for uid (%s): %r', uid, chatname)
             userlist.append((uid, chatname))
         emit(ToClient.USER_LIST, userlist)
+    if mode == UiMode.NORMAL:
+        msg:SpreadSheetInitialize = [SpreadSheetMsgType.INITIALIZE, sheets.get_spreadsheets(campaign)] # type: ignore
+        emit(ToClient.SPREADSHEET, msg)
 
 @socketio.on(FromClient.CANVAS_CREATE_OBJECTS)
 @validated
@@ -678,6 +682,15 @@ def update_roll_tables(tables:RollTables) -> None:
     logging.info('Setting roll tables for campaign %r', campaign)
     # logging.info('%r', tables);
     chat.update_roll_tables(current_user.userid, campaign, tables)
+
+@socketio.on(FromClient.SPREADSHEET)
+@validated
+def spreadsheet(msg:SpreadSheetMsg) -> None:
+    campaign = get_campaign(request)
+    dlog("msg: %r", msg);
+    response = sheets.handle(campaign, msg)
+    if response is not None:
+        emit(ToClient.SPREADSHEET, response, broadcast=True, include_self=True, to=str(campaign))
 
 def get_html(info:db.CampaignInfo, mode:UiMode) -> str:
     global SCREEN

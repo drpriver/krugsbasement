@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 
 "use strict";
@@ -317,8 +317,19 @@ function do_emit(type:FromClient, arg?:any, cb?:any){
         case FromClient.UPDATE_ROLL_TABLES:
             rolltables = arg;
             break;
+        case FromClient.SPREADSHEET:{
+            if(arg[0] == SpreadSheetMsgType.NEW_SHEET){
+                arg[1].id = _spreadsheetid++;
+                for(let i = 0; i < 3; i++)
+                    arg[1].column_names.push('');
+                for(let i = 0; i < 3*4; i++)
+                    arg[1].cells.push('');
+            }
+            invoke_cb(ToClient.SPREADSHEET, arg);
+        }break;
     }
 }
+let _spreadsheetid = 0;
 
 let SOCKET = {
     emit: do_emit,

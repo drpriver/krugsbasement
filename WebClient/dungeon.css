@@ -1137,7 +1137,6 @@ body.mobile input[type="password"] {
 }
 /*}*/
 
-/* XXX move to a better spot */
 .tracker {
   display: grid;
   grid-template-rows: 32px auto;
@@ -1149,48 +1148,62 @@ body.mobile input[type="password"] {
   left: 10%;
   z-index: 4;
   padding: 0px;
-  /*border-radius: 8px 8px 8px 8px;*/
-  box-shadow: 3px 3px 3px 3px rgba(0,0,0,0.3);
+  border-radius: 8px 8px 0px 0px;
+  box-shadow: 0px 10px 24px rgba(0,0,0,0.3);
   background-color: white;
   -webkit-user-select: none;
   user-select: none;
-  /*border: 1px solid black;*/
   display: grid;
   width: max-content;
   height: max-content;
+  max-height: 95%;
+  max-width: 95%;
+  overflow: auto;
 }
-.tracker-grid div {
-  display: inline-block;
+.tracker-grid .window-handle {
+  grid-column-start: 1;
+  grid-column-end: -1;
 }
 .tracker-head {
   font-weight: bold;
   text-transform: capitalize;
   padding: 4px 12px;
+  z-index: 1;
 }
-.tracker-head, .tracker-cell {
+.tracker-head, .tracker-cell, .tracker-numbered {
   text-align: center;
   border: 1px solid;
   border-color: rgb(140,140,140);
   font-size: 16px;
   margin: -1px 0 0 -1px;
+  min-width: 6ch;
+}
+.tracker-head {
+  border-bottom: 3px solid;
+  border-bottom-color: rgb(220, 220, 220);
 }
 .tracker-cell {
   padding: 2px 8px;
+  cursor: cell;
 }
-.tracker-cell.editing {
+.tracker-head.editing, .tracker-cell.editing, .tracker-cell:focus, .tracker-cell.selected {
   border: 1px solid cyan;
-  padding: 0px;
   z-index: 5;
+  outline: none;
 }
-.tracker-plus-div {
-  text-align: center;
-  padding: 2px;
+.tracker-cell.editing, .tracker-head.editing {
+  padding: 0px;
 }
-.tracker-plus {
-  width: 75%;
-  height: 20px;
+.tracker-head:focus {
+  border: 1px solid cyan;
+  border-bottom-width: 3px;
+  z-index: 5;
+  outline: none;
 }
-.tracker-grid .tracker-cell input {
+.tracker-head input {
+  font-weight: bold;
+}
+.tracker-grid input {
   margin: 0;
   padding: 0;
   border: none;
@@ -1199,10 +1212,22 @@ body.mobile input[type="password"] {
   background-color: rgba(0,0,0,0);
   font-size: 100%;
 }
+.tracker-head:empty:after, .tracker-cell:empty:after {
+  content: " ";
+}
 
 .tracker-grid input:focus{
     outline: none;
 }
-.tracker-head:hover {
-  background-color: rgb(70, 70, 70);
+.tracker-numbered {
+  font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
+  box-sizing: content-box; /* so we can use 3ch and actually fit 3 characters*/
+  min-width: 3ch;
+  text-align: right;
+  border-right: 2px solid black;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+body.dark-mode .tracker-numbered {
+  border-right: 2px solid #fff;
 }
