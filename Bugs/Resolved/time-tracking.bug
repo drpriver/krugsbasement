@@ -1,0 +1,13 @@
+Changelog::kv
+  punted:   2022-04-07T07:46:19Z
+  resolved: 2023-01-05T03:19:35.453892
+Summary::md .summary
+  It'd be nice to track things like torches and spells in a systematic manner.
+
+Punted Apr 07, 2022, 03:46AM::md .update
+  This is related to the vague desire to implement my own spreadsheet, but that
+  is a large endeavor.
+
+Resolved Jan 04, 2023, 07:19PM::md .update
+  Spreadsheets have been implemented, so you can track things like torches and
+  spells using that.
