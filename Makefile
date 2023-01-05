@@ -93,6 +93,7 @@ TSFILES:= WebClient/socket.d.ts \
 	  WebClient/tab-view.ts \
 	  WebClient/table-view.ts \
 	  WebClient/spreadsheet.ts \
+	  WebClient/ctxmenu.ts
 
 Generated/client.js: $(TSFILES) | Generated
 	$(TSC) $^ $(TSCFLAGS) --outFile $@

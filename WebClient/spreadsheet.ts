@@ -50,38 +50,19 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
     const w = elem_with_parent(document.body, 'div', winid, 'tracker-grid');
     const wh = elem_with_parent(w, 'div', null, 'window-handle');
     wh.oncontextmenu = function(e:MouseEvent){
-        do_removes();
-        e.stopPropagation();
-        e.preventDefault();
-        const menu = elem('section', null, 'menu');
-        menu.style.left = e.clientX + 'px';
-        menu.style.top = e.clientY + 'px';
-        menu.style.zIndex = ''+(w.style.zIndex + 1);
-        function remove(e?:MouseEvent){
-            menu.remove();
-            if(e){
-                e.stopPropagation();
-                e.preventDefault();
-            }
-            const idx = removes.indexOf(remove);
-            if(idx != -1) removes.splice(idx, 1);
-        }
-        removes.push(remove);
-        elem_parent_text(menu, 'section', 'Rename', null, 'menuitem').onclick = function(e:MouseEvent){
-            remove(e);
+        const menu = ctx_menu(e);
+        menu.item('Rename',function(){
             user_edit_element(t, function(v:string){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NAME, result.id, v]);
             });
-        };
-        elem_parent_text(menu, 'section', 'Show Other People', null, 'menuitem').onclick = function(e){
-            remove(e);
+        });
+        menu.item('Show Other People', function(){
             EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.SHOW, result.id]);
-        };
-        elem_with_parent(menu, 'section', null, 'menuseparator');
-        elem_parent_text(menu, 'section', 'Toggle Numbers', null, 'menuitem').onclick = function(e:MouseEvent){
-            remove(e);
+        });
+        menu.separator();
+        menu.item('Toggle Number', function(){
             EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.FLAG, result.id, result.flags ^ SpreadSheetFlags.NUMBERED]);
-        };
+        });
         const flagstuff: Array<[SpreadSheetFlags, string]> = [
             [SpreadSheetFlags.CAN_ADD_ROW, 'Adding Rows'],
             [SpreadSheetFlags.CAN_ADD_COL, 'Adding Columns'],
@@ -92,8 +73,8 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             [SpreadSheetFlags.CAN_SORT_COLS, 'Sorting'],
         ];
         for(const [flag, mess] of flagstuff){
-            elem_parent_text(menu, 'section', (result.flags & flag ? 'Disable ' : 'Enable ')+mess, null, 'menuitem').onclick = function(e:MouseEvent){
-                remove(e);
+            const txt = (result.flags & flag? 'Disable ' : 'Enable ')+mess;
+            menu.item(txt, function(e:MouseEvent){
                 if(result.flags & flag){
                     if((e.target as HTMLSelectElement).textContent![0] == 'E') return;
                 }
@@ -101,11 +82,10 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
                     if((e.target as HTMLSelectElement).textContent![0] == 'D') return;
                 }
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.FLAG, result.id, result.flags ^ flag]);
-            };
+            });
         }
-        elem_with_parent(menu, 'section', null, 'menuseparator');
-        elem_parent_text(menu, 'section', 'Delete Spreadsheet', null, 'menuitem').onclick = function(e){
-            remove(e);
+        menu.separator();
+        menu.item('Delete Spreadsheet', function(){
             const diag = get_dialog('simple-delete');
             if(!diag) return;
             diag.f.delete.checked = false;
@@ -114,10 +94,10 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
                     EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE, result.id]);
             };
             diag.show();
-        };
-        elem_with_parent(menu, 'section', null, 'menuseparator');
-        elem_parent_text(menu, 'section', 'Cancel', null, 'menuitem').onclick = remove;
-        document.body.appendChild(menu);
+        });
+        menu.separator();
+        menu.item('Cancel');
+        menu.install();
     }
     const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
     const t = elem_parent_text(wh, 'span', '', null, 'window-title');
@@ -147,221 +127,146 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         n += (result.flags & SpreadSheetFlags.NUMBERED)?1:0;
         return `repeat(${n}, max-content)`;
     }
-    const removes:Array<()=>void> = [];
-    function do_removes(){for(const r of Array.from(removes)) r();}
     function hdropdown(e:MouseEvent){
-        do_removes();
-        e.stopPropagation();
-        e.preventDefault();
-        const menu = elem('section', null, 'menu');
-        menu.style.left = e.clientX + 'px';
-        menu.style.top = e.clientY + 'px';
-        menu.style.zIndex = ''+(w.style.zIndex + 1);
+        const menu = ctx_menu(e);
         const h = e.target as HTMLDivElement;
         const col_idx = result.headers.indexOf(h);
         if(col_idx == -1) return;
-        function remove(e?:MouseEvent){
-            menu.remove();
-            if(e){
-                e.stopPropagation();
-                e.preventDefault();
-            }
-            const idx = removes.indexOf(remove);
-            if(idx != -1) removes.splice(idx, 1);
-        }
-        removes.push(remove);
         if(result.flags & SpreadSheetFlags.CAN_SORT_COLS){
-            elem_parent_text(menu, 'section', 'Sort Ascending', null, 'menuitem').onclick = function(e:MouseEvent){
-                remove(e);
+            menu.item('Sort Ascending', function(){
                 result.sort(col_idx, +1);
-            };
-            elem_parent_text(menu, 'section', 'Sort Descending', null, 'menuitem').onclick = function(e:MouseEvent){
-                remove(e);
+            });
+            menu.item('Sort Descending', function(){
                 result.sort(col_idx, -1);
-            };
-            elem_with_parent(menu, 'section', null, 'menuseparator');
+            });
+            menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_ADD_COL){
-            elem_parent_text(menu, 'section', 'Insert Column Left', null, 'menuitem').onclick = function(e:MouseEvent){
+            menu.item('Insert Column Left', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, col_idx]);
-                remove(e);
-            };
-            elem_parent_text(menu, 'section', 'Insert Column Right', null, 'menuitem').onclick = function(e:MouseEvent){
+            });
+            menu.item('Insert Column Right',function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, col_idx+1]);
-                remove(e);
-            };
-            elem_with_parent(menu, 'section', null, 'menuseparator');
+            });
+            menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_DEL_COL){
-            elem_parent_text(menu, 'section', 'Delete Column', null, 'menuitem').onclick = function(e:MouseEvent){
+            menu.item('Delete Column', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE_COL, result.id, col_idx]);
-                remove(e);
-            };
-            elem_with_parent(menu, 'section', null, 'menuseparator');
+            });
+            menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_MOVE_COLUMNS){
-            elem_parent_text(menu, 'section', 'Move Column Left', null, 'menuitem').onclick = function(e:MouseEvent){
+            menu.item('Move Column Left', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx-1]);
-                remove(e);
-            };
-            elem_parent_text(menu, 'section', 'Move Column Right', null, 'menuitem').onclick = function(e:MouseEvent){
+            });
+            menu.item('Move Column Right', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx+1]);
-                remove(e);
-            };
-            elem_with_parent(menu, 'section', null, 'menuseparator');
+            });
+            menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_ADD_ROW){
-            elem_parent_text(menu, 'section', 'Insert Row Top', null, 'menuitem').onclick = function(e:MouseEvent){
+            menu.item('Insert Row Top', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, 0]);
-                remove(e);
-            };
-            elem_parent_text(menu, 'section', 'Insert Row Bottom', null, 'menuitem').onclick = function(e:MouseEvent){
+            });
+            menu.item('Insert Row Bottom', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, -1]);
-                remove(e);
-            };
-            elem_with_parent(menu, 'section', null, 'menuseparator');
+            });
+            menu.separator();
         }
-        elem_parent_text(menu, 'section', 'Cancel', null, 'menuitem').onclick = remove;
-        document.body.appendChild(menu);
+        menu.item('Cancel');
+        menu.install();
     }
     function rdropdown(e:MouseEvent){
-        do_removes();
-        e.stopPropagation();
-        e.preventDefault();
         const row_idx = (+((e.target as HTMLDivElement).textContent as string))-1;
         if(row_idx == -1) return;
-        const menu = elem('section', null, 'menu');
-        menu.style.left = e.clientX + 'px';
-        menu.style.top = e.clientY + 'px';
-        menu.style.zIndex = ''+(w.style.zIndex + 1);
-        function remove(e?:MouseEvent){
-            menu.remove();
-            if(e){
-                e.stopPropagation();
-                e.preventDefault();
-            }
-            const idx = removes.indexOf(remove);
-            if(idx != -1) removes.splice(idx, 1);
-        }
-        removes.push(remove);
+        const menu = ctx_menu(e);
         if(result.flags & SpreadSheetFlags.CAN_ADD_ROW){
-            elem_parent_text(menu, 'section', 'Insert Row Above', null, 'menuitem').onclick = function(e:MouseEvent){
+            menu.item('Insert Row Above', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, row_idx]);
-                remove(e);
-            };
-            elem_parent_text(menu, 'section', 'Insert Row Below', null, 'menuitem').onclick = function(e:MouseEvent){
+            });
+            menu.item('Insert Row Below', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, row_idx+1]);
-                remove(e);
-            };
-            elem_with_parent(menu, 'section', null, 'menuseparator');
+            });
+            menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_MOVE_ROWS){
-            elem_parent_text(menu, 'section', 'Move Row Up', null, 'menuitem').onclick = function(e:MouseEvent){
+            menu.item('Move Row Up', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, row_idx, row_idx-1]);
-                remove(e);
-            };
-            elem_parent_text(menu, 'section', 'Move Row Down', null, 'menuitem').onclick = function(e:MouseEvent){
+            });
+            menu.item('Move Row Down', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, row_idx, row_idx+1]);
-                remove(e);
-            };
-            elem_with_parent(menu, 'section', null, 'menuseparator');
+            });
+            menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_DEL_ROW){
-            elem_parent_text(menu, 'section', 'Delete Row', null, 'menuitem').onclick = function(e:MouseEvent){
+            menu.item('Delete Row', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE_ROW, result.id, row_idx]);
-                remove(e);
-            };
-            elem_with_parent(menu, 'section', null, 'menuseparator');
+            });
+            menu.separator();
         }
-        elem_parent_text(menu, 'section', 'Cancel', null, 'menuitem').onclick = remove;
-        document.body.appendChild(menu);
+        menu.item('Cancel');
+        menu.install();
     }
     function celldropdown(e:MouseEvent){
-        do_removes();
-        e.stopPropagation();
-        e.preventDefault();
-        const menu = elem('section', null, 'menu');
-        menu.style.left = e.clientX + 'px';
-        menu.style.top = e.clientY + 'px';
-        menu.style.zIndex = ''+(w.style.zIndex + 1);
         const cell = e.target as HTMLDivElement;
         let [row_idx, col_idx] = idx_of(cell);
         if(row_idx == -1) [row_idx, col_idx] = idx_of(cell.parentElement as HTMLDivElement);
         if(row_idx == -1) return;
-        function remove(e?:MouseEvent){
-            menu.remove();
-            if(e){
-                e.stopPropagation();
-                e.preventDefault();
-            }
-            const idx = removes.indexOf(remove);
-            if(idx != -1) removes.splice(idx, 1);
-        }
-        removes.push(remove);
+        const menu = ctx_menu(e);
         if(result.flags & SpreadSheetFlags.CAN_ADD_ROW){
-            elem_parent_text(menu, 'section', 'Insert Row Above', null, 'menuitem').onclick = function(e:MouseEvent){
+            menu.item('Insert Row Above', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, row_idx]);
-                remove(e);
-            };
-            elem_parent_text(menu, 'section', 'Insert Row Below', null, 'menuitem').onclick = function(e:MouseEvent){
+            });
+            menu.item('Insert Row Below', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, row_idx+1]);
-                remove(e);
-            };
-            elem_with_parent(menu, 'section', null, 'menuseparator');
+            });
+            menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_DEL_ROW){
-            elem_parent_text(menu, 'section', 'Delete Row', null, 'menuitem').onclick = function(e:MouseEvent){
+            menu.item('Delete Row', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE_ROW, result.id, row_idx]);
-                remove(e);
-            };
-            elem_with_parent(menu, 'section', null, 'menuseparator');
+            });
+            menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_MOVE_ROWS){
-            elem_parent_text(menu, 'section', 'Move Row Up', null, 'menuitem').onclick = function(e:MouseEvent){
+            menu.item('Move Row Up', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, row_idx, row_idx-1]);
-                remove(e);
-            };
-            elem_parent_text(menu, 'section', 'Move Row Down', null, 'menuitem').onclick = function(e:MouseEvent){
+            });
+            menu.item('Move Row Down', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, row_idx, row_idx+1]);
-                remove(e);
-            };
-            elem_with_parent(menu, 'section', null, 'menuseparator');
+            });
+            menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_ADD_COL){
-            elem_parent_text(menu, 'section', 'Insert Column Left', null, 'menuitem').onclick = function(e:MouseEvent){
+            menu.item('Insert Column Left', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, col_idx]);
-                remove(e);
-            };
-            elem_parent_text(menu, 'section', 'Insert Column Right', null, 'menuitem').onclick = function(e:MouseEvent){
+            });
+            menu.item('Insert Column Right', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, col_idx+1]);
-                remove(e);
-            };
-            elem_with_parent(menu, 'section', null, 'menuseparator');
+            });
+            menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_DEL_COL){
-            elem_parent_text(menu, 'section', 'Delete Column', null, 'menuitem').onclick = function(e:MouseEvent){
+            menu.item('Delete Column', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE_COL, result.id, col_idx]);
-                remove(e);
-            };
-            elem_with_parent(menu, 'section', null, 'menuseparator');
+            });
+            menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_MOVE_COLUMNS){
-            elem_parent_text(menu, 'section', 'Move Column Left', null, 'menuitem').onclick = function(e:MouseEvent){ EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx-1]);
-                remove(e);
-            };
-            elem_parent_text(menu, 'section', 'Move Column Right', null, 'menuitem').onclick = function(e:MouseEvent){
+            menu.item('Move Column Left', function(){
+            });
+            menu.item('Move Column Right', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx+1]);
-                remove(e);
-            };
-            elem_with_parent(menu, 'section', null, 'menuseparator');
+            });
+            menu.separator();
         }
-        elem_parent_text(menu, 'section', 'Cancel', null, 'menuitem').onclick = remove;
-        document.body.appendChild(menu);
+        menu.item('Cancel');
+        menu.install();
     }
     result.header_number_el = elem_with_parent(w, 'div', null, 'tracker-numbered');
     if(!(result.flags & SpreadSheetFlags.NUMBERED))
         result.header_number_el.style.display = 'none';
-    result.header_number_el.onclick = do_removes;
     function idx_of(cell:HTMLDivElement):[number, number]{
         for(let row_idx = 0; row_idx < result.cells.length; row_idx++){
             const row = result.cells[row_idx];
@@ -478,14 +383,14 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
     function on_cell_click(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
-        do_removes();
+        remove_ctx_menu();
         const cell = e.target as HTMLDivElement;
         edit_cell(cell);
     }
     function editable_cell(cell:HTMLDivElement){
         cell.tabIndex = -1;
         cell.ondblclick = on_cell_click;
-        cell.onclick = function(e:MouseEvent){do_removes();(e.target as HTMLDivElement).focus();}
+        cell.onclick = function(e:MouseEvent){(e.target as HTMLDivElement).focus();}
         cell.onkeydown = on_cell_keydown;
         cell.oncontextmenu = celldropdown;
     }
@@ -517,7 +422,6 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         if(!(result.flags & SpreadSheetFlags.NUMBERED))
             num_el.style.display = 'none';
         num_el.oncontextmenu = rdropdown;
-        num_el.onclick = do_removes;
         if(whence < result.number_els.length)
             result.number_els[whence].insertAdjacentElement('beforebegin', num_el);
         else
@@ -582,7 +486,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         if(whence == -1) whence += result.column_names.length + 1;
         result.column_names.splice(whence, 0, name);
         const h = elem_with_text('div', name, null, 'tracker-head');
-        h.onclick = function(e){do_removes(); const cell = e.target as HTMLDivElement; cell.focus();};
+        h.onclick = function(e){const cell = e.target as HTMLDivElement; cell.focus();};
         h.tabIndex = -1;
         h.ondblclick = function(e:MouseEvent){
             e.stopPropagation();

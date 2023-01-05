@@ -361,7 +361,7 @@ PACKEDIMG.addEventListener('error', function(){
     // try again with png
     PACKEDIMG.src = '/tiles/packed.png';
 }, {once:true});
-if(SETTINGS.uimode == UiMode.NORMAL) 
+if(SETTINGS.uimode == UiMode.NORMAL)
     PACKEDIMG.src = '/tiles/packed.webp'
 let TOKENIMG = new Image();
 TOKENIMG.addEventListener('error', function(){
@@ -6931,50 +6931,24 @@ function get_tool_colors(tool:ToolType):[string, string]{
     return [a, b];
 }
 function make_color_menu(e:MouseEvent, colorpicker: HTMLInputElement, colors:Array<string>){
-    // Piggy back on tri_menu stuff.
-    if(has_tri_menu)
-        return;
-    has_tri_menu = true;
-    const trimenu = document.createElement('section');
-    const container = by_id('tool-container');
-    trimenu.classList.add('menu');
-    trimenu.style.left = e.clientX + 'px';
-    trimenu.style.zIndex = container.style.zIndex;
+    const menu = ctx_menu(e);
     const window_height = window.innerHeight;
-    trimenu.style.bottom = (window_height - e.clientY)+'px'
-    function remove_tri_menu(e?:MouseEvent){
-        if(e){
-            e.stopPropagation();
-            e.preventDefault();
-        }
-        document.body.removeChild(trimenu);
-        window.removeEventListener('pointerdown', remove_tri_menu);
-        TheCanvas.removeEventListener('pointerdown', remove_tri_menu);
-        has_tri_menu = false;
-    }
-    function make_cb(color: string){
-        function cb(e:MouseEvent){
-            e.stopPropagation();
-            e.preventDefault();
-            colorpicker.value = color;
-            remove_tri_menu();
-        }
-        return cb;
-    }
-    for(let i = colors.length; i-- > 0;){
+    for(let i = colors.length; i--;){
         const color = colors[i];
-        const s = document.createElement('section');
-        s.classList.add('color-menuitem')
+        const s = elem_with_parent(menu.menu, 'section', null, 'color-menuitem');
         s.style.backgroundColor = color;
         s.style.height = '2em';
         s.style.width = '3em'
         s.style.border = '2px solid ' + color;
-        s.addEventListener('pointerdown', make_cb(color));
-        trimenu.appendChild(s);
+        s.addEventListener('pointerdown', function(e:PointerEvent){
+            e.stopPropagation();
+            remove_ctx_menu();
+            colorpicker.value = color;
+        });
     }
-    document.body.appendChild(trimenu);
-    window.addEventListener('pointerdown', remove_tri_menu);
-    TheCanvas.addEventListener('pointerdown', remove_tri_menu);
+    menu.install();
+    menu.menu.style.top = 'initial';
+    menu.menu.style.bottom = (window_height - e.clientY)+'px'
 }
 document.addEventListener('DOMContentLoaded', function(){
     const cpt1 = by_id('color-picker-dropdown');
@@ -7162,48 +7136,13 @@ function change_tool(tool:ToolType):void{
     color_picker2_.value = secondary;
     redo_canvas_cursor(get_active_view(), true);
 }
-let has_tri_menu = false;
 function make_tri_menu(e:MouseEvent, options:Array<{func:()=>void;text:string}>){
-    if(has_tri_menu)
-        return;
-    has_tri_menu = true;
-    const trimenu = document.createElement('section');
-    trimenu.classList.add('menu');
-    trimenu.style.left = e.clientX + 'px';
-    trimenu.style.zIndex = ""+TOPPERMOST_Z;
-    const window_height = window.innerHeight;
-    trimenu.style.bottom = (window_height - e.clientY)+'px';
-    function remove_tri_menu(e?:MouseEvent){
-        if(e){
-            e.stopPropagation();
-            e.preventDefault();
-        }
-        document.body.removeChild(trimenu);
-        window.removeEventListener('pointerdown', remove_tri_menu);
-        TheCanvas.removeEventListener('pointerdown', remove_tri_menu);
-        has_tri_menu = false;
-    }
-    function make_cb(func:()=>void){
-        function cb(e:MouseEvent){
-            e.stopPropagation();
-            e.preventDefault();
-            func()
-            remove_tri_menu();
-        }
-        return cb;
-    }
+    const menu = ctx_menu(e);
     for(let i = 0; i < options.length; ++i){
         const option = options[i];
-        const s = document.createElement('section');
-        s.classList.add('menuitem')
-        const text = document.createTextNode(option.text);
-        s.appendChild(text);
-        s.addEventListener('pointerdown', make_cb(option.func));
-        trimenu.appendChild(s);
+        menu.item(option.text, option.func);
     }
-    document.body.appendChild(trimenu);
-    window.addEventListener('pointerdown', remove_tri_menu);
-    TheCanvas.addEventListener('pointerdown', remove_tri_menu);
+    menu.install();
 }
 document.addEventListener('DOMContentLoaded', function():void{
     tools = Array.from(document.getElementsByClassName('tool')) as Array<HTMLElement>;
@@ -7278,12 +7217,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 },
                 max_index: 5,
             });
-            // const triangle = toolel.getElementsByTagName('span')[0];
             name.addEventListener('click', function(e:MouseEvent){
-                e.preventDefault();
-                e.stopPropagation();
-                if(has_tri_menu)
-                    return;
                 make_tri_menu(e, [
                     {func:make_cb(SELECTTYPE.NONBACKGROUND), text:'Map & Token'},
                     {func:make_cb(SELECTTYPE.MAP), text:'Map'},
@@ -7312,12 +7246,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 };
                 return cb;
             }
-            // const triangle = toolel.getElementsByTagName('span')[0];
             name.addEventListener('click', function(e:MouseEvent){
-                e.preventDefault();
-                e.stopPropagation();
-                if(has_tri_menu)
-                    return;
                 make_tri_menu(e, (function(){
                     const a = [];
                     for(let i = 0; i < t_max; i++){
@@ -7913,12 +7842,12 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     let prev_tool:ToolType = ToolType.PAN;
     // this state variable is kind of janky.
-    let ctxmenu_is_active = 0;
     let ez_token_color = '#ff3333';
     // TAG toolimpl
     // TAG pointerdown
     // TAG click
     TheCanvas.addEventListener('pointerdown', function(e:PointerEvent){
+        if(remove_ctx_menu()) return;
         if(gesturing) return;
         if(e.button !== 0 && e.button !== 1){ //0 is the 'primary' button
             return;
@@ -7933,10 +7862,6 @@ document.addEventListener('DOMContentLoaded', function(){
         }
         if(document.activeElement)
             (document.activeElement as any).blur();
-        if(ctxmenu_is_active !== 0)
-            return;
-        if(has_tri_menu)
-            return;
         e.stopPropagation();
         e.preventDefault();
         if(e.button === 1){
@@ -9241,27 +9166,12 @@ document.addEventListener('DOMContentLoaded', function(){
         launch_edit_dialog(view);
     });
     TheCanvas.addEventListener('contextmenu', function(e:MouseEvent){
-        e.preventDefault();
-        e.stopPropagation();
-        ctxmenu_is_active++;
-        const ctxmenu = document.createElement('section');
-        ctxmenu.classList.add('menu');
-        ctxmenu.style.left = e.clientX + 'px';
-        ctxmenu.style.top = e.clientY + 'px';
+        const menu = ctx_menu(e);
         const view = get_active_view();
         let [x, y] = event_to_coord(e, view);
         x -= TheCanvas.width/2/view.scale;
         y -= TheCanvas.height/2/view.scale;
         let [click_x, click_y] = event_to_coord(e, view);
-        function remove_menu(e?:MouseEvent){
-            TheCanvas.removeEventListener('pointerdown', remove_menu);
-            document.body.removeChild(ctxmenu);
-            ctxmenu_is_active--;
-            if(e){
-                e.stopPropagation();
-                e.preventDefault();
-            }
-        }
         let whenflags = CONTEXTMENUWHENFLAGS.ALWAYS;
         if(view.selected.size == 0){
             whenflags |= CONTEXTMENUWHENFLAGS.NO_SELECTION;
@@ -9278,7 +9188,6 @@ document.addEventListener('DOMContentLoaded', function(){
         else
             whenflags |= CONTEXTMENUWHENFLAGS.GRID_FIVE;
 
-        TheCanvas.addEventListener('pointerdown', remove_menu);
         type ItemType = {
             label:string;
             func: () => void;
@@ -9492,27 +9401,18 @@ document.addEventListener('DOMContentLoaded', function(){
                 disabled: false,
                 whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
             },
-            {
-                label: 'Cancel',
-                func: function(){},
-                disabled: false,
-                whenflags: CONTEXTMENUWHENFLAGS.ALWAYS,
-            },
         ];
         for(let i = 0; i < items.length; i++){
             const item = items[i];
             if(!(item.whenflags & whenflags))
                 continue;
-            const menuitem = document.createElement('section');
-            menuitem.classList.add('menuitem');
-            if(item.disabled){
-                menuitem.classList.add('disabled');
-            }
-            menuitem.addEventListener('click', function(){item.func();remove_menu();});
-            menuitem.appendChild(document.createTextNode(item.label));
-            ctxmenu.appendChild(menuitem);
+            if(item.disabled)
+                menu.disabled(item.label);
+            else
+                menu.item(item.label, item.func);
         }
-        document.body.appendChild(ctxmenu);
+        menu.item('Cancel');
+        menu.install();
     });
 });
 
