@@ -22,8 +22,8 @@ type CtxMenu = {
 function ctx_menu(e:MouseEvent):CtxMenu{
     e.stopPropagation();
     e.preventDefault();
-    const left = e.clientX + 'px';
-    const top = e.clientY + 'px';
+    const left = e.clientX;
+    const top = e.clientY;
     const result: CtxMenu = {
         menu: elem('section', null, 'menu'),
         separator: function():void{
@@ -43,10 +43,19 @@ function ctx_menu(e:MouseEvent):CtxMenu{
             _ctxmenu_remover = function(){
                 result.menu.remove();
             };
-            result.menu.style.left = left;
-            result.menu.style.top = top;
+            result.menu.style.left = left + 'px';
+            result.menu.style.top = top + 'px';
             result.menu.style.zIndex = ''+(TOPPERMOST_Z + 1);
             document.body.appendChild(result.menu);
+            const r = result.menu.getBoundingClientRect();
+            if(r.bottom > window.innerHeight){
+                result.menu.style.top = 'initial';
+                result.menu.style.bottom = '0px';
+            }
+            if(r.right > window.innerWidth){
+                result.menu.style.left = 'initial';
+                result.menu.style.right = '0px';
+            }
         },
     };
     return result;
