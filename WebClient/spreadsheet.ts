@@ -470,7 +470,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
                         row_idx++;
                     }
                     inp.blur();
-                    edit_cell(result.cells[row_idx][col_idx]);
+                    result.cells[row_idx][col_idx].focus();
                 } return;
             }
         };
