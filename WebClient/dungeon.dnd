@@ -29,6 +29,19 @@ David20::title #hide
     `;
     raw.add_child(inner);
   }
+  function make_window2(prefix, title, content){
+    windows.push(prefix);
+    const inner = `
+      <div id="${prefix}-window" style="display:none" class="window2">
+      <div id="${prefix}-window-handle" class="window-handle">
+        <span class="window-title">${title}</span>
+        <span id="${prefix}-close" class="window-closer">×</span>
+      </div>
+      ${content}
+      </div>
+    `;
+    raw.add_child(inner);
+  }
   make_window('notes', 'Notes', `
     <div id="notes-container" class="window-container">
       <div id="notes-list" class="window-group-list">
@@ -50,8 +63,8 @@ David20::title #hide
       </div>
     </div>
   `);
-  make_window('macros', 'Macros', `
-    <div id="macros-container" class="window-container">
+  make_window2('macros', 'Macros', `
+    <div id="macros-container">
       <div id="macros-group-list" class="window-group-list">
         <button id="new-macro-group">+ New Group</button>
       </div>
@@ -68,10 +81,8 @@ David20::title #hide
           <a target="_blank" href="/docs/macro-doc.html">Help</a>
           <a target="_blank" href="macros" id="mac-link">Macro Page</a>
         </div>
-        <div style="display:table; width: 100%;">
-          <div style="width: 100%; display:table-row">
+        <div style="text-align:center;">
             <h2 id="macro-view-title"></h2>
-          </div>
         </div>
         <div id="asdf-variable">
           <textarea spellcheck="false" id="macro-view-edit"></textarea>

@@ -72,11 +72,9 @@ function make_window(name:keyof SubWindowIdMap): SubWindow {
     setup_movable_window(outer, handle, WINDOWFLAGS.REMEMBER_POSITION);
     setup_closable_window(outer, close_x, result.hide);
     // handle.addEventListener('dblclick', result.hide);
-    setup_window_size(outer);
     // hack
-    if(outer.id == 'macros-window'){
-        outer.style.width = '1400px';
-        outer.style.height = '700px';
+    if(outer.id != 'macros-window'){
+        setup_window_size(outer);
     }
     return result;
 }

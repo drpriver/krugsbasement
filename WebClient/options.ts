@@ -39,12 +39,12 @@ function set_chat_vis(show:boolean){
         by_id('chatinput').style.display = 'none';
     }
     else {
-        by_id('chat').style.height = '100vh';
-        by_id('notifications').style.display = 'grid';
-        by_id('chat-history').style.display = 'initial';
-        by_id('macro-panel').style.display = 'grid';
-        by_id('dice-history').style.display = 'initial';
-        by_id('chatinput').style.display = 'initial';
+        by_id('chat').style.height = '';
+        by_id('notifications').style.display = ''
+        by_id('chat-history').style.display = ''
+        by_id('macro-panel').style.display = ''
+        by_id('dice-history').style.display = ''
+        by_id('chatinput').style.display = ''
     }
     signal_for(ListenEvent.LAYOUT_CHANGED);
     store_local(StorageCategory.SETTINGS, 'hidechat', show);
