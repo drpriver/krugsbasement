@@ -124,7 +124,7 @@ def write_files(tags:List[TagLoc]) -> None:
         fp.write(tag_s.getvalue())
 
     with textopen('.vimrc', 'w') as fp:
-        fp.write('set path=.,,Generated,WebSite/**,WebClient/**,Server/**,Scripts,\n')
+        fp.write('set path=.,,WebSite/**,WebClient/**,Server/**,Scripts,\n')
         fp.write('au BufEnter *.ts,*.js setlocal ts=4 sw=4 sts=4 et\n')
         fp.write('au BufEnter *.css setlocal ts=2 sw=2 sts=2 et\n')
         fp.write('if &diff\n\nelse\n  au BufEnter *.ts,*.js,*.css setlocal foldmethod=indent\nendif\n')
