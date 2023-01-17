@@ -180,7 +180,7 @@
            1</tt>".
         8. Comparisons, like "<tt>d6 == 1</tt>" or "<tt>d10 <= 2</tt>". The
            comparison operatiors are "<tt>=</tt>", "<tt><</tt>", "<tt><=</tt>",
-           "<tt>></tt>", <tt>>=</tt>", "<tt>!=</tt>".
+           "<tt>></tt>", "<tt>>=</tt>", "<tt>!=</tt>".
         When substituted, variables are implicitly grouped. This means that
         something like:
 
@@ -451,4 +451,14 @@
   /*endcss*/
 ::script #import
   anchors.js
-
+::js
+  for(const node of ctx.select_nodes({type:NodeType.PRE})){
+    // node.children is a snapshot,
+    // so this can't be factored into a variable.
+    while(node.children.length){
+      const ch = node.children;
+      const last = ch[ch.length-1];
+      if(!last.header) last.detach();
+      break;
+    }
+  }

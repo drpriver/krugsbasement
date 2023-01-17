@@ -223,7 +223,8 @@ pack_: Scripts/pack.py | Generated dev_venv Depends
 
 DOCS=Generated/macro-doc.html \
      Generated/tables.html \
-     Generated/index.html
+     Generated/index.html \
+     Generated/spreadsheets.html
 .PHONY: docs
 docs: $(DOCS)
 
