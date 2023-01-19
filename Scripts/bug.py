@@ -9,7 +9,7 @@ import datetime
 import textwrap
 import time
 BUGS = glob.glob('Bugs/**/*.bug', recursive=True)
-BUGS = [b.replace(r'\'', '/') for b in BUGS]
+BUGS = [b.replace('\\', '/') for b in BUGS]
 BUGS = [b[5:] for b in BUGS]
 BUGS.sort()
 app = flask.Flask('Bug')
