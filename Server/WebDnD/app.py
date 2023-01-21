@@ -100,9 +100,7 @@ LOGINTEMPLATE    = PageTemplate.setup('login.dnd',    ('username-errors', 'passw
 
 
 def bad_attempt() -> None:
-    # this is broken
-    return
-    ip = request.environ.get('REMOTE_ADDR')
+    ip = request.environ.get('HTTP_X_REAL_IP')
     if ip is None:
         return
     now = time.time()
@@ -121,8 +119,9 @@ def bad_attempt() -> None:
 
 @app.before_request
 def block_method() -> None:
-    ip = request.remote_addr
-    # logging.info('ip: %r', ip)
+    ip = request.environ.get('HTTP_X_REAL_IP')
+    # ip = request.remote_addr
+    logging.info('ip: %r', ip)
     if ip in ip_ban_list:
         badtime = ip_ban_list[ip]
         if time.time() - badtime > 60*60:
