@@ -171,12 +171,12 @@ JSFILES=\
 
 ZIPFILES=$(PACKEDFILES) $(DISTFILES) $(WEBDNDFILESS) $(JSFILES) \
 	 requirements.txt setup.py Server/server.mak \
-	 wasm/dndc.wasm
+	 wasm/dndc.wasm wasm/drspread.wasm
 
 dist.zip: $(ZIPFILES)
 	$(RMRF) dist dist.zip
 	mkdir dist dist/packed dist/WebDnD dist/js dist/wasm
-	$(CP) wasm/dndc.wasm dist/wasm
+	$(CP) wasm/dndc.wasm wasm/drspread.wasm dist/wasm
 	$(CP) $(JSFILES) dist/js
 	$(CP) Server/server.mak dist
 	$(CP) $(DISTFILES) dist
