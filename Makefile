@@ -169,7 +169,7 @@ JSFILES=\
 	WebClient/dungeon.css
 
 
-ZIPFILES=$(PACKEDFILES) $(DISTFILES) $(WEBDNDFILESS) $(JSFILES) \
+ZIPFILES=$(PACKEDFILES) $(DISTFILES) $(WEBDNDFILES) $(JSFILES) \
 	 requirements.txt setup.py Server/server.mak \
 	 wasm/dndc.wasm wasm/drspread.wasm
 
