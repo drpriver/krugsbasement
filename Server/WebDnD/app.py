@@ -100,6 +100,8 @@ LOGINTEMPLATE    = PageTemplate.setup('login.dnd',    ('username-errors', 'passw
 
 
 def bad_attempt() -> None:
+    # this is broken
+    return
     ip = request.environ.get('REMOTE_ADDR')
     if ip is None:
         return
