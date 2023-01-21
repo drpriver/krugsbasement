@@ -253,14 +253,11 @@ David20::title #hide
       <tr>
         <td>${label("width", "Width:")}${numbox("width")}
         <td>${label("height", "Height:")}${numbox("height")}
-      </tr>
       <tr>
         <td>${label("checkbox", "Round to Grid:")}${checkbox("checkbox")}
         <td>${label("background", "Background")}${checkbox("background")}
-      </tr>
       <tr>
         <td colspan="2">${label("url", "URL:")}${urlbox("url")}
-      </tr>
     </table>
   `);
 
@@ -278,29 +275,24 @@ David20::title #hide
               ${radio("center")}${label("center", "Center")}
               ${radio("right")}${label("right", "Right")}
           </td>
-        </tr>
         <tr>
           <td>${label("text", "Text:")}
           <td>${textarea("text")}
-        </tr>
         <tr>
           <td>Link To Map:
           <td>
             ${selectbegin('link-dungeon')}
               <option value="-1">No Link</option>
             </select>
-        </tr>
         <tr>
           <td>Link To SubMap:
           <td>
             ${selectbegin('link-submap')}
               <option value="-1">No Link</option>
             </select>
-        </tr>
         <tr>
           <td>${label('background', "Background:")}
           <td>${checkbox('background')}
-        </tr>
     </table>
   `);
   begin('map-input');
@@ -310,33 +302,27 @@ David20::title #hide
       <tr>
         <td>${label('name', 'Map Name:')}
         <td colspan=4>${textbox('name')}
-      </tr>
       <tr>
         <td>${label('hex-grid', 'Hex Grid')}
         <td>${checkbox('hex-grid')}
         <td>${label('grid-color', 'Grid Color')}
         <td>${colorbox('grid-color')}
         <td>${textbox('grid-color-text')}
-      </tr>
       <tr>
         <td>${label('no-grid', 'No Grid')}
         <td>${checkbox('no-grid')}
         <td>${label('bg-color', 'Bg Color')}
         <td>${colorbox('bg-color')}
         <td>${textbox('bg-color-text')}
-      </tr>
       <tr>
         <td>${label('numbered', 'Numbered')}
         <td>${checkbox('numbered')}
-      </tr>
       <tr>
         <td>${label('big', 'BigHex')}
         <td>${checkbox('big')}
-      </tr>
       <tr>
         <td>${label('delete', 'Delete Map')}
         <td>${checkbox('delete')}
-      </tr>
     </table>`);
   begin('map-delete');
   make(`
@@ -345,10 +331,8 @@ David20::title #hide
       ${trbegin('can')}
         <td>${label('delete', 'DeleteMap')}
         <td>${checkbox('delete')}
-      </tr>
       ${trbegin('cant')}
         <td colspan=2>This map can't be deleted.
-      </tr>
     </table>`);
   begin('ez-token');
   make(`
@@ -359,17 +343,14 @@ David20::title #hide
         <td>${colorbox('color')}
         <td>
         <td>
-      </tr>
       <tr>
         <td>${label('width', 'Width (sq):')}
         <td>${numbox('width')}
         <td>${label('height', 'Height (sq):')}
         <td>${numbox('height')}
-      </tr>
       <tr>
         <td>${label('text', 'Text:')}
         <td colspan="3">${textbox('text')}
-      </tr>
     </table>
     ${div('conditions')}
     `);
@@ -383,11 +364,9 @@ David20::title #hide
         <td>${numbox('width')}
         <td>${label('height', 'Height (sq):')}
         <td>${numbox('height')}
-      </tr>
       <tr>
         <td>${label('url', 'Token Image Url:')}
         <td colspan=3>${urlbox('url')}
-      </tr>
     </table>
     ${div('conditions')}
     `);
@@ -398,17 +377,14 @@ David20::title #hide
       <tr>
         <td>${label('sm-title', 'Title:')}
         <td colspan=2>${textbox('sm-title')}
-      </tr>
       <tr>
         <td>${label('grid-color', 'Grid Color')}
         <td>${colorbox('grid-color')}
         <td>${textbox('grid-color-text')}
-      </tr>
       <tr>
         <td>${label('bg-color', 'Bg Color')}
         <td>${colorbox('bg-color')}
         <td>${textbox('bg-color-text')}
-      </tr>
     </table>`);
   begin('macro-deletion');
   make(`
@@ -417,7 +393,6 @@ David20::title #hide
       <tr>
         <td>${label('checkbox', 'Delete Macro:')}
         <td>${checkbox('checkbox')}
-      </tr>
     </table>`);
   begin('note-deletion');
   make(`
@@ -426,7 +401,6 @@ David20::title #hide
       <tr>
         <td>${label('checkbox', 'Delete Note:')}
         <td>${checkbox('checkbox')}
-      </tr>
     </table>`);
   begin('options');
   make(`
@@ -470,7 +444,6 @@ David20::title #hide
     ${tablebegin('dev')}
       <tr>
         <td>${checkbox('fps')} ${label('fps', 'Show FPS')}
-      </tr>
     </table>
     <a style="margin:auto; -webkit-appearance: button;" href="/logout">Log Out</a>
     `);
@@ -481,7 +454,6 @@ David20::title #hide
       <tr>
         <td>${label('text', 'Text:')}
         <td>${textbox('text')}
-      </tr>
     </table>
     `);
   begin('make-variable');
@@ -496,11 +468,9 @@ David20::title #hide
             <option value="2">Expression</option>
             <option value="3">3.5 Ability Score</option>
           </select>
-      </tr>
       <tr>
         <td>${label('name', 'Name')}
         <td>${textbox('name')}
-      </tr>
     </table>
     `);
   begin('simple-delete');
@@ -510,7 +480,6 @@ David20::title #hide
       ${trbegin('can')}
         <td>${label('delete', 'Delete?')}
         <td>${checkbox('delete')}
-      </tr>
     </table>`);
   begin('screenshot-prefs');
   make(`
@@ -519,23 +488,18 @@ David20::title #hide
       <tr>
         <td>${label('gridsize', 'Grid Size:')}
         <td>${numbox('gridsize')}
-      </tr>
       <tr>
         <td>${label('selection', 'Screenshot Selection')}
         <td>${checkbox('selection')}
-      </tr>
       <tr>
         <td>${label('submaps', 'Include Submaps')}
         <td>${checkbox('submaps')}
-      </tr>
       <tr>
         <td>${label('text', 'Draw Text')}
         <td>${checkbox('text')}
-      </tr>
       <tr>
         <td>${label('darkmode', 'Darkmode')}
         <td>${checkbox('darkmode')}
-      </tr>
     </table>`);
   begin('clipboard');
   make(`
@@ -547,19 +511,48 @@ David20::title #hide
   `);
   begin('tracker');
   make(`
-    ${title('New Tracker')}
+    ${title('New Sheet')}
     <table class="input-container">
       <tr>
         <td>${label('name', 'Name:')}
         <td>${textbox('name')}
-      </tr>
       <tr>
         <td>${label('numbered', 'Numbered')}
         <td>${checkbox('numbered')}
-      </tr>
     </table>
 
   `);
+  begin('sheet-config');
+  make(`
+    ${title('Sheet Config')}
+    <table class="input-container">
+      <tr>
+        <td>${label('editcells', 'Can Edit Cells')}
+        <td>${checkbox('editcells')}
+      <tr>
+        <td>${label('addrows', 'Can Add Rows')}
+        <td>${checkbox('addrows')}
+      <tr>
+        <td>${label('addcols', 'Can Add Columns')}
+        <td>${checkbox('addcols')}
+      <tr>
+        <td>${label('moverows', 'Can Move Rows')}
+        <td>${checkbox('moverows')}
+      <tr>
+        <td>${label('movecols', 'Can Move Columns')}
+        <td>${checkbox('movecols')}
+      <tr>
+        <td>${label('delrows', 'Can Delete Rows')}
+        <td>${checkbox('delrows')}
+      <tr>
+        <td>${label('delcols', 'Can Delete Columns')}
+        <td>${checkbox('delcols')}
+      <tr>
+        <td>${label('sort', 'Can Sort Columns')}
+        <td>${checkbox('sort')}
+    </table>
+    `);
+
 
   if(Args && Args.temp){
     let ts = '// NOTE: this file was generated\n'

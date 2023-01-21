@@ -6734,6 +6734,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
             total += t;
         }
         const avg = (total / timings.length).toFixed(4)+'ms';
+        ctx.font = '24px sans-serif';
         ctx.textBaseline = 'top';
         ctx.textAlign = 'left';
         ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -7606,6 +7607,24 @@ document.addEventListener('DOMContentLoaded', function(){
         request_render();
     });
     window.addEventListener('keydown', function(e:KeyboardEvent){
+        // @ts-ignore
+        if((e.ctrlKey || e.metaKey) && e.key == 'c' && document.activeElement && document.activeElement.oncopy){
+            e.preventDefault();
+            e.stopPropagation();
+            // @ts-ignore
+            document.activeElement.oncopy();
+        }
+        // @ts-ignore
+        if((e.ctrlKey || e.metaKey) && e.key == 'v' && document.activeElement && document.activeElement.onpaste){
+            e.preventDefault();
+            e.stopPropagation();
+            // @ts-ignore
+            document.activeElement.onpaste();
+        }
+        if(e.key == 'Escape' && _ctxmenu_remover){
+            remove_ctx_menu();
+            return;
+        }
         if(document.activeElement !== document.body)
             return;
         const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;

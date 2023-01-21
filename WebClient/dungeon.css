@@ -1185,6 +1185,7 @@ body.mobile .window {
   max-height: 95%;
   max-width: 95%;
   overflow: auto;
+  font-size: 10pt;
 }
 .tracker-grid .window-handle {
   grid-column-start: 1;
@@ -1200,9 +1201,8 @@ body.mobile .window {
   text-align: center;
   border: 1px solid;
   border-color: rgb(140,140,140);
-  font-size: 16px;
   margin: -1px 0 0 -1px;
-  min-width: 6ch;
+  min-width: 8ch;
 }
 .tracker-head {
   border-bottom: 3px solid;

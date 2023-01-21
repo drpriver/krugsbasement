@@ -156,6 +156,11 @@ class SpreadSheet:
     def edit_cell(self, row_idx:int, col_idx:int, val:str) -> bool:
         if row_idx < 0: return False
         if col_idx < 0: return False
+        if not (self.flags & SpreadSheetFlags.CAN_EDIT_CELLS):
+            return False
+        oldval = self.cells[row_idx * len(self.column_names)+col_idx]
+        if (self.flags & SpreadSheetFlags.LOCKED_FORMULAS) and oldval and oldval[0] == '=':
+            return False
         self.cells[row_idx*len(self.column_names)+col_idx] = val
         self.cells_dirty = True
         return True
@@ -279,9 +284,10 @@ def handle(campaign:int, msg:SpreadSheetMsg) -> Optional[SpreadSheetMsg]:
             else:
                 id = 1
             data = msg[1]
-            data['column_names'] = [''] * 3
-            data['cells'] = ['']*12
             data['id'] = id
+            if not data['column_names']:
+                data['column_names'] = [''] * 3
+                data['cells'] = ['']*12
             SPREADSHEETS[campaign].append(SpreadSheet(campaign=campaign, **data))
             db.save_sheet(campaign, **data)
             return msg

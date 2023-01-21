@@ -172,7 +172,10 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
         y = e.screenY;
     }
 }
-const IS_WINDOWS = window.navigator.platform.includes('Windows');
+// I could have sworn that checking for "Windows" used to work?
+// But now it seems things are reporting "Win32"?.
+const IS_WINDOWS = window.navigator.platform.includes('Windows') || window.navigator.platform.includes('Win32');
+const IS_MAC = window.navigator.platform.includes('Mac');
 
 function setup_closable_window(win:HTMLElement, closer:HTMLElement, onclose:()=>void){
     if(IS_WINDOWS)
@@ -186,6 +189,7 @@ function setup_closable_window(win:HTMLElement, closer:HTMLElement, onclose:()=>
         win.style.display='none';
     }
     closer.addEventListener('click', hide_window);
+    closer.title = 'Close';
 }
 
 function setup_window_size(win:HTMLElement){
@@ -267,10 +271,14 @@ function user_edit_element(cell:HTMLElement, onfinish:(txt:string)=>void){
     inp.style.width = w;
     inp.style.height = h;
     inp.value = oldtxt;
+    let canceled = false;
     inp.onkeydown = function(e){
         e.stopPropagation();
         switch(e.key){
+            // @ts-ignore
             case 'Escape':
+                canceled = true;
+            // fall-through
             case 'Enter':{
                 e.preventDefault();
                 inp.blur();
@@ -279,9 +287,12 @@ function user_edit_element(cell:HTMLElement, onfinish:(txt:string)=>void){
     };
     inp.onblur = function(){
         const v = inp.value.trim();
-        cell.textContent = v;
-        if(oldtxt != v){
-            onfinish(v);
+        if(canceled)
+            cell.textContent = oldtxt;
+        else{
+            cell.textContent = v;
+            if(oldtxt != v)
+                onfinish(v);
         }
         inp.remove();
     };
