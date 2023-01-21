@@ -787,7 +787,12 @@ def get_campaign_request(campaign:str, mode_s:str='full') -> Any:
     if not db.user_may_access_campaign(current_user.userid, campaign_id):
         return abort(404)
     # logging.info('campaign: %r, campaign_id: %r', campaign, campaign_id)
-    return get_html(info, mode)
+    resp = flask.Response(get_html(info, mode))
+    # maybe the reverse-proxy should add these?
+    resp.headers['Cross-Origin-Opener-Policy'] = 'same-origin'
+    resp.headers['Cross-Origin-Embedder-Policy']= 'require-corp'
+    return resp
+    # return get_html(info, mode)
 if appconfig.DEV:
     @app.route('/demos/dungeon.html')
     def get_demo() -> str:
