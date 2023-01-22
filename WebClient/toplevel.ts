@@ -12,9 +12,9 @@ function onconnect(){
             if(el.type != 2) return true;
             return el.data[0] != FromClient.SPREADSHEET;
         });
-    SOCKET.emitBuffered();
     // Flush the buffer here so that the post-join gives us
     // our own objects.
+    SOCKET.emitBuffered();
     EMIT(FromClient.POST_JOIN, SETTINGS.uimode);
 }
 if(SOCKET.connected)

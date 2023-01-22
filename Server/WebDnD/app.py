@@ -22,7 +22,7 @@ from . import notes
 from . import sheets
 from .persist import Persister, RepeatTimer, AppKVPersister
 from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize
-from .validator import register_list, validated
+from .validator import register_list, validated, validate
 from . import db
 from .users import User
 from .forms import LoginForm, RegisterForm, CampaignForm
@@ -458,8 +458,10 @@ def join(room:str) -> None:
     # notes.create_notes_for_room(room)
 
 @socketio.on(FromClient.POST_JOIN)
-@validated
+# @validated # somehow we can get a 0 here, which is not a valid ui mode.
 def post_join(mode:UiMode) -> None:
+    mode = mode or 1
+    mode = validate('UiMode', mode)
     campaign = get_campaign(request)
     if mode == UiMode.NORMAL:
         emit(ToClient.CANVAS_INITIALIZE_MAPS, canvas.get_state(campaign))
