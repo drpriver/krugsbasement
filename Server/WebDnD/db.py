@@ -12,7 +12,11 @@ from .logs import logging
 import atexit
 from appconfig import DBNAME
 conn = sqlite3.connect(DBNAME, check_same_thread=False)
-atexit.register(lambda: (logging.info('closing db'), conn.close())) # type: ignore
+def close()->None:
+    logging.info('closing db')
+    conn.close()
+
+atexit.register(close) # type: ignore
 # Make it threadsafe
 # The R is for re-entrant
 DBLOCK = threading.RLock()

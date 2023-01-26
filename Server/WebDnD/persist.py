@@ -18,6 +18,9 @@ JsType = Union[str, dict, list, int, float]
 
 
 class RepeatTimer(threading.Timer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.daemon = True
     def run(self) -> None:
         while not self.finished.wait(self.interval): # type: ignore
             self.function(*self.args, **self.kwargs) # type: ignore

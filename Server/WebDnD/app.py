@@ -458,7 +458,7 @@ def join(room:str) -> None:
     # notes.create_notes_for_room(room)
 
 @socketio.on(FromClient.POST_JOIN)
-# @validated # somehow we can get a 0 here, which is not a valid ui mode.
+# @validated # XXX: somehow we can get a 0 here, which is not a valid ui mode.
 def post_join(mode:UiMode) -> None:
     mode = mode or 1
     mode = validate('UiMode', mode)
@@ -836,8 +836,7 @@ if appconfig.DEV:
 
     @app.route('/kill')
     def kill() -> Any:
-        import os
-        os._exit(0)
+        raise SystemExit(0)
 else:
     @socketio.on(FromClient.DEBUG)
     def log_debug(msg:str) -> None:
