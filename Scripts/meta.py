@@ -25,6 +25,8 @@ TYPES = {
     "button":   "HTMLButtonElement",
     "canvas":   "HTMLCanvasElement",
     "textarea": "HTMLTextAreaElement",
+    "details": "HTMLDetailsElement",
+    "ul": "HTMLUListElement",
 }
 class ByIdGenerator(html.parser.HTMLParser):
     def __init__(self, filename, fp, *args, **kwargs)->None:
