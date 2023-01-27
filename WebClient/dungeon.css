@@ -431,9 +431,6 @@ td > select {
   width: 100%;
 }
 
-#tree select{
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-}
 #map{
   grid-column: 1
 }
@@ -617,8 +614,9 @@ html, body {
   overflow-wrap: break-word;
   z-index: 1;
   grid-template-rows: max-content max-content auto max-content max-content max-content;
-  grid-template-columns: 17em;
+  /*grid-template-columns: max-content;*/
   background-color: #fff;
+  width: 220px;
   /* This thing is the bane of my existence on windows*/
   /* Just overflow: hidden it */
   /*overflow: hidden;*/
@@ -627,12 +625,6 @@ html, body {
   width: 50vw;
   grid-template-columns: 50vw;
 }
-#chat.fullscreen #tree select,
-#chat.fullscreen #tree #back-map-button,
-#chat.fullscreen #tree #forward-map-button,
-#chat.fullscreen #tree #new-map-button,
-#chat.fullscreen #tree #edit-map-button,
-#chat.fullscreen #tree #notes-window-button,
 #chat.fullscreen #tree #privateroll-button
 {
   display: none;
@@ -686,7 +678,7 @@ html, body {
 #chat-history {
   overflow-y: scroll;
   /*height: 800px;*/
-  width: 17em;
+  width: 100%;
   line-height: 1.2;
 }
 #privateroll-history {
@@ -705,6 +697,7 @@ html, body {
   margin:-1px 0 0 -1px;
   padding: 2px 12px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  width: 100%;
 }
 .log div.clickable span {
   background-color: #eee;
@@ -720,7 +713,8 @@ body.dark-mode .log div.clickable span {
 #dice-history {
   overflow-y: scroll;
   border-top: 1px solid black;
-  width: 17em;
+  /*width: 17em;*/
+  width: 100%;
   line-height: 2.5ex;
   height: 12.5ex;
 }
@@ -910,7 +904,7 @@ div.rolltable table{
 }
 
 #macro-panel {
-  width: 17em;
+  width: 100%;
   display: none;
   grid-template-rows: 1.5em auto;
 }
@@ -1262,14 +1256,24 @@ body.dark-mode .tracker-numbered {
   left: 0;
   top: 0;
   z-index: 0;
-  width: 160px;
+  width: 180px;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   font-size: .8rem;
   border-right: 1px solid #aeaeae;
   height: 100%;
-  overflow-y: auto;
+  overflow-y: hidden;
+  display: grid;
+  grid-template-rows: auto max-content;
+  grid-template-columns: 100%;
+}
+#left-stuff {
+  display: grid;
+  overflow-y: scroll;
+  grid-template-columns: 100%;
+  grid-template-rows: max-content max-content max-content max-content;
+  /*border-bottom: 1px solid #aeaeae;*/
 }
 #left ul {
   width: 100%;
@@ -1280,7 +1284,7 @@ body.dark-mode .tracker-numbered {
 }
 #left summary {
   font-weight: bold;
-  font-size: 1.5rem;
+  font-size: 1rem;
   cursor: pointer;
 }
 #left details {

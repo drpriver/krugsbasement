@@ -89,41 +89,41 @@ function get_script_variables(character_id:number, macro_id:number):[Map<string,
 
 
 function alloc_macro():Macro{
-    let id = ++macrocounter;
-    let result:Macro = [id, "Untitled", "", []];
+    const id = ++macrocounter;
+    const result: Macro = [id, "Untitled", "", []];
     MACROS.set(id, result);
     return result;
 }
 
 function del_macro(id:number){
-    let m = MACROS.get(id)!;
+    const m = MACROS.get(id)!;
     MACROS.delete(id);
-    for(let c of CHARACTERS.values()){
-        let idx = c[2].indexOf(id);
+    for(const c of CHARACTERS.values()){
+        const idx = c[2].indexOf(id);
         if(idx > -1){
             c[2].splice(idx, 1);
         }
     }
-    for(let v of m[3])
+    for(const v of m[3])
         del_variable(v);
 }
 
 function alloc_variable():Variable {
-    let id = ++variablecounter;
-    let result:Variable = [id, "", ScriptVariableType.NUMBER, "0", 0];
+    const id = ++variablecounter;
+    const result: Variable = [id, "", ScriptVariableType.NUMBER, "0", 0];
     VARIABLES.set(id, result);
     return result;
 }
 
 function del_variable(id:number){
     VARIABLES.delete(id);
-    for(let c of CHARACTERS.values()){
-        let idx = c[3].indexOf(id);
+    for(const c of CHARACTERS.values()){
+        const idx = c[3].indexOf(id);
         if(idx > -1)
             c[3].splice(idx, 1);
     }
-    for(let m of MACROS.values()){
-        let idx = m[3].indexOf(id);
+    for(const m of MACROS.values()){
+        const idx = m[3].indexOf(id);
         if(idx > -1)
             m[3].splice(idx, 1);
     }
@@ -132,31 +132,31 @@ function del_variable(id:number){
 }
 
 function alloc_character():Character{
-    let id = ++charactercounter;
-    let result: Character = [id, "", [], []];
+    const id = ++charactercounter;
+    const result: Character = [id, "", [], []];
     CHARACTERS.set(id, result);
     return result;
 }
 
 function del_character(id:number){
-    let c = CHARACTERS.get(id)!;
+    const c = CHARACTERS.get(id)!;
     CHARACTERS.delete(id);
-    for(let v of c[3])
+    for(const v of c[3])
         del_variable(v);
-    for(let m of c[2])
+    for(const m of c[2])
         del_macro(m);
 }
 
 function save_macros(){
-    let to_save: Array<Macro> = Array.from(MACROS.values());
+    const to_save: Array<Macro> = Array.from(MACROS.values());
     sync_local(StorageCategory.MACROS, 'macros', to_save);
 }
 function save_characters(){
-    let to_save: Array<Character> = Array.from(CHARACTERS.values());
+    const to_save: Array<Character> = Array.from(CHARACTERS.values());
     sync_local(StorageCategory.MACROS, 'characters', to_save);
 }
 function save_variables(){
-    let to_save: Array<Variable> = Array.from(VARIABLES.values());
+    const to_save: Array<Variable> = Array.from(VARIABLES.values());
     sync_local(StorageCategory.MACROS, 'variables', to_save);
 }
 
@@ -176,8 +176,8 @@ function reg_var_input(vid:number, name:string, inp:HTMLInputElement){
 function update_var_value(vid:number, val:string){
     if(!val.length) return;
     if(VARINPUTS.has(vid)){
-        let vs = VARINPUTS.get(vid)!;
-        for(let v of vs.values()){
+        const vs = VARINPUTS.get(vid)!;
+        for(const v of vs.values()){
             if(v.type == 'checkbox')
                 v.checked = val == "1";
             v.value = val;
@@ -189,16 +189,16 @@ function update_var_value(vid:number, val:string){
 
 
 (function(){
-    for(let m of SETTINGS.macros.macros){
+    for(const m of SETTINGS.macros.macros){
         MACROS.set(m[0], m);
         if(m[0] > macrocounter) macrocounter = m[0];
     }
-    for(let v of SETTINGS.macros.variables){
+    for(const v of SETTINGS.macros.variables){
         VARIABLES.set(v[0], v);
         if(v[0] > variablecounter) variablecounter = v[0];
     }
     let first = true;
-    for(let c of SETTINGS.macros.characters){
+    for(const c of SETTINGS.macros.characters){
         if(first) active_character = c[0];
         first = false;
         CHARACTERS.set(c[0], c);

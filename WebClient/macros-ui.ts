@@ -56,7 +56,16 @@ function setup_macro_panel(){
         if(name.toLowerCase() == 'global' || name.toLowerCase() == 'globals')
             continue;
         let d = elem_parent_text(pt, 'div', name, null, 'macro-group-title')
-        elem_parent_text(l, 'li', name);
+        const li = elem_parent_text(l, 'li', name);
+        li.onclick = function(e:MouseEvent){
+            e.stopPropagation();
+        };
+        li.oncontextmenu = function(e:MouseEvent){
+            const menu = ctx_menu(e);
+            menu.separator();
+            menu.item('Cancel');
+            menu.install();
+        };
         tabs.push(d);
         let macro_group = elem_with_parent(pb, 'div',null, 'macro-panel-container');
         let macrodiv = elem_with_parent(macro_group, 'div', null, 'macro-panel-macros');

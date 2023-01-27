@@ -698,33 +698,33 @@
   ::raw
     <textarea spellcheck="false" id="chatinput" rows="4"></textarea>
 ::div #id(left)
-  ::raw
-    <details open>
-      <summary>Maps</summary>
-      <button disabled title="Previous Map" id="back-map-button">←</button>
-      <button disabled title="Next Map" id="forward-map-button">→</button>
-      <button title="New Map" style="width:100%;" id="new-map-button">+</button>
-      <ul id="left-maps-list">
-      </ul>
-    </details>
-  ::raw
-    <details open>
-      <summary>Notes</summary>
-      <button title="New Note" id="new-note" style="width:100%">+</button>
-      <ul id="left-notes-list">
-      </ul>
-    </details>
-  ::raw
-    <details open>
-      <summary>Sheets</summary>
-      <button title="New Sheet" id="new-sheet-button" style="width:100%">+</button>
-      <ul id="sheet-buttons">
-      </ul>
-    </details>
-  ::raw
-    <details open>
-      <summary>Macros</summary>
-      <ul id="left-macros-list">
-      </ul>
-    </details>
-  ::div #id(future-tools)
+  ::div #id(left-stuff)
+    ::raw
+      <details open>
+        <summary>Maps</summary>
+        <button disabled title="Previous Map" id="back-map-button">←</button>
+        <button disabled title="Next Map" id="forward-map-button">→</button>
+        <button title="New Map" style="width:100%;" id="new-map-button">+</button>
+        <ul id="left-maps-list">
+        </ul>
+      </details>
+    ::raw
+      <details open>
+        <summary>Notes</summary>
+        <button title="New Note" id="new-note" style="width:100%">+</button>
+        <ul id="left-notes-list">
+        </ul>
+      </details>
+    ::raw
+      <details open>
+        <summary>Sheets</summary>
+        <button title="New Sheet" id="new-sheet-button" style="width:100%">+</button>
+        <ul id="sheet-buttons">
+        </ul>
+      </details>
+    ::raw
+      <details open>
+        <summary>Macros</summary>
+        <ul id="left-macros-list">
+        </ul>
+      </details>
