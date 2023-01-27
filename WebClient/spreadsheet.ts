@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2023, David Priver
+// Copyright © 2023, David Priver
 //
 
 type SpreadSheet = {
@@ -302,11 +302,11 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         hidden: true,
         name,
         show: function(){
-            store_local(StorageCategory.WINDOW, openid, '1');
-            w.style.display = 'grid';
-            result.make_top();
             result.hidden = false;
             recalc(id);
+            result.make_top();
+            store_local(StorageCategory.WINDOW, openid, '1');
+            w.style.display = 'grid';
         },
         hide: function(){
             w.style.display = 'none';
@@ -919,9 +919,9 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
     result.set_title = function(title:string){
         result.name = title;
         t.textContent = title;
-        for(const o of by_id('current-spreadsheet').options){
-            if(o.value == ''+result.id){
-                o.textContent = title;
+        for(const li of by_id('sheet-buttons').getElementsByTagName('li')){
+            if(li.dataset['sheetid'] == ''+id){
+                li.textContent = title;
                 break;
             }
         }
@@ -1162,29 +1162,56 @@ const SPREADSHEETS:Map<number, SpreadSheet> = new Map();
 function spreadsheet_from_data(data:SpreadSheetData){
     // Use ALL to enable all behaviors and then set the real flags below. This
     // allows the imperative adding of the needed columns.
-    let ss = make_spreadsheet(data.id, SpreadSheetFlags.ALL, data.name);
+    const ss = make_spreadsheet(data.id, SpreadSheetFlags.ALL, data.name);
     for(const col of data.column_names)
         ss.add_column2(-1, col);
     for(let i = 0; i < data.cells.length; i+= data.column_names.length)
         ss.add_row2(-1, data.cells.slice(i, i+data.column_names.length));
     SPREADSHEETS.set(data.id, ss);
-    const opt = elem_parent_text(by_id('current-spreadsheet'), 'option', data.name, null, null);
-    opt.value = ''+data.id;
-    by_id('current-spreadsheet').selectedIndex = -1;
     ss.set_flags(data.flags);
+    const li = elem_parent_text(by_id('sheet-buttons'), 'li', data.name);
+    const id = ss.id;
+    li.dataset['sheetid'] = ''+id;
+    li.onclick = function(e:MouseEvent){
+        e.stopPropagation();
+        SPREADSHEETS.get(id)!.show();
+    };
+    li.oncontextmenu = function(e:MouseEvent){
+        const menu = ctx_menu(e);
+        const ss = SPREADSHEETS.get(id)!;
+        if(ss.hidden)
+            menu.item('Show', ss.show);
+        else
+            menu.item('Hide', ss.hide);
+        menu.item('Rename', function(e:MouseEvent){
+            e.stopPropagation();
+            e.preventDefault();
+            user_edit_element(li, function(txt:string):void{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NAME, id, txt]);
+            });
+            remove_ctx_menu();
+        });
+        menu.separator();
+        menu.item('Delete', function(){
+            const diag = get_dialog('simple-delete');
+            if(!diag) return;
+            diag.f.delete.checked = false;
+            diag.ok_handler = function(){
+                if(diag.f.delete.checked){
+                    EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE, id]);
+                    li.remove();
+                }
+            };
+            diag.show();
+        });
+        menu.separator();
+        menu.item('Cancel');
+        menu.install();
+    };
 }
 // TAG newtrackerbutton
 document.addEventListener('DOMContentLoaded', function(){
-    by_id('current-spreadsheet').oninput = function(e:Event){
-        const s = e.target as HTMLSelectElement;
-        e.stopPropagation();
-        e.preventDefault();
-        const ss = SPREADSHEETS.get(+s.value);
-        if(ss) ss.show();
-        s.selectedIndex = -1;
-        s.blur()
-    };
-    const b = by_id('new-tracker-button');
+    const b = by_id('new-sheet-button');
     b.onclick = function(){
         let diag = get_dialog('tracker');
         if(!diag) return;
@@ -1260,7 +1287,7 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg){
         case SpreadSheetMsgType.INITIALIZE:
             for(const ss of SPREADSHEETS.values()) ss.w.remove();
             SPREADSHEETS.clear();
-            (by_id('current-spreadsheet') as any).replaceChildren();
+            (by_id('sheet-buttons') as any).replaceChildren();
             for(const d of arg[1]) spreadsheet_from_data(d);
             for(const ss of SPREADSHEETS.values()){
                 ss._dirty = true;
@@ -1291,9 +1318,9 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg){
             // doing it inline here?
             ss.w.remove();
             SPREADSHEETS.delete(id);
-            for(const o of by_id('current-spreadsheet').options){
-                if(o.value == ''+id){
-                    o.remove();
+            for(const li of by_id('sheet-buttons').getElementsByTagName('li')){
+                if(li.dataset['sheetid'] == ''+id){
+                    li.remove();
                     break;
                 }
             }

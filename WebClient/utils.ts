@@ -267,6 +267,7 @@ function user_edit_element(cell:HTMLElement, onfinish:(txt:string)=>void){
     let oldtxt = cell.textContent;
     if(!oldtxt) oldtxt = '';
     cell.textContent = '';
+    cell.classList.add('editing');
     const inp = elem_with_parent(cell, 'input');
     inp.style.width = w;
     inp.style.height = h;
@@ -295,6 +296,7 @@ function user_edit_element(cell:HTMLElement, onfinish:(txt:string)=>void){
                 onfinish(v);
         }
         inp.remove();
+        cell.classList.remove('editing');
     };
     inp.focus();
 }

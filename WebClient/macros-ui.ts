@@ -5,6 +5,7 @@
 (function(){
 let macro_panel_idx = 0;
 function setup_macro_panel(){
+    const l = by_id('left-macros-list');
     const pt = by_id('macro-panel-tabs');
     // @ts-ignore
     pt.replaceChildren();
@@ -55,6 +56,7 @@ function setup_macro_panel(){
         if(name.toLowerCase() == 'global' || name.toLowerCase() == 'globals')
             continue;
         let d = elem_parent_text(pt, 'div', name, null, 'macro-group-title')
+        elem_parent_text(l, 'li', name);
         tabs.push(d);
         let macro_group = elem_with_parent(pb, 'div',null, 'macro-panel-container');
         let macrodiv = elem_with_parent(macro_group, 'div', null, 'macro-panel-macros');

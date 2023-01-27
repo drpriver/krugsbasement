@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 
 const {
@@ -8,6 +8,7 @@ const {
     screenshot,
     request_render,
     resize_canvas,
+    get_active_view,
 } = (function(){
 if(SETTINGS.uimode != UiMode.NORMAL){
     function dummy_export():Array<InitializeMap>{
@@ -876,7 +877,6 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 
 const MAPS:Map<number,DungeonMap> = new Map();
-const MapOptionElements: Map<number, HTMLOptionElement> = new Map();
 
 type DungeonMap = {
     map_id: number; // integer
@@ -1038,7 +1038,7 @@ function center_view_at(view:DungeonMapView, x:number, y:number){
     view.camera_y = -y + TheCanvas.height/2/view.scale;
     request_render();
 }
-function change_active_map_view(idx: number, from_select:boolean, store:boolean){
+function change_active_map_view(idx: number, store:boolean){
     let old_view = active_map_view_index >=0 && active_map_view_index < dungeon_map_views.length? dungeon_map_views[active_map_view_index]:null;
     if(old_view && store){
         store_local(StorageCategory.CANVAS, `camera.${active_map_view_index}`, [old_view.camera_x, old_view.camera_y, old_view.scale]);
@@ -1060,29 +1060,11 @@ function change_active_map_view(idx: number, from_select:boolean, store:boolean)
         }
     }
     request_render();
-    if(from_select)
-        return;
-    const select = by_id('current-map-name');
-    for(let i = 0; i < select.options.length; i++){
-        if(+select.options[i].value == dungeon_map_views[idx].map.map_id){
-            select.selectedIndex = i;
-            break;
-        }
-    }
 }
-document.addEventListener('DOMContentLoaded', function(){
-    const select = by_id('current-map-name');
-    select.addEventListener('input', function(e:Event){
-        e.stopPropagation();
-        change_map(+select.value, true);
-        map_hist.add(+select.value);
-        select.blur();
-    });
-});
 function get_active_view(): DungeonMapView{
     if(!dungeon_map_views.length){
         dungeon_map_views.push(new_map_view(0));
-        change_active_map_view(0, false, false);
+        change_active_map_view(0, false);
     }
     return dungeon_map_views[active_map_view_index];
 }
@@ -1114,12 +1096,26 @@ function get_map(map_id:number): DungeonMap {
     };
     EMIT(FromClient.CANVAS_CREATE_MAP, map_id);
     MAPS.set(map_id, new_map);
-    const option = document.createElement('option');
-    option.innerText = 'Untitled';
-    option.value = ""+map_id;
-    MapOptionElements.set(map_id, option);
-    const select = by_id('current-map-name');
-    select.options.add(option);
+    const li = elem_parent_text(by_id('left-maps-list'), 'li', 'Untitled');
+    li.dataset['mapid'] = ''+map_id;
+    li.onclick = function(e:Event){
+        e.stopPropagation();
+        e.preventDefault();
+        change_map(map_id);
+    };
+    li.oncontextmenu = function(e:MouseEvent){
+        const menu = ctx_menu(e);
+        menu.item('Configure', function(){
+            edit_map_dialog(MAPS.get(map_id)!);
+        });
+        menu.separator();
+        menu.item('Delete', function(){
+            delete_map_dialog(map_id);
+        });
+        menu.separator();
+        menu.item('Cancel');
+        menu.install();
+    };
     return new_map;
 }
 
@@ -1140,19 +1136,20 @@ const map_hist = (function(){
         can_go_forward:()=>boolean;
         add:(_:number)=>void;
         clear:()=>void;
+        discard:(_:number)=>void;
     } = {
         idx: -1,
         ids: [],
         go_back:()=>{
             if(h.idx<=0) return;
             let id = h.ids[--h.idx];
-            change_map(id, false);
+            change_map(id);
             update_disabled_forward_back();
         },
         go_forward:()=>{
             if(h.idx>=h.ids.length-1) return;
             let id = h.ids[++h.idx];
-            change_map(id, false);
+            change_map(id);
             update_disabled_forward_back();
         },
         can_go_back:()=>{
@@ -1181,15 +1178,24 @@ const map_hist = (function(){
             h.idx = -1;
             update_disabled_forward_back();
         },
+        discard:(id:number)=>{
+            let i = -1;
+            // slow and quadratic but whatever
+            while((i = h.ids.indexOf(id)) !== -1){
+                h.ids.splice(i, 1);
+            }
+            update_disabled_forward_back();
+        },
     };
     return h;
 }());
 
-function change_map(map_id:number, from_select:boolean){
+function change_map(map_id:number){
     for(let i = 0; i < dungeon_map_views.length; ++i){
         const mv = dungeon_map_views[i];
         if(mv.map.map_id == map_id){
-            change_active_map_view(i, from_select, true);
+            change_active_map_view(i, true);
+            map_hist.add(map_id);
             break;
         }
     }
@@ -1209,12 +1215,16 @@ ONRECV(ToClient.CANVAS_CREATE_MAP, function(map_id:number){
     if(MAPS.has(map_id))
         return;
     dungeon_map_views.push(new_map_view(map_id));
-    change_active_map_view(dungeon_map_views.length-1, false, true);
+    change_active_map_view(dungeon_map_views.length-1, true);
 });
 function rename_map(map:DungeonMap, name:string){
     map.map_name = name;
-    const opt = MapOptionElements.get(map.map_id)!;
-    opt.innerText = name;
+    for(const li of by_id('left-maps-list').getElementsByTagName('li')){
+        if(li.dataset['mapid'] == ''+map.map_id){
+            li.textContent = name;
+            break;
+        }
+    }
 }
 ONRECV(ToClient.CANVAS_NAME_MAP, function(data:NameMapMessage){
     const map = get_map(data.map_id);
@@ -1259,16 +1269,14 @@ const enum REFERENCE {WIDTH = 64, HALF_WIDTH=WIDTH/2, QUARTER_WIDTH=WIDTH/4}; //
 let TheCanvas:HTMLCanvasElement;
 let TheCtx:CanvasRenderingContext2D;
 ONRECV(ToClient.CANVAS_GATHER, function(where:GatherMessage): void{
-    change_map(where.map_id, false);
-    map_hist.add(where.map_id);
+    change_map(where.map_id);
     const view = get_active_view();
     view.camera_x = where.x;
     view.camera_y = where.y;
     request_render();
 });
 ONRECV(ToClient.CANVAS_BATTLE, function(where:GatherMessage): void{
-    change_map(where.map_id, false);
-    map_hist.add(where.map_id);
+    change_map(where.map_id);
     const view = get_active_view();
     view.camera_x = where.x;
     view.camera_y = where.y;
@@ -1334,10 +1342,12 @@ function resize_canvas():void{
     }
     width |= 0;
     height |= 0;
+    width -= by_id('left').offsetWidth;
     TheCanvas.width = width;
     TheCanvas.height = height ;
     TheCanvas.style.width = width + 'px';
     TheCanvas.style.height = height + 'px';
+    TheCanvas.style.left = by_id('left').offsetWidth + 'px';
     request_render();
 }
 
@@ -2801,24 +2811,14 @@ function delete_map(map_id:number){
         return;
     }
     map.flags |= MapFlags.DELETED;
-    const select = by_id('current-map-name');
-    let prev_idx = select.selectedIndex-1;
-    if(prev_idx < 0)
-        prev_idx = 0;
-    for(let i = 0; i < select.options.length; i++){
-        if(+select.options[i].value == map_id){
-            select.remove(i);
+    change_active_map_view(0, true);
+    for(const li of by_id('left-maps-list').getElementsByTagName('li')){
+        if(li.dataset['mapid'] == ''+map_id){
+            li.remove();
             break;
         }
     }
-    let new_active_map_id = +select.options[prev_idx].value;
-    select.selectedIndex = prev_idx;
-    for(let i = 0; i < dungeon_map_views.length; ++i){
-        if(dungeon_map_views[i].map.map_id == new_active_map_id){
-            change_active_map_view(i, true, true);
-            break;
-        }
-    }
+    map_hist.discard(map_id);
 }
 
 // cutnpaste from below. TODO: factor these.
@@ -2831,11 +2831,7 @@ function initialize_maps(msgs:Array<InitializeMap>){
         MAPS.clear()
         dungeon_map_views = []
         active_map_view_index = 0;
-        const select = by_id('current-map-name');
-        while(select.options.length){
-            select.remove(0);
-        }
-        MapOptionElements.clear();
+        (by_id('left-maps-list') as any).replaceChildren();
     }
 
     for(let msg of msgs){
@@ -2869,7 +2865,7 @@ function initialize_maps(msgs:Array<InitializeMap>){
     let old_idx = get_local(StorageCategory.CANVAS, 'active_map_view_index');
     if(old_idx !== undefined){
         if(old_idx < dungeon_map_views.length && old_idx >= 0)
-            change_active_map_view(old_idx, false, false);
+            change_active_map_view(old_idx, false);
     }
     map_hist.clear();
     map_hist.add(get_active_view().map.map_id);
@@ -4440,7 +4436,11 @@ function launch_edit_dialog(view:DungeonMapView):void{
             [l, c, r][obj.alignment].checked = true;
             dialog.f.background.checked = !!(obj.flags & CanvasFlag.TEXT_HAS_BACKGROUND);
             dialog.f.text.textContent = obj.text;
-            dialog.f['link-dungeon'].innerHTML = '<option value="-1">No Link</option>'+by_id('current-map-name').innerHTML;
+            (dialog.f['link-dungeon'] as any).replaceChildren()
+            elem_parent_text(dialog.f['link-dungeon'], 'option', 'No Link').value = '-1';
+            for(const map of MAPS.values()){
+                elem_parent_text(dialog.f['link-dungeon'], 'option', map.map_name).value = ''+map.map_id;
+            }
             let submapoptions = '<option value="-1">No Link</option>'
             for(let sm of view.map.submaps){
                 if(sm.flags & CanvasFlag.DELETED) continue;
@@ -4684,9 +4684,8 @@ function launch_edit_dialog(view:DungeonMapView):void{
 let animation_requested = false;
 function request_render():void{
     if(SETTINGS.uimode != UiMode.NORMAL) return;
-    if(animation_requested){
+    if(animation_requested)
         return;
-    }
     animation_requested = true;
     // only call this from here to avoid double renders.
     requestAnimationFrame(render);
@@ -7931,8 +7930,7 @@ document.addEventListener('DOMContentLoaded', function(){
                                     request_render();
                                     return;
                                 }
-                                change_map(o.map_id, false);
-                                map_hist.add(o.map_id);
+                                change_map(o.map_id);
                                 view.selected.clear();
                                 TheCanvas.style.cursor = 'initial';
                                 return;
@@ -8136,8 +8134,7 @@ document.addEventListener('DOMContentLoaded', function(){
                                         request_render();
                                         return;
                                     }
-                                    change_map(o.map_id, false);
-                                    map_hist.add(o.map_id);
+                                    change_map(o.map_id);
                                     view.selected.clear();
                                     TheCanvas.style.cursor = 'initial';
                                     return;
@@ -8536,7 +8533,11 @@ document.addEventListener('DOMContentLoaded', function(){
                 r.checked = false;
                 dialog.f.text.value = '';
                 dialog.f.background.checked = false;
-                dialog.f['link-dungeon'].innerHTML = '<option value="-1">No Link</option>'+by_id('current-map-name').innerHTML;
+                (dialog.f['link-dungeon'] as any).replaceChildren()
+                elem_parent_text(dialog.f['link-dungeon'], 'option', 'No Link').value = '-1';
+                for(const map of MAPS.values()){
+                    elem_parent_text(dialog.f['link-dungeon'], 'option', map.map_name).value = ''+map.map_id;
+                }
                 let submapoptions = '<option value="-1">No Link</option>'
                 for(let sm of view.map.submaps){
                     if(sm.flags & CanvasFlag.DELETED) continue;
@@ -9346,102 +9347,100 @@ document.addEventListener('DOMContentLoaded', function(){
     });
 });
 
-document.addEventListener('DOMContentLoaded', function(){
-    const edit_map_button = by_id('edit-map-button');
-    const new_map_button = by_id('new-map-button');
-    edit_map_button.addEventListener('click', function(e:MouseEvent){
-        e.stopPropagation();
-        e.preventDefault();
-        const active_view = get_active_view();
-        const map = active_view.map;
-        let dialog = get_dialog('map-input');
-        if(!dialog) return;
-        dialog.title.textContent = 'Edit Map';
-        dialog.f.name.value = map.map_name;
-        dialog.f.delete.checked = false;
-        const orig_grid_color = map.grid_color;
-        link_input_value(orig_grid_color.length?orig_grid_color:'#969696',
-            dialog.f['grid-color'], 'onchange', dialog.f['grid-color-text'], 'oninput', function(){
-                map.grid_color = dialog.f['grid-color-text'].value;
-                request_render();
-            });
-        const orig_bg_color = map.bg_color;
-        link_input_value(orig_bg_color.length?orig_bg_color:'#ffffff',
-            dialog.f['bg-color'], 'onchange', dialog.f['bg-color-text'], 'oninput', function(){
-                map.bg_color = dialog.f['bg-color-text'].value;
-                request_render();
-            });
-        const hg = dialog.f['hex-grid'];
-        const ng = dialog.f['no-grid']
-        hg.checked = !!(map.grid_type & GridType.HEX);
-        ng.checked = !!(map.grid_type & GridType.NOGRID);
-        dialog.f.numbered.checked = !!(map.flags & MapFlags.NUMBERED);
-        dialog.f.big.checked = !!(map.flags & MapFlags.BIG_HEX);
-        dialog.ok_handler = function(){
-            if(dialog.f.delete.checked){
-                let dialog = get_dialog('map-delete');
-                if(!dialog) return;
-                const cant_delete = map.flags & MapFlags.CANT_DELETE;
-                dialog.title.innerText = 'Delete Map?';
-                if(cant_delete){
-                    dialog.f.can.style.display = 'none';
-                    dialog.f.cant.style.display = 'initial';
-                }
-                else {
-                    dialog.f.can.style.display = 'initial';
-                    dialog.f.cant.style.display = 'none';
-                }
-                dialog.f.delete.checked = false;
-                dialog.ok_handler = function(){
-                    if(!dialog.f.delete.checked) return;
-                    EMIT(FromClient.CANVAS_DELETE_MAP_REQUEST, active_view.map.map_id);
-                };
-                dialog.show();
-                return;
-            }
-            const value = dialog.f.name.value.trim();
-            if(!value) return;
-            if(value != map.map_name){
-                rename_map(map, value);
-                let msg: NameMapMessage = {map_id:map.map_id, map_name:value};
-                EMIT(FromClient.CANVAS_NAME_MAP, msg);
-            }
-            let gt = hg.checked? GridType.HEX : GridType.SQUARE;
-            if(ng.checked) gt |= GridType.NOGRID;
-            if(map.grid_type != gt){
-                let msg: CanvasGridTypeMsg = {map_id:map.map_id, grid_type:gt};
-                EMIT(FromClient.CANVAS_GRID_TYPE, msg);
-            }
-            let flags = MapFlags.NONE;
-            if(dialog.f.numbered.checked)
-                flags |= MapFlags.NUMBERED
-            if(dialog.f.big.checked)
-                flags |= MapFlags.BIG_HEX;
-            if((map.flags & (MapFlags.NUMBERED|MapFlags.BIG_HEX)) != flags){
-                let msg : CanvasGridNumberedMsg = {map_id:map.map_id, numbered:flags};
-                EMIT(FromClient.CANVAS_GRID_NUMBERED, msg);
-            }
+function delete_map_dialog(map_id:number){
+    let dialog = get_dialog('map-delete');
+    if(!dialog) return;
+    const map = MAPS.get(map_id);
+    if(!map) return;
+    const cant_delete = map.flags & MapFlags.CANT_DELETE;
+    dialog.title.innerText = 'Delete Map?';
+    if(cant_delete){
+        dialog.f.can.style.display = 'none';
+        dialog.f.cant.style.display = 'initial';
+    }
+    else {
+        dialog.f.can.style.display = 'initial';
+        dialog.f.cant.style.display = 'none';
+    }
+    dialog.f.delete.checked = false;
+    dialog.ok_handler = function(){
+        if(!dialog.f.delete.checked) return;
+        EMIT(FromClient.CANVAS_DELETE_MAP_REQUEST, map_id);
+    };
+    dialog.show();
+    return;
+}
 
-            let grid_color = dialog.f['grid-color-text'].value;
-            if(grid_color == '#969696') grid_color = '';
-            if(orig_grid_color != grid_color){
-                let msg : CanvasColorMsg = {map_id:map.map_id, color:grid_color};
-                EMIT(FromClient.CANVAS_GRID_COLOR, msg);
-            }
-            let bg_color = dialog.f['bg-color-text'].value;
-            if(bg_color == '#ffffff') bg_color = '';
-            if(orig_bg_color != bg_color){
-                let msg : CanvasColorMsg = {map_id:map.map_id, color:bg_color};
-                EMIT(FromClient.CANVAS_BG_COLOR, msg);
-            }
-        };
-        dialog.cancel_handler = function(){
-            map.grid_color = orig_grid_color;
-            map.bg_color = orig_bg_color;
+function edit_map_dialog(map:DungeonMap){
+    let dialog = get_dialog('map-input');
+    if(!dialog) return;
+    dialog.title.textContent = 'Configure Map';
+    dialog.f.name.value = map.map_name;
+    const orig_grid_color = map.grid_color;
+    link_input_value(orig_grid_color.length?orig_grid_color:'#969696',
+        dialog.f['grid-color'], 'onchange', dialog.f['grid-color-text'], 'oninput', function(){
+            map.grid_color = dialog.f['grid-color-text'].value;
             request_render();
-        };
-        dialog.show();
-    });
+        });
+    const orig_bg_color = map.bg_color;
+    link_input_value(orig_bg_color.length?orig_bg_color:'#ffffff',
+        dialog.f['bg-color'], 'onchange', dialog.f['bg-color-text'], 'oninput', function(){
+            map.bg_color = dialog.f['bg-color-text'].value;
+            request_render();
+        });
+    const hg = dialog.f['hex-grid'];
+    const ng = dialog.f['no-grid']
+    hg.checked = !!(map.grid_type & GridType.HEX);
+    ng.checked = !!(map.grid_type & GridType.NOGRID);
+    dialog.f.numbered.checked = !!(map.flags & MapFlags.NUMBERED);
+    dialog.f.big.checked = !!(map.flags & MapFlags.BIG_HEX);
+    dialog.ok_handler = function(){
+        const value = dialog.f.name.value.trim();
+        if(!value) return;
+        if(value != map.map_name){
+            rename_map(map, value);
+            let msg: NameMapMessage = {map_id:map.map_id, map_name:value};
+            EMIT(FromClient.CANVAS_NAME_MAP, msg);
+        }
+        let gt = hg.checked? GridType.HEX : GridType.SQUARE;
+        if(ng.checked) gt |= GridType.NOGRID;
+        if(map.grid_type != gt){
+            let msg: CanvasGridTypeMsg = {map_id:map.map_id, grid_type:gt};
+            EMIT(FromClient.CANVAS_GRID_TYPE, msg);
+        }
+        let flags = MapFlags.NONE;
+        if(dialog.f.numbered.checked)
+            flags |= MapFlags.NUMBERED
+        if(dialog.f.big.checked)
+            flags |= MapFlags.BIG_HEX;
+        if((map.flags & (MapFlags.NUMBERED|MapFlags.BIG_HEX)) != flags){
+            let msg : CanvasGridNumberedMsg = {map_id:map.map_id, numbered:flags};
+            EMIT(FromClient.CANVAS_GRID_NUMBERED, msg);
+        }
+
+        let grid_color = dialog.f['grid-color-text'].value;
+        if(grid_color == '#969696') grid_color = '';
+        if(orig_grid_color != grid_color){
+            let msg : CanvasColorMsg = {map_id:map.map_id, color:grid_color};
+            EMIT(FromClient.CANVAS_GRID_COLOR, msg);
+        }
+        let bg_color = dialog.f['bg-color-text'].value;
+        if(bg_color == '#ffffff') bg_color = '';
+        if(orig_bg_color != bg_color){
+            let msg : CanvasColorMsg = {map_id:map.map_id, color:bg_color};
+            EMIT(FromClient.CANVAS_BG_COLOR, msg);
+        }
+    };
+    dialog.cancel_handler = function(){
+        map.grid_color = orig_grid_color;
+        map.bg_color = orig_bg_color;
+        request_render();
+    };
+    dialog.show();
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+    const new_map_button = by_id('new-map-button');
     new_map_button.addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
@@ -9497,5 +9496,6 @@ return {
     screenshot,
     request_render,
     resize_canvas,
+    get_active_view,
 };
 }());

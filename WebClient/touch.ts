@@ -13,6 +13,6 @@ document.addEventListener('DOMContentLoaded', function(){
         by_id('keyboardless-buttons').style.display = 'initial';
         const ob = by_id('options-button');
         ob.remove();
-        by_id('new-tracker-button').insertAdjacentElement('afterend', ob);
+        by_id('new-sheet-button').insertAdjacentElement('afterend', ob);
     }
 });

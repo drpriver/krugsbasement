@@ -1,10 +1,263 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 
 // Don't bother trying to split notes into core vs. ui as they are their
 // own self-contained thing.
-(function(){
+// (function(){
+
+type NoteWindow = {
+    id: number;
+    w: HTMLDivElement;
+    t: HTMLSpanElement;
+    make_top: ()=>void;
+    edit_button: HTMLButtonElement;
+    iframe: HTMLIFrameElement;
+    ed_container: HTMLDivElement;
+    editor: HTMLTextAreaElement;
+    log: HTMLDivElement;
+    show: () => void;
+    refresh: () => void;
+    is_editing: boolean;
+};
+const boilerplate = (''
+    +'::css\n'
+    +'  body {\n'
+    +'    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;\n'
+    +'  }\n'
+    +'  table, table * {\n'
+    +'    border: 1px solid black;\n'
+    +'    border-collapse: collapse;\n'
+    +'    padding: 8px 8px;\n'
+    +'  }\n'
+    +'  blockquote {\n'
+    +'    font-style: italic;\n'
+    +'  }\n'
+    +'  div.free > pre{\n'
+    +'    font-style: italic;\n'
+    +'    font-family: serif;\n'
+    +'  }\n'
+    +'  body {\n'
+    +'    padding: 0px 2em;\n'
+    +'    max-width: 40em;\n'
+    +'  }\n');
+function update_iframe(n:NoteWindow):void{
+    let note = NOTES.get(n.id);
+    if(!note){
+        if(DARKMODE){
+            // Chromium-based browsers won't inherit
+            // the colorScheme for empty iframes,
+            // so set them here.
+            n.iframe.srcdoc = `<scr` + `ipt>
+                document.documentElement.style.colorScheme = 'dark';
+                </sc` + `ript>`;
+        }
+        else
+            n.iframe.srcdoc = '';
+        return;
+    }
+    let title = note.title;
+    let s = title + '::title\n' + n.editor.value + '\n' + boilerplate;
+    make_dnd_html(s, function(html:string, errors:Array<string>){
+        (n.log as any).replaceChildren();
+        for(let error of errors){
+          const pp = document.createElement('pre');
+          pp.innerHTML = error;
+          n.log.appendChild(pp);
+        }
+        if(html){
+            // This is unbelievably hacky, but for some reason
+            // internal links aren't being recognized as internal,
+            // so we need to do it ourselves.
+
+            // breaking up the tags as a version of safari
+            // interprets them as regex for some reason
+            html += `<scr` + `ipt>
+            document.addEventListener('DOMContentLoaded', function(){
+                const anchors = document.getElementsByTagName('a');
+                function add_interceptor(a){
+                    a.onclick = function(e){
+                        let href = a.href;
+                        if(href.baseVal) href = href.baseVal;
+                       let split = href.split('#');
+                       if(split.length > 1){
+                           let target = split[1];
+                           let t = document.getElementById(target);
+                           if(t){
+                               t.scrollIntoView();
+                           }
+                       }
+                       e.preventDefault();
+                       e.stopPropagation();
+                       return false;
+                       a.setAttribute('target', '_blank');
+                    };
+                }
+                for(let a of anchors){
+                    add_interceptor(a);
+                }
+            });
+            </scr`+ `ipt>
+            `;
+            if(DARKMODE){
+                html += `<scr` + `ipt>
+                document.documentElement.style.colorScheme = 'dark';
+                </sc` + `ript>`;
+                html += `<sty` + `le>
+                @supports (-moz-appearance:none) {
+                  body {
+                    color: #eee;
+                    background-color: #333;
+                  }
+                }
+                </sty` + `le>`;
+            }
+            n.iframe.srcdoc = html;
+        }
+    });
+}
+
+function make_note_window(id:number):NoteWindow{
+    const w = elem('div', `notes-${id}`, 'window');
+    w.classList.add('notes-window');
+    const wh = elem_with_parent(w, 'div', null, 'window-handle');
+    wh.oncontextmenu = function(e:MouseEvent){
+        const menu = ctx_menu(e);
+        menu.item('Show Others', function(){
+            EMIT(FromClient.NOTE_SHOW, id);
+        });
+        menu.item('Rename', function(e:MouseEvent){
+            e.stopPropagation();
+            e.preventDefault();
+            user_edit_element(t, function(v:string){
+                EMIT(FromClient.NOTE_UPDATE_TITLE, {note_id:id, title:v});
+                const note = NOTES.get(id)!;
+                note.title = v;
+                result.refresh();
+                const li = get_note_li(id);
+                if(li) li.textContent = v;
+            });
+            remove_ctx_menu();
+        });
+        menu.separator();
+        menu.item('Delete', function(){
+            const dialog = get_dialog('note-deletion');
+            if(!dialog) return;
+            dialog.f.checkbox.checked = false;
+            dialog.ok_handler = function(){
+                if(!dialog.f.checkbox.checked)
+                    return;
+                EMIT(FromClient.DELETE_NOTE_REQUEST, id);
+            };
+            dialog.show();
+        });
+        menu.separator();
+        menu.item('Cancel');
+        menu.install();
+    }
+    const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
+    const t = elem_parent_text(wh, 'span', '', null, 'window-title');
+    setup_movable_window(w, wh, WINDOWFLAGS.LOCAL_REMEMBER | WINDOWFLAGS.REMEMBER_POSITION);
+    const make_top = setup_zsorted_window(w);
+    const edit_button = elem_parent_text(w, 'button', 'Edit');
+    const iframe = elem_with_parent(w, 'iframe');
+    if(DARKMODE){
+        // Chromium-based browsers won't inherit
+        // the colorScheme for empty iframes,
+        // so set them here.
+        // Firefox and Safari don't need this hack, but
+        // it doesn't hurt.
+        //
+        // Do it before activation to avoid flicker.
+        //
+        // Will look weird if the user changes
+        // colorscheme, but if they change colorscheme,
+        // they will understand why something flickers.
+        iframe.srcdoc = `<scr` + `ipt>
+            document.documentElement.style.colorScheme = 'dark';
+            </sc` + `ript>`;
+    }
+    const ed_container = elem_with_parent(w, 'div', null, 'note-view-editor-container');
+    ed_container.style.display = 'none';
+    const editor = elem_with_parent(ed_container, 'textarea', null, 'note-view-edit');
+    editor.spellcheck = false;
+    editor.oninput = function(){
+        update_iframe(result);
+        const note = NOTES.get(id);
+        if(!note) return;
+        note.body = editor.value;
+        note.need_send = true;
+    };
+    editor.onkeydown = function(e){
+        if(e.key == 'Escape'){
+            stop_editing();
+            return;
+        }
+        if(e.key != 'Tab')
+            return;
+        e.preventDefault();
+        let start = editor.selectionStart;
+        let end = editor.selectionEnd;
+        editor.value = editor.value.substring(0, start) + "  " + editor.value.substring(end);
+        // restore cursor position
+        editor.selectionStart = editor.selectionEnd = start+2;
+    }
+    const log = elem_with_parent(ed_container, 'div', null, 'note-view-editor-log');
+    const result: NoteWindow = { id, w, t, make_top, edit_button, iframe, ed_container, editor, log, show:function(){
+        const note = NOTES.get(id);
+        if(!note) return;
+        if(note.need_receive) EMIT(FromClient.GET_NOTE, id);
+        if(!w.parentNode) document.body.appendChild(w);
+        w.style.display = 'grid';
+        result.make_top();
+        result.refresh();
+    }, is_editing:false,
+    refresh:function(){
+        const note = NOTES.get(id);
+        if(!note) return;
+        editor.value = note.body;
+        t.textContent = note.title;
+        if(w.parentNode) update_iframe(result);
+    }};
+    function sync_note(){
+        const note = NOTES.get(id);
+        if(!note) return;
+        if(note.need_send){
+            const msg: NoteUpdateBody = {note_id:note.id, body:note.body};
+            EMIT(FromClient.NOTE_UPDATE_BODY, msg);
+            note.need_send = false;
+        }
+    }
+    function stop_editing(){
+        if(!result.is_editing) return;
+        result.is_editing = false;
+        edit_button.textContent = 'Edit';
+        ed_container.style.display = 'none';
+        update_iframe(result);
+        iframe.style.display = 'block';
+        sync_note();
+
+    }
+    function start_editing(){
+        if(result.is_editing) return;
+        result.is_editing = true;
+        edit_button.textContent = 'Done';
+        ed_container.style.display = 'grid';
+        iframe.style.display = 'none';
+    }
+    edit_button.onclick = function(e:MouseEvent){
+        e.stopPropagation();
+        if(edit_button.textContent == 'Edit')
+            start_editing();
+        else
+            stop_editing();
+    }
+    setup_closable_window(w, x, function(){
+        stop_editing();
+        w.remove();
+    });
+    return result;
+}
 type Note_ = {
     title: string;
     body: string;
@@ -14,6 +267,24 @@ type Note_ = {
     need_receive: boolean;
 }
 const NOTES: Map<number, Note_> = new Map();
+const NOTE_WINDOWS: Map<number, NoteWindow> = new Map();
+
+function get_note_window(id:number){
+    let window = NOTE_WINDOWS.get(id);
+    if(!window){
+        window = make_note_window(id);
+        NOTE_WINDOWS.set(id, window);
+    }
+    return window;
+}
+
+function get_note_li(id:number):HTMLLIElement|null{
+    for(const li of by_id('left-notes-list').getElementsByTagName('li')){
+        if(li.dataset['noteid'] == ''+id)
+            return li;
+    }
+    return null;
+}
 
 const make_dnd_html = (function(){
     let wasm_instance: WebAssembly.Instance;
@@ -93,212 +364,19 @@ const make_dnd_html = (function(){
 })();
 
 document.addEventListener('DOMContentLoaded', function(){
-    const notes_window = get_window('notes');
-    const notes_editor_container = by_id('note-view-editor-container');
-    const notes_area = by_id('note-view-edit');
-    const notes_title_area = by_id('note-view-title');
-    const iframe = by_id('current-note-view');
-    const editor_log = by_id('note-view-editor-log');
-    const edit_notes_button = by_id('edit-notes-button');
-    let listview = make_list_view<number>(by_id('notes-list'), 0);
-    by_id('delete-note').addEventListener('click', function(){
-        let dialog = get_dialog('note-deletion');
-        if(!dialog) return;
-        dialog.f.checkbox.checked = false;
-        dialog.ok_handler = function(){
-            if(!dialog.f.checkbox.checked)
-                return;
-            EMIT(FromClient.DELETE_NOTE_REQUEST, current_note_id);
-        };
-        dialog.show();
-    });
-    let is_editing = false;
-    function stop_editing(){
-        if(!is_editing) return;
-        is_editing = false;
-        edit_notes_button.innerText = 'Edit';
-        notes_editor_container.style.display = 'none';
-        sync_note();
-    }
-    function start_editing(){
-        if(is_editing) return;
-        is_editing = true;
-        if(current_note_id == -1){
-            EMIT(FromClient.NEW_NOTE_REQUEST);
-        }
-        edit_notes_button.innerText = 'Done';
-        notes_editor_container.style.display = 'block';
-    }
-    edit_notes_button.addEventListener('click', function(){
-        if(edit_notes_button.innerText == 'Edit')
-            start_editing();
-        else
-            stop_editing();
-    });
-    notes_window.hide_handler = function(){
-        stop_editing();
-        sync_note();
-    };
-
-    // let notes_is_open = false;
-    const boilerplate = (''
-        +'::css\n'
-        +'  body {\n'
-        +'    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;\n'
-        +'  }\n'
-        +'  table, table * {\n'
-        +'    border: 1px solid black;\n'
-        +'    border-collapse: collapse;\n'
-        +'    padding: 8px 8px;\n'
-        +'  }\n'
-        +'  blockquote {\n'
-        +'    font-style: italic;\n'
-        +'  }\n'
-        +'  div.free > pre{\n'
-        +'    font-style: italic;\n'
-        +'    font-family: serif;\n'
-        +'  }\n'
-        +'  body {\n'
-        +'    padding: 0px 2em;\n'
-        +'    max-width: 40em;\n'
-        +'  }\n');
-    let current_note_id = -1;
     function onget(n_:Note){
         const n: Note_ = n_ as Note_;
         n.need_receive = false;
         n.need_send = false;
         NOTES.set(n.id, n);
-        if(n.id == current_note_id){
-            notes_area.value = n.body;
-            notes_title_area.value = n.title;
-            listview.rename(n.title, n.id);
-            update_iframe();
+        const window = NOTE_WINDOWS.get(n.id);
+        if(window && window.w.parentElement){
+            window.refresh();
         }
+        // TOOD: rename li
     }
     ONRECV(ToClient.GOT_NOTE, onget);
-    listview.activate_handler = function(id:number|undefined){
-        sync_note();
-        if(id === undefined){
-            current_note_id = -1;
-            notes_area.value = '';
-            notes_title_area.value = '';
-            update_iframe();
-            return;
-        }
-        current_note_id = id;
-        let note = NOTES.get(id);
-        if(!note) {
-            update_iframe();
-            return;
-        }
-        if(note.need_receive){
-            EMIT(FromClient.GET_NOTE, id);
-        }
-        else {
-            notes_area.value = note.body;
-            notes_title_area.value = note.title;
-            update_iframe();
-        }
-
-    }
-    if(DARKMODE){
-        // Chromium-based browsers won't inherit
-        // the colorScheme for empty iframes,
-        // so set them here.
-        // Firefox and Safari don't need this hack, but
-        // it doesn't hurt.
-        //
-        // Do it before activation to avoid flicker.
-        //
-        // Will look weird if the user changes
-        // colorscheme, but if they change colorscheme,
-        // they will understand why something flickers.
-        iframe.srcdoc = `<scr` + `ipt>
-            document.documentElement.style.colorScheme = 'dark';
-            </sc` + `ript>`;
-    }
-    function update_iframe(){
-        let note = NOTES.get(current_note_id);
-        if(!note){
-            if(DARKMODE){
-                // Chromium-based browsers won't inherit
-                // the colorScheme for empty iframes,
-                // so set them here.
-                iframe.srcdoc = `<scr` + `ipt>
-                    document.documentElement.style.colorScheme = 'dark';
-                    </sc` + `ript>`;
-            }
-            else
-                iframe.srcdoc = '';
-            return;
-        }
-        let title = notes_title_area.value;
-        let s = title + '::title\n' + notes_area.value + '\n' + boilerplate;
-        make_dnd_html(s, function(html:string, errors:Array<string>){
-            (editor_log as any).replaceChildren();
-            for(let error of errors){
-              const pp = document.createElement('pre');
-              pp.innerHTML = error;
-              editor_log.appendChild(pp);
-            }
-            if(html){
-                // This is unbelievably hacky, but for some reason
-                // internal links aren't being recognized as internal,
-                // so we need to do it ourselves.
-
-                // breaking up the tags as a version of safari
-                // interprets them as regex for some reason
-                html += `<scr` + `ipt>
-                document.addEventListener('DOMContentLoaded', function(){
-                    const anchors = document.getElementsByTagName('a');
-                    function add_interceptor(a){
-                        a.onclick = function(e){
-                            let href = a.href;
-                            if(href.baseVal) href = href.baseVal;
-                           let split = href.split('#');
-                           if(split.length > 1){
-                               let target = split[1];
-                               let t = document.getElementById(target);
-                               if(t){
-                                   t.scrollIntoView();
-                               }
-                           }
-                           e.preventDefault();
-                           e.stopPropagation();
-                           return false;
-                           a.setAttribute('target', '_blank');
-                        };
-                    }
-                    for(let a of anchors){
-                        add_interceptor(a);
-                    }
-                });
-                </scr`+ `ipt>
-                `;
-                if(DARKMODE){
-                    html += `<scr` + `ipt>
-                    document.documentElement.style.colorScheme = 'dark';
-                    </sc` + `ript>`;
-                    html += `<sty` + `le>
-                    @supports (-moz-appearance:none) {
-                      body {
-                        color: #eee;
-                        background-color: #333;
-                      }
-                    }
-                    </sty` + `le>`;
-                }
-                iframe.srcdoc = html;
-            }
-        });
-    }
-    notes_area.addEventListener('input', function(){
-        let note = NOTES.get(current_note_id);
-        if(!note) return;
-        note.body = notes_area.value;
-        note.need_send = true;
-        update_iframe();
-    });
+    /*
     notes_title_area.addEventListener('input', function(){
         update_iframe();
         let note = NOTES.get(current_note_id);
@@ -308,65 +386,81 @@ document.addEventListener('DOMContentLoaded', function(){
         EMIT(FromClient.NOTE_UPDATE_TITLE, msg);
         listview.rename(note.title, note.id);
     });
-    notes_area.addEventListener('keydown', function(e){
-        if(e.key == 'Escape'){
-            stop_editing();
-            return;
-        }
-        if(e.key != 'Tab')
-            return;
-        e.preventDefault();
-        let start = notes_area.selectionStart;
-        let end = notes_area.selectionEnd;
-        notes_area.value = notes_area.value.substring(0, start) + "  " + notes_area.value.substring(end);
-        // restore cursor position
-        notes_area.selectionStart = notes_area.selectionEnd = start+2;
-    });
-    notes_window.show_handler = function(){
-        listview.make_active(current_note_id);
-    }
-    by_id('notes-window-button').addEventListener('click', function(){
-        notes_window.show();
-    });
+    */
     ONRECV(ToClient.NOTE_DIRTY, function(note_id:number){
         let note = NOTES.get(note_id);
         if(!note) return;
         note.need_receive = true;
-        if(note_id == current_note_id){
+        const window = NOTE_WINDOWS.get(note_id);
+        if(!window) return;
+        if(window.w.parentNode)
             EMIT(FromClient.GET_NOTE, note_id);
-        }
     });
-    function sync_note(){
-        let note = NOTES.get(current_note_id);
-        if(!note) return;
-        if(note.need_send){
-            let msg: NoteUpdateBody = {note_id:note.id, body:note.body};
-            EMIT(FromClient.NOTE_UPDATE_BODY, msg);
-            note.need_send = false;
-        }
-    }
     function add_note(id:number, note:Note_){
-        listview.add_item(note.title, note.id);
+        const li = elem_parent_text(by_id('left-notes-list'), 'li', note.title);
+        li.dataset['noteid'] = ''+id;
+        li.onclick = function(e:Event){
+            e.stopPropagation();
+            const window = get_note_window(id);
+            window.t.textContent = note.title;
+            window.show();
+        };
+        li.oncontextmenu = function(e:MouseEvent){
+            const menu = ctx_menu(e);
+            menu.item('Show Others', function(){
+                EMIT(FromClient.NOTE_SHOW, id);
+            });
+            menu.item('Rename', function(e:MouseEvent){
+                e.stopPropagation();
+                e.preventDefault();
+                user_edit_element(li, function(v:string){
+                    EMIT(FromClient.NOTE_UPDATE_TITLE, {note_id:id, title:v});
+                    const note = NOTES.get(id)!;
+                    note.title = v;
+                    const w = NOTE_WINDOWS.get(id)
+                    if(w) w.refresh();
+                });
+                remove_ctx_menu();
+            });
+            menu.separator();
+            menu.item('Delete', function(){
+                const dialog = get_dialog('note-deletion');
+                if(!dialog) return;
+                dialog.f.checkbox.checked = false;
+                dialog.ok_handler = function(){
+                    if(!dialog.f.checkbox.checked)
+                        return;
+                    EMIT(FromClient.DELETE_NOTE_REQUEST, note.id);
+                };
+                dialog.show();
+            });
+            menu.separator();
+            menu.item('Cancel');
+            menu.install();
+        };
         NOTES.set(id, note);
     }
     ONRECV(ToClient.NOTE_DELETE, function(id:number){
         const note = NOTES.get(id);
         if(!note) return;
-        listview.remove(id);
         note.flags |= NOTEFLAGS.DELETED;
+        const window = NOTE_WINDOWS.get(id);
+        if(!window) return;
+        NOTE_WINDOWS.delete(id);
+        window.w.remove();
+        const li = get_note_li(id);
+        if(li) li.remove();
     });
     ONRECV(ToClient.NOTES_INITIALIZE, function(notes:Array<Note>){
-        listview.clear();
+        (by_id('left-notes-list') as any).replaceChildren();
         NOTES.clear();
-        for(let note of (notes as Array<Note_>)){
+        for(const w of NOTE_WINDOWS.values())
+            w.w.remove();
+        NOTE_WINDOWS.clear();
+        for(const note of (notes as Array<Note_>)){
             note.need_receive = false;
             note.need_send = false;
             add_note(note.id, note);
-        }
-        if(notes.length){
-            if(!notes_window.hidden) listview.make_active(notes[0].id);
-            else
-                current_note_id = notes[0].id;
         }
     });
     ONRECV(ToClient.NEW_NOTE, function(note_id:number){
@@ -374,25 +468,26 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     ONRECV(ToClient.NEW_NOTE_RESPONSE, function(id:number){
         add_note(id, {id:id, title:'Untitled', body:'', flags:0, need_send:false,  need_receive:false});
-        listview.make_active(id);
+        get_note_window(id).show();
     });
     by_id('new-note').addEventListener('click', function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
-        stop_editing();
         EMIT(FromClient.NEW_NOTE_REQUEST);
     });
     ONRECV(ToClient.NOTE_UPDATE_TITLE, function(data:NoteUpdateTitle){
-        let note = NOTES.get(data.note_id);
+        const note = NOTES.get(data.note_id);
         if(!note) return;
         note.title = data.title;
-        listview.rename(data.title, data.note_id);
-        if(current_note_id == data.note_id)
-            update_iframe();
+        const window = NOTE_WINDOWS.get(data.note_id);
+        if(window) window.refresh();
+        const li = get_note_li(data.note_id);
+        if(li) li.textContent = data.title;
     });
-    if(SETTINGS.uimode == UiMode.NOTES){
-        notes_window.show()
-        notes_window.make_fullscreen();
-    }
+    ONRECV(ToClient.NOTE_SHOW, function(noteid:number){
+        const window = get_note_window(noteid);
+        if(!window) return;
+        window.show();
+    });
 });
-}());
+// }());

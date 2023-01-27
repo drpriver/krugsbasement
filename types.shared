@@ -50,6 +50,7 @@ enum FromClient: int
     NOTE_UPDATE_TITLE = 23
     NOTE_UPDATE_BODY = 24
     DELETE_NOTE_REQUEST = 25
+    NOTE_SHOW = 33
     # debugging
     # ---------
     DEBUG = 26
@@ -111,6 +112,7 @@ enum ToClient: int
     NOTE_DELETE = 24
     GOT_NOTE = 27
     NEW_NOTE_RESPONSE = 28
+    NOTE_SHOW = 39
     # Init?
     API_VERSION = 35
     SPREADSHEET = 38
@@ -1054,6 +1056,7 @@ message ToClientMsg: ToClient
     NEW_NOTE_RESPONSE = int
     API_VERSION = int
     SPREADSHEET = SpreadSheetMsg
+    NOTE_SHOW = int
 
 message FromClientMsg: FromClient
     JOIN = str
@@ -1088,6 +1091,7 @@ message FromClientMsg: FromClient
     STORE_LOCAL_SETTING = LocalSetting
     GET_ROLL_TABLE_NAMES = void
     SPREADSHEET = SpreadSheetMsg
+    NOTE_SHOW = int
 
 enum DarkMode: int
     SYSTEM = 0

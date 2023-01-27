@@ -327,6 +327,9 @@ function do_emit(type:FromClient, arg?:any, cb?:any){
             }
             invoke_cb(ToClient.SPREADSHEET, arg);
         }break;
+        case FromClient.NOTE_SHOW:{
+            invoke_cb(ToClient.NOTE_SHOW, arg);
+        }break;
     }
 }
 let _spreadsheetid = 0;

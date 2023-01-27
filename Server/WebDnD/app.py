@@ -624,6 +624,14 @@ def note_get(note_id: int) -> None:
         emit(ToClient.GOT_NOTE, note)
     # return notes.get_note(campaign, note_id)
 
+@socketio.on(FromClient.NOTE_SHOW)
+@validated
+def show_note(note_id:int) -> None:
+    dlog('wtf %r', note_id)
+    campaign = get_campaign(request)
+    emit(ToClient.NOTE_SHOW, note_id, broadcast=True, include_self=True, to=str(campaign))
+
+
 @socketio.on(FromClient.NEW_NOTE_REQUEST)
 def new_note_request() -> None:
     campaign = get_campaign(request)
