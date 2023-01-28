@@ -8,7 +8,6 @@ const {
     screenshot,
     request_render,
     resize_canvas,
-    get_active_view,
 } = (function(){
 if(SETTINGS.uimode != UiMode.NORMAL){
     function dummy_export():Array<InitializeMap>{
@@ -9496,6 +9495,5 @@ return {
     screenshot,
     request_render,
     resize_canvas,
-    get_active_view,
 };
 }());

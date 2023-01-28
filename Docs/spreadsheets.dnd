@@ -21,11 +21,8 @@
     max-width: 80ch;
   }
   @media (prefers-color-scheme: dark) {
-    a:visited {
-      color: rgb(20, 140, 220);
-    }
     a {
-      color: rgb(0, 80, 200);
+      color: rgb(40, 160, 240);
     }
     body{
       background-color: #202020;
