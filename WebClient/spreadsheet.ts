@@ -611,7 +611,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         const inp = elem_with_parent(cell, 'input');
         inp.style.width = w;
         inp.style.height = h;
-        inp.value = oldtxt;
+        inp.value = oldtxt[0] == '='?oldtxt:'';
         inp.spellcheck = false;
         let canceled = false;
         inp.onkeydown = function(e){
