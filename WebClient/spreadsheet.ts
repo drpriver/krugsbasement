@@ -48,7 +48,10 @@ type SpreadSheet = {
 
 function sheet_cell_text(id:number, row:number, col:number):string{
     const sheet = SPREADSHEETS.get(id);
-    if(!sheet) return ""
+    // Underlying library assumes the SheetHandle is always valid and
+    // you are supposed to return the empty string for out of bounds
+    // accesses to simulate infinite sheet.
+    if(!sheet) return "="; // This will turn into a syntax error.
     if(row < 0 || row >= sheet.cell_sources.length) return "";
     const r = sheet.cell_sources[row];
     if(col < 0 || col >= r.length) return "";
@@ -149,7 +152,18 @@ function sheet_name_to_sheet(s:string):number {
 }
 
 let sheet_evaluate_formulas: ((id:number)=>Array<number>);
+let sheet_eval_string: ((id:number, s:string)=>number|string);
 let sheet_wasm_load_in_flight = false;
+function spread_eval_string(s:string):number|string|null{
+    if(!sheet_eval_string){
+        load_sheet_wasm();
+        return null;
+    }
+    const result = sheet_eval_string(-1, s);
+    if(result === "error")
+        return null;
+    return result;
+}
 
 function load_sheet_wasm():void{
     if(sheet_wasm_load_in_flight) return;
@@ -166,8 +180,9 @@ function load_sheet_wasm():void{
         sheet_next_cell,
         sheet_dims,
         sheet_name_to_sheet,
-    ).then(({evaluate_formulas})=>{
+    ).then(({evaluate_formulas, evaluate_string})=>{
         sheet_evaluate_formulas = evaluate_formulas;
+        sheet_eval_string = evaluate_string;
         for(const sheet of SPREADSHEETS.values()){
             if(sheet.hidden) continue;
             if(!sheet._dirty) continue;

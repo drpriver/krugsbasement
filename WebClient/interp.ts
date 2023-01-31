@@ -45,6 +45,9 @@ const evaluate_script = (function(){
 
         LBRACKET = 30, // {
         RBRACKET = 31, // }
+
+        LSQUARE  = 32, // [
+        RSQUARE  = 33, // ]
     }
     function is_end(t:TokenKind):boolean{
         return t == TokenKind.ENDLINE || t == TokenKind.COMMENT;
@@ -215,6 +218,8 @@ const evaluate_script = (function(){
                 case ')': result.push({kind:TokenKind.RPAREN,  text:c}); continue;
                 case '{': result.push({kind:TokenKind.LBRACKET,  text:c}); continue;
                 case '}': result.push({kind:TokenKind.RBRACKET,  text:c}); continue;
+                case '[': result.push({kind:TokenKind.LSQUARE,  text:c}); continue;
+                case ']': result.push({kind:TokenKind.RSQUARE,  text:c}); continue;
                 case '<': result.push({kind:TokenKind.LT,      text:c}); continue;
                 case '>': result.push({kind:TokenKind.GT,      text:c}); continue;
                 case '≤': result.push({kind:TokenKind.LE,      text:c}); continue;
@@ -274,6 +279,7 @@ const evaluate_script = (function(){
         IDENT        = 5,
         DOTTED_IDENT = 6,
         NGROUP       = 7,
+        CELL         = 8,
     }
     type NumberExpression = {
         type: EXPR.NUMBER,
@@ -313,7 +319,11 @@ const evaluate_script = (function(){
         count: number,
         expr: Expression,
     }
-    type Expression = NumberExpression | DiceExpression | IdentExpression | GroupExpression | BinaryExpression | UnaryExpression | DottedIdentExpression | NGroupExpression;
+    type CellExpression = {
+        type: EXPR.CELL,
+        value: string,
+    };
+    type Expression = NumberExpression | DiceExpression | IdentExpression | GroupExpression | BinaryExpression | UnaryExpression | DottedIdentExpression | NGroupExpression | CellExpression;
 
 
     function parse_expression(tokens: Array<Token>): Expression | null{
@@ -462,7 +472,7 @@ const evaluate_script = (function(){
         function parse_terminal(): Expression | null {
             skip_spaces();
             let t = current();
-            let c = match([TokenKind.LPAREN, TokenKind.NUMBER, TokenKind.DIE, TokenKind.IDENT]);
+            let c = match([TokenKind.LPAREN, TokenKind.NUMBER, TokenKind.DIE, TokenKind.IDENT, TokenKind.LSQUARE]);
             if(!c) return null;
             switch(t.kind){
                 case TokenKind.LPAREN:{
@@ -518,6 +528,21 @@ const evaluate_script = (function(){
                     return {
                         type: EXPR.IDENT,
                         ident: ident,
+                    };
+                }
+                case TokenKind.LSQUARE:{
+                    let s = t.text;
+                    while(!match1(TokenKind.RSQUARE)){
+                        const tok = current();
+                        if(tok.kind == TokenKind.ENDLINE){
+                            return null;
+                        }
+                        s += tok.text;
+                        index++;
+                    }
+                    return {
+                        type: EXPR.CELL,
+                        value: s + ']',
                     };
                 }
                 default:
@@ -602,9 +627,16 @@ const evaluate_script = (function(){
                 if(v === null) return null;
                 return expr.count * v;
             }
-
+            case EXPR.CELL:{
+                let v = spread_eval_string(expr.value);
+                if(v === null) return null;
+                if(typeof v !== 'string') return v;
+                const tokens = tokenize(v);
+                const subexpr = parse_expression(tokens);
+                if(!subexpr) return null;
+                return eval_expr(subexpr, namespaces, vars);
+            }
         }
-
     }
 
     function parse(tokens:Array<Token>, topblock:BlockStatement): string | null{
@@ -708,6 +740,7 @@ const evaluate_script = (function(){
                 case TokenKind.LPAREN:
                 case TokenKind.NUMBER:
                 case TokenKind.DIE:
+                case TokenKind.LSQUARE:
                     return parse_roll(0);
                 case TokenKind.IF:
                     return parse_if(indentation);
@@ -729,6 +762,7 @@ const evaluate_script = (function(){
                         case TokenKind.LPAREN:
                         case TokenKind.NUMBER:
                         case TokenKind.DIE:
+                        case TokenKind.LSQUARE:
                             return parse_roll(1);
                         default:
                             break;
@@ -1137,6 +1171,15 @@ const evaluate_script = (function(){
                 let e = expand_dice(expr.expr, namespaces, vars, false, visited);
                 if(!e) return e;
                 return [DieExprTypes.NGROUP, expr.count, e];
+            }
+            case EXPR.CELL:{
+                let v = spread_eval_string(expr.value);
+                if(v === null) return null;
+                if(typeof v !== 'string') return [DieExprTypes.NUMBER, v];
+                const tokens = tokenize(v);
+                const subexpr = parse_expression(tokens);
+                if(!subexpr) return null;
+                return expand_dice(subexpr, namespaces, vars, muldiv, visited);
             }
         }
     }
