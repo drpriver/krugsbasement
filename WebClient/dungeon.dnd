@@ -42,37 +42,6 @@
     `;
     raw.add_child(inner);
   }
-  make_window2('macros', 'Macros', `
-    <div id="macros-container">
-      <div id="macros-group-list" class="window-group-list">
-        <button id="new-macro-group">+ New Group</button>
-      </div>
-      <div id="macros-list" class="window-group-list">
-        <button id="new-macro">+ New Macro</button>
-      </div>
-      <div id="macro-var-list" class="window-group-list">
-        <button id="new-variable">+ New Variable</button>
-      </div>
-      <div id="macro-editor" style="visibility:hidden;">
-        <div id="macros-buttons">
-          <button id="test-macro">Test</button>
-          <button id="use-macro">Use</button>
-          <a target="_blank" href="/docs/macro-doc.html">Help</a>
-          <a target="_blank" href="macros" id="mac-link">Macro Page</a>
-        </div>
-        <div style="text-align:center;">
-            <h2 id="macro-view-title"></h2>
-        </div>
-        <div id="asdf-variable">
-          <textarea spellcheck="false" id="macro-view-edit"></textarea>
-          <div id="local-vars" class="window-group-list">
-            <button id="new-local-var">+ New Macro Var</button>
-          </div>
-        </div>
-        <div id="macro-test-log"></div>
-      </div>
-    </div>
-  `);
   make_window('rolltable', 'Roll Tables',
   `
     <div id="rolltable-container" class="window-container">
@@ -687,7 +656,6 @@
         <button id="options-button">Options…</button>
     ::div.three-buttons
       ::raw
-        <button id="macros-button">Macros…</button>
         <button id="privateroll-button">DMs…</button>
   ::div #id(notifications)
   ::div.log #id(chat-history)
@@ -704,27 +672,28 @@
         <summary>Maps</summary>
         <button disabled title="Previous Map" id="back-map-button">←</button>
         <button disabled title="Next Map" id="forward-map-button">→</button>
-        <button title="New Map" style="width:100%;" id="new-map-button">+</button>
+        <button title="New Map" id="new-map-button">+</button>
         <ul id="left-maps-list">
         </ul>
       </details>
     ::raw
       <details open>
         <summary>Notes</summary>
-        <button title="New Note" id="new-note" style="width:100%">+</button>
+        <button title="New Note" id="new-note">+</button>
         <ul id="left-notes-list">
         </ul>
       </details>
     ::raw
       <details open>
         <summary>Sheets</summary>
-        <button title="New Sheet" id="new-sheet-button" style="width:100%">+</button>
+        <button title="New Sheet" id="new-sheet-button">+</button>
         <ul id="sheet-buttons">
         </ul>
       </details>
     ::raw
       <details open>
         <summary>Macros</summary>
-        <ul id="left-macros-list">
+        <button title="New Macro Group" id="new-macro-group-button">+</button>
+        <ul id="left-macro-group-list">
         </ul>
       </details>

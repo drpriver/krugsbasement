@@ -1,0 +1,14 @@
+Changelog::kv
+  created:  2023-01-28T21:56:21Z
+  resolved: 2023-01-31T05:36:36Z
+Created Jan 28, 2023, 01:56PM::md .update
+Summary::md .summary
+  Each macro group should have children in the left panel. The children will be
+  “variables” and the macros.
+
+  You can edit the variables panel and it’s a list of things.
+
+  You can edit each macro individually and it pops up an individual window.
+
+Resolved Jan 30, 2023, 09:36PM::md .update
+  Done

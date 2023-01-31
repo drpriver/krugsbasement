@@ -38,6 +38,8 @@ body.dark-mode .window, body.dark-mode .tracker-grid, body.dark-mode #disconnect
 }
 .window-handle {
   grid-row: 1;
+  grid-column-start: 1;
+  grid-column-end: -1;
   cursor: grab;
   background-color: #f0f0f0;
   border-radius: 8px 8px 0px 0px;
@@ -141,17 +143,12 @@ body.dark-mode .window, body.dark-mode .tracker-grid, body.dark-mode #disconnect
   border-bottom: 1px solid #fff;
 }
 
-
 .notes-window {
   display: grid;
   grid-template-rows: max-content max-content auto;
   grid-template-columns: 100%;
   width: 50ch;
   height: 80ex;
-}
-#notes-buttons, #macros-buttons {
-  display: block;
-  margin-left: 0.5em;
 }
 .notes-window iframe {
   border: none;
@@ -169,26 +166,6 @@ body.dark-mode .window, body.dark-mode .tracker-grid, body.dark-mode #disconnect
   min-width: 40ch;
   min-height: 10ch;
 }
-#macro-editor {
-  padding-right: 12px;
-  padding-left: 12px;
-  display: grid;
-  grid-template-columns: max-content;
-  grid-template-rows: max-content max-content 32ex max-content;
-}
-#macro-view-group {
-  resize: none;
-  width: 100%;
-  font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
-}
-#macro-view-title {
-  text-align: center;
-  padding: 4px;
-  margin: 0;
-}
-#macro-view-group::after{
-  content: "Group: ";
-}
 .note-view-edit {
   resize: none;
   font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
@@ -196,12 +173,6 @@ body.dark-mode .window, body.dark-mode .tracker-grid, body.dark-mode #disconnect
   width: 100%;
 }
 
-#macro-view-edit {
-  resize: none;
-  font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
-  width: 24ch;
-  height: 32ex;
-}
 .mb-div {
   display: grid;
   grid-template-columns: auto 4em;
@@ -209,30 +180,6 @@ body.dark-mode .window, body.dark-mode .tracker-grid, body.dark-mode #disconnect
   width: 12em;
 }
 
-div.variable {
-  display: grid;
-  grid-template-columns: max-content auto;
-  text-align: center;
-}
-#macros-window label.variable span {
-  padding: 0px;
-  padding-right: 4px;
-}
-#macros-window .window-group-list{
-  padding-left: 4px;
-  padding-right: 4px;
-}
-#new-variable, #new-local-var {
-  width: 26ch;
-}
-label.variable {
-  display: grid;
-  grid-template-columns: 8ch 4ch 2ch;
-  padding-left: 8px;
-}
-label.variable span {
-  text-align: right;
-}
 label.panel-variable {
   display: grid;
   grid-template-columns: auto 3em;
@@ -242,35 +189,14 @@ label.panel-variable span {
   text-align: right;
 }
 /* This should have a better name */
-#asdf-variable {
-  display: grid;
-  column-gap: 2ch;
-  grid-template-columns: auto auto;
-  grid-template-rows: 32ex;
-  padding: 8px;
-}
 .note-view-editor-log {
   height: 100%;
   overflow-y: auto;
   border: 1px solid grey;
 }
-
-#macro-test-log {
-  border: 1px solid grey;
-  overflow-y: auto;
-  height: 18ex;
-}
-#macro-test-log {
-  margin: 8px;
-  padding: 8px;
-  -webkit-user-select: initial;
-  user-select: text;
-  line-height: 1.2;
-}
 .window-group-list {
   display: flex;
   flex-direction: column;
-  min-width: 20ch;
   overflow-y: auto;
   height: 100%;
 }
@@ -616,7 +542,7 @@ html, body {
   grid-template-rows: max-content max-content auto max-content max-content max-content;
   /*grid-template-columns: max-content;*/
   background-color: #fff;
-  width: 220px;
+  width: 260px;
   /* This thing is the bane of my existence on windows*/
   /* Just overflow: hidden it */
   /*overflow: hidden;*/
@@ -640,8 +566,8 @@ html, body {
 }
 #privateroll-container {
   display: grid;
-  grid-template-rows: 50% calc(50% - 60px) 60px;
-  grid-template-columns: 10.2em auto;
+  grid-template-rows: auto 120px 60px;
+  grid-template-columns: max-content auto;
 }
 #privateroll-input {
   outline: none;
@@ -711,12 +637,12 @@ body.dark-mode .log div.clickable span {
   display: inline-block;
 }
 #dice-history {
-  overflow-y: scroll;
+  /*overflow-y: scroll;*/
   border-top: 1px solid black;
   /*width: 17em;*/
   width: 100%;
   line-height: 2.5ex;
-  height: 12.5ex;
+  /*height: 12.5ex;*/
 }
 #privateroll-tables-tabs > div,
 #macro-panel-tabs > div {
@@ -782,6 +708,7 @@ section.menu {
   user-select: none;
   z-index: 2;
   padding: 6px 6px;
+  white-space: nowrap;
 }
 section.menuitem, section.color-menuitem {
   padding: 3.5px 8px;
@@ -899,8 +826,6 @@ div.rolltable table{
 #macros-group-list,
 #macros-list {
   width: auto;
-}
-#macro-var-list {
 }
 
 #macro-panel {
@@ -1211,6 +1136,11 @@ body.mobile .window {
 .tracker-cell.editing, .tracker-head.editing {
   padding: 0px;
 }
+input.abs-edit {
+  position: absolute;
+  z-index: 99999;
+  width: 60ch;
+}
 .tracker-head:focus {
   border: 1px solid cyan;
   border-bottom-width: 3px;
@@ -1249,14 +1179,63 @@ body.dark-mode .tracker-numbered {
   border-right: 2px solid #fff;
 }
 
+.macro-log {
+  border: 1px solid grey;
+  overflow-y: auto;
+  height: 22ex;
+  padding: 8px;
+  -webkit-user-select: initial;
+  user-select: text;
+  line-height: 1.2;
+  width: 100%;
+}
 
+.macro-win-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  width: 100%;
+  gap: 4px;
+  padding: 4px;
+}
+.macro-only-window {
+  display: grid;
+  grid-template-rows: max-content max-content max-content max-content max-content;
+  grid-template-columns: 100%;
+  min-width: 30ch;
+}
+.vars-only-window {
+  display: grid;
+  grid-template-rows: max-content max-content max-content max-content max-content;
+  grid-template-columns: 100%;
+  min-width: 30ch;
+}
+.vars-only-window button {
+  margin: 2px 20px 12px;
+}
+.macro-vars {
+  display: grid;
+  grid-template-columns: auto max-content;
+  padding: 8px 0px;
+}
+.macro-vars>label{
+  display: block;
+  padding: 3px 8px;
+}
+.macro-vars>label>span {
+  min-width: 8ch;
+  display: inline-block;
+}
+#chat button,
+.macro-button {
+  margin: 2px 1px;
+}
 
 #left {
   position: fixed;
   left: 0;
   top: 0;
   z-index: 0;
-  width: 180px;
+  width: 200px;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -1294,18 +1273,14 @@ body.dark-mode .tracker-numbered {
 }
 #left li {
   cursor: pointer;
-  list-style-type: none;
   text-overflow: ellipsis;
   overflow: hidden;
   width: 90%;
-  padding: 4px;
+  padding: 2px;
   white-space: nowrap;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
-}
-#left li:before {
-  content: "- ";
 }
 #left li.editing {
   padding: 0px 4px;
@@ -1321,4 +1296,38 @@ body.dark-mode .tracker-numbered {
   background-color: rgba(0,0,0,0);
   font-size: .8rem;
   font-weight: normal;
+}
+
+#left button {
+  margin: 8px;
+  width: 90%;
+}
+#left li button {
+  width: 4ch;
+  margin: 0px 8px;
+}
+#left li.closed button {
+  display: none;
+}
+#left #back-map-button, #left #forward-map-button {
+  width: auto;
+  margin: 0;
+}
+#left ul {
+  margin: 0;
+}
+#left ul.child.hidden {
+  display: none;
+}
+#left li.closed {
+  list-style-type: disclosure-closed;
+}
+#left #left-macro-group-list ul{
+  padding-left: 16px;
+}
+#left #left-macro-group-list {
+  list-style-type: disclosure-open;
+}
+#left ul {
+  list-style: inside;
 }

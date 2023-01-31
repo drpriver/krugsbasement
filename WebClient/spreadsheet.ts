@@ -584,23 +584,24 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
                             return;
                         }
                         if(e.key == 'h'){
-                            edit_cell(cell);
+                            edit_cell(cell, '');
                             break;
                         }
                     }
                 }
                 if(e.metaKey || e.altKey || e.ctrlKey) return;
-                edit_cell(cell);
+                edit_cell(cell, e.key);
                 break;
         }
     }
-    function edit_cell(cell:HTMLDivElement){
+    function edit_cell(cell:HTMLDivElement, key:string){
         if(!(result.flags & SpreadSheetFlags.CAN_EDIT_CELLS))
             return;
         const [row_idx, col_idx] = idx_of(cell);
         if(row_idx == -1 || col_idx == -1) return;
-        const w = '' + (cell.getBoundingClientRect().width-2) + 'px';
-        const h = '' + (cell.getBoundingClientRect().height-2) + 'px';
+        const bcr = cell.getBoundingClientRect();
+        const w = '' + (bcr.width-2) + 'px';
+        const h = '' + (bcr.height-2) + 'px';
         const oldtxt = result.cell_sources[row_idx][col_idx];
         if(oldtxt && oldtxt[0] == '=' && (result.flags & SpreadSheetFlags.LOCKED_FORMULAS))
             return;
@@ -609,9 +610,34 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         cell.classList.add('editing');
         cell.textContent = '';
         const inp = elem_with_parent(cell, 'input');
-        inp.style.width = w;
+        let abs = false;
+        if((oldtxt && oldtxt[0] == '=') || key == '='){
+            abs = true;
+            if(oldtxt && oldtxt[0] == '=')
+                inp.value = oldtxt;
+            else
+                inp.value = '';
+        }
+        else {
+            inp.style.width = w;
+            inp.value = '';
+        }
+        function make_absolute():void{
+            if(inp.classList.contains('abs-edit'))
+                return;
+            inp.remove();
+            inp.classList.add('abs-edit');
+            document.body.appendChild(inp);
+            inp.style.top = bcr.top + 'px';
+            inp.style.left = bcr.left + 'px';
+            inp.style.width = '';
+            const r = inp.getBoundingClientRect();
+            if(r.right >= window.innerWidth)
+                inp.style.width = (window.innerWidth - bcr.left) + 'px';
+            inp.focus();
+        }
+        if(abs) make_absolute();
         inp.style.height = h;
-        inp.value = oldtxt[0] == '='?oldtxt:'';
         inp.spellcheck = false;
         let canceled = false;
         inp.onkeydown = function(e){
@@ -639,6 +665,11 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
                     inp.blur();
                     result.cell_elems[row_idx][col_idx].focus();
                 } return;
+                case '=':
+                    if(!inp.value.length){
+                        make_absolute();
+                    }
+                    break;
             }
         };
         inp.onblur = function(){
@@ -662,7 +693,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         e.preventDefault();
         remove_ctx_menu();
         const cell = e.target as HTMLDivElement;
-        edit_cell(cell);
+        edit_cell(cell, '');
     }
     function on_copy(){
         const [row_idx, col_idx] = idx_of(document.activeElement as HTMLDivElement);
