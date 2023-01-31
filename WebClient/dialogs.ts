@@ -27,7 +27,7 @@ let OPENDIALOG: Dialog<keyof DialogIdMap> | null;
 function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<string>):Dialog<Key>{
     // this is kind of a hack, but I don't know how to do imperative
     // initialization while satisfying ts.
-    let result:Dialog<Key> = {
+    const result:Dialog<Key> = {
         window: get_by_id<HTMLDivElement>(name),
         windowhandle: get_by_id<HTMLDivElement>(name+'-window-handle'),
         close: get_by_id<HTMLSpanElement>(name+'-window-close'),
