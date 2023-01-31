@@ -162,6 +162,18 @@
         /roll Attack
 
       Expressions::md .comment
+        ::js
+          // Work-around for there being no way to escape
+          // [Draclar, Score, 2].
+          for(const child of node.parent.children){
+            if(child.type == NodeType.LIST){
+              const trouble = child.children[4];
+              trouble.type = NodeType.RAW;
+              trouble.children[0].header = `<li>${trouble.children[0].header}</li>`;
+              break;
+            }
+          }
+          //endjs
         To understand how the system works, it is important to understand what
         is an expression for a roll command, in descending precedence.
 
@@ -169,6 +181,7 @@
         2. Integer literal, for example "<tt>3</tt>" or "<tt>42</tt>".
         3. Variable, such as "attack" above.
         4. Parenthesized group, like "<tt>(3 + d6)</tt>" or "<tt>(2*3)</tt>."
+        4. Cell reference, like "<tt>[Draclar, Score, 2]</tt>".
         5. Repeated group, like "<tt>3{d20+4>=20}</tt>".
         5. Unary operations, like "<tt>!4</tt>" or "<tt>-d6</tt>". The unary
            operations are "<tt>!</tt>" (not, turns 0 to 1 and all other values
