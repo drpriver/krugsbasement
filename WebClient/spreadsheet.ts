@@ -497,6 +497,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         }
         if(result.flags & SpreadSheetFlags.CAN_MOVE_COLUMNS){
             menu.item('Move Column Left', function(){
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx-1]);
             });
             menu.item('Move Column Right', function(){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx+1]);
@@ -526,8 +527,9 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             case 'ArrowLeft': {
                 if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
                     e.stopPropagation();
-                    result.move_column(col_idx, col_idx-1);
-                    cell.focus();
+                    EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx-1]);
+                    // result.move_column(col_idx, col_idx-1);
+                    // cell.focus();
                     return;
                 }
                 if(col_idx == -1) return;
@@ -538,8 +540,9 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             case 'ArrowRight': {
                 if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
                     e.stopPropagation();
-                    result.move_column(col_idx, col_idx+1);
-                    cell.focus();
+                    EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx+1]);
+                    // result.move_column(col_idx, col_idx+1);
+                    // cell.focus();
                     return;
                 }
                 if(col_idx == -1) return;
@@ -550,8 +553,9 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             case 'ArrowUp': {
                 if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
                     e.stopPropagation();
-                    result.move_row(row_idx, row_idx-1);
-                    cell.focus();
+                    EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, row_idx, row_idx-1]);
+                    // result.move_row(row_idx, row_idx-1);
+                    // cell.focus();
                     return;
                 }
                 if(row_idx == -1) return;
@@ -564,8 +568,9 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             case 'ArrowDown': {
                 if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
                     e.stopPropagation();
-                    result.move_row(row_idx, row_idx+1);
-                    cell.focus();
+                    EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, row_idx, row_idx+1]);
+                    // result.move_row(row_idx, row_idx+1);
+                    // cell.focus();
                     return;
                 }
                 if(row_idx == -1) return;
@@ -948,16 +953,18 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             switch(e.key){
                 case 'ArrowLeft':
                     if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
-                        result.move_column(idx, idx-1);
-                        cell.focus();
+                        EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, idx, idx-1]);
+                        // result.move_column(idx, idx-1);
+                        // cell.focus();
                         break;
                     }
                     if(idx > 0) result.headers[idx-1].focus();
                     break;
                 case 'ArrowRight':
                     if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
-                        result.move_column(idx, idx+1);
-                        cell.focus();
+                        EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, idx, idx+1]);
+                        // result.move_column(idx, idx+1);
+                        // cell.focus();
                         break;
                     }
                     if(idx + 1 < result.headers.length) result.headers[idx+1].focus();
@@ -1155,10 +1162,14 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         {
             const fh = result.headers[from];
             const th = result.headers[to];
+            const fs = result.column_names[from];
+            const ts = result.column_names[to];
             fh.remove();
             th.remove();
             result.headers[from] = th;
             result.headers[to] = fh;
+            result.column_names[from] = ts;
+            result.column_names[to] = fs;
             if(from == 0) result.header_number_el.insertAdjacentElement('afterend', th);
             else result.headers[from-1].insertAdjacentElement('afterend', th);
             result.headers[to-1].insertAdjacentElement('afterend', fh);
@@ -1378,14 +1389,20 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg){
             ss.edit_cell(arg[2], arg[3], arg[4]);
         }break;
         case SpreadSheetMsgType.MOVE_COL:{
+            const ae = document.activeElement;
             let ss = SPREADSHEETS.get(arg[1]);
             if(!ss) break;
             ss.move_column(arg[2], arg[3]);
+            // @ts-ignore
+            if(ae && ae.focus) ae.focus();
         }break;
         case SpreadSheetMsgType.MOVE_ROW:{
+            const ae = document.activeElement;
             let ss = SPREADSHEETS.get(arg[1]);
             if(!ss) break;
             ss.move_row(arg[2], arg[3]);
+            // @ts-ignore
+            if(ae && ae.focus) ae.focus();
         }break;
         case SpreadSheetMsgType.ADD_ROW:{
             let ss = SPREADSHEETS.get(arg[1]);

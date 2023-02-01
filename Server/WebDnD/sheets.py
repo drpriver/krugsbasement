@@ -137,8 +137,8 @@ class SpreadSheet:
     def move_column(self, from_:int, to_:int) -> bool:
         if not (self.flags & SpreadSheetFlags.CAN_MOVE_COLUMNS):
             return False
-        self.cells[from_::len(self.column_names)], self.cells[to_::len(self.column_names)]
-        self.cells[to_::len(self.column_names)], self.cells[from_::len(self.column_names)]
+        self.cells[from_::len(self.column_names)], self.cells[to_::len(self.column_names)] = self.cells[to_::len(self.column_names)], self.cells[from_::len(self.column_names)]
+        self.column_names[from_], self.column_names[to_] = self.column_names[to_], self.column_names[from_]
         self.col_names_dirty = True
         self.cells_dirty = True
         return True
