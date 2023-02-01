@@ -10,7 +10,7 @@
   settings.js
   conn.js
 ::script #noinline #id(js)
-  /js/client.js
+  /js/client.min.js
 ::css #noinline #id(css)
   /js/dungeon.css
 ::js

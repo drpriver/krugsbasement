@@ -6,7 +6,7 @@
     "strictFunctionTypes": true,
     "strict": true,
     "noImplicitReturns": true,
-    "target": "es2020",
+    "target": "es2021",
     "noEmitOnError": true
   },
   "files": [

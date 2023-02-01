@@ -831,6 +831,10 @@ if appconfig.DEV:
     def get_client() -> Any:
         return Response(r('client.js'), mimetype='application/javascript')
 
+    @app.route('/js/client.min.js')
+    def get_clientmin() -> Any:
+        return Response(r('client.min.js'), mimetype='application/javascript')
+
     @app.route('/js/dungeon.css')
     def get_css() -> Any:
         return Response(r('dungeon.css'), mimetype='text/css')

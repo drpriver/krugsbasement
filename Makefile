@@ -19,7 +19,9 @@ CP=cp
 # using `.` is the portable way to source a shell file
 DEV_ACTIVATE=. dev_venv/bin/activate
 SERV_ACTIVATE=. serv_venv/bin/activate
-TSC?=tsc
+TSC?=npx tsc
+TERSER?=npx terser
+NPM?=npm
 RMRF=rm -rf
 
 else
@@ -28,10 +30,16 @@ PY?=py
 CP=copy
 DEV_ACTIVATE=dev_venv\Scripts\activate
 SERV_ACTIVATE=serv_venv\Scripts\activate
-TSC?=tsc
+TSC?=npx tsc
+TERSER?=npx terser
+NPM?=npm
 RMRF=del /q
 
 endif
+
+node_modules:
+	$(NPM) install terser --save-dev
+	$(NPM) install typescript --save-dev
 
 SERVPY=$(SERV_ACTIVATE) && $(PY)
 DEVPY=$(DEV_ACTIVATE) && $(PY)
@@ -57,7 +65,7 @@ TSCFLAGS:=--noImplicitAny \
 	  --noImplicitReturns \
 	  --noFallthroughCasesInSwitch \
 	  --removeComments \
-	  --target es2020 \
+	  --target es2021 \
 	  --noEmitOnError \
 	  --strictFunctionTypes
 # NOTE(dpriver): the order does matter (but this is not the only valid order).
@@ -98,6 +106,8 @@ TSFILES:= WebClient/socket.d.ts \
 
 Generated/client.js: $(TSFILES) | Generated
 	$(TSC) $^ $(TSCFLAGS) --outFile $@
+Generated/client.min.js: Generated/client.js | Generated
+	$(TERSER) $< -o $@ --mangle toplevel
 Generated/demo.js: WebClient/demo.ts Generated/messages.ts | Generated
 	$(TSC) $^ $(TSCFLAGS) --outFile $@
 

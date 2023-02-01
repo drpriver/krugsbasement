@@ -1428,7 +1428,7 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
         case SpreadSheetMsgType.INITIALIZE:
             for(const ss of SPREADSHEETS.values()) ss.w.remove();
             SPREADSHEETS.clear();
-            (by_id('sheet-buttons') as any).replaceChildren();
+            by_id('sheet-buttons').replaceChildren();
             for(const d of arg[1]) spreadsheet_from_data(d);
             for(const ss of SPREADSHEETS.values()){
                 ss._dirty = true;

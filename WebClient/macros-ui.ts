@@ -30,7 +30,6 @@ let active_macro_window = -1; // XXX: structured response doesn't include to wha
 ONRECV(ToClient.CHAT_TEST_STRUCTURED_RESPONSE, function(response:Array<ChatMsg>):void{
     const w = MACRO_WINDOWS.get(active_macro_window);
     if(!w) return;
-    // @ts-ignore
     w.log.replaceChildren();
     add_chat_msgs(w.log, response, undefined);
 });
@@ -157,8 +156,8 @@ function make_macro_window(cid:number, id:number):MacroWindow {
         if(!macro) return;
         t.textContent = macro[1];
         editor.value = macro[2];
-        (log as any).replaceChildren();
-        (vars as any).replaceChildren();
+        log.replaceChildren();
+        vars.replaceChildren();
         if(macro){
             for(const vid of macro[3]){
                 const v = VARIABLES.get(vid);
@@ -282,7 +281,7 @@ function make_vars_window(cid:number):VariablesWindow {
         const char = CHARACTERS.get(cid);
         if(!char) return;
         t.textContent = `${char[1]} - Variables`;
-        (vars as any).replaceChildren();
+        vars.replaceChildren();
         if(char){
             for(const vid of char[3]){
                 const v = VARIABLES.get(vid);
@@ -412,7 +411,6 @@ function setup_macro_left():void{
         dialog.show();
     };
     const list = by_id('left-macro-group-list');
-    // @ts-ignore
     list.replaceChildren();
     list.oncontextmenu = function(e:Event):void{
         e.stopPropagation();
@@ -541,7 +539,6 @@ let macro_panel_idx = 0;
 function setup_macro_panel():void{
     setup_macro_left();
     const pt = by_id('macro-panel-tabs');
-    // @ts-ignore
     pt.replaceChildren();
     const pb = by_id('macro-panel-body');
     pb.oncontextmenu = function(e:MouseEvent):void{
@@ -552,7 +549,6 @@ function setup_macro_panel():void{
         menu.item('Cancel');
         menu.install();
     };
-    // @ts-ignore
     pb.replaceChildren();
     if(MACROS.size)
         by_id('macro-panel').classList.add('has-macros');

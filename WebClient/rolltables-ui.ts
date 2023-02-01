@@ -109,6 +109,7 @@ document.addEventListener('DOMContentLoaded',function():void{
                 const menu = ctx_menu(e);
                 menu.item('Insert Below', function():void{
                     const new_id = add_row();
+                    if(new_id == -1) return;
                     tableview.move_after(new_id, id);
                     const row = tableview.get_row(id);
                     if(!row) return;
@@ -248,6 +249,7 @@ document.addEventListener('DOMContentLoaded',function():void{
                     }
                     if(e.ctrlKey){
                         const new_id = add_row();
+                        if(new_id == -1) return;
                         tableview.move_after(new_id, id);
                         const row = tableview.get_row(id);
                         if(!row) return;
@@ -408,11 +410,7 @@ document.addEventListener('DOMContentLoaded',function():void{
             tableview.rows[1][1][1].focus();
     }
     function add_row():number{
-        // This is weird?
-        // reveal_type(current_table);
-        // tsc thinks we're trying to assign to a number???
-        // @ts-ignore
-        if(current_table === undefined) return;
+        if(current_table === undefined) return -1;
         const entry: RollTableEntry = {
             weight: 1,
             value: '',

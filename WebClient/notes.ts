@@ -59,7 +59,7 @@ function update_iframe(n:NoteWindow):void{
     let title = note.title;
     let s = title + '::title\n' + n.editor.value + '\n' + boilerplate;
     make_dnd_html(s, function(html:string, errors:Array<string>):void{
-        (n.log as any).replaceChildren();
+        n.log.replaceChildren();
         for(let error of errors){
           const pp = document.createElement('pre');
           pp.innerHTML = error;
@@ -452,7 +452,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         if(li) li.remove();
     });
     ONRECV(ToClient.NOTES_INITIALIZE, function(notes:Array<Note>):void{
-        (by_id('left-notes-list') as any).replaceChildren();
+        by_id('left-notes-list').replaceChildren();
         NOTES.clear();
         for(const w of NOTE_WINDOWS.values())
             w.w.remove();

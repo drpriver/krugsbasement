@@ -2829,7 +2829,7 @@ function initialize_maps(msgs:Array<InitializeMap>):void{
         MAPS.clear()
         dungeon_map_views = []
         active_map_view_index = 0;
-        (by_id('left-maps-list') as any).replaceChildren();
+        by_id('left-maps-list').replaceChildren();
     }
 
     for(let msg of msgs){
@@ -4434,7 +4434,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
             [l, c, r][obj.alignment].checked = true;
             dialog.f.background.checked = !!(obj.flags & CanvasFlag.TEXT_HAS_BACKGROUND);
             dialog.f.text.textContent = obj.text;
-            (dialog.f['link-dungeon'] as any).replaceChildren()
+            dialog.f['link-dungeon'].replaceChildren()
             elem_parent_text(dialog.f['link-dungeon'], 'option', 'No Link').value = '-1';
             for(const map of MAPS.values()){
                 elem_parent_text(dialog.f['link-dungeon'], 'option', map.map_name).value = ''+map.map_id;
@@ -7018,7 +7018,7 @@ function token_to_img(x:number, y:number, w:number, h:number, imw:number, imh:nu
 }
 function make_terrain_palette():void{
     const icons = by_id('palette-icons');
-    (icons as any).replaceChildren();
+    icons.replaceChildren();
     function make_cb(id:number):()=>void{
         function cb():void{
             current_terrain_id = id;
@@ -7051,7 +7051,7 @@ function make_terrain_palette():void{
 }
 function make_terrain_icon_palette():void{
     const icons = by_id('palette-icons');
-    (icons as any).replaceChildren();
+    icons.replaceChildren();
     function make_cb(id:number):()=>void{
         function cb():void{
             current_terrain_icon_id = id;
@@ -8531,7 +8531,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 r.checked = false;
                 dialog.f.text.value = '';
                 dialog.f.background.checked = false;
-                (dialog.f['link-dungeon'] as any).replaceChildren()
+                dialog.f['link-dungeon'].replaceChildren();
                 elem_parent_text(dialog.f['link-dungeon'], 'option', 'No Link').value = '-1';
                 for(const map of MAPS.values()){
                     elem_parent_text(dialog.f['link-dungeon'], 'option', map.map_name).value = ''+map.map_id;
