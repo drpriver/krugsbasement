@@ -1,0 +1,13 @@
+Changelog::kv
+  created:  2023-01-21T07:19:35Z
+  updated:  2023-02-01T08:15:07Z
+  resolved: 2023-02-01T09:06:58Z
+Created Jan 20, 2023, 11:19PM::md .update
+Summary::md .summary
+  Need to write a proper parse/deserialize for csv.
+
+Updated Feb 01, 2023, 12:15AM::md .update
+  Could insist on tsv
+
+Resolved Feb 01, 2023, 01:06AM::md .update
+  tsv so easy omg

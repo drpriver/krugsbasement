@@ -44,6 +44,7 @@ type SpreadSheet = {
     number_els: Array<HTMLDivElement>;
     header_number_el: HTMLDivElement;
     sheet_deps: Array<number>;
+    to_tsv:()=>string;
 }
 
 function sheet_cell_text(id:number, row:number, col:number):string{
@@ -292,6 +293,14 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             diag.show();
         });
         menu.separator();
+        menu.item('Download', function(){
+            const s = result.to_tsv();
+            const a = elem('a');
+            a.download = result.name+'.tsv';
+            a.href = URL.createObjectURL(new Blob([s], {type:'text/tab-separated-values'}));
+            a.click();
+        });
+        menu.separator();
         menu.item('Delete Spreadsheet', function(){
             const diag = get_dialog('simple-delete');
             if(!diag) return;
@@ -335,6 +344,15 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         headers:[],
         number_els: [],
         sheet_deps: [],
+        to_tsv:function(){
+            const length = result.cell_sources.length;
+            let s = result.column_names.join('\t') + '\n';
+            for(let i = 0; i < length; i++){
+                const row = result.cell_sources[i];
+                s += row.join('\t')+'\n';
+            }
+            return s;
+        },
     } as any as SpreadSheet;
     function recalc_me(){
         if(result._dirty) return;
@@ -1296,13 +1314,34 @@ function spreadsheet_from_data(data:SpreadSheetData){
 document.addEventListener('DOMContentLoaded', function(){
     const b = by_id('new-sheet-button');
     b.onclick = function(){
-        let diag = get_dialog('tracker');
+        const diag = get_dialog('tracker');
         if(!diag) return;
+        diag.f.file.value = '';
+        diag.f.file.accept='.tsv';
+        let tsv = '';
+        diag.f.file.onchange = function(){
+            const filelist = diag.f.file.files;
+            if(!filelist || filelist.length != 1)
+                return;
+            const file = filelist[0];
+            if(!diag.f.name.value)
+                diag.f.name.value = file.name.slice(0, file.name.length-4);
+            file.text().then(s=>tsv=s);
+        };
         diag.ok_handler = function(){
             let name = diag.f.name.value;
             if(!name) return;
             let flags = SpreadSheetFlags.ALL;
             if(!diag.f.numbered.checked) flags &= ~SpreadSheetFlags.NUMBERED;
+            if(tsv){
+                const data = data_from_tsv(tsv);
+                if(data){
+                    data.name = name;
+                    data.flags = flags;
+                    EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NEW_SHEET, data]);
+                    return;
+                }
+            }
             EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NEW_SHEET, {id:0, name, flags, column_names:[], cells:[]}]);
         };
         diag.show_handler = function(){
@@ -1360,6 +1399,7 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg){
         }break;
         case SpreadSheetMsgType.NEW_SHEET:
             spreadsheet_from_data(arg[1]);
+            SPREADSHEETS.get(arg[1].id)!.mark_dirty();
             SPREADSHEETS.get(arg[1].id)!.show();
             break;
         case SpreadSheetMsgType.SORT:{
@@ -1408,6 +1448,52 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg){
                 }
             }
         }break;
-
     }
 });
+
+function data_from_tsv(s:string):SpreadSheetData|null{
+    if(s && s[s.length-1] == '\n') s = s.slice(0, s.length-1);
+    const lines = s.split(/\n/);
+    if(!lines.length) return null;
+    const headers = lines[0].split(/\t/);
+    for(let i = 0; i < headers.length; i++){
+        headers[i] = headers[i].trim();
+    }
+    const rows = [];
+    let n = headers.length;
+
+    for(const line of lines.slice(1)){
+        const parts = line.split(/\t/);
+        for(let i = 0; i < parts.length; i++){
+            parts[i] = parts[i].trim();
+        }
+        if(parts.length < n){
+            for(let i = parts.length; i < n; i++)
+                parts.push('');
+        }
+        if(parts.length > n){
+            n = parts.length;
+            for(let i = headers.length; i < n; i++)
+                headers.push('');
+            for(let i = 0; i < rows.length; i++){
+                const row = rows[i];
+                for(let j = row.length; j < n; j++)
+                    row.push('');
+            }
+        }
+        rows.push(parts);
+    }
+    const cells = [];
+    for(const row of rows){
+        for(const c of row)
+            cells.push(c);
+    }
+    const result: SpreadSheetData = {
+        id: -1,
+        name: 'Untitled',
+        flags: SpreadSheetFlags.ALL,
+        column_names: headers,
+        cells: cells,
+    };
+    return result;
+}

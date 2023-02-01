@@ -157,6 +157,10 @@
     items[current_prefix].push([name, 'HTMLInputElement']);
     return `<input type="color" id="${name}" name="${name}">`;
   }
+  function file(name){
+    items[current_prefix].push([name, 'HTMLInputElement']);
+    return `<input type="file" id="${name}" name="${name}">`;
+  }
   // for when you just need a placeholder div.
   function div(name){
     items[current_prefix].push([name, 'HTMLDivElement']);
@@ -452,6 +456,9 @@
       <tr>
         <td>${label('numbered', 'Numbered')}
         <td>${checkbox('numbered')}
+      <tr>
+        <td>${label('file', 'Upload TSV')}
+        <td>${file('file')}
     </table>
 
   `);
