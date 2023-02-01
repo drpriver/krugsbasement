@@ -506,18 +506,36 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         let [row_idx, col_idx] = idx_of(cell);
         switch(e.key){
             case 'ArrowLeft': {
+                if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
+                    e.stopPropagation();
+                    result.move_column(col_idx, col_idx-1);
+                    cell.focus();
+                    return;
+                }
                 if(col_idx == -1) return;
                 col_idx--;
                 if(col_idx < 0) return;
                 result.cell_elems[row_idx][col_idx].focus();
             } return;
             case 'ArrowRight': {
+                if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
+                    e.stopPropagation();
+                    result.move_column(col_idx, col_idx+1);
+                    cell.focus();
+                    return;
+                }
                 if(col_idx == -1) return;
                 col_idx++;
                 if(col_idx >= result.cell_elems[row_idx].length) return;
                 result.cell_elems[row_idx][col_idx].focus();
             } return;
             case 'ArrowUp': {
+                if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
+                    e.stopPropagation();
+                    result.move_row(row_idx, row_idx-1);
+                    cell.focus();
+                    return;
+                }
                 if(row_idx == -1) return;
                 row_idx--;
                 if(row_idx < 0)
@@ -526,6 +544,12 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
                     result.cell_elems[row_idx][col_idx].focus();
             } return;
             case 'ArrowDown': {
+                if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
+                    e.stopPropagation();
+                    result.move_row(row_idx, row_idx+1);
+                    cell.focus();
+                    return;
+                }
                 if(row_idx == -1) return;
                 row_idx++;
                 if(row_idx >= result.cell_elems.length) return;
@@ -905,13 +929,26 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             if(idx == -1) return;
             switch(e.key){
                 case 'ArrowLeft':
+                    if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
+                        result.move_column(idx, idx-1);
+                        cell.focus();
+                        break;
+                    }
                     if(idx > 0) result.headers[idx-1].focus();
                     break;
                 case 'ArrowRight':
+                    if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
+                        result.move_column(idx, idx+1);
+                        cell.focus();
+                        break;
+                    }
                     if(idx + 1 < result.headers.length) result.headers[idx+1].focus();
                     break;
                 case 'Enter':
                 case 'ArrowDown':
+                    if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
+                        break;
+                    }
                     result.cell_elems[0][idx].focus();
                     break;
                 case 'Escape':
@@ -942,7 +979,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
                             }
                         }
                     }
-                    if(e.metaKey || e.altKey) return;
+                    if(e.metaKey || e.altKey || e.ctrlKey) return;
                     edit_header(cell);
                     return;
             }
