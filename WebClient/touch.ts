@@ -1,6 +1,9 @@
+//
+// Copyright © 2021-2023, David Priver
+//
 let IS_TOUCH = false;
 let IS_MOBILE = false;
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', function():void{
     if(navigator.userAgent.includes('Mobile')){
         document.body.classList.add('mobile');
         IS_MOBILE = true;

@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 
 type Dialog<Key extends keyof DialogIdMap> = {
@@ -49,7 +49,7 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
         let el = get_by_id(key) as any;
         if(!el) throw new Error();
         if(el.tagName == 'TEXTAREA' || (el.tagName == 'INPUT' && el.type != 'checkbox')){
-            el.addEventListener('keydown', function(e:KeyboardEvent){
+            el.addEventListener('keydown', function(e:KeyboardEvent):void{
                 let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
                 if(modified) return;
                 if(e.key == "Enter"){
@@ -68,7 +68,7 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
         }
         f[field] = el;
     }
-    result.hide = function(){
+    result.hide = function():void{
         result.hidden = true;
         OPENDIALOG = null;
         result.window.style.display = 'none';
@@ -81,7 +81,7 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
             }
         }
     };
-    result.show = function(){
+    result.show = function():void{
         if(!result.hidden) return;
         result.hidden = false;
         OPENDIALOG = result;
@@ -92,19 +92,19 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
             result.show_handler();
         return;
     };
-    result.ok.addEventListener('click', function(){
+    result.ok.addEventListener('click', function():void{
         if(result.ok_handler)
             result.ok_handler();
         result.hide();
     });
-    function cancel(){
+    function cancel():void{
         if(result.cancel_handler)
             result.cancel_handler();
         result.hide();
     }
     result.cancel.addEventListener('click', cancel);
     result.close.addEventListener('click', cancel);
-    result.clear_handlers = function(){
+    result.clear_handlers = function():void{
         result.ok_handler = undefined;
         result.cancel_handler = undefined;
         result.show_handler = undefined;

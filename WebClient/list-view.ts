@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 type ListView<K> = {
     column: HTMLDivElement;
@@ -30,12 +30,12 @@ function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):Li
         active: undefined,
         column: listcontainer,
         items: [],
-        clear:function(){
+        clear:function():void{
             for(let [_, el] of result.items)
                 el.remove();
             result.active = undefined;
         },
-        make_active: function(key:K | undefined){
+        make_active: function(key:K | undefined):void{
             for(let [v, el] of result.items){
                 el.classList.remove('active');
                 if(v === key)
@@ -45,13 +45,13 @@ function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):Li
             if(result.activate_handler)
                 result.activate_handler(key);
         },
-        add_item: function(text:string, key:K){
+        add_item: function(text:string, key:K):void{
             let el = document.createElement('div');
-            el.oncontextmenu = function(e){
+            el.oncontextmenu = function(e):void{
                 const menu = ctx_menu(e);
                 if(flags & ListViewFlags.USER_RENAMABLE){
-                    menu.item('Rename', function(){
-                        user_edit_element(el.firstChild! as HTMLElement, 0, function(v:string){
+                    menu.item('Rename', function():void{
+                        user_edit_element(el.firstChild! as HTMLElement, 0, function(v:string):void{
                             result.rename(v, key);
                             if(result.user_rename_handler)
                                 result.user_rename_handler(key, v);
@@ -59,12 +59,12 @@ function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):Li
                     });
                 }
                 if(flags & ListViewFlags.USER_DELETABLE){
-                    menu.item('Delete', function(){
+                    menu.item('Delete', function():void{
                         const dialog = get_dialog('simple-delete');
                         if(!dialog) return;
                         dialog.title.innerText = 'Delete '+el.firstChild!.textContent;
                         dialog.f.delete.checked = false;
-                        dialog.ok_handler = function(){
+                        dialog.ok_handler = function():void{
                             if(!dialog.f.delete.checked) return;
                             result.remove(key);
                             if(result.user_remove_handler)
@@ -79,7 +79,7 @@ function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):Li
             elem_parent_text(el, 'span', text);
             let style = 'auto';
             el.style.gridTemplateColumns = style;
-            el.addEventListener('click', function(e:MouseEvent){
+            el.addEventListener('click', function(e:MouseEvent):void{
                 e.preventDefault();
                 e.stopPropagation();
                 result.make_active(key);
@@ -87,7 +87,7 @@ function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):Li
             result.items.push([key, el]);
             result.column.appendChild(el);
         },
-        remove: function(key:K){
+        remove: function(key:K):void{
             for(let i = 0; i < result.items.length; i++){
                 let [v, el] = result.items[i]
                 if(v === key){
@@ -105,7 +105,7 @@ function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):Li
                 }
             }
         },
-        rename: function(text:string, key:K){
+        rename: function(text:string, key:K):void{
             for(let [v, el] of result.items){
                 if(v === key){
                     el.firstChild!.textContent = text;
@@ -170,7 +170,7 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
         move_handler2:undefined,
         user_remove_handler1:undefined,
         user_remove_handler2:undefined,
-        make_active1: function(k1:K1){
+        make_active1: function(k1:K1):void{
             for(let [k, el] of result.items1){
                 el.classList.remove('active');
                 if(k === k1)
@@ -198,7 +198,7 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
             else if(result.activate1_handler)
                 result.activate1_handler(k1);
         },
-        make_active2: function(k1: K1, k2:K2){
+        make_active2: function(k1: K1, k2:K2):void{
             if(result.active1 !== k1){
                 result.active2.set(k1, k2);
                 result.make_active1(k1);
@@ -214,7 +214,7 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
             if(result.activate2_handler)
                 result.activate2_handler(k1, k2);
         },
-        add_item1: function(text:string, k1:K1){
+        add_item1: function(text:string, k1:K1):void{
             for(let [k, el] of result.items1){
                 if(k === k1){
                     el.firstChild!.textContent = text;
@@ -222,11 +222,11 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                 }
             }
             let item = elem_with_parent(result.column1, 'div');
-            item.oncontextmenu = function(e){
+            item.oncontextmenu = function(e):void{
                 const menu = ctx_menu(e);
                 if(flags1 & ListViewFlags.USER_RENAMABLE){
-                    menu.item('Rename', function(){
-                        user_edit_element(item.firstChild! as HTMLElement, 0, function(v:string){
+                    menu.item('Rename', function():void{
+                        user_edit_element(item.firstChild! as HTMLElement, 0, function(v:string):void{
                             result.rename1(v, k1);
                             if(result.user_rename_handler1)
                                 result.user_rename_handler1(k1, v);
@@ -234,12 +234,12 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                     });
                 }
                 if(flags1 & ListViewFlags.USER_DELETABLE){
-                    menu.item('Delete', function(){
+                    menu.item('Delete', function():void{
                         const dialog = get_dialog('simple-delete');
                         if(!dialog) return;
                         dialog.title.innerText = 'Delete '+item.firstChild!.textContent;
                         dialog.f.delete.checked = false;
-                        dialog.ok_handler = function(){
+                        dialog.ok_handler = function():void{
                             if(!dialog.f.delete.checked) return;
                             result.remove1(k1);
                             if(result.user_remove_handler1)
@@ -258,35 +258,35 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                 const ud = elem('div', null, 'up-down');
                 const up = elem_parent_text(ud, 'button', '▲', null, 'up');
                 const down = elem_parent_text(ud, 'button', '▼', null, 'down');
-                up.onclick = function(e:MouseEvent){
+                up.onclick = function(e:MouseEvent):void{
                     e.stopPropagation();
                     result.move1(k1, -1);
                 };
-                down.onclick = function(e:MouseEvent){
+                down.onclick = function(e:MouseEvent):void{
                     e.stopPropagation();
                     result.move1(k1, +1);
                 }
                 item.appendChild(ud);
             }
             item.style.gridTemplateColumns = style;
-            item.addEventListener('click', function(){
+            item.addEventListener('click', function():void{
                 result.make_active1(k1);
             });
             result.items1.push([k1, item]);
             result.items2.set(k1, []);
         },
-        add_item2:function(text:string, k1:K1, k2:K2){
+        add_item2:function(text:string, k1:K1, k2:K2):void{
             let item = document.createElement('div');
             elem_parent_text(item, 'span', text);
-            item.addEventListener('click', function(){
+            item.addEventListener('click', function():void{
                 result.make_active2(k1, k2);
             });
             let style = 'auto';
-            item.oncontextmenu = function(e){
+            item.oncontextmenu = function(e):void{
                 const menu = ctx_menu(e);
                 if(flags2 & ListViewFlags.USER_RENAMABLE){
-                    menu.item('Rename', function(){
-                        user_edit_element(item.firstChild! as HTMLElement, 0, function(v:string){
+                    menu.item('Rename', function():void{
+                        user_edit_element(item.firstChild! as HTMLElement, 0, function(v:string):void{
                             result.rename2(v, k1, k2);
                             if(result.user_rename_handler2)
                                 result.user_rename_handler2(k1, k2, v);
@@ -294,12 +294,12 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                     });
                 }
                 if(flags2 & ListViewFlags.USER_DELETABLE){
-                    menu.item('Delete', function(){
+                    menu.item('Delete', function():void{
                         const dialog = get_dialog('simple-delete');
                         if(!dialog) return;
                         dialog.title.innerText = 'Delete '+item.firstChild!.textContent;
                         dialog.f.delete.checked = false;
-                        dialog.ok_handler = function(){
+                        dialog.ok_handler = function():void{
                             if(!dialog.f.delete.checked) return;
                             result.remove2(k1, k2);
                             if(result.user_remove_handler2)
@@ -316,11 +316,11 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                 const ud = elem('div', null, 'up-down');
                 const up = elem_parent_text(ud, 'button', '▲', null, 'up');
                 const down = elem_parent_text(ud, 'button', '▼', null, 'down');
-                up.onclick = function(e:MouseEvent){
+                up.onclick = function(e:MouseEvent):void{
                     e.stopPropagation();
                     result.move2(k1, k2, -1);
                 };
-                down.onclick = function(e:MouseEvent){
+                down.onclick = function(e:MouseEvent):void{
                     e.stopPropagation();
                     result.move2(k1, k2, +1);
                 }
@@ -337,7 +337,7 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                 result.column2.appendChild(item);
             }
         },
-        rename1:function(text:string, k1:K1){
+        rename1:function(text:string, k1:K1):void{
             for(let [k, el] of result.items1){
                 if(k === k1){
                     el.firstChild!.textContent = text;
@@ -345,7 +345,7 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                 }
             }
         },
-        rename2:function(text:string, k1:K1, k2:K2){
+        rename2:function(text:string, k1:K1, k2:K2):void{
             let items = result.items2.get(k1);
             if(items === undefined) return;
             for(let [k, el] of items){
@@ -355,7 +355,7 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                 }
             }
         },
-        remove1:function(k1:K1){
+        remove1:function(k1:K1):void{
             let it2 = result.items2.get(k1);
             if(it2 !== undefined){
                 for(let [_, el] of it2){
@@ -383,7 +383,7 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                 }
             }
         },
-        remove2:function(k1:K1, k2:K2){
+        remove2:function(k1:K1, k2:K2):void{
             let items = result.items2.get(k1);
             if(items === undefined) return;
             for(let i = 0; i < items.length; i++){
@@ -407,7 +407,7 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                 }
             }
         },
-        move1:function(k1:K1, offset:number){
+        move1:function(k1:K1, offset:number):void{
             let items = result.items1;
             let idx = -1;
             for(let i = 0; i < items.length; i++){
@@ -427,7 +427,7 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
             if(result.move_handler1)
                 result.move_handler1(k1, idx, offset);
         },
-        move2:function(k1:K1, k2:K2, offset:number){
+        move2:function(k1:K1, k2:K2, offset:number):void{
             let items = result.items2.get(k1)!;
             let idx = -1;
             for(let i = 0; i < items.length; i++){
@@ -451,13 +451,13 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
     return result;
 }
 
-function move_item_by(arr:Array<any>, idx:number, off:number){
+function move_item_by(arr:Array<any>, idx:number, off:number):void{
 	let new_idx = idx + off;
 	let item = arr[idx];
 	arr.splice(idx, 1);
 	arr.splice(new_idx, 0, item);
 }
-function move_elem_by(e:Node, off:number){
+function move_elem_by(e:Node, off:number):void{
     let parent = e.parentNode!;
     let idx = -1;
     for(let i = 0; i < parent.childNodes.length; i++){

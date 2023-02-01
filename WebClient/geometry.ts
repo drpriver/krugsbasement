@@ -1,3 +1,6 @@
+//
+// Copyright © 2021-2023, David Priver
+//
 type Bbox = {
     // These are relative to some base_x, base_y.
     x0: number;
@@ -7,7 +10,7 @@ type Bbox = {
 }
 // Note, for this function, make sure the bboxes have been adjusted
 // to the same frame of reference.
-function bbox_overlaps(bbox1:Bbox, bbox2:Bbox){
+function bbox_overlaps(bbox1:Bbox, bbox2:Bbox):boolean{
     const x0 = Math.max(bbox1.x0, bbox2.x0);
     const y0 = Math.max(bbox1.y0, bbox2.y0);
     const x1 = Math.min(bbox1.x1, bbox2.x1);

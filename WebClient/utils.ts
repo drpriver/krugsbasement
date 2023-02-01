@@ -31,7 +31,7 @@ function elem_with_parent<K extends keyof HTMLElementTagNameMap>(parent:HTMLElem
     return el;
 }
 
-function elem_parent_text<K extends keyof HTMLElementTagNameMap>(parent:HTMLElement, tag:K, text:string, id?:string|null, class_?:string|null){
+function elem_parent_text<K extends keyof HTMLElementTagNameMap>(parent:HTMLElement, tag:K, text:string, id?:string|null, class_?:string|null):HTMLElementTagNameMap[K]{
     const el = document.createElement(tag);
     if(id) el.id = id;
     if(class_) el.classList.add(class_);
@@ -44,10 +44,10 @@ function elem_parent_text<K extends keyof HTMLElementTagNameMap>(parent:HTMLElem
 // 2**32-1 or something like that, but is still kind of gross, you know?
 let TOPPERMOST_Z = 3;
 function setup_zsorted_window(win:HTMLDivElement):()=>void{
-    win.addEventListener('pointerdown', function(){
+    win.addEventListener('pointerdown', function():void{
         make_top();
     });
-    function make_top(){
+    function make_top():void{
         let z = +win.style.zIndex;
         if(z < TOPPERMOST_Z){
             TOPPERMOST_Z++;
@@ -62,7 +62,7 @@ const enum WINDOWFLAGS {
     REMEMBER_POSITION = 1 << 1,
     LOCAL_REMEMBER = 1 << 2,
 }
-function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: WINDOWFLAGS){
+function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: WINDOWFLAGS):void{
     let dragging = false;
     let x = 0;
     let y = 0;
@@ -72,25 +72,25 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
     // If we're dragging a window, we need to prevent pointer events from being
     // grabbed by the iframe.
     let iframes = Array.from(document.getElementsByTagName('iframe'));
-    function iframe_disable(){
+    function iframe_disable():void{
         for(let iframe of iframes)
             iframe.style.pointerEvents = 'none';
     }
-    function iframe_enable(){
+    function iframe_enable():void{
         for(let iframe of iframes)
             iframe.style.pointerEvents = 'auto';
     }
 
     // To prevent spamming the localStorage, uses this to debounce.
     let save_in_flight = false;
-    let save_position = function(x:number, y:number){};
+    let save_position = function(x:number, y:number):void{};
     if(flags &  WINDOWFLAGS.REMEMBER_POSITION){
-        save_position = function (x:number, y:number){
+        save_position = function (x:number, y:number):void{
             x = 100*x/window.innerWidth;
             y = 100*y/window.innerHeight;
             if(save_in_flight) return;
             save_in_flight = true;
-            setTimeout(function(){
+            setTimeout(function():void{
                 if(flags & WINDOWFLAGS.LOCAL_REMEMBER)
                     store_local(StorageCategory.WINDOW, win.id, [x+'%', y+'%']);
                 else
@@ -117,7 +117,7 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
         win.style.bottom = 'initial';
         win.style.right = 'initial';
     }
-    handle.addEventListener('pointerdown', function(e:PointerEvent){
+    handle.addEventListener('pointerdown', function(e:PointerEvent):void{
         if(e.target !== handle)
             return;
         iframe_disable();
@@ -136,7 +136,7 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
         window.addEventListener('pointerleave', endmove);
         window.addEventListener('pointerup', endmove);
     });
-    function endmove(e:PointerEvent){
+    function endmove(e:PointerEvent):void{
         iframe_enable();
         window.removeEventListener('pointermove', pointermove);
         window.removeEventListener('pointerleave', endmove);
@@ -146,7 +146,7 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
         let r = win.getBoundingClientRect();
         save_position(r.left, r.top);
     }
-    function pointermove(e:PointerEvent){
+    function pointermove(e:PointerEvent):void{
         if(!dragging) return;
         e.preventDefault();
         e.stopPropagation();
@@ -177,12 +177,12 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
 const IS_WINDOWS = window.navigator.platform.includes('Windows') || window.navigator.platform.includes('Win32');
 const IS_MAC = window.navigator.platform.includes('Mac');
 
-function setup_closable_window(win:HTMLElement, closer:HTMLElement, onclose:()=>void){
+function setup_closable_window(win:HTMLElement, closer:HTMLElement, onclose:()=>void):void{
     if(IS_WINDOWS)
         closer.style.gridColumn = '3';
     else
         closer.style.gridColumn = '1';
-    function hide_window(e:MouseEvent){
+    function hide_window(e:MouseEvent):void{
         e.preventDefault();
         e.stopPropagation();
         onclose();
@@ -192,7 +192,7 @@ function setup_closable_window(win:HTMLElement, closer:HTMLElement, onclose:()=>
     closer.title = 'Close';
 }
 
-function setup_window_size(win:HTMLElement){
+function setup_window_size(win:HTMLElement):void{
     if (window.innerWidth > 1200)
         win.style.width = '1000px';
     else if(window.innerWidth > 800)
@@ -205,7 +205,7 @@ function setup_window_size(win:HTMLElement){
         win.style.height = '300px';
 }
 
-function ensure_window_is_completely_on_screen(win:HTMLElement){
+function ensure_window_is_completely_on_screen(win:HTMLElement):void{
     let r = win.getBoundingClientRect();
     let newx = r.left;
     let newy = r.top;
@@ -232,10 +232,10 @@ function get_by_id<T extends HTMLElement >(id:string):T{
 
 // This gives a compile error if you pass anything to it, with the compile
 // error revealing what the type of the argument is.
-function reveal_type(x:never){
+function reveal_type(x:never):void{
 }
 
-function center_element(el:HTMLElement){
+function center_element(el:HTMLElement):void{
     el.style.top = ''+(window.innerHeight - el.offsetHeight)/2 + 'px';
     el.style.left = ''+(window.innerWidth - el.offsetWidth)/2 + 'px';
 }
@@ -248,14 +248,14 @@ function radio_to_value<T>(radios:Array<HTMLInputElement>, values:Array<T>):T{
 }
 
 
-function link_input_value(value:string, inp1:HTMLInputElement, event1:'onchange' | 'oninput', inp2:HTMLInputElement, event2: 'onchange' | 'oninput', cb?:()=>void){
+function link_input_value(value:string, inp1:HTMLInputElement, event1:'onchange' | 'oninput', inp2:HTMLInputElement, event2: 'onchange' | 'oninput', cb?:()=>void):void{
     inp1.value = value;
     inp2.value = value;
-    inp1[event1] = function(){
+    inp1[event1] = function():void{
         inp2.value = inp1.value;
         if(cb) cb();
     };
-    inp2[event2] = function(){
+    inp2[event2] = function():void{
         inp1.value = inp2.value;
         if(cb) cb();
     };
@@ -266,7 +266,7 @@ const enum UserEditElementFlags {
     ALWAYS_REFOCUS = 1 << 0,
 }
 
-function user_edit_element(cell:HTMLElement, flags:UserEditElementFlags, onfinish:(txt:string)=>void){
+function user_edit_element(cell:HTMLElement, flags:UserEditElementFlags, onfinish:(txt:string)=>void):void{
     const w = '' + (cell.getBoundingClientRect().width-2) + 'px';
     const h = '' + (cell.getBoundingClientRect().height-2) + 'px';
     let oldtxt = cell.textContent;
@@ -278,7 +278,7 @@ function user_edit_element(cell:HTMLElement, flags:UserEditElementFlags, onfinis
     inp.style.height = h;
     inp.value = oldtxt;
     let canceled = false;
-    inp.onkeydown = function(e){
+    inp.onkeydown = function(e):void{
         e.stopPropagation();
         switch(e.key){
             // @ts-ignore
@@ -292,7 +292,7 @@ function user_edit_element(cell:HTMLElement, flags:UserEditElementFlags, onfinis
             }return;
         }
     };
-    inp.onblur = function(){
+    inp.onblur = function():void{
         const v = inp.value.trim();
         if(canceled)
             cell.textContent = oldtxt;

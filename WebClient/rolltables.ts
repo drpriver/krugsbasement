@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 
 const ROLLTABLES: {shared:Array<RollTable>, private:Array<RollTable>} = {
@@ -8,7 +8,7 @@ const ROLLTABLES: {shared:Array<RollTable>, private:Array<RollTable>} = {
 };
 
 // TAG handleROLL_TABLES
-ONRECV(ToClient.ROLL_TABLES, function(tables:RollTables){
+ONRECV(ToClient.ROLL_TABLES, function(tables:RollTables):void{
     ROLLTABLES.shared = tables[0];
     ROLLTABLES.private = tables[1];
     signal_for(ListenEvent.ROLLTABLES_RECEIVED);
@@ -16,7 +16,7 @@ ONRECV(ToClient.ROLL_TABLES, function(tables:RollTables){
 });
 
 // TAG handleROLL_TABLE_NAMES
-ONRECV(ToClient.ROLL_TABLE_NAMES, function(data:RollTableNames){
+ONRECV(ToClient.ROLL_TABLE_NAMES, function(data:RollTableNames):void{
     // hack;
     let old_shared = ROLLTABLES.shared;
     let old_priv = ROLLTABLES.private;

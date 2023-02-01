@@ -13,12 +13,12 @@ if(SETTINGS.uimode != UiMode.NORMAL){
     function dummy_export():Array<InitializeMap>{
         return [];
     }
-    function dummy_import(msgs:Array<InitializeMap>){
+    function dummy_import(msgs:Array<InitializeMap>):void{
         return;
     }
-    function dummy_screenshot(){}
-    function dummy_request_render(){}
-    function dummy_resize_canvas(){}
+    function dummy_screenshot():void{}
+    function dummy_request_render():void{}
+    function dummy_resize_canvas():void{}
     return {
         export_maps: dummy_export,
         import_maps: dummy_import,
@@ -357,14 +357,14 @@ let TERRAIN_BY_ID: Map<number, Terrain> = new Map();
 let TERRAIN_ICON_BY_ID: Map<number, TerrainIcon> = new Map();
 let TOKEN_BY_PATH: Map<string, Token> = new Map();
 let PACKEDIMG = new Image();
-PACKEDIMG.addEventListener('error', function(){
+PACKEDIMG.addEventListener('error', function():void{
     // try again with png
     PACKEDIMG.src = '/tiles/packed.png';
 }, {once:true});
 if(SETTINGS.uimode == UiMode.NORMAL)
     PACKEDIMG.src = '/tiles/packed.webp'
 let TOKENIMG = new Image();
-TOKENIMG.addEventListener('error', function(){
+TOKENIMG.addEventListener('error', function():void{
     // try again with png
     TOKENIMG.src = '/tiles/toks.png';
 }, {once:true});
@@ -610,7 +610,7 @@ const enum ARCTYPE {
 
 const ARCTYPE_TO_NAME = ['Semi', 'Quarter'];
 let current_arc_type = ArcType.SEMI;
-function set_arc_type(i:number){
+function set_arc_type(i:number):void{
     current_arc_type = i;
     store_global(StorageCategory.CANVAS, 'arctype', current_arc_type);
 }
@@ -716,7 +716,7 @@ const enum GRIDSCALE {
     TEN  = 1,
 };
 let gridscale = GRIDSCALE.TEN;
-function change_gridscale(newscale:GRIDSCALE){
+function change_gridscale(newscale:GRIDSCALE):void{
     gridscale = newscale;
     switch(gridscale){
         case GRIDSCALE.FIVE:
@@ -728,7 +728,7 @@ function change_gridscale(newscale:GRIDSCALE){
     }
     request_render();
 }
-function visually_set_gridscale(newscale:GRIDSCALE){
+function visually_set_gridscale(newscale:GRIDSCALE):void{
     // change_gridscale(newscale);
     switch(newscale){
         case GRIDSCALE.TEN:{
@@ -741,13 +741,13 @@ function visually_set_gridscale(newscale:GRIDSCALE){
         }break;
     }
 }
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', function():void{
     // Checking if the elements is checked
-    by_id('grid-10').addEventListener('change', function(){
+    by_id('grid-10').addEventListener('change', function():void{
         change_gridscale(GRIDSCALE.TEN);
     });
     if(by_id('grid-10').checked) gridscale = GRIDSCALE.TEN;
-    by_id('grid-5').addEventListener('change', function(){
+    by_id('grid-5').addEventListener('change', function():void{
         change_gridscale(GRIDSCALE.FIVE);
     });
     if(by_id('grid-5').checked) gridscale = GRIDSCALE.FIVE;
@@ -760,10 +760,10 @@ const enum SNAPMODE {
     FREE    = 3, // "FREE",
 }
 let snapmode: SNAPMODE = SNAPMODE.GRID;
-function invisibly_change_snapmode(mode:SNAPMODE){
+function invisibly_change_snapmode(mode:SNAPMODE):void{
     snapmode = mode;
 }
-function visually_set_snapmode(mode:SNAPMODE){
+function visually_set_snapmode(mode:SNAPMODE):void{
     switch(mode){
         case SNAPMODE.GRID:
             by_id('grid-snap-grid').click();
@@ -779,14 +779,13 @@ function visually_set_snapmode(mode:SNAPMODE){
             break;
     }
 }
-document.addEventListener('DOMContentLoaded', function(){
-    function do_it(id:string, mode:SNAPMODE){
+document.addEventListener('DOMContentLoaded', function():void{
+    function do_it(id:string, mode:SNAPMODE):void{
         const snap: HTMLInputElement = get_by_id(id);
-        snap.addEventListener('change', function(){
+        snap.addEventListener('change', function():void{
             invisibly_change_snapmode(mode);
         });
         if(snap.checked) snapmode = mode;
-
     }
     do_it('grid-snap-grid',    SNAPMODE.GRID);
     do_it('grid-snap-half',    SNAPMODE.HALF);
@@ -794,40 +793,40 @@ document.addEventListener('DOMContentLoaded', function(){
     do_it('grid-snap-free',    SNAPMODE.FREE);
 });
 
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', function():void{
     const zoom_in_b = by_id('zoom-in');
     const zoom_out_b = by_id('zoom-out');
-    zoom_in_b.addEventListener('click', function(){
+    zoom_in_b.addEventListener('click', function():void{
         const view = get_active_view();
         zoom_in(view);
     });
-    zoom_out_b.addEventListener('click', function(){
+    zoom_out_b.addEventListener('click', function():void{
         const view = get_active_view();
         zoom_out(view);
     });
-    by_id('undo').addEventListener('click', function(){
+    by_id('undo').addEventListener('click', function():void{
         const view = get_active_view();
         do_one_undo(view.map);
     });
-    by_id('redo').addEventListener('click', function(){
+    by_id('redo').addEventListener('click', function():void{
         const view = get_active_view();
         do_one_redo(view.map);
     });
-    by_id('cut').addEventListener('click', function(){
+    by_id('cut').addEventListener('click', function():void{
         const view = get_active_view();
         if(view.selected.size !== 0){
             clear_copy_buffer();
             cut_selected_objs_to_copy_buffer(view);
         }
     });
-    by_id('copy').addEventListener('click', function(){
+    by_id('copy').addEventListener('click', function():void{
         const view = get_active_view();
         if(view.selected.size !== 0){
             clear_copy_buffer();
             copy_selected_objs_to_copy_buffer(view);
         }
     });
-    by_id('paste').addEventListener('click', function(){
+    by_id('paste').addEventListener('click', function():void{
         const view = get_active_view();
         if(copied_objs.length){
             let submapid = 0;
@@ -841,7 +840,7 @@ document.addEventListener('DOMContentLoaded', function(){
             paste_from_copy_buffer_at(view.map, x, y, submapid);
         }
     });
-    by_id('delete').addEventListener('click', function(){
+    by_id('delete').addEventListener('click', function():void{
         const view = get_active_view();
         if(!view.selected.size)
             return;
@@ -869,7 +868,7 @@ document.addEventListener('DOMContentLoaded', function(){
         }
         end_selecting(view);
     });
-    by_id('edit').addEventListener('click', function(){
+    by_id('edit').addEventListener('click', function():void{
         const view = get_active_view();
         launch_edit_dialog(view);
     });
@@ -900,7 +899,7 @@ function export_maps():Array<InitializeMap>{
     return result;
 }
 
-function import_maps(msgs:Array<InitializeMap>){
+function import_maps(msgs:Array<InitializeMap>):void{
     initialize_maps(msgs);
     // Fix up our localid to avoid collisions.
     let highest = 0;
@@ -931,7 +930,7 @@ type Ping = {
     cy: number;
     color: string;
 };
-function ping_at(map:DungeonMap, x:number, y:number){
+function ping_at(map:DungeonMap, x:number, y:number):void{
     const ping: PingMessage = {
         ping: {cx:x, cy:y, color:'#ff3300'},
         map_id:map.map_id,
@@ -940,7 +939,7 @@ function ping_at(map:DungeonMap, x:number, y:number){
     EMIT(FromClient.CANVAS_PING, ping);
     request_render();
 }
-ONRECV(ToClient.CANVAS_PING, function(data:PingMessage){
+ONRECV(ToClient.CANVAS_PING, function(data:PingMessage):void{
     const map = get_map(data.map_id);
     map.pings.push(data.ping);
     request_render();
@@ -1032,12 +1031,12 @@ function new_map_view(map_id:number): DungeonMapView{
     };
     return view;
 }
-function center_view_at(view:DungeonMapView, x:number, y:number){
+function center_view_at(view:DungeonMapView, x:number, y:number):void{
     view.camera_x = -x + TheCanvas.width/2/view.scale;
     view.camera_y = -y + TheCanvas.height/2/view.scale;
     request_render();
 }
-function change_active_map_view(idx: number, store:boolean){
+function change_active_map_view(idx: number, store:boolean):void{
     let old_view = active_map_view_index >=0 && active_map_view_index < dungeon_map_views.length? dungeon_map_views[active_map_view_index]:null;
     if(old_view && store){
         store_local(StorageCategory.CANVAS, `camera.${active_map_view_index}`, [old_view.camera_x, old_view.camera_y, old_view.scale]);
@@ -1067,7 +1066,7 @@ function get_active_view(): DungeonMapView{
     }
     return dungeon_map_views[active_map_view_index];
 }
-document.addEventListener('visibilitychange', function(){
+document.addEventListener('visibilitychange', function():void{
     let view = get_active_view();
     if(view)
         store_local(StorageCategory.CANVAS, `camera.${active_map_view_index}`, [view.camera_x, view.camera_y, view.scale]);
@@ -1097,18 +1096,18 @@ function get_map(map_id:number): DungeonMap {
     MAPS.set(map_id, new_map);
     const li = elem_parent_text(by_id('left-maps-list'), 'li', 'Untitled');
     li.dataset['mapid'] = ''+map_id;
-    li.onclick = function(e:Event){
+    li.onclick = function(e:Event):void{
         e.stopPropagation();
         e.preventDefault();
         change_map(map_id);
     };
-    li.oncontextmenu = function(e:MouseEvent){
+    li.oncontextmenu = function(e:MouseEvent):void{
         const menu = ctx_menu(e);
-        menu.item('Configure', function(){
+        menu.item('Configure', function():void{
             edit_map_dialog(MAPS.get(map_id)!);
         });
         menu.separator();
-        menu.item('Delete', function(){
+        menu.item('Delete', function():void{
             delete_map_dialog(map_id);
         });
         menu.separator();
@@ -1118,7 +1117,7 @@ function get_map(map_id:number): DungeonMap {
     return new_map;
 }
 
-function update_disabled_forward_back(){
+function update_disabled_forward_back():void{
     by_id('back-map-button').disabled = !map_hist.can_go_back();
     by_id('forward-map-button').disabled = !map_hist.can_go_forward();
 }
@@ -1189,7 +1188,7 @@ const map_hist = (function(){
     return h;
 }());
 
-function change_map(map_id:number){
+function change_map(map_id:number):void{
     for(let i = 0; i < dungeon_map_views.length; ++i){
         const mv = dungeon_map_views[i];
         if(mv.map.map_id == map_id){
@@ -1200,23 +1199,23 @@ function change_map(map_id:number){
     }
     request_render();
 }
-function sort_canv_objs(map:DungeonMap){
+function sort_canv_objs(map:DungeonMap):void{
     if(map.is_sorted)
         return;
-    map.canvas_obj_array.sort(function(first:CanvasObject, second:CanvasObject){
+    map.canvas_obj_array.sort(function(first:CanvasObject, second:CanvasObject):number{
         let a = SORTORDER[first.type] + (first.submap? 50 : 0);
         let b = SORTORDER[second.type] + (second.submap? 50 : 0);
         return a - b;
     });
     map.is_sorted = true;
 }
-ONRECV(ToClient.CANVAS_CREATE_MAP, function(map_id:number){
+ONRECV(ToClient.CANVAS_CREATE_MAP, function(map_id:number):void{
     if(MAPS.has(map_id))
         return;
     dungeon_map_views.push(new_map_view(map_id));
     change_active_map_view(dungeon_map_views.length-1, true);
 });
-function rename_map(map:DungeonMap, name:string){
+function rename_map(map:DungeonMap, name:string):void{
     map.map_name = name;
     for(const li of by_id('left-maps-list').getElementsByTagName('li')){
         if(li.dataset['mapid'] == ''+map.map_id){
@@ -1225,17 +1224,17 @@ function rename_map(map:DungeonMap, name:string){
         }
     }
 }
-ONRECV(ToClient.CANVAS_NAME_MAP, function(data:NameMapMessage){
+ONRECV(ToClient.CANVAS_NAME_MAP, function(data:NameMapMessage):void{
     const map = get_map(data.map_id);
     rename_map(map, data.map_name);
 });
-ONRECV(ToClient.CANVAS_GRID_TYPE, function(data:CanvasGridTypeMsg){
+ONRECV(ToClient.CANVAS_GRID_TYPE, function(data:CanvasGridTypeMsg):void{
     const map = get_map(data.map_id);
     map.grid_type = data.grid_type;
     request_render();
 });
 // FIXME: misnumbered
-ONRECV(ToClient.CANVAS_GRID_NUMBERED, function(data:CanvasGridNumberedMsg){
+ONRECV(ToClient.CANVAS_GRID_NUMBERED, function(data:CanvasGridNumberedMsg):void{
     const map = get_map(data.map_id);
     // FIXME: can twiddle the bits in fewer ops
     if(data.numbered & MapFlags.NUMBERED)
@@ -1248,13 +1247,13 @@ ONRECV(ToClient.CANVAS_GRID_NUMBERED, function(data:CanvasGridNumberedMsg){
         map.flags &= ~(MapFlags.BIG_HEX);
     request_render();
 });
-ONRECV(ToClient.CANVAS_GRID_COLOR, function(data:CanvasColorMsg){
+ONRECV(ToClient.CANVAS_GRID_COLOR, function(data:CanvasColorMsg):void{
     const map = get_map(data.map_id);
     map.grid_color = data.color;
     request_render();
 });
 
-ONRECV(ToClient.CANVAS_BG_COLOR, function(data:CanvasColorMsg){
+ONRECV(ToClient.CANVAS_BG_COLOR, function(data:CanvasColorMsg):void{
     const map = get_map(data.map_id);
     map.bg_color = data.color;
     request_render();
@@ -1838,7 +1837,7 @@ function make_gridrect(id:number, base_x:number, base_y:number, submap:number, c
     };
     return obj;
 }
-function add_gridrect(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string){
+function add_gridrect(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string):void{
     const obj = make_gridrect(id, base_x, base_y, submap, color);
     add_canv_obj(map, obj);
 }
@@ -1938,7 +1937,7 @@ function make_filled_rect(id:number, base_x:number, base_y:number, submap:number
     };
     return obj;
 }
-function add_filled_rect(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string, color2:string){
+function add_filled_rect(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string, color2:string):void{
     const obj = make_filled_rect(id, base_x, base_y, submap, color, color2);
     add_canv_obj(map, obj);
 }
@@ -1980,7 +1979,7 @@ function make_ellipse(id:number, base_x:number, base_y:number, submap:number, co
     };
     return obj;
 }
-function add_ellipse(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string, color2:string, variant:ELLIPSETYPE){
+function add_ellipse(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string, color2:string, variant:ELLIPSETYPE):void{
     const obj = make_ellipse(id, base_x, base_y, submap, color, color2, variant);
     add_canv_obj(map, obj);
 }
@@ -2054,7 +2053,7 @@ function add_img_token(map:DungeonMap, id:number, base_x:number, base_y:number, 
     add_canv_obj(map, obj);
 }
 
-function delay_load_obj_image(obj:ImageObj|ImgToken, width:number, height:number, error_width:number, error_height:number){
+function delay_load_obj_image(obj:ImageObj|ImgToken, width:number, height:number, error_width:number, error_height:number):void{
     if(TOKEN_BY_PATH.has(obj.url)){
         const tok = TOKEN_BY_PATH.get(obj.url)!;
         const img = token_to_img(tok[2], tok[3], tok[4], tok[5], width, height);
@@ -2064,7 +2063,7 @@ function delay_load_obj_image(obj:ImageObj|ImgToken, width:number, height:number
     }
     const img = width && height? new Image(width, height): new Image();
     img.crossOrigin = 'anonymous';
-    img.addEventListener('load', function(){
+    img.addEventListener('load', function():void{
         obj.img = img;
         if(!width || !height){
             obj.width = img.width;
@@ -2072,7 +2071,7 @@ function delay_load_obj_image(obj:ImageObj|ImgToken, width:number, height:number
         }
         request_render();
     }, {once:true});
-    img.addEventListener('error', function(){
+    img.addEventListener('error', function():void{
         obj.width = error_width;
         obj.height = error_height;
         if(!error_width || !error_height){
@@ -2108,7 +2107,7 @@ function add_image(map:DungeonMap, id:number, base_x:number, base_y:number, widt
     const obj = make_image(id, base_x, base_y, width, height, submap, url);
     add_canv_obj(map, obj);
 }
-function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number, snap:(_:number)=>number){
+function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number, snap:(_:number)=>number):void{
     const xdiff = x1-x0;
     const ydiff = y1-y0;
     // x0 = snap(x0);
@@ -2173,7 +2172,7 @@ function make_fixture(id:number, x:number, y:number, submap:number,ftype:Fixture
     return obj;
 }
 
-document.addEventListener('DOMContentLoaded', function(){resize_canvas();resize_canvas();
+document.addEventListener('DOMContentLoaded', function():void{resize_canvas();resize_canvas();
 document.body.addEventListener('load', resize_canvas);
 });
 window.addEventListener('resize', resize_canvas);
@@ -2250,14 +2249,14 @@ function note_updates_for_undo(map:DungeonMap, before:Array<StrippedObj>, after:
     };
     push_undo_event(map, undo_event);
 }
-function note_mass_create_for_undo(map:DungeonMap, created_ids:Array<number>){
+function note_mass_create_for_undo(map:DungeonMap, created_ids:Array<number>):void{
     const undo_event: UndoMassCreate = {
         type: UNDO_EVENT_TYPE.MASS_CREATE,
         ids: created_ids,
     };
     push_undo_event(map, undo_event);
 }
-function node_deletes_and_creates_for_undo(map:DungeonMap, deleted:Array<number>, created_ids:Array<number>){
+function node_deletes_and_creates_for_undo(map:DungeonMap, deleted:Array<number>, created_ids:Array<number>):void{
     const creat: UndoMassCreate = {
         type: UNDO_EVENT_TYPE.MASS_CREATE,
         ids: created_ids,
@@ -2274,7 +2273,7 @@ function node_deletes_and_creates_for_undo(map:DungeonMap, deleted:Array<number>
     push_undo_event(map, combo);
 }
 
-function do_one_undo_event(map:DungeonMap, undo_event:UndoEvent){
+function do_one_undo_event(map:DungeonMap, undo_event:UndoEvent):void{
     switch(undo_event.type){
         case UNDO_EVENT_TYPE.CREATE:{
             const obj = map.canvas_objs.get(undo_event.id)!;
@@ -2320,7 +2319,7 @@ function do_one_undo(map:DungeonMap):void{
     do_one_undo_event(map, undo_event);
     request_render();
 }
-function do_one_redo_event(map:DungeonMap, undo_event:UndoEvent){
+function do_one_redo_event(map:DungeonMap, undo_event:UndoEvent):void{
     switch(undo_event.type){
         case UNDO_EVENT_TYPE.CREATE:{
             const obj = map.canvas_objs.get(undo_event.id)!;
@@ -2411,7 +2410,7 @@ function copy_selected_objs_to_clipboard(view:DungeonMapView):void{
 function paste_from_clipboard_at(map:DungeonMap, x:number, y:number, submapid:number):void{
     x = snap_to_grid(x);
     y = snap_to_grid(y);
-    function doit(objs:unknown){
+    function doit(objs:unknown):void{
         if(!Array.isArray(objs)) return;
         const length = objs.length;
         if(!length) return;
@@ -2462,7 +2461,7 @@ function paste_from_clipboard_at(map:DungeonMap, x:number, y:number, submapid:nu
         .catch((error)=>{
             let dialog = get_dialog('clipboard');
             dialog.f.json.value = '';
-            dialog.ok_handler = function(){
+            dialog.ok_handler = function():void{
                 let text = dialog.f.json.value;
                 if(!text) return;
                 let objs;
@@ -2475,7 +2474,7 @@ function paste_from_clipboard_at(map:DungeonMap, x:number, y:number, submapid:nu
     else {
         let dialog = get_dialog('clipboard');
         dialog.f.json.value = '';
-        dialog.ok_handler = function(){
+        dialog.ok_handler = function():void{
             let text = dialog.f.json.value;
             if(!text) return;
             let objs;
@@ -2513,7 +2512,7 @@ function cut_selected_objs_to_copy_buffer(view:DungeonMapView):void{
     view.selected.clear()
     request_render();
 }
-function translate_object(obj: CanvasObject, dx: number, dy: number){
+function translate_object(obj: CanvasObject, dx: number, dy: number):void{
     obj.base_x += dx;
     obj.base_y += dy;
     switch(obj.type){
@@ -2533,7 +2532,7 @@ function translate_object(obj: CanvasObject, dx: number, dy: number){
 function rotate_pair(x:number, y:number):[number, number]{
     return [y, -x];
 }
-function rotate_base(obj: CanvasObject){
+function rotate_base(obj: CanvasObject):void{
     let [x,y] = rotate_pair(obj.base_x, obj.base_y);
     obj.base_y = y;
     obj.base_x = x;
@@ -2545,7 +2544,7 @@ interface Rectangleish {
     width: number;
     height: number;
 }
-function rotate_rectangleish(obj:Rectangleish){
+function rotate_rectangleish(obj:Rectangleish):void{
     let x1 = obj.base_x + obj.width;
     let y1 = obj.base_y + obj.height;
     [x1, y1] = rotate_pair(x1, y1);
@@ -2742,7 +2741,7 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
         }
     }
 }
-function rotate_everything_90(view:DungeonMapView){
+function rotate_everything_90(view:DungeonMapView):void{
     const before_rotate = [];
     const after_rotate = []
     for(let obj of view.map.canvas_obj_array){
@@ -2797,11 +2796,11 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number, submapid:
     request_render();
 }
 
-ONRECV(ToClient.CANVAS_DELETE_MAP, function(map_id:number){
+ONRECV(ToClient.CANVAS_DELETE_MAP, function(map_id:number):void{
     delete_map(map_id);
 });
 
-function delete_map(map_id:number){
+function delete_map(map_id:number):void{
     const map = MAPS.get(map_id);
     if(!map)
         return;
@@ -2822,7 +2821,7 @@ function delete_map(map_id:number){
 
 // cutnpaste from below. TODO: factor these.
 
-function initialize_maps(msgs:Array<InitializeMap>){
+function initialize_maps(msgs:Array<InitializeMap>):void{
     // Clear
     {
         for(let m of MAPS.values())
@@ -2872,7 +2871,7 @@ function initialize_maps(msgs:Array<InitializeMap>){
     request_render();
 }
 ONRECV(ToClient.CANVAS_INITIALIZE_MAPS, initialize_maps);
-ONRECV(ToClient.CANVAS_CREATE_OBJECTS, function(msgs:Array<CreateObjectsMessage>){
+ONRECV(ToClient.CANVAS_CREATE_OBJECTS, function(msgs:Array<CreateObjectsMessage>):void{
     for(let msg of msgs){
         const map_id = msg.map_id;
         if(!MAPS.has(map_id)){
@@ -2896,7 +2895,7 @@ ONRECV(ToClient.CANVAS_CREATE_OBJECTS, function(msgs:Array<CreateObjectsMessage>
     }
     request_render();
 });
-ONRECV(ToClient.CANVAS_DELETE, function(msg:CanvasDeleteMessage){
+ONRECV(ToClient.CANVAS_DELETE, function(msg:CanvasDeleteMessage):void{
     const map_id = msg.map_id;
     const map = get_map(map_id);
     const obj_ids = msg.ids;
@@ -2915,7 +2914,7 @@ ONRECV(ToClient.CANVAS_DELETE, function(msg:CanvasDeleteMessage){
 });
 
 
-ONRECV(ToClient.CANVAS_UPDATE, function(msg:CanvasUpdateMessage){
+ONRECV(ToClient.CANVAS_UPDATE, function(msg:CanvasUpdateMessage):void{
     const map_id = msg.map_id;
     const map = get_map(map_id);
     const obj_states = msg.obj_states;
@@ -3712,7 +3711,7 @@ function change_select_mode(mode:SELECTTYPE):void{
     }
     request_render();
 }
-function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number, base_y:number, dx:number, dy:number){
+function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number, base_y:number, dx:number, dy:number):void{
     const selected_objs = [];
     for(let item of view.selected){
         const obj = view.map.canvas_objs.get(item)!;
@@ -4216,7 +4215,7 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
 // Updates the fields of the first given to be the same as the second.
 // Arrays and such are made fresh to avoid sharing state.
 //
-function set_obj_from_stripped(obj: CanvasObject, state:StrippedObj){
+function set_obj_from_stripped(obj: CanvasObject, state:StrippedObj):void{
     switch(obj.type){
         case CanvasType.SHAPE:
         case CanvasType.FREEHAND_LINE:{
@@ -4310,7 +4309,7 @@ function get_stripped_state_by_id(map:DungeonMap, ids:Array<number>):Array<Strip
     }
     return updates;
 }
-function publish_obj_updates(map_id:number, updates:Array<StrippedObj>){
+function publish_obj_updates(map_id:number, updates:Array<StrippedObj>):void{
     let msg:CanvasUpdateMessage = {map_id:map_id, obj_states:updates};
     EMIT(FromClient.CANVAS_UPDATE, msg);
 }
@@ -4393,7 +4392,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
             dialog.f.height.value = ""+obj.height;
             dialog.f.url.value = obj.url;
             dialog.f.background.checked = !!(obj.flags & CanvasFlag.IMG_IS_BACKGROUND);
-            dialog.ok_handler = function(){
+            dialog.ok_handler = function():void{
                 const text = dialog.f.url.value.trim();
                 if(!text)
                     return;
@@ -4453,17 +4452,17 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 dialog.f['link-submap'].value = ""+obj.map_id;
             else
                 dialog.f['link-dungeon'].value = ""+obj.map_id;
-            dialog.f['link-dungeon'].onchange = function(){
+            dialog.f['link-dungeon'].onchange = function():void{
                 dialog.f['link-submap'].value = '-1'
             };
-            dialog.f['link-submap'].onchange = function(){
+            dialog.f['link-submap'].onchange = function():void{
                 dialog.f['link-dungeon'].value = '-1'
             };
-            dialog.show_handler = function(){
+            dialog.show_handler = function():void{
                 dialog.f.text.value = obj.text;
                 if(!IS_TOUCH) dialog.f.text.focus();
             };
-            dialog.ok_handler = function(){
+            dialog.ok_handler = function():void{
                 const text = dialog.f.text.value.trim();
                 if(!text) return;
                 let alignment = radio_to_value([l,c,r], [TextAlignment.LEFT, TextAlignment.CENTER, TextAlignment.RIGHT]);
@@ -4510,14 +4509,14 @@ function launch_edit_dialog(view:DungeonMapView):void{
             dialog.f.width.value = ""+obj.width;
             dialog.f.height.value = ""+obj.height;
             dialog.f.text.value = obj.text;
-            dialog.hide_handler = function(){
+            dialog.hide_handler = function():void{
                 dialog.f.conditions.innerHTML = '';
             };
             const conditions = dialog.f.conditions;
             const flags_before = obj.statusflags;
             let flags_after = flags_before;
-            function make_handler(el: HTMLInputElement, flag:TokenStatusFlags){
-                function onchange(){
+            function make_handler(el: HTMLInputElement, flag:TokenStatusFlags):()=>void{
+                function onchange():void{
                     if(el.checked)
                         flags_after |= flag;
                     else
@@ -4549,7 +4548,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 d.appendChild(label);
                 conditions.appendChild(d);
             }
-            dialog.ok_handler = function(){
+            dialog.ok_handler = function():void{
                 const text = dialog.f.text.value.trim();
                 if(text) obj.text = text;
                 let width  = +dialog.f.width.value;
@@ -4577,14 +4576,14 @@ function launch_edit_dialog(view:DungeonMapView):void{
             dialog.f.height.value = ""+obj.height;
             dialog.f.url.value = obj.url;
             const conditions = dialog.f.conditions;
-            dialog.hide_handler = function(){
+            dialog.hide_handler = function():void{
                 conditions.innerHTML = '';
             };
             const flags_before = obj.statusflags;
             const url_before = obj.url;
             let flags_after = flags_before;
-            function make_handler(el: HTMLInputElement, flag:TokenStatusFlags){
-                function onchange(){
+            function make_handler(el: HTMLInputElement, flag:TokenStatusFlags):()=>void{
+                function onchange():void{
                     if(el.checked)
                         flags_after |= flag;
                     else
@@ -4614,7 +4613,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 d.appendChild(label);
                 conditions.appendChild(d);
             }
-            dialog.ok_handler = function(){
+            dialog.ok_handler = function():void{
                 let width  = +dialog.f.width.value;
                 let height = +dialog.f.height.value;
                 if(!width || width < 0) width = gridscale == GRIDSCALE.TEN?1:0.5;
@@ -4647,17 +4646,17 @@ function launch_edit_dialog(view:DungeonMapView):void{
             const orig_grid_color = obj.grid_color;
             const orig_bg_color = obj.bg_color;
             dialog.f['sm-title'].value = obj.title;
-            link_input_value(obj.grid_color, dialog.f['grid-color'], 'onchange', dialog.f['grid-color-text'], 'oninput', function(){
+            link_input_value(obj.grid_color, dialog.f['grid-color'], 'onchange', dialog.f['grid-color-text'], 'oninput', function():void{
                 obj.grid_color = dialog.f['grid-color-text'].value;
                 request_render();
             });
-            link_input_value(obj.bg_color, dialog.f['bg-color'], 'onchange', dialog.f['bg-color-text'], 'oninput', function(){
+            link_input_value(obj.bg_color, dialog.f['bg-color'], 'onchange', dialog.f['bg-color-text'], 'oninput', function():void{
                 obj.bg_color = dialog.f['bg-color-text'].value;
                 request_render();
             });
-            dialog.show_handler = function(){
+            dialog.show_handler = function():void{
             };
-            dialog.ok_handler = function(){
+            dialog.ok_handler = function():void{
                 const title = dialog.f['sm-title'].value.trim();
                 const changed = title !== obj.title || orig_grid_color !== obj.grid_color || orig_bg_color !== obj.bg_color;
                 if(changed){
@@ -4667,7 +4666,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
                     request_render();
                 }
             };
-            dialog.cancel_handler = function(){
+            dialog.cancel_handler = function():void{
                 obj.grid_color = orig_grid_color;
                 obj.bg_color = orig_bg_color;
                 request_render();
@@ -4695,7 +4694,7 @@ const timings: Array<number> = [];
 // image via these factors.
 const HEX_Y_FIX_INV = 74/82;
 const HEX_Y_FIX = 82/74;
-function fmod(a:number, n:number){
+function fmod(a:number, n:number):number{
     return a < 0? (a % n)+n : a % n;
 }
 const enum RenderFlags {
@@ -4718,7 +4717,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
     animation_requested = false;
     actually_render(timestamp, TheCtx, view, flags);
 }
-function screenshot_canvas(view:DungeonMapView){
+function screenshot_canvas(view:DungeonMapView):void{
     let canvas = document.createElement('canvas');
     let dialog = get_dialog('screenshot-prefs');
     dialog.f.gridsize.value = '64';
@@ -4731,7 +4730,7 @@ function screenshot_canvas(view:DungeonMapView){
             dialog.f.selection.checked = true;
         }
     }
-    dialog.ok_handler = function(){
+    dialog.ok_handler = function():void{
         const include_submaps = dialog.f.submaps.checked;
         const darkmode = dialog.f.darkmode.checked;
         const draw_text = dialog.f.text.checked;
@@ -4815,7 +4814,7 @@ function screenshot_canvas(view:DungeonMapView){
         if(darkmode) flags |= RenderFlags.DARK_MODE;
         if(draw_text) flags |= RenderFlags.DRAW_TEXT;
         actually_render(0, ctx, fake_view, flags);
-        canvas.toBlob(function(b:Blob|null){
+        canvas.toBlob(function(b:Blob|null):void{
             if(!b) return;
             let a = document.createElement('a');
             a.href = URL.createObjectURL(b);
@@ -4825,7 +4824,7 @@ function screenshot_canvas(view:DungeonMapView){
     };
     dialog.show();
 }
-function screenshot(){
+function screenshot():void{
     screenshot_canvas(get_active_view());
 }
 
@@ -5037,7 +5036,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
     if(map.grid_type & GridType.NOGRID){
     }
     else if(map.grid_type & GridType.HEX){
-        function draw_hex_grid(){
+        function draw_hex_grid():void{
             let grid_base_y = fmod(camera_y*HEX_Y_FIX_INV, REFERENCE.WIDTH);
             let grid_base_x = fmod(camera_x, REFERENCE.WIDTH*2);
             ctx.lineWidth = 1;
@@ -5126,7 +5125,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
     if(map.grid_type & GridType.HEX)
         ctx.scale(1, HEX_Y_FIX);
     let length = canvas_obj_array.length;
-    function draw_status_icons(token_bbox: Bbox, statusflags: TokenStatusFlags, scale:number){
+    function draw_status_icons(token_bbox: Bbox, statusflags: TokenStatusFlags, scale:number):void{
         const enum STATUSICONSIZE {_ = 24};
         let sx = token_bbox.x0;
         let sy = token_bbox.y1-STATUSICONSIZE._*scale;
@@ -6744,7 +6743,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
         ctx.fillText('max '+ max.toFixed(4)+'ms', 10, 50);
     }
 }
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', function():void{
     const container = by_id('tool-container');
     const handle = by_id('tool-container-handle');
     setup_movable_window(container, handle, WINDOWFLAGS.REMEMBER_POSITION);
@@ -6893,8 +6892,8 @@ const primary_colors: Array<string> = retrieve_colors('primary_colors');
 const secondary_colors: Array<string> = retrieve_colors('secondary_colors');
 let primary_tool_colors: Map<ToolType, string> = retrieve_tool_colors('primary_colors');
 let secondary_tool_colors: Map<ToolType, string> = retrieve_tool_colors('secondary_colors');
-function add_recent_color(color:string, colors:Array<string>, storage_key:string){
-    const index = colors.findIndex(function(e:string){return e==color;});
+function add_recent_color(color:string, colors:Array<string>, storage_key:string):void{
+    const index = colors.findIndex(function(e:string):boolean{return e==color;});
     if(index != -1){
         colors.splice(index, 1);
     }
@@ -6929,7 +6928,7 @@ function get_tool_colors(tool:ToolType):[string, string]{
     if(!b) b = '#ffffff';
     return [a, b];
 }
-function make_color_menu(e:MouseEvent, colorpicker: HTMLInputElement, colors:Array<string>){
+function make_color_menu(e:MouseEvent, colorpicker: HTMLInputElement, colors:Array<string>):void{
     const menu = ctx_menu(e);
     const window_height = window.innerHeight;
     for(let i = colors.length; i--;){
@@ -6939,7 +6938,7 @@ function make_color_menu(e:MouseEvent, colorpicker: HTMLInputElement, colors:Arr
         s.style.height = '2em';
         s.style.width = '3em'
         s.style.border = '2px solid ' + color;
-        s.addEventListener('pointerdown', function(e:PointerEvent){
+        s.addEventListener('pointerdown', function(e:PointerEvent):void{
             e.stopPropagation();
             remove_ctx_menu();
             colorpicker.value = color;
@@ -6949,28 +6948,28 @@ function make_color_menu(e:MouseEvent, colorpicker: HTMLInputElement, colors:Arr
     menu.menu.style.top = 'initial';
     menu.menu.style.bottom = (window_height - e.clientY)+'px'
 }
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', function():void{
     const cpt1 = by_id('color-picker-dropdown');
     const cpt2 = by_id('color-picker2-dropdown');
-    cpt1.addEventListener('click', function(e:MouseEvent){
+    cpt1.addEventListener('click', function(e:MouseEvent):void{
         e.stopPropagation();
         e.preventDefault();
         make_color_menu(e, color_picker_, primary_colors);
     });
-    cpt2.addEventListener('click', function(e:MouseEvent){
+    cpt2.addEventListener('click', function(e:MouseEvent):void{
         e.stopPropagation();
         e.preventDefault();
         make_color_menu(e, color_picker2_, secondary_colors);
     });
 
 });
-function hide_palette(){
+function hide_palette():void{
     const palette = by_id('palette');
     palette.style.display = 'none';
 }
 
-let PACKED_TO_IMG_CACHE = new Map();
-function packed_to_img(x:number, y:number, w:number, h:number, alt:string, imw:number, imh:number){
+let PACKED_TO_IMG_CACHE:Map<string, HTMLImageElement> = new Map();
+function packed_to_img(x:number, y:number, w:number, h:number, alt:string, imw:number, imh:number):HTMLImageElement{
     let key;
     if(imw) key = `${x},${y},${imw}x${imw}`;
     else key = `${x},${y}`;
@@ -6995,8 +6994,8 @@ function packed_to_img(x:number, y:number, w:number, h:number, alt:string, imw:n
     }
     return PACKED_TO_IMG_CACHE.get(key)!;
 }
-let TOKEN_TO_IMG_CACHE = new Map();
-function token_to_img(x:number, y:number, w:number, h:number, imw:number, imh:number){
+let TOKEN_TO_IMG_CACHE: Map<string, HTMLImageElement> = new Map();
+function token_to_img(x:number, y:number, w:number, h:number, imw:number, imh:number):HTMLImageElement{
     let key;
     if(imw) key = `${x},${y},${imw}x${imw}`;
     else key = `${x},${y}`;
@@ -7017,11 +7016,11 @@ function token_to_img(x:number, y:number, w:number, h:number, imw:number, imh:nu
     }
     return TOKEN_TO_IMG_CACHE.get(key)!;
 }
-function make_terrain_palette(){
+function make_terrain_palette():void{
     const icons = by_id('palette-icons');
     (icons as any).replaceChildren();
-    function make_cb(id:number){
-        function cb(){
+    function make_cb(id:number):()=>void{
+        function cb():void{
             current_terrain_id = id;
         }
         return cb;
@@ -7050,11 +7049,11 @@ function make_terrain_palette(){
     }
     palette_top();
 }
-function make_terrain_icon_palette(){
+function make_terrain_icon_palette():void{
     const icons = by_id('palette-icons');
     (icons as any).replaceChildren();
-    function make_cb(id:number){
-        function cb(){
+    function make_cb(id:number):()=>void{
+        function cb():void{
             current_terrain_icon_id = id;
         }
         return cb;
@@ -7080,8 +7079,8 @@ function make_terrain_icon_palette(){
     }
     palette_top();
 }
-let palette_top = function(){};
-document.addEventListener('DOMContentLoaded', function(){
+let palette_top = function():void{};
+document.addEventListener('DOMContentLoaded', function():void{
     const palette = by_id('palette');
     const handle = by_id('palette-window-handle');
     setup_movable_window(palette, handle, WINDOWFLAGS.REMEMBER_POSITION);
@@ -7135,7 +7134,7 @@ function change_tool(tool:ToolType):void{
     color_picker2_.value = secondary;
     redo_canvas_cursor(get_active_view(), true);
 }
-function make_tri_menu(e:MouseEvent, options:Array<{func:()=>void;text:string}>){
+function make_tri_menu(e:MouseEvent, options:Array<{func:()=>void;text:string}>):void{
     const menu = ctx_menu(e);
     for(let i = 0; i < options.length; ++i){
         const option = options[i];
@@ -7149,7 +7148,7 @@ document.addEventListener('DOMContentLoaded', function():void{
     color_picker2_ = by_id('color-picker2');
     for(let i = 0; i < tools.length; ++i){
         const toolel = tools[i];
-        toolel.addEventListener('click', function(e:MouseEvent){
+        toolel.addEventListener('click', function(e:MouseEvent):void{
             const tool = TOOL_IDS_TO_TOOL.get(toolel.id);
             if(tool !== undefined)
                 change_tool(tool);
@@ -7158,7 +7157,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         // I guess it should actually be like checkboxes?
         if(toolel.id == 'select-tool'){
             const name = by_id('select-tool-menu');
-            function change_st(st:SELECTTYPE){
+            function change_st(st:SELECTTYPE):void{
                 select_type = st;
                 switch(select_type){
                     case SELECTTYPE.NONBACKGROUND:
@@ -7181,7 +7180,7 @@ document.addEventListener('DOMContentLoaded', function():void{
             change_st(SELECTTYPE.NONBACKGROUND);
             change_select_mode(SELECTTYPE.NONBACKGROUND);
 
-            function make_cb(st:SELECTTYPE){
+            function make_cb(st:SELECTTYPE):()=>void{
                 function cb():void{
                     change_tool(ToolType.SELECT);
                     change_st(st);
@@ -7190,7 +7189,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 return cb;
             }
             numeric_hot_keys.set(ToolType.SELECT, {
-                func: function(index:number){
+                func: function(index:number):void{
                     switch(index){
                         case 0:
                             change_select_mode(SELECTTYPE.NONBACKGROUND);
@@ -7216,7 +7215,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 },
                 max_index: 5,
             });
-            name.addEventListener('click', function(e:MouseEvent){
+            name.addEventListener('click', function(e:MouseEvent):void{
                 make_tri_menu(e, [
                     {func:make_cb(SELECTTYPE.NONBACKGROUND), text:'Map & Token'},
                     {func:make_cb(SELECTTYPE.MAP), text:'Map'},
@@ -7226,9 +7225,9 @@ document.addEventListener('DOMContentLoaded', function():void{
                 ]);
             });
         }
-        function setup_multi_option(toolel:HTMLElement, menu_id:string, t_type:ToolType, set_current:(_:number)=>void, t_to_name:Array<string>, t_to_short_name:Array<string>, t_max:number, current_value:number){
+        function setup_multi_option(toolel:HTMLElement, menu_id:string, t_type:ToolType, set_current:(_:number)=>void, t_to_name:Array<string>, t_to_short_name:Array<string>, t_max:number, current_value:number):void{
             const name = get_by_id<HTMLDivElement>(menu_id);
-            function change_t(t:number){
+            function change_t(t:number):void{
                 set_current(t);
                 const tname = t_to_short_name[t];
                 name.innerText = `${tname}☰`;
@@ -7238,14 +7237,14 @@ document.addEventListener('DOMContentLoaded', function():void{
                 max_index: t_max,
             });
             change_t(current_value);
-            function make_cb(t:number){
-                function cb(){
+            function make_cb(t:number):()=>void{
+                function cb():void{
                     change_tool(t_type);
                     change_t(t);
                 };
                 return cb;
             }
-            name.addEventListener('click', function(e:MouseEvent){
+            name.addEventListener('click', function(e:MouseEvent):void{
                 make_tri_menu(e, (function(){
                     const a = [];
                     for(let i = 0; i < t_max; i++){
@@ -7259,7 +7258,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         switch(TOOL_IDS_TO_TOOL.get(toolel.id)){
             case ToolType.DOOR:
                 setup_multi_option(toolel, 'door-tool-menu', ToolType.DOOR,
-                                   function(i:number){
+                                   function(i:number):void{
                                        current_door=i;
                                        store_global(StorageCategory.CANVAS, 'doortype', current_door);
                                    },
@@ -7268,7 +7267,7 @@ document.addEventListener('DOMContentLoaded', function():void{
             break;
             case ToolType.TOKEN:
                 setup_multi_option(toolel, 'token-tool-menu', ToolType.TOKEN,
-                                   function(i:number){
+                                   function(i:number):void{
                                        current_token_type=i;
                                        store_global(StorageCategory.CANVAS, 'tokentype', current_token_type);
                                    },
@@ -7277,7 +7276,7 @@ document.addEventListener('DOMContentLoaded', function():void{
             break;
             case ToolType.RECT:
                 setup_multi_option(toolel, 'rect-tool-menu', ToolType.RECT,
-                                   function(i:number){
+                                   function(i:number):void{
                                        current_rect_type=i;
                                        store_global(StorageCategory.CANVAS, 'recttype', current_rect_type);
                                    }, RECTTYPE_TO_NAME, RECTTYPE_TO_NAME, RECTTYPE_MAX,
@@ -7285,7 +7284,7 @@ document.addEventListener('DOMContentLoaded', function():void{
             break;
             case ToolType.ELLIPSE:
                 setup_multi_option(toolel, 'ellipse-tool-menu', ToolType.ELLIPSE,
-                                   function(i:number){
+                                   function(i:number):void{
                                        current_ellipse=i;
                                        store_global(StorageCategory.CANVAS, 'ellipsetype', current_ellipse);
                                    },
@@ -7294,7 +7293,7 @@ document.addEventListener('DOMContentLoaded', function():void{
             break;
             case ToolType.FIXTURE:
                 setup_multi_option(toolel, 'fixture-tool-menu', ToolType.FIXTURE,
-                                   function(i:number){
+                                   function(i:number):void{
                                        current_fixture_type=i;
                                        store_global(StorageCategory.CANVAS, 'fixturetype', current_fixture_type);
                                    },
@@ -7302,7 +7301,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                                    get_global_default(StorageCategory.CANVAS, 'fixturetype', current_fixture_type));
             break;
             case ToolType.TILE:
-                setup_multi_option(toolel, 'tile-tool-menu', ToolType.TILE, function(i:number){
+                setup_multi_option(toolel, 'tile-tool-menu', ToolType.TILE, function(i:number):void{
                     current_tile_type=i;
                     store_global(StorageCategory.CANVAS, 'tiletype', current_tile_type);
                     switch(current_tile_type){
@@ -7321,7 +7320,7 @@ document.addEventListener('DOMContentLoaded', function():void{
             break;
             case ToolType.SHAPE:
                 setup_multi_option(toolel, 'shape-tool-menu', ToolType.SHAPE,
-                                   function(i:number){
+                                   function(i:number):void{
                                        current_shape=i;
                                        store_global(StorageCategory.CANVAS, 'shapetype', current_shape);
                                    },
@@ -7330,7 +7329,7 @@ document.addEventListener('DOMContentLoaded', function():void{
             break;
             case ToolType.LINE:
                 setup_multi_option(toolel, 'line-tool-menu', ToolType.LINE,
-                                   function(i:number){
+                                   function(i:number):void{
                                         current_line_type=i;
                                         store_global(StorageCategory.CANVAS, 'linetype', current_line_type);
                                    },
@@ -7363,7 +7362,7 @@ type NumericHotKey = {
     max_index: number;
 }
 const DEFAULT_NUMERIC_HOT_KEY = {
-    func: function(_:number){},
+    func: function(_:number):void{},
     max_index: 0,
 };
 let numeric_hot_key = DEFAULT_NUMERIC_HOT_KEY;
@@ -7449,7 +7448,7 @@ let GRABBING = false;
 let SELECTING = false;
 const redo_canvas_cursor = (function(){
     let prev_id = -1;
-    function redo_canvas_cursor(view: DungeonMapView, modified:boolean){
+    function redo_canvas_cursor(view: DungeonMapView, modified:boolean):void{
         if(view.resize.resizing) return;
         if(GRABBING){
             if(TheCanvas.style.cursor != 'grabbing')
@@ -7538,7 +7537,7 @@ function get_submap_at(view:DungeonMapView, x:number, y:number):SubMap | null {
     return null;
 }
 
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', function():void{
     TheCanvas = document.getElementsByTagName('canvas')[0]!;
     let gesturing = false;
     let stop_pan: (()=>void)| null = null;
@@ -7546,7 +7545,7 @@ document.addEventListener('DOMContentLoaded', function(){
         let start_scale = 1.0;
         let start_x = 0;
         let start_y = 0;
-        TheCanvas.addEventListener('gesturestart', function(e:any){
+        TheCanvas.addEventListener('gesturestart', function(e:any):void{
             e.stopPropagation();
             e.preventDefault();
             if(stop_pan) stop_pan();
@@ -7556,7 +7555,7 @@ document.addEventListener('DOMContentLoaded', function(){
             start_y = view.camera_y;
             gesturing = true;
         });
-        TheCanvas.addEventListener('gesturechange', function(e:any){
+        TheCanvas.addEventListener('gesturechange', function(e:any):void{
             e.stopPropagation();
             e.preventDefault();
             if(stop_pan) stop_pan();
@@ -7574,13 +7573,13 @@ document.addEventListener('DOMContentLoaded', function(){
 
             request_render();
         });
-        TheCanvas.addEventListener('gestureend', function(e:any){
+        TheCanvas.addEventListener('gestureend', function(e:any):void{
             e.stopPropagation();
             e.preventDefault();
             gesturing = false;
         });
     })();
-    TheCanvas.addEventListener('wheel', function(e:WheelEvent){
+    TheCanvas.addEventListener('wheel', function(e:WheelEvent):void{
         e.stopPropagation();
         e.preventDefault();
         const view = get_active_view();
@@ -7604,7 +7603,7 @@ document.addEventListener('DOMContentLoaded', function(){
         // view.camera_y = Math.round(view.camera_y);
         request_render();
     });
-    window.addEventListener('keydown', function(e:KeyboardEvent){
+    window.addEventListener('keydown', function(e:KeyboardEvent):void{
         // @ts-ignore
         if((e.ctrlKey || e.metaKey) && e.key == 'c' && document.activeElement && document.activeElement.oncopy){
             e.preventDefault();
@@ -7863,7 +7862,7 @@ document.addEventListener('DOMContentLoaded', function(){
     // TAG toolimpl
     // TAG pointerdown
     // TAG click
-    TheCanvas.addEventListener('pointerdown', function(e:PointerEvent){
+    TheCanvas.addEventListener('pointerdown', function(e:PointerEvent):void{
         if(did_remove_ctx_menu()) return;
         if(gesturing) return;
         if(e.button !== 0 && e.button !== 1){ //0 is the 'primary' button
@@ -7950,7 +7949,7 @@ document.addEventListener('DOMContentLoaded', function(){
                                 if(obj.type == CanvasType.SUBMAP)
                                     smoff = [0, 0];
                                 let o_x = obj.base_x; let o_y = obj.base_y; let o_w = obj.width; let o_h = obj.height;
-                                function change_wh(e:PointerEvent){
+                                function change_wh(e:PointerEvent):void{
                                     e.stopPropagation();
                                     e.preventDefault();
                                     const [x1, y1] = event_to_coord_off(e, view, smoff);
@@ -8001,7 +8000,7 @@ document.addEventListener('DOMContentLoaded', function(){
                                 }
                                 TheCanvas.addEventListener('pointermove', change_wh);
                                 const before = strip_obj(obj);
-                                function finish(){
+                                function finish():void{
                                     view.resize.resizing = false;
                                     redo_canvas_cursor(view, false);
                                     TheCanvas.removeEventListener('pointermove', change_wh);
@@ -8045,7 +8044,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     let changed = false;
                     const before_update = get_stripped_state_by_id(view.map, Array.from(view.selected));
                     const is_rigid = selection_is_rigid(view);
-                    function move(e:MouseEvent){
+                    function move(e:MouseEvent):void{
                         e.stopPropagation();
                         e.preventDefault();
                         const diff = Math.abs(e.offsetX - rawclick_x) + Math.abs(e.offsetY - rawclick_y);
@@ -8058,7 +8057,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         clicked_y = move_y;
                     }
                     TheCanvas.addEventListener('pointermove', move);
-                    function finish_move(){
+                    function finish_move():void{
                         TheCanvas.removeEventListener('pointermove', move);
                         window.removeEventListener('pointerup', finish_move);
                         TheCanvas.removeEventListener('pointerleave', finish_move);
@@ -8078,7 +8077,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     view.selection_area.submap = submapid;
                     update_selection(view, fudged_x0, fudged_y0, fudged_x1, fudged_y1);
                     request_render();
-                    function select(e:MouseEvent){
+                    function select(e:MouseEvent):void{
                         e.stopPropagation();
                         e.preventDefault();
                         let [select_x, select_y] = event_to_coord(e, view);
@@ -8088,7 +8087,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         request_render();
                     }
                     TheCanvas.addEventListener('pointermove', select);
-                    function finish_select(){
+                    function finish_select():void{
                         finalize_selection(view);
                         TheCanvas.removeEventListener('pointermove', select);
                         window.removeEventListener('pointerup', finish_select);
@@ -8149,7 +8148,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 let clicked_y = e.offsetY/view.scale;
                 let pointer_id = e.pointerId;
                 GRABBING = true;
-                function pan(e:PointerEvent){
+                function pan(e:PointerEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
                     if(e.pointerId != pointer_id) return;
@@ -8162,7 +8161,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     request_render();
                 }
                 TheCanvas.addEventListener('pointermove', pan);
-                function finish_pan(){
+                function finish_pan():void{
                     stop_pan = null;
                     GRABBING = false;
                     if(prev_tool){
@@ -8192,7 +8191,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     let obj = view.map.canvas_objs.get(id) as FreehandLine;
                     obj.flags |= CanvasFlag.LINE_IS_ARROW;
                 }
-                function add_point(e:MouseEvent){
+                function add_point(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
                     const [x1, y1] = event_to_coord_off(e, view, smoff);
@@ -8204,7 +8203,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     request_render();
                 }
                 TheCanvas.addEventListener('pointermove', add_point);
-                function finish_point(){
+                function finish_point():void{
                     TheCanvas.removeEventListener('pointermove', add_point);
                     window.removeEventListener('pointerup', finish_point);
                     TheCanvas.removeEventListener('pointerleave', finish_point);
@@ -8230,7 +8229,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 let [x0, y0] = event_to_coord_off(e, view, smoff);
                 let o = make_shape(id, x0, y0, submapid, color1, color2, thickness);
                 add_canv_obj(view.map, o);
-                function add_point(e:MouseEvent){
+                function add_point(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
                     let [x1, y1] = event_to_coord_off(e, view, smoff);
@@ -8238,7 +8237,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     request_render();
                 }
                 TheCanvas.addEventListener('pointermove', add_point);
-                function finish_point(){
+                function finish_point():void{
                     TheCanvas.removeEventListener('pointermove', add_point);
                     window.removeEventListener('pointerup', finish_point);
                     TheCanvas.removeEventListener('pointerleave', finish_point);
@@ -8257,7 +8256,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     // copy paste from LINE above.
                     const [x0, y0] = event_to_coord_off(e, view, smoff);
                     add_freehand_line(view.map, id, x0, y0, submapid, get_primary_color(), 4);
-                    function add_point(e:MouseEvent){
+                    function add_point(e:MouseEvent):void{
                         e.stopPropagation();
                         e.preventDefault();
                         const [x1, y1] = event_to_coord_off(e, view, smoff);
@@ -8265,7 +8264,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         request_render();
                     }
                     TheCanvas.addEventListener('pointermove', add_point);
-                    function finish_point(){
+                    function finish_point():void{
                         TheCanvas.removeEventListener('pointermove', add_point);
                         window.removeEventListener('pointerup', finish_point);
                         TheCanvas.removeEventListener('pointerleave', finish_point);
@@ -8303,7 +8302,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     };
                     add_canv_obj(view.map, obj);
 
-                    function add_point(e:MouseEvent){
+                    function add_point(e:MouseEvent):void{
                         e.stopPropagation();
                         e.preventDefault();
                         const [x, y] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
@@ -8314,7 +8313,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         request_render();
                     }
                     TheCanvas.addEventListener('pointermove', add_point);
-                    function finish_point(){
+                    function finish_point():void{
                         view.placing_area.is_placing = false;
                         add_gridline_point(obj, x1, y1);
                         TheCanvas.removeEventListener('pointermove', add_point);
@@ -8339,7 +8338,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 view.placing_area.x1 = x1+smoff[0];
                 view.placing_area.y1 = y1+smoff[1];
                 request_render();
-                function change_point(e:MouseEvent){
+                function change_point(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
                     [x1, y1] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
@@ -8350,7 +8349,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     request_render();
                 }
                 TheCanvas.addEventListener('pointermove', change_point);
-                function finish_door(){
+                function finish_door():void{
                     view.placing_area.is_placing = false;
                     TheCanvas.removeEventListener('pointermove', change_point);
                     window.removeEventListener('pointerup', finish_door);
@@ -8396,7 +8395,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         let id = get_new_id();
                         const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
                         add_rect(view.map, id, x0, y0, submapid, get_primary_color());
-                        function add_point(e:MouseEvent){
+                        function add_point(e:MouseEvent):void{
                             e.stopPropagation();
                             e.preventDefault();
                             const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
@@ -8404,7 +8403,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             request_render();
                         }
                         TheCanvas.addEventListener('pointermove', add_point);
-                        function finish_point(){
+                        function finish_point():void{
                             TheCanvas.removeEventListener('pointermove', add_point);
                             window.removeEventListener('pointerup', finish_point);
                             TheCanvas.removeEventListener('pointerleave', finish_point);
@@ -8418,7 +8417,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         let id = get_new_id();
                         const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
                         add_filled_rect(view.map, id, x0, y0, submapid, get_primary_color(), get_secondary_color());
-                        function add_point(e:MouseEvent){
+                        function add_point(e:MouseEvent):void{
                             e.stopPropagation();
                             e.preventDefault();
                             const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
@@ -8426,7 +8425,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             request_render();
                         }
                         TheCanvas.addEventListener('pointermove', add_point);
-                        function finish_point(){
+                        function finish_point():void{
                             TheCanvas.removeEventListener('pointermove', add_point);
                             window.removeEventListener('pointerup', finish_point);
                             TheCanvas.removeEventListener('pointerleave', finish_point);
@@ -8448,7 +8447,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         view.placing_area.x1 = gridrect.base_x+smoff[0];
                         view.placing_area.y1 = gridrect.base_y+smoff[1];
                         request_render()
-                        function add_point(e:MouseEvent){
+                        function add_point(e:MouseEvent):void{
                             e.stopPropagation();
                             e.preventDefault();
                             const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
@@ -8460,7 +8459,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             request_render();
                         }
                         TheCanvas.addEventListener('pointermove', add_point);
-                        function finish_point(){
+                        function finish_point():void{
                             TheCanvas.removeEventListener('pointermove', add_point);
                             window.removeEventListener('pointerup', finish_point);
                             TheCanvas.removeEventListener('pointerleave', finish_point);
@@ -8486,7 +8485,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 view.placing_area.x1 = ellipse.base_x+smoff[0];
                 view.placing_area.y1 = ellipse.base_y+smoff[1];
                 request_render()
-                function add_point(e:MouseEvent){
+                function add_point(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
                     const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
@@ -8507,7 +8506,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     request_render();
                 }
                 TheCanvas.addEventListener('pointermove', add_point);
-                function finish_point(){
+                function finish_point():void{
                     TheCanvas.removeEventListener('pointermove', add_point);
                     window.removeEventListener('pointerup', finish_point);
                     TheCanvas.removeEventListener('pointerleave', finish_point);
@@ -8546,13 +8545,13 @@ document.addEventListener('DOMContentLoaded', function(){
                 dialog.f['link-submap'].innerHTML = submapoptions;
                 dialog.f['link-dungeon'].value = '-1';
                 dialog.f['link-submap'].value = '-1';
-                dialog.f['link-dungeon'].onchange = function(){
+                dialog.f['link-dungeon'].onchange = function():void{
                     dialog.f['link-submap'].value = '-1'
                 };
-                dialog.f['link-submap'].onchange = function(){
+                dialog.f['link-submap'].onchange = function():void{
                     dialog.f['link-dungeon'].value = '-1'
                 };
-                dialog.ok_handler = function(){
+                dialog.ok_handler = function():void{
                     const text = dialog.f.text.value.trim();
                     if(!text) return;
                     let alignment = radio_to_value([l, c, r], [TextAlignment.LEFT, TextAlignment.CENTER, TextAlignment.RIGHT]);
@@ -8581,7 +8580,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     note_create_by_id_for_undo(view.map, id);
                     request_render();
                 };
-                dialog.show_handler = function(){
+                dialog.show_handler = function():void{
                     if(!IS_TOUCH) dialog.f.text.focus();
                 };
                 dialog.show();
@@ -8597,10 +8596,10 @@ document.addEventListener('DOMContentLoaded', function(){
                 dialog.f.url.value = '';
                 dialog.f.checkbox.checked = false;
                 dialog.f.background.checked = false;
-                dialog.show_handler = function(){
+                dialog.show_handler = function():void{
                     if(!IS_TOUCH) dialog.f.url.focus();
                 };
-                dialog.ok_handler = function(){
+                dialog.ok_handler = function():void{
                     const text = dialog.f.url.value.trim();
                     if(!text) return;
                     let width = +dialog.f.width.value;
@@ -8632,10 +8631,10 @@ document.addEventListener('DOMContentLoaded', function(){
                     dialog.f.width.value = gridscale == GRIDSCALE.TEN?'1':'0.5';
                     dialog.f.height.value = gridscale == GRIDSCALE.TEN?'1':'0.5';
                     dialog.f.text.value = '';
-                    dialog.show_handler = function(){
+                    dialog.show_handler = function():void{
                         if(!IS_TOUCH) dialog.f.text.focus();
                     };
-                    dialog.ok_handler = function(){
+                    dialog.ok_handler = function():void{
                         const text = dialog.f.text.value.trim();
                         if(!text) return;
                         let width  = +dialog.f.width.value;
@@ -8660,13 +8659,13 @@ document.addEventListener('DOMContentLoaded', function(){
                     if(!dialog) return;
                     dialog.title.textContent = 'Choose Token';
                     const gallery = dialog.f.gallery;
-                    dialog.hide_handler = function(){
+                    dialog.hide_handler = function():void{
                         gallery.innerHTML = '';
                     };
                     dialog.f.width.value = gridscale == GRIDSCALE.TEN?'1':'0.5';
                     dialog.f.height.value = gridscale == GRIDSCALE.TEN?'1':'0.5';
                     dialog.f.url.value = '';
-                    function add_img_buttons(){
+                    function add_img_buttons():void{
                         if(PACKED){
                             for(let ti of PACKED.tokens){
                                 const button = document.createElement('button');
@@ -8675,14 +8674,14 @@ document.addEventListener('DOMContentLoaded', function(){
                                 button.appendChild(img);
                                 gallery.appendChild(button);
                                 const url = `/tokens/${path}`;
-                                button.addEventListener('click', function(){
+                                button.addEventListener('click', function():void{
                                     dialog.f.url.value = url;
                                 });
                             }
                         }
                     }
                     add_img_buttons();
-                    dialog.ok_handler = function(){
+                    dialog.ok_handler = function():void{
                         const text = dialog.f.url.value.trim();
                         if(!text) return;
                         let id = get_new_id();
@@ -8728,7 +8727,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         // x0 = stairs.base_x;
                         // y0 = stairs.base_y;
                         request_render();
-                        function change_stairs_on_move(e:MouseEvent){
+                        function change_stairs_on_move(e:MouseEvent):void{
                             e.stopPropagation();
                             e.preventDefault();
                             const [ex0, ey0] = event_to_coord_off(e, view, smoff);
@@ -8740,7 +8739,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             request_render();
                         }
                         TheCanvas.addEventListener('pointermove', change_stairs_on_move);
-                        function finish_point(){
+                        function finish_point():void{
                             view.placing_area.is_placing = false;
                             request_render();
                             TheCanvas.removeEventListener('pointermove', change_stairs_on_move);
@@ -8769,7 +8768,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         view.placing_area.x1 = fixture.base_x+smoff[0];
                         view.placing_area.y1 = fixture.base_y+smoff[1];
                         request_render();
-                        function move(e:MouseEvent){
+                        function move(e:MouseEvent):void{
                             e.stopPropagation();
                             e.preventDefault();
                             let x0 = x;
@@ -8792,7 +8791,7 @@ document.addEventListener('DOMContentLoaded', function(){
                             request_render();
                         }
                         TheCanvas.addEventListener('pointermove', move);
-                        function finish(){
+                        function finish():void{
                             view.placing_area.is_placing = false;
                             request_render();
                             TheCanvas.removeEventListener('pointermove', move);
@@ -8833,7 +8832,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 add_canv_obj(view.map, measure);
                 publish_obj_by_id(view.map, id); // don't note create for undo
                 request_render();
-                function move(e:MouseEvent){
+                function move(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
                     const [x_, y_] = event_to_coord_off(e, view, smoff);
@@ -8847,7 +8846,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     request_render();
                 }
                 TheCanvas.addEventListener('pointermove', move);
-                function finish(){
+                function finish():void{
                     publish_delete_by_ids(view.map.map_id, [id]);
                     measure.flags |= CanvasFlag.DELETED;
                     request_render();
@@ -8864,7 +8863,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 let created_ids:Array<number> = [];
                 let drag = false;
                 let prevx:number|undefined = undefined; let prevy:number|undefined = undefined;
-                function do_tile(x:number, y:number){
+                function do_tile(x:number, y:number):void{
                     let old_tile = tile_at(view, x, y, current_tile_type);
                     if(drag){
                         if(old_tile) return;
@@ -8923,7 +8922,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     }
                     request_render();
                 }
-                function make_tile(e:PointerEvent){
+                function make_tile(e:PointerEvent):void{
                     let x:number;
                     let y:number;
                     if(view.map.grid_type & GridType.HEX){
@@ -8959,7 +8958,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 make_tile(e);
                 drag = true;
                 TheCanvas.addEventListener('pointermove', make_tile);
-                function finish(){
+                function finish():void{
                     // console.log('created_ids', created_ids);
                     // console.log('deleted ids', deleted_ids);
                     TheCanvas.removeEventListener('pointermove', make_tile);
@@ -9002,7 +9001,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 };
                 add_canv_obj(view.map, submap);
                 request_render();
-                function add_point(e:MouseEvent){
+                function add_point(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
                     const [x1, y1] = event_to_coord_snapped(e, view, snap);
@@ -9019,7 +9018,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     request_render();
                 }
                 TheCanvas.addEventListener('pointermove', add_point);
-                function finish_point(){
+                function finish_point():void{
                     TheCanvas.removeEventListener('pointermove', add_point);
                     window.removeEventListener('pointerup', finish_point);
                     TheCanvas.removeEventListener('pointerleave', finish_point);
@@ -9064,7 +9063,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 view.placing_area.x1 = arc.base_x+smoff[0];
                 view.placing_area.y1 = arc.base_y+smoff[1];
                 request_render();
-                function add_point(e:MouseEvent){
+                function add_point(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
                     const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
@@ -9143,7 +9142,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     request_render();
                 }
                 TheCanvas.addEventListener('pointermove', add_point);
-                function finish_point(){
+                function finish_point():void{
                     TheCanvas.removeEventListener('pointermove', add_point);
                     window.removeEventListener('pointerup', finish_point);
                     TheCanvas.removeEventListener('pointerleave', finish_point);
@@ -9162,7 +9161,7 @@ document.addEventListener('DOMContentLoaded', function(){
             }break;
         }
     });
-    TheCanvas.addEventListener('pointermove', function(e:PointerEvent){
+    TheCanvas.addEventListener('pointermove', function(e:PointerEvent):void{
         let view = get_active_view();
         // NOTE: obj_at handles submap
         let [mx, my] = event_to_coord(e, view);
@@ -9172,7 +9171,7 @@ document.addEventListener('DOMContentLoaded', function(){
         redo_canvas_cursor(view, modified);
 
     });
-    TheCanvas.addEventListener('dblclick', function(e:MouseEvent){
+    TheCanvas.addEventListener('dblclick', function(e:MouseEvent):void{
         let view = get_active_view();
         if(current_tool != ToolType.SELECT)
             return;
@@ -9184,7 +9183,7 @@ document.addEventListener('DOMContentLoaded', function(){
         }
         launch_edit_dialog(view);
     });
-    TheCanvas.addEventListener('contextmenu', function(e:MouseEvent){
+    TheCanvas.addEventListener('contextmenu', function(e:MouseEvent):void{
         const menu = ctx_menu(e);
         const view = get_active_view();
         let [x, y] = event_to_coord(e, view);
@@ -9208,17 +9207,17 @@ document.addEventListener('DOMContentLoaded', function(){
             whenflags |= CONTEXTMENUWHENFLAGS.GRID_FIVE;
 
         if(whenflags & CONTEXTMENUWHENFLAGS.NO_SELECTION){
-            menu.item('Ping', function(){ping_at(view.map, click_x, click_y);});
-            menu.item('Gather Party', function(){
+            menu.item('Ping', function():void{ping_at(view.map, click_x, click_y);});
+            menu.item('Gather Party', function():void{
                 EMIT(FromClient.CANVAS_GATHER, {x:-x, y:-y, map_id:view.map.map_id});
             });
             if(whenflags & CONTEXTMENUWHENFLAGS.GRID_TEN){
-                menu.item('Battlemode', function(){
+                menu.item('Battlemode', function():void{
                     EMIT(FromClient.CANVAS_BATTLE, {x:-x, y:-y, map_id:view.map.map_id});
                 });
             }
             if(whenflags & CONTEXTMENUWHENFLAGS.GRID_FIVE){
-                menu.item('Dungeonmode', function(){
+                menu.item('Dungeonmode', function():void{
                     EMIT(FromClient.CANVAS_DUNGEON_MODE);
                 });
             }
@@ -9235,16 +9234,16 @@ document.addEventListener('DOMContentLoaded', function(){
             if(undo_is_impossible(view.map))
                 menu.disabled('Undo');
             else
-                menu.item('Undo', function(){do_one_undo(view.map);});
+                menu.item('Undo', function():void{do_one_undo(view.map);});
             if(redo_is_impossible(view.map))
                 menu.disabled('Redo');
             else
-                menu.item('Redo', function(){do_one_redo(view.map);});
+                menu.item('Redo', function():void{do_one_redo(view.map);});
             menu.separator();
-            menu.item('Zoom In', function(){zoom_in(view);});
-            menu.item('Zoom Out', function(){zoom_out(view);});
-            menu.item('Reset Zoom', function(){reset_zoom(view);});
-            menu.item('Reset Camera', function(){
+            menu.item('Zoom In', function():void{zoom_in(view);});
+            menu.item('Zoom Out', function():void{zoom_out(view);});
+            menu.item('Reset Zoom', function():void{reset_zoom(view);});
+            menu.item('Reset Camera', function():void{
                 let view = get_active_view();
                 view.camera_x=0;
                 view.camera_y=0;
@@ -9252,7 +9251,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 request_render();
             });
             menu.separator();
-            menu.item('Rotate Everything', function(){
+            menu.item('Rotate Everything', function():void{
                 rotate_everything_90(view);
             });
             menu.separator();
@@ -9262,24 +9261,24 @@ document.addEventListener('DOMContentLoaded', function(){
                 if(edit_is_impossible(view))
                     menu.disabled('Edit');
                 else
-                    menu.item('Edit', function(){launch_edit_dialog(view);});
+                    menu.item('Edit', function():void{launch_edit_dialog(view);});
             }
-            menu.item('Cut', function(){
+            menu.item('Cut', function():void{
                 clear_copy_buffer();
                 cut_selected_objs_to_copy_buffer(view);
             });
-            menu.item('Copy', function(){
+            menu.item('Copy', function():void{
                 clear_copy_buffer();
                 copy_selected_objs_to_copy_buffer(view);
             });
-            menu.item('Copy to Clipboard', function(){
+            menu.item('Copy to Clipboard', function():void{
                 copy_selected_objs_to_clipboard(view);
             });
         }
         if(copied_objs.length === 0)
             menu.disabled('Paste');
         else
-            menu.item('Paste', function(){
+            menu.item('Paste', function():void{
                 let submapid = 0;
                 let sm = get_submap_at(view, click_x, click_y);
                 if(sm){
@@ -9289,7 +9288,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
                 paste_from_copy_buffer_at(view.map, click_x, click_y, submapid);
             });
-        menu.item('Paste from Clipboard', function(){
+        menu.item('Paste from Clipboard', function():void{
             let submapid = 0;
             let sm = get_submap_at(view, click_x, click_y);
             if(sm){
@@ -9301,7 +9300,7 @@ document.addEventListener('DOMContentLoaded', function(){
         });
         menu.separator();
         if(whenflags & CONTEXTMENUWHENFLAGS.ANY_SELECTED){
-            menu.item('Hide', function(){
+            menu.item('Hide', function():void{
                 let changed = false;
                 let before = [];
                 let after = [];
@@ -9320,7 +9319,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     request_render();
                 }
             });
-            menu.item('Unhide', function(){
+            menu.item('Unhide', function():void{
                 let changed = false;
                 let before = [];
                 let after = [];
@@ -9346,7 +9345,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
 });
 
-function delete_map_dialog(map_id:number){
+function delete_map_dialog(map_id:number):void{
     let dialog = get_dialog('map-delete');
     if(!dialog) return;
     const map = MAPS.get(map_id);
@@ -9362,7 +9361,7 @@ function delete_map_dialog(map_id:number){
         dialog.f.cant.style.display = 'none';
     }
     dialog.f.delete.checked = false;
-    dialog.ok_handler = function(){
+    dialog.ok_handler = function():void{
         if(!dialog.f.delete.checked) return;
         EMIT(FromClient.CANVAS_DELETE_MAP_REQUEST, map_id);
     };
@@ -9370,20 +9369,20 @@ function delete_map_dialog(map_id:number){
     return;
 }
 
-function edit_map_dialog(map:DungeonMap){
+function edit_map_dialog(map:DungeonMap):void{
     let dialog = get_dialog('map-input');
     if(!dialog) return;
     dialog.title.textContent = 'Configure Map';
     dialog.f.name.value = map.map_name;
     const orig_grid_color = map.grid_color;
     link_input_value(orig_grid_color.length?orig_grid_color:'#969696',
-        dialog.f['grid-color'], 'onchange', dialog.f['grid-color-text'], 'oninput', function(){
+        dialog.f['grid-color'], 'onchange', dialog.f['grid-color-text'], 'oninput', function():void{
             map.grid_color = dialog.f['grid-color-text'].value;
             request_render();
         });
     const orig_bg_color = map.bg_color;
     link_input_value(orig_bg_color.length?orig_bg_color:'#ffffff',
-        dialog.f['bg-color'], 'onchange', dialog.f['bg-color-text'], 'oninput', function(){
+        dialog.f['bg-color'], 'onchange', dialog.f['bg-color-text'], 'oninput', function():void{
             map.bg_color = dialog.f['bg-color-text'].value;
             request_render();
         });
@@ -9393,7 +9392,7 @@ function edit_map_dialog(map:DungeonMap){
     ng.checked = !!(map.grid_type & GridType.NOGRID);
     dialog.f.numbered.checked = !!(map.flags & MapFlags.NUMBERED);
     dialog.f.big.checked = !!(map.flags & MapFlags.BIG_HEX);
-    dialog.ok_handler = function(){
+    dialog.ok_handler = function():void{
         const value = dialog.f.name.value.trim();
         if(!value) return;
         if(value != map.map_name){
@@ -9430,7 +9429,7 @@ function edit_map_dialog(map:DungeonMap){
             EMIT(FromClient.CANVAS_BG_COLOR, msg);
         }
     };
-    dialog.cancel_handler = function(){
+    dialog.cancel_handler = function():void{
         map.grid_color = orig_grid_color;
         map.bg_color = orig_bg_color;
         request_render();
@@ -9438,9 +9437,9 @@ function edit_map_dialog(map:DungeonMap){
     dialog.show();
 }
 
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', function():void{
     const new_map_button = by_id('new-map-button');
-    new_map_button.addEventListener('click', function(e:MouseEvent){
+    new_map_button.addEventListener('click', function(e:MouseEvent):void{
         e.stopPropagation();
         e.preventDefault();
         let dialog = get_dialog('map-input');
@@ -9457,10 +9456,10 @@ document.addEventListener('DOMContentLoaded', function(){
         const numbered = dialog.f.numbered;
         numbered.checked = false;
         dialog.f.big.checked = false;
-        dialog.show_handler = function(){
+        dialog.show_handler = function():void{
             if(!IS_TOUCH) dialog.f.name.focus();
         };
-        dialog.ok_handler = function(){
+        dialog.ok_handler = function():void{
             const value = dialog.f.name.value.trim();
             if(!value) return;
             let gt = hg.checked? GridType.HEX : GridType.SQUARE;
@@ -9480,10 +9479,10 @@ document.addEventListener('DOMContentLoaded', function(){
         dialog.cancel_handler = undefined;
         dialog.show();
     });
-    by_id('back-map-button').addEventListener('click', function(){
+    by_id('back-map-button').addEventListener('click', function():void{
         map_hist.go_back();
     });
-    by_id('forward-map-button').addEventListener('click', function(){
+    by_id('forward-map-button').addEventListener('click', function():void{
         map_hist.go_forward();
     });
 });

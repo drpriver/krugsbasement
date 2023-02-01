@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 
 // Where should this go?
@@ -21,7 +21,7 @@ const {
 } = (function(){
 
 
-function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:string, __:number, ___:number)=>void){
+function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:string, __:number, ___:number)=>void):void{
     for(let i = 0; i < msgs.length; i++){
         const msg = msgs[i];
         const entry = elem_with_parent(log, 'div');
@@ -78,7 +78,7 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:st
                 if(label_target){
                     entry.classList.add('clickable');
                     let msg_data = data;
-                    span.addEventListener('click', function(e){
+                    span.addEventListener('click', function(e):void{
                         e.stopPropagation();
                         e.preventDefault();
                         label_target(msg_data, -1, -1);

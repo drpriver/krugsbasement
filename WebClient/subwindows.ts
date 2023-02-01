@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 
 
@@ -43,7 +43,7 @@ function make_window(name:keyof SubWindowIdMap): SubWindow {
         show_handler:undefined,
         hide_handler:undefined,
         make_top: setup_zsorted_window(outer),
-        show: function(){
+        show: function():void{
             result.make_top();
             if(!result.hidden) return;
             result.hidden = false;
@@ -52,7 +52,7 @@ function make_window(name:keyof SubWindowIdMap): SubWindow {
             if(result.show_handler)
                 result.show_handler();
         },
-        hide: function(){
+        hide: function():void{
             if(result.hidden) return;
             result.hidden = true;
             if(result.hide_handler)
@@ -60,7 +60,7 @@ function make_window(name:keyof SubWindowIdMap): SubWindow {
             outer.style.display = 'none';
         },
         hidden: true,
-        make_fullscreen: function(){
+        make_fullscreen: function():void{
             outer.classList.add('fullscreen-window');
             outer.style.top = '0px';
             outer.style.left = '0px';

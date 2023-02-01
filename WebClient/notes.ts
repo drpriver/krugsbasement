@@ -58,7 +58,7 @@ function update_iframe(n:NoteWindow):void{
     }
     let title = note.title;
     let s = title + '::title\n' + n.editor.value + '\n' + boilerplate;
-    make_dnd_html(s, function(html:string, errors:Array<string>){
+    make_dnd_html(s, function(html:string, errors:Array<string>):void{
         (n.log as any).replaceChildren();
         for(let error of errors){
           const pp = document.createElement('pre');
@@ -121,15 +121,15 @@ function make_note_window(id:number):NoteWindow{
     const w = elem('div', `notes-${id}`, 'window');
     w.classList.add('notes-window');
     const wh = elem_with_parent(w, 'div', null, 'window-handle');
-    wh.oncontextmenu = function(e:MouseEvent){
+    wh.oncontextmenu = function(e:MouseEvent):void{
         const menu = ctx_menu(e);
-        menu.item('Show Others', function(){
+        menu.item('Show Others', function():void{
             EMIT(FromClient.NOTE_SHOW, id);
         });
-        menu.item('Rename', function(e:MouseEvent){
+        menu.item('Rename', function(e:MouseEvent):void{
             e.stopPropagation();
             e.preventDefault();
-            user_edit_element(t, 0, function(v:string){
+            user_edit_element(t, 0, function(v:string):void{
                 EMIT(FromClient.NOTE_UPDATE_TITLE, {note_id:id, title:v});
                 const note = NOTES.get(id)!;
                 note.title = v;
@@ -140,11 +140,11 @@ function make_note_window(id:number):NoteWindow{
             remove_ctx_menu();
         });
         menu.separator();
-        menu.item('Delete', function(){
+        menu.item('Delete', function():void{
             const dialog = get_dialog('note-deletion');
             if(!dialog) return;
             dialog.f.checkbox.checked = false;
-            dialog.ok_handler = function(){
+            dialog.ok_handler = function():void{
                 if(!dialog.f.checkbox.checked)
                     return;
                 EMIT(FromClient.DELETE_NOTE_REQUEST, id);
@@ -181,14 +181,14 @@ function make_note_window(id:number):NoteWindow{
     ed_container.style.display = 'none';
     const editor = elem_with_parent(ed_container, 'textarea', null, 'note-view-edit');
     editor.spellcheck = false;
-    editor.oninput = function(){
+    editor.oninput = function():void{
         update_iframe(result);
         const note = NOTES.get(id);
         if(!note) return;
         note.body = editor.value;
         note.need_send = true;
     };
-    editor.onkeydown = function(e){
+    editor.onkeydown = function(e):void{
         if(e.key == 'Escape'){
             stop_editing();
             return;
@@ -203,7 +203,7 @@ function make_note_window(id:number):NoteWindow{
         editor.selectionStart = editor.selectionEnd = start+2;
     }
     const log = elem_with_parent(ed_container, 'div', null, 'note-view-editor-log');
-    const result: NoteWindow = { id, w, t, make_top, edit_button, iframe, ed_container, editor, log, show:function(){
+    const result: NoteWindow = { id, w, t, make_top, edit_button, iframe, ed_container, editor, log, show:function():void{
         const note = NOTES.get(id);
         if(!note) return;
         if(note.need_receive) EMIT(FromClient.GET_NOTE, id);
@@ -212,14 +212,14 @@ function make_note_window(id:number):NoteWindow{
         result.make_top();
         result.refresh();
     }, is_editing:false,
-    refresh:function(){
+    refresh:function():void{
         const note = NOTES.get(id);
         if(!note) return;
         editor.value = note.body;
         t.textContent = note.title;
         if(w.parentNode) update_iframe(result);
     }};
-    function sync_note(){
+    function sync_note():void{
         const note = NOTES.get(id);
         if(!note) return;
         if(note.need_send){
@@ -228,7 +228,7 @@ function make_note_window(id:number):NoteWindow{
             note.need_send = false;
         }
     }
-    function stop_editing(){
+    function stop_editing():void{
         if(!result.is_editing) return;
         result.is_editing = false;
         edit_button.textContent = 'Edit';
@@ -238,21 +238,21 @@ function make_note_window(id:number):NoteWindow{
         sync_note();
 
     }
-    function start_editing(){
+    function start_editing():void{
         if(result.is_editing) return;
         result.is_editing = true;
         edit_button.textContent = 'Done';
         ed_container.style.display = 'grid';
         iframe.style.display = 'none';
     }
-    edit_button.onclick = function(e:MouseEvent){
+    edit_button.onclick = function(e:MouseEvent):void{
         e.stopPropagation();
         if(edit_button.textContent == 'Edit')
             start_editing();
         else
             stop_editing();
     }
-    setup_closable_window(w, x, function(){
+    setup_closable_window(w, x, function():void{
         stop_editing();
         w.remove();
     });
@@ -269,7 +269,7 @@ type Note_ = {
 const NOTES: Map<number, Note_> = new Map();
 const NOTE_WINDOWS: Map<number, NoteWindow> = new Map();
 
-function get_note_window(id:number){
+function get_note_window(id:number):NoteWindow{
     let window = NOTE_WINDOWS.get(id);
     if(!window){
         window = make_note_window(id);
@@ -314,17 +314,17 @@ const make_dnd_html = (function(){
     let errors: Array<string> = [];
     let imports = {
       env: {
-          log_string: function(p:number, len:number){
+          log_string: function(p:number, len:number):void{
               let sub = memory.subarray(p, p+len);
               errors.push(decoder.decode(sub));
           },
-          abort: function(){
+          abort: function():void{
             throw new WebAssembly.RuntimeError;
           }
       }
     };
     let init = false;
-    function initialize(text:string, cb:(_:string, __:Array<string>)=>void){
+    function initialize(text:string, cb:(_:string, __:Array<string>)=>void):void{
         init = true;
         fetch('/wasm/dndc.wasm').then(response=> response.arrayBuffer())
         .then(bytes=> WebAssembly.instantiate(bytes, imports))
@@ -343,7 +343,7 @@ const make_dnd_html = (function(){
             do_it(text, cb);
         }
     }
-    function do_it(text:string, cb:(_:string, __:Array<string>)=>void){
+    function do_it(text:string, cb:(_:string, __:Array<string>)=>void):void{
         errors = [];
         if(!text.length){
             cb(" ", []);
@@ -363,8 +363,8 @@ const make_dnd_html = (function(){
     return make_dnd_html;
 })();
 
-document.addEventListener('DOMContentLoaded', function(){
-    function onget(n_:Note){
+document.addEventListener('DOMContentLoaded', function():void{
+    function onget(n_:Note):void{
         const n: Note_ = n_ as Note_;
         n.need_receive = false;
         n.need_send = false;
@@ -377,7 +377,7 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     ONRECV(ToClient.GOT_NOTE, onget);
     /*
-    notes_title_area.addEventListener('input', function(){
+    notes_title_area.addEventListener('input', function():void{
         update_iframe();
         let note = NOTES.get(current_note_id);
         if(!note) return;
@@ -387,7 +387,7 @@ document.addEventListener('DOMContentLoaded', function(){
         listview.rename(note.title, note.id);
     });
     */
-    ONRECV(ToClient.NOTE_DIRTY, function(note_id:number){
+    ONRECV(ToClient.NOTE_DIRTY, function(note_id:number):void{
         let note = NOTES.get(note_id);
         if(!note) return;
         note.need_receive = true;
@@ -396,24 +396,24 @@ document.addEventListener('DOMContentLoaded', function(){
         if(window.w.parentNode)
             EMIT(FromClient.GET_NOTE, note_id);
     });
-    function add_note(id:number, note:Note_){
+    function add_note(id:number, note:Note_):void{
         const li = elem_parent_text(by_id('left-notes-list'), 'li', note.title);
         li.dataset['noteid'] = ''+id;
-        li.onclick = function(e:Event){
+        li.onclick = function(e:Event):void{
             e.stopPropagation();
             const window = get_note_window(id);
             window.t.textContent = note.title;
             window.show();
         };
-        li.oncontextmenu = function(e:MouseEvent){
+        li.oncontextmenu = function(e:MouseEvent):void{
             const menu = ctx_menu(e);
-            menu.item('Show Others', function(){
+            menu.item('Show Others', function():void{
                 EMIT(FromClient.NOTE_SHOW, id);
             });
-            menu.item('Rename', function(e:MouseEvent){
+            menu.item('Rename', function(e:MouseEvent):void{
                 e.stopPropagation();
                 e.preventDefault();
-                user_edit_element(li, 0, function(v:string){
+                user_edit_element(li, 0, function(v:string):void{
                     EMIT(FromClient.NOTE_UPDATE_TITLE, {note_id:id, title:v});
                     const note = NOTES.get(id)!;
                     note.title = v;
@@ -423,11 +423,11 @@ document.addEventListener('DOMContentLoaded', function(){
                 remove_ctx_menu();
             });
             menu.separator();
-            menu.item('Delete', function(){
+            menu.item('Delete', function():void{
                 const dialog = get_dialog('note-deletion');
                 if(!dialog) return;
                 dialog.f.checkbox.checked = false;
-                dialog.ok_handler = function(){
+                dialog.ok_handler = function():void{
                     if(!dialog.f.checkbox.checked)
                         return;
                     EMIT(FromClient.DELETE_NOTE_REQUEST, note.id);
@@ -440,7 +440,7 @@ document.addEventListener('DOMContentLoaded', function(){
         };
         NOTES.set(id, note);
     }
-    ONRECV(ToClient.NOTE_DELETE, function(id:number){
+    ONRECV(ToClient.NOTE_DELETE, function(id:number):void{
         const note = NOTES.get(id);
         if(!note) return;
         note.flags |= NOTEFLAGS.DELETED;
@@ -451,7 +451,7 @@ document.addEventListener('DOMContentLoaded', function(){
         const li = get_note_li(id);
         if(li) li.remove();
     });
-    ONRECV(ToClient.NOTES_INITIALIZE, function(notes:Array<Note>){
+    ONRECV(ToClient.NOTES_INITIALIZE, function(notes:Array<Note>):void{
         (by_id('left-notes-list') as any).replaceChildren();
         NOTES.clear();
         for(const w of NOTE_WINDOWS.values())
@@ -463,19 +463,19 @@ document.addEventListener('DOMContentLoaded', function(){
             add_note(note.id, note);
         }
     });
-    ONRECV(ToClient.NEW_NOTE, function(note_id:number){
+    ONRECV(ToClient.NEW_NOTE, function(note_id:number):void{
         add_note(note_id, {flags:0, title:'Untitled', body:'', id:note_id, need_send:false, need_receive:false});
     });
-    ONRECV(ToClient.NEW_NOTE_RESPONSE, function(id:number){
+    ONRECV(ToClient.NEW_NOTE_RESPONSE, function(id:number):void{
         add_note(id, {id:id, title:'Untitled', body:'', flags:0, need_send:false,  need_receive:false});
         get_note_window(id).show();
     });
-    by_id('new-note').addEventListener('click', function(e:MouseEvent){
+    by_id('new-note').addEventListener('click', function(e:MouseEvent):void{
         e.stopPropagation();
         e.preventDefault();
         EMIT(FromClient.NEW_NOTE_REQUEST);
     });
-    ONRECV(ToClient.NOTE_UPDATE_TITLE, function(data:NoteUpdateTitle){
+    ONRECV(ToClient.NOTE_UPDATE_TITLE, function(data:NoteUpdateTitle):void{
         const note = NOTES.get(data.note_id);
         if(!note) return;
         note.title = data.title;
@@ -484,7 +484,7 @@ document.addEventListener('DOMContentLoaded', function(){
         const li = get_note_li(data.note_id);
         if(li) li.textContent = data.title;
     });
-    ONRECV(ToClient.NOTE_SHOW, function(noteid:number){
+    ONRECV(ToClient.NOTE_SHOW, function(noteid:number):void{
         const window = get_note_window(noteid);
         if(!window) return;
         window.show();

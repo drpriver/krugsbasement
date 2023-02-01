@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 
 //
@@ -346,7 +346,7 @@ const evaluate_script = (function(){
             }
             return tokens[index+1];
         }
-        function skip_spaces(){
+        function skip_spaces():void{
             while(current().kind == TokenKind.SPACE)
                 index++;
         }
@@ -643,7 +643,7 @@ const evaluate_script = (function(){
         let index = 0;
         let currentblock = topblock;
         let error: string | null = null;
-        function err(tok:Token, mess:string){
+        function err(tok:Token, mess:string):void{
             error = `Error at '${tok.text}': ${mess}`;
         }
         function current():Token {
@@ -665,7 +665,7 @@ const evaluate_script = (function(){
             }
             return tokens[index+1];
         }
-        function skip_spaces(){
+        function skip_spaces():void{
             while(current().kind == TokenKind.SPACE)
                 index++;
         }
@@ -692,7 +692,7 @@ const evaluate_script = (function(){
             }
             return tokens[i];
         }
-        function find_parent(space_length:number){
+        function find_parent(space_length:number):void{
             for(;;){
                 let cb = currentblock.parent;
                 if(!cb) throw new Error("Unable to find parent block of appropriate indentation");
@@ -800,7 +800,7 @@ const evaluate_script = (function(){
             }
         }
 
-        function parse_list(command:ChatCommand.SHUFFLE | ChatCommand.CHOOSE, nskip:number){
+        function parse_list(command:ChatCommand.SHUFFLE | ChatCommand.CHOOSE, nskip:number):void{
             let text = '';
             while(nskip--){
                 text += take().text;
@@ -850,9 +850,9 @@ const evaluate_script = (function(){
             };
             currentblock.statements.push(stmt);
         }
-        function parse_assignment(){
+        function parse_assignment():void{
             const startidx = index;
-            function parse_as_raw(){
+            function parse_as_raw():void{
                 index = startidx;
                 return parse_raw(ChatCommand.SAY, 0);
             }
@@ -878,7 +878,7 @@ const evaluate_script = (function(){
             };
             currentblock.statements.push(statement);
         }
-        function parse_roll(nskip:number){
+        function parse_roll(nskip:number):void{
             let contents = [];
             for(;;){
                 let tok = take();
@@ -892,7 +892,7 @@ const evaluate_script = (function(){
                     kind: StatementKind.RAW,
                     command: ChatCommand.SAY,
                     original: '', // unused here
-                    content: (function(){
+                    content: (function():string{
                         let s = "";
                         for(let c of contents)
                             s += c.text;
@@ -909,9 +909,9 @@ const evaluate_script = (function(){
             };
             currentblock.statements.push(statement);
         }
-        function parse_if(indentation:number){
+        function parse_if(indentation:number):void{
             const startidx = index;
-            function parse_as_raw(){
+            function parse_as_raw():void{
                 index = startidx;
                 return parse_raw(ChatCommand.SAY, 0);
             }
@@ -954,9 +954,9 @@ const evaluate_script = (function(){
             else
                 currentblock = newif.iftrue;
         }
-        function parse_repeat(indentation:number){
+        function parse_repeat(indentation:number):void{
             const startidx = index;
-            function parse_as_raw(){
+            function parse_as_raw():void{
                 index = startidx;
                 return parse_raw(ChatCommand.SAY, 0);
             }
@@ -997,11 +997,11 @@ const evaluate_script = (function(){
             else
                 currentblock = newrepeat.block;
         }
-        function parse_else(indentation:number){
+        function parse_else(indentation:number):void{
             // this one doesn't add a statement to the currentblock
             // It just modifies the previous if statement at the right level.
             const startidx = index;
-            function parse_as_raw(){
+            function parse_as_raw():void{
                 index = startidx;
                 return parse_raw(ChatCommand.SAY, 0);
             }
@@ -1054,9 +1054,9 @@ const evaluate_script = (function(){
             prev_statement.elifs.push(elif);
             currentblock = newblock;
         }
-        function parse_use(){
+        function parse_use():void{
             const startidx = index;
-            function parse_as_raw(){
+            function parse_as_raw():void{
                 index = startidx;
                 return parse_raw(ChatCommand.SAY, 0);
             }
@@ -1080,7 +1080,7 @@ const evaluate_script = (function(){
             };
             currentblock.statements.push(usestatement);
         }
-        function parse_raw(command:ChatCommand.SAY | ChatCommand.TABLE | ChatCommand.MYTABLE | ChatCommand.NAME | ChatCommand.STYLE, nskip:number){
+        function parse_raw(command:ChatCommand.SAY | ChatCommand.TABLE | ChatCommand.MYTABLE | ChatCommand.NAME | ChatCommand.STYLE, nskip:number):void{
             let raw: RawStatement = {
                 kind: StatementKind.RAW,
                 content: '',

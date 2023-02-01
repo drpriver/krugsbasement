@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 
 const {
@@ -29,7 +29,7 @@ let macrocounter = 0;
 const VARIABLES: Map<number, Variable> = new Map();
 let variablecounter = 0;
 let active_character = 0;
-function set_active_char(n:number){
+function set_active_char(n:number):void{
     active_character = n;
 }
 function get_active_char():number{
@@ -95,7 +95,7 @@ function alloc_macro():Macro{
     return result;
 }
 
-function del_macro(id:number){
+function del_macro(id:number):void{
     const m = MACROS.get(id)!;
     MACROS.delete(id);
     for(const c of CHARACTERS.values()){
@@ -115,7 +115,7 @@ function alloc_variable():Variable {
     return result;
 }
 
-function del_variable(id:number){
+function del_variable(id:number):void{
     VARIABLES.delete(id);
     for(const c of CHARACTERS.values()){
         const idx = c[3].indexOf(id);
@@ -138,7 +138,7 @@ function alloc_character():Character{
     return result;
 }
 
-function del_character(id:number){
+function del_character(id:number):void{
     const c = CHARACTERS.get(id)!;
     CHARACTERS.delete(id);
     for(const v of c[3])
@@ -147,33 +147,33 @@ function del_character(id:number){
         del_macro(m);
 }
 
-function save_macros(){
+function save_macros():void{
     const to_save: Array<Macro> = Array.from(MACROS.values());
     sync_local(StorageCategory.MACROS, 'macros', to_save);
 }
-function save_characters(){
+function save_characters():void{
     const to_save: Array<Character> = Array.from(CHARACTERS.values());
     sync_local(StorageCategory.MACROS, 'characters', to_save);
 }
-function save_variables(){
+function save_variables():void{
     const to_save: Array<Variable> = Array.from(VARIABLES.values());
     sync_local(StorageCategory.MACROS, 'variables', to_save);
 }
 
-function save_mcv_and_signal(){
+function save_mcv_and_signal():void{
     save_macros();
     save_characters();
     save_variables();
     signal_for(ListenEvent.MACROS_RENAMED);
 }
 
-function reg_var_input(vid:number, name:string, inp:HTMLInputElement){
+function reg_var_input(vid:number, name:string, inp:HTMLInputElement):void{
     if(!VARINPUTS.has(vid))
         VARINPUTS.set(vid, new Map());
     VARINPUTS.get(vid)!.set(name, inp);
 }
 
-function update_var_value(vid:number, val:string){
+function update_var_value(vid:number, val:string):void{
     if(!val.length) return;
     if(VARINPUTS.has(vid)){
         const vs = VARINPUTS.get(vid)!;
@@ -188,7 +188,7 @@ function update_var_value(vid:number, val:string){
 }
 
 
-(function(){
+(function():void{
     for(const m of SETTINGS.macros.macros){
         MACROS.set(m[0], m);
         if(m[0] > macrocounter) macrocounter = m[0];
@@ -206,7 +206,7 @@ function update_var_value(vid:number, val:string){
     }
 }());
 
-function ability_score_to_modifier(score:number){
+function ability_score_to_modifier(score:number):number{
     return Math.floor((score-10)/2);
 }
 

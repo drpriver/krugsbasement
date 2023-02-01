@@ -219,30 +219,30 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
     // idk should assert here or something if winid already exists
     const w = elem_with_parent(document.body, 'div', winid, 'tracker-grid');
     const wh = elem_with_parent(w, 'div', null, 'window-handle');
-    wh.oncontextmenu = function(e:MouseEvent){
+    wh.oncontextmenu = function(e:MouseEvent):void{
         const menu = ctx_menu(e);
-        menu.item('Rename',function(e:MouseEvent){
+        menu.item('Rename',function(e:MouseEvent):void{
             e.stopPropagation();
             e.preventDefault();
-            user_edit_element(t, 0, function(v:string){
+            user_edit_element(t, 0, function(v:string):void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NAME, result.id, v]);
             });
             remove_ctx_menu();
         });
-        menu.item('Refresh', function(){
+        menu.item('Refresh', function():void{
             result._dirty = true;
             recalc(id);
         });
-        menu.item('Show Other People', function(){
+        menu.item('Show Other People', function():void{
             EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.SHOW, result.id]);
         });
         menu.separator();
-        menu.item('Toggle Number', function(){
+        menu.item('Toggle Number', function():void{
             EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.FLAG, result.id, result.flags ^ SpreadSheetFlags.NUMBERED]);
         });
         {
             const txt = (result.flags & SpreadSheetFlags.LOCKED_FORMULAS)?'Unlock Formulas' : 'Lock Formulas';
-            menu.item(txt, function(e:MouseEvent){
+            menu.item(txt, function(e:MouseEvent):void{
                 if(result.flags & SpreadSheetFlags.LOCKED_FORMULAS){
                     if(txt[0] == 'L') return;
                 }
@@ -253,7 +253,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             });
 
         }
-        menu.item('Configure', function(){
+        menu.item('Configure', function():void{
             const diag = get_dialog('sheet-config');
             if(!diag) return;
             diag.f.editcells.checked = !!(result.flags & SpreadSheetFlags.CAN_EDIT_CELLS);
@@ -264,7 +264,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             diag.f.delrows.checked = !!(result.flags & SpreadSheetFlags.CAN_DEL_ROW);
             diag.f.delcols.checked = !!(result.flags & SpreadSheetFlags.CAN_DEL_COL);
             diag.f.sort.checked = !!(result.flags & SpreadSheetFlags.CAN_SORT_COLS);
-            diag.ok_handler = function(){
+            diag.ok_handler = function():void{
                 // grab the other flags
                 const enum Other {flags =
                     ~(SpreadSheetFlags.NONE
@@ -293,7 +293,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             diag.show();
         });
         menu.separator();
-        menu.item('Download', function(){
+        menu.item('Download', function():void{
             const s = result.to_tsv();
             const a = elem('a');
             a.download = result.name+'.tsv';
@@ -301,11 +301,11 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             a.click();
         });
         menu.separator();
-        menu.item('Delete Spreadsheet', function(){
+        menu.item('Delete Spreadsheet', function():void{
             const diag = get_dialog('simple-delete');
             if(!diag) return;
             diag.f.delete.checked = false;
-            diag.ok_handler = function(){
+            diag.ok_handler = function():void{
                 if(diag.f.delete.checked)
                     EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE, result.id]);
             };
@@ -325,14 +325,14 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         _dirty: false,
         hidden: true,
         name,
-        show: function(){
+        show: function():void{
             result.hidden = false;
             recalc(id);
             result.make_top();
             store_local(StorageCategory.WINDOW, openid, '1');
             w.style.display = 'grid';
         },
-        hide: function(){
+        hide: function():void{
             w.style.display = 'none';
             result.hidden = true;
         },
@@ -344,7 +344,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         headers:[],
         number_els: [],
         sheet_deps: [],
-        to_tsv:function(){
+        to_tsv:function():string{
             const length = result.cell_sources.length;
             let s = result.column_names.join('\t') + '\n';
             for(let i = 0; i < length; i++){
@@ -354,64 +354,64 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             return s;
         },
     } as any as SpreadSheet;
-    function recalc_me(){
+    function recalc_me():void{
         if(result._dirty) return;
         result.mark_dirty();
         if(result.hidden) return;
         setTimeout(()=>{recalc(result.id);}, 10);
     }
-    function gtr(){
+    function gtr():string{
         const n = 2 + result.cell_elems.length;
         return `repeat(${n}, max-content)`;
     }
-    function gtc(){
+    function gtc():string{
         let n = result.headers.length;
         n += (result.flags & SpreadSheetFlags.NUMBERED)?1:0;
         return `repeat(${n}, max-content)`;
     }
-    function hdropdown(e:MouseEvent){
+    function hdropdown(e:MouseEvent):void{
         const menu = ctx_menu(e);
         const h = e.target as HTMLDivElement;
         const col_idx = result.headers.indexOf(h);
         if(col_idx == -1) return;
         if(result.flags & SpreadSheetFlags.CAN_SORT_COLS){
-            menu.item('Sort Ascending', function(){
+            menu.item('Sort Ascending', function():void{
                 result.sort(col_idx, +1);
             });
-            menu.item('Sort Descending', function(){
+            menu.item('Sort Descending', function():void{
                 result.sort(col_idx, -1);
             });
             menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_ADD_COL){
-            menu.item('Insert Column Left', function(){
+            menu.item('Insert Column Left', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, col_idx]);
             });
-            menu.item('Insert Column Right',function(){
+            menu.item('Insert Column Right',function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, col_idx+1]);
             });
             menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_DEL_COL){
-            menu.item('Delete Column', function(){
+            menu.item('Delete Column', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE_COL, result.id, col_idx]);
             });
             menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_MOVE_COLUMNS){
-            menu.item('Move Column Left', function(){
+            menu.item('Move Column Left', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx-1]);
             });
-            menu.item('Move Column Right', function(){
+            menu.item('Move Column Right', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx+1]);
             });
             menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_ADD_ROW){
-            menu.item('Insert Row Top', function(){
+            menu.item('Insert Row Top', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, 0]);
             });
-            menu.item('Insert Row Bottom', function(){
+            menu.item('Insert Row Bottom', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, -1]);
             });
             menu.separator();
@@ -419,30 +419,30 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         menu.item('Cancel');
         menu.install();
     }
-    function rdropdown(e:MouseEvent){
+    function rdropdown(e:MouseEvent):void{
         const row_idx = (+((e.target as HTMLDivElement).textContent as string))-1;
         if(row_idx == -1) return;
         const menu = ctx_menu(e);
         if(result.flags & SpreadSheetFlags.CAN_ADD_ROW){
-            menu.item('Insert Row Above', function(){
+            menu.item('Insert Row Above', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, row_idx]);
             });
-            menu.item('Insert Row Below', function(){
+            menu.item('Insert Row Below', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, row_idx+1]);
             });
             menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_MOVE_ROWS){
-            menu.item('Move Row Up', function(){
+            menu.item('Move Row Up', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, row_idx, row_idx-1]);
             });
-            menu.item('Move Row Down', function(){
+            menu.item('Move Row Down', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, row_idx, row_idx+1]);
             });
             menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_DEL_ROW){
-            menu.item('Delete Row', function(){
+            menu.item('Delete Row', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE_ROW, result.id, row_idx]);
             });
             menu.separator();
@@ -450,56 +450,56 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         menu.item('Cancel');
         menu.install();
     }
-    function celldropdown(e:MouseEvent){
+    function celldropdown(e:MouseEvent):void{
         const cell = e.target as HTMLDivElement;
         let [row_idx, col_idx] = idx_of(cell);
         if(row_idx == -1) [row_idx, col_idx] = idx_of(cell.parentElement as HTMLDivElement);
         if(row_idx == -1) return;
         const menu = ctx_menu(e);
         if(result.flags & SpreadSheetFlags.CAN_ADD_ROW){
-            menu.item('Insert Row Above', function(){
+            menu.item('Insert Row Above', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, row_idx]);
             });
-            menu.item('Insert Row Below', function(){
+            menu.item('Insert Row Below', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, row_idx+1]);
             });
             menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_DEL_ROW){
-            menu.item('Delete Row', function(){
+            menu.item('Delete Row', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE_ROW, result.id, row_idx]);
             });
             menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_MOVE_ROWS){
-            menu.item('Move Row Up', function(){
+            menu.item('Move Row Up', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, row_idx, row_idx-1]);
             });
-            menu.item('Move Row Down', function(){
+            menu.item('Move Row Down', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, row_idx, row_idx+1]);
             });
             menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_ADD_COL){
-            menu.item('Insert Column Left', function(){
+            menu.item('Insert Column Left', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, col_idx]);
             });
-            menu.item('Insert Column Right', function(){
+            menu.item('Insert Column Right', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, col_idx+1]);
             });
             menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_DEL_COL){
-            menu.item('Delete Column', function(){
+            menu.item('Delete Column', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE_COL, result.id, col_idx]);
             });
             menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_MOVE_COLUMNS){
-            menu.item('Move Column Left', function(){
+            menu.item('Move Column Left', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx-1]);
             });
-            menu.item('Move Column Right', function(){
+            menu.item('Move Column Right', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx+1]);
             });
             menu.separator();
@@ -519,7 +519,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         }
         return [-1, -1];
     }
-    function on_cell_keydown(e:KeyboardEvent){
+    function on_cell_keydown(e:KeyboardEvent):void{
         if(e.altKey) return;
         const cell = e.target as HTMLDivElement;
         let [row_idx, col_idx] = idx_of(cell);
@@ -656,7 +656,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
                 break;
         }
     }
-    function edit_cell(cell:HTMLDivElement, key:string){
+    function edit_cell(cell:HTMLDivElement, key:string):void{
         if(!(result.flags & SpreadSheetFlags.CAN_EDIT_CELLS))
             return;
         const [row_idx, col_idx] = idx_of(cell);
@@ -702,7 +702,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         inp.style.height = h;
         inp.spellcheck = false;
         let canceled = false;
-        inp.onkeydown = function(e){
+        inp.onkeydown = function(e):void{
             let [row_idx, col_idx] = idx_of(cell);
             e.stopPropagation();
             switch(e.key){
@@ -734,7 +734,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
                     break;
             }
         };
-        inp.onblur = function(){
+        inp.onblur = function():void{
             cell.textContent = result.cell_displays[row_idx][col_idx];
             cell.classList.remove('editing');
             inp.remove();
@@ -750,14 +750,14 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         };
         inp.focus();
     }
-    function on_cell_click(e:MouseEvent){
+    function on_cell_click(e:MouseEvent):void{
         e.stopPropagation();
         e.preventDefault();
         remove_ctx_menu();
         const cell = e.target as HTMLDivElement;
         edit_cell(cell, '');
     }
-    function on_copy(){
+    function on_copy():void{
         const [row_idx, col_idx] = idx_of(document.activeElement as HTMLDivElement);
         if(row_idx == -1) return;
         const s = result.cell_sources[row_idx][col_idx];
@@ -765,7 +765,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         if(!navigator.clipboard.readText)
             spreadsheet_fake_clipboard = s;
     }
-    function on_paste(){
+    function on_paste():void{
         const [row_idx, col_idx] = idx_of(document.activeElement as HTMLDivElement);
         if(row_idx == -1) return;
         if(!navigator.clipboard.readText) {
@@ -776,10 +776,10 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELL, result.id, row_idx, col_idx, s]);
         });
     }
-    function editable_cell(cell:HTMLDivElement){
+    function editable_cell(cell:HTMLDivElement):void{
         cell.tabIndex = -1;
         cell.ondblclick = on_cell_click;
-        cell.onmousedown = function(e:MouseEvent){
+        cell.onmousedown = function(e:MouseEvent):void{
             remove_ctx_menu();
             const a = document.activeElement;
             if(a){
@@ -813,7 +813,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         const row = result.cell_elems[row_idx];
         return row[col_idx-1];
     }
-    function add_cell(s:string, row_idx:number, col_idx:number){
+    function add_cell(s:string, row_idx:number, col_idx:number):void{
         let cell = elem_with_text('div', s, null, 'tracker-cell');
         editable_cell(cell);
         if(row_idx < 0) row_idx += result.cell_elems.length;
@@ -825,10 +825,10 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         prev.insertAdjacentElement('afterend', cell);
     }
     result.make_top = setup_zsorted_window(w);
-    result.add_row1 = function(whence:number){
+    result.add_row1 = function(whence:number):void{
         result.add_row2(whence, []);
     };
-    result.add_row2 = function(whence:number, values:Array<string>){
+    result.add_row2 = function(whence:number, values:Array<string>):void{
         if(!(result.flags & SpreadSheetFlags.CAN_ADD_ROW)) return;
         if(whence < 0)
             whence += result.cell_elems.length + 1;
@@ -856,13 +856,13 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         if(whence != result.cell_sources.length-1)
             recalc_me();
     };
-    result.add_column1 = function(whence:number){
+    result.add_column1 = function(whence:number):void{
         result.add_column3(whence, '', []);
     };
-    result.add_column2 = function(whence:number, name:string){
+    result.add_column2 = function(whence:number, name:string):void{
         result.add_column3(whence, name, []);
     };
-    function edit_header(cell:HTMLDivElement){
+    function edit_header(cell:HTMLDivElement):void{
         const w = '' + (cell.getBoundingClientRect().width-2) + 'px';
         const h = '' + (cell.getBoundingClientRect().height-2) + 'px';
         let oldtxt = cell.textContent;
@@ -874,7 +874,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         inp.style.height = h;
         inp.value = oldtxt;
         let canceled = false;
-        inp.onkeydown = function(e){
+        inp.onkeydown = function(e):void{
             e.stopPropagation();
             switch(e.key){
                 case 'Escape':{
@@ -894,7 +894,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
                 } return;
             }
         };
-        inp.onblur = function(){
+        inp.onblur = function():void{
             cell.classList.remove('editing');
             inp.remove();
             if(canceled){
@@ -910,13 +910,13 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         };
         inp.focus();
     }
-    result.add_column3 = function(whence:number, name:string, values:Array<string>){
+    result.add_column3 = function(whence:number, name:string, values:Array<string>):void{
         if(!(result.flags & SpreadSheetFlags.CAN_ADD_COL)) return;
         if(whence == -1) whence += result.column_names.length + 1;
         result.column_names.splice(whence, 0, name);
         const h = elem_with_text('div', name, null, 'tracker-head');
-        // h.onclick = function(e){const cell = e.target as HTMLDivElement; cell.focus();};
-        h.onmousedown = function(e:MouseEvent){
+        // h.onclick = function(e):void{const cell = e.target as HTMLDivElement; cell.focus();};
+        h.onmousedown = function(e:MouseEvent):void{
             remove_ctx_menu();
             const a = document.activeElement;
             if(a){
@@ -939,14 +939,14 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             (e.target as HTMLDivElement).focus();
         };
         h.tabIndex = -1;
-        h.ondblclick = function(e:MouseEvent){
+        h.ondblclick = function(e:MouseEvent):void{
             e.stopPropagation();
             e.preventDefault();
             const cell = e.target as HTMLDivElement;
             edit_header(cell);
         };
         h.oncontextmenu = hdropdown;
-        h.onkeydown = function(e:KeyboardEvent){
+        h.onkeydown = function(e:KeyboardEvent):void{
             const cell = e.target as HTMLDivElement;
             const idx = result.headers.indexOf(cell);
             if(idx == -1) return;
@@ -1024,7 +1024,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         if(whence != result.column_names.length-1)
             recalc_me();
     };
-    result.set_title = function(title:string){
+    result.set_title = function(title:string):void{
         result.name = title;
         t.textContent = title;
         for(const li of by_id('sheet-buttons').getElementsByTagName('li')){
@@ -1035,19 +1035,19 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         }
     };
     const comparator = Intl.Collator(undefined, {numeric:true});
-    result.sort = function(col_idx:number, direction: number){
+    result.sort = function(col_idx:number, direction: number):void{
         const sorted = [];
         for(let i = 0; i < result.cell_elems.length; i++){
             sorted.push(i);
         }
-        function rowcmp (a:Array<string>, b:Array<string>){
+        function rowcmp (a:Array<string>, b:Array<string>):number{
             const as = a[col_idx].trim();
             const bs = b[col_idx].trim();
             if(!as.length) return !bs.length?0:1;
             if(!bs.length) return -1;
             return direction * comparator.compare(as, bs);
         }
-        function cmp(a:number, b:number){
+        function cmp(a:number, b:number):number{
             return rowcmp(result.cell_displays[a], result.cell_displays[b]);
         }
         sorted.sort(cmp);
@@ -1060,7 +1060,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         if(!did_sort) return;
         EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.SORT, result.id, sorted]);
     };
-    result.apply_sort = function(sorted:Array<number>){
+    result.apply_sort = function(sorted:Array<number>):void{
         const cell_elems = [];
         const cell_displays = [];
         const cell_sources = [];
@@ -1087,7 +1087,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         }
         recalc_me();
     };
-    result.del_column = function(whence:number){
+    result.del_column = function(whence:number):void{
         if(!(result.flags & SpreadSheetFlags.CAN_DEL_COL)) return;
         if(whence < 0) whence += result.headers.length;
         if(whence >= result.headers.length) return;
@@ -1104,7 +1104,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         w.style.gridTemplateColumns = gtc();
         recalc_me();
     }
-    result.del_row = function(whence:number){
+    result.del_row = function(whence:number):void{
         if(!(result.flags & SpreadSheetFlags.CAN_DEL_ROW)) return;
         if(whence < 0) whence += result.cell_elems.length;
         if(whence >= result.cell_elems.length) return;
@@ -1122,7 +1122,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         w.style.gridTemplateRows = gtr();
         recalc_me();
     }
-    result.move_row = function(from:number, to:number){
+    result.move_row = function(from:number, to:number):void{
         if(!(result.flags & SpreadSheetFlags.CAN_MOVE_ROWS)) return;
         if(from < 0 || from >= result.cell_elems.length) return;
         if(to < 0 || to >= result.cell_elems.length) return;
@@ -1149,7 +1149,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         }
         recalc_me();
     };
-    result.move_column = function(from:number, to:number){
+    result.move_column = function(from:number, to:number):void{
         if(!(result.flags & SpreadSheetFlags.CAN_MOVE_COLUMNS)) return;
         if(from == to) return;
         if(to < from){
@@ -1204,13 +1204,13 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         }
         recalc_me();
     };
-    result.rename_column = function(whence:number, name:string){
+    result.rename_column = function(whence:number, name:string):void{
         if(whence < 0 || whence >= result.headers.length) return;
         result.column_names[whence] = name;
         result.headers[whence].textContent = name;
         recalc_me();
     };
-    result.edit_cell = function(row_idx:number, col_idx:number, val:string){
+    result.edit_cell = function(row_idx:number, col_idx:number, val:string):void{
         if(row_idx < 0 || row_idx >= result.cell_elems.length) return;
         const row = result.cell_sources[row_idx];
         if(col_idx < 0 || col_idx >= row.length) return;
@@ -1227,7 +1227,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         result.cell_elems[row_idx][col_idx].textContent = val;
         r[col_idx] = val;
     }
-    result.set_flags = function(flags:SpreadSheetFlags){
+    result.set_flags = function(flags:SpreadSheetFlags):void{
         let was_numbered = !!(result.flags & SpreadSheetFlags.NUMBERED);
         let will_be_numbered = !!(flags & SpreadSheetFlags.NUMBERED);
         result.flags = flags;
@@ -1258,7 +1258,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             }
         }
     };
-    setup_closable_window(w, x, function(){
+    setup_closable_window(w, x, function():void{
         store_local(StorageCategory.WINDOW, openid, '');
         result.hidden = true;
     });
@@ -1271,7 +1271,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
 }
 const SPREADSHEETS:Map<number, SpreadSheet> = new Map();
 
-function spreadsheet_from_data(data:SpreadSheetData){
+function spreadsheet_from_data(data:SpreadSheetData):SpreadSheet{
     // Use ALL to enable all behaviors and then set the real flags below. This
     // allows the imperative adding of the needed columns.
     const ss = make_spreadsheet(data.id, SpreadSheetFlags.ALL, data.name);
@@ -1284,18 +1284,18 @@ function spreadsheet_from_data(data:SpreadSheetData){
     const li = elem_parent_text(by_id('sheet-buttons'), 'li', data.name);
     const id = ss.id;
     li.dataset['sheetid'] = ''+id;
-    li.onclick = function(e:MouseEvent){
+    li.onclick = function(e:MouseEvent):void{
         e.stopPropagation();
         SPREADSHEETS.get(id)!.show();
     };
-    li.oncontextmenu = function(e:MouseEvent){
+    li.oncontextmenu = function(e:MouseEvent):void{
         const menu = ctx_menu(e);
         const ss = SPREADSHEETS.get(id)!;
         if(ss.hidden)
             menu.item('Show', ss.show);
         else
             menu.item('Hide', ss.hide);
-        menu.item('Rename', function(e:MouseEvent){
+        menu.item('Rename', function(e:MouseEvent):void{
             e.stopPropagation();
             e.preventDefault();
             user_edit_element(li, 0, function(txt:string):void{
@@ -1304,11 +1304,11 @@ function spreadsheet_from_data(data:SpreadSheetData){
             remove_ctx_menu();
         });
         menu.separator();
-        menu.item('Delete', function(){
+        menu.item('Delete', function():void{
             const diag = get_dialog('simple-delete');
             if(!diag) return;
             diag.f.delete.checked = false;
-            diag.ok_handler = function(){
+            diag.ok_handler = function():void{
                 if(diag.f.delete.checked){
                     EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE, id]);
                     li.remove();
@@ -1320,17 +1320,18 @@ function spreadsheet_from_data(data:SpreadSheetData){
         menu.item('Cancel');
         menu.install();
     };
+    return ss;
 }
 // TAG newtrackerbutton
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', function():void{
     const b = by_id('new-sheet-button');
-    b.onclick = function(){
+    b.onclick = function():void{
         const diag = get_dialog('tracker');
         if(!diag) return;
         diag.f.file.value = '';
         diag.f.file.accept='.tsv';
         let tsv = '';
-        diag.f.file.onchange = function(){
+        diag.f.file.onchange = function():void{
             const filelist = diag.f.file.files;
             if(!filelist || filelist.length != 1)
                 return;
@@ -1339,7 +1340,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 diag.f.name.value = file.name.slice(0, file.name.length-4);
             file.text().then(s=>tsv=s);
         };
-        diag.ok_handler = function(){
+        diag.ok_handler = function():void{
             let name = diag.f.name.value;
             if(!name) return;
             let flags = SpreadSheetFlags.ALL;
@@ -1355,7 +1356,7 @@ document.addEventListener('DOMContentLoaded', function(){
             }
             EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NEW_SHEET, {id:0, name, flags, column_names:[], cells:[]}]);
         };
-        diag.show_handler = function(){
+        diag.show_handler = function():void{
             diag.f.name.value = '';
             diag.f.numbered.checked = true;
             diag.f.name.focus();
@@ -1365,7 +1366,7 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 
 // TAG ToClientSPREADSHEET
-ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg){
+ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
     // console.log(arg);
     switch(arg[0]){
         case SpreadSheetMsgType.DELETE_ROW:{
@@ -1415,9 +1416,9 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg){
             ss.add_column1(arg[2]);
         }break;
         case SpreadSheetMsgType.NEW_SHEET:
-            spreadsheet_from_data(arg[1]);
-            SPREADSHEETS.get(arg[1].id)!.mark_dirty();
-            SPREADSHEETS.get(arg[1].id)!.show();
+            const ss = spreadsheet_from_data(arg[1]);
+            ss.mark_dirty();
+            ss.show();
             break;
         case SpreadSheetMsgType.SORT:{
             let ss = SPREADSHEETS.get(arg[1]);

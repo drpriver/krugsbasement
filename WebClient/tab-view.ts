@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 type TabView = {
     active_tab_idx: number;
@@ -16,7 +16,7 @@ function make_tab_view(tabs:Array<HTMLElement>, views:Array<HTMLElement>, displa
         tabs: tabs,
         views: views,
         on_change_handler:undefined,
-        change_tab:function(idx:number){
+        change_tab:function(idx:number):void{
             if(idx >= tv.tabs.length) return;
             if(idx == tv.active_tab_idx) return;
             tv.tabs[tv.active_tab_idx].classList.remove('active');
@@ -29,7 +29,7 @@ function make_tab_view(tabs:Array<HTMLElement>, views:Array<HTMLElement>, displa
         },
     };
     for(let i = 0; i < tabs.length; i++){
-        tabs[i].addEventListener('click', function(e){
+        tabs[i].addEventListener('click', function(e):void{
             e.stopPropagation();
             e.preventDefault();
             tv.change_tab(i);

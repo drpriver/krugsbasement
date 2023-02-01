@@ -1,3 +1,7 @@
+//
+// Copyright © 2023, David Priver
+//
+
 let _ctxmenu_remover:undefined|(()=>void);
 
 // Removes the current ctx menu and returns whether there was one active.
@@ -9,7 +13,7 @@ function did_remove_ctx_menu():boolean{
     }
     return false;
 };
-function remove_ctx_menu(){
+function remove_ctx_menu():void{
     did_remove_ctx_menu();
 }
 
@@ -34,17 +38,17 @@ function ctx_menu(e:MouseEvent):CtxMenu{
         disabled:function(txt:string):void{
             const d = elem_parent_text(result.menu, 'section', txt, null, 'menuitem');
             d.classList.add('disabled');
-            d.onpointerdown = function(e){e.stopPropagation();};
+            d.onpointerdown = function(e):void{e.stopPropagation();};
         },
-        item:function(txt:string, cb?:(()=>void)|((e:MouseEvent)=>void)){
+        item:function(txt:string, cb?:(()=>void)|((e:MouseEvent)=>void)):void{
             const d = elem_parent_text(result.menu, 'section', txt, null, 'menuitem');
             // the window.onpointerdown at the bottom will remove it.
             // d.addEventListener('pointerdown', remove_ctx_menu);
             if(cb) d.addEventListener('pointerdown', cb);
         },
-        install:function(){
+        install:function():void{
             remove_ctx_menu();
-            _ctxmenu_remover = function(){
+            _ctxmenu_remover = function():void{
                 result.menu.remove();
             };
             result.menu.style.left = left + 'px';

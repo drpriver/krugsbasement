@@ -1,9 +1,13 @@
+//
+// Copyright © 2023, David Priver
+//
+
 function system_prefers_darkmode():boolean{
     return window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
 let DARKMODE = false;
-function change_dark_mode(mode:DarkMode, postit:number){
+function change_dark_mode(mode:DarkMode, postit:number):void{
     switch(mode){
         case DarkMode.DARK:
             DARKMODE = true;
@@ -31,7 +35,7 @@ function change_dark_mode(mode:DarkMode, postit:number){
             document.body.classList.remove('dark-mode');
     }
     else {
-        document.addEventListener('DOMContentLoaded',function(){
+        document.addEventListener('DOMContentLoaded',function():void{
             signal_for(ListenEvent.DARKMODE_CHANGED);
             if(DARKMODE)
                 document.body.classList.add('dark-mode');
@@ -52,6 +56,6 @@ function change_dark_mode(mode:DarkMode, postit:number){
     }
 }
 change_dark_mode(SETTINGS.darkmode, 0);
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e){
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e):void{
     change_dark_mode(SETTINGS.darkmode, 0);
 });

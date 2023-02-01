@@ -30,7 +30,7 @@ function make_table_view<K>(body:HTMLElement, width:number): TableView<K>{
             result.body.style.gridTemplateRows = `repeat(${result.rows.length+1}, max-content)`;
             return row;
         },
-        clear: function(){
+        clear: function():void{
             for(const [_, row] of result.rows.slice(1)){
                 for(const el of row)
                     el.remove();
@@ -38,7 +38,7 @@ function make_table_view<K>(body:HTMLElement, width:number): TableView<K>{
             result.rows = result.rows.slice(0, 1);
             result.body.style.gridTemplateRows = `repeat(${result.rows.length+1}, max-content)`;
         },
-        remove_row:function(key:K){
+        remove_row:function(key:K):void{
             for(let i = 1; i < result.rows.length; i++){
                 const [k, row] = result.rows[i];
                 if(k === key){

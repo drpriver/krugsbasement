@@ -27,7 +27,7 @@ type VariablesWindow = {
 
 const MACRO_WINDOWS: Map<number, MacroWindow> = new Map();
 let active_macro_window = -1; // XXX: structured response doesn't include to what
-ONRECV(ToClient.CHAT_TEST_STRUCTURED_RESPONSE, function(response:Array<ChatMsg>){
+ONRECV(ToClient.CHAT_TEST_STRUCTURED_RESPONSE, function(response:Array<ChatMsg>):void{
     const w = MACRO_WINDOWS.get(active_macro_window);
     if(!w) return;
     // @ts-ignore
@@ -54,7 +54,7 @@ function make_macro_window(cid:number, id:number):MacroWindow {
     const editor = elem_with_parent(w, 'textarea');
     editor.spellcheck = false;
     editor.rows = 8;
-    editor.oninput = function(){
+    editor.oninput = function():void{
         const m = MACROS.get(id);
         if(!m) return;
         m[2] = editor.value;
@@ -62,12 +62,12 @@ function make_macro_window(cid:number, id:number):MacroWindow {
     };
     if(macro) editor.value = macro[2];
     const log = elem_with_parent(w, 'div', null, 'macro-log');
-    wh.oncontextmenu = function(e:MouseEvent){
+    wh.oncontextmenu = function(e:MouseEvent):void{
         const menu = ctx_menu(e);
-        menu.item('Rename', function(e:MouseEvent){
+        menu.item('Rename', function(e:MouseEvent):void{
             e.stopPropagation();
             e.preventDefault();
-            user_edit_element(t, 0, function(s:string){
+            user_edit_element(t, 0, function(s:string):void{
                 const m = MACROS.get(id);
                 if(!m) return;
                 m[1] = s;
@@ -76,12 +76,12 @@ function make_macro_window(cid:number, id:number):MacroWindow {
             remove_ctx_menu();
         });
         menu.separator();
-        menu.item('Delete', function(){
+        menu.item('Delete', function():void{
             const dialog = get_dialog('simple-delete');
             if(!dialog) return;
             dialog.title.textContent = 'Delete Macro'
             dialog.f.delete.checked = false;
-            dialog.ok_handler = function(){
+            dialog.ok_handler = function():void{
                 if(!dialog.f.delete.checked) return;
                 result.close();
                 del_macro(id);
@@ -93,12 +93,12 @@ function make_macro_window(cid:number, id:number):MacroWindow {
         menu.item('Cancel');
         menu.install();
     };
-    use.onclick = function(){
+    use.onclick = function():void{
         const m = MACROS.get(id);
         if(!m) return;
         preprocess_and_send_chat(m[2], cid, m[0]);
     };
-    test.onclick = function(){
+    test.onclick = function():void{
         const m = MACROS.get(id);
         if(!m) return;
         let commands:Array<Command> = [];
@@ -115,14 +115,14 @@ function make_macro_window(cid:number, id:number):MacroWindow {
             EMIT(FromClient.CHAT_TEST_STRUCTURED_INPUT, to_send);
         }
     };
-    addvar.onclick = function(){
+    addvar.onclick = function():void{
         const dialog = get_dialog('make-variable');
         if(!dialog) return;
         dialog.f.name.value = '';
-        dialog.show_handler = function(){
+        dialog.show_handler = function():void{
             if(!IS_TOUCH) dialog.f.name.focus();
         };
-        dialog.ok_handler = function(){
+        dialog.ok_handler = function():void{
             let name = dialog.f.name.value.trim();
             if(!name) return;
             const m = MACROS.get(id);
@@ -169,18 +169,18 @@ function make_macro_window(cid:number, id:number):MacroWindow {
                 const uiinp = elem_with_parent(uil, 'input');
                 uiinp.type = 'checkbox';
                 uiinp.checked = !!v[4];
-                t.oncontextmenu = function(e:MouseEvent){
+                t.oncontextmenu = function(e:MouseEvent):void{
                     const menu = ctx_menu(e);
-                    menu.item('Rename', function(e:MouseEvent){
+                    menu.item('Rename', function(e:MouseEvent):void{
                         e.stopPropagation();
                         e.preventDefault();
-                        user_edit_element(t, 0, function(s:string){
+                        user_edit_element(t, 0, function(s:string):void{
                             v[1] = s.trim();
                             save_mcv_and_signal();
                         });
                         remove_ctx_menu();
                     });
-                    menu.item('Delete', function(){
+                    menu.item('Delete', function():void{
                         del_variable(vid);
                         l.remove();
                         uil.remove();
@@ -206,13 +206,13 @@ function make_macro_window(cid:number, id:number):MacroWindow {
                     inp.value = v[3];
                     break;
                 }
-                inp.oninput = function(){
+                inp.oninput = function():void{
                     if(v[2] == ScriptVariableType.BOOLEAN)
                         update_var_value(v[0], inp.checked?"1":"0");
                     else
                         update_var_value(v[0], inp.value);
                 }
-                uiinp.oninput = function(){
+                uiinp.oninput = function():void{
                     v[4] = uiinp.checked?1:0;
                     save_mcv_and_signal();
                 };
@@ -237,19 +237,19 @@ function make_vars_window(cid:number):VariablesWindow {
     const vars = elem_with_parent(w, 'div', null, 'macro-vars');
     const addvar = elem_parent_text(w, 'button', '+');
 
-    wh.oncontextmenu = function(e:MouseEvent){
+    wh.oncontextmenu = function(e:MouseEvent):void{
         const menu = ctx_menu(e);
         menu.item('Cancel');
         menu.install();
     };
-    addvar.onclick = function(){
+    addvar.onclick = function():void{
         const dialog = get_dialog('make-variable');
         if(!dialog) return;
         dialog.f.name.value = '';
-        dialog.show_handler = function(){
+        dialog.show_handler = function():void{
             if(!IS_TOUCH) dialog.f.name.focus();
         };
-        dialog.ok_handler = function(){
+        dialog.ok_handler = function():void{
             let name = dialog.f.name.value.trim();
             if(!name) return;
             const char = CHARACTERS.get(cid);
@@ -293,18 +293,18 @@ function make_vars_window(cid:number):VariablesWindow {
                 const uiinp = elem_with_parent(uil, 'input');
                 uiinp.type = 'checkbox';
                 uiinp.checked = !!v[4];
-                t.oncontextmenu = function(e:MouseEvent){
+                t.oncontextmenu = function(e:MouseEvent):void{
                     const menu = ctx_menu(e);
-                    menu.item('Rename', function(e:MouseEvent){
+                    menu.item('Rename', function(e:MouseEvent):void{
                         e.stopPropagation();
                         e.preventDefault();
-                        user_edit_element(t, 0, function(s:string){
+                        user_edit_element(t, 0, function(s:string):void{
                             v[1] = s.trim();
                             save_mcv_and_signal();
                         });
                         remove_ctx_menu();
                     });
-                    menu.item('Delete', function(){
+                    menu.item('Delete', function():void{
                         del_variable(vid);
                         l.remove();
                         uil.remove();
@@ -331,13 +331,13 @@ function make_vars_window(cid:number):VariablesWindow {
                     inp.value = v[3];
                     break;
                 }
-                inp.oninput = function(){
+                inp.oninput = function():void{
                     if(v[2] == ScriptVariableType.BOOLEAN)
                         update_var_value(v[0], inp.checked?"1":"0");
                     else
                         update_var_value(v[0], inp.value);
                 }
-                uiinp.oninput = function(){
+                uiinp.oninput = function():void{
                     v[4] = uiinp.checked?1:0;
                     save_mcv_and_signal();
                 };
@@ -367,15 +367,15 @@ function get_vars_window(cid:number):VariablesWindow{
     VARIABLES_WINDOWS.set(cid, c);
     return c;
 }
-function add_macro_dialog(cid:number){
+function add_macro_dialog(cid:number):void{
     const dialog = get_dialog('simple-text');
     if(!dialog) return;
     dialog.title.textContent = 'Macro Name';
     dialog.f.text.value = '';
-    dialog.show_handler = function(){
+    dialog.show_handler = function():void{
         if(!IS_TOUCH) dialog.f.text.focus();
     };
-    dialog.ok_handler = function(){
+    dialog.ok_handler = function():void{
         const text = dialog.f.text.value.trim();
         if(!text) return;
         const m = alloc_macro();
@@ -393,15 +393,15 @@ function add_macro_dialog(cid:number){
 
 function setup_macro_left():void{
     const button = by_id('new-macro-group-button');
-    button.onclick = function(){
+    button.onclick = function():void{
         const dialog = get_dialog('simple-text');
         if(!dialog) return;
         dialog.title.textContent = 'Macro Group Name';
         dialog.f.text.value = '';
-        if(!IS_TOUCH) dialog.show_handler = function(){
+        if(!IS_TOUCH) dialog.show_handler = function():void{
             dialog.f.text.focus();
         };
-        dialog.ok_handler = function(){
+        dialog.ok_handler = function():void{
             const text = dialog.f.text.value.trim();
             if(!text) return;
             const c = alloc_character();
@@ -414,7 +414,7 @@ function setup_macro_left():void{
     const list = by_id('left-macro-group-list');
     // @ts-ignore
     list.replaceChildren();
-    list.oncontextmenu = function(e:Event){
+    list.oncontextmenu = function(e:Event):void{
         e.stopPropagation();
         e.preventDefault();
     };
@@ -422,12 +422,12 @@ function setup_macro_left():void{
         const name = ch[1];
         const li = elem_with_parent(list, 'li', null, 'macro-li');
         const namespan = elem_parent_text(li, 'span', name);
-        namespan.oncontextmenu = function(e:MouseEvent){
+        namespan.oncontextmenu = function(e:MouseEvent):void{
             const menu = ctx_menu(e);
-            menu.item('Rename', function(e:MouseEvent){
+            menu.item('Rename', function(e:MouseEvent):void{
                 e.stopPropagation();
                 e.preventDefault();
-                user_edit_element(namespan, 0, function(s:string){
+                user_edit_element(namespan, 0, function(s:string):void{
                     const c = CHARACTERS.get(cid);
                     if(!c) return;
                     c[1] = s;
@@ -435,16 +435,16 @@ function setup_macro_left():void{
                 });
                 remove_ctx_menu();
             });
-            menu.item('Add Macro', function(){
+            menu.item('Add Macro', function():void{
                 add_macro_dialog(cid);
             });
             menu.separator();
-            menu.item('Delete', function(){
+            menu.item('Delete', function():void{
                 const dialog = get_dialog('simple-delete');
                 if(!dialog) return;
                 dialog.title.textContent = 'Delete Macro Group';
                 dialog.f.delete.checked = false;
-                dialog.ok_handler = function(){
+                dialog.ok_handler = function():void{
                     if(!dialog.f.delete.checked)
                         return;
                     const c = CHARACTERS.get(cid);
@@ -465,7 +465,7 @@ function setup_macro_left():void{
             menu.item('Cancel');
             menu.install();
         };
-        li.onclick = function(e:MouseEvent){
+        li.onclick = function(e:MouseEvent):void{
             e.stopPropagation();
             nested.classList.toggle('hidden');
             li.classList.toggle('closed');
@@ -473,20 +473,20 @@ function setup_macro_left():void{
         const am = elem_parent_text(li, 'button', '+');
         const nested = elem_with_parent(li, 'ul', null, 'child');
         const vars = elem_parent_text(nested, 'li', `Variables…`);
-        vars.onclick = function(e:MouseEvent){
+        vars.onclick = function(e:MouseEvent):void{
             e.stopPropagation();
             get_vars_window(cid).show();
         };
-        vars.oncontextmenu = function(e:Event){
+        vars.oncontextmenu = function(e:Event):void{
             e.stopPropagation();
             e.preventDefault();
         };
         am.title = 'Add Macro';
-        am.onclick = function(e:MouseEvent){
+        am.onclick = function(e:MouseEvent):void{
             e.stopPropagation();
             add_macro_dialog(cid);
         };
-        am.oncontextmenu = function(e:Event){
+        am.oncontextmenu = function(e:Event):void{
             e.stopPropagation();
             e.preventDefault();
         };
@@ -494,27 +494,27 @@ function setup_macro_left():void{
             const m = MACROS.get(mid);
             if(!m) continue;
             const mli = elem_parent_text(nested, 'li', m[1]);
-            mli.oncontextmenu = function(e:MouseEvent){
+            mli.oncontextmenu = function(e:MouseEvent):void{
                 const menu = ctx_menu(e);
-                menu.item('Rename', function(e:MouseEvent){
+                menu.item('Rename', function(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
-                    user_edit_element(mli, 0, function(s:string){
+                    user_edit_element(mli, 0, function(s:string):void{
                         m[1] = s;
                         save_mcv_and_signal();
                     });
                     remove_ctx_menu();
                 });
-                menu.item('Edit', function(){
+                menu.item('Edit', function():void{
                     get_macro_window(cid, mid).show();
                 });
                 menu.separator();
-                menu.item('Delete', function(){
+                menu.item('Delete', function():void{
                     const dialog = get_dialog('simple-delete');
                     if(!dialog) return;
                     dialog.title.textContent = 'Delete Macro';
                     dialog.f.delete.checked = false;
-                    dialog.ok_handler = function(){
+                    dialog.ok_handler = function():void{
                         if(!dialog.f.delete.checked) return;
                         del_macro(mid);
                         const ident = (cid << 16) | mid;
@@ -528,7 +528,7 @@ function setup_macro_left():void{
                 menu.item('Cancel');
                 menu.install();
             };
-            mli.onclick = function(e:MouseEvent){
+            mli.onclick = function(e:MouseEvent):void{
                 e.stopPropagation();
                 get_macro_window(cid, mid).show();
             };
@@ -544,9 +544,9 @@ function setup_macro_panel():void{
     // @ts-ignore
     pt.replaceChildren();
     const pb = by_id('macro-panel-body');
-    pb.oncontextmenu = function(e:MouseEvent){
+    pb.oncontextmenu = function(e:MouseEvent):void{
         const menu = ctx_menu(e);
-        menu.item('Add Macro', function(){
+        menu.item('Add Macro', function():void{
             add_macro_dialog(get_active_char());
         });
         menu.item('Cancel');
@@ -562,7 +562,7 @@ function setup_macro_panel():void{
     }
     let tabs = [];
     let views = [];
-    function make_var(parent:HTMLElement, v:Variable){
+    function make_var(parent:HTMLElement, v:Variable):void{
         const l = elem_with_parent(parent, 'label');
         l.classList.add('panel-variable');
         elem_parent_text(l, 'span', v[1]+' ');
@@ -586,7 +586,7 @@ function setup_macro_panel():void{
                 break;
         }
         reg_var_input(v[0], 'macro-panel', inp);
-        inp.addEventListener('input', function(){
+        inp.addEventListener('input', function():void{
             if(v[2] == ScriptVariableType.BOOLEAN)
                 update_var_value(v[0], inp.checked?"1":"0");
             else
@@ -611,7 +611,7 @@ function setup_macro_panel():void{
                 if(!v[4]) continue;
                 make_var(mbdiv, v);
             }
-            macro_button.onclick = function(e:MouseEvent){
+            macro_button.onclick = function(e:MouseEvent):void{
                 e.stopPropagation();
                 preprocess_and_send_chat(m[2], id, mid);
             };
@@ -624,7 +624,7 @@ function setup_macro_panel():void{
         views.push(macro_group);
 
     }
-    function do_active_character(){
+    function do_active_character():void{
         let i = 0;
         for(let id of CHARACTERS.keys()){
             if(i == macro_panel_idx){
@@ -635,14 +635,14 @@ function setup_macro_panel():void{
         }
     }
     let tv = make_tab_view(tabs, views, 'grid');
-    tv.on_change_handler = function(old_idx:number, new_idx:number){
+    tv.on_change_handler = function(old_idx:number, new_idx:number):void{
         macro_panel_idx = new_idx;
         do_active_character();
     };
     do_active_character();
     tv.change_tab(macro_panel_idx);
 }
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', function():void{
     listen_for(ListenEvent.MACROS_RENAMED, setup_macro_panel);
     setup_macro_panel();
 });

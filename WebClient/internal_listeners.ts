@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 
 // This file implements a listener abstraction where different pieces of code
@@ -27,11 +27,11 @@ const enum ListenEvent {
 }
 const INTERNAL_LISTENERS: Array<Array<()=>void>> = [[], [], [], [], []];
 
-function listen_for(e:ListenEvent, cb:()=>void){
+function listen_for(e:ListenEvent, cb:()=>void):void{
     INTERNAL_LISTENERS[e].push(cb);
 }
 
-function signal_for(e:ListenEvent){
+function signal_for(e:ListenEvent):void{
     for(let cb of INTERNAL_LISTENERS[e])
         cb();
 }

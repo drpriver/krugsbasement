@@ -1,9 +1,9 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 (function(){
 // TAG chat
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', function():void{
     let USERS: Map<number, string> = new Map();
     let privateroll = get_window('privateroll');
     let targets = by_id('privateroll-targets');
@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function(){
     // just your notification).
     let notifications: Array<HTMLElement> = [];
 
-    function preproc_func(text:string, _:number, __:number){
+    function preproc_func(text:string, _:number, __:number):void{
         let commands: Array<Command> = [];
         let error = evaluate(text, -1, -1, commands);
         if(error){

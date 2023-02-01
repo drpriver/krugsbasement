@@ -5,7 +5,7 @@
 "use strict";
 
 let cbs: Map<ToClient, any> = new Map();
-function do_on(type: ToClient, cb:any){
+function do_on(type: ToClient, cb:any):void{
     cbs.set(type, cb);
 }
 
@@ -62,19 +62,19 @@ function interpret_chat_input(chatname:string, commands:Array<Command>):Array<an
     let responses: Array<any> = [];
     let styleflags: StyleFlags = 0;
     let color = '';
-    function echo(user:string, text:string){
+    function echo(user:string, text:string):void{
         responses.push([Msg.ECHOABLE_TEXT, user, text]);
     }
-    function plain(user:string, text:string){
+    function plain(user:string, text:string):void{
         responses.push([Msg.PLAIN, user, text]);
     }
-    function dieroll(dice:RolledExpr){
+    function dieroll(dice:RolledExpr):void{
         responses.push([Msg.DICEROLL, '', dice]);
     }
-    function styled(user:string, text:string){
+    function styled(user:string, text:string):void{
         responses.push([Msg.STYLED_TEXT, user, [text, styleflags, color]]);
     }
-    function parse_style(line:string){
+    function parse_style(line:string):void{
         const toks = line.toLowerCase().split(/\s/);
         for(let i = 0; i < toks.length; i++){
             const tok = toks[i];
@@ -125,7 +125,7 @@ function interpret_chat_input(chatname:string, commands:Array<Command>):Array<an
         }
     }
     /*
-    function error(e:string){
+    function error(e:string):void{
         responses.push([Msg.ERROR, '', e])
     }
     */
@@ -186,7 +186,7 @@ function shuffle_array<T>(arr:Array<T>):Array<T>{
 }
 
 let buffered: Array<any> = [];
-function invoke_cb(type:ToClient, arg?:any){
+function invoke_cb(type:ToClient, arg?:any):void{
     // console.log('invoke_cb', type, arg);
     let new_buffered = [];
     for(let [t, a] of buffered){
@@ -211,7 +211,7 @@ function invoke_cb(type:ToClient, arg?:any){
     // console.log('new_buffered.length', new_buffered.length);
 }
 
-function do_emit(type:FromClient, arg?:any, cb?:any){
+function do_emit(type:FromClient, arg?:any, cb?:any):void{
     // console.log('do_emit', type, arg, cb);
     switch(type){
         case FromClient.STORE_LOCAL_SETTING:{
@@ -337,7 +337,7 @@ let _spreadsheetid = 0;
 let SOCKET = {
     emit: do_emit,
     on: do_on,
-    emitBuffered: function(){
+    emitBuffered: function():void{
     },
     connected: false,
 };
@@ -368,7 +368,7 @@ let SETTINGS:Settings = {
     uimode: UiMode.NORMAL,
 };
 
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', function():void{
     // @ts-ignore
     cbs.get('connect')();
 });

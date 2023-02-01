@@ -1,9 +1,9 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 
 // TAG rolltables_window
-document.addEventListener('DOMContentLoaded',function(){
+document.addEventListener('DOMContentLoaded',function():void{
     const tablewindow = get_window('rolltable');
     const tbody = by_id('rolltable-table-container');
     const listview = make_list_view<number>(by_id('rolltable-group-list'), ListViewFlags.USER_RENAMABLE|ListViewFlags.USER_DELETABLE);
@@ -16,12 +16,12 @@ document.addEventListener('DOMContentLoaded',function(){
     let current_table: RollTable | undefined;
     let rowid = 0;
     let newtableid = -1;
-    tablewindow.hide_handler = function(){
+    tablewindow.hide_handler = function():void{
         submit_tables();
     };
     const sh_tab = by_id('rolltable-shared');
     const pr_tab = by_id('rolltable-private');
-    function switch_to(tbs:Array<RollTable>){
+    function switch_to(tbs:Array<RollTable>):void{
         if(tbs === ROLLTABLES.shared){
             sh_tab.classList.add('active-tab');
             pr_tab.classList.remove('active-tab');
@@ -36,19 +36,19 @@ document.addEventListener('DOMContentLoaded',function(){
         setup_listview();
     }
 
-    sh_tab.onclick = function(e:MouseEvent){
+    sh_tab.onclick = function(e:MouseEvent):void{
         e.stopPropagation();
         e.preventDefault();
         switch_to(ROLLTABLES.shared);
     };
 
-    pr_tab.onclick = function(e:MouseEvent){
+    pr_tab.onclick = function(e:MouseEvent):void{
         e.stopPropagation();
         e.preventDefault();
         switch_to(ROLLTABLES.private);
     };
 
-    function setup_listview(){
+    function setup_listview():void{
         listview.clear();
         for(let rt of current_tables){
             listview.add_item(rt.name, rt.id);
@@ -60,10 +60,10 @@ document.addEventListener('DOMContentLoaded',function(){
             listview.make_active(current_tables[0].id);
     }
 
-    listen_for(ListenEvent.ROLLTABLES_RECEIVED, function(){
+    listen_for(ListenEvent.ROLLTABLES_RECEIVED, function():void{
         switch_to(ROLLTABLES.shared);
     });
-    tablewindow.show_handler = function(){
+    tablewindow.show_handler = function():void{
         current_tables = [];
         current_table = undefined;
         rowid = 0;
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded',function(){
         tableview.clear();
         EMIT(FromClient.RETRIEVE_ROLL_TABLES);
     };
-    listview.activate_handler = function(id:number | undefined){
+    listview.activate_handler = function(id:number | undefined):void{
         if(id === undefined){
             tableview.clear();
             current_table = undefined;
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded',function(){
         }
         tableview.clear();
     }
-    listview.user_rename_handler = function(id:number, name:string){
+    listview.user_rename_handler = function(id:number, name:string):void{
         for(let rt of current_tables){
             if(rt.id == id){
                 rt.name = name;
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded',function(){
             }
         }
     };
-    listview.user_remove_handler = function(id:number){
+    listview.user_remove_handler = function(id:number):void{
         for(let i = 0; i < current_tables.length; i++){
             if(current_tables[i].id == id){
                 current_tables.splice(i, 1);
@@ -103,11 +103,11 @@ document.addEventListener('DOMContentLoaded',function(){
             }
         }
     }
-    function install_row(row:Array<HTMLDivElement>, id:number, table:RollTable, entry:RollTableEntry){
+    function install_row(row:Array<HTMLDivElement>, id:number, table:RollTable, entry:RollTableEntry):void{
         for(const el of row){
-            el.oncontextmenu = function(e:MouseEvent){
+            el.oncontextmenu = function(e:MouseEvent):void{
                 const menu = ctx_menu(e);
-                menu.item('Insert Below', function(){
+                menu.item('Insert Below', function():void{
                     const new_id = add_row();
                     tableview.move_after(new_id, id);
                     const row = tableview.get_row(id);
@@ -117,13 +117,13 @@ document.addEventListener('DOMContentLoaded',function(){
                     tableview.get_row(new_id)![col_idx].focus();
                     return;
                 });
-                menu.item('Move Up', function(){
+                menu.item('Move Up', function():void{
                     tableview.move_row_by(id, -1);
                 });
-                menu.item('Move Down', function(){
+                menu.item('Move Down', function():void{
                     tableview.move_row_by(id, +1);
                 });
-                menu.item('Delete', function(){
+                menu.item('Delete', function():void{
                     tableview.remove_row(id);
                     for(let i = 0; i < table.entries.length; i++){
                         if(table.entries[i] === entry){
@@ -339,7 +339,7 @@ document.addEventListener('DOMContentLoaded',function(){
         };
         // This is basically a copy paste of user_edit_element...
         function edit_cell(cell:HTMLDivElement):void{
-            return user_edit_element(cell, UserEditElementFlags.ALWAYS_REFOCUS, function(s:string){
+            return user_edit_element(cell, UserEditElementFlags.ALWAYS_REFOCUS, function(s:string):void{
                 const row = tableview.get_row(id);
                 if(!row) return;
                 if(row[0] === cell){
@@ -357,25 +357,25 @@ document.addEventListener('DOMContentLoaded',function(){
         }
         row[0].textContent = ''+entry.weight;
         row[1].textContent = entry.value;
-        row[0].onmousedown = function(e:MouseEvent){
+        row[0].onmousedown = function(e:MouseEvent):void{
             e.stopPropagation();
             e.preventDefault();
             remove_ctx_menu();
             row[0].focus();
         };
-        row[1].onmousedown = function(e:MouseEvent){
+        row[1].onmousedown = function(e:MouseEvent):void{
             e.stopPropagation();
             e.preventDefault();
             remove_ctx_menu();
             row[1].focus();
         };
-        row[1].onpaste = function(e:ClipboardEvent){
+        row[1].onpaste = function(e:ClipboardEvent):void{
             e.stopPropagation();
             e.preventDefault();
             const data = e.clipboardData!.getData('text');
             take_paste(data);
         };
-        row[2].onmousedown = function(e:MouseEvent){
+        row[2].onmousedown = function(e:MouseEvent):void{
             e.stopPropagation();
             e.preventDefault();
             remove_ctx_menu();
@@ -385,7 +385,7 @@ document.addEventListener('DOMContentLoaded',function(){
         const check = elem_with_parent(elem_with_parent(row[2], 'label'), 'input');
         check.type = 'checkbox';
         check.checked = entry.flags & RollTableFlags.IS_TABLE?true:false;
-        check.onchange = function(){
+        check.onchange = function():void{
             if(check.checked)
                 entry.flags |= RollTableFlags.IS_TABLE;
             else
@@ -393,7 +393,7 @@ document.addEventListener('DOMContentLoaded',function(){
         };
     }
 
-    function show_table(table:RollTable){
+    function show_table(table:RollTable):void{
         tableview.clear();
         const length = table.entries.length;
         const entries = table.entries;
@@ -425,12 +425,12 @@ document.addEventListener('DOMContentLoaded',function(){
         if(!IS_TOUCH) row[1].focus();
         return id;
     }
-    by_id('rolltable-add-table').onclick = function(){
+    by_id('rolltable-add-table').onclick = function():void{
         let dialog = get_dialog('simple-text');
         if(!dialog) return;
         dialog.title.textContent = 'Table Name';
         dialog.f.text.value = '';
-        dialog.ok_handler = function(){
+        dialog.ok_handler = function():void{
             let text = dialog.f.text.value.trim();
             if(!text) return;
             let id = --newtableid;
@@ -443,17 +443,17 @@ document.addEventListener('DOMContentLoaded',function(){
             listview.add_item(table.name, table.id);
             listview.make_active(table.id);
         };
-        dialog.show_handler = function(){
+        dialog.show_handler = function():void{
             if(!IS_TOUCH)dialog.f.text.focus();
         };
         dialog.show();
     };
 
-    function submit_tables(){
+    function submit_tables():void{
         EMIT(FromClient.UPDATE_ROLL_TABLES, [ROLLTABLES.shared, ROLLTABLES.private]);
         signal_for(ListenEvent.ROLLTABLES_RENAMED);
     }
-    function take_paste(text:string){
+    function take_paste(text:string):void{
         if(current_table == undefined) return;
         const lines = text.split(/\n/);
         for(const line of lines){
@@ -478,10 +478,10 @@ document.addEventListener('DOMContentLoaded',function(){
             install_row(row, id, current_table, entry);
         }
     }
-    by_id('rolltable-paste').onclick = function(){
+    by_id('rolltable-paste').onclick = function():void{
         navigator.clipboard.readText().then(take_paste);
     };
-    by_id('rolltable-roll').onclick = function(){
+    by_id('rolltable-roll').onclick = function():void{
         if(!current_table) return;
         submit_tables();
         const cmd = current_tables === ROLLTABLES.shared? 'table':'mytable'

@@ -1,32 +1,32 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 
 
 const {
     preprocess_and_send_chat,
 } = (function(){
-ONRECV(ToClient.CHAT_STRUCTURED_MSG, function(msgs:Array<ChatMsg>){
+ONRECV(ToClient.CHAT_STRUCTURED_MSG, function(msgs:Array<ChatMsg>):void{
     const log = by_id('chat-history');
     add_chat_msgs(log, msgs, preprocess_and_send_chat);
     log.scrollTo({behavior:'smooth', top:log.scrollHeight});
 });
 
-ONRECV(ToClient.CHAT_CREATE, function(msgs:Array<ChatMsg>){
+ONRECV(ToClient.CHAT_CREATE, function(msgs:Array<ChatMsg>):void{
     const log = by_id('chat-history');
     add_chat_msgs(log, msgs, preprocess_and_send_chat);
     log.scrollTop = log.scrollHeight;
 });
 
-function clear_chat(){
+function clear_chat():void{
     const log = by_id('chat-history');
     log.innerHTML = '';
 }
 
-ONRECV(ToClient.CHAT_CLEAR, function(){
+ONRECV(ToClient.CHAT_CLEAR, function():void{
     clear_chat();
 });
-function resize_chat(){
+function resize_chat():void{
     const hist = by_id('chat-history');
     hist.scrollTo({top:hist.scrollHeight});
 }
@@ -36,7 +36,7 @@ const enum RECENT_DIEROLLS {
 }
 
 const DIEROLL_HISTORY:Array<string> = [];
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', function():void{
     let pastrolls = get_local(StorageCategory.MACROS, 'dieroll-history');
     if(!pastrolls) pastrolls = [];
     else pastrolls = JSON.parse(pastrolls);
@@ -59,12 +59,12 @@ function add_dice_history_command(log:HTMLDivElement, text:string):number {
     span.style.cursor = 'pointer';
     span.setAttribute('role', 'button');
     entry.appendChild(span);
-    span.addEventListener('click', function(e){
+    span.addEventListener('click', function(e):void{
         e.stopPropagation();
         e.preventDefault();
         preprocess_and_send_chat(text, -1, -1);
     });
-    span.addEventListener('contextmenu', function(e){
+    span.addEventListener('contextmenu', function(e):void{
         if(e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
         e.stopPropagation();
         e.preventDefault();
@@ -73,7 +73,7 @@ function add_dice_history_command(log:HTMLDivElement, text:string):number {
     const button = elem_with_parent(entry, 'button');
     button.textContent = 'X';
     button.style.marginLeft = 'auto';
-    button.addEventListener('click', function(){
+    button.addEventListener('click', function():void{
         entry.remove();
         const index = DIEROLL_HISTORY.indexOf(text);
         if(index !== -1){
@@ -88,7 +88,7 @@ function add_dice_history_command(log:HTMLDivElement, text:string):number {
     return 1;
 }
 
-function add_dice_history_commands(commands: Array<Command>){
+function add_dice_history_commands(commands: Array<Command>):void{
     const log = by_id('dice-history');
     let added = 0;
     for(let command of commands){
@@ -108,7 +108,7 @@ function add_dice_history_commands(commands: Array<Command>){
     }
 }
 
-function preprocess_and_send_chat(text:string, character_id:number, macro_id:number){
+function preprocess_and_send_chat(text:string, character_id:number, macro_id:number):void{
     let commands: Array<Command> = [];
     let error = evaluate(text, character_id, macro_id, commands);
     if(error.length){
@@ -125,7 +125,7 @@ function preprocess_and_send_chat(text:string, character_id:number, macro_id:num
     }
 }
 
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', function():void{
     resize_chat();
     window.addEventListener('resize', resize_chat);
     const ta = by_id('chatinput');

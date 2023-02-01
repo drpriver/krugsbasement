@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 type ChatInput = {
     index: number;
@@ -9,14 +9,14 @@ type ChatInput = {
     enter_func: (_:string, __:number, ___:number)=>void;
     set_history: (_:Array<string>)=>void;
 };
-function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string, __:number, ___:number)=>void){
+function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string, __:number, ___:number)=>void):ChatInput{
     const hist: ChatInput = {
         index: 0,
         current_text: "",
         set_text: "",
         history: [],
         enter_func:enter_func,
-        set_history: function(newhistory:Array<string>){
+        set_history: function(newhistory:Array<string>):void{
             hist.history = newhistory;
             hist.index = newhistory.length;
             hist.current_text = "";
@@ -24,7 +24,7 @@ function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string, __:number, _
             chat.value = "";
         },
     };
-    chat.addEventListener('keydown', function(e){
+    chat.addEventListener('keydown', function(e):void{
         e.stopPropagation();
         let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
         if(modified) return;

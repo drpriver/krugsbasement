@@ -62,7 +62,7 @@ function readdouble(p:number):number{
 }
 const imports = {
     env:{
-        logline:function(p:number, l:number){
+        logline:function(p:number, l:number):void{
             const len = (exports as any).strlen(p);
             const s = wasm_string_to_js(p, len);
             console.trace(`${s}: ${l}`);

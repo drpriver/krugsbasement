@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 
 // local vs global refers to the website - whether it
@@ -18,7 +18,7 @@ const THISPAGE = window.location.pathname;
 let local_sync_in_flight = false;
 let local_needs_sync:Array<[string, string]> = [];
 
-function sync_the_local_settings(){
+function sync_the_local_settings():void{
     let emitted:Map<string, Set<string>> = new Map();
     for (let [c, k] of local_needs_sync){
         // @ts-ignore
@@ -35,7 +35,7 @@ function sync_the_local_settings(){
     local_sync_in_flight = false;
 }
 
-function queue_sync_the_local_settings(){
+function queue_sync_the_local_settings():void{
     if(local_sync_in_flight)
         return;
     local_sync_in_flight = true;
@@ -45,14 +45,14 @@ function queue_sync_the_local_settings(){
         setTimeout(sync_the_local_settings, 1000);
 }
 
-function sync_local(category:StorageCategory, key:string, obj:any){
+function sync_local(category:StorageCategory, key:string, obj:any):void{
     // @ts-ignore
     SETTINGS[category][key] = obj;
     local_needs_sync.push([category, key]);
     queue_sync_the_local_settings();
 }
 
-function store_local(category:StorageCategory, key:string, obj:any){
+function store_local(category:StorageCategory, key:string, obj:any):void{
     let value = JSON.stringify(obj);
     let k = `${THISPAGE}/${category}.${key}`;
     localStorage.setItem(k, value);
@@ -66,7 +66,7 @@ function get_local(category:StorageCategory, key:string):any | undefined {
     return result;
 }
 
-function store_global(category:StorageCategory, key:string, obj:any){
+function store_global(category:StorageCategory, key:string, obj:any):void{
     let value = JSON.stringify(obj);
     let k = `${category}.${key}`;
     localStorage.setItem(k, value);

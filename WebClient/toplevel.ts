@@ -2,13 +2,13 @@
 // Copyright © 2021-2023, David Priver
 //
 
-(function(){
-function onconnect(){
+(function():void{
+function onconnect():void{
     clear_disconnected();
     EMIT(FromClient.JOIN, window.location.pathname);
     // Spreadsheet relies on synchronization, so don't emit those.
     if(SOCKET.sendBuffer)
-        SOCKET.sendBuffer = SOCKET.sendBuffer.filter(function(el:any){
+        SOCKET.sendBuffer = SOCKET.sendBuffer.filter(function(el:any):boolean{
             if(el.type != 2) return true;
             return el.data[0] != FromClient.SPREADSHEET;
         });
@@ -20,20 +20,20 @@ function onconnect(){
 if(SOCKET.connected)
     onconnect();
 SOCKET.on('connect', onconnect);
-ONRECV(ToClient.API_VERSION, function(api_version:number){
+ONRECV(ToClient.API_VERSION, function(api_version:number):void{
     // Reloads the page if the version changes.
     // This is kind of meh, maybe only for DEV builds?
     // if(api_version != Api.VERSION) window.location.reload();
 });
-function clear_disconnected(){
+function clear_disconnected():void{
     const d = by_id('disconnect')!;
     if(d) d.style.display = 'none';
 }
-function set_disconnected(){
+function set_disconnected():void{
     const d = by_id('disconnect')!;
     if(d) d.style.display = 'initial';
 }
-SOCKET.on('disconnect', function(reason:string){
+SOCKET.on('disconnect', function(reason:string):void{
     switch(reason){
         case 'io server disconnect':
         case 'io client disconnect':
@@ -51,6 +51,6 @@ SOCKET.on('disconnect', function(reason:string){
 }());
 
 let session_id = 0;
-ONRECV(ToClient.SESSION_ID, function(resp:number){
+ONRECV(ToClient.SESSION_ID, function(resp:number):void{
     session_id = resp;
 });
