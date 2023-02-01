@@ -261,7 +261,12 @@ function link_input_value(value:string, inp1:HTMLInputElement, event1:'onchange'
     };
 }
 
-function user_edit_element(cell:HTMLElement, onfinish:(txt:string)=>void){
+const enum UserEditElementFlags {
+    NONE = 0,
+    ALWAYS_REFOCUS = 1 << 0,
+}
+
+function user_edit_element(cell:HTMLElement, flags:UserEditElementFlags, onfinish:(txt:string)=>void){
     const w = '' + (cell.getBoundingClientRect().width-2) + 'px';
     const h = '' + (cell.getBoundingClientRect().height-2) + 'px';
     let oldtxt = cell.textContent;
@@ -278,6 +283,7 @@ function user_edit_element(cell:HTMLElement, onfinish:(txt:string)=>void){
         switch(e.key){
             // @ts-ignore
             case 'Escape':
+                remove_ctx_menu();
                 canceled = true;
             // fall-through
             case 'Enter':{
@@ -297,6 +303,8 @@ function user_edit_element(cell:HTMLElement, onfinish:(txt:string)=>void){
         }
         inp.remove();
         cell.classList.remove('editing');
+        if(flags & UserEditElementFlags.ALWAYS_REFOCUS)
+            cell.focus();
     };
     inp.focus();
 }

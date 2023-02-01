@@ -1,74 +1,138 @@
 //
-// Copyright © 2021-2022, David Priver
+// Copyright © 2021-2023, David Priver
 //
 type TableView<K> = {
-    // thead: HTMLTableSectionElement;
-    tbody: HTMLTableSectionElement;
-    add_row:(row:HTMLTableRowElement, key:K)=>void;
+    width: number;
+    body: HTMLElement;
+    head: Array<HTMLDivElement>;
+    rows: Array<[K, Array<HTMLDivElement>]>;
+    add_row:(key:K)=>Array<HTMLDivElement>;
     clear:()=>void;
     remove_row:(key:K) =>void;
-    get_row:(key:K) => HTMLTableRowElement|null;
+    get_row:(key:K) => Array<HTMLDivElement>|null;
+    get_row_off:(key:K, dy:number) => Array<HTMLDivElement>|null;
     move_row_by:(key:K, dy:number)=>void;
-    rows: Array<[K, HTMLTableRowElement]>;
+    move_after:(k1:K, k2:K) => void;
 }
 
-function make_table_view<K>(tbody:HTMLTableSectionElement): TableView<K>{
-    let result: TableView<K> = {
-        tbody: tbody,
-        add_row: function(row:HTMLTableRowElement, key:K){
-            result.tbody.appendChild(row);
+function make_table_view<K>(body:HTMLElement, width:number): TableView<K>{
+    const result: TableView<K> = {
+        width,
+        body,
+        head:[],
+        rows:[],
+        add_row: function(key:K):Array<HTMLDivElement>{
+            const row = [];
+            for(let i = 0; i < width; i++){
+                row.push(elem_with_parent(body, 'div'));
+            }
             result.rows.push([key, row]);
+            result.body.style.gridTemplateRows = `repeat(${result.rows.length+1}, max-content)`;
+            return row;
         },
         clear: function(){
-            for(let [_, row] of result.rows){
-                row.remove();
+            for(const [_, row] of result.rows.slice(1)){
+                for(const el of row)
+                    el.remove();
             }
-            result.rows = [];
+            result.rows = result.rows.slice(0, 1);
+            result.body.style.gridTemplateRows = `repeat(${result.rows.length+1}, max-content)`;
         },
         remove_row:function(key:K){
-            for(let i = 0; i < result.rows.length; i++){
-                let [k, row] = result.rows[i];
+            for(let i = 1; i < result.rows.length; i++){
+                const [k, row] = result.rows[i];
                 if(k === key){
-                    row.remove();
+                    for(const el of row)
+                        el.remove();
                     result.rows.splice(i, 1);
+                    result.body.style.gridTemplateRows = `repeat(${result.rows.length+1}, max-content)`;
                     return;
                 }
             }
         },
-        get_row:function(key:K){
-            for(let [k, row] of result.rows){
+        get_row:function(key:K):null|Array<HTMLDivElement>{
+            for(const [k, row] of result.rows){
                 if(k === key){
                     return row;
                 }
             }
             return null;
         },
-        move_row_by:function(key:K, dy:number){
-            if(dy !== -1 && dy !== 1) throw new Error("unimplemented");
-            let length = result.rows.length;
-            for(let i = 0; i < length; i++){
-                let [k, row] = result.rows[i];
+        get_row_off:function(key:K, dy:number):null|Array<HTMLDivElement>{
+            for(let i = 1; i < result.rows.length; i++){
+                const k = result.rows[i][0];
                 if(k === key){
-                    // this code seems janky as fuck?
-                    if(dy == -1 && i == 0) return;
-                    if(dy == +1 && i == length-1) return;
-                    if(dy == -1 && row.previousElementSibling){
-                        let tmp = result.rows[i];
-                        result.rows[i] = result.rows[i-1];
-                        result.rows[i-1] = tmp;
-                        result.tbody.insertBefore(row, row.previousElementSibling);
+                    i += dy;
+                    if(i < 1) return null;
+                    if(i >= result.rows.length) return null;
+                    return result.rows[i][1];
+                }
+            }
+            return null;
+        },
+        // [null, a, b, c, d]
+        // (a, -2)
+        // dy -> 0
+        // (b, -2)
+        // dy -> -1
+        // (c, -2)
+        // dy -> -2
+        // (d, -2)
+        // dy -> -2
+        //
+        // (a, +2)
+        // dy -> +2
+        // (b, +2)
+        // dy -> +2
+        // (c, +2)
+        // dy -> +1
+        // (d, +2)
+        // dy -> 0
+        move_row_by:function(key:K, dy:number):void{
+            const length = result.rows.length;
+            for(let i = 1; i < length; i++){
+                const [k, row] = result.rows[i];
+                if(k !== key) continue;
+                if(dy < 0 && dy < (1-i)) dy = 1-i;
+                if(dy > 0 && dy > (length-1-i)) dy = length-1-i;
+                if(!dy) return;
+                result.rows.splice(i, 1);
+                result.rows.splice(i+dy, 0, [k, row]);
+                for(const el of row)
+                    el.remove();
+                if(i+dy-1 >= 0){
+                    const previous = result.rows[i+dy-1][1];
+                    let last = previous[previous.length-1];
+                    for(const el of row){
+                        last.insertAdjacentElement('afterend', el);
+                        last = el;
                     }
-                    else if(dy == 1 && row.nextElementSibling){
-                        let tmp = result.rows[i];
-                        result.rows[i] = result.rows[i+1];
-                        result.rows[i+1] = tmp;
-                        result.tbody.insertBefore(row, row.nextElementSibling.nextElementSibling);
-                    }
-                    return;
+                }
+                else {
+                    for(const el of row)
+                        result.body.insertAdjacentElement('beforeend', el);
+                }
+                return;
+            }
+        },
+        move_after:function(k1:K, k2:K):void{
+            let idx1:number|undefined;
+            let idx2:number|undefined;
+            const length = result.rows.length;
+            for(let i = 1; i < length; i++){
+                const k = result.rows[i][0];
+                if(k === k1)
+                    idx1 = i;
+                if(k === k2)
+                    idx2 = i;
+                if(idx1 !== undefined && idx2 !== undefined){
+                    const dy = idx2-idx1+1;
+                    return result.move_row_by(k1, dy);
                 }
             }
         },
-        rows: [],
     };
+    // @ts-ignore
+    result.head = result.add_row(null);
     return result;
 }

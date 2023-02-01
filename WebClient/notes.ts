@@ -129,7 +129,7 @@ function make_note_window(id:number):NoteWindow{
         menu.item('Rename', function(e:MouseEvent){
             e.stopPropagation();
             e.preventDefault();
-            user_edit_element(t, function(v:string){
+            user_edit_element(t, 0, function(v:string){
                 EMIT(FromClient.NOTE_UPDATE_TITLE, {note_id:id, title:v});
                 const note = NOTES.get(id)!;
                 note.title = v;
@@ -413,7 +413,7 @@ document.addEventListener('DOMContentLoaded', function(){
             menu.item('Rename', function(e:MouseEvent){
                 e.stopPropagation();
                 e.preventDefault();
-                user_edit_element(li, function(v:string){
+                user_edit_element(li, 0, function(v:string){
                     EMIT(FromClient.NOTE_UPDATE_TITLE, {note_id:id, title:v});
                     const note = NOTES.get(id)!;
                     note.title = v;

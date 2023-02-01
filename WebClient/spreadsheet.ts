@@ -223,7 +223,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         menu.item('Rename',function(e:MouseEvent){
             e.stopPropagation();
             e.preventDefault();
-            user_edit_element(t, function(v:string){
+            user_edit_element(t, 0, function(v:string){
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NAME, result.id, v]);
             });
             remove_ctx_menu();
@@ -1232,7 +1232,7 @@ function spreadsheet_from_data(data:SpreadSheetData){
         menu.item('Rename', function(e:MouseEvent){
             e.stopPropagation();
             e.preventDefault();
-            user_edit_element(li, function(txt:string):void{
+            user_edit_element(li, 0, function(txt:string):void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NAME, id, txt]);
             });
             remove_ctx_menu();

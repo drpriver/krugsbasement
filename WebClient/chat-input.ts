@@ -68,6 +68,7 @@ function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string, __:number, _
                 }
             }break;
             case 'Escape':{
+                remove_ctx_menu();
                 chat.blur();
             }break;
         }

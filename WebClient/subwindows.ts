@@ -73,7 +73,7 @@ function make_window(name:keyof SubWindowIdMap): SubWindow {
     setup_closable_window(outer, close_x, result.hide);
     // handle.addEventListener('dblclick', result.hide);
     // hack
-    if(outer.id != 'macros-window'){
+    if(outer.id != 'rolltable-window'){
         setup_window_size(outer);
     }
     return result;

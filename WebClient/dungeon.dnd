@@ -48,25 +48,13 @@
       <div class="window-tab">
         <span id="rolltable-shared" class="active-tab">Shared Tables</span>
         <span id="rolltable-private">My Tables</span>
-        <button id="rolltable-paste">Paste rows from clipboard</button>
+        <button id="rolltable-paste">Paste rows</button>
+        <button id="rolltable-roll">Roll</button>
       </div>
       <div id="rolltable-group-list" class="window-group-list">
         <button id="rolltable-add-table">+ New Table</button>
       </div>
         <div id="rolltable-table-container">
-          <table>
-            <thead>
-              <tr>
-                <th></th>
-                <th>Weight</th>
-                <th>Value</th>
-                <th>Table?</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="rolltable-body">
-            </tbody>
-          </table>
         </div>
     </div>
   `);
