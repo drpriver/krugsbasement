@@ -3,7 +3,7 @@
 //
 type ListView<K> = {
     column: HTMLDivElement;
-    items: Array<[any, HTMLDivElement]>;
+    items: Array<[K, HTMLDivElement]>;
     remove:(v:K) => void;
     add_item: (_:string, v:K)=>void;
     make_active:(v:K | undefined) => void;
@@ -15,6 +15,7 @@ type ListView<K> = {
     user_remove_handler?:(k:K)=>void;
     // this is called after renaming via the user clicking the icon.
     user_rename_handler?:(k:K, text:string)=>void;
+    index_of:(k:K)=>number;
 };
 
 const enum ListViewFlags {
@@ -23,13 +24,21 @@ const enum ListViewFlags {
     USER_RENAMABLE = 1 << 0,
     USER_DELETABLE = 1 << 1,
     USER_MOVABLE   = 1 << 2, // unused apparently?
-    ALL = USER_RENAMABLE|USER_DELETABLE|USER_MOVABLE
+    FOCUSABLE      = 1 << 3,
+    ALL = USER_RENAMABLE|USER_DELETABLE|USER_MOVABLE|FOCUSABLE
 }
 function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):ListView<K>{
     let result: ListView<K> = {
         active: undefined,
         column: listcontainer,
         items: [],
+        index_of: function(k:K){
+            for(let i = 0; i < result.items.length; i++){
+                if(result.items[i][0] === k)
+                    return i;
+            }
+            return -1;
+        },
         clear:function():void{
             for(let [_, el] of result.items)
                 el.remove();
@@ -38,8 +47,13 @@ function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):Li
         make_active: function(key:K | undefined):void{
             for(let [v, el] of result.items){
                 el.classList.remove('active');
-                if(v === key)
+                if(v === key){
                     el.classList.add('active');
+                    if(flags & ListViewFlags.FOCUSABLE){
+                        if(document.activeElement !== el)
+                            el.focus();
+                    }
+                }
             }
             result.active = key;
             if(result.activate_handler)
@@ -76,6 +90,28 @@ function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):Li
                 menu.item('Cancel');
                 menu.install();
             };
+            if(flags & ListViewFlags.FOCUSABLE){
+                el.tabIndex = 0;
+                el.onfocus = function(){
+                    result.make_active(key);
+                };
+                el.onkeydown = function(e:KeyboardEvent):void{
+                    switch(e.key){
+                        case 'ArrowDown':{
+                            const i = result.index_of(key);
+                            if(i+1 >= result.items.length)
+                                return;
+                            result.make_active(result.items[i+1][0]);
+                        }break;
+                        case 'ArrowUp':{
+                            const i = result.index_of(key);
+                            if(i-1 < 0)
+                                return;
+                            result.make_active(result.items[i-1][0]);
+                        }break;
+                    }
+                };
+            }
             elem_parent_text(el, 'span', text);
             let style = 'auto';
             el.style.gridTemplateColumns = style;

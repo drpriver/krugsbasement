@@ -1,0 +1,10 @@
+Changelog::kv
+  created:  2023-02-01T06:18:25Z
+  resolved: 2023-02-02T06:22:50.757644
+Created Jan 31, 2023, 10:18PM::md .update
+Summary::md .summary
+  It should be possible to navigate list views with the keyboard
+
+Resolved Feb 01, 2023, 10:22PM::md .update
+  I added this, but it fights with the fact that my current list views have
+  interactive content that you expect to take focus.

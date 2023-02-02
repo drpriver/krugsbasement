@@ -373,20 +373,9 @@ document.addEventListener('DOMContentLoaded', function():void{
         if(window && window.w.parentElement){
             window.refresh();
         }
-        // TOOD: rename li
+        // TODO: rename li
     }
     ONRECV(ToClient.GOT_NOTE, onget);
-    /*
-    notes_title_area.addEventListener('input', function():void{
-        update_iframe();
-        let note = NOTES.get(current_note_id);
-        if(!note) return;
-        note.title = notes_title_area.value;
-        let msg:NoteUpdateTitle = {note_id:note.id, title:note.title};
-        EMIT(FromClient.NOTE_UPDATE_TITLE, msg);
-        listview.rename(note.title, note.id);
-    });
-    */
     ONRECV(ToClient.NOTE_DIRTY, function(note_id:number):void{
         let note = NOTES.get(note_id);
         if(!note) return;
