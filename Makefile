@@ -1,11 +1,11 @@
 # directories
-Depends: ; mkdir $@
+Depends: ; $(MKDIR) $@
 Depends/Generated: | Depends
-	mkdir $@
+	$(MKDIR) $@
 Depends/WebClient: | Depends
-	mkdir $@
-Generated: ; mkdir $@
-Archives: ; mkdir $@
+	$(MKDIR) $@
+Generated: ; $(MKDIR) $@
+Archives: ; $(MKDIR) $@
 
 # Include make-style dependency files
 DEPFILES:= $(wildcard Depends/*.dep Depends/Generated/*.dep)
@@ -16,6 +16,7 @@ ifneq ($(OS),Windows_NT)
 # linux/macos
 PY?=python3
 CP=cp
+MKDIR=mkdir -p
 # using `.` is the portable way to source a shell file
 DEV_ACTIVATE=. dev_venv/bin/activate
 SERV_ACTIVATE=. serv_venv/bin/activate
@@ -27,13 +28,14 @@ RMRF=rm -rf
 else
 # Windows
 PY?=py
-CP=copy
+CP=$(PY) Scripts/wincpy.py
+MKDIR=$(PY) Scripts/winmkdir.py
 DEV_ACTIVATE=dev_venv\Scripts\activate
 SERV_ACTIVATE=serv_venv\Scripts\activate
 TSC?=npx tsc
 TERSER?=npx terser
 NPM?=npm
-RMRF=del /q
+RMRF=$(PY) Scripts/winrmrf.py
 
 endif
 
@@ -104,11 +106,11 @@ TSFILES:= WebClient/socket.d.ts \
 	  WebClient/spreadsheet.ts \
 	  WebClient/ctxmenu.ts \
 
-Generated/client.js: $(TSFILES) | Generated
+Generated/client.js: $(TSFILES) | Generated node_modules
 	$(TSC) $^ $(TSCFLAGS) --outFile $@
-Generated/client.min.js: Generated/client.js | Generated
+Generated/client.min.js: Generated/client.js | Generated node_modules
 	$(TERSER) $< -o $@ --mangle toplevel
-Generated/demo.js: WebClient/demo.ts Generated/messages.ts | Generated
+Generated/demo.js: WebClient/demo.ts Generated/messages.ts | Generated node_modules
 	$(TSC) $^ $(TSCFLAGS) --outFile $@
 
 .DEFAULT_GOAL:=Generated/dungeon.html
@@ -185,7 +187,7 @@ ZIPFILES=$(PACKEDFILES) $(DISTFILES) $(WEBDNDFILES) $(JSFILES) \
 
 dist.zip: $(ZIPFILES)
 	$(RMRF) dist dist.zip
-	mkdir dist dist/packed dist/WebDnD dist/js dist/wasm
+	$(MKDIR) dist dist/packed dist/WebDnD dist/js dist/wasm
 	$(CP) wasm/dndc.wasm wasm/drspread.wasm dist/wasm
 	$(CP) $(JSFILES) dist/js
 	$(CP) Server/server.mak dist

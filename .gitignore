@@ -21,3 +21,4 @@ flask_socketio.pyi
 private.mak
 Private
 Decls
+node_modules
