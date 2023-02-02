@@ -100,18 +100,9 @@ function make_table_view<K>(body:HTMLElement, width:number): TableView<K>{
                 result.rows.splice(i+dy, 0, [k, row]);
                 for(const el of row)
                     el.remove();
-                if(i+dy-1 >= 0){
-                    const previous = result.rows[i+dy-1][1];
-                    let last = previous[previous.length-1];
-                    for(const el of row){
-                        last.insertAdjacentElement('afterend', el);
-                        last = el;
-                    }
-                }
-                else {
-                    for(const el of row)
-                        result.body.insertAdjacentElement('beforeend', el);
-                }
+                const previous = result.rows[i+dy-1][1];
+                const last = previous[previous.length-1];
+                last.after(...row);
                 return;
             }
         },

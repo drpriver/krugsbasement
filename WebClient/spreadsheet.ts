@@ -1133,8 +1133,8 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
         for(const cell of trow) cell.remove();
         const fnum = result.number_els[from];
         const tnum = result.number_els[to];
-        for(let i = frow.length; i--;) tnum.insertAdjacentElement('afterend', frow[i]);
-        for(let i = trow.length; i--;) fnum.insertAdjacentElement('afterend', trow[i]);
+        tnum.after(...frow);
+        fnum.after(...trow);
         result.cell_elems[from] = trow;
         result.cell_elems[to] = frow;
         {
