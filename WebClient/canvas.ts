@@ -7622,6 +7622,16 @@ document.addEventListener('DOMContentLoaded', function():void{
             remove_ctx_menu();
             return;
         }
+        if(_ctxmenu_remover && e.key == 'ArrowDown'){
+            const e = document.querySelector('section.menu .menuitem:not(.disabled)');
+            if(e) (e as any).focus()
+            return;
+        }
+        if(_ctxmenu_remover && e.key == 'ArrowUp'){
+            const e = document.querySelector('section.menu .menuitem:last-child:not(.disabled)');
+            if(e) (e as any).focus()
+            return;
+        }
         if(document.activeElement !== document.body)
             return;
         const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;

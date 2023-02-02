@@ -783,6 +783,11 @@ section.menuitem:hover:not(.disabled) {
   background-color: #2962D8;
   color: #fff;
 }
+section.menuitem:focus:not(.disabled) {
+  background-color: #2962D8;
+  color: #fff;
+  outline: none;
+}
 div.hover {
   resize: both;
   position:fixed;

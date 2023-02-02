@@ -42,9 +42,42 @@ function ctx_menu(e:MouseEvent):CtxMenu{
         },
         item:function(txt:string, cb?:(()=>void)|((e:MouseEvent)=>void)):void{
             const d = elem_parent_text(result.menu, 'section', txt, null, 'menuitem');
+            d.tabIndex = -1;
+            d.onkeydown = function(e:KeyboardEvent){
+                if(e.key == 'Enter' || e.key == ' '){
+                    e.preventDefault();
+                    e.stopPropagation();
+                    d.click();
+                    return;
+                }
+                if(e.key == 'ArrowUp'){
+                    e.preventDefault();
+                    e.stopPropagation();
+                    let sib = d.previousElementSibling;
+                    while(sib && (!sib.classList.contains('menuitem') || sib.classList.contains('disabled'))){
+                        sib = sib.previousElementSibling;
+                    }
+                    if(sib) (sib as any).focus();
+                    return;
+                }
+                if(e.key == 'ArrowDown' || e.key == 'Tab'){
+                    e.preventDefault();
+                    e.stopPropagation();
+                    let sib = d.nextElementSibling;
+                    while(sib && (!sib.classList.contains('menuitem') || sib.classList.contains('disabled'))){
+                        sib = sib.nextElementSibling;
+                    }
+                    if(sib) (sib as any).focus();
+                    return;
+                }
+            };
             // the window.onpointerdown at the bottom will remove it.
             // d.addEventListener('pointerdown', remove_ctx_menu);
             if(cb) d.addEventListener('pointerdown', cb);
+            d.addEventListener('click', function(e):void{
+                if(cb) cb(e)
+                remove_ctx_menu();
+            });
         },
         install:function():void{
             remove_ctx_menu();
