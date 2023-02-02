@@ -598,12 +598,12 @@ def change_bg_color(data:CanvasColorMsg) -> None:
 # FIXME: wrong name, sets flags, not numbered
 @socketio.on(FromClient.CANVAS_GRID_NUMBERED)
 @validated
-def change_grid_numbered(data:CanvasGridNumberedMsg) -> None:
+def change_grid_flags(data:CanvasGridNumberedMsg) -> None:
     map_id = data['map_id']
-    numbered = data['numbered']
+    flags = data['numbered']
     campaign = get_campaign(request)
-    canvas.set_numbered(campaign, map_id, numbered)
-    emit(ToClient.CANVAS_GRID_NUMBERED, {'map_id':map_id, 'numbered':numbered}, broadcast=True, include_self=True, to=str(campaign))
+    canvas.set_flags(campaign, map_id, flags)
+    emit(ToClient.CANVAS_GRID_NUMBERED, {'map_id':map_id, 'numbered':flags}, broadcast=True, include_self=True, to=str(campaign))
 
 
 @socketio.on(FromClient.CANVAS_DELETE_MAP_REQUEST)

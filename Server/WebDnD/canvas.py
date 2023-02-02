@@ -16,6 +16,7 @@ import appconfig
 
 MapDict = InitializeMap
 
+#FIXME: are we saving maps without locking?
 
 class Map(NamedTuple):
     map_id: int
@@ -93,7 +94,7 @@ def change_bg_color(campaign:int, map_id:int, bg_color:str) -> None:
     MAPS[campaign][map_id].value = m.value._replace(bg_color=bg_color)
 
 # FIXME: actually sets flags, not numbered
-def set_numbered(campaign:int, map_id:int, numbered:MapFlags) -> None:
+def set_flags(campaign:int, map_id:int, numbered:MapFlags) -> None:
     m = MAPS[campaign][map_id]
     if numbered & MapFlags.NUMBERED:
         flags = m.value.flags | MapFlags.NUMBERED
