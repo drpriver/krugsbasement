@@ -3,6 +3,7 @@ Changelog::kv
   updated: 2022-02-28T09:17:11Z
   punted:  2022-04-07T07:46:58Z
   reopen:  2023-02-01T09:10:14Z
+  updated: 2023-02-02T17:57:52Z
 Summary::md .summary
   Maps will get out of hand. Probably want to implement folders so they can be
   organized.
@@ -22,3 +23,6 @@ Punted Apr 07, 2022, 03:46AM::md .update
 
 Reopened Feb 01, 2023, 01:10AM::md .update
   We have a list view, probably worth doing this.
+
+Updated Feb 02, 2023, 09:57AM::md .update
+  Use the new left-hand side list view.
