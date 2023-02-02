@@ -178,6 +178,7 @@ WEBDNDFILES=\
 JSFILES=\
 	WebClient/socket.io.js \
 	Generated/client.js \
+	Generated/client.min.js \
 	WebClient/dungeon.css
 
 
