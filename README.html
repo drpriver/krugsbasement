@@ -3,6 +3,32 @@
 body {
   background-color: white;
   color: black;
+  padding-bottom: 12ex;
+  padding-top: 1ex;
+}
+tt {
+  font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
+  font-size: 14px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+tt {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #202020;
+    color: white;
+  }
+  a:visited {
+    color: rgb(20, 120, 200);
+  }
+  a {
+    color: rgb(20, 140, 220);
+  }
+  tt {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
 }
 .decimal {
   list-style-type: decimal;
@@ -18,12 +44,8 @@ section.notes {
   font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
   margin: auto;
 }
-a.unvisited {
-    color: blue;
-}
-tt {
-    font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
-    font-size: 12px;
+::root{
+  color-scheme: light dark; /* both supported */
 }
 
 </style>
@@ -46,6 +68,7 @@ This app has several features that differentiates from other products:
   <li>Advanced macros and variables.
   <li>In-game direct messages.
   <li>Rollable Tables.
+  <li>Spreadsheets.
   <li>Role-less &mdash; all users have as much power as any other user.
     <ul>
       <li>However, you can still hide objects on the map from other users,
@@ -53,7 +76,7 @@ This app has several features that differentiates from other products:
     </ul>
 </ul>
 
-<h2 id="tools">Tools</h2>
+<h2 id=tools>Tools</h2>
 <p>
 To develop/run this webapp, you'll need the following tools:
 
@@ -79,7 +102,7 @@ To develop/run this webapp, you'll need the following tools:
     </ul>
 </ol>
 
-<h2 id="running-locally">Running Locally</h2>
+<h2 id=running-locally>Running Locally</h2>
 <p>
 If you have the above tools installed, you can just do <tt>make run</tt> and
 you'll get a server running. You can then visit it at
@@ -101,7 +124,7 @@ that url.
 <p>
 In DEV mode, static assets are served by the running webserver.
 
-<h2 id="the-appconfig">The AppConfig</h2>
+<h2 id=the-appconfig>The AppConfig</h2>
 <p>
 This is just a simple python file that is imported. Make will generate one when
 do <tt>make run</tt> or you can do
@@ -111,7 +134,7 @@ See <tt><a href=defaultconfig.py type=text>defaultconfig.py</a></tt>.
 <p>
 The values are pretty self explanatory.
 
-<h2 id="running-on-a-server">Running on a Server</h2>
+<h2 id=running-on-a-server>Running on a Server</h2>
 <p>
 Put a reverse proxy like nginx in front of this so it can handle stuff like TLS
 and serving static files.
@@ -121,7 +144,7 @@ Set DEV mode in the appconfig to false.
 I use the makefile <tt><a href=server.mak type=text>Server/server.mak</a></tt> to run
 the server.
 
-<h2 id="bug-tracking">Bug Tracking</h2>
+<h2 id=bug-tracking>Bug Tracking</h2>
 
 <p>
 Bugs are tracked locally in the repo itself in the <tt><a href=Bugs>Bugs</a></tt> folder.
