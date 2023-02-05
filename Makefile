@@ -102,6 +102,7 @@ TSFILES:= WebClient/socket.d.ts \
 	  WebClient/list-view.ts \
 	  WebClient/tab-view.ts \
 	  WebClient/table-view.ts \
+	  WebClient/tree-view.ts \
 	  WebClient/drspread_glue.ts \
 	  WebClient/spreadsheet.ts \
 	  WebClient/ctxmenu.ts \

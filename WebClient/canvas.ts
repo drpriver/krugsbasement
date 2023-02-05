@@ -9,6 +9,32 @@ const {
     request_render,
     resize_canvas,
 } = (function(){
+let CANV_TV: TreeView<number>;
+document.addEventListener('DOMContentLoaded', function(){
+    CANV_TV = make_tree_view<number>(by_id('maps-list'));
+    CANV_TV.on_click = function(map_id:number){
+        change_map(map_id);
+    };
+    CANV_TV.on_ctxmenu = function(map_id:number, e:MouseEvent){
+        const menu = ctx_menu(e);
+        menu.item('Configure', function():void{
+            edit_map_dialog(MAPS.get(map_id)!);
+        });
+        menu.item('Add Child Map', function():void{
+            do_new_map_dialog(map_id);
+        });
+        menu.separator();
+        if(!CANV_TV.has_children(map_id))
+            menu.item('Delete', function():void{
+                delete_map_dialog(map_id);
+            });
+        else
+            menu.disabled('Delete');
+        menu.separator();
+        menu.item('Cancel');
+        menu.install();
+    };
+});
 if(SETTINGS.uimode != UiMode.NORMAL){
     function dummy_export():Array<InitializeMap>{
         return [];
@@ -878,6 +904,7 @@ const MAPS:Map<number,DungeonMap> = new Map();
 
 type DungeonMap = {
     map_id: number; // integer
+    parent: number;
     grid_type: GridType;
     grid_color: string;
     bg_color: string;
@@ -921,6 +948,7 @@ function export_map(map:DungeonMap):InitializeMap{
         grid_type: map.grid_type,
         grid_color: map.grid_color,
         bg_color: map.bg_color,
+        parent: map.parent,
     };
 }
 
@@ -1076,6 +1104,7 @@ function get_map(map_id:number): DungeonMap {
         return MAPS.get(map_id)!;
     const new_map:DungeonMap = {
         map_id: map_id,
+        parent: -1,
         map_name: 'Untitled',
         grid_type: GridType.SQUARE,
         grid_color: '',
@@ -1094,26 +1123,7 @@ function get_map(map_id:number): DungeonMap {
     };
     EMIT(FromClient.CANVAS_CREATE_MAP, map_id);
     MAPS.set(map_id, new_map);
-    const li = elem_parent_text(by_id('left-maps-list'), 'li', 'Untitled');
-    li.dataset['mapid'] = ''+map_id;
-    li.onclick = function(e:Event):void{
-        e.stopPropagation();
-        e.preventDefault();
-        change_map(map_id);
-    };
-    li.oncontextmenu = function(e:MouseEvent):void{
-        const menu = ctx_menu(e);
-        menu.item('Configure', function():void{
-            edit_map_dialog(MAPS.get(map_id)!);
-        });
-        menu.separator();
-        menu.item('Delete', function():void{
-            delete_map_dialog(map_id);
-        });
-        menu.separator();
-        menu.item('Cancel');
-        menu.install();
-    };
+    CANV_TV.add_item('Untitled', map_id, null);
     return new_map;
 }
 
@@ -1217,12 +1227,7 @@ ONRECV(ToClient.CANVAS_CREATE_MAP, function(map_id:number):void{
 });
 function rename_map(map:DungeonMap, name:string):void{
     map.map_name = name;
-    for(const li of by_id('left-maps-list').getElementsByTagName('li')){
-        if(li.dataset['mapid'] == ''+map.map_id){
-            li.textContent = name;
-            break;
-        }
-    }
+    CANV_TV.rename(map.map_id, name);
 }
 ONRECV(ToClient.CANVAS_NAME_MAP, function(data:NameMapMessage):void{
     const map = get_map(data.map_id);
@@ -1257,6 +1262,12 @@ ONRECV(ToClient.CANVAS_BG_COLOR, function(data:CanvasColorMsg):void{
     const map = get_map(data.map_id);
     map.bg_color = data.color;
     request_render();
+});
+
+ONRECV(ToClient.CANVAS_PARENT, function(data:CanvasParentMsg):void{
+    const map = get_map(data.map_id);
+    map.parent = data.parent;
+    CANV_TV.change_parent(data.map_id, data.parent>-1?data.parent:null);
 });
 
 //
@@ -2810,12 +2821,7 @@ function delete_map(map_id:number):void{
     }
     map.flags |= MapFlags.DELETED;
     change_active_map_view(0, true);
-    for(const li of by_id('left-maps-list').getElementsByTagName('li')){
-        if(li.dataset['mapid'] == ''+map_id){
-            li.remove();
-            break;
-        }
-    }
+    CANV_TV.remove(map_id);
     map_hist.discard(map_id);
 }
 
@@ -2824,19 +2830,18 @@ function delete_map(map_id:number):void{
 function initialize_maps(msgs:Array<InitializeMap>):void{
     // Clear
     {
-        for(let m of MAPS.values())
+        for(const m of MAPS.values())
             clear_canvas(m);
         MAPS.clear()
         dungeon_map_views = []
         active_map_view_index = 0;
-        by_id('left-maps-list').replaceChildren();
+        CANV_TV.clear();
     }
 
-    for(let msg of msgs){
+    for(const msg of msgs){
         const map_id = msg.map_id;
-        if(msg.flags & MapFlags.DELETED){
+        if(msg.flags & MapFlags.DELETED)
             console.log('Received deleted map');
-        }
         const view = new_map_view(map_id);
         dungeon_map_views.push(view);
         const map = view.map;
@@ -2844,7 +2849,10 @@ function initialize_maps(msgs:Array<InitializeMap>):void{
         map.grid_type = msg.grid_type;
         map.grid_color = msg.grid_color;
         map.bg_color = msg.bg_color;
+        map.parent = msg.parent;
         rename_map(map, msg.map_name);
+        if(map.parent >= 0)
+            CANV_TV.change_parent(map_id, map.parent);
         const objs = msg.objects;
         const length = objs.length;
         for(let i = 0; i < length; ++i){
@@ -9350,6 +9358,10 @@ document.addEventListener('DOMContentLoaded', function():void{
             });
             menu.separator();
         }
+        menu.item('Add Submap', function(){
+            do_new_map_dialog(view.map.map_id);
+        });
+        menu.separator();
         menu.item('Cancel');
         menu.install();
     });
@@ -9447,47 +9459,51 @@ function edit_map_dialog(map:DungeonMap):void{
     dialog.show();
 }
 
+function do_new_map_dialog(parent:number){
+    let dialog = get_dialog('map-input');
+    if(!dialog) return;
+    dialog.title.textContent = 'New Map';
+    dialog.f.name.value = '';
+
+    link_input_value('#969696', dialog.f['grid-color'], 'onchange', dialog.f['grid-color-text'], 'oninput');
+    link_input_value('#ffffff', dialog.f['bg-color'], 'onchange', dialog.f['bg-color-text'], 'oninput');
+    const hg = dialog.f['hex-grid'];
+    const ng = dialog.f['no-grid']
+    hg.checked = false;
+    ng.checked = false;
+    const numbered = dialog.f.numbered;
+    numbered.checked = false;
+    dialog.f.big.checked = false;
+    dialog.show_handler = function():void{
+        if(!IS_TOUCH) dialog.f.name.focus();
+    };
+    dialog.ok_handler = function():void{
+        const value = dialog.f.name.value.trim();
+        if(!value) return;
+        let gt = hg.checked? GridType.HEX : GridType.SQUARE;
+        if(ng.checked) gt |= GridType.NOGRID;
+        let flags = MapFlags.NONE;
+        if(numbered.checked)
+            flags |= MapFlags.NUMBERED
+        if(dialog.f.big.checked)
+            flags |= MapFlags.BIG_HEX;
+        let grid_color = dialog.f['grid-color-text'].value;
+        let bg_color = dialog.f['bg-color-text'].value
+        if(bg_color == '#ffffff') bg_color = '';
+        if(grid_color == '#969696') grid_color = '';
+        const msg: NewMapRequest = {name:value, grid_type:gt, flags, grid_color, bg_color, parent};
+        EMIT(FromClient.CANVAS_NEW_MAP_REQUEST, msg);
+    };
+    dialog.cancel_handler = undefined;
+    dialog.show();
+}
+
 document.addEventListener('DOMContentLoaded', function():void{
     const new_map_button = by_id('new-map-button');
     new_map_button.addEventListener('click', function(e:MouseEvent):void{
         e.stopPropagation();
         e.preventDefault();
-        let dialog = get_dialog('map-input');
-        if(!dialog) return;
-        dialog.title.textContent = 'New Map';
-        dialog.f.name.value = '';
-
-        link_input_value('#969696', dialog.f['grid-color'], 'onchange', dialog.f['grid-color-text'], 'oninput');
-        link_input_value('#ffffff', dialog.f['bg-color'], 'onchange', dialog.f['bg-color-text'], 'oninput');
-        const hg = dialog.f['hex-grid'];
-        const ng = dialog.f['no-grid']
-        hg.checked = false;
-        ng.checked = false;
-        const numbered = dialog.f.numbered;
-        numbered.checked = false;
-        dialog.f.big.checked = false;
-        dialog.show_handler = function():void{
-            if(!IS_TOUCH) dialog.f.name.focus();
-        };
-        dialog.ok_handler = function():void{
-            const value = dialog.f.name.value.trim();
-            if(!value) return;
-            let gt = hg.checked? GridType.HEX : GridType.SQUARE;
-            if(ng.checked) gt |= GridType.NOGRID;
-            let flags = MapFlags.NONE;
-            if(numbered.checked)
-                flags |= MapFlags.NUMBERED
-            if(dialog.f.big.checked)
-                flags |= MapFlags.BIG_HEX;
-            let grid_color = dialog.f['grid-color-text'].value;
-            let bg_color = dialog.f['bg-color-text'].value
-            if(bg_color == '#ffffff') bg_color = '';
-            if(grid_color == '#969696') grid_color = '';
-            let msg: NewMapRequest = {name:value, grid_type:gt, flags, grid_color, bg_color};
-            EMIT(FromClient.CANVAS_NEW_MAP_REQUEST, msg);
-        };
-        dialog.cancel_handler = undefined;
-        dialog.show();
+        do_new_map_dialog(-1);
     });
     by_id('back-map-button').addEventListener('click', function():void{
         map_hist.go_back();

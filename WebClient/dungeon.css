@@ -1387,3 +1387,57 @@ body.dark-mode .tracker-numbered {
 #left ul {
   list-style: inside;
 }
+
+#maps-list, #notes-list, #sheets-list {
+  display: grid;
+  grid-template-columns: 100%;
+}
+div.tree-item {
+  cursor: pointer;
+  /*display: list-item;*/
+  list-style: inside;
+  vertical-align: middle;
+  padding-bottom: 2px;
+}
+div.tree-item.hidden {
+  display: none;
+}
+div.tree-item.parent {
+}
+div.tree-item.parent.closed {
+  /*list-style-type: disclosure-closed;*/
+}
+div.tree-item:hover {
+  background-color: #ddd;
+}
+div.tree-item span.name {
+  padding: 2px 4px;
+}
+div.tree-item:before {
+  content: "• ";
+  font-weight: 1000;
+  font-size: 16px;
+}
+div.tree-item.parent:before {
+  content: "";
+}
+body.dark-mode div.tree-item:hover {
+  background-color: #666;
+}
+.toggle {
+  display: none;
+  padding: 2px 4px;
+  width: 1em;
+}
+div.tree-item.parent .toggle {
+  display: inline-block;
+  margin-left: -1em;
+  background: none;
+  /*font-size: 16px;*/
+}
+.toggle:hover {
+  background-color: #ccc;
+}
+.toggle:hover {
+  background-color: #222;
+}

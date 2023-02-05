@@ -1,9 +1,10 @@
 Changelog::kv
-  updated: 2022-01-04T00:04:57.549187
-  updated: 2022-02-28T09:17:11Z
-  punted:  2022-04-07T07:46:58Z
-  reopen:  2023-02-01T09:10:14Z
-  updated: 2023-02-02T17:57:52Z
+  updated:  2022-01-04T00:04:57.549187
+  updated:  2022-02-28T09:17:11Z
+  punted:   2022-04-07T07:46:58Z
+  reopen:   2023-02-01T09:10:14Z
+  updated:  2023-02-02T17:57:52Z
+  resolved: 2023-02-05T23:20:41Z
 Summary::md .summary
   Maps will get out of hand. Probably want to implement folders so they can be
   organized.
@@ -26,3 +27,7 @@ Reopened Feb 01, 2023, 01:10AM::md .update
 
 Updated Feb 02, 2023, 09:57AM::md .update
   Use the new left-hand side list view.
+
+Resolved Feb 05, 2023, 03:20PM::md .update
+  Might have to re-open, but now notes/maps/sheets support child items, so any
+  of them can act as a folder.

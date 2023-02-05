@@ -21,7 +21,7 @@ atexit.register(close) # type: ignore
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 15
+DBVERSION = 16
 with conn:
     conn.execute('''PRAGMA encoding = 'UTF-8';''')
     conn.execute('''PRAGMA foreign_keys = ON;''')
@@ -380,6 +380,25 @@ def setup_tables() -> None:
                 PRIMARY KEY(campaignid, sheetid)
             );
         ''')
+    if version < 16:
+        conn.execute('''
+            ALTER TABLE
+                maps
+            ADD COLUMN
+                parent INTEGER NOT NULL DEFAULT -1 /* 0 is valid map id */;
+        ''')
+        conn.execute('''
+            ALTER TABLE
+                notes
+            ADD COLUMN
+                parent INTEGER NOT NULL DEFAULT 0;
+        ''')
+        conn.execute('''
+            ALTER TABLE
+                sheets
+            ADD COLUMN
+                parent INTEGER NOT NULL DEFAULT 0;
+        ''')
 
 
 with conn:
@@ -576,14 +595,14 @@ def save_private_chat_msg(campaignid:int, msgtype:int, chatname:str, data:Any, c
             ;
         ''', (campaignid, msgtype, chatname, created, data, userid, to))
 
-def save_map(id:int, map_id:int, map_name:str, objects:list, flags:int, grid_type:int, grid_color:str, bg_color:str) -> None:
+def save_map(id:int, map_id:int, map_name:str, objects:list, flags:int, grid_type:int, grid_color:str, bg_color:str, parent:int) -> None:
     blob = json.dumps(objects, separators=(',',':'))
     with DBLOCK, conn:
         conn.execute('''
             INSERT INTO
-                maps(campaignid, mapid, name, objects, flags, grid_type, grid_color, bg_color)
+                maps(campaignid, mapid, name, objects, flags, grid_type, grid_color, bg_color, parent)
             VALUES
-                (?, ?, ?, ?, ?, ?, ?, ?)
+                (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(campaignid, mapid)
             DO UPDATE SET
                 name      = excluded.name,
@@ -591,9 +610,10 @@ def save_map(id:int, map_id:int, map_name:str, objects:list, flags:int, grid_typ
                 flags     = excluded.flags,
                 grid_type = excluded.grid_type,
                 grid_color = excluded.grid_color,
-                bg_color = excluded.bg_color
+                bg_color = excluded.bg_color,
+                parent = excluded.parent
             ;
-        ''', (id, map_id, map_name, blob, flags, grid_type, grid_color, bg_color))
+        ''', (id, map_id, map_name, blob, flags, grid_type, grid_color, bg_color, parent))
 def map_convert(row:tuple) -> dict:
     result = dict(
         map_id = row[1],
@@ -603,6 +623,7 @@ def map_convert(row:tuple) -> dict:
         grid_type = row[5],
         grid_color = row[6],
         bg_color = row[7],
+        parent = row[8],
     )
     return result
 
@@ -767,21 +788,22 @@ def get_private_chat(userid:int, campaignid:int) -> list:
         ''', (campaignid, userid, userid))
         return cur.fetchall()
 
-def save_note(campaignid:int, title:str, body:str, flags:int, noteid:int) -> None:
+def save_note(campaignid:int, title:str, body:str, flags:int, noteid:int, parent:int) -> None:
     # logging.info('saving note: %r/%r noteid: %r', campaignid, title, noteid)
     with DBLOCK, conn:
         conn.execute('''
             INSERT INTO
-                notes(campaignid, title, body, flags, noteid)
+                notes(campaignid, title, body, flags, noteid, parent)
             VALUES
-                (?, ?, ?, ?, ?)
+                (?, ?, ?, ?, ?, ?)
             ON CONFLICT(campaignid, noteid)
                 DO UPDATE SET
                     title = excluded.title,
                     body = excluded.body,
-                    flags = excluded.flags
+                    flags = excluded.flags,
+                    parent = excluded.parent
             ;
-        ''', (campaignid, title, body, flags, noteid))
+        ''', (campaignid, title, body, flags, noteid, parent))
 
 def get_notes(id:int) -> list:
     with DBLOCK:
@@ -800,6 +822,7 @@ def get_notes(id:int) -> list:
                 body = row[2],
                 flags = row[3],
                 id = row[4],
+                parent = row[5]
                 ) for row in rows
             ]
 
@@ -959,7 +982,7 @@ def get_sheets(campaignid:int) -> list[dict]:
     with DBLOCK:
         for row in conn.execute('''
             SELECT
-                sheetid, name, flags, column_names, cells
+                sheetid, name, flags, column_names, cells, parent
             FROM
                 sheets
             WHERE
@@ -972,20 +995,21 @@ def get_sheets(campaignid:int) -> list[dict]:
                 'flags': row[2],
                 'column_names': json.loads(row[3]),
                 'cells': json.loads(row[4]),
+                'parent': row[5]
             })
     return result
 
-def save_sheet(campaign:int, id:int, name:str, flags:int, column_names:list[str], cells:list[str]) -> None:
+def save_sheet(campaign:int, id:int, name:str, flags:int, column_names:list[str], cells:list[str], parent:int) -> None:
     cns = json.dumps(column_names, separators=(',',':'))
     c = json.dumps(cells, separators=(',',':'))
     with DBLOCK:
         conn.execute('''
             INSERT INTO
-                sheets(campaignid, sheetid, name, flags, column_names, cells)
+                sheets(campaignid, sheetid, name, flags, column_names, cells, parent)
             VALUES
-                (?, ?, ?, ?, ?, ?)
+                (?, ?, ?, ?, ?, ?, ?)
             ;
-        ''', (campaign, id, name, flags, cns, c))
+        ''', (campaign, id, name, flags, cns, c, parent))
 
 def save_sheet_cells(campaign:int, id:int, cells:list[str]) -> None:
     c = json.dumps(cells, separators=(',',':'))
@@ -1020,6 +1044,14 @@ def save_sheet_flags(campaign:int, id:int, flags:int) -> None:
             SET flags = ?
             WHERE campaignid = ? AND sheetid = ?;
         ''', (flags, campaign, id))
+
+def save_sheet_parent(campaign:int, id:int, parent:int) -> None:
+    with DBLOCK:
+        conn.execute('''
+            UPDATE sheets
+            SET parent = ?
+            WHERE campaignid = ? AND sheetid = ?;
+        ''', (parent, campaign, id))
 
 def delete_sheet(campaign:int, id:int) -> None:
     with DBLOCK:

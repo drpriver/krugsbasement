@@ -43,6 +43,7 @@ enum FromClient: int
     CANVAS_DELETE_MAP_REQUEST = 18
     CANVAS_BATTLE = 19
     CANVAS_DUNGEON_MODE = 20
+    CANVAS_PARENT = 34
     # Note messages
     # -------------
     GET_NOTE = 21
@@ -104,6 +105,7 @@ enum ToClient: int
     CANVAS_DELETE_MAP = 17
     CANVAS_BATTLE = 18
     CANVAS_DUNGEON_MODE = 19
+    CANVAS_PARENT = 40
     # Notes
     NOTES_INITIALIZE = 20
     NEW_NOTE = 21
@@ -932,6 +934,10 @@ struct CanvasUpdateMessage: dict
     map_id: int
     obj_states: [StrippedObj]
 
+struct CanvasParentMsg:dict
+    map_id: int
+    parent: int
+
 struct NameMapMessage: dict
     map_id: int
     map_name: str
@@ -942,6 +948,7 @@ struct NewMapRequest: dict
     flags: MapFlags
     grid_color: color
     bg_color: color
+    parent: int
 
 struct CanvasGridTypeMsg: dict
     map_id: int
@@ -959,6 +966,10 @@ struct CanvasColorMsg: dict
 struct NoteUpdateTitle: dict
     note_id: int
     title: str
+
+struct NewNoteMsg: dict
+    note_id: int
+    parent: int
 
 struct NoteUpdateBody: dict
     note_id: int
@@ -986,6 +997,7 @@ struct InitializeMap: dict
     grid_type: GridType
     grid_color: color
     bg_color: color
+    parent: int
 
 enum NOTEFLAGS: int flag
     NONE = 0
@@ -996,6 +1008,7 @@ struct Note: dict
     body: str
     flags: NOTEFLAGS
     id: int
+    parent: int
 
 struct LocalSetting: array
     category: str
@@ -1045,15 +1058,16 @@ message ToClientMsg: ToClient
     CANVAS_DELETE_MAP = int
     CANVAS_BATTLE = GatherMessage
     CANVAS_DUNGEON_MODE = void
+    CANVAS_PARENT = CanvasParentMsg
     NOTES_INITIALIZE = [Note]
-    NEW_NOTE = int
+    NEW_NOTE = NewNoteMsg
     NOTE_UPDATE_TITLE = NoteUpdateTitle
     NOTE_DIRTY = int
     NOTE_DELETE = int
     ROLL_TABLES = RollTables
     ROLL_TABLE_NAMES = RollTableNames
     GOT_NOTE = Note
-    NEW_NOTE_RESPONSE = int
+    NEW_NOTE_RESPONSE = NewNoteMsg
     API_VERSION = int
     SPREADSHEET = SpreadSheetMsg
     NOTE_SHOW = int
@@ -1083,7 +1097,7 @@ message FromClientMsg: FromClient
     CANVAS_BATTLE = GatherMessage
     CANVAS_DUNGEON_MODE = void
     GET_NOTE = int
-    NEW_NOTE_REQUEST = void
+    NEW_NOTE_REQUEST = int
     NOTE_UPDATE_TITLE = NoteUpdateTitle
     NOTE_UPDATE_BODY = NoteUpdateBody
     DELETE_NOTE_REQUEST = int
@@ -1126,6 +1140,7 @@ struct SpreadSheetData: dict
     flags: SpreadSheetFlags
     column_names: [str]
     cells: [str]
+    parent: int
 
 enum SpreadSheetMsgType: int
     DELETE_ROW = 0
@@ -1143,6 +1158,7 @@ enum SpreadSheetMsgType: int
     FLAG = 12
     NAME = 13
     DELETE = 14
+    PARENT = 15
 
 struct SpreadSheetDeleteRow: array
     type = SpreadSheetMsgType.DELETE_ROW
@@ -1219,6 +1235,11 @@ struct SpreadSheetName: array
 struct SpreadSheetDelete: array
     type = SpreadSheetMsgType.DELETE
     sheet_id = int
+
+struct SpreadSheetParent: array
+    type = SpreadSheetMsgType.PARENT
+    sheet_id = int
+    parent: int
 
 
 union SpreadSheetMsg: array

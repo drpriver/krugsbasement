@@ -21,7 +21,7 @@ from . import canvas
 from . import notes
 from . import sheets
 from .persist import Persister, RepeatTimer, AppKVPersister
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize, NewNoteMsg
 from .validator import register_list, validated, validate
 from . import db
 from .users import User
@@ -554,8 +554,10 @@ def new_map_request(data:NewMapRequest) -> None:
     flags = data['flags']
     grid_color = data['grid_color']
     bg_color = data['bg_color']
+    parent = data['parent']
+    dlog('data: %r', data)
     campaign = get_campaign(request)
-    new_map_id = canvas.new_map_request(campaign, map_name, grid_type, flags, grid_color)
+    new_map_id = canvas.new_map_request(campaign, map_name, grid_type, flags, grid_color, parent)
     logging.info('new map: %r for campaign %r, with name: %r', new_map_id, campaign, map_name)
     emit(ToClient.CANVAS_CREATE_MAP, new_map_id, broadcast=True, include_self=True, to=str(campaign))
     emit(ToClient.CANVAS_NAME_MAP, {'map_id':new_map_id, 'map_name':map_name}, broadcast=True, include_self=True, to=str(campaign))
@@ -563,6 +565,7 @@ def new_map_request(data:NewMapRequest) -> None:
     emit(ToClient.CANVAS_GRID_NUMBERED, {'map_id':new_map_id, 'numbered':flags}, broadcast=True, include_self=True, to=str(campaign))
     emit(ToClient.CANVAS_GRID_COLOR, {'map_id':new_map_id, 'color':grid_color}, broadcast=True, include_self=True, to=str(campaign))
     emit(ToClient.CANVAS_BG_COLOR, {'map_id':new_map_id, 'color':bg_color}, broadcast=True, include_self=True, to=str(campaign))
+    emit(ToClient.CANVAS_PARENT, {'map_id':new_map_id, 'parent':parent}, broadcast=True, include_self=True, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_GRID_TYPE)
 @validated
@@ -633,12 +636,14 @@ def show_note(note_id:int) -> None:
 
 
 @socketio.on(FromClient.NEW_NOTE_REQUEST)
-def new_note_request() -> None:
+@validated
+def new_note_request(parent:int) -> None:
     campaign = get_campaign(request)
-    note_id = notes.new_note_request(campaign)
-    logging.info('new note: %r for campaign %r', note_id, campaign)
-    emit(ToClient.NEW_NOTE, note_id, broadcast=True, include_self=False, to=str(campaign))
-    emit(ToClient.NEW_NOTE_RESPONSE, note_id)
+    note_id = notes.new_note_request(campaign, parent)
+    msg:NewNoteMsg = {'note_id':note_id, 'parent':parent}
+    logging.info('new note: %r for campaign %r', msg, campaign)
+    emit(ToClient.NEW_NOTE, msg, broadcast=True, include_self=False, to=str(campaign))
+    emit(ToClient.NEW_NOTE_RESPONSE, msg)
     # return note_id
 
 @socketio.on(FromClient.NOTE_UPDATE_TITLE)

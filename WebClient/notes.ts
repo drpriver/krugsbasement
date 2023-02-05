@@ -6,6 +6,58 @@
 // own self-contained thing.
 // (function(){
 
+let NOTE_TV : TreeView<number>;
+document.addEventListener('DOMContentLoaded', function():void{
+    NOTE_TV = make_tree_view<number>(by_id('notes-list'));
+    NOTE_TV.on_click = function(id:number):void{
+        const note = NOTES.get(id);
+        if(!note) return;
+        const window = get_note_window(id);
+        window.t.textContent = note.title;
+        window.show();
+    };
+    NOTE_TV.on_ctxmenu = function(id:number, e:MouseEvent):void{
+        const menu = ctx_menu(e);
+        menu.item('Show Others', function():void{
+            EMIT(FromClient.NOTE_SHOW, id);
+        });
+        menu.item('Add Child Note', function():void{
+            EMIT(FromClient.NEW_NOTE_REQUEST, id);
+        });
+        menu.item('Rename', function(e:MouseEvent):void{
+            e.stopPropagation();
+            e.preventDefault();
+            const sp = NOTE_TV.get_sp(id);
+            if(!sp) return;
+            user_edit_element(sp, 0, function(v:string):void{
+                EMIT(FromClient.NOTE_UPDATE_TITLE, {note_id:id, title:v});
+                const note = NOTES.get(id)!;
+                note.title = v;
+                const w = NOTE_WINDOWS.get(id)
+                if(w) w.refresh();
+            });
+            remove_ctx_menu();
+        });
+        menu.separator();
+        if(!NOTE_TV.has_children(id))
+            menu.item('Delete', function():void{
+                const dialog = get_dialog('note-deletion');
+                if(!dialog) return;
+                dialog.f.checkbox.checked = false;
+                dialog.ok_handler = function():void{
+                    if(!dialog.f.checkbox.checked)
+                        return;
+                    EMIT(FromClient.DELETE_NOTE_REQUEST, id);
+                };
+                dialog.show();
+            });
+        else
+            menu.disabled('Delete');
+        menu.separator();
+        menu.item('Cancel');
+        menu.install();
+    };
+});
 type NoteWindow = {
     id: number;
     w: HTMLDivElement;
@@ -134,8 +186,7 @@ function make_note_window(id:number):NoteWindow{
                 const note = NOTES.get(id)!;
                 note.title = v;
                 result.refresh();
-                const li = get_note_li(id);
-                if(li) li.textContent = v;
+                NOTE_TV.rename(id, v);
             });
             remove_ctx_menu();
         });
@@ -265,6 +316,7 @@ type Note_ = {
     id: number;
     need_send: boolean;
     need_receive: boolean;
+    parent: number;
 }
 const NOTES: Map<number, Note_> = new Map();
 const NOTE_WINDOWS: Map<number, NoteWindow> = new Map();
@@ -276,14 +328,6 @@ function get_note_window(id:number):NoteWindow{
         NOTE_WINDOWS.set(id, window);
     }
     return window;
-}
-
-function get_note_li(id:number):HTMLLIElement|null{
-    for(const li of by_id('left-notes-list').getElementsByTagName('li')){
-        if(li.dataset['noteid'] == ''+id)
-            return li;
-    }
-    return null;
 }
 
 const make_dnd_html = (function(){
@@ -386,62 +430,21 @@ document.addEventListener('DOMContentLoaded', function():void{
             EMIT(FromClient.GET_NOTE, note_id);
     });
     function add_note(id:number, note:Note_):void{
-        const li = elem_parent_text(by_id('left-notes-list'), 'li', note.title);
-        li.dataset['noteid'] = ''+id;
-        li.onclick = function(e:Event):void{
-            e.stopPropagation();
-            const window = get_note_window(id);
-            window.t.textContent = note.title;
-            window.show();
-        };
-        li.oncontextmenu = function(e:MouseEvent):void{
-            const menu = ctx_menu(e);
-            menu.item('Show Others', function():void{
-                EMIT(FromClient.NOTE_SHOW, id);
-            });
-            menu.item('Rename', function(e:MouseEvent):void{
-                e.stopPropagation();
-                e.preventDefault();
-                user_edit_element(li, 0, function(v:string):void{
-                    EMIT(FromClient.NOTE_UPDATE_TITLE, {note_id:id, title:v});
-                    const note = NOTES.get(id)!;
-                    note.title = v;
-                    const w = NOTE_WINDOWS.get(id)
-                    if(w) w.refresh();
-                });
-                remove_ctx_menu();
-            });
-            menu.separator();
-            menu.item('Delete', function():void{
-                const dialog = get_dialog('note-deletion');
-                if(!dialog) return;
-                dialog.f.checkbox.checked = false;
-                dialog.ok_handler = function():void{
-                    if(!dialog.f.checkbox.checked)
-                        return;
-                    EMIT(FromClient.DELETE_NOTE_REQUEST, note.id);
-                };
-                dialog.show();
-            });
-            menu.separator();
-            menu.item('Cancel');
-            menu.install();
-        };
+        NOTE_TV.add_item(note.title, id, note.parent?note.parent:null);
         NOTES.set(id, note);
     }
     ONRECV(ToClient.NOTE_DELETE, function(id:number):void{
         const note = NOTES.get(id);
         if(!note) return;
         note.flags |= NOTEFLAGS.DELETED;
+        NOTE_TV.remove(id);
         const window = NOTE_WINDOWS.get(id);
         if(!window) return;
-        NOTE_WINDOWS.delete(id);
         window.w.remove();
-        const li = get_note_li(id);
-        if(li) li.remove();
+        NOTE_WINDOWS.delete(id);
     });
     ONRECV(ToClient.NOTES_INITIALIZE, function(notes:Array<Note>):void{
-        by_id('left-notes-list').replaceChildren();
+        NOTE_TV.clear();
         NOTES.clear();
         for(const w of NOTE_WINDOWS.values())
             w.w.remove();
@@ -452,17 +455,19 @@ document.addEventListener('DOMContentLoaded', function():void{
             add_note(note.id, note);
         }
     });
-    ONRECV(ToClient.NEW_NOTE, function(note_id:number):void{
-        add_note(note_id, {flags:0, title:'Untitled', body:'', id:note_id, need_send:false, need_receive:false});
+    ONRECV(ToClient.NEW_NOTE, function(msg:NewNoteMsg):void{
+        const {note_id, parent} = msg;
+        add_note(note_id, {flags:0, title:'Untitled', body:'', id:note_id, need_send:false, need_receive:false, parent});
     });
-    ONRECV(ToClient.NEW_NOTE_RESPONSE, function(id:number):void{
-        add_note(id, {id:id, title:'Untitled', body:'', flags:0, need_send:false,  need_receive:false});
-        get_note_window(id).show();
+    ONRECV(ToClient.NEW_NOTE_RESPONSE, function(msg:NewNoteMsg):void{
+        const {note_id, parent} = msg;
+        add_note(note_id, {id:note_id, title:'Untitled', body:'', flags:0, need_send:false,  need_receive:false, parent});
+        get_note_window(note_id).show();
     });
     by_id('new-note').addEventListener('click', function(e:MouseEvent):void{
         e.stopPropagation();
         e.preventDefault();
-        EMIT(FromClient.NEW_NOTE_REQUEST);
+        EMIT(FromClient.NEW_NOTE_REQUEST, 0);
     });
     ONRECV(ToClient.NOTE_UPDATE_TITLE, function(data:NoteUpdateTitle):void{
         const note = NOTES.get(data.note_id);
@@ -470,8 +475,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         note.title = data.title;
         const window = NOTE_WINDOWS.get(data.note_id);
         if(window) window.refresh();
-        const li = get_note_li(data.note_id);
-        if(li) li.textContent = data.title;
+        NOTE_TV.rename(data.note_id, data.title);
     });
     ONRECV(ToClient.NOTE_SHOW, function(noteid:number):void{
         const window = get_note_window(noteid);

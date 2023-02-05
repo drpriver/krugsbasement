@@ -41,22 +41,24 @@ def should_unload(sheets:list[SpreadSheet], t:float) -> bool:
 # We need to have a server side version of the spreadsheet
 # so that we can interpret the abstract commands.
 class SpreadSheet:
-    def __init__(self, campaign:int, id:int, name:str, flags:SpreadSheetFlags, column_names:list[str], cells:list[str]) -> None:
+    def __init__(self, campaign:int, id:int, name:str, flags:SpreadSheetFlags, column_names:list[str], cells:list[str], parent:int) -> None:
         self.campaign = campaign
         self.id = id
         self.name = name
         self.flags = flags
         self.column_names = column_names
         self.cells = cells
+        self.parent = parent
         self._cells_dirty = False
         self._col_names_dirty = False
         self._last_mod = time.time()
         self._name_dirty = False
         self._flags_dirty = False
+        self._parent_dirty = False
 
     @property
     def dirty(self) -> bool:
-        return self._cells_dirty or self._col_names_dirty or self._flags_dirty or self._name_dirty
+        return self._cells_dirty or self._col_names_dirty or self._flags_dirty or self._name_dirty or self._parent_dirty
 
     @property
     def cells_dirty(self) -> bool:
@@ -98,6 +100,16 @@ class SpreadSheet:
         self._flags_dirty = v
         self._last_mod = time.time()
 
+    @property
+    def parent_dirty(self) -> bool:
+        return self._parent_dirty
+
+    @parent_dirty.setter
+    def parent_dirty(self, v:bool) -> None:
+        assert v
+        self._parent_dirty = v
+        self._last_mod = time.time()
+
     def as_data(self) -> SpreadSheetData:
         return dict(
             id = self.id,
@@ -105,6 +117,7 @@ class SpreadSheet:
             flags = self.flags,
             column_names = self.column_names,
             cells = self.cells,
+            parent = self.parent,
         )
 
     def delete_column(self, col_idx:int) -> bool:
@@ -210,6 +223,15 @@ class SpreadSheet:
         self.name_dirty = True
         return True
 
+    def set_parent(self, parent:int) -> bool:
+        if self.parent == parent:
+            return False
+        if self.id == parent:
+            return False
+        self.parent = parent
+        self.parent_dirty = True
+        return True
+
     def persist(self) -> None:
         if self._cells_dirty:
             dlog('saving cells for sheet %r (%r,%r)', self.name, self.campaign, self.id)
@@ -230,6 +252,11 @@ class SpreadSheet:
             db.save_sheet_flags(self.campaign, self.id, self.flags)
             self._flags_dirty = False
 
+        if self._parent_dirty:
+            dlog('saving parent for sheet %r (%r,%r): %r', self.name, self.campaign, self.id, self.flags)
+            db.save_sheet_parent(self.campaign, self.id, self.flags)
+            self._parent_dirty = False
+
 # IDK how to express that first arg needs to be a SpreadSheet
 METHODS:dict[SpreadSheetMsgType, Callable[..., bool]] = {
     SpreadSheetMsgType.DELETE_ROW: SpreadSheet.delete_row,
@@ -243,6 +270,7 @@ METHODS:dict[SpreadSheetMsgType, Callable[..., bool]] = {
     SpreadSheetMsgType.SORT: SpreadSheet.sort,
     SpreadSheetMsgType.FLAG: SpreadSheet.set_flags,
     SpreadSheetMsgType.NAME: SpreadSheet.set_name,
+    SpreadSheetMsgType.PARENT: SpreadSheet.set_parent,
 }
 
 def get_sheet(campaign:int, id:int) -> Optional[SpreadSheet]:

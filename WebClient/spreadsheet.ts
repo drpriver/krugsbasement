@@ -2,8 +2,59 @@
 // Copyright © 2023, David Priver
 //
 
+let SHEET_TV: TreeView<number>;
+document.addEventListener('DOMContentLoaded', function():void{
+    SHEET_TV = make_tree_view<number>(by_id('sheets-list'));
+    SHEET_TV.on_click = function(id:number):void{
+        const ss = SPREADSHEETS.get(id);
+        if(ss) ss.show();
+    };
+    SHEET_TV.on_ctxmenu = function(id:number, e:MouseEvent):void{
+        const menu = ctx_menu(e);
+        const ss = SPREADSHEETS.get(id);
+        if(!ss) return;
+        if(ss.hidden)
+            menu.item('Show', ss.show);
+        else
+            menu.item('Hide', ss.hide);
+        menu.item('Rename', function(e:MouseEvent):void{
+            e.stopPropagation();
+            e.preventDefault();
+            const sp = SHEET_TV.get_sp(id);
+            if(!sp) return;
+            user_edit_element(sp, 0, function(txt:string):void{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NAME, id, txt]);
+            });
+            remove_ctx_menu();
+        });
+        menu.item('Add Child Sheet', function():void{
+            do_new_sheet_dialog(id);
+        });
+        menu.separator();
+        if(!SHEET_TV.has_children(id))
+            menu.item('Delete', function():void{
+                const diag = get_dialog('simple-delete');
+                if(!diag) return;
+                diag.f.delete.checked = false;
+                diag.ok_handler = function():void{
+                    if(diag.f.delete.checked){
+                        EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE, id]);
+                        SHEET_TV.remove(id);
+                    }
+                };
+                diag.show();
+            });
+        else
+            menu.disabled('Delete');
+        menu.separator();
+        menu.item('Cancel');
+        menu.install();
+    };
+});
+
 type SpreadSheet = {
     id: number;
+    parent: number;
     w:HTMLDivElement;
     hidden: boolean;
     _dirty: boolean;
@@ -213,7 +264,7 @@ function recalc(id:number):void{
 
 let spreadsheet_fake_clipboard = "";
 
-function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):SpreadSheet {
+function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, name:string):SpreadSheet {
     const winid = `spreadsheet-window-${id}`;
     const openid = `${winid}/open`
     // idk should assert here or something if winid already exists
@@ -301,6 +352,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             a.click();
         });
         menu.separator();
+        if(!SHEET_TV.has_children(result.id))
         menu.item('Delete Spreadsheet', function():void{
             const diag = get_dialog('simple-delete');
             if(!diag) return;
@@ -311,6 +363,8 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
             };
             diag.show();
         });
+        else 
+            menu.disabled('Delete Spreadsheet');
         menu.separator();
         menu.item('Cancel');
         menu.install();
@@ -321,6 +375,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
     setup_movable_window(w, wh, WINDOWFLAGS.REMEMBER_POSITION|WINDOWFLAGS.LOCAL_REMEMBER);
     const result = {
         id,
+        parent,
         w:w,
         _dirty: false,
         hidden: true,
@@ -1027,12 +1082,7 @@ function make_spreadsheet(id:number, flags: SpreadSheetFlags, name:string):Sprea
     result.set_title = function(title:string):void{
         result.name = title;
         t.textContent = title;
-        for(const li of by_id('sheet-buttons').getElementsByTagName('li')){
-            if(li.dataset['sheetid'] == ''+id){
-                li.textContent = title;
-                break;
-            }
-        }
+        SHEET_TV.rename(id, title);
     };
     const comparator = Intl.Collator(undefined, {numeric:true});
     result.sort = function(col_idx:number, direction: number):void{
@@ -1274,58 +1324,64 @@ const SPREADSHEETS:Map<number, SpreadSheet> = new Map();
 function spreadsheet_from_data(data:SpreadSheetData):SpreadSheet{
     // Use ALL to enable all behaviors and then set the real flags below. This
     // allows the imperative adding of the needed columns.
-    const ss = make_spreadsheet(data.id, SpreadSheetFlags.ALL, data.name);
+    const ss = make_spreadsheet(data.id, data.parent, SpreadSheetFlags.ALL, data.name);
     for(const col of data.column_names)
         ss.add_column2(-1, col);
     for(let i = 0; i < data.cells.length; i+= data.column_names.length)
         ss.add_row2(-1, data.cells.slice(i, i+data.column_names.length));
     SPREADSHEETS.set(data.id, ss);
     ss.set_flags(data.flags);
-    const li = elem_parent_text(by_id('sheet-buttons'), 'li', data.name);
     const id = ss.id;
-    li.dataset['sheetid'] = ''+id;
-    li.onclick = function(e:MouseEvent):void{
-        e.stopPropagation();
-        SPREADSHEETS.get(id)!.show();
-    };
-    li.oncontextmenu = function(e:MouseEvent):void{
-        const menu = ctx_menu(e);
-        const ss = SPREADSHEETS.get(id)!;
-        if(ss.hidden)
-            menu.item('Show', ss.show);
-        else
-            menu.item('Hide', ss.hide);
-        menu.item('Rename', function(e:MouseEvent):void{
-            e.stopPropagation();
-            e.preventDefault();
-            user_edit_element(li, 0, function(txt:string):void{
-                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NAME, id, txt]);
-            });
-            remove_ctx_menu();
-        });
-        menu.separator();
-        menu.item('Delete', function():void{
-            const diag = get_dialog('simple-delete');
-            if(!diag) return;
-            diag.f.delete.checked = false;
-            diag.ok_handler = function():void{
-                if(diag.f.delete.checked){
-                    EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE, id]);
-                    li.remove();
-                }
-            };
-            diag.show();
-        });
-        menu.separator();
-        menu.item('Cancel');
-        menu.install();
-    };
+    SHEET_TV.add_item(data.name, id, data.parent?data.parent:null);
     return ss;
 }
+
+function do_new_sheet_dialog(parent:number):void{
+    const diag = get_dialog('tracker');
+    if(!diag) return;
+    diag.f.file.value = '';
+    diag.f.file.accept='.tsv';
+    let tsv = '';
+    diag.f.file.onchange = function():void{
+        const filelist = diag.f.file.files;
+        if(!filelist || filelist.length != 1)
+            return;
+        const file = filelist[0];
+        if(!diag.f.name.value)
+            diag.f.name.value = file.name.slice(0, file.name.length-4);
+        file.text().then(s=>tsv=s);
+    };
+    diag.ok_handler = function():void{
+        let name = diag.f.name.value;
+        if(!name) return;
+        let flags = SpreadSheetFlags.ALL;
+        if(!diag.f.numbered.checked) flags &= ~SpreadSheetFlags.NUMBERED;
+        if(tsv){
+            const data = data_from_tsv(tsv);
+            if(data){
+                data.name = name;
+                data.flags = flags;
+                data.parent = parent;
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NEW_SHEET, data]);
+                return;
+            }
+        }
+        EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NEW_SHEET, {id:0, name, flags, column_names:[], cells:[], parent:parent}]);
+    };
+    diag.show_handler = function():void{
+        diag.f.name.value = '';
+        diag.f.numbered.checked = true;
+        diag.f.name.focus();
+        setTimeout(()=>diag.f.name.focus(), 0);
+    }
+    diag.show();
+}
+
 // TAG newtrackerbutton
 document.addEventListener('DOMContentLoaded', function():void{
     const b = by_id('new-sheet-button');
     b.onclick = function():void{
+        do_new_sheet_dialog(0);
         const diag = get_dialog('tracker');
         if(!diag) return;
         diag.f.file.value = '';
@@ -1354,7 +1410,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                     return;
                 }
             }
-            EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NEW_SHEET, {id:0, name, flags, column_names:[], cells:[]}]);
+            EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NEW_SHEET, {id:0, name, flags, column_names:[], cells:[], parent:0}]);
         };
         diag.show_handler = function():void{
             diag.f.name.value = '';
@@ -1428,7 +1484,7 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
         case SpreadSheetMsgType.INITIALIZE:
             for(const ss of SPREADSHEETS.values()) ss.w.remove();
             SPREADSHEETS.clear();
-            by_id('sheet-buttons').replaceChildren();
+            SHEET_TV.clear();
             for(const d of arg[1]) spreadsheet_from_data(d);
             for(const ss of SPREADSHEETS.values()){
                 ss._dirty = true;
@@ -1459,12 +1515,7 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
             // doing it inline here?
             ss.w.remove();
             SPREADSHEETS.delete(id);
-            for(const li of by_id('sheet-buttons').getElementsByTagName('li')){
-                if(li.dataset['sheetid'] == ''+id){
-                    li.remove();
-                    break;
-                }
-            }
+            SHEET_TV.remove(id);
         }break;
     }
 });
@@ -1512,6 +1563,7 @@ function data_from_tsv(s:string):SpreadSheetData|null{
         flags: SpreadSheetFlags.ALL,
         column_names: headers,
         cells: cells,
+        parent: 0,
     };
     return result;
 }

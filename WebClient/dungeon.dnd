@@ -668,22 +668,22 @@
         <button disabled title="Previous Map" id="back-map-button">←</button>
         <button disabled title="Next Map" id="forward-map-button">→</button>
         <button title="New Map" id="new-map-button">+</button>
-        <ul id="left-maps-list">
-        </ul>
+        <div id="maps-list">
+        </div>
       </details>
     ::raw
       <details open>
         <summary>Notes</summary>
         <button title="New Note" id="new-note">+</button>
-        <ul id="left-notes-list">
-        </ul>
+        <div id="notes-list">
+        </div>
       </details>
     ::raw
       <details open>
         <summary>Sheets</summary>
         <button title="New Sheet" id="new-sheet-button">+</button>
-        <ul id="sheet-buttons">
-        </ul>
+        <div id="sheets-list">
+        </div>
       </details>
     ::raw
       <details open>

@@ -26,6 +26,7 @@ class Map(NamedTuple):
     grid_type: GridType = GridType.SQUARE
     grid_color: str = ''
     bg_color: str = ''
+    parent: int = -1
     def with_live_objs(self) -> MapDict:
         md: MapDict = self._asdict() # type: ignore
         md['objects'] = [o for o in md['objects'] if not (o[4] & CanvasFlag.DELETED)]
@@ -106,9 +107,13 @@ def set_flags(campaign:int, map_id:int, numbered:MapFlags) -> None:
         flags = m.value.flags & ~(MapFlags.BIG_HEX)
     MAPS[campaign][map_id].value = m.value._replace(flags=flags)
 
-def new_map_request(campaign:int, map_name:str, grid_type:GridType, flags:MapFlags, grid_color:str) -> int:
+def set_parent(campaign:int, map_id:int, parent:int) -> None:
+    m = MAPS[campaign][map_id]
+    MAPS[campaign][map_id].value = m.value._replace(parent=parent)
+
+def new_map_request(campaign:int, map_name:str, grid_type:GridType, flags:MapFlags, grid_color:str, parent:int) -> int:
     new_map_id = max(MAPS[campaign].keys()) + 1
-    MAPS[campaign][new_map_id] = SingleMapPersister(campaign, Map(new_map_id, [], map_name, grid_type=grid_type, flags=flags, grid_color=grid_color)).obj
+    MAPS[campaign][new_map_id] = SingleMapPersister(campaign, Map(new_map_id, [], map_name, grid_type=grid_type, flags=flags, grid_color=grid_color, parent=parent)).obj
     MAP_OBJS_BY_ID[campaign][new_map_id] = {}
     return new_map_id
 
