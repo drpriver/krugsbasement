@@ -57,6 +57,10 @@ document.addEventListener('DOMContentLoaded', function():void{
         menu.item('Cancel');
         menu.install();
     };
+    NOTE_TV.on_drop = function(id:number, parent:number|null):void{
+        if(parent === null) parent = 0;
+        EMIT(FromClient.NOTE_PARENT, {note_id:id, parent});
+    };
 });
 type NoteWindow = {
     id: number;
@@ -476,6 +480,9 @@ document.addEventListener('DOMContentLoaded', function():void{
         const window = NOTE_WINDOWS.get(data.note_id);
         if(window) window.refresh();
         NOTE_TV.rename(data.note_id, data.title);
+    });
+    ONRECV(ToClient.NOTE_PARENT, function(data:NoteParentMsg):void{
+        NOTE_TV.change_parent(data.note_id, data.parent?data.parent:null);
     });
     ONRECV(ToClient.NOTE_SHOW, function(noteid:number):void{
         const window = get_note_window(noteid);

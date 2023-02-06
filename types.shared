@@ -52,6 +52,7 @@ enum FromClient: int
     NOTE_UPDATE_BODY = 24
     DELETE_NOTE_REQUEST = 25
     NOTE_SHOW = 33
+    NOTE_PARENT = 35
     # debugging
     # ---------
     DEBUG = 26
@@ -115,6 +116,7 @@ enum ToClient: int
     GOT_NOTE = 27
     NEW_NOTE_RESPONSE = 28
     NOTE_SHOW = 39
+    NOTE_PARENT = 41
     # Init?
     API_VERSION = 35
     SPREADSHEET = 38
@@ -975,6 +977,10 @@ struct NoteUpdateBody: dict
     note_id: int
     body: str
 
+struct NoteParentMsg: dict
+    note_id: int
+    parent: int
+
 struct GatherMessage: dict
     x: int
     y: int
@@ -1071,6 +1077,7 @@ message ToClientMsg: ToClient
     API_VERSION = int
     SPREADSHEET = SpreadSheetMsg
     NOTE_SHOW = int
+    NOTE_PARENT = NoteParentMsg
 
 message FromClientMsg: FromClient
     JOIN = str
@@ -1107,6 +1114,7 @@ message FromClientMsg: FromClient
     GET_ROLL_TABLE_NAMES = void
     SPREADSHEET = SpreadSheetMsg
     NOTE_SHOW = int
+    NOTE_PARENT = NoteParentMsg
 
 enum DarkMode: int
     SYSTEM = 0
@@ -1259,3 +1267,4 @@ union SpreadSheetMsg: array
     SpreadSheetFlag
     SpreadSheetName
     SpreadSheetDelete
+    SpreadSheetParent

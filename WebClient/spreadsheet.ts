@@ -50,6 +50,10 @@ document.addEventListener('DOMContentLoaded', function():void{
         menu.item('Cancel');
         menu.install();
     };
+    SHEET_TV.on_drop = function(dropped:number, onto:number|null):void{
+        if(onto === null) onto = 0;
+        EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.PARENT, dropped, onto]);
+    };
 });
 
 type SpreadSheet = {

@@ -21,7 +21,7 @@ from . import canvas
 from . import notes
 from . import sheets
 from .persist import Persister, RepeatTimer, AppKVPersister
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize, NewNoteMsg, CanvasParentMsg
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize, NewNoteMsg, CanvasParentMsg, NoteParentMsg
 from .validator import register_list, validated, validate
 from . import db
 from .users import User
@@ -664,6 +664,14 @@ def note_update_title(data:NoteUpdateTitle) -> None:
     dlog('Updating note title. Note: %r. Room: %r. Title: %r', data['note_id'], campaign, data['title'])
     emit(ToClient.NOTE_UPDATE_TITLE, data, broadcast=True, include_self=False, to=str(campaign)) # type: ignore
     # emit(ToClient.NOTE_DIRTY, data['note_id'], broadcast=True, include_self=False, to=str(campaign))
+
+@socketio.on(FromClient.NOTE_PARENT)
+@validated
+def note_update_parent(data:NoteParentMsg) -> None:
+    campaign = get_campaign(request)
+    notes.note_update_parent(campaign, data['note_id'], data['parent'])
+    dlog('Updating note parent. Note: %r. Room: %r. parent: %r', data['note_id'], campaign, data['parent'])
+    emit(ToClient.NOTE_PARENT, data, broadcast=True, include_self=False, to=str(campaign)) # type: ignore
 
 @socketio.on(FromClient.NOTE_UPDATE_BODY)
 @validated
