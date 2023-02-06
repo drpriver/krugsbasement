@@ -21,7 +21,7 @@ from . import canvas
 from . import notes
 from . import sheets
 from .persist import Persister, RepeatTimer, AppKVPersister
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize, NewNoteMsg
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize, NewNoteMsg, CanvasParentMsg
 from .validator import register_list, validated, validate
 from . import db
 from .users import User
@@ -593,9 +593,19 @@ def change_bg_color(data:CanvasColorMsg) -> None:
     map_id = data['map_id']
     bg_color = data['color']
     campaign = get_campaign(request)
-    logging.info('Changing bg color to %r for map %r in campaign %r', bg_color, map_id, campaign)
+    dlog('Changing bg color to %r for map %r in campaign %r', bg_color, map_id, campaign)
     canvas.change_bg_color(campaign, map_id, bg_color)
     emit(ToClient.CANVAS_BG_COLOR, {'map_id':map_id, 'color':bg_color}, broadcast=True, include_self=True, to=str(campaign))
+
+@socketio.on(FromClient.CANVAS_PARENT)
+@validated
+def change_parent(data:CanvasParentMsg) -> None:
+    map_id = data['map_id']
+    parent = data['parent']
+    campaign = get_campaign(request)
+    dlog('Changing parent to %r for map %r in campaign %r', parent, map_id, campaign)
+    canvas.set_parent(campaign, map_id, parent)
+    emit(ToClient.CANVAS_PARENT, data, broadcast=True, include_self=True, to=str(campaign))
 
 
 # FIXME: wrong name, sets flags, not numbered

@@ -6,9 +6,9 @@
 // own self-contained thing.
 // (function(){
 
-let NOTE_TV : TreeView<number>;
+let NOTE_TV : TreeView;
 document.addEventListener('DOMContentLoaded', function():void{
-    NOTE_TV = make_tree_view<number>(by_id('notes-list'));
+    NOTE_TV = make_tree_view(by_id('notes-list'), 'notes');
     NOTE_TV.on_click = function(id:number):void{
         const note = NOTES.get(id);
         if(!note) return;

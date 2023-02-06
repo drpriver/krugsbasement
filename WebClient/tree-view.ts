@@ -2,50 +2,123 @@
 // Copyright © 2023, David Priver
 //
 
-type TreeItem<K> = {
+type TreeItem = {
     el: HTMLElement;
     sp: HTMLSpanElement;
-    children?: Map<K, TreeItem<K>>;
-    parent: K|null;
+    children?: Map<number, TreeItem>;
+    parent: number|null;
+    closed: boolean;
 }
 
-function ti_depth<K>(tv:TreeView<K>, ti:TreeItem<K>):number{
-    let depth = 0;
-    while(ti.parent !== null){
-        depth++;
-        ti = tv._items.get(ti.parent)!;
-        if(!ti) break;
-    }
-    return depth;
-}
-
-type TreeView<K> = {
-    on_click?:(key:K) => void;
-    on_ctxmenu?:(key:K, e:MouseEvent) => void;
-    add_item:(name:string, key:K, parent:K|null)=>void;
-    change_parent:(key:K, parent:K|null)=>void;
-    rename:(key:K, name:string)=>void;
-    remove:(key:K) => void;
-    get_sp:(key:K) => HTMLElement|null;
+type TreeView = {
+    on_click?:(key:number) => void;
+    on_ctxmenu?:(key:number, e:MouseEvent) => void;
+    on_drop?:(dropped:number, onto:number|null) => void;
+    add_item:(name:string, key:number, parent:number|null)=>void;
+    // like add_item, but doesn't rebuild the tree.
+    _add_item:(name:string, key:number, parent:number|null)=>void;
+    change_parent:(key:number, parent:number|null)=>void;
+    rename:(key:number, name:string)=>void;
+    remove:(key:number) => void;
+    get_sp:(key:number) => HTMLElement|null;
     clear:()=>void;
-    has_children:(key:K)=>boolean;
+    has_children:(key:number)=>boolean;
     _container: HTMLElement
-    _items: Map<K, TreeItem<K>>;
-    _collapse_item: (item:TreeItem<K>)=>void;
-    _expand_item: (item:TreeItem<K>)=>void;
-    _hide_item: (item:TreeItem<K>)=>void;
-    _show_item: (item:TreeItem<K>)=>void;
+    _items: Map<number, TreeItem>;
+    _collapse_item: (item:TreeItem)=>void;
+    _expand_item: (item:TreeItem)=>void;
+    // Could do this reactively or whatever, but that was just too
+    // complicated.
+    _rebuild:()=>void;
 }
 
 function
-make_tree_view<K>(_container: HTMLElement):TreeView<K>{
-    const result: TreeView<K> = {
-        add_item:(name:string, key:K, parent:K|null):void=>{
+make_tree_view(_container: HTMLElement, domain:string):TreeView{
+    const mime = 'application/krug-'+domain;
+    _container.ondragover = function(e:DragEvent):void{
+        if(!e.dataTransfer!.types.includes(mime)) return;
+        e.stopPropagation();
+        e.preventDefault();
+        e.dataTransfer!.dropEffect = 'move';
+        _container.classList.add('dragover');
+    };
+    _container.ondragleave = function(e:DragEvent):void{
+        if(!e.dataTransfer!.types.includes(mime)) return;
+        _container.classList.remove('dragover');
+    };
+    _container.ondragenter = function(e:DragEvent):void{
+        if(!e.dataTransfer!.types.includes(mime)) return;
+        e.dataTransfer!.dropEffect = 'move';
+        _container.classList.add('dragover');
+        e.stopPropagation();
+        e.preventDefault();
+    };
+    _container.ondrop = function(e:DragEvent):void{
+        if(!e.dataTransfer!.types.includes(mime)) return;
+        e.stopPropagation();
+        e.preventDefault();
+        _container.classList.remove('dragover');
+        const data = +e.dataTransfer!.getData(mime);
+        result.change_parent(data, null);
+        if(result.on_drop)
+            result.on_drop(data, null);
+    };
+    const result: TreeView = {
+        add_item:(name:string, key:number, parent:number|null):void=>{
+            result._add_item(name, key, parent);
+            result._rebuild();
+        },
+        _add_item:(name:string, key:number, parent:number|null):void=>{
             const el = elem('div', null, 'tree-item');
+            el.draggable = true;
             const tog = elem_with_parent(el, 'span', null, 'toggle');
             // tog.textContent = '•';
             tog.textContent = '▶';
             const sp = elem_parent_text(el, 'span', name, null, 'name');
+            let me = false;
+            el.ondragstart = function(e:DragEvent):void{
+                e.dataTransfer!.setData(mime, ''+key)
+                e.dataTransfer!.effectAllowed = 'move';
+                me = true;
+                el.classList.add('dragging');
+                e.stopPropagation();
+            };
+            el.ondragover = function(e:DragEvent):void{
+                if(!e.dataTransfer!.types.includes(mime)) return;
+                e.stopPropagation();
+                e.preventDefault();
+                if(me) return;
+                e.dataTransfer!.dropEffect = 'move';
+                el.classList.add('dragover');
+            };
+            el.ondragenter = function(e:DragEvent):void{
+                if(!e.dataTransfer!.types.includes(mime)) return;
+                e.preventDefault();
+                e.stopPropagation();
+                if(me) return;
+                el.classList.add('dragover');
+                e.dataTransfer!.dropEffect = 'move';
+            };
+            el.ondragleave = function(e:DragEvent):void{
+                if(!e.dataTransfer!.types.includes(mime)) return;
+                el.classList.remove('dragover');
+            };
+            el.ondragend = function(e:DragEvent):void{
+                me = false;
+                el.classList.remove('dragging');
+            };
+            el.ondrop = function(e:DragEvent):void{
+                if(!e.dataTransfer!.types.includes(mime)) return;
+                e.stopPropagation();
+                e.preventDefault();
+                el.classList.remove('dragover');
+                if(me) return;
+                const data = +e.dataTransfer!.getData(mime);
+                if(data == key) return;
+                if(result.on_drop)
+                    result.on_drop(data as number, key);
+                result.change_parent(data as number, key);
+            };
             el.onclick = function(e:MouseEvent):void{
                 // I don't know why this has to be here.
                 // Other things don't suffer from this
@@ -72,56 +145,49 @@ make_tree_view<K>(_container: HTMLElement):TreeView<K>{
             el.oncontextmenu = function(e:MouseEvent):void{
                 if(result.on_ctxmenu) result.on_ctxmenu(key, e);
             };
-            const item:TreeItem<K> = {
+            const item:TreeItem = {
                 el,
                 sp,
                 parent,
+                closed: false,
             };
             if(parent !== null && result._items.has(parent)){
                 const pitem = result._items.get(parent)!;
-                pitem.el.after(el);
                 if(!pitem.children)
                     pitem.children = new Map();
                 pitem.children.set(key, item);
-                pitem.el.classList.add('parent');
             }
-            else {
-                result._container.append(el);
-            }
-            const depth = ti_depth(result, item);
-            el.style.marginLeft = `${depth+1}em`;
             result._items.set(key, item);
         },
-        rename:(key:K, name:string):void=>{
+        rename:(key:number, name:string):void=>{
             const item = result._items.get(key);
             if(!item) return;
             item.sp.textContent = name;
         },
-        change_parent:(key:K, parent:K|null):void=>{
+        change_parent:(key:number, parent:number|null):void=>{
+            if(key === parent) return;
             const item = result._items.get(key);
             if(!item) return;
             if(item.parent === parent) return;
-            item.el.remove();
+            for(let p = parent; p !== null;){
+                if(p === key) return;
+                const it = result._items.get(p);
+                if(!it) break;
+                p = it.parent;
+            }
             if(item.parent !== null && result._items.has(item.parent)){
                 const pitem = result._items.get(item.parent)!;
                 pitem.children!.delete(key);
-                if(!pitem.children!.size)
-                    pitem.el.classList.remove('parent');
             }
             item.parent = parent;
-            const depth = ti_depth(result, item);
-            item.el.style.marginLeft = `${depth+1}em`;
-            if(parent === null || !result._items.has(parent)){
-                result._container.append(item.el);
-                return;
+            if(parent !== null && result._items.has(parent)){
+                const pitem = result._items.get(parent)!;
+                if(!pitem.children) pitem.children = new Map();
+                pitem.children.set(key, item);
             }
-            const pitem = result._items.get(parent)!;
-            if(!pitem.children) pitem.children = new Map();
-            pitem.children.set(key, item);
-            pitem.el.after(item.el);
-            pitem.el.classList.add('parent');
+            result._rebuild();
         },
-        remove:(key:K):void=>{
+        remove:(key:number):void=>{
             const item = result._items.get(key);
             if(!item) return;
             if(item.children && item.children.size) return;
@@ -134,47 +200,60 @@ make_tree_view<K>(_container: HTMLElement):TreeView<K>{
                     pitem.el.classList.remove('parent');
                 item.parent = null;
             }
-            if(item.children){
-                for(const it of item.children.keys())
-                    result.remove(it);
-            }
         },
         clear:():void=>{
             result._container.replaceChildren();
             result._items.clear();
         },
-        get_sp:(key:K):HTMLElement|null=>{
+        get_sp:(key:number):HTMLElement|null=>{
             const it = result._items.get(key);
             return it?it.sp:null;
         },
-        has_children:(key:K):boolean=>{
+        has_children:(key:number):boolean=>{
             const it = result._items.get(key);
             return !!(it && it.children && it.children.size);
         },
-        // This logic is buggy in the presence of nested lists.
-        _hide_item:(item:TreeItem<K>):void=>{
-            item.el.classList.add('hidden');
-            if(!item.children) return;
-            for(const ch of item.children.values())
-                result._hide_item(ch);
-        },
-        _show_item:(item:TreeItem<K>):void=>{
-            item.el.classList.remove('hidden');
-            if(!item.children) return;
-            for(const ch of item.children.values())
-                result._show_item(ch);
-        },
-        _collapse_item:(item:TreeItem<K>):void=>{
+        _collapse_item:(item:TreeItem):void=>{
             if(!item.children || !item.children.size) return;
-            item.el.classList.add('closed');
-            for(const ch of item.children.values())
-                result._hide_item(ch);
+            item.closed = true;
+            result._rebuild();
         },
-        _expand_item:(item:TreeItem<K>):void=>{
-            item.el.classList.remove('closed');
+        _expand_item:(item:TreeItem):void=>{
             if(!item.children || !item.children.size) return;
-            for(const ch of item.children.values())
-                result._show_item(ch);
+            item.closed = false;
+            result._rebuild();
+        },
+        _rebuild:():void=>{
+            result._container.replaceChildren();
+            const toplevel = [];
+            for(const it of result._items.values()){
+                if(it.parent !== null && result._items.has(it.parent))
+                    continue;
+                toplevel.push(it);
+            }
+            function addit(items:Array<TreeItem>, depth:number):void{
+                for(const it of items){
+                    result._container.append(it.el);
+                    if(!it.children || !it.children.size){
+                        it.el.classList.remove('parent');
+                        it.el.style.marginLeft = `${depth}em`;
+                    }
+                    else {
+                        it.el.style.marginLeft = `${depth+1}em`;
+                    }
+                    if(it.closed){
+                        it.el.classList.add('closed');
+                        continue;
+                    }
+                    it.el.classList.remove('closed');
+                    if(!it.children || !it.children.size)
+                        continue;
+                    it.el.classList.add('parent');
+                    const children = Array.from(it.children.values());
+                    addit(children, depth+1);
+                }
+            }
+            addit(toplevel, 0);
         },
         _container,
         _items: new Map(),

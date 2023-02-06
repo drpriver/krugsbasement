@@ -1096,6 +1096,7 @@ message FromClientMsg: FromClient
     CANVAS_DELETE_MAP_REQUEST = int
     CANVAS_BATTLE = GatherMessage
     CANVAS_DUNGEON_MODE = void
+    CANVAS_PARENT = CanvasParentMsg
     GET_NOTE = int
     NEW_NOTE_REQUEST = int
     NOTE_UPDATE_TITLE = NoteUpdateTitle

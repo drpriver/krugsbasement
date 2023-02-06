@@ -9,9 +9,9 @@ const {
     request_render,
     resize_canvas,
 } = (function(){
-let CANV_TV: TreeView<number>;
+let CANV_TV: TreeView;
 document.addEventListener('DOMContentLoaded', function(){
-    CANV_TV = make_tree_view<number>(by_id('maps-list'));
+    CANV_TV = make_tree_view(by_id('maps-list'), 'maps');
     CANV_TV.on_click = function(map_id:number){
         change_map(map_id);
     };
@@ -33,6 +33,9 @@ document.addEventListener('DOMContentLoaded', function(){
         menu.separator();
         menu.item('Cancel');
         menu.install();
+    };
+    CANV_TV.on_drop = function(dropped:number, onto:number|null):void{
+        EMIT(FromClient.CANVAS_PARENT, {map_id:dropped, parent:onto!==null?onto:-1});
     };
 });
 if(SETTINGS.uimode != UiMode.NORMAL){
@@ -2851,8 +2854,6 @@ function initialize_maps(msgs:Array<InitializeMap>):void{
         map.bg_color = msg.bg_color;
         map.parent = msg.parent;
         rename_map(map, msg.map_name);
-        if(map.parent >= 0)
-            CANV_TV.change_parent(map_id, map.parent);
         const objs = msg.objects;
         const length = objs.length;
         for(let i = 0; i < length; ++i){
@@ -2867,6 +2868,10 @@ function initialize_maps(msgs:Array<InitializeMap>):void{
             if(obj.type == CanvasType.SUBMAP)
                 map.submaps.push(obj)
         }
+    }
+    for(const msg of msgs){
+        if(msg.parent >= 0)
+            CANV_TV.change_parent(msg.map_id, msg.parent);
     }
     let old_idx = get_local(StorageCategory.CANVAS, 'active_map_view_index');
     if(old_idx !== undefined){

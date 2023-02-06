@@ -51,6 +51,17 @@ function set_chat_vis(show:boolean):void{
 }
 document.addEventListener('DOMContentLoaded', function():void{
     set_chat_vis(!!get_local(StorageCategory.SETTINGS, 'hidechat'));
+    // XXX this doesn't go in this file.
+    window.ondragend = function(e:DragEvent):void{
+        e.preventDefault();
+    };
+    window.ondrop = function(e:DragEvent):void{
+        e.preventDefault();
+    };
+    window.ondragover = function(e:DragEvent):void{
+        e.dataTransfer!.effectAllowed = 'none';
+        e.preventDefault();
+    };
 });
 
 document.addEventListener('DOMContentLoaded', function():void{

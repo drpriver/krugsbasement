@@ -1324,8 +1324,10 @@ body.dark-mode .tracker-numbered {
 }
 #left details {
   border-bottom: 1px solid black;
-  padding: 1ch;
   width: 100%;
+}
+#left summary {
+  padding: 1ch;
 }
 #left li {
   cursor: pointer;
@@ -1391,6 +1393,10 @@ body.dark-mode .tracker-numbered {
 #maps-list, #notes-list, #sheets-list {
   display: grid;
   grid-template-columns: 100%;
+  margin: 0;
+  padding: 8px 8px 32px;
+  width: 100%;
+  border: 1px solid rgba(0,0,0,0);
 }
 div.tree-item {
   cursor: pointer;
@@ -1435,9 +1441,24 @@ div.tree-item.parent .toggle {
   background: none;
   /*font-size: 16px;*/
 }
-.toggle:hover {
-  background-color: #ccc;
+div.tree-item {
+  border: 1px solid rgba(0, 0, 0, 0);
 }
-.toggle:hover {
-  background-color: #222;
+#maps-list.dragover,
+#notes-list.dragover,
+#sheets-list.dragover,
+.dragover,
+div.tree-item.dragover {
+  /*this is kind of ugly, but whatever*/
+  border: 1px solid rgb(80, 140, 140);
+  background-color: rgba(0,0,0,0.3);
+}
+
+div.tree-item.dragging {
+  /*border: 1px solid green;*/
+  background-color: #e8e8e8;
+}
+
+body.dark-mode div.tree-item.dragging {
+  background-color: #444;
 }

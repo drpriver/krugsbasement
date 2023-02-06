@@ -2,9 +2,9 @@
 // Copyright © 2023, David Priver
 //
 
-let SHEET_TV: TreeView<number>;
+let SHEET_TV: TreeView;
 document.addEventListener('DOMContentLoaded', function():void{
-    SHEET_TV = make_tree_view<number>(by_id('sheets-list'));
+    SHEET_TV = make_tree_view(by_id('sheets-list'), 'sheets');
     SHEET_TV.on_click = function(id:number):void{
         const ss = SPREADSHEETS.get(id);
         if(ss) ss.show();
