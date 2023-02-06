@@ -11,6 +11,10 @@ Archives: ; $(MKDIR) $@
 DEPFILES:= $(wildcard Depends/*.dep Depends/Generated/*.dep)
 include $(DEPFILES)
 
+TSC?=npx tsc
+TERSER?=npx terser
+NPM?=npm
+
 # paper over OS difference in shell commands
 ifneq ($(OS),Windows_NT)
 # linux/macos
@@ -20,9 +24,6 @@ MKDIR=mkdir -p
 # using `.` is the portable way to source a shell file
 DEV_ACTIVATE=. dev_venv/bin/activate
 SERV_ACTIVATE=. serv_venv/bin/activate
-TSC?=npx tsc
-TERSER?=npx terser
-NPM?=npm
 RMRF=rm -rf
 
 else
@@ -32,11 +33,7 @@ CP=$(PY) Scripts/wincpy.py
 MKDIR=$(PY) Scripts/winmkdir.py
 DEV_ACTIVATE=dev_venv\Scripts\activate
 SERV_ACTIVATE=serv_venv\Scripts\activate
-TSC?=npx tsc
-TERSER?=npx terser
-NPM?=npm
 RMRF=$(PY) Scripts/winrmrf.py
-
 endif
 
 node_modules:
@@ -69,7 +66,7 @@ TSCFLAGS:=--noImplicitAny \
 	  --removeComments \
 	  --target es2021 \
 	  --noEmitOnError \
-	  --strictFunctionTypes
+	  --strictFunctionTypes --pretty false
 # NOTE(dpriver): the order does matter (but this is not the only valid order).
 TSFILES:= WebClient/socket.d.ts \
 	  WebClient/settings.ts \
