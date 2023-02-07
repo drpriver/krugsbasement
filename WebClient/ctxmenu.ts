@@ -43,7 +43,7 @@ function ctx_menu(e:MouseEvent):CtxMenu{
         item:function(txt:string, cb?:(()=>void)|((e:MouseEvent)=>void)):void{
             const d = elem_parent_text(result.menu, 'section', txt, null, 'menuitem');
             d.tabIndex = -1;
-            d.onkeydown = function(e:KeyboardEvent){
+            d.onkeydown = function(e:KeyboardEvent):void{
                 if(e.key == 'Enter' || e.key == ' '){
                     e.preventDefault();
                     e.stopPropagation();

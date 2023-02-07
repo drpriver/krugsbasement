@@ -18,7 +18,9 @@ function evaluate(text:string, character_id:number, macro_id:number, outarray:Ar
 
 const {
     add_chat_msgs,
-} = (function(){
+} = (function():{
+    add_chat_msgs:(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:string, __:number, ___:number)=>void)=>void;
+}{
 
 
 function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:string, __:number, ___:number)=>void):void{

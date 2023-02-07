@@ -8,7 +8,7 @@ let show_pan = (function():boolean{
     return sp === '1';
 })();
 
-(function(){
+(function():void{
 // idk where to put this
 let SHOW_ZOOMERS = false;
 function set_zoomers(show:boolean):void{

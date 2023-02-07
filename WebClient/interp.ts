@@ -6,7 +6,7 @@
 // Definitions for Binary and Unary are shared between
 // client and server and so are in the shared types.
 //
-const evaluate_script = (function(){
+const evaluate_script = (function():(text:string, vars:Map<string, number|string>, namespaces:Map<string, Map<string,number|string>>)=>Array<Command>{
     const enum TokenKind {
         // 0 is reserved for "not a token"
         IDENT    =  1,

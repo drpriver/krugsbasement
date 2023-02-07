@@ -4,7 +4,7 @@
 
 // Don't bother trying to split notes into core vs. ui as they are their
 // own self-contained thing.
-// (function(){
+(function():void{
 
 let NOTE_TV : TreeView;
 document.addEventListener('DOMContentLoaded', function():void{
@@ -334,7 +334,7 @@ function get_note_window(id:number):NoteWindow{
     return window;
 }
 
-const make_dnd_html = (function(){
+const make_dnd_html = (function():(text:string, cb:(_:string, __:Array<string>)=>void)=>void{
     let wasm_instance: WebAssembly.Instance;
     const decoder = new TextDecoder();
     const encoder = new TextEncoder();
@@ -490,4 +490,4 @@ document.addEventListener('DOMContentLoaded', function():void{
         window.show();
     });
 });
-// }());
+}());

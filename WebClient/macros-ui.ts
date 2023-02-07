@@ -2,7 +2,7 @@
 // Copyright © 2021-2023, David Priver
 //
 
-(function(){
+(function():void{
 
 type MacroWindow = {
     cid: number;

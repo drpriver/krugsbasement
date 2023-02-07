@@ -10,12 +10,12 @@ const {
     resize_canvas,
 } = (function(){
 let CANV_TV: TreeView;
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', function():void{
     CANV_TV = make_tree_view(by_id('maps-list'), 'maps');
-    CANV_TV.on_click = function(map_id:number){
+    CANV_TV.on_click = function(map_id:number):void{
         change_map(map_id);
     };
-    CANV_TV.on_ctxmenu = function(map_id:number, e:MouseEvent){
+    CANV_TV.on_ctxmenu = function(map_id:number, e:MouseEvent):void{
         const menu = ctx_menu(e);
         menu.item('Configure', function():void{
             edit_map_dialog(MAPS.get(map_id)!);
@@ -1137,18 +1137,19 @@ function update_disabled_forward_back():void{
 
 // Map History stack for going forward and backward when clicking on map links
 // or using the map changer dropdown.
-const map_hist = (function(){
-    const h:{
-        idx: number;
-        ids: Array<number>;
-        go_back:()=>void;
-        go_forward:()=>void;
-        can_go_back:()=>boolean;
-        can_go_forward:()=>boolean;
-        add:(_:number)=>void;
-        clear:()=>void;
-        discard:(_:number)=>void;
-    } = {
+type MapHistory = {
+    idx: number;
+    ids: Array<number>;
+    go_back:()=>void;
+    go_forward:()=>void;
+    can_go_back:()=>boolean;
+    can_go_forward:()=>boolean;
+    add:(_:number)=>void;
+    clear:()=>void;
+    discard:(_:number)=>void;
+};
+const map_hist = (function():MapHistory{
+    const h:MapHistory = {
         idx: -1,
         ids: [],
         go_back:()=>{
@@ -6786,7 +6787,7 @@ const enum ToolType {
     ARC     = 16,
 }
 const enum TOOLTYPE { MAX = 17}
-const TOOL_IDS_TO_TOOL = (function(){
+const TOOL_IDS_TO_TOOL = (function():Map<string, ToolType>{
     const m: Map<string, ToolType> = new Map();
     m.set('pan-tool',     ToolType.PAN);
     m.set('select-tool',  ToolType.SELECT);
@@ -6871,7 +6872,7 @@ const RECTTYPE_TO_NAME = [
     'Filled',
 ];
 let current_rect_type = RECTTYPE.HOLLOW;
-let current_tool:ToolType = (function(){
+let current_tool:ToolType = (function():ToolType{
     let t = get_global(StorageCategory.CANVAS, 'current_tool');
     if(t === undefined)
         t = localStorage.getItem('current_tool');
@@ -7147,7 +7148,8 @@ function change_tool(tool:ToolType):void{
     color_picker2_.value = secondary;
     redo_canvas_cursor(get_active_view(), true);
 }
-function make_tri_menu(e:MouseEvent, options:Array<{func:()=>void;text:string}>):void{
+type TriItem = {func:()=>void; text:string;};
+function make_tri_menu(e:MouseEvent, options:Array<TriItem>):void{
     const menu = ctx_menu(e);
     for(let i = 0; i < options.length; ++i){
         const option = options[i];
@@ -7258,7 +7260,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 return cb;
             }
             name.addEventListener('click', function(e:MouseEvent):void{
-                make_tri_menu(e, (function(){
+                make_tri_menu(e, (function():Array<TriItem>{
                     const a = [];
                     for(let i = 0; i < t_max; i++){
                         a.push({func:make_cb(i), text:t_to_name[i]});
@@ -7459,7 +7461,7 @@ function hiddenid():number {
 
 let GRABBING = false;
 let SELECTING = false;
-const redo_canvas_cursor = (function(){
+const redo_canvas_cursor = (function():(view:DungeonMapView, modified:boolean)=>void{
     let prev_id = -1;
     function redo_canvas_cursor(view: DungeonMapView, modified:boolean):void{
         if(view.resize.resizing) return;
@@ -7554,7 +7556,7 @@ document.addEventListener('DOMContentLoaded', function():void{
     TheCanvas = document.getElementsByTagName('canvas')[0]!;
     let gesturing = false;
     let stop_pan: (()=>void)| null = null;
-    (function(){
+    (function():void{
         let start_scale = 1.0;
         let start_x = 0;
         let start_y = 0;
@@ -9363,7 +9365,7 @@ document.addEventListener('DOMContentLoaded', function():void{
             });
             menu.separator();
         }
-        menu.item('Add Submap', function(){
+        menu.item('Add Submap', function():void{
             do_new_map_dialog(view.map.map_id);
         });
         menu.separator();
@@ -9464,7 +9466,7 @@ function edit_map_dialog(map:DungeonMap):void{
     dialog.show();
 }
 
-function do_new_map_dialog(parent:number){
+function do_new_map_dialog(parent:number):void{
     let dialog = get_dialog('map-input');
     if(!dialog) return;
     dialog.title.textContent = 'New Map';

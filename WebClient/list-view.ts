@@ -32,7 +32,7 @@ function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):Li
         active: undefined,
         column: listcontainer,
         items: [],
-        index_of: function(k:K){
+        index_of: function(k:K):number{
             for(let i = 0; i < result.items.length; i++){
                 if(result.items[i][0] === k)
                     return i;
@@ -92,7 +92,7 @@ function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):Li
             };
             if(flags & ListViewFlags.FOCUSABLE){
                 el.tabIndex = 0;
-                el.onfocus = function(){
+                el.onfocus = function():void{
                     result.make_active(key);
                 };
                 el.onkeydown = function(e:KeyboardEvent):void{

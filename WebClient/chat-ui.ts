@@ -5,7 +5,7 @@
 
 const {
     preprocess_and_send_chat,
-} = (function(){
+} = (function():{preprocess_and_send_chat:(text:string, character_id:number, macro_id:number)=>void}{
 ONRECV(ToClient.CHAT_STRUCTURED_MSG, function(msgs:Array<ChatMsg>):void{
     const log = by_id('chat-history');
     add_chat_msgs(log, msgs, preprocess_and_send_chat);

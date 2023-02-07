@@ -1,7 +1,7 @@
 //
 // Copyright © 2021-2023, David Priver
 //
-(function(){
+(function():void{
 // TAG chat
 document.addEventListener('DOMContentLoaded', function():void{
     let USERS: Map<number, string> = new Map();
@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function():void{
     let lv = make_list_view<number>(targets, ListViewFlags.NONE);
     let shtbs = by_id('privateroll-tables-shared');
     let prtbs = by_id('privateroll-tables-private');
-    by_id('privateroll-button').addEventListener('click', function(){
+    by_id('privateroll-button').addEventListener('click', function():void{
         privateroll.show();
     });
     privateroll.outer.style.width = '30em';
@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function():void{
             EMIT(FromClient.CHAT_DM, to_send);
         }
     }
-    lv.activate_handler = function(k:number|undefined){
+    lv.activate_handler = function(k:number|undefined):void{
         if(k === undefined) return;
         log.innerHTML = '';
         let msgs = chats.get(k);
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         hist.set_history(h?h:[]);
         if(!IS_TOUCH)chat.focus();
     };
-    ONRECV(ToClient.CHAT_DIRECT_MSG, function(msg:ChatDirectResponse){
+    ONRECV(ToClient.CHAT_DIRECT_MSG, function(msg:ChatDirectResponse):void{
         let from = msg.users[0];
         let to   = msg.users[1];
         let user = (from == SETTINGS.userid)? to : from;
@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 if(should_add){
                     let d = elem_with_parent(noti, 'div');
                     let i_el = elem_parent_text(d, 'i', text);
-                    i_el.onclick = function(){
+                    i_el.onclick = function():void{
                         lv.make_active(user);
                         privateroll.show();
                     }
@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function():void{
     });
     let chat = by_id('privateroll-input');
     let hist = setup_chat(chat, preproc_func);
-    privateroll.show_handler = function(){
+    privateroll.show_handler = function():void{
         EMIT(FromClient.GET_ROLL_TABLE_NAMES);
         for(let e of notifications)
             e.remove()
@@ -122,25 +122,25 @@ document.addEventListener('DOMContentLoaded', function():void{
             prtbs,
         ]
     );
-    listen_for(ListenEvent.ROLLTABLES_RENAMED, function(){
+    listen_for(ListenEvent.ROLLTABLES_RENAMED, function():void{
         shtbs.innerHTML = '';
         prtbs.innerHTML = '';
         for(let tb of ROLLTABLES.shared){
             let name = tb.name;
             let b = elem_parent_text(shtbs, 'button', name);
-            b.addEventListener('click', function(){
+            b.addEventListener('click', function():void{
                 preproc_func(`table ${name}`, -1, -1);
             });
         }
         for(let tb of ROLLTABLES.private){
             let name = tb.name;
             let b = elem_parent_text(prtbs, 'button', name);
-            b.addEventListener('click', function(){
+            b.addEventListener('click', function():void{
                 preproc_func(`mytable ${name}`, -1, -1);
             });
         }
     });
-    ONRECV(ToClient.USER_LIST, function(users:Array<UserListItem>){
+    ONRECV(ToClient.USER_LIST, function(users:Array<UserListItem>):void{
         lv.clear();
         log.innerHTML = '';
         for(let [uid, _] of users){
@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         }
         lv.make_active(users[0][0]);
     });
-    ONRECV(ToClient.USER_RENAME, function(user:UserListItem){
+    ONRECV(ToClient.USER_RENAME, function(user:UserListItem):void{
         let [uid, chatname] = user;
         if(!chats.has(uid)){
             chats.set(uid, []);
@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         USERS.set(uid, chatname);
         lv.rename(uid == SETTINGS.userid?`${chatname} (Me) `: chatname, uid);
     });
-    ONRECV(ToClient.CHAT_PRIVATE_CREATE, function(data:Array<ChatHistory>){
+    ONRECV(ToClient.CHAT_PRIVATE_CREATE, function(data:Array<ChatHistory>):void{
         for(let [uid, msgs] of data){
             chats.set(uid, msgs);
         }
