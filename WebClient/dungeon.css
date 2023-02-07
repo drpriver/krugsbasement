@@ -1443,6 +1443,7 @@ div.tree-item.parent .toggle {
 }
 div.tree-item {
   border: 1px solid rgba(0, 0, 0, 0);
+  border-radius: 8px;
 }
 #maps-list.dragover,
 #notes-list.dragover,
@@ -1451,6 +1452,14 @@ div.tree-item {
 div.tree-item.dragover {
   /*this is kind of ugly, but whatever*/
   border: 1px solid rgb(80, 140, 140);
+  background-color: rgba(0,0,0,0.05);
+  border-radius: 0px;
+}
+body.dark-mode #maps-list.dragover,
+body.dark-mode #notes-list.dragover,
+body.dark-mode #sheets-list.dragover,
+body.dark-mode .dragover,
+body.dark-mode div.tree-item.dragover {
   background-color: rgba(0,0,0,0.3);
 }
 
