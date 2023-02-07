@@ -149,7 +149,7 @@ make_tree_view(_container: HTMLElement, domain:string):TreeView{
                 el,
                 sp,
                 parent,
-                closed: false,
+                closed: true,
             };
             if(parent !== null && result._items.has(parent)){
                 const pitem = result._items.get(parent)!;
@@ -182,7 +182,8 @@ make_tree_view(_container: HTMLElement, domain:string):TreeView{
             item.parent = parent;
             if(parent !== null && result._items.has(parent)){
                 const pitem = result._items.get(parent)!;
-                if(!pitem.children) pitem.children = new Map();
+                if(!pitem.children)
+                    pitem.children = new Map();
                 pitem.children.set(key, item);
             }
             result._rebuild();
@@ -239,6 +240,7 @@ make_tree_view(_container: HTMLElement, domain:string):TreeView{
                         it.el.style.marginLeft = `${depth}em`;
                     }
                     else {
+                        it.el.classList.add('parent');
                         it.el.style.marginLeft = `${depth+1}em`;
                     }
                     if(it.closed){
@@ -248,7 +250,6 @@ make_tree_view(_container: HTMLElement, domain:string):TreeView{
                     it.el.classList.remove('closed');
                     if(!it.children || !it.children.size)
                         continue;
-                    it.el.classList.add('parent');
                     const children = Array.from(it.children.values());
                     addit(children, depth+1);
                 }
