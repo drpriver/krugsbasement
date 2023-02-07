@@ -1,8 +1,0 @@
-Changelog::kv
-  bug.py: v0.0.1
-  created: 2022-01-25T03:19:47.176273
-  wontfix: 2022-01-25T03:34:53.196710
-Summary::md.summary
-  Add way to shutdown server without ctrl-c
-WONTFIX Jan 25, 2022, 03:34AM::md.update
-  Actually I just made ctrl-c work.
