@@ -744,21 +744,13 @@ const enum GRIDSCALE {
     FIVE = 0,
     TEN  = 1,
 };
-let gridscale = GRIDSCALE.TEN;
-function change_gridscale(newscale:GRIDSCALE):void{
-    gridscale = newscale;
-    switch(gridscale){
-        case GRIDSCALE.FIVE:
-            visually_set_snapmode(SNAPMODE.HALF);
-            break;
-        case GRIDSCALE.TEN:
-            visually_set_snapmode(SNAPMODE.GRID);
-            break;
-    }
+function change_gridscale(view: DungeonMapView, newscale:GRIDSCALE):void{
+    if(view.gridscale !== newscale)
+        store_local(StorageCategory.CANVAS, `gridscale.${view.map.map_id}`, newscale);
+    view.gridscale = newscale;
     request_render();
 }
 function visually_set_gridscale(newscale:GRIDSCALE):void{
-    // change_gridscale(newscale);
     switch(newscale){
         case GRIDSCALE.TEN:{
             const g = by_id('grid-10');
@@ -995,6 +987,7 @@ type DungeonMapView = {
     camera_x: number;
     camera_y: number;
     scale: number;
+    gridscale: GRIDSCALE;
     selected: Set<number>;
     selection_area: {
         is_selecting: boolean;
@@ -1034,6 +1027,7 @@ function new_map_view(map_id:number): DungeonMapView{
         camera_x: 0,
         camera_y: 0,
         scale: 0.5,
+        gridscale: GRIDSCALE.TEN,
         selected: new Set(),
         selection_area: {
             select_one: false,
@@ -1088,6 +1082,11 @@ function change_active_map_view(idx: number, store:boolean):void{
         catch(e){
         }
     }
+    let gs = get_local(StorageCategory.CANVAS, `gridscale.${view.map.map_id}`);
+    if(gs !== undefined && typeof gs === 'number' && (gs == 0 || gs == 1)){
+        view.gridscale = gs;
+    }
+    visually_set_gridscale(view.gridscale);
     request_render();
 }
 function get_active_view(): DungeonMapView{
@@ -4569,8 +4568,8 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 let height = +dialog.f.height.value;
                 if(!width) width = 1;
                 if(!height) height = 1;
-                if(!width || width < 0) width = gridscale == GRIDSCALE.TEN?1:0.5;
-                if(!height || height < 0) height = gridscale == GRIDSCALE.TEN?1:0.5;
+                if(!width || width < 0) width = view.gridscale == GRIDSCALE.TEN?1:0.5;
+                if(!height || height < 0) height = view.gridscale == GRIDSCALE.TEN?1:0.5;
                 obj.width = width;
                 obj.height = height;
                 const color = dialog.f.color.value;
@@ -4630,8 +4629,8 @@ function launch_edit_dialog(view:DungeonMapView):void{
             dialog.ok_handler = function():void{
                 let width  = +dialog.f.width.value;
                 let height = +dialog.f.height.value;
-                if(!width || width < 0) width = gridscale == GRIDSCALE.TEN?1:0.5;
-                if(!height || height < 0) height = gridscale == GRIDSCALE.TEN?1:0.5;
+                if(!width || width < 0) width = view.gridscale == GRIDSCALE.TEN?1:0.5;
+                if(!height || height < 0) height = view.gridscale == GRIDSCALE.TEN?1:0.5;
                 obj.width = width;
                 obj.height = height;
                 obj.statusflags = flags_after;
@@ -4761,6 +4760,7 @@ function screenshot_canvas(view:DungeonMapView):void{
             map: view.map,
             camera_x: 0,
             camera_y: 0,
+            gridscale: GRIDSCALE.TEN,
             scale: 1,
             selected: new Set(),
             selection_area: {is_selecting: false, select_one: false, x0: 0, x1: 0, y0: 0, y1: 0, submap: 0},
@@ -4869,6 +4869,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
     const camera_x = view.camera_x;
     const camera_y = view.camera_y;
     const scale = view.scale;
+    const gridscale = view.gridscale;
     const width = ctx.canvas.width;
     const height = ctx.canvas.height;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -8653,8 +8654,8 @@ document.addEventListener('DOMContentLoaded', function():void{
                     if(!dialog) return;
                     dialog.title.textContent = 'Enter Token';
                     dialog.f.color.value = ez_token_color;
-                    dialog.f.width.value = gridscale == GRIDSCALE.TEN?'1':'0.5';
-                    dialog.f.height.value = gridscale == GRIDSCALE.TEN?'1':'0.5';
+                    dialog.f.width.value = view.gridscale == GRIDSCALE.TEN?'1':'0.5';
+                    dialog.f.height.value = view.gridscale == GRIDSCALE.TEN?'1':'0.5';
                     dialog.f.text.value = '';
                     dialog.show_handler = function():void{
                         if(!IS_TOUCH) dialog.f.text.focus();
@@ -8664,8 +8665,8 @@ document.addEventListener('DOMContentLoaded', function():void{
                         if(!text) return;
                         let width  = +dialog.f.width.value;
                         let height = +dialog.f.height.value;
-                        if(!width || width < 0) width = gridscale == GRIDSCALE.TEN?1:0.5;
-                        if(!height || height < 0) height = gridscale == GRIDSCALE.TEN?1:0.5;
+                        if(!width || width < 0) width = view.gridscale == GRIDSCALE.TEN?1:0.5;
+                        if(!height || height < 0) height = view.gridscale == GRIDSCALE.TEN?1:0.5;
                         const color = dialog.f.color.value;
                         let id = get_new_id();
                         ez_token_color = color;
@@ -8687,8 +8688,8 @@ document.addEventListener('DOMContentLoaded', function():void{
                     dialog.hide_handler = function():void{
                         gallery.innerHTML = '';
                     };
-                    dialog.f.width.value = gridscale == GRIDSCALE.TEN?'1':'0.5';
-                    dialog.f.height.value = gridscale == GRIDSCALE.TEN?'1':'0.5';
+                    dialog.f.width.value = view.gridscale == GRIDSCALE.TEN?'1':'0.5';
+                    dialog.f.height.value = view.gridscale == GRIDSCALE.TEN?'1':'0.5';
                     dialog.f.url.value = '';
                     function add_img_buttons():void{
                         if(PACKED){
@@ -8713,8 +8714,8 @@ document.addEventListener('DOMContentLoaded', function():void{
                         let snap = get_snap_tl_func();
                         let w = +dialog.f.width.value;
                         let h = +dialog.f.height.value;
-                        if(!w || w < 0) w = gridscale == GRIDSCALE.TEN?1:0.5;
-                        if(!h || h < 0) h = gridscale == GRIDSCALE.TEN?1:0.5;
+                        if(!w || w < 0) w = view.gridscale == GRIDSCALE.TEN?1:0.5;
+                        if(!h || h < 0) h = view.gridscale == GRIDSCALE.TEN?1:0.5;
                         add_img_token(view.map, id, snap(x0), snap(y0), submapid, text, w, h);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
@@ -8912,7 +8913,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                                 hidinguser: hiddenid(),
                                 submap:submapid,
                                 color: get_primary_color(),
-                                size: gridscale == GRIDSCALE.TEN?1:0.5,
+                                size: view.gridscale == GRIDSCALE.TEN?1:0.5,
                             };
                             add_canv_obj(view.map, filled);
                         }break;
@@ -9226,7 +9227,7 @@ document.addEventListener('DOMContentLoaded', function():void{
             whenflags |= CONTEXTMENUWHENFLAGS.MULTIPLE_SELECTED;
         if(view.selected.size == 1)
             whenflags |= CONTEXTMENUWHENFLAGS.ONE_SELECTED;
-        if(gridscale == GRIDSCALE.TEN)
+        if(view.gridscale == GRIDSCALE.TEN)
             whenflags |= CONTEXTMENUWHENFLAGS.GRID_TEN;
         else
             whenflags |= CONTEXTMENUWHENFLAGS.GRID_FIVE;

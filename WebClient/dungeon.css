@@ -321,7 +321,7 @@ span.color-picker-dropdown {
 * {
   box-sizing: border-box;
 }
-.tool b, .scale b{
+.tool b, #scale b{
   /* wow this is a total hackjob */
   text-decoration: underline;
   font-weight: initial;
@@ -489,10 +489,10 @@ button {
   background-color: rgba(255, 255, 255);
   pointer-events: auto;
 }
-#tools input {
+#scale input, #tools input {
   padding: 0px;
 }
-#stuff input {
+#scale input, #stuff input {
   pointer-events: auto;
   padding: 0px;
   max-width: 3em;
@@ -505,7 +505,7 @@ button {
   bottom: 2px;
   left: 5px;
 }
-#tool-container label, #tool-container button {
+#scale label, #tool-container label, #tool-container button {
   pointer-events:auto;
 }
 div.tool-menu{
@@ -534,10 +534,12 @@ div.tool {
 #tools > div.tool.selected:hover {
   background-color: #f8f8f8;
 }
+#scale input[type="radio"]:checked+label,
 #stuff input[type="radio"]:checked+label {
   background-color: #fff;
   box-shadow: inset 1px 2px 3px rgba(0,0,0,0.3);
 }
+#scale input[type="radio"]+label,
 #stuff input[type="radio"]+label {
   background-color: #eee;
   box-shadow: 1px 2px 3px rgba(0,0,0,0.3);
@@ -545,10 +547,15 @@ div.tool {
   cursor: pointer;
   padding: 4px;
 }
+#scale input[type="radio"],
 #stuff input[type="radio"] {
   display: none;
 }
-div.scale {
+#scale {
+  position:fixed;
+  bottom: 0;
+  left: 200px;
+  z-index: 1;
   text-align: center;
   padding: 4px;
   height: auto;
@@ -556,8 +563,9 @@ div.scale {
   grid-template-rows: 1fr 1fr;
   grid-template-columns: auto 1fr 1fr 1fr 1fr;
   align-items: center;
+  font-size: 1px;
 }
-div.scale div {
+#scale div {
   background-color: #eee;
   padding: 5px;
 }
@@ -944,7 +952,7 @@ table.ngroup {
 }
 
 /*@media (prefers-color-scheme: dark) {*/
-  body.dark-mode #map {
+  body.dark-mode #map, body.dark-mode #map2 {
     background-color: #333;
   }
   body.dark-mode #tools {
@@ -968,16 +976,19 @@ table.ngroup {
   body.dark-mode #tools > div.tool.selected:hover {
     background-color: #ccc;
   }
+  body.dark-mode #scale input[type="radio"]:checked+label,
   body.dark-mode #stuff input[type="radio"]:checked+label {
     background-color: #333;
   }
+  body.dark-mode #scale input[type="radio"]+label,
   body.dark-mode #stuff input[type="radio"]+label {
     background-color: #888;
   }
+  /*body.dark-mode #scale input[type="radio"]+label:hover,*/
   body.dark-mode #stuff input[type="radio"]+label:hover {
     background-color: #666;
   }
-  body.dark-mode div.scale div {
+  body.dark-mode #scale div {
     background-color: #888;
   }
   body.dark-mode section.menu {
