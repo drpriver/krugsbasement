@@ -1,7 +1,8 @@
 Changelog::kv
-  updated: 2022-01-04T00:07:23.151875
-  wontfix: 2022-04-07T07:35:45Z
-  reopen:  2023-02-07T21:51:32Z
+  updated:  2022-01-04T00:07:23.151875
+  wontfix:  2022-04-07T07:35:45Z
+  reopen:   2023-02-07T21:51:32Z
+  resolved: 2023-02-10T06:41:16Z
 Summary::md .summary
   It'd be cool to have a split screen so you can show multiple maps at once or
   the same map more than once (buffers).
@@ -14,3 +15,6 @@ WontFix Apr 07, 2022, 03:35AM::md .update
 
 Reopened Feb 07, 2023, 01:51PM::md .update
   This is actually a better way of doing submaps.
+
+Resolved Feb 09, 2023, 10:41PM::md .update
+  Basic version implemented, might be some outstanding bugs.

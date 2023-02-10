@@ -531,6 +531,7 @@
 
 ::raw
   <canvas id="map"></canvas>
+  <canvas id="map2"></canvas>
 ::div #id(scale)
   ::raw
     <div>Scale:</div>

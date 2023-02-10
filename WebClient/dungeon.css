@@ -332,13 +332,18 @@ span.color-picker-dropdown {
 .tool-menu {
   grid-column: 2;
 }
-#map {
+#map, #map2{
   background-color: #fff;
   position: fixed;
-  left: 128px;
-  top: 0;
   z-index: 0;
   touch-action: none;
+}
+#map {
+  left: 128px;
+  top: 0;
+}
+#map2{
+  display: none;
 }
 #disconnect {
   background-color: #800;
@@ -408,9 +413,6 @@ td > select {
   width: 100%;
 }
 
-#map{
-  grid-column: 1
-}
 button {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }

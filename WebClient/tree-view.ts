@@ -30,6 +30,7 @@ type TreeView = {
     // Could do this reactively or whatever, but that was just too
     // complicated.
     _rebuild:()=>void;
+    mime: string;
 }
 
 function
@@ -78,7 +79,7 @@ make_tree_view(_container: HTMLElement, domain:string):TreeView{
             let me = false;
             el.ondragstart = function(e:DragEvent):void{
                 e.dataTransfer!.setData(mime, ''+key)
-                e.dataTransfer!.effectAllowed = 'move';
+                e.dataTransfer!.effectAllowed = 'all';
                 me = true;
                 el.classList.add('dragging');
                 e.stopPropagation();
@@ -258,6 +259,7 @@ make_tree_view(_container: HTMLElement, domain:string):TreeView{
         },
         _container,
         _items: new Map(),
+        mime,
     };
     return result;
 }

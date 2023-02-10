@@ -13,12 +13,17 @@ let CANV_TV: TreeView;
 document.addEventListener('DOMContentLoaded', function():void{
     CANV_TV = make_tree_view(by_id('maps-list'), 'maps');
     CANV_TV.on_click = function(map_id:number):void{
-        change_map(map_id);
+        change_map(WhichSplit.LEFT, map_id);
     };
     CANV_TV.on_ctxmenu = function(map_id:number, e:MouseEvent):void{
         const menu = ctx_menu(e);
         menu.item('Configure', function():void{
             edit_map_dialog(MAPS.get(map_id)!);
+        });
+        menu.item('Show Right', function():void{
+            if(canv2_is_hidden) canv2_is_hidden = false;
+            resize_canvas();
+            change_map(WhichSplit.RIGHT, map_id);
         });
         menu.item('Add Child Map', function():void{
             do_new_map_dialog(map_id);
@@ -764,14 +769,14 @@ function visually_set_gridscale(newscale:GRIDSCALE):void{
 }
 document.addEventListener('DOMContentLoaded', function():void{
     // Checking if the elements is checked
-    by_id('grid-10').addEventListener('change', function():void{
-        change_gridscale(GRIDSCALE.TEN);
-    });
-    if(by_id('grid-10').checked) gridscale = GRIDSCALE.TEN;
-    by_id('grid-5').addEventListener('change', function():void{
-        change_gridscale(GRIDSCALE.FIVE);
-    });
-    if(by_id('grid-5').checked) gridscale = GRIDSCALE.FIVE;
+    by_id('grid-10').onchange = function():void{
+        // XXX: left only, add a right interface
+        change_gridscale(get_view(WhichSplit.LEFT), GRIDSCALE.TEN);
+    };
+    by_id('grid-5').onchange = function():void{
+        // XXX: left only, add a right interface
+        change_gridscale(get_view(WhichSplit.LEFT), GRIDSCALE.FIVE);
+    };
 });
 
 const enum SNAPMODE {
@@ -1020,8 +1025,9 @@ type DungeonMapView = {
     };
 }
 let active_map_view_index = 0;
-let dungeon_map_views: Array<DungeonMapView> = [];
-function new_map_view(map_id:number): DungeonMapView{
+let secondary_map_view_index:number|null = null;
+let dungeon_map_views: Array<[DungeonMapView,DungeonMapView]> = [];
+function new_map_view(map_id:number): [DungeonMapView, DungeonMapView]{
     const view: DungeonMapView = {
         map: get_map(map_id),
         camera_x: 0,
@@ -1054,27 +1060,50 @@ function new_map_view(map_id:number): DungeonMapView{
             areas: [],
         },
     };
-    return view;
+    const other: DungeonMapView = {
+        map: view.map,
+        camera_x: view.camera_x,
+        camera_y: view.camera_y,
+        scale: view.scale,
+        gridscale: view.gridscale,
+        selected: view.selected, // Intentionally shared
+        selection_area: view.selection_area, // Intentionally shared
+        placing_area: view.placing_area, // Intentionally shared
+        mouse: {x:-1, y:-1},
+        hovered_id: -1,
+        resize: {
+            handles: [],
+            resizing: false,
+        },
+        action:{
+            areas: [],
+        },
+    };
+    return [view, other];
 }
 function center_view_at(view:DungeonMapView, x:number, y:number):void{
     view.camera_x = -x + TheCanvas.width/2/view.scale;
     view.camera_y = -y + TheCanvas.height/2/view.scale;
     request_render();
 }
-function change_active_map_view(idx: number, store:boolean):void{
-    let old_view = active_map_view_index >=0 && active_map_view_index < dungeon_map_views.length? dungeon_map_views[active_map_view_index]:null;
+function change_active_map_view(which:WhichSplit, idx: number, store:boolean):void{
+    const old_idx = which == WhichSplit.RIGHT && secondary_map_view_index !== null?secondary_map_view_index:active_map_view_index;
+    let old_view = old_idx >=0 && old_idx < dungeon_map_views.length? dungeon_map_views[old_idx][which]:null;
     if(old_view && store){
         store_local(StorageCategory.CANVAS, `camera.${active_map_view_index}`, [old_view.camera_x, old_view.camera_y, old_view.scale]);
     }
-    active_map_view_index = idx;
-    if(store){
-        store_local(StorageCategory.CANVAS, 'active_map_view_index', idx);
-    }
-    let camera = get_local(StorageCategory.CANVAS, `camera.${active_map_view_index}`);
+    if(which == WhichSplit.LEFT)
+        active_map_view_index = idx;
+    else
+        secondary_map_view_index = idx;
+    if(store)
+        store_local(StorageCategory.CANVAS, which==WhichSplit.LEFT?'active_map_view_index':'secondary_map_view_index', idx);
+    const active_idx = which == WhichSplit.RIGHT && secondary_map_view_index !== null?secondary_map_view_index:active_map_view_index;
+    let camera = get_local(StorageCategory.CANVAS, `camera.${active_idx}`);
+    const view = dungeon_map_views[active_idx][which];
     if(camera !== undefined){
         try {
             let [cx, cy, scale] = camera;
-            let view = dungeon_map_views[active_map_view_index];
             view.camera_x = cx;
             view.camera_y = cy;
             view.scale = scale;
@@ -1089,17 +1118,24 @@ function change_active_map_view(idx: number, store:boolean):void{
     visually_set_gridscale(view.gridscale);
     request_render();
 }
-function get_active_view(): DungeonMapView{
+const enum WhichSplit {
+    LEFT = 0,
+    RIGHT = 1,
+}
+function get_view(which:WhichSplit): DungeonMapView{
     if(!dungeon_map_views.length){
         dungeon_map_views.push(new_map_view(0));
-        change_active_map_view(0, false);
+        change_active_map_view(which, 0, false);
     }
-    return dungeon_map_views[active_map_view_index];
+    return dungeon_map_views[which==WhichSplit.RIGHT && secondary_map_view_index!==null?secondary_map_view_index:active_map_view_index][which];
+}
+let active_split = WhichSplit.LEFT;
+function get_active_view(): DungeonMapView{
+    return get_view(active_split);
 }
 document.addEventListener('visibilitychange', function():void{
-    let view = get_active_view();
-    if(view)
-        store_local(StorageCategory.CANVAS, `camera.${active_map_view_index}`, [view.camera_x, view.camera_y, view.scale]);
+    let view = get_view(WhichSplit.LEFT);
+    if(view) store_local(StorageCategory.CANVAS, `camera.${active_map_view_index}`, [view.camera_x, view.camera_y, view.scale]);
 });
 function get_map(map_id:number): DungeonMap {
     if(MAPS.has(map_id))
@@ -1154,13 +1190,13 @@ const map_hist = (function():MapHistory{
         go_back:()=>{
             if(h.idx<=0) return;
             let id = h.ids[--h.idx];
-            change_map(id);
+            change_map(WhichSplit.LEFT, id);
             update_disabled_forward_back();
         },
         go_forward:()=>{
             if(h.idx>=h.ids.length-1) return;
             let id = h.ids[++h.idx];
-            change_map(id);
+            change_map(WhichSplit.LEFT, id);
             update_disabled_forward_back();
         },
         can_go_back:()=>{
@@ -1201,11 +1237,11 @@ const map_hist = (function():MapHistory{
     return h;
 }());
 
-function change_map(map_id:number):void{
+function change_map(which:WhichSplit, map_id:number):void{
     for(let i = 0; i < dungeon_map_views.length; ++i){
-        const mv = dungeon_map_views[i];
+        const mv = dungeon_map_views[i][0];
         if(mv.map.map_id == map_id){
-            change_active_map_view(i, true);
+            change_active_map_view(which, i, true);
             map_hist.add(map_id);
             break;
         }
@@ -1226,7 +1262,7 @@ ONRECV(ToClient.CANVAS_CREATE_MAP, function(map_id:number):void{
     if(MAPS.has(map_id))
         return;
     dungeon_map_views.push(new_map_view(map_id));
-    change_active_map_view(dungeon_map_views.length-1, true);
+    change_active_map_view(WhichSplit.LEFT, dungeon_map_views.length-1, true);
 });
 function rename_map(map:DungeonMap, name:string):void{
     map.map_name = name;
@@ -1280,16 +1316,35 @@ const enum REFERENCE {WIDTH = 64, HALF_WIDTH=WIDTH/2, QUARTER_WIDTH=WIDTH/4}; //
 // The main canvas and its context. These are set once the content loads.
 let TheCanvas:HTMLCanvasElement;
 let TheCtx:CanvasRenderingContext2D;
+let TheCanvas2:HTMLCanvasElement;
+let TheCtx2:CanvasRenderingContext2D;
+let canv2_is_hidden = true;
 ONRECV(ToClient.CANVAS_GATHER, function(where:GatherMessage): void{
-    change_map(where.map_id);
-    const view = get_active_view();
+    let which: WhichSplit = WhichSplit.LEFT;
+    if(!canv2_is_hidden){
+        if(get_view(WhichSplit.LEFT).map.map_id == where.map_id){
+        }
+        else if(get_view(WhichSplit.RIGHT).map.map_id == where.map_id){
+            which = WhichSplit.RIGHT;
+        }
+    }
+    change_map(which, where.map_id);
+    const view = get_view(which);
     view.camera_x = where.x;
     view.camera_y = where.y;
     request_render();
 });
 ONRECV(ToClient.CANVAS_BATTLE, function(where:GatherMessage): void{
-    change_map(where.map_id);
-    const view = get_active_view();
+    let which: WhichSplit = WhichSplit.LEFT;
+    if(!canv2_is_hidden){
+        if(get_view(WhichSplit.LEFT).map.map_id == where.map_id){
+        }
+        else if(get_view(WhichSplit.RIGHT).map.map_id == where.map_id){
+            which = WhichSplit.RIGHT;
+        }
+    }
+    change_map(which, where.map_id);
+    const view = get_view(which);
     view.camera_x = where.x;
     view.camera_y = where.y;
     visually_set_gridscale(GRIDSCALE.FIVE);
@@ -1355,6 +1410,21 @@ function resize_canvas():void{
     width |= 0;
     height |= 0;
     width -= by_id('left').offsetWidth;
+    if(!canv2_is_hidden){
+        TheCanvas2 = by_id('map2');
+        TheCtx2 = TheCanvas2.getContext('2d', {alpha:false})!;
+        width /= 2;
+        TheCanvas2.width = width;
+        TheCanvas2.height = height;
+        TheCanvas2.style.height = height + 'px';
+        TheCanvas2.style.width = width + 'px';
+        TheCanvas2.style.left = by_id('left').offsetWidth + width + 'px';
+        TheCanvas2.style.display = 'block';
+        TheCanvas2.style.borderLeft = DARKMODE?'1px solid white':'1px solid black';
+    }
+    else if(TheCanvas2){
+        TheCanvas2.style.display = 'none';
+    }
     TheCanvas.width = width;
     TheCanvas.height = height ;
     TheCanvas.style.width = width + 'px';
@@ -2197,8 +2267,8 @@ function clear_canvas(map:DungeonMap):void{
     map.undo_position = 0;
     clear_copy_buffer();
     for(let view of dungeon_map_views){
-        if(view.map.map_id == map.map_id)
-            view.selected.clear();
+        if(view[0].map.map_id == map.map_id)
+            view[0].selected.clear();
     }
     request_render();
 }
@@ -2823,7 +2893,14 @@ function delete_map(map_id:number):void{
         return;
     }
     map.flags |= MapFlags.DELETED;
-    change_active_map_view(0, true);
+    if(secondary_map_view_index !== null){
+        if(get_view(WhichSplit.RIGHT).map.map_id === map_id){
+            canv2_is_hidden = true;
+            resize_canvas();
+        }
+    }
+    if(get_view(WhichSplit.LEFT).map.map_id === map_id)
+        change_active_map_view(WhichSplit.LEFT, 0, true);
     CANV_TV.remove(map_id);
     map_hist.discard(map_id);
 }
@@ -2838,6 +2915,7 @@ function initialize_maps(msgs:Array<InitializeMap>):void{
         MAPS.clear()
         dungeon_map_views = []
         active_map_view_index = 0;
+        secondary_map_view_index = null;
         CANV_TV.clear();
     }
 
@@ -2847,7 +2925,7 @@ function initialize_maps(msgs:Array<InitializeMap>):void{
             console.log('Received deleted map');
         const view = new_map_view(map_id);
         dungeon_map_views.push(view);
-        const map = view.map;
+        const map = view[0].map;
         map.flags = msg.flags;
         map.grid_type = msg.grid_type;
         map.grid_color = msg.grid_color;
@@ -2876,10 +2954,10 @@ function initialize_maps(msgs:Array<InitializeMap>):void{
     let old_idx = get_local(StorageCategory.CANVAS, 'active_map_view_index');
     if(old_idx !== undefined){
         if(old_idx < dungeon_map_views.length && old_idx >= 0)
-            change_active_map_view(old_idx, false);
+            change_active_map_view(WhichSplit.LEFT, old_idx, false);
     }
     map_hist.clear();
-    map_hist.add(get_active_view().map.map_id);
+    map_hist.add(get_view(WhichSplit.LEFT).map.map_id);
     resize_canvas();
     request_render();
 }
@@ -3719,8 +3797,8 @@ function end_selecting(view:DungeonMapView):void{
 function change_select_mode(mode:SELECTTYPE):void{
     select_type = mode;
     for(let view of dungeon_map_views){
-        view.selected.clear();
-        note_selections(view);
+        view[0].selected.clear();
+        note_selections(view[0]);
     }
     request_render();
 }
@@ -4720,7 +4798,7 @@ const enum RenderFlags {
 }
 function render(timestamp:DOMHighResTimeStamp):void{
     if(!TheCtx) return;
-    const view = get_active_view();
+    const view = get_view(WhichSplit.LEFT);
     if(!view) return;
     let flags = RenderFlags.DRAW_SUBMAPS;
     if(DARKMODE) flags |= RenderFlags.DARK_MODE;
@@ -4729,6 +4807,10 @@ function render(timestamp:DOMHighResTimeStamp):void{
     flags |= RenderFlags.DRAW_TEXT;
     animation_requested = false;
     actually_render(timestamp, TheCtx, view, flags);
+    if(!canv2_is_hidden){
+        const view2 = get_view(WhichSplit.RIGHT);
+        actually_render(timestamp, TheCtx2, view2, flags);
+    }
 }
 function screenshot_canvas(view:DungeonMapView):void{
     let canvas = document.createElement('canvas');
@@ -4839,7 +4921,7 @@ function screenshot_canvas(view:DungeonMapView):void{
     dialog.show();
 }
 function screenshot():void{
-    screenshot_canvas(get_active_view());
+    screenshot_canvas(get_view(WhichSplit.LEFT));
 }
 
 function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingContext2D, view:DungeonMapView, flags:RenderFlags):void{
@@ -7112,8 +7194,9 @@ function change_tool(tool:ToolType):void{
         case ToolType.SELECT:
             break;
         default:
-            for(let view of dungeon_map_views){
-                end_selecting(view);
+            for(const views of dungeon_map_views){
+                for(const view of views)
+                    end_selecting(view);
             }
             break;
     }
@@ -7147,7 +7230,9 @@ function change_tool(tool:ToolType):void{
     let [primary, secondary] = get_tool_colors(tool);
     color_picker_.value = primary;
     color_picker2_.value = secondary;
-    redo_canvas_cursor(get_active_view(), true);
+    redo_canvas_cursor(TheCanvas, get_view(WhichSplit.LEFT), true);
+    if(!canv2_is_hidden)
+        redo_canvas_cursor(TheCanvas2, get_view(WhichSplit.RIGHT), true);
 }
 type TriItem = {func:()=>void; text:string;};
 function make_tri_menu(e:MouseEvent, options:Array<TriItem>):void{
@@ -7462,42 +7547,42 @@ function hiddenid():number {
 
 let GRABBING = false;
 let SELECTING = false;
-const redo_canvas_cursor = (function():(view:DungeonMapView, modified:boolean)=>void{
+const redo_canvas_cursor = (function():(canvas:HTMLCanvasElement, view:DungeonMapView, modified:boolean)=>void{
     let prev_id = -1;
-    function redo_canvas_cursor(view: DungeonMapView, modified:boolean):void{
+    function redo_canvas_cursor(canvas:HTMLCanvasElement, view: DungeonMapView, modified:boolean):void{
         if(view.resize.resizing) return;
         if(GRABBING){
-            if(TheCanvas.style.cursor != 'grabbing')
-                TheCanvas.style.cursor = 'grabbing';
+            if(canvas.style.cursor != 'grabbing')
+                canvas.style.cursor = 'grabbing';
             return;
         }
         if(SELECTING){
-            if(TheCanvas.style.cursor != 'crosshair')
-                TheCanvas.style.cursor = 'crosshair';
+            if(canvas.style.cursor != 'crosshair')
+                canvas.style.cursor = 'crosshair';
             return;
         }
         if(current_tool == ToolType.PAN){
             if(!modified)
                 for(let aa of view.action.areas){
                     if(point_in_rect(view.mouse.x, view.mouse.y, aa.bbox.x0, aa.bbox.y0, aa.bbox.x1, aa.bbox.y1)){
-                        TheCanvas.style.cursor = 'pointer';
+                        canvas.style.cursor = 'pointer';
                         prev_id = -1;
                         return;
                     }
                 }
-            if(TheCanvas.style.cursor != 'grab')
-                TheCanvas.style.cursor = 'grab';
+            if(canvas.style.cursor != 'grab')
+                canvas.style.cursor = 'grab';
             return;
         }
         if(current_tool != ToolType.SELECT){
             view.hovered_id = -1;
-            if(TheCanvas.style.cursor != 'initial')
-                TheCanvas.style.cursor = 'initial';
+            if(canvas.style.cursor != 'initial')
+                canvas.style.cursor = 'initial';
             return;
         }
         for(let rh of view.resize.handles){
             if(point_in_rect(view.mouse.x, view.mouse.y, rh.bbox.x0, rh.bbox.y0, rh.bbox.x1, rh.bbox.y1)){
-                TheCanvas.style.cursor = 'nwse-resize';
+                canvas.style.cursor = 'nwse-resize';
                 prev_id = -1;
                 return;
             }
@@ -7507,14 +7592,14 @@ const redo_canvas_cursor = (function():(view:DungeonMapView, modified:boolean)=>
         if(o){
             if(prev_id != o.id)
                 request_render();
-            if(TheCanvas.style.cursor != 'default')
-                TheCanvas.style.cursor = 'default';
+            if(canvas.style.cursor != 'default')
+                canvas.style.cursor = 'default';
         }
         else {
             if(prev_id != -1)
                 request_render();
-            if(TheCanvas.style.cursor != 'crosshair')
-                TheCanvas.style.cursor = 'crosshair';
+            if(canvas.style.cursor != 'crosshair')
+                canvas.style.cursor = 'crosshair';
         }
         prev_id = o?o.id:-1;
         if(view.selection_area.is_selecting)
@@ -7525,7 +7610,7 @@ const redo_canvas_cursor = (function():(view:DungeonMapView, modified:boolean)=>
             for(let aa of view.action.areas){
                 if(point_in_rect(view.mouse.x, view.mouse.y, aa.bbox.x0, aa.bbox.y0, aa.bbox.x1, aa.bbox.y1)){
                     request_render();
-                    TheCanvas.style.cursor = 'pointer';
+                    canvas.style.cursor = 'pointer';
                     prev_id = -1;
                     return;
                 }
@@ -7553,35 +7638,61 @@ function get_submap_at(view:DungeonMapView, x:number, y:number):SubMap | null {
     return null;
 }
 
-document.addEventListener('DOMContentLoaded', function():void{
-    TheCanvas = document.getElementsByTagName('canvas')[0]!;
+function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
+    const which_canv = the_canvas.id === 'map'?WhichSplit.LEFT:WhichSplit.RIGHT;
+    the_canvas.ondragover = function(e:DragEvent):void{
+        if(!e.dataTransfer!.types.includes(CANV_TV.mime)) return;
+        e.stopPropagation();
+        e.preventDefault();
+        e.dataTransfer!.dropEffect = 'copy';
+        the_canvas.classList.add('dragover');
+    };
+    the_canvas.ondragenter = function(e:DragEvent):void{
+        if(!e.dataTransfer!.types.includes(CANV_TV.mime)) return;
+        e.stopPropagation();
+        e.preventDefault();
+        e.dataTransfer!.dropEffect = 'copy';
+        the_canvas.classList.add('dragover');
+    };
+    the_canvas.ondragleave = function(e:DragEvent):void{
+        if(!e.dataTransfer!.types.includes(CANV_TV.mime)) return;
+        the_canvas.classList.remove('dragover');
+    };
+    the_canvas.ondrop = function(e:DragEvent):void{
+        if(!e.dataTransfer!.types.includes(CANV_TV.mime)) return;
+        e.stopPropagation();
+        e.preventDefault();
+        const data = +e.dataTransfer!.getData(CANV_TV.mime);
+        change_map(which_canv, data);
+        the_canvas.classList.remove('dragover');
+    };
     let gesturing = false;
     let stop_pan: (()=>void)| null = null;
     (function():void{
         let start_scale = 1.0;
         let start_x = 0;
         let start_y = 0;
-        TheCanvas.addEventListener('gesturestart', function(e:any):void{
+        the_canvas.addEventListener('gesturestart', function(e:any):void{
             e.stopPropagation();
             e.preventDefault();
             if(stop_pan) stop_pan();
-            const view = get_active_view();
+            const view = get_view(which_canv);
             start_scale = view.scale;
             start_x = view.camera_x;
             start_y = view.camera_y;
             gesturing = true;
         });
-        TheCanvas.addEventListener('gesturechange', function(e:any):void{
+        the_canvas.addEventListener('gesturechange', function(e:any):void{
             e.stopPropagation();
             e.preventDefault();
             if(stop_pan) stop_pan();
-            const view = get_active_view();
+            const view = get_view(which_canv);
             view.scale = start_scale * e.scale;
             view.scale = clamp_scale(view.scale);
-            let cx = start_x - TheCanvas.width/2/start_scale;
-            let cy = start_y - TheCanvas.height/2/start_scale;
-            cx += TheCanvas.width/2/view.scale;
-            cy += TheCanvas.height/2/view.scale;
+            let cx = start_x - the_canvas.width/2/start_scale;
+            let cy = start_y - the_canvas.height/2/start_scale;
+            cx += the_canvas.width/2/view.scale;
+            cy += the_canvas.height/2/view.scale;
             // cx = Math.round(cx);
             // cy = Math.round(cy);
             view.camera_x = cx;
@@ -7589,16 +7700,16 @@ document.addEventListener('DOMContentLoaded', function():void{
 
             request_render();
         });
-        TheCanvas.addEventListener('gestureend', function(e:any):void{
+        the_canvas.addEventListener('gestureend', function(e:any):void{
             e.stopPropagation();
             e.preventDefault();
             gesturing = false;
         });
     })();
-    TheCanvas.addEventListener('wheel', function(e:WheelEvent):void{
+    the_canvas.addEventListener('wheel', function(e:WheelEvent):void{
         e.stopPropagation();
         e.preventDefault();
-        const view = get_active_view();
+        const view = get_view(which_canv);
         const oldscale = view.scale;
         let dy = e.deltaY;
         const dscale = 120;
@@ -7619,6 +7730,1510 @@ document.addEventListener('DOMContentLoaded', function():void{
         // view.camera_y = Math.round(view.camera_y);
         request_render();
     });
+    let prev_tool:ToolType = ToolType.PAN;
+    // this state variable is kind of janky.
+    let ez_token_color = '#ff3333';
+    // TAG toolimpl
+    // TAG pointerdown
+    // TAG click
+    the_canvas.addEventListener('pointerdown', function(e:PointerEvent):void{
+        active_split = which_canv;
+        if(did_remove_ctx_menu()) return;
+        if(gesturing) return;
+        if(e.button !== 0 && e.button !== 1){ //0 is the 'primary' button
+            return;
+        }
+        const view = get_view(which_canv);
+        if(e.shiftKey){
+            const [click_x, click_y] = event_to_coord(e, view);
+            ping_at(view.map, click_x, click_y);
+            e.stopPropagation();
+            e.preventDefault();
+            return;
+        }
+        if(document.activeElement)
+            (document.activeElement as any).blur();
+        e.stopPropagation();
+        e.preventDefault();
+        if(e.button === 1){
+            prev_tool = current_tool;
+            current_tool = ToolType.PAN;
+        }
+        let submapid = 0;
+        let smoff:[number, number] = [0, 0];
+        // Find what submap if any we are inside.
+        {
+            let [x, y] = event_to_coord(e, view);
+            let sm = get_submap_at(view, x, y);
+            if(sm){
+                submapid = sm.id;
+                smoff = [sm.base_x+sm.tlx, sm.base_y+sm.tly];
+            }
+        }
+        let snap = get_snap_func();
+        let snap_corn = get_snap_corner_func(view.map.grid_type);
+        switch(current_tool){
+            case ToolType.SELECT:{ // TAG toolSELECT
+                let [clicked_x, clicked_y] = event_to_coord(e, view);
+                const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;
+                if(!modified) {
+                    for(let aa of view.action.areas){
+                        if(point_in_rect(clicked_x, clicked_y, aa.bbox.x0, aa.bbox.y0, aa.bbox.x1, aa.bbox.y1)){
+                            let o = view.map.canvas_objs.get(aa.obj_id);
+                            if(!o) break;
+                            if(o.flags & CanvasFlag.DELETED) break;
+                            if(o.hidinguser && o.hidinguser !== SETTINGS.userid) break;
+                            if(o.type == CanvasType.SUBMAP){
+                                let before = strip_obj(o);
+                                o.flags ^= CanvasFlag.SUBMAP_IS_MINIMIZED;
+                                let after = strip_obj(o);
+                                note_updates_for_undo(view.map, [before], [after]);
+                                publish_obj_updates(view.map.map_id, [after]);
+                            }
+                            else if (o.type == CanvasType.TEXT){
+                                if(o.flags & CanvasFlag.TEXT_LINKS_TO_SUBMAP){
+                                    let sm = view.map.canvas_objs.get(o.map_id) as (SubMap | undefined);
+                                    if(!sm) return;
+                                    let before = strip_obj(sm);
+                                    sm.flags &= ~CanvasFlag.SUBMAP_IS_MINIMIZED;
+                                    let after = strip_obj(sm);
+                                    note_updates_for_undo(view.map, [before], [after]);
+                                    publish_obj_updates(view.map.map_id, [after]);
+                                    center_view_at(view, sm.base_x+sm.width/2, sm.base_y+sm.height/2);
+                                    request_render();
+                                    return;
+                                }
+                                change_map(which_canv, o.map_id);
+                                view.selected.clear();
+                                the_canvas.style.cursor = 'initial';
+                                return;
+                            }
+                            request_render();
+                            return;
+                        }
+                    }
+                    if(view.resize.handles.length){ // TAG resize
+                        for(let rh of view.resize.handles){
+                            if(point_in_rect(clicked_x, clicked_y, rh.bbox.x0, rh.bbox.y0, rh.bbox.x1, rh.bbox.y1)){
+                                const o = view.map.canvas_objs.get(rh.obj_id);
+                                if(!o) return;
+                                if(o.flags & CanvasFlag.DELETED) return;
+                                if(!is_resizable(o)) return;
+                                const obj: Resizable = o;
+                                view.resize.resizing = true;
+                                if(obj.type == CanvasType.SUBMAP)
+                                    smoff = [0, 0];
+                                let o_x = obj.base_x; let o_y = obj.base_y; let o_w = obj.width; let o_h = obj.height;
+                                function change_wh(e:PointerEvent):void{
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    const [x1, y1] = event_to_coord_off(e, view, smoff);
+                                    let x0 = obj.base_x; let y0 = obj.base_y;
+                                    if(rh.topleft){
+                                        if(obj.type == CanvasType.STAIRS){
+                                            // stairs w/h are in squares
+                                            x0 += obj.width * REFERENCE.WIDTH;
+                                            y0 += obj.height * REFERENCE.WIDTH;
+                                        }
+                                        else {
+                                            x0 += obj.width;
+                                            y0 += obj.height;
+                                        }
+                                        if(x1 > x0 || y1 > y0) return;
+                                        const xdiff = snap(x0 - x1);
+                                        const ydiff = snap(y0 - y1);
+                                        let old_w = obj.width;
+                                        let old_h = obj.height;
+                                        obj.width = xdiff;
+                                        obj.height = ydiff;
+                                        obj.base_x = x0 - obj.width;
+                                        obj.base_y = y0 - obj.height;
+                                        // stairs w/h are in squares
+                                        if(obj.type == CanvasType.STAIRS){
+                                            obj.width /= REFERENCE.WIDTH;
+                                            obj.height /= REFERENCE.WIDTH;
+                                        }
+                                        if(obj.type == CanvasType.SUBMAP){
+                                            obj.tlx -= old_w - obj.width;
+                                            obj.tly -= old_h - obj.height;
+                                        }
+                                    }
+                                    else {
+                                        if(x1 < x0 || y1 < y0) return;
+                                        const xdiff = snap(x1 - x0);
+                                        const ydiff = snap(y1 - y0);
+                                        if(!xdiff && !ydiff) return;
+                                        obj.width = xdiff;
+                                        obj.height = ydiff;
+                                        // stairs w/h are in squares
+                                        if(obj.type == CanvasType.STAIRS){
+                                            obj.width /= REFERENCE.WIDTH;
+                                            obj.height /= REFERENCE.WIDTH;
+                                        }
+                                    }
+                                    request_render();
+                                }
+                                the_canvas.addEventListener('pointermove', change_wh);
+                                const before = strip_obj(obj);
+                                function finish():void{
+                                    view.resize.resizing = false;
+                                    redo_canvas_cursor(the_canvas, view, false);
+                                    the_canvas.removeEventListener('pointermove', change_wh);
+                                    window.removeEventListener('pointerup', finish);
+                                    the_canvas.removeEventListener('pointerup', finish);
+                                    request_render();
+                                    if(o_x != obj.base_x || o_y != obj.base_y || o_w != obj.width || o_h != obj.height){
+                                        const after = strip_obj(obj);
+                                        note_updates_for_undo(view.map, [before], [after]);
+                                        publish_obj_updates(view.map.map_id, [after]);
+                                    }
+                                    redo_canvas_cursor(the_canvas, view, false);
+                                }
+                                window.addEventListener('pointerup', finish);
+                                the_canvas.addEventListener('pointerleave', finish);
+                                return;
+                            }
+                        }
+                    }
+                }
+                const fudged_x0 = clicked_x-FUDGE._;
+                const fudged_x1 = clicked_x+FUDGE._;
+                const fudged_y0 = clicked_y-FUDGE._;
+                const fudged_y1 = clicked_y+FUDGE._;
+                // Simulate doing a single item click so that you can immediately
+                // start moving it.
+                // There's probably a more efficient/clear way to do this,
+                // but this works.
+                if(!e.altKey && !view.selection_area.is_selecting && !view.selected.size){
+                    sort_canv_objs(view.map);
+                    view.selection_area.select_one = true;
+                    view.selection_area.is_selecting = true;
+                    update_selection(view, fudged_x0, fudged_y0, fudged_x1, fudged_y1);
+                    finalize_selection(view);
+                    request_render();
+                }
+                if(view.selected.size && there_are_selected_objs_at(view, fudged_x0-smoff[0], fudged_y0-smoff[1], fudged_x1-smoff[0], fudged_y1-smoff[1])){
+                    // handle movement
+                    let rawclick_x = e.offsetX;
+                    let rawclick_y = e.offsetY;
+                    let changed = false;
+                    const before_update = get_stripped_state_by_id(view.map, Array.from(view.selected));
+                    const is_rigid = selection_is_rigid(view);
+                    function move(e:MouseEvent):void{
+                        e.stopPropagation();
+                        e.preventDefault();
+                        const diff = Math.abs(e.offsetX - rawclick_x) + Math.abs(e.offsetY - rawclick_y);
+                        if(diff < 1)
+                            return;
+                        let [move_x, move_y] = event_to_coord(e, view);
+                        changed = true;
+                        move_selected_objects(view, is_rigid, clicked_x, clicked_y, move_x - clicked_x, move_y - clicked_y);
+                        clicked_x = move_x;
+                        clicked_y = move_y;
+                    }
+                    the_canvas.addEventListener('pointermove', move);
+                    function finish_move():void{
+                        the_canvas.removeEventListener('pointermove', move);
+                        window.removeEventListener('pointerup', finish_move);
+                        the_canvas.removeEventListener('pointerleave', finish_move);
+                        if(!changed)
+                            return;
+                        const after_update = get_stripped_state_by_id(view.map, Array.from(view.selected));
+                        publish_obj_updates(view.map.map_id, after_update);
+                        note_updates_for_undo(view.map, before_update, after_update);
+                    }
+                    window.addEventListener('pointerup', finish_move);
+                    the_canvas.addEventListener('pointerleave', finish_move);
+                }
+                else {
+                    sort_canv_objs(view.map);
+                    view.selection_area.select_one = true;
+                    view.selection_area.is_selecting = true;
+                    view.selection_area.submap = submapid;
+                    update_selection(view, fudged_x0, fudged_y0, fudged_x1, fudged_y1);
+                    request_render();
+                    function select(e:MouseEvent):void{
+                        e.stopPropagation();
+                        e.preventDefault();
+                        let [select_x, select_y] = event_to_coord(e, view);
+                        if(select_x != clicked_x || select_y != clicked_y)
+                            view.selection_area.select_one = false;
+                        update_selection(view, clicked_x, clicked_y, select_x, select_y);
+                        request_render();
+                    }
+                    the_canvas.addEventListener('pointermove', select);
+                    function finish_select():void{
+                        finalize_selection(view);
+                        the_canvas.removeEventListener('pointermove', select);
+                        window.removeEventListener('pointerup', finish_select);
+                        the_canvas.removeEventListener('pointerleave', finish_select);
+                        SELECTING = false;
+                        redo_canvas_cursor(the_canvas, view, false);
+                    }
+                    window.addEventListener('pointerup', finish_select);
+                    the_canvas.addEventListener('pointerleave', finish_select);
+                    SELECTING = true;
+                    redo_canvas_cursor(the_canvas, view, false);
+                }
+            }break;
+            case ToolType.PAN:{ // TAG toolPAN
+                { // copy-pasta from above
+                    let [clicked_x, clicked_y] = event_to_coord(e, view);
+                    const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;
+                    if(!modified) {
+                        for(let aa of view.action.areas){
+                            if(point_in_rect(clicked_x, clicked_y, aa.bbox.x0, aa.bbox.y0, aa.bbox.x1, aa.bbox.y1)){
+                                let o = view.map.canvas_objs.get(aa.obj_id);
+                                if(!o) break;
+                                if(o.flags & CanvasFlag.DELETED) break;
+                                if(o.hidinguser && o.hidinguser !== SETTINGS.userid) break;
+                                if(o.type == CanvasType.SUBMAP){
+                                    let before = strip_obj(o);
+                                    o.flags ^= CanvasFlag.SUBMAP_IS_MINIMIZED;
+                                    let after = strip_obj(o);
+                                    note_updates_for_undo(view.map, [before], [after]);
+                                    publish_obj_updates(view.map.map_id, [after]);
+                                }
+                                else if (o.type == CanvasType.TEXT){
+                                    if(o.flags & CanvasFlag.TEXT_LINKS_TO_SUBMAP){
+                                        let sm = view.map.canvas_objs.get(o.map_id) as (SubMap | undefined);
+                                        if(!sm) return;
+                                        let before = strip_obj(sm);
+                                        sm.flags &= ~CanvasFlag.SUBMAP_IS_MINIMIZED;
+                                        let after = strip_obj(sm);
+                                        note_updates_for_undo(view.map, [before], [after]);
+                                        publish_obj_updates(view.map.map_id, [after]);
+                                        center_view_at(view, sm.base_x+sm.width/2, sm.base_y+sm.height/2);
+                                        request_render();
+                                        return;
+                                    }
+                                    change_map(which_canv, o.map_id);
+                                    view.selected.clear();
+                                    the_canvas.style.cursor = 'initial';
+                                    return;
+                                }
+                                request_render();
+                                return;
+                            }
+                        }
+                    }
+                }
+                // don't use the helper as it includes view.camera_*
+                let clicked_x = e.clientX/view.scale;
+                let clicked_y = e.clientY/view.scale;
+                let pointer_id = e.pointerId;
+                GRABBING = true;
+                function pan(e:PointerEvent):void{
+                    e.stopPropagation();
+                    e.preventDefault();
+                    if(e.pointerId != pointer_id) return;
+                    let pan_x = e.clientX/view.scale;
+                    let pan_y = e.clientY/view.scale;
+                    view.camera_x -= clicked_x - pan_x;
+                    view.camera_y -= clicked_y - pan_y;
+                    clicked_x = pan_x;
+                    clicked_y = pan_y;
+                    request_render();
+                }
+                window.addEventListener('pointermove', pan);
+                function finish_pan():void{
+                    stop_pan = null;
+                    GRABBING = false;
+                    if(prev_tool){
+                        current_tool = prev_tool;
+                        prev_tool = ToolType.PAN;
+                    }
+                    if(prev_tool == ToolType.PAN || !prev_tool){
+                        the_canvas.style.cursor = 'grab';
+                    }
+                    window.removeEventListener('pointermove', pan);
+                    window.removeEventListener('pointerup', finish_pan);
+                    // the_canvas.removeEventListener('pointerleave', finish_pan);
+                    redo_canvas_cursor(the_canvas, view, false);
+                }
+                stop_pan = finish_pan;
+                window.addEventListener('pointerup', finish_pan);
+                // the_canvas.addEventListener('pointerleave', finish_pan);
+                redo_canvas_cursor(the_canvas, view, false);
+            }break;
+            case ToolType.LINE:{ // TAG toolLINE
+                let id = get_new_id();
+                const [x0, y0] = event_to_coord_off(e, view, smoff);
+                const thickness_input = by_id('line-thickness');
+                const thickness = +thickness_input.value || 4;
+                add_freehand_line(view.map, id, x0, y0, submapid, get_primary_color(), thickness);
+                if(current_line_type == LineType.ARROW){
+                    let obj = view.map.canvas_objs.get(id) as FreehandLine;
+                    obj.flags |= CanvasFlag.LINE_IS_ARROW;
+                }
+                function add_point(e:MouseEvent):void{
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const [x1, y1] = event_to_coord_off(e, view, smoff);
+                    if(current_line_type != LineType.PEN){
+                        let obj = view.map.canvas_objs.get(id) as FreehandLine;
+                        obj.points = [];
+                    }
+                    add_freehand_point_by_id(view.map, id, x1, y1);
+                    request_render();
+                }
+                the_canvas.addEventListener('pointermove', add_point);
+                function finish_point():void{
+                    the_canvas.removeEventListener('pointermove', add_point);
+                    window.removeEventListener('pointerup', finish_point);
+                    the_canvas.removeEventListener('pointerleave', finish_point);
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
+                }
+                window.addEventListener('pointerup', finish_point);
+                the_canvas.addEventListener('pointerleave', finish_point);
+            }break;
+            case ToolType.SHAPE:{ // TAG toolSHAPE
+                let id = get_new_id();
+                let thickness = 4;
+                let color1 = get_primary_color();
+                let color2 = '';
+                switch(current_shape){
+                    case ShapeType.SOLID_SHAPE:
+                        color2 = color1;
+                        break;
+                    case ShapeType.FILLED_SHAPE:
+                        color2 = get_secondary_color();
+                        break;
+                }
+                let [x0, y0] = event_to_coord_off(e, view, smoff);
+                let o = make_shape(id, x0, y0, submapid, color1, color2, thickness);
+                add_canv_obj(view.map, o);
+                function add_point(e:MouseEvent):void{
+                    e.stopPropagation();
+                    e.preventDefault();
+                    let [x1, y1] = event_to_coord_off(e, view, smoff);
+                    add_freehand_point(o, x1, y1);
+                    request_render();
+                }
+                the_canvas.addEventListener('pointermove', add_point);
+                function finish_point():void{
+                    the_canvas.removeEventListener('pointermove', add_point);
+                    window.removeEventListener('pointerup', finish_point);
+                    the_canvas.removeEventListener('pointerleave', finish_point);
+                    add_freehand_point(o, x0, y0);
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
+                    request_render();
+                }
+                window.addEventListener('pointerup', finish_point);
+                the_canvas.addEventListener('pointerleave', finish_point);
+            }break;
+            case ToolType.WALL:{ // TAG toolWALL
+                let id = get_new_id();
+                if(0){
+                // if(snapmode == SNAPMODE.FREE){
+                    // copy paste from LINE above.
+                    const [x0, y0] = event_to_coord_off(e, view, smoff);
+                    add_freehand_line(view.map, id, x0, y0, submapid, get_primary_color(), 4);
+                    function add_point(e:MouseEvent):void{
+                        e.stopPropagation();
+                        e.preventDefault();
+                        const [x1, y1] = event_to_coord_off(e, view, smoff);
+                        add_freehand_point_by_id(view.map, id, x1, y1);
+                        request_render();
+                    }
+                    the_canvas.addEventListener('pointermove', add_point);
+                    function finish_point():void{
+                        the_canvas.removeEventListener('pointermove', add_point);
+                        window.removeEventListener('pointerup', finish_point);
+                        the_canvas.removeEventListener('pointerleave', finish_point);
+                        publish_obj_by_id(view.map, id);
+                        note_create_by_id_for_undo(view.map, id);
+                    }
+                    window.addEventListener('pointerup', finish_point);
+                    the_canvas.addEventListener('pointerleave', finish_point);
+                }
+                else{
+                    const [x0, y0] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
+                    // const [x0, y0] = event_to_coord_off(e, view, smoff);
+                    let x1 = x0;
+                    let y1 = y0;
+                    view.placing_area.is_placing = true;
+                    view.placing_area.is_line = true;
+                    view.placing_area.x0 = x0+smoff[0];
+                    view.placing_area.y0 = y0+smoff[1];
+                    view.placing_area.x1 = x1+smoff[0];
+                    view.placing_area.y1 = y1+smoff[1];
+                    let obj: GridLine = {
+                        type: CanvasType.GRID_LINE,
+                        id: id,
+                        base_x: x0,
+                        base_y: y0,
+                        flags: CanvasFlag.NONE,
+                        hidinguser: hiddenid(),
+                        submap:submapid,
+                        points: [],
+                        color: get_primary_color(),
+                        path: undefined,
+                        bbox: { x0: 0, y0: 0, x1: 0, y1: 0, },
+                        last_bx:undefined,
+                        last_by:undefined,
+                    };
+                    add_canv_obj(view.map, obj);
+
+                    function add_point(e:MouseEvent):void{
+                        e.stopPropagation();
+                        e.preventDefault();
+                        const [x, y] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
+                        x1 = x;
+                        y1 = y;
+                        view.placing_area.x1 = x1+smoff[0];
+                        view.placing_area.y1 = y1+smoff[1];
+                        request_render();
+                    }
+                    the_canvas.addEventListener('pointermove', add_point);
+                    function finish_point():void{
+                        view.placing_area.is_placing = false;
+                        add_gridline_point(obj, x1, y1);
+                        the_canvas.removeEventListener('pointermove', add_point);
+                        window.removeEventListener('pointerup', finish_point);
+                        the_canvas.removeEventListener('pointerleave', finish_point);
+                        publish_obj_by_id(view.map, id);
+                        note_create_by_id_for_undo(view.map, id);
+                        request_render();
+                    }
+                    window.addEventListener('pointerup', finish_point);
+                    the_canvas.addEventListener('pointerleave', finish_point);
+                }
+            }break;
+            case ToolType.DOOR:{ // TAG toolDOOR
+                const [x0, y0] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
+                let x1 = x0;
+                let y1 = y0;
+                view.placing_area.is_placing = true;
+                view.placing_area.is_line = true;
+                view.placing_area.x0 = x0+smoff[0];
+                view.placing_area.y0 = y0+smoff[1];
+                view.placing_area.x1 = x1+smoff[0];
+                view.placing_area.y1 = y1+smoff[1];
+                request_render();
+                function change_point(e:MouseEvent):void{
+                    e.stopPropagation();
+                    e.preventDefault();
+                    [x1, y1] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
+                    view.placing_area.x0 = x0+smoff[0];
+                    view.placing_area.y0 = y0+smoff[1];
+                    view.placing_area.x1 = x1+smoff[0];
+                    view.placing_area.y1 = y1+smoff[1];
+                    request_render();
+                }
+                the_canvas.addEventListener('pointermove', change_point);
+                function finish_door():void{
+                    view.placing_area.is_placing = false;
+                    the_canvas.removeEventListener('pointermove', change_point);
+                    window.removeEventListener('pointerup', finish_door);
+                    the_canvas.removeEventListener('pointerleave', finish_door);
+                    if(x0 !== x1 || y0 !== y1){
+                        let id = get_new_id();
+                        let orientation;
+                        let width;
+                        if(Math.abs(y1-y0) < 4){
+                        // if(y1 === y0){
+                            orientation = Orientation.HORIZONTAL;
+                            width = Math.abs(x1-x0)/REFERENCE.WIDTH;
+                        }
+                        else if(Math.abs(x1-x0) < 4){
+                        // else if(x1 == x0){
+                            orientation = Orientation.VERTICAL;
+                            width = Math.abs(y1-y0)/REFERENCE.WIDTH;
+                        }
+                        else if((x1 < x0 && y1 < y0) || (x1 > x0 && y1 > y0)){
+                            orientation = Orientation.TOPLEFT_DOWNRIGHT;
+                            width = Math.max(Math.abs(y1-y0), Math.abs(x1-x0))/REFERENCE.WIDTH;
+                        }
+                        else {
+                            orientation = Orientation.TOPRIGHT_DOWNLEFT;
+                            width = Math.max(Math.abs(y1-y0), Math.abs(x1-x0))/REFERENCE.WIDTH;
+                        }
+                        if(width < 0.1)
+                            return;
+                        let x = ((x0 + x1)/2) | 0;
+                        let y = ((y0 + y1)/2) | 0;
+                        add_door(view.map, id, x, y, current_door, submapid, get_primary_color(), width, orientation);
+                        publish_obj_by_id(view.map, id);
+                        note_create_by_id_for_undo(view.map, id);
+                    }
+                    request_render()
+                }
+                window.addEventListener('pointerup', finish_door);
+                the_canvas.addEventListener('pointerleave', finish_door);
+            }break;
+            case ToolType.RECT:{ // TAG toolRECT
+                switch(current_rect_type){
+                    case RECTTYPE.HOLLOW:{
+                        let id = get_new_id();
+                        const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
+                        add_rect(view.map, id, x0, y0, submapid, get_primary_color());
+                        function add_point(e:MouseEvent):void{
+                            e.stopPropagation();
+                            e.preventDefault();
+                            const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
+                            change_rect_by_id(view.map, id, x1, y1, x0, y0);
+                            request_render();
+                        }
+                        the_canvas.addEventListener('pointermove', add_point);
+                        function finish_point():void{
+                            the_canvas.removeEventListener('pointermove', add_point);
+                            window.removeEventListener('pointerup', finish_point);
+                            the_canvas.removeEventListener('pointerleave', finish_point);
+                            publish_obj_by_id(view.map, id);
+                            note_create_by_id_for_undo(view.map, id);
+                        }
+                        window.addEventListener('pointerup', finish_point);
+                        the_canvas.addEventListener('pointerleave', finish_point);
+                    }break;
+                    case RECTTYPE.FILLED:{
+                        let id = get_new_id();
+                        const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
+                        add_filled_rect(view.map, id, x0, y0, submapid, get_primary_color(), get_secondary_color());
+                        function add_point(e:MouseEvent):void{
+                            e.stopPropagation();
+                            e.preventDefault();
+                            const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
+                            change_filled_rect_by_id(view.map, id, x1, y1, x0, y0);
+                            request_render();
+                        }
+                        the_canvas.addEventListener('pointermove', add_point);
+                        function finish_point():void{
+                            the_canvas.removeEventListener('pointermove', add_point);
+                            window.removeEventListener('pointerup', finish_point);
+                            the_canvas.removeEventListener('pointerleave', finish_point);
+                            publish_obj_by_id(view.map, id);
+                            note_create_by_id_for_undo(view.map, id);
+                        }
+                        window.addEventListener('pointerup', finish_point);
+                        the_canvas.addEventListener('pointerleave', finish_point);
+                    }break;
+                    case RECTTYPE.SOLID:{
+                        let id = get_new_id();
+                        const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
+                        add_gridrect(view.map, id, x0, y0, submapid, get_primary_color());
+                        const gridrect = view.map.canvas_objs.get(id) as GridRectangle;
+                        view.placing_area.is_placing = true;
+                        view.placing_area.is_line = false;
+                        view.placing_area.x0 = gridrect.base_x+smoff[0];
+                        view.placing_area.y0 = gridrect.base_y+smoff[1];
+                        view.placing_area.x1 = gridrect.base_x+smoff[0];
+                        view.placing_area.y1 = gridrect.base_y+smoff[1];
+                        request_render()
+                        function add_point(e:MouseEvent):void{
+                            e.stopPropagation();
+                            e.preventDefault();
+                            const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
+                            change_gridrect_by_id(view.map, id, x1, y1, x0, y0);
+                            view.placing_area.x0 = gridrect.base_x+smoff[0];
+                            view.placing_area.y0 = gridrect.base_y+smoff[1];
+                            view.placing_area.x1 = gridrect.base_x + gridrect.width+smoff[0];
+                            view.placing_area.y1 = gridrect.base_y + gridrect.height+smoff[1];
+                            request_render();
+                        }
+                        the_canvas.addEventListener('pointermove', add_point);
+                        function finish_point():void{
+                            the_canvas.removeEventListener('pointermove', add_point);
+                            window.removeEventListener('pointerup', finish_point);
+                            the_canvas.removeEventListener('pointerleave', finish_point);
+                            view.placing_area.is_placing = false;
+                            request_render();
+                            publish_obj_by_id(view.map, id);
+                            note_create_by_id_for_undo(view.map, id);
+                        }
+                        window.addEventListener('pointerup', finish_point);
+                        the_canvas.addEventListener('pointerleave', finish_point);
+                    }break;
+                }
+            }break;
+            case ToolType.ELLIPSE:{ // TAG toolELLIPSE
+                let id = get_new_id();
+                const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
+                add_ellipse(view.map, id, x0, y0, submapid, get_primary_color(), get_secondary_color(), current_ellipse);
+                const ellipse = view.map.canvas_objs.get(id)! as Ellipse;
+                view.placing_area.is_placing = true;
+                view.placing_area.is_line = false;
+                view.placing_area.x0 = ellipse.base_x+smoff[0];
+                view.placing_area.y0 = ellipse.base_y+smoff[1];
+                view.placing_area.x1 = ellipse.base_x+smoff[0];
+                view.placing_area.y1 = ellipse.base_y+smoff[1];
+                request_render()
+                function add_point(e:MouseEvent):void{
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
+                    if(x1 < x0)
+                        ellipse.base_x = x1;
+                    else
+                        ellipse.base_x = x0;
+                    if(y1 < y0)
+                        ellipse.base_y = y1
+                    else
+                        ellipse.base_y = y0;
+                    ellipse.width = Math.abs(x1-x0);
+                    ellipse.height = Math.abs(y1-y0);
+                    view.placing_area.x0 = ellipse.base_x+smoff[0];
+                    view.placing_area.y0 = ellipse.base_y+smoff[1];
+                    view.placing_area.x1 = ellipse.base_x + ellipse.width+smoff[0];
+                    view.placing_area.y1 = ellipse.base_y + ellipse.height+smoff[1];
+                    request_render();
+                }
+                the_canvas.addEventListener('pointermove', add_point);
+                function finish_point():void{
+                    the_canvas.removeEventListener('pointermove', add_point);
+                    window.removeEventListener('pointerup', finish_point);
+                    the_canvas.removeEventListener('pointerleave', finish_point);
+                    view.placing_area.is_placing = false;
+                    request_render();
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
+                }
+                window.addEventListener('pointerup', finish_point);
+                the_canvas.addEventListener('pointerleave', finish_point);
+            }break;
+            case ToolType.TEXT:{ // TAG toolTEXT
+                const [x0, y0] = event_to_coord_off(e, view, smoff);
+                let dialog = get_dialog('text-input');
+                if(!dialog) return;
+                dialog.title.textContent = 'Enter Text';
+                if(!dialog.f.size.value)
+                    dialog.f.size.value = '12';
+                const [l, c, r] = [dialog.f.left, dialog.f.center, dialog.f.right];
+                l.checked = false;
+                c.checked = true;
+                r.checked = false;
+                dialog.f.text.value = '';
+                dialog.f.background.checked = false;
+                dialog.f['link-dungeon'].replaceChildren();
+                elem_parent_text(dialog.f['link-dungeon'], 'option', 'No Link').value = '-1';
+                for(const map of MAPS.values()){
+                    elem_parent_text(dialog.f['link-dungeon'], 'option', map.map_name).value = ''+map.map_id;
+                }
+                let submapoptions = '<option value="-1">No Link</option>'
+                for(let sm of view.map.submaps){
+                    if(sm.flags & CanvasFlag.DELETED) continue;
+                    if(sm.hidinguser && sm.hidinguser !== SETTINGS.userid) continue;
+                    submapoptions += `<option value="${sm.id}">${sm.title}</option>`;
+                }
+                dialog.f['link-submap'].innerHTML = submapoptions;
+                dialog.f['link-dungeon'].value = '-1';
+                dialog.f['link-submap'].value = '-1';
+                dialog.f['link-dungeon'].onchange = function():void{
+                    dialog.f['link-submap'].value = '-1'
+                };
+                dialog.f['link-submap'].onchange = function():void{
+                    dialog.f['link-dungeon'].value = '-1'
+                };
+                dialog.ok_handler = function():void{
+                    const text = dialog.f.text.value.trim();
+                    if(!text) return;
+                    let alignment = radio_to_value([l, c, r], [TextAlignment.LEFT, TextAlignment.CENTER, TextAlignment.RIGHT]);
+
+                    let textsize = (+dialog.f.size.value) | 0;
+                    if(textsize < 4) textsize = 4;
+                    if(textsize > 72) textsize = 72;
+                    let map_id = +dialog.f['link-dungeon'].value;
+                    // This is annoying otherwise
+                    if(map_id == view.map.map_id)
+                        map_id = -1;
+                    let submap = false;
+                    if(map_id == -1){
+                        map_id = +dialog.f['link-submap'].value;
+                        submap = true;
+                    }
+                    let id = get_new_id();
+                    add_text(view.map, id, x0, y0, submapid, text, textsize, alignment, map_id);
+                    // kind of hacky
+                    let o = view.map.canvas_objs.get(id)!;
+                    if(submap)
+                        o.flags |= CanvasFlag.TEXT_LINKS_TO_SUBMAP;
+                    if(dialog.f.background.checked)
+                        o.flags |= CanvasFlag.TEXT_HAS_BACKGROUND;
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
+                    request_render();
+                };
+                dialog.show_handler = function():void{
+                    if(!IS_TOUCH) dialog.f.text.focus();
+                };
+                dialog.show();
+
+            }break;
+            case ToolType.IMAGE:{ // TAG toolIMAGE
+                const [x0, y0] = event_to_coord_off(e, view, smoff);
+                let dialog = get_dialog('image-input');
+                if(!dialog) return;
+                dialog.title.textContent = 'Enter Image';
+                dialog.f.width.value = '';
+                dialog.f.height.value = '';
+                dialog.f.url.value = '';
+                dialog.f.checkbox.checked = false;
+                dialog.f.background.checked = false;
+                dialog.show_handler = function():void{
+                    if(!IS_TOUCH) dialog.f.url.focus();
+                };
+                dialog.ok_handler = function():void{
+                    const text = dialog.f.url.value.trim();
+                    if(!text) return;
+                    let width = +dialog.f.width.value;
+                    let height = +dialog.f.height.value;
+                    if(!width || width < 0) width = 0;
+                    if(!height || height < 0) height = 0;
+                    const round = dialog.f.checkbox.checked;
+                    if(round){
+                        width = snap_to_grid(width);
+                        height = snap_to_grid(height);
+                    }
+                    let id = get_new_id();
+                    add_image(view.map, id, x0, y0, width, height, submapid, text);
+                    if(dialog.f.background.checked)
+                        view.map.canvas_objs.get(id)!.flags |= CanvasFlag.IMG_IS_BACKGROUND;
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
+                    request_render();
+                };
+                dialog.show();
+            }break;
+            case ToolType.TOKEN:{ // TAG toolTOKEN
+                if(current_token_type == TOKENTYPE.EZ){
+                    const [x0, y0] = event_to_coord_off(e, view, smoff);
+                    let dialog = get_dialog('ez-token');
+                    if(!dialog) return;
+                    dialog.title.textContent = 'Enter Token';
+                    dialog.f.color.value = ez_token_color;
+                    dialog.f.width.value = view.gridscale == GRIDSCALE.TEN?'1':'0.5';
+                    dialog.f.height.value = view.gridscale == GRIDSCALE.TEN?'1':'0.5';
+                    dialog.f.text.value = '';
+                    dialog.show_handler = function():void{
+                        if(!IS_TOUCH) dialog.f.text.focus();
+                    };
+                    dialog.ok_handler = function():void{
+                        const text = dialog.f.text.value.trim();
+                        if(!text) return;
+                        let width  = +dialog.f.width.value;
+                        let height = +dialog.f.height.value;
+                        if(!width || width < 0) width = view.gridscale == GRIDSCALE.TEN?1:0.5;
+                        if(!height || height < 0) height = view.gridscale == GRIDSCALE.TEN?1:0.5;
+                        const color = dialog.f.color.value;
+                        let id = get_new_id();
+                        ez_token_color = color;
+                        let snap = get_snap_tl_func();
+                        add_ez_token(view.map, id, snap(x0), snap(y0), submapid, text, color, width, height);
+                        publish_obj_by_id(view.map, id);
+                        note_create_by_id_for_undo(view.map, id);
+                        request_render();
+                    };
+                    dialog.show();
+
+                }
+                else {
+                    const [x0, y0] = event_to_coord_off(e, view, smoff);
+                    let dialog = get_dialog('img-token');
+                    if(!dialog) return;
+                    dialog.title.textContent = 'Choose Token';
+                    const gallery = dialog.f.gallery;
+                    dialog.hide_handler = function():void{
+                        gallery.innerHTML = '';
+                    };
+                    dialog.f.width.value = view.gridscale == GRIDSCALE.TEN?'1':'0.5';
+                    dialog.f.height.value = view.gridscale == GRIDSCALE.TEN?'1':'0.5';
+                    dialog.f.url.value = '';
+                    function add_img_buttons():void{
+                        if(PACKED){
+                            for(let ti of PACKED.tokens){
+                                const button = document.createElement('button');
+                                let path = ti[1];
+                                const img = token_to_img(ti[2], ti[3], ti[4], ti[5], 64, 64);
+                                button.appendChild(img);
+                                gallery.appendChild(button);
+                                const url = `/tokens/${path}`;
+                                button.addEventListener('click', function():void{
+                                    dialog.f.url.value = url;
+                                });
+                            }
+                        }
+                    }
+                    add_img_buttons();
+                    dialog.ok_handler = function():void{
+                        const text = dialog.f.url.value.trim();
+                        if(!text) return;
+                        let id = get_new_id();
+                        let snap = get_snap_tl_func();
+                        let w = +dialog.f.width.value;
+                        let h = +dialog.f.height.value;
+                        if(!w || w < 0) w = view.gridscale == GRIDSCALE.TEN?1:0.5;
+                        if(!h || h < 0) h = view.gridscale == GRIDSCALE.TEN?1:0.5;
+                        add_img_token(view.map, id, snap(x0), snap(y0), submapid, text, w, h);
+                        publish_obj_by_id(view.map, id);
+                        note_create_by_id_for_undo(view.map, id);
+                        request_render();
+                    };
+                    dialog.show();
+                }
+            }break;
+            case ToolType.FIXTURE:{ // TAG toolFIXTURE
+                switch(current_fixture_type){
+                    // Legacy: is its own impl
+                    case FixtureType.STAIRS:{
+                        let id = get_new_id();
+                        let [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
+                        let obj: Stairs = {
+                            type: CanvasType.STAIRS,
+                            id: id,
+                            base_x:x0,
+                            base_y:y0,
+                            flags: CanvasFlag.NONE,
+                            hidinguser: hiddenid(),
+                            submap:submapid,
+                            width: 0,
+                            height: 0,
+                            rotation: Rotation.UP,
+                        };
+                        add_canv_obj(view.map, obj);
+                        view.placing_area.is_placing = true;
+                        view.placing_area.is_line = false;
+                        const stairs = view.map.canvas_objs.get(id)! as Stairs; // lazy
+                        view.placing_area.x0 = x0+smoff[0];
+                        view.placing_area.y0 = y0+smoff[1];
+                        view.placing_area.x1 = x0+smoff[0];
+                        view.placing_area.y1 = y0+smoff[1];
+                        // x0 = stairs.base_x;
+                        // y0 = stairs.base_y;
+                        request_render();
+                        function change_stairs_on_move(e:MouseEvent):void{
+                            e.stopPropagation();
+                            e.preventDefault();
+                            const [ex0, ey0] = event_to_coord_off(e, view, smoff);
+                            change_stairs(stairs, x0, y0, ex0, ey0, snap);
+                            view.placing_area.x0 = stairs.base_x+smoff[0];
+                            view.placing_area.y0 = stairs.base_y+smoff[1];
+                            view.placing_area.x1 = stairs.base_x+REFERENCE.WIDTH*stairs.width+smoff[0];
+                            view.placing_area.y1 = stairs.base_y+REFERENCE.WIDTH*stairs.height+smoff[1];
+                            request_render();
+                        }
+                        the_canvas.addEventListener('pointermove', change_stairs_on_move);
+                        function finish_point():void{
+                            view.placing_area.is_placing = false;
+                            request_render();
+                            the_canvas.removeEventListener('pointermove', change_stairs_on_move);
+                            window.removeEventListener('pointerup', finish_point);
+                            the_canvas.removeEventListener('pointerleave', finish_point);
+                            if(stairs.width != 0 && stairs.height != 0){
+                                publish_obj_by_id(view.map, id);
+                                note_create_by_id_for_undo(view.map, id);
+                            }
+                            else {
+                                stairs.flags |= CanvasFlag.DELETED;
+                            }
+                        }
+                        window.addEventListener('pointerup', finish_point);
+                        the_canvas.addEventListener('pointerleave', finish_point);
+                    }break;
+                    default:{
+                        let id = get_new_id();
+                        const [x, y] = event_to_coord_snapped_off(e, view, snap, smoff);
+                        const fixture = make_fixture(id, x, y, submapid, current_fixture_type);
+                        add_canv_obj(view.map, fixture);
+                        view.placing_area.is_placing = true;
+                        view.placing_area.is_line = false;
+                        view.placing_area.x0 = fixture.base_x+smoff[0];
+                        view.placing_area.y0 = fixture.base_y+smoff[1];
+                        view.placing_area.x1 = fixture.base_x+smoff[0];
+                        view.placing_area.y1 = fixture.base_y+smoff[1];
+                        request_render();
+                        function move(e:MouseEvent):void{
+                            e.stopPropagation();
+                            e.preventDefault();
+                            let x0 = x;
+                            let y0 = y;
+                            let [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
+                            if(x1 < x0){
+                                let temp = x1; x1 = x0; x0 = temp;
+                            }
+                            if(y1 < y0){
+                                let temp = y1; y1 = y0; y0 = temp;
+                            }
+                            fixture.base_x = x0;
+                            fixture.base_y = y0;
+                            fixture.width = x1 - x0;
+                            fixture.height = y1 - y0;
+                            view.placing_area.x0 = x0+smoff[0];
+                            view.placing_area.y0 = y0+smoff[1];
+                            view.placing_area.x1 = x1+smoff[0];
+                            view.placing_area.y1 = y1+smoff[1];
+                            request_render();
+                        }
+                        the_canvas.addEventListener('pointermove', move);
+                        function finish():void{
+                            view.placing_area.is_placing = false;
+                            request_render();
+                            the_canvas.removeEventListener('pointermove', move);
+                            window.removeEventListener('pointerup', finish);
+                            the_canvas.removeEventListener('pointerleave', finish);
+                            if(fixture.width != 0 && fixture.height != 0){
+                                publish_obj_by_id(view.map, id);
+                                note_create_by_id_for_undo(view.map, id);
+                            }
+                            else {
+                                fixture.flags |= CanvasFlag.DELETED;
+                            }
+                        }
+                        window.addEventListener('pointerup', finish);
+                        the_canvas.addEventListener('pointerleave', finish);
+                    }break;
+                }
+            }break;
+            case ToolType.MEASURE:{ // TAG toolMEASURE
+                let id = get_new_id();
+                let snap:(x:number, y:number)=>[number, number];
+                if(!submapid && view.map.grid_type & GridType.HEX){
+                    snap = function(x:number, y:number):[number, number]{
+                        return snap_to_hex_center(x, y);
+                    };
+                }
+                else {
+                    let snap_center = get_snap_center_func();
+                    snap = function(x:number, y:number):[number, number]{
+                        const x0 = snap_center(x);
+                        const y0 = snap_center(y);
+                        return [x0, y0];
+                    };
+                }
+                const [unsnapped_x, unsnapped_y] = event_to_coord_off(e, view, smoff);
+                const [x0, y0] = snap(unsnapped_x, unsnapped_y);
+                let measure = make_measure(id, x0, y0, submapid, '#aa0033');
+                add_canv_obj(view.map, measure);
+                publish_obj_by_id(view.map, id); // don't note create for undo
+                request_render();
+                function move(e:MouseEvent):void{
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const [x_, y_] = event_to_coord_off(e, view, smoff);
+                    const [x, y] = snap(x_, y_);
+                    if(x == measure.x1 && y == measure.y1)
+                        return;
+                    measure.x1 = x;
+                    measure.y1 = y;
+                    const stripped = strip_obj(measure);
+                    publish_obj_updates(view.map.map_id, [stripped]);
+                    request_render();
+                }
+                the_canvas.addEventListener('pointermove', move);
+                function finish():void{
+                    publish_delete_by_ids(view.map.map_id, [id]);
+                    measure.flags |= CanvasFlag.DELETED;
+                    request_render();
+                    the_canvas.removeEventListener('pointermove', move);
+                    window.removeEventListener('pointerup', finish);
+                    the_canvas.removeEventListener('pointerleave', finish);
+                }
+                window.addEventListener('pointerup', finish);
+                the_canvas.addEventListener('pointerleave', finish);
+
+            }break;
+            case ToolType.TILE:{ // TAG toolTILE
+                let deleted_ids: Array<number> = [];
+                let created_ids:Array<number> = [];
+                let drag = false;
+                let prevx:number|undefined = undefined; let prevy:number|undefined = undefined;
+                function do_tile(x:number, y:number):void{
+                    let old_tile = tile_at(view, x, y, current_tile_type);
+                    if(drag){
+                        if(old_tile) return;
+                    }
+                    else {
+                        if(old_tile){
+                            old_tile.flags |= CanvasFlag.DELETED;
+                            deleted_ids.push(old_tile.id);
+                        }
+                    }
+                    let id = get_new_id();
+                    created_ids.push(id);
+                    switch(current_tile_type){
+                        case TileType.FILLED:{
+                            let filled: FilledTile = {
+                                type: CanvasType.FILLED_TILE,
+                                id: id,
+                                base_x: x,
+                                base_y: y,
+                                flags: CanvasFlag.NONE,
+                                hidinguser: hiddenid(),
+                                submap:submapid,
+                                color: get_primary_color(),
+                                size: view.gridscale == GRIDSCALE.TEN?1:0.5,
+                            };
+                            add_canv_obj(view.map, filled);
+                        }break;
+                        case TileType.TERRAIN: {
+                            let terrain: TerrainTile = {
+                                type: CanvasType.TERRAIN_TILE,
+                                id: id,
+                                base_x: x,
+                                base_y: y,
+                                flags: CanvasFlag.NONE,
+                                hidinguser: hiddenid(),
+                                submap:submapid,
+                                terrain_id: current_terrain_id,
+                            };
+                            add_canv_obj(view.map, terrain);
+                        }break;
+                        case TileType.ICON: {
+                            let icon: IconTile = {
+                                type: CanvasType.ICON_TILE,
+                                id: id,
+                                base_x: x,
+                                base_y: y,
+                                flags: CanvasFlag.NONE,
+                                hidinguser: hiddenid(),
+                                submap:submapid,
+                                terrainicon_id: current_terrain_icon_id,
+                            };
+                            add_canv_obj(view.map, icon);
+                        }break;
+                        default:
+                            console.assert(false);
+                    }
+                    request_render();
+                }
+                function make_tile(e:PointerEvent):void{
+                    let x:number;
+                    let y:number;
+                    if(view.map.grid_type & GridType.HEX){
+                        const [x_, y_] = event_to_coord_off(e, view, smoff);
+                        [x, y] = snap_down_to_hex_grid(x_, y_);
+                    }
+                    else {
+                        let snap = get_snap_tl_func();
+                        [x, y] = event_to_coord_snapped_off(e, view, snap, smoff);
+                    }
+                    if(prevx !== undefined && prevy !== undefined){
+                        let xdiff = x - prevx;
+                        let ydiff = y - prevy;
+                        let snap = get_snap_tl_func();
+                        // there's a better way to do this, but whatever
+                        for(let i = 0; i < 10; i++){
+                            let x_ = prevx + i*xdiff/10;
+                            let y_ = prevy + i*ydiff/10;
+                            if(view.map.grid_type & GridType.HEX){
+                                [x_, y_] = snap_down_to_hex_grid(x_, y_);
+                            }
+                            else {
+                                x_ = snap(x_);
+                                y_ = snap(y_);
+                            }
+                            do_tile(x_, y_);
+                        }
+                    }
+                    do_tile(x, y);
+                    prevx = x;
+                    prevy = y;
+                }
+                make_tile(e);
+                drag = true;
+                the_canvas.addEventListener('pointermove', make_tile);
+                function finish():void{
+                    // console.log('created_ids', created_ids);
+                    // console.log('deleted ids', deleted_ids);
+                    the_canvas.removeEventListener('pointermove', make_tile);
+                    the_canvas.removeEventListener('pointerleave', finish);
+                    window.removeEventListener('pointerup', finish);
+                    publish_objs_by_ids(view.map, created_ids);
+                    if(deleted_ids.length){
+                        publish_delete_by_ids(view.map.map_id, deleted_ids);
+                        node_deletes_and_creates_for_undo(view.map, deleted_ids, created_ids);
+                    }
+                    else {
+                        note_mass_create_for_undo(view.map, created_ids);
+                    }
+                    request_render();
+                };
+                window.addEventListener('pointerup', finish);
+                the_canvas.addEventListener('pointerleave', finish);
+            }break;
+            case ToolType.SUBMAP:{ // TAG toolSUBMAP
+                // Don't allow nested submaps
+                if(submapid) break;
+                let id = get_new_id();
+                // could use smoff, whatever
+                const [x0, y0] = event_to_coord_snapped(e, view, snap);
+                let submap: SubMap = {
+                    type: CanvasType.SUBMAP,
+                    id: id,
+                    base_x: x0,
+                    base_y: y0,
+                    flags: CanvasFlag.NONE,
+                    hidinguser: hiddenid(),
+                    submap: 0,
+                    width: 0,
+                    height: 0,
+                    tlx: 0, tly:0,
+                    grid_type: GridType.SQUARE,
+                    title: "Untitled",
+                    grid_color: '',
+                    bg_color: '',
+                };
+                add_canv_obj(view.map, submap);
+                request_render();
+                function add_point(e:MouseEvent):void{
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const [x1, y1] = event_to_coord_snapped(e, view, snap);
+                    let bx = x0;
+                    let width = Math.abs(x1 - x0);
+                    if(x1 < bx) bx = x1;
+                    let by = y0;
+                    if(y1 < by) by = y1;
+                    let height = Math.abs(y1 - y0);
+                    submap.base_x = bx;
+                    submap.base_y = by;
+                    submap.width = width;
+                    submap.height = height;
+                    request_render();
+                }
+                the_canvas.addEventListener('pointermove', add_point);
+                function finish_point():void{
+                    the_canvas.removeEventListener('pointermove', add_point);
+                    window.removeEventListener('pointerup', finish_point);
+                    the_canvas.removeEventListener('pointerleave', finish_point);
+                    if(submap.width == 0 || submap.height == 0){
+                        submap.flags |= CanvasFlag.DELETED;
+                    }
+                    else {
+                        view.map.submaps.push(submap);
+                        publish_obj_by_id(view.map, id);
+                        note_create_by_id_for_undo(view.map, id);
+                    }
+                    request_render();
+                }
+                window.addEventListener('pointerup', finish_point);
+                the_canvas.addEventListener('pointerleave', finish_point);
+            }break;
+            case ToolType.ARC:{ // TAG toolARC
+                let id = get_new_id();
+                const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
+                // const thickness_input = by_id('line-thickness');
+                const thickness = 6; // +thickness_input.value || 4;
+                let arc: Arc = {
+                    type: CanvasType.ARC,
+                    id: id,
+                    base_x: x0,
+                    base_y: y0,
+                    flags: CanvasFlag.NONE,
+                    hidinguser: hiddenid(),
+                    submap: 0,
+                    width: 0,
+                    height: 0,
+                    start_arc: 0,
+                    end_arc: 1,
+                    thickness: thickness,
+                    color: get_primary_color(),
+                };
+                add_canv_obj(view.map, arc);
+                view.placing_area.is_placing = true;
+                view.placing_area.is_line = false;
+                view.placing_area.x0 = arc.base_x+smoff[0];
+                view.placing_area.y0 = arc.base_y+smoff[1];
+                view.placing_area.x1 = arc.base_x+smoff[0];
+                view.placing_area.y1 = arc.base_y+smoff[1];
+                request_render();
+                function add_point(e:MouseEvent):void{
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
+                    let xmin = x0;
+                    let xmax = x0;
+                    let ymin = y0;
+                    let ymax = y0;
+
+                    if(x1 < xmin) xmin = x1;
+                    if(x1 > xmax) xmax = x1;
+                    if(y1 < ymin) ymin = y1;
+                    if(y1 > ymax) ymax = y1;
+
+                    arc.base_x = xmin;
+                    arc.base_y = ymin;
+                    arc.width = xmax - xmin;
+                    arc.height = ymax - ymin;
+                    let [rawx, rawy] = event_to_coord_off(e, view, smoff);
+                    let angle = Math.atan2(rawx-x0, rawy-y0) * 180/Math.PI;
+                    if(current_arc_type == ArcType.QUARTER){
+                        if(angle >= -180 && angle < -90){
+                            arc.start_arc = 3;
+                            arc.end_arc = 4;
+                        }
+                        else if(angle >= -90 && angle < 0){
+                            arc.start_arc = 0;
+                            arc.end_arc = 1;
+                        }
+                        else if(angle >= 0 && angle < 90){
+                            arc.start_arc = 1;
+                            arc.end_arc = 2;
+                        }
+                        else {
+                            arc.start_arc = 2;
+                            arc.end_arc = 3;
+                        }
+                    }
+                    else {
+                        if(angle < -135){
+                            arc.start_arc = 1;
+                            arc.end_arc = 3;
+                        }
+                        else if(angle < -90){
+                            arc.start_arc = 2;
+                            arc.end_arc = 4;
+                        }
+                        else if(angle < -45){
+                            arc.start_arc = 0;
+                            arc.end_arc = 2;
+                        }
+                        else if(angle < 0){
+                            arc.start_arc = 1;
+                            arc.end_arc = 3;
+                        }
+                        else if(angle < 45){
+                            arc.start_arc = 3;
+                            arc.end_arc = 5;
+                        }
+                        else if(angle < 90){
+                            arc.start_arc = 0;
+                            arc.end_arc = 2;
+                        }
+                        else if(angle < 135){
+                            arc.start_arc = 2;
+                            arc.end_arc = 4;
+                        }
+                        else {
+                            arc.start_arc = 3;
+                            arc.end_arc = 5;
+                        }
+                    }
+                    view.placing_area.x0 = arc.base_x+smoff[0];
+                    view.placing_area.y0 = arc.base_y+smoff[1];
+                    view.placing_area.x1 = arc.base_x+smoff[0]+arc.width;
+                    view.placing_area.y1 = arc.base_y+smoff[1]+arc.height;
+                    request_render();
+                }
+                the_canvas.addEventListener('pointermove', add_point);
+                function finish_point():void{
+                    the_canvas.removeEventListener('pointermove', add_point);
+                    window.removeEventListener('pointerup', finish_point);
+                    the_canvas.removeEventListener('pointerleave', finish_point);
+                    view.placing_area.is_placing = false;
+                    if(arc.width && arc.height){
+                        publish_obj_by_id(view.map, id);
+                        note_create_by_id_for_undo(view.map, id);
+                    }
+                    request_render();
+                }
+                window.addEventListener('pointerup', finish_point);
+                the_canvas.addEventListener('pointerleave', finish_point);
+            }break;
+            default:{
+                console.log('unknown tool:', current_tool);
+            }break;
+        }
+    });
+    the_canvas.addEventListener('pointermove', function(e:PointerEvent):void{
+        let view = get_view(which_canv);
+        // NOTE: obj_at handles submap
+        let [mx, my] = event_to_coord(e, view);
+        view.mouse.x = mx;
+        view.mouse.y = my;
+        const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;
+        redo_canvas_cursor(the_canvas, view, modified);
+
+    });
+    the_canvas.addEventListener('dblclick', function(e:MouseEvent):void{
+        let view = get_view(which_canv);
+        if(current_tool != ToolType.SELECT)
+            return;
+        if(view.resize.resizing) return;
+        let [clicked_x, clicked_y] = event_to_coord(e, view);
+        for(let aa of view.action.areas){
+            if(point_in_rect(clicked_x, clicked_y, aa.bbox.x0, aa.bbox.y0, aa.bbox.x1, aa.bbox.y1))
+                return;
+        }
+        launch_edit_dialog(view);
+    });
+    the_canvas.addEventListener('contextmenu', function(e:MouseEvent):void{
+        const menu = ctx_menu(e);
+        const view = get_view(which_canv);
+        let [x, y] = event_to_coord(e, view);
+        x -= the_canvas.width/2/view.scale;
+        y -= the_canvas.height/2/view.scale;
+        let [click_x, click_y] = event_to_coord(e, view);
+        let whenflags = CONTEXTMENUWHENFLAGS.ALWAYS;
+        if(view.selected.size == 0){
+            whenflags |= CONTEXTMENUWHENFLAGS.NO_SELECTION;
+        }
+        else {
+            whenflags |= CONTEXTMENUWHENFLAGS.ANY_SELECTED;
+        }
+        if(view.selected.size > 1)
+            whenflags |= CONTEXTMENUWHENFLAGS.MULTIPLE_SELECTED;
+        if(view.selected.size == 1)
+            whenflags |= CONTEXTMENUWHENFLAGS.ONE_SELECTED;
+        if(view.gridscale == GRIDSCALE.TEN)
+            whenflags |= CONTEXTMENUWHENFLAGS.GRID_TEN;
+        else
+            whenflags |= CONTEXTMENUWHENFLAGS.GRID_FIVE;
+
+        if(whenflags & CONTEXTMENUWHENFLAGS.NO_SELECTION){
+            menu.item('Ping', function():void{ping_at(view.map, click_x, click_y);});
+            menu.item('Gather Party', function():void{
+                EMIT(FromClient.CANVAS_GATHER, {x:-x, y:-y, map_id:view.map.map_id});
+            });
+            if(whenflags & CONTEXTMENUWHENFLAGS.GRID_TEN){
+                menu.item('Battlemode', function():void{
+                    EMIT(FromClient.CANVAS_BATTLE, {x:-x, y:-y, map_id:view.map.map_id});
+                });
+            }
+            if(whenflags & CONTEXTMENUWHENFLAGS.GRID_FIVE){
+                menu.item('Dungeonmode', function():void{
+                    EMIT(FromClient.CANVAS_DUNGEON_MODE);
+                });
+            }
+            menu.separator();
+            menu.item(canv2_is_hidden?'Show Split':'Hide Split', function(){
+                canv2_is_hidden = !canv2_is_hidden;
+                if(!canv2_is_hidden)
+                    secondary_map_view_index = active_map_view_index;
+                resize_canvas();
+            });
+            menu.separator();
+            if(map_hist.can_go_back())
+                menu.item('Back', map_hist.go_back);
+            else
+                menu.disabled('Back');
+            if(map_hist.can_go_forward())
+                menu.item('Forward', map_hist.go_forward);
+            else
+                menu.disabled('Forward');
+            menu.separator();
+            if(undo_is_impossible(view.map))
+                menu.disabled('Undo');
+            else
+                menu.item('Undo', function():void{do_one_undo(view.map);});
+            if(redo_is_impossible(view.map))
+                menu.disabled('Redo');
+            else
+                menu.item('Redo', function():void{do_one_redo(view.map);});
+            menu.separator();
+            menu.item('Zoom In', function():void{zoom_in(view);});
+            menu.item('Zoom Out', function():void{zoom_out(view);});
+            menu.item('Reset Zoom', function():void{reset_zoom(view);});
+            menu.item('Reset Camera', function():void{
+                let view = get_view(which_canv);
+                view.camera_x=0;
+                view.camera_y=0;
+                view.scale=1;
+                request_render();
+            });
+            menu.separator();
+            menu.item('Rotate Everything', function():void{
+                rotate_everything_90(view);
+            });
+            menu.separator();
+        }
+        else {
+            if(whenflags & CONTEXTMENUWHENFLAGS.ONE_SELECTED){
+                if(edit_is_impossible(view))
+                    menu.disabled('Edit');
+                else
+                    menu.item('Edit', function():void{launch_edit_dialog(view);});
+            }
+            menu.item('Cut', function():void{
+                clear_copy_buffer();
+                cut_selected_objs_to_copy_buffer(view);
+            });
+            menu.item('Copy', function():void{
+                clear_copy_buffer();
+                copy_selected_objs_to_copy_buffer(view);
+            });
+            menu.item('Copy to Clipboard', function():void{
+                copy_selected_objs_to_clipboard(view);
+            });
+        }
+        if(copied_objs.length === 0)
+            menu.disabled('Paste');
+        else
+            menu.item('Paste', function():void{
+                let submapid = 0;
+                let sm = get_submap_at(view, click_x, click_y);
+                if(sm){
+                    submapid = sm.id;
+                    click_x -= sm.base_x + sm.tlx;
+                    click_y -= sm.base_y + sm.tly;
+                }
+                paste_from_copy_buffer_at(view.map, click_x, click_y, submapid);
+            });
+        menu.item('Paste from Clipboard', function():void{
+            let submapid = 0;
+            let sm = get_submap_at(view, click_x, click_y);
+            if(sm){
+                submapid = sm.id;
+                click_x -= sm.base_x + sm.tlx;
+                click_y -= sm.base_y + sm.tly;
+            }
+            paste_from_clipboard_at(view.map, click_x, click_y, submapid);
+        });
+        menu.separator();
+        if(whenflags & CONTEXTMENUWHENFLAGS.ANY_SELECTED){
+            menu.item('Hide', function():void{
+                let changed = false;
+                let before = [];
+                let after = [];
+                for(let obj_id of view.selected){
+                    let o = view.map.canvas_objs.get(obj_id)!;
+                    if(o.hidinguser == SETTINGS.userid)
+                        continue;
+                    before.push(strip_obj(o));
+                    o.hidinguser = SETTINGS.userid;
+                    after.push(strip_obj(o));
+                    changed = true;
+                }
+                if(changed){
+                    note_updates_for_undo(view.map, before, after);
+                    publish_obj_updates(view.map.map_id, after);
+                    request_render();
+                }
+            });
+            menu.item('Unhide', function():void{
+                let changed = false;
+                let before = [];
+                let after = [];
+                for(let obj_id of view.selected){
+                    let o = view.map.canvas_objs.get(obj_id)!;
+                    if(o.hidinguser == 0)
+                        continue;
+                    before.push(strip_obj(o));
+                    o.hidinguser = 0;
+                    after.push(strip_obj(o));
+                    changed = true;
+                }
+                if(changed){
+                    note_updates_for_undo(view.map, before, after);
+                    publish_obj_updates(view.map.map_id, after);
+                    request_render();
+                }
+            });
+            menu.separator();
+        }
+        menu.item('Add Submap', function():void{
+            do_new_map_dialog(view.map.map_id);
+        });
+        menu.separator();
+        menu.item('Cancel');
+        menu.install();
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function():void{
+    for(const canv of document.getElementsByTagName('canvas'))
+        install_canvas_listeners(canv);
     window.addEventListener('keydown', function(e:KeyboardEvent):void{
         // @ts-ignore
         if((e.ctrlKey || e.metaKey) && e.key == 'c' && document.activeElement && document.activeElement.oncopy){
@@ -7881,1497 +9496,6 @@ document.addEventListener('DOMContentLoaded', function():void{
         // unhandled keys should return to avoid this.
         e.stopPropagation();
         e.preventDefault();
-    });
-    let prev_tool:ToolType = ToolType.PAN;
-    // this state variable is kind of janky.
-    let ez_token_color = '#ff3333';
-    // TAG toolimpl
-    // TAG pointerdown
-    // TAG click
-    TheCanvas.addEventListener('pointerdown', function(e:PointerEvent):void{
-        if(did_remove_ctx_menu()) return;
-        if(gesturing) return;
-        if(e.button !== 0 && e.button !== 1){ //0 is the 'primary' button
-            return;
-        }
-        let view = get_active_view();
-        if(e.shiftKey){
-            const [click_x, click_y] = event_to_coord(e, view);
-            ping_at(view.map, click_x, click_y);
-            e.stopPropagation();
-            e.preventDefault();
-            return;
-        }
-        if(document.activeElement)
-            (document.activeElement as any).blur();
-        e.stopPropagation();
-        e.preventDefault();
-        if(e.button === 1){
-            prev_tool = current_tool;
-            current_tool = ToolType.PAN;
-        }
-        let submapid = 0;
-        let smoff:[number, number] = [0, 0];
-        // Find what submap if any we are inside.
-        {
-            let [x, y] = event_to_coord(e, view);
-            let sm = get_submap_at(view, x, y);
-            if(sm){
-                submapid = sm.id;
-                smoff = [sm.base_x+sm.tlx, sm.base_y+sm.tly];
-            }
-        }
-        let snap = get_snap_func();
-        let snap_corn = get_snap_corner_func(view.map.grid_type);
-        switch(current_tool){
-            case ToolType.SELECT:{ // TAG toolSELECT
-                let [clicked_x, clicked_y] = event_to_coord(e, view);
-                const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;
-                if(!modified) {
-                    for(let aa of view.action.areas){
-                        if(point_in_rect(clicked_x, clicked_y, aa.bbox.x0, aa.bbox.y0, aa.bbox.x1, aa.bbox.y1)){
-                            let o = view.map.canvas_objs.get(aa.obj_id);
-                            if(!o) break;
-                            if(o.flags & CanvasFlag.DELETED) break;
-                            if(o.hidinguser && o.hidinguser !== SETTINGS.userid) break;
-                            if(o.type == CanvasType.SUBMAP){
-                                let before = strip_obj(o);
-                                o.flags ^= CanvasFlag.SUBMAP_IS_MINIMIZED;
-                                let after = strip_obj(o);
-                                note_updates_for_undo(view.map, [before], [after]);
-                                publish_obj_updates(view.map.map_id, [after]);
-                            }
-                            else if (o.type == CanvasType.TEXT){
-                                if(o.flags & CanvasFlag.TEXT_LINKS_TO_SUBMAP){
-                                    let sm = view.map.canvas_objs.get(o.map_id) as (SubMap | undefined);
-                                    if(!sm) return;
-                                    let before = strip_obj(sm);
-                                    sm.flags &= ~CanvasFlag.SUBMAP_IS_MINIMIZED;
-                                    let after = strip_obj(sm);
-                                    note_updates_for_undo(view.map, [before], [after]);
-                                    publish_obj_updates(view.map.map_id, [after]);
-                                    center_view_at(view, sm.base_x+sm.width/2, sm.base_y+sm.height/2);
-                                    request_render();
-                                    return;
-                                }
-                                change_map(o.map_id);
-                                view.selected.clear();
-                                TheCanvas.style.cursor = 'initial';
-                                return;
-                            }
-                            request_render();
-                            return;
-                        }
-                    }
-                    if(view.resize.handles.length){ // TAG resize
-                        for(let rh of view.resize.handles){
-                            if(point_in_rect(clicked_x, clicked_y, rh.bbox.x0, rh.bbox.y0, rh.bbox.x1, rh.bbox.y1)){
-                                const o = view.map.canvas_objs.get(rh.obj_id);
-                                if(!o) return;
-                                if(o.flags & CanvasFlag.DELETED) return;
-                                if(!is_resizable(o)) return;
-                                const obj: Resizable = o;
-                                view.resize.resizing = true;
-                                if(obj.type == CanvasType.SUBMAP)
-                                    smoff = [0, 0];
-                                let o_x = obj.base_x; let o_y = obj.base_y; let o_w = obj.width; let o_h = obj.height;
-                                function change_wh(e:PointerEvent):void{
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                    const [x1, y1] = event_to_coord_off(e, view, smoff);
-                                    let x0 = obj.base_x; let y0 = obj.base_y;
-                                    if(rh.topleft){
-                                        if(obj.type == CanvasType.STAIRS){
-                                            // stairs w/h are in squares
-                                            x0 += obj.width * REFERENCE.WIDTH;
-                                            y0 += obj.height * REFERENCE.WIDTH;
-                                        }
-                                        else {
-                                            x0 += obj.width;
-                                            y0 += obj.height;
-                                        }
-                                        if(x1 > x0 || y1 > y0) return;
-                                        const xdiff = snap(x0 - x1);
-                                        const ydiff = snap(y0 - y1);
-                                        let old_w = obj.width;
-                                        let old_h = obj.height;
-                                        obj.width = xdiff;
-                                        obj.height = ydiff;
-                                        obj.base_x = x0 - obj.width;
-                                        obj.base_y = y0 - obj.height;
-                                        // stairs w/h are in squares
-                                        if(obj.type == CanvasType.STAIRS){
-                                            obj.width /= REFERENCE.WIDTH;
-                                            obj.height /= REFERENCE.WIDTH;
-                                        }
-                                        if(obj.type == CanvasType.SUBMAP){
-                                            obj.tlx -= old_w - obj.width;
-                                            obj.tly -= old_h - obj.height;
-                                        }
-                                    }
-                                    else {
-                                        if(x1 < x0 || y1 < y0) return;
-                                        const xdiff = snap(x1 - x0);
-                                        const ydiff = snap(y1 - y0);
-                                        if(!xdiff && !ydiff) return;
-                                        obj.width = xdiff;
-                                        obj.height = ydiff;
-                                        // stairs w/h are in squares
-                                        if(obj.type == CanvasType.STAIRS){
-                                            obj.width /= REFERENCE.WIDTH;
-                                            obj.height /= REFERENCE.WIDTH;
-                                        }
-                                    }
-                                    request_render();
-                                }
-                                TheCanvas.addEventListener('pointermove', change_wh);
-                                const before = strip_obj(obj);
-                                function finish():void{
-                                    view.resize.resizing = false;
-                                    redo_canvas_cursor(view, false);
-                                    TheCanvas.removeEventListener('pointermove', change_wh);
-                                    window.removeEventListener('pointerup', finish);
-                                    TheCanvas.removeEventListener('pointerup', finish);
-                                    request_render();
-                                    if(o_x != obj.base_x || o_y != obj.base_y || o_w != obj.width || o_h != obj.height){
-                                        const after = strip_obj(obj);
-                                        note_updates_for_undo(view.map, [before], [after]);
-                                        publish_obj_updates(view.map.map_id, [after]);
-                                    }
-                                    redo_canvas_cursor(view, false);
-                                }
-                                window.addEventListener('pointerup', finish);
-                                TheCanvas.addEventListener('pointerleave', finish);
-                                return;
-                            }
-                        }
-                    }
-                }
-                const fudged_x0 = clicked_x-FUDGE._;
-                const fudged_x1 = clicked_x+FUDGE._;
-                const fudged_y0 = clicked_y-FUDGE._;
-                const fudged_y1 = clicked_y+FUDGE._;
-                // Simulate doing a single item click so that you can immediately
-                // start moving it.
-                // There's probably a more efficient/clear way to do this,
-                // but this works.
-                if(!e.altKey && !view.selection_area.is_selecting && !view.selected.size){
-                    sort_canv_objs(view.map);
-                    view.selection_area.select_one = true;
-                    view.selection_area.is_selecting = true;
-                    update_selection(view, fudged_x0, fudged_y0, fudged_x1, fudged_y1);
-                    finalize_selection(view);
-                    request_render();
-                }
-                if(view.selected.size && there_are_selected_objs_at(view, fudged_x0-smoff[0], fudged_y0-smoff[1], fudged_x1-smoff[0], fudged_y1-smoff[1])){
-                    // handle movement
-                    let rawclick_x = e.offsetX;
-                    let rawclick_y = e.offsetY;
-                    let changed = false;
-                    const before_update = get_stripped_state_by_id(view.map, Array.from(view.selected));
-                    const is_rigid = selection_is_rigid(view);
-                    function move(e:MouseEvent):void{
-                        e.stopPropagation();
-                        e.preventDefault();
-                        const diff = Math.abs(e.offsetX - rawclick_x) + Math.abs(e.offsetY - rawclick_y);
-                        if(diff < 1)
-                            return;
-                        let [move_x, move_y] = event_to_coord(e, view);
-                        changed = true;
-                        move_selected_objects(view, is_rigid, clicked_x, clicked_y, move_x - clicked_x, move_y - clicked_y);
-                        clicked_x = move_x;
-                        clicked_y = move_y;
-                    }
-                    TheCanvas.addEventListener('pointermove', move);
-                    function finish_move():void{
-                        TheCanvas.removeEventListener('pointermove', move);
-                        window.removeEventListener('pointerup', finish_move);
-                        TheCanvas.removeEventListener('pointerleave', finish_move);
-                        if(!changed)
-                            return;
-                        const after_update = get_stripped_state_by_id(view.map, Array.from(view.selected));
-                        publish_obj_updates(view.map.map_id, after_update);
-                        note_updates_for_undo(view.map, before_update, after_update);
-                    }
-                    window.addEventListener('pointerup', finish_move);
-                    TheCanvas.addEventListener('pointerleave', finish_move);
-                }
-                else {
-                    sort_canv_objs(view.map);
-                    view.selection_area.select_one = true;
-                    view.selection_area.is_selecting = true;
-                    view.selection_area.submap = submapid;
-                    update_selection(view, fudged_x0, fudged_y0, fudged_x1, fudged_y1);
-                    request_render();
-                    function select(e:MouseEvent):void{
-                        e.stopPropagation();
-                        e.preventDefault();
-                        let [select_x, select_y] = event_to_coord(e, view);
-                        if(select_x != clicked_x || select_y != clicked_y)
-                            view.selection_area.select_one = false;
-                        update_selection(view, clicked_x, clicked_y, select_x, select_y);
-                        request_render();
-                    }
-                    TheCanvas.addEventListener('pointermove', select);
-                    function finish_select():void{
-                        finalize_selection(view);
-                        TheCanvas.removeEventListener('pointermove', select);
-                        window.removeEventListener('pointerup', finish_select);
-                        TheCanvas.removeEventListener('pointerleave', finish_select);
-                        SELECTING = false;
-                        redo_canvas_cursor(view, false);
-                    }
-                    window.addEventListener('pointerup', finish_select);
-                    TheCanvas.addEventListener('pointerleave', finish_select);
-                    SELECTING = true;
-                    redo_canvas_cursor(view, false);
-                }
-            }break;
-            case ToolType.PAN:{ // TAG toolPAN
-                { // copy-pasta from above
-                    let [clicked_x, clicked_y] = event_to_coord(e, view);
-                    const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;
-                    if(!modified) {
-                        for(let aa of view.action.areas){
-                            if(point_in_rect(clicked_x, clicked_y, aa.bbox.x0, aa.bbox.y0, aa.bbox.x1, aa.bbox.y1)){
-                                let o = view.map.canvas_objs.get(aa.obj_id);
-                                if(!o) break;
-                                if(o.flags & CanvasFlag.DELETED) break;
-                                if(o.hidinguser && o.hidinguser !== SETTINGS.userid) break;
-                                if(o.type == CanvasType.SUBMAP){
-                                    let before = strip_obj(o);
-                                    o.flags ^= CanvasFlag.SUBMAP_IS_MINIMIZED;
-                                    let after = strip_obj(o);
-                                    note_updates_for_undo(view.map, [before], [after]);
-                                    publish_obj_updates(view.map.map_id, [after]);
-                                }
-                                else if (o.type == CanvasType.TEXT){
-                                    if(o.flags & CanvasFlag.TEXT_LINKS_TO_SUBMAP){
-                                        let sm = view.map.canvas_objs.get(o.map_id) as (SubMap | undefined);
-                                        if(!sm) return;
-                                        let before = strip_obj(sm);
-                                        sm.flags &= ~CanvasFlag.SUBMAP_IS_MINIMIZED;
-                                        let after = strip_obj(sm);
-                                        note_updates_for_undo(view.map, [before], [after]);
-                                        publish_obj_updates(view.map.map_id, [after]);
-                                        center_view_at(view, sm.base_x+sm.width/2, sm.base_y+sm.height/2);
-                                        request_render();
-                                        return;
-                                    }
-                                    change_map(o.map_id);
-                                    view.selected.clear();
-                                    TheCanvas.style.cursor = 'initial';
-                                    return;
-                                }
-                                request_render();
-                                return;
-                            }
-                        }
-                    }
-                }
-                // don't use the helper as it includes view.camera_*
-                let clicked_x = e.offsetX/view.scale;
-                let clicked_y = e.offsetY/view.scale;
-                let pointer_id = e.pointerId;
-                GRABBING = true;
-                function pan(e:PointerEvent):void{
-                    e.stopPropagation();
-                    e.preventDefault();
-                    if(e.pointerId != pointer_id) return;
-                    let pan_x = e.offsetX/view.scale;
-                    let pan_y = e.offsetY/view.scale;
-                    view.camera_x -= clicked_x - pan_x;
-                    view.camera_y -= clicked_y - pan_y;
-                    clicked_x = pan_x;
-                    clicked_y = pan_y;
-                    request_render();
-                }
-                TheCanvas.addEventListener('pointermove', pan);
-                function finish_pan():void{
-                    stop_pan = null;
-                    GRABBING = false;
-                    if(prev_tool){
-                        current_tool = prev_tool;
-                        prev_tool = ToolType.PAN;
-                    }
-                    if(prev_tool == ToolType.PAN || !prev_tool){
-                        TheCanvas.style.cursor = 'grab';
-                    }
-                    TheCanvas.removeEventListener('pointermove', pan);
-                    window.removeEventListener('pointerup', finish_pan);
-                    TheCanvas.removeEventListener('pointerleave', finish_pan);
-                    redo_canvas_cursor(view, false);
-                }
-                stop_pan = finish_pan;
-                window.addEventListener('pointerup', finish_pan);
-                TheCanvas.addEventListener('pointerleave', finish_pan);
-                redo_canvas_cursor(view, false);
-            }break;
-            case ToolType.LINE:{ // TAG toolLINE
-                let id = get_new_id();
-                const [x0, y0] = event_to_coord_off(e, view, smoff);
-                const thickness_input = by_id('line-thickness');
-                const thickness = +thickness_input.value || 4;
-                add_freehand_line(view.map, id, x0, y0, submapid, get_primary_color(), thickness);
-                if(current_line_type == LineType.ARROW){
-                    let obj = view.map.canvas_objs.get(id) as FreehandLine;
-                    obj.flags |= CanvasFlag.LINE_IS_ARROW;
-                }
-                function add_point(e:MouseEvent):void{
-                    e.stopPropagation();
-                    e.preventDefault();
-                    const [x1, y1] = event_to_coord_off(e, view, smoff);
-                    if(current_line_type != LineType.PEN){
-                        let obj = view.map.canvas_objs.get(id) as FreehandLine;
-                        obj.points = [];
-                    }
-                    add_freehand_point_by_id(view.map, id, x1, y1);
-                    request_render();
-                }
-                TheCanvas.addEventListener('pointermove', add_point);
-                function finish_point():void{
-                    TheCanvas.removeEventListener('pointermove', add_point);
-                    window.removeEventListener('pointerup', finish_point);
-                    TheCanvas.removeEventListener('pointerleave', finish_point);
-                    publish_obj_by_id(view.map, id);
-                    note_create_by_id_for_undo(view.map, id);
-                }
-                window.addEventListener('pointerup', finish_point);
-                TheCanvas.addEventListener('pointerleave', finish_point);
-            }break;
-            case ToolType.SHAPE:{ // TAG toolSHAPE
-                let id = get_new_id();
-                let thickness = 4;
-                let color1 = get_primary_color();
-                let color2 = '';
-                switch(current_shape){
-                    case ShapeType.SOLID_SHAPE:
-                        color2 = color1;
-                        break;
-                    case ShapeType.FILLED_SHAPE:
-                        color2 = get_secondary_color();
-                        break;
-                }
-                let [x0, y0] = event_to_coord_off(e, view, smoff);
-                let o = make_shape(id, x0, y0, submapid, color1, color2, thickness);
-                add_canv_obj(view.map, o);
-                function add_point(e:MouseEvent):void{
-                    e.stopPropagation();
-                    e.preventDefault();
-                    let [x1, y1] = event_to_coord_off(e, view, smoff);
-                    add_freehand_point(o, x1, y1);
-                    request_render();
-                }
-                TheCanvas.addEventListener('pointermove', add_point);
-                function finish_point():void{
-                    TheCanvas.removeEventListener('pointermove', add_point);
-                    window.removeEventListener('pointerup', finish_point);
-                    TheCanvas.removeEventListener('pointerleave', finish_point);
-                    add_freehand_point(o, x0, y0);
-                    publish_obj_by_id(view.map, id);
-                    note_create_by_id_for_undo(view.map, id);
-                    request_render();
-                }
-                window.addEventListener('pointerup', finish_point);
-                TheCanvas.addEventListener('pointerleave', finish_point);
-            }break;
-            case ToolType.WALL:{ // TAG toolWALL
-                let id = get_new_id();
-                if(0){
-                // if(snapmode == SNAPMODE.FREE){
-                    // copy paste from LINE above.
-                    const [x0, y0] = event_to_coord_off(e, view, smoff);
-                    add_freehand_line(view.map, id, x0, y0, submapid, get_primary_color(), 4);
-                    function add_point(e:MouseEvent):void{
-                        e.stopPropagation();
-                        e.preventDefault();
-                        const [x1, y1] = event_to_coord_off(e, view, smoff);
-                        add_freehand_point_by_id(view.map, id, x1, y1);
-                        request_render();
-                    }
-                    TheCanvas.addEventListener('pointermove', add_point);
-                    function finish_point():void{
-                        TheCanvas.removeEventListener('pointermove', add_point);
-                        window.removeEventListener('pointerup', finish_point);
-                        TheCanvas.removeEventListener('pointerleave', finish_point);
-                        publish_obj_by_id(view.map, id);
-                        note_create_by_id_for_undo(view.map, id);
-                    }
-                    window.addEventListener('pointerup', finish_point);
-                    TheCanvas.addEventListener('pointerleave', finish_point);
-                }
-                else{
-                    const [x0, y0] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
-                    // const [x0, y0] = event_to_coord_off(e, view, smoff);
-                    let x1 = x0;
-                    let y1 = y0;
-                    view.placing_area.is_placing = true;
-                    view.placing_area.is_line = true;
-                    view.placing_area.x0 = x0+smoff[0];
-                    view.placing_area.y0 = y0+smoff[1];
-                    view.placing_area.x1 = x1+smoff[0];
-                    view.placing_area.y1 = y1+smoff[1];
-                    let obj: GridLine = {
-                        type: CanvasType.GRID_LINE,
-                        id: id,
-                        base_x: x0,
-                        base_y: y0,
-                        flags: CanvasFlag.NONE,
-                        hidinguser: hiddenid(),
-                        submap:submapid,
-                        points: [],
-                        color: get_primary_color(),
-                        path: undefined,
-                        bbox: { x0: 0, y0: 0, x1: 0, y1: 0, },
-                        last_bx:undefined,
-                        last_by:undefined,
-                    };
-                    add_canv_obj(view.map, obj);
-
-                    function add_point(e:MouseEvent):void{
-                        e.stopPropagation();
-                        e.preventDefault();
-                        const [x, y] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
-                        x1 = x;
-                        y1 = y;
-                        view.placing_area.x1 = x1+smoff[0];
-                        view.placing_area.y1 = y1+smoff[1];
-                        request_render();
-                    }
-                    TheCanvas.addEventListener('pointermove', add_point);
-                    function finish_point():void{
-                        view.placing_area.is_placing = false;
-                        add_gridline_point(obj, x1, y1);
-                        TheCanvas.removeEventListener('pointermove', add_point);
-                        window.removeEventListener('pointerup', finish_point);
-                        TheCanvas.removeEventListener('pointerleave', finish_point);
-                        publish_obj_by_id(view.map, id);
-                        note_create_by_id_for_undo(view.map, id);
-                        request_render();
-                    }
-                    window.addEventListener('pointerup', finish_point);
-                    TheCanvas.addEventListener('pointerleave', finish_point);
-                }
-            }break;
-            case ToolType.DOOR:{ // TAG toolDOOR
-                const [x0, y0] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
-                let x1 = x0;
-                let y1 = y0;
-                view.placing_area.is_placing = true;
-                view.placing_area.is_line = true;
-                view.placing_area.x0 = x0+smoff[0];
-                view.placing_area.y0 = y0+smoff[1];
-                view.placing_area.x1 = x1+smoff[0];
-                view.placing_area.y1 = y1+smoff[1];
-                request_render();
-                function change_point(e:MouseEvent):void{
-                    e.stopPropagation();
-                    e.preventDefault();
-                    [x1, y1] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
-                    view.placing_area.x0 = x0+smoff[0];
-                    view.placing_area.y0 = y0+smoff[1];
-                    view.placing_area.x1 = x1+smoff[0];
-                    view.placing_area.y1 = y1+smoff[1];
-                    request_render();
-                }
-                TheCanvas.addEventListener('pointermove', change_point);
-                function finish_door():void{
-                    view.placing_area.is_placing = false;
-                    TheCanvas.removeEventListener('pointermove', change_point);
-                    window.removeEventListener('pointerup', finish_door);
-                    TheCanvas.removeEventListener('pointerleave', finish_door);
-                    if(x0 !== x1 || y0 !== y1){
-                        let id = get_new_id();
-                        let orientation;
-                        let width;
-                        if(Math.abs(y1-y0) < 4){
-                        // if(y1 === y0){
-                            orientation = Orientation.HORIZONTAL;
-                            width = Math.abs(x1-x0)/REFERENCE.WIDTH;
-                        }
-                        else if(Math.abs(x1-x0) < 4){
-                        // else if(x1 == x0){
-                            orientation = Orientation.VERTICAL;
-                            width = Math.abs(y1-y0)/REFERENCE.WIDTH;
-                        }
-                        else if((x1 < x0 && y1 < y0) || (x1 > x0 && y1 > y0)){
-                            orientation = Orientation.TOPLEFT_DOWNRIGHT;
-                            width = Math.max(Math.abs(y1-y0), Math.abs(x1-x0))/REFERENCE.WIDTH;
-                        }
-                        else {
-                            orientation = Orientation.TOPRIGHT_DOWNLEFT;
-                            width = Math.max(Math.abs(y1-y0), Math.abs(x1-x0))/REFERENCE.WIDTH;
-                        }
-                        if(width < 0.1)
-                            return;
-                        let x = ((x0 + x1)/2) | 0;
-                        let y = ((y0 + y1)/2) | 0;
-                        add_door(view.map, id, x, y, current_door, submapid, get_primary_color(), width, orientation);
-                        publish_obj_by_id(view.map, id);
-                        note_create_by_id_for_undo(view.map, id);
-                    }
-                    request_render()
-                }
-                window.addEventListener('pointerup', finish_door);
-                TheCanvas.addEventListener('pointerleave', finish_door);
-            }break;
-            case ToolType.RECT:{ // TAG toolRECT
-                switch(current_rect_type){
-                    case RECTTYPE.HOLLOW:{
-                        let id = get_new_id();
-                        const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
-                        add_rect(view.map, id, x0, y0, submapid, get_primary_color());
-                        function add_point(e:MouseEvent):void{
-                            e.stopPropagation();
-                            e.preventDefault();
-                            const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
-                            change_rect_by_id(view.map, id, x1, y1, x0, y0);
-                            request_render();
-                        }
-                        TheCanvas.addEventListener('pointermove', add_point);
-                        function finish_point():void{
-                            TheCanvas.removeEventListener('pointermove', add_point);
-                            window.removeEventListener('pointerup', finish_point);
-                            TheCanvas.removeEventListener('pointerleave', finish_point);
-                            publish_obj_by_id(view.map, id);
-                            note_create_by_id_for_undo(view.map, id);
-                        }
-                        window.addEventListener('pointerup', finish_point);
-                        TheCanvas.addEventListener('pointerleave', finish_point);
-                    }break;
-                    case RECTTYPE.FILLED:{
-                        let id = get_new_id();
-                        const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
-                        add_filled_rect(view.map, id, x0, y0, submapid, get_primary_color(), get_secondary_color());
-                        function add_point(e:MouseEvent):void{
-                            e.stopPropagation();
-                            e.preventDefault();
-                            const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
-                            change_filled_rect_by_id(view.map, id, x1, y1, x0, y0);
-                            request_render();
-                        }
-                        TheCanvas.addEventListener('pointermove', add_point);
-                        function finish_point():void{
-                            TheCanvas.removeEventListener('pointermove', add_point);
-                            window.removeEventListener('pointerup', finish_point);
-                            TheCanvas.removeEventListener('pointerleave', finish_point);
-                            publish_obj_by_id(view.map, id);
-                            note_create_by_id_for_undo(view.map, id);
-                        }
-                        window.addEventListener('pointerup', finish_point);
-                        TheCanvas.addEventListener('pointerleave', finish_point);
-                    }break;
-                    case RECTTYPE.SOLID:{
-                        let id = get_new_id();
-                        const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
-                        add_gridrect(view.map, id, x0, y0, submapid, get_primary_color());
-                        const gridrect = view.map.canvas_objs.get(id) as GridRectangle;
-                        view.placing_area.is_placing = true;
-                        view.placing_area.is_line = false;
-                        view.placing_area.x0 = gridrect.base_x+smoff[0];
-                        view.placing_area.y0 = gridrect.base_y+smoff[1];
-                        view.placing_area.x1 = gridrect.base_x+smoff[0];
-                        view.placing_area.y1 = gridrect.base_y+smoff[1];
-                        request_render()
-                        function add_point(e:MouseEvent):void{
-                            e.stopPropagation();
-                            e.preventDefault();
-                            const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
-                            change_gridrect_by_id(view.map, id, x1, y1, x0, y0);
-                            view.placing_area.x0 = gridrect.base_x+smoff[0];
-                            view.placing_area.y0 = gridrect.base_y+smoff[1];
-                            view.placing_area.x1 = gridrect.base_x + gridrect.width+smoff[0];
-                            view.placing_area.y1 = gridrect.base_y + gridrect.height+smoff[1];
-                            request_render();
-                        }
-                        TheCanvas.addEventListener('pointermove', add_point);
-                        function finish_point():void{
-                            TheCanvas.removeEventListener('pointermove', add_point);
-                            window.removeEventListener('pointerup', finish_point);
-                            TheCanvas.removeEventListener('pointerleave', finish_point);
-                            view.placing_area.is_placing = false;
-                            request_render();
-                            publish_obj_by_id(view.map, id);
-                            note_create_by_id_for_undo(view.map, id);
-                        }
-                        window.addEventListener('pointerup', finish_point);
-                        TheCanvas.addEventListener('pointerleave', finish_point);
-                    }break;
-                }
-            }break;
-            case ToolType.ELLIPSE:{ // TAG toolELLIPSE
-                let id = get_new_id();
-                const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
-                add_ellipse(view.map, id, x0, y0, submapid, get_primary_color(), get_secondary_color(), current_ellipse);
-                const ellipse = view.map.canvas_objs.get(id)! as Ellipse;
-                view.placing_area.is_placing = true;
-                view.placing_area.is_line = false;
-                view.placing_area.x0 = ellipse.base_x+smoff[0];
-                view.placing_area.y0 = ellipse.base_y+smoff[1];
-                view.placing_area.x1 = ellipse.base_x+smoff[0];
-                view.placing_area.y1 = ellipse.base_y+smoff[1];
-                request_render()
-                function add_point(e:MouseEvent):void{
-                    e.stopPropagation();
-                    e.preventDefault();
-                    const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
-                    if(x1 < x0)
-                        ellipse.base_x = x1;
-                    else
-                        ellipse.base_x = x0;
-                    if(y1 < y0)
-                        ellipse.base_y = y1
-                    else
-                        ellipse.base_y = y0;
-                    ellipse.width = Math.abs(x1-x0);
-                    ellipse.height = Math.abs(y1-y0);
-                    view.placing_area.x0 = ellipse.base_x+smoff[0];
-                    view.placing_area.y0 = ellipse.base_y+smoff[1];
-                    view.placing_area.x1 = ellipse.base_x + ellipse.width+smoff[0];
-                    view.placing_area.y1 = ellipse.base_y + ellipse.height+smoff[1];
-                    request_render();
-                }
-                TheCanvas.addEventListener('pointermove', add_point);
-                function finish_point():void{
-                    TheCanvas.removeEventListener('pointermove', add_point);
-                    window.removeEventListener('pointerup', finish_point);
-                    TheCanvas.removeEventListener('pointerleave', finish_point);
-                    view.placing_area.is_placing = false;
-                    request_render();
-                    publish_obj_by_id(view.map, id);
-                    note_create_by_id_for_undo(view.map, id);
-                }
-                window.addEventListener('pointerup', finish_point);
-                TheCanvas.addEventListener('pointerleave', finish_point);
-            }break;
-            case ToolType.TEXT:{ // TAG toolTEXT
-                const [x0, y0] = event_to_coord_off(e, view, smoff);
-                let dialog = get_dialog('text-input');
-                if(!dialog) return;
-                dialog.title.textContent = 'Enter Text';
-                if(!dialog.f.size.value)
-                    dialog.f.size.value = '12';
-                const [l, c, r] = [dialog.f.left, dialog.f.center, dialog.f.right];
-                l.checked = false;
-                c.checked = true;
-                r.checked = false;
-                dialog.f.text.value = '';
-                dialog.f.background.checked = false;
-                dialog.f['link-dungeon'].replaceChildren();
-                elem_parent_text(dialog.f['link-dungeon'], 'option', 'No Link').value = '-1';
-                for(const map of MAPS.values()){
-                    elem_parent_text(dialog.f['link-dungeon'], 'option', map.map_name).value = ''+map.map_id;
-                }
-                let submapoptions = '<option value="-1">No Link</option>'
-                for(let sm of view.map.submaps){
-                    if(sm.flags & CanvasFlag.DELETED) continue;
-                    if(sm.hidinguser && sm.hidinguser !== SETTINGS.userid) continue;
-                    submapoptions += `<option value="${sm.id}">${sm.title}</option>`;
-                }
-                dialog.f['link-submap'].innerHTML = submapoptions;
-                dialog.f['link-dungeon'].value = '-1';
-                dialog.f['link-submap'].value = '-1';
-                dialog.f['link-dungeon'].onchange = function():void{
-                    dialog.f['link-submap'].value = '-1'
-                };
-                dialog.f['link-submap'].onchange = function():void{
-                    dialog.f['link-dungeon'].value = '-1'
-                };
-                dialog.ok_handler = function():void{
-                    const text = dialog.f.text.value.trim();
-                    if(!text) return;
-                    let alignment = radio_to_value([l, c, r], [TextAlignment.LEFT, TextAlignment.CENTER, TextAlignment.RIGHT]);
-
-                    let textsize = (+dialog.f.size.value) | 0;
-                    if(textsize < 4) textsize = 4;
-                    if(textsize > 72) textsize = 72;
-                    let map_id = +dialog.f['link-dungeon'].value;
-                    // This is annoying otherwise
-                    if(map_id == view.map.map_id)
-                        map_id = -1;
-                    let submap = false;
-                    if(map_id == -1){
-                        map_id = +dialog.f['link-submap'].value;
-                        submap = true;
-                    }
-                    let id = get_new_id();
-                    add_text(view.map, id, x0, y0, submapid, text, textsize, alignment, map_id);
-                    // kind of hacky
-                    let o = view.map.canvas_objs.get(id)!;
-                    if(submap)
-                        o.flags |= CanvasFlag.TEXT_LINKS_TO_SUBMAP;
-                    if(dialog.f.background.checked)
-                        o.flags |= CanvasFlag.TEXT_HAS_BACKGROUND;
-                    publish_obj_by_id(view.map, id);
-                    note_create_by_id_for_undo(view.map, id);
-                    request_render();
-                };
-                dialog.show_handler = function():void{
-                    if(!IS_TOUCH) dialog.f.text.focus();
-                };
-                dialog.show();
-
-            }break;
-            case ToolType.IMAGE:{ // TAG toolIMAGE
-                const [x0, y0] = event_to_coord_off(e, view, smoff);
-                let dialog = get_dialog('image-input');
-                if(!dialog) return;
-                dialog.title.textContent = 'Enter Image';
-                dialog.f.width.value = '';
-                dialog.f.height.value = '';
-                dialog.f.url.value = '';
-                dialog.f.checkbox.checked = false;
-                dialog.f.background.checked = false;
-                dialog.show_handler = function():void{
-                    if(!IS_TOUCH) dialog.f.url.focus();
-                };
-                dialog.ok_handler = function():void{
-                    const text = dialog.f.url.value.trim();
-                    if(!text) return;
-                    let width = +dialog.f.width.value;
-                    let height = +dialog.f.height.value;
-                    if(!width || width < 0) width = 0;
-                    if(!height || height < 0) height = 0;
-                    const round = dialog.f.checkbox.checked;
-                    if(round){
-                        width = snap_to_grid(width);
-                        height = snap_to_grid(height);
-                    }
-                    let id = get_new_id();
-                    add_image(view.map, id, x0, y0, width, height, submapid, text);
-                    if(dialog.f.background.checked)
-                        view.map.canvas_objs.get(id)!.flags |= CanvasFlag.IMG_IS_BACKGROUND;
-                    publish_obj_by_id(view.map, id);
-                    note_create_by_id_for_undo(view.map, id);
-                    request_render();
-                };
-                dialog.show();
-            }break;
-            case ToolType.TOKEN:{ // TAG toolTOKEN
-                if(current_token_type == TOKENTYPE.EZ){
-                    const [x0, y0] = event_to_coord_off(e, view, smoff);
-                    let dialog = get_dialog('ez-token');
-                    if(!dialog) return;
-                    dialog.title.textContent = 'Enter Token';
-                    dialog.f.color.value = ez_token_color;
-                    dialog.f.width.value = view.gridscale == GRIDSCALE.TEN?'1':'0.5';
-                    dialog.f.height.value = view.gridscale == GRIDSCALE.TEN?'1':'0.5';
-                    dialog.f.text.value = '';
-                    dialog.show_handler = function():void{
-                        if(!IS_TOUCH) dialog.f.text.focus();
-                    };
-                    dialog.ok_handler = function():void{
-                        const text = dialog.f.text.value.trim();
-                        if(!text) return;
-                        let width  = +dialog.f.width.value;
-                        let height = +dialog.f.height.value;
-                        if(!width || width < 0) width = view.gridscale == GRIDSCALE.TEN?1:0.5;
-                        if(!height || height < 0) height = view.gridscale == GRIDSCALE.TEN?1:0.5;
-                        const color = dialog.f.color.value;
-                        let id = get_new_id();
-                        ez_token_color = color;
-                        let snap = get_snap_tl_func();
-                        add_ez_token(view.map, id, snap(x0), snap(y0), submapid, text, color, width, height);
-                        publish_obj_by_id(view.map, id);
-                        note_create_by_id_for_undo(view.map, id);
-                        request_render();
-                    };
-                    dialog.show();
-
-                }
-                else {
-                    const [x0, y0] = event_to_coord_off(e, view, smoff);
-                    let dialog = get_dialog('img-token');
-                    if(!dialog) return;
-                    dialog.title.textContent = 'Choose Token';
-                    const gallery = dialog.f.gallery;
-                    dialog.hide_handler = function():void{
-                        gallery.innerHTML = '';
-                    };
-                    dialog.f.width.value = view.gridscale == GRIDSCALE.TEN?'1':'0.5';
-                    dialog.f.height.value = view.gridscale == GRIDSCALE.TEN?'1':'0.5';
-                    dialog.f.url.value = '';
-                    function add_img_buttons():void{
-                        if(PACKED){
-                            for(let ti of PACKED.tokens){
-                                const button = document.createElement('button');
-                                let path = ti[1];
-                                const img = token_to_img(ti[2], ti[3], ti[4], ti[5], 64, 64);
-                                button.appendChild(img);
-                                gallery.appendChild(button);
-                                const url = `/tokens/${path}`;
-                                button.addEventListener('click', function():void{
-                                    dialog.f.url.value = url;
-                                });
-                            }
-                        }
-                    }
-                    add_img_buttons();
-                    dialog.ok_handler = function():void{
-                        const text = dialog.f.url.value.trim();
-                        if(!text) return;
-                        let id = get_new_id();
-                        let snap = get_snap_tl_func();
-                        let w = +dialog.f.width.value;
-                        let h = +dialog.f.height.value;
-                        if(!w || w < 0) w = view.gridscale == GRIDSCALE.TEN?1:0.5;
-                        if(!h || h < 0) h = view.gridscale == GRIDSCALE.TEN?1:0.5;
-                        add_img_token(view.map, id, snap(x0), snap(y0), submapid, text, w, h);
-                        publish_obj_by_id(view.map, id);
-                        note_create_by_id_for_undo(view.map, id);
-                        request_render();
-                    };
-                    dialog.show();
-                }
-            }break;
-            case ToolType.FIXTURE:{ // TAG toolFIXTURE
-                switch(current_fixture_type){
-                    // Legacy: is its own impl
-                    case FixtureType.STAIRS:{
-                        let id = get_new_id();
-                        let [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
-                        let obj: Stairs = {
-                            type: CanvasType.STAIRS,
-                            id: id,
-                            base_x:x0,
-                            base_y:y0,
-                            flags: CanvasFlag.NONE,
-                            hidinguser: hiddenid(),
-                            submap:submapid,
-                            width: 0,
-                            height: 0,
-                            rotation: Rotation.UP,
-                        };
-                        add_canv_obj(view.map, obj);
-                        view.placing_area.is_placing = true;
-                        view.placing_area.is_line = false;
-                        const stairs = view.map.canvas_objs.get(id)! as Stairs; // lazy
-                        view.placing_area.x0 = x0+smoff[0];
-                        view.placing_area.y0 = y0+smoff[1];
-                        view.placing_area.x1 = x0+smoff[0];
-                        view.placing_area.y1 = y0+smoff[1];
-                        // x0 = stairs.base_x;
-                        // y0 = stairs.base_y;
-                        request_render();
-                        function change_stairs_on_move(e:MouseEvent):void{
-                            e.stopPropagation();
-                            e.preventDefault();
-                            const [ex0, ey0] = event_to_coord_off(e, view, smoff);
-                            change_stairs(stairs, x0, y0, ex0, ey0, snap);
-                            view.placing_area.x0 = stairs.base_x+smoff[0];
-                            view.placing_area.y0 = stairs.base_y+smoff[1];
-                            view.placing_area.x1 = stairs.base_x+REFERENCE.WIDTH*stairs.width+smoff[0];
-                            view.placing_area.y1 = stairs.base_y+REFERENCE.WIDTH*stairs.height+smoff[1];
-                            request_render();
-                        }
-                        TheCanvas.addEventListener('pointermove', change_stairs_on_move);
-                        function finish_point():void{
-                            view.placing_area.is_placing = false;
-                            request_render();
-                            TheCanvas.removeEventListener('pointermove', change_stairs_on_move);
-                            window.removeEventListener('pointerup', finish_point);
-                            TheCanvas.removeEventListener('pointerleave', finish_point);
-                            if(stairs.width != 0 && stairs.height != 0){
-                                publish_obj_by_id(view.map, id);
-                                note_create_by_id_for_undo(view.map, id);
-                            }
-                            else {
-                                stairs.flags |= CanvasFlag.DELETED;
-                            }
-                        }
-                        window.addEventListener('pointerup', finish_point);
-                        TheCanvas.addEventListener('pointerleave', finish_point);
-                    }break;
-                    default:{
-                        let id = get_new_id();
-                        const [x, y] = event_to_coord_snapped_off(e, view, snap, smoff);
-                        const fixture = make_fixture(id, x, y, submapid, current_fixture_type);
-                        add_canv_obj(view.map, fixture);
-                        view.placing_area.is_placing = true;
-                        view.placing_area.is_line = false;
-                        view.placing_area.x0 = fixture.base_x+smoff[0];
-                        view.placing_area.y0 = fixture.base_y+smoff[1];
-                        view.placing_area.x1 = fixture.base_x+smoff[0];
-                        view.placing_area.y1 = fixture.base_y+smoff[1];
-                        request_render();
-                        function move(e:MouseEvent):void{
-                            e.stopPropagation();
-                            e.preventDefault();
-                            let x0 = x;
-                            let y0 = y;
-                            let [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
-                            if(x1 < x0){
-                                let temp = x1; x1 = x0; x0 = temp;
-                            }
-                            if(y1 < y0){
-                                let temp = y1; y1 = y0; y0 = temp;
-                            }
-                            fixture.base_x = x0;
-                            fixture.base_y = y0;
-                            fixture.width = x1 - x0;
-                            fixture.height = y1 - y0;
-                            view.placing_area.x0 = x0+smoff[0];
-                            view.placing_area.y0 = y0+smoff[1];
-                            view.placing_area.x1 = x1+smoff[0];
-                            view.placing_area.y1 = y1+smoff[1];
-                            request_render();
-                        }
-                        TheCanvas.addEventListener('pointermove', move);
-                        function finish():void{
-                            view.placing_area.is_placing = false;
-                            request_render();
-                            TheCanvas.removeEventListener('pointermove', move);
-                            window.removeEventListener('pointerup', finish);
-                            TheCanvas.removeEventListener('pointerleave', finish);
-                            if(fixture.width != 0 && fixture.height != 0){
-                                publish_obj_by_id(view.map, id);
-                                note_create_by_id_for_undo(view.map, id);
-                            }
-                            else {
-                                fixture.flags |= CanvasFlag.DELETED;
-                            }
-                        }
-                        window.addEventListener('pointerup', finish);
-                        TheCanvas.addEventListener('pointerleave', finish);
-                    }break;
-                }
-            }break;
-            case ToolType.MEASURE:{ // TAG toolMEASURE
-                let id = get_new_id();
-                let snap:(x:number, y:number)=>[number, number];
-                if(!submapid && view.map.grid_type & GridType.HEX){
-                    snap = function(x:number, y:number):[number, number]{
-                        return snap_to_hex_center(x, y);
-                    };
-                }
-                else {
-                    let snap_center = get_snap_center_func();
-                    snap = function(x:number, y:number):[number, number]{
-                        const x0 = snap_center(x);
-                        const y0 = snap_center(y);
-                        return [x0, y0];
-                    };
-                }
-                const [unsnapped_x, unsnapped_y] = event_to_coord_off(e, view, smoff);
-                const [x0, y0] = snap(unsnapped_x, unsnapped_y);
-                let measure = make_measure(id, x0, y0, submapid, '#aa0033');
-                add_canv_obj(view.map, measure);
-                publish_obj_by_id(view.map, id); // don't note create for undo
-                request_render();
-                function move(e:MouseEvent):void{
-                    e.stopPropagation();
-                    e.preventDefault();
-                    const [x_, y_] = event_to_coord_off(e, view, smoff);
-                    const [x, y] = snap(x_, y_);
-                    if(x == measure.x1 && y == measure.y1)
-                        return;
-                    measure.x1 = x;
-                    measure.y1 = y;
-                    const stripped = strip_obj(measure);
-                    publish_obj_updates(view.map.map_id, [stripped]);
-                    request_render();
-                }
-                TheCanvas.addEventListener('pointermove', move);
-                function finish():void{
-                    publish_delete_by_ids(view.map.map_id, [id]);
-                    measure.flags |= CanvasFlag.DELETED;
-                    request_render();
-                    TheCanvas.removeEventListener('pointermove', move);
-                    window.removeEventListener('pointerup', finish);
-                    TheCanvas.removeEventListener('pointerleave', finish);
-                }
-                window.addEventListener('pointerup', finish);
-                TheCanvas.addEventListener('pointerleave', finish);
-
-            }break;
-            case ToolType.TILE:{ // TAG toolTILE
-                let deleted_ids: Array<number> = [];
-                let created_ids:Array<number> = [];
-                let drag = false;
-                let prevx:number|undefined = undefined; let prevy:number|undefined = undefined;
-                function do_tile(x:number, y:number):void{
-                    let old_tile = tile_at(view, x, y, current_tile_type);
-                    if(drag){
-                        if(old_tile) return;
-                    }
-                    else {
-                        if(old_tile){
-                            old_tile.flags |= CanvasFlag.DELETED;
-                            deleted_ids.push(old_tile.id);
-                        }
-                    }
-                    let id = get_new_id();
-                    created_ids.push(id);
-                    switch(current_tile_type){
-                        case TileType.FILLED:{
-                            let filled: FilledTile = {
-                                type: CanvasType.FILLED_TILE,
-                                id: id,
-                                base_x: x,
-                                base_y: y,
-                                flags: CanvasFlag.NONE,
-                                hidinguser: hiddenid(),
-                                submap:submapid,
-                                color: get_primary_color(),
-                                size: view.gridscale == GRIDSCALE.TEN?1:0.5,
-                            };
-                            add_canv_obj(view.map, filled);
-                        }break;
-                        case TileType.TERRAIN: {
-                            let terrain: TerrainTile = {
-                                type: CanvasType.TERRAIN_TILE,
-                                id: id,
-                                base_x: x,
-                                base_y: y,
-                                flags: CanvasFlag.NONE,
-                                hidinguser: hiddenid(),
-                                submap:submapid,
-                                terrain_id: current_terrain_id,
-                            };
-                            add_canv_obj(view.map, terrain);
-                        }break;
-                        case TileType.ICON: {
-                            let icon: IconTile = {
-                                type: CanvasType.ICON_TILE,
-                                id: id,
-                                base_x: x,
-                                base_y: y,
-                                flags: CanvasFlag.NONE,
-                                hidinguser: hiddenid(),
-                                submap:submapid,
-                                terrainicon_id: current_terrain_icon_id,
-                            };
-                            add_canv_obj(view.map, icon);
-                        }break;
-                        default:
-                            console.assert(false);
-                    }
-                    request_render();
-                }
-                function make_tile(e:PointerEvent):void{
-                    let x:number;
-                    let y:number;
-                    if(view.map.grid_type & GridType.HEX){
-                        const [x_, y_] = event_to_coord_off(e, view, smoff);
-                        [x, y] = snap_down_to_hex_grid(x_, y_);
-                    }
-                    else {
-                        let snap = get_snap_tl_func();
-                        [x, y] = event_to_coord_snapped_off(e, view, snap, smoff);
-                    }
-                    if(prevx !== undefined && prevy !== undefined){
-                        let xdiff = x - prevx;
-                        let ydiff = y - prevy;
-                        let snap = get_snap_tl_func();
-                        // there's a better way to do this, but whatever
-                        for(let i = 0; i < 10; i++){
-                            let x_ = prevx + i*xdiff/10;
-                            let y_ = prevy + i*ydiff/10;
-                            if(view.map.grid_type & GridType.HEX){
-                                [x_, y_] = snap_down_to_hex_grid(x_, y_);
-                            }
-                            else {
-                                x_ = snap(x_);
-                                y_ = snap(y_);
-                            }
-                            do_tile(x_, y_);
-                        }
-                    }
-                    do_tile(x, y);
-                    prevx = x;
-                    prevy = y;
-                }
-                make_tile(e);
-                drag = true;
-                TheCanvas.addEventListener('pointermove', make_tile);
-                function finish():void{
-                    // console.log('created_ids', created_ids);
-                    // console.log('deleted ids', deleted_ids);
-                    TheCanvas.removeEventListener('pointermove', make_tile);
-                    TheCanvas.removeEventListener('pointerleave', finish);
-                    window.removeEventListener('pointerup', finish);
-                    publish_objs_by_ids(view.map, created_ids);
-                    if(deleted_ids.length){
-                        publish_delete_by_ids(view.map.map_id, deleted_ids);
-                        node_deletes_and_creates_for_undo(view.map, deleted_ids, created_ids);
-                    }
-                    else {
-                        note_mass_create_for_undo(view.map, created_ids);
-                    }
-                    request_render();
-                };
-                window.addEventListener('pointerup', finish);
-                TheCanvas.addEventListener('pointerleave', finish);
-            }break;
-            case ToolType.SUBMAP:{ // TAG toolSUBMAP
-                // Don't allow nested submaps
-                if(submapid) break;
-                let id = get_new_id();
-                // could use smoff, whatever
-                const [x0, y0] = event_to_coord_snapped(e, view, snap);
-                let submap: SubMap = {
-                    type: CanvasType.SUBMAP,
-                    id: id,
-                    base_x: x0,
-                    base_y: y0,
-                    flags: CanvasFlag.NONE,
-                    hidinguser: hiddenid(),
-                    submap: 0,
-                    width: 0,
-                    height: 0,
-                    tlx: 0, tly:0,
-                    grid_type: GridType.SQUARE,
-                    title: "Untitled",
-                    grid_color: '',
-                    bg_color: '',
-                };
-                add_canv_obj(view.map, submap);
-                request_render();
-                function add_point(e:MouseEvent):void{
-                    e.stopPropagation();
-                    e.preventDefault();
-                    const [x1, y1] = event_to_coord_snapped(e, view, snap);
-                    let bx = x0;
-                    let width = Math.abs(x1 - x0);
-                    if(x1 < bx) bx = x1;
-                    let by = y0;
-                    if(y1 < by) by = y1;
-                    let height = Math.abs(y1 - y0);
-                    submap.base_x = bx;
-                    submap.base_y = by;
-                    submap.width = width;
-                    submap.height = height;
-                    request_render();
-                }
-                TheCanvas.addEventListener('pointermove', add_point);
-                function finish_point():void{
-                    TheCanvas.removeEventListener('pointermove', add_point);
-                    window.removeEventListener('pointerup', finish_point);
-                    TheCanvas.removeEventListener('pointerleave', finish_point);
-                    if(submap.width == 0 || submap.height == 0){
-                        submap.flags |= CanvasFlag.DELETED;
-                    }
-                    else {
-                        view.map.submaps.push(submap);
-                        publish_obj_by_id(view.map, id);
-                        note_create_by_id_for_undo(view.map, id);
-                    }
-                    request_render();
-                }
-                window.addEventListener('pointerup', finish_point);
-                TheCanvas.addEventListener('pointerleave', finish_point);
-            }break;
-            case ToolType.ARC:{ // TAG toolARC
-                let id = get_new_id();
-                const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
-                // const thickness_input = by_id('line-thickness');
-                const thickness = 6; // +thickness_input.value || 4;
-                let arc: Arc = {
-                    type: CanvasType.ARC,
-                    id: id,
-                    base_x: x0,
-                    base_y: y0,
-                    flags: CanvasFlag.NONE,
-                    hidinguser: hiddenid(),
-                    submap: 0,
-                    width: 0,
-                    height: 0,
-                    start_arc: 0,
-                    end_arc: 1,
-                    thickness: thickness,
-                    color: get_primary_color(),
-                };
-                add_canv_obj(view.map, arc);
-                view.placing_area.is_placing = true;
-                view.placing_area.is_line = false;
-                view.placing_area.x0 = arc.base_x+smoff[0];
-                view.placing_area.y0 = arc.base_y+smoff[1];
-                view.placing_area.x1 = arc.base_x+smoff[0];
-                view.placing_area.y1 = arc.base_y+smoff[1];
-                request_render();
-                function add_point(e:MouseEvent):void{
-                    e.stopPropagation();
-                    e.preventDefault();
-                    const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
-                    let xmin = x0;
-                    let xmax = x0;
-                    let ymin = y0;
-                    let ymax = y0;
-
-                    if(x1 < xmin) xmin = x1;
-                    if(x1 > xmax) xmax = x1;
-                    if(y1 < ymin) ymin = y1;
-                    if(y1 > ymax) ymax = y1;
-
-                    arc.base_x = xmin;
-                    arc.base_y = ymin;
-                    arc.width = xmax - xmin;
-                    arc.height = ymax - ymin;
-                    let [rawx, rawy] = event_to_coord_off(e, view, smoff);
-                    let angle = Math.atan2(rawx-x0, rawy-y0) * 180/Math.PI;
-                    if(current_arc_type == ArcType.QUARTER){
-                        if(angle >= -180 && angle < -90){
-                            arc.start_arc = 3;
-                            arc.end_arc = 4;
-                        }
-                        else if(angle >= -90 && angle < 0){
-                            arc.start_arc = 0;
-                            arc.end_arc = 1;
-                        }
-                        else if(angle >= 0 && angle < 90){
-                            arc.start_arc = 1;
-                            arc.end_arc = 2;
-                        }
-                        else {
-                            arc.start_arc = 2;
-                            arc.end_arc = 3;
-                        }
-                    }
-                    else {
-                        if(angle < -135){
-                            arc.start_arc = 1;
-                            arc.end_arc = 3;
-                        }
-                        else if(angle < -90){
-                            arc.start_arc = 2;
-                            arc.end_arc = 4;
-                        }
-                        else if(angle < -45){
-                            arc.start_arc = 0;
-                            arc.end_arc = 2;
-                        }
-                        else if(angle < 0){
-                            arc.start_arc = 1;
-                            arc.end_arc = 3;
-                        }
-                        else if(angle < 45){
-                            arc.start_arc = 3;
-                            arc.end_arc = 5;
-                        }
-                        else if(angle < 90){
-                            arc.start_arc = 0;
-                            arc.end_arc = 2;
-                        }
-                        else if(angle < 135){
-                            arc.start_arc = 2;
-                            arc.end_arc = 4;
-                        }
-                        else {
-                            arc.start_arc = 3;
-                            arc.end_arc = 5;
-                        }
-                    }
-                    view.placing_area.x0 = arc.base_x+smoff[0];
-                    view.placing_area.y0 = arc.base_y+smoff[1];
-                    view.placing_area.x1 = arc.base_x+smoff[0]+arc.width;
-                    view.placing_area.y1 = arc.base_y+smoff[1]+arc.height;
-                    request_render();
-                }
-                TheCanvas.addEventListener('pointermove', add_point);
-                function finish_point():void{
-                    TheCanvas.removeEventListener('pointermove', add_point);
-                    window.removeEventListener('pointerup', finish_point);
-                    TheCanvas.removeEventListener('pointerleave', finish_point);
-                    view.placing_area.is_placing = false;
-                    if(arc.width && arc.height){
-                        publish_obj_by_id(view.map, id);
-                        note_create_by_id_for_undo(view.map, id);
-                    }
-                    request_render();
-                }
-                window.addEventListener('pointerup', finish_point);
-                TheCanvas.addEventListener('pointerleave', finish_point);
-            }break;
-            default:{
-                console.log('unknown tool:', current_tool);
-            }break;
-        }
-    });
-    TheCanvas.addEventListener('pointermove', function(e:PointerEvent):void{
-        let view = get_active_view();
-        // NOTE: obj_at handles submap
-        let [mx, my] = event_to_coord(e, view);
-        view.mouse.x = mx;
-        view.mouse.y = my;
-        const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;
-        redo_canvas_cursor(view, modified);
-
-    });
-    TheCanvas.addEventListener('dblclick', function(e:MouseEvent):void{
-        let view = get_active_view();
-        if(current_tool != ToolType.SELECT)
-            return;
-        if(view.resize.resizing) return;
-        let [clicked_x, clicked_y] = event_to_coord(e, view);
-        for(let aa of view.action.areas){
-            if(point_in_rect(clicked_x, clicked_y, aa.bbox.x0, aa.bbox.y0, aa.bbox.x1, aa.bbox.y1))
-                return;
-        }
-        launch_edit_dialog(view);
-    });
-    TheCanvas.addEventListener('contextmenu', function(e:MouseEvent):void{
-        const menu = ctx_menu(e);
-        const view = get_active_view();
-        let [x, y] = event_to_coord(e, view);
-        x -= TheCanvas.width/2/view.scale;
-        y -= TheCanvas.height/2/view.scale;
-        let [click_x, click_y] = event_to_coord(e, view);
-        let whenflags = CONTEXTMENUWHENFLAGS.ALWAYS;
-        if(view.selected.size == 0){
-            whenflags |= CONTEXTMENUWHENFLAGS.NO_SELECTION;
-        }
-        else {
-            whenflags |= CONTEXTMENUWHENFLAGS.ANY_SELECTED;
-        }
-        if(view.selected.size > 1)
-            whenflags |= CONTEXTMENUWHENFLAGS.MULTIPLE_SELECTED;
-        if(view.selected.size == 1)
-            whenflags |= CONTEXTMENUWHENFLAGS.ONE_SELECTED;
-        if(view.gridscale == GRIDSCALE.TEN)
-            whenflags |= CONTEXTMENUWHENFLAGS.GRID_TEN;
-        else
-            whenflags |= CONTEXTMENUWHENFLAGS.GRID_FIVE;
-
-        if(whenflags & CONTEXTMENUWHENFLAGS.NO_SELECTION){
-            menu.item('Ping', function():void{ping_at(view.map, click_x, click_y);});
-            menu.item('Gather Party', function():void{
-                EMIT(FromClient.CANVAS_GATHER, {x:-x, y:-y, map_id:view.map.map_id});
-            });
-            if(whenflags & CONTEXTMENUWHENFLAGS.GRID_TEN){
-                menu.item('Battlemode', function():void{
-                    EMIT(FromClient.CANVAS_BATTLE, {x:-x, y:-y, map_id:view.map.map_id});
-                });
-            }
-            if(whenflags & CONTEXTMENUWHENFLAGS.GRID_FIVE){
-                menu.item('Dungeonmode', function():void{
-                    EMIT(FromClient.CANVAS_DUNGEON_MODE);
-                });
-            }
-            menu.separator();
-            if(map_hist.can_go_back())
-                menu.item('Back', map_hist.go_back);
-            else
-                menu.disabled('Back');
-            if(map_hist.can_go_forward())
-                menu.item('Forward', map_hist.go_forward);
-            else
-                menu.disabled('Forward');
-            menu.separator();
-            if(undo_is_impossible(view.map))
-                menu.disabled('Undo');
-            else
-                menu.item('Undo', function():void{do_one_undo(view.map);});
-            if(redo_is_impossible(view.map))
-                menu.disabled('Redo');
-            else
-                menu.item('Redo', function():void{do_one_redo(view.map);});
-            menu.separator();
-            menu.item('Zoom In', function():void{zoom_in(view);});
-            menu.item('Zoom Out', function():void{zoom_out(view);});
-            menu.item('Reset Zoom', function():void{reset_zoom(view);});
-            menu.item('Reset Camera', function():void{
-                let view = get_active_view();
-                view.camera_x=0;
-                view.camera_y=0;
-                view.scale=1;
-                request_render();
-            });
-            menu.separator();
-            menu.item('Rotate Everything', function():void{
-                rotate_everything_90(view);
-            });
-            menu.separator();
-        }
-        else {
-            if(whenflags & CONTEXTMENUWHENFLAGS.ONE_SELECTED){
-                if(edit_is_impossible(view))
-                    menu.disabled('Edit');
-                else
-                    menu.item('Edit', function():void{launch_edit_dialog(view);});
-            }
-            menu.item('Cut', function():void{
-                clear_copy_buffer();
-                cut_selected_objs_to_copy_buffer(view);
-            });
-            menu.item('Copy', function():void{
-                clear_copy_buffer();
-                copy_selected_objs_to_copy_buffer(view);
-            });
-            menu.item('Copy to Clipboard', function():void{
-                copy_selected_objs_to_clipboard(view);
-            });
-        }
-        if(copied_objs.length === 0)
-            menu.disabled('Paste');
-        else
-            menu.item('Paste', function():void{
-                let submapid = 0;
-                let sm = get_submap_at(view, click_x, click_y);
-                if(sm){
-                    submapid = sm.id;
-                    click_x -= sm.base_x + sm.tlx;
-                    click_y -= sm.base_y + sm.tly;
-                }
-                paste_from_copy_buffer_at(view.map, click_x, click_y, submapid);
-            });
-        menu.item('Paste from Clipboard', function():void{
-            let submapid = 0;
-            let sm = get_submap_at(view, click_x, click_y);
-            if(sm){
-                submapid = sm.id;
-                click_x -= sm.base_x + sm.tlx;
-                click_y -= sm.base_y + sm.tly;
-            }
-            paste_from_clipboard_at(view.map, click_x, click_y, submapid);
-        });
-        menu.separator();
-        if(whenflags & CONTEXTMENUWHENFLAGS.ANY_SELECTED){
-            menu.item('Hide', function():void{
-                let changed = false;
-                let before = [];
-                let after = [];
-                for(let obj_id of view.selected){
-                    let o = view.map.canvas_objs.get(obj_id)!;
-                    if(o.hidinguser == SETTINGS.userid)
-                        continue;
-                    before.push(strip_obj(o));
-                    o.hidinguser = SETTINGS.userid;
-                    after.push(strip_obj(o));
-                    changed = true;
-                }
-                if(changed){
-                    note_updates_for_undo(view.map, before, after);
-                    publish_obj_updates(view.map.map_id, after);
-                    request_render();
-                }
-            });
-            menu.item('Unhide', function():void{
-                let changed = false;
-                let before = [];
-                let after = [];
-                for(let obj_id of view.selected){
-                    let o = view.map.canvas_objs.get(obj_id)!;
-                    if(o.hidinguser == 0)
-                        continue;
-                    before.push(strip_obj(o));
-                    o.hidinguser = 0;
-                    after.push(strip_obj(o));
-                    changed = true;
-                }
-                if(changed){
-                    note_updates_for_undo(view.map, before, after);
-                    publish_obj_updates(view.map.map_id, after);
-                    request_render();
-                }
-            });
-            menu.separator();
-        }
-        menu.item('Add Submap', function():void{
-            do_new_map_dialog(view.map.map_id);
-        });
-        menu.separator();
-        menu.item('Cancel');
-        menu.install();
     });
 });
 
