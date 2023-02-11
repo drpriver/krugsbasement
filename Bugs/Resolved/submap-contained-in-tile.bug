@@ -1,6 +1,7 @@
 Changelog::kv
-  created: 2022-04-09T22:42:58Z
-  wontfix: 2022-09-26T01:03:32Z
+  created:  2022-04-09T22:42:58Z
+  wontfix:  2022-09-26T01:03:32Z
+  resolved: 2023-02-10T20:01:17Z
 Created Apr 09, 2022, 06:42PM::md .update
 Summary::md .summary
   It would be nice to have a variety of submap that is “contained” inside a
@@ -8,3 +9,6 @@ Summary::md .summary
 
 WontFix Sep 25, 2022, 06:03PM::md .update
   I don’t know what this is asking for that can’t be done with links.
+
+Resolved Feb 10, 2023, 12:01PM::md .update
+  Resolved by replacing submaps with child maps + splits.

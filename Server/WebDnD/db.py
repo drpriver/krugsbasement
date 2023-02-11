@@ -21,7 +21,7 @@ atexit.register(close) # type: ignore
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 16
+DBVERSION = 17
 with conn:
     conn.execute('''PRAGMA encoding = 'UTF-8';''')
     conn.execute('''PRAGMA foreign_keys = ON;''')
@@ -399,6 +399,70 @@ def setup_tables() -> None:
             ADD COLUMN
                 parent INTEGER NOT NULL DEFAULT 0;
         ''')
+    if version < 17:
+        # this is some gnarly shit, but is undoing a mistake
+        maps = conn.execute('''
+                SELECT * FROM MAPS;
+        ''').fetchall()
+
+        new_sms = [] # these need map ids assigned
+        txts = {}
+        mhash_to_smid = {}
+        for i, m in enumerate(maps):
+            campid, mapid, name, objects, flags, grid_type, grid_color, bg_color, parent = m
+            objs = json.loads(objects)
+            # look for text linking to submaps
+            for txt in objs:
+                if txt[0] != 8: continue # TEXT
+                if not (txt[4] & (1 << 2)): continue # TEXT_LINKS_TO_SUBMAP
+                txt[4] &= ~(1 << 2) # clear the flag
+                smid = txt[-1]
+                if smid < 0: continue
+                txt[-1] = -1 # no map, in case the old link was invalid
+                if (campid, smid) not in txts:
+                    txts[(campid, smid)] = []
+                txts[(campid, smid)].append(txt)
+            # look for submaps
+            for sm in objs:
+                if sm[0] != 18: continue # SUBMAP
+                sm_objs = []
+                for o in objs:
+                    if o[6] == sm[1]:
+                        sm_objs.append(o)
+                new_map = [campid, -1, sm[12], sm_objs, sm[4], sm[11], sm[13], sm[14], mapid]
+                new_sms.append(new_map)
+                mhash_to_smid[id(new_map)] = (campid, sm[1])
+            new_objs = [o for o in objs if o[0] != 18 and not o[6]]
+            for o in objs:
+                o.pop(6)
+            maps[i] = [campid, mapid, name, new_objs, flags, grid_type, grid_color, bg_color, parent]
+        maps = maps + new_sms
+        new_ids = []
+        for map in maps:
+            if map[1] < 0:
+                pair = mhash_to_smid.get(id(map))
+                txt_objs = txts.get(pair, [])
+                map[1] = max(m[1] for m in maps if m[0] == map[0] and m[0] >= 0) + 1
+                new_ids.append((map[0], map[1]))
+                for t in txt_objs:
+                    t[-1] = map[1]
+        for m in maps:
+            campid, mapid, name, objs, flags, grid_type, grid_color, bg_color, parent = m
+            objects = json.dumps(objs, separators=(',',':'))
+            if (campid, mapid) in new_ids:
+                conn.execute('''
+                    INSERT INTO
+                        maps(campaignid, mapid, name, objects, flags, grid_type, grid_color, bg_color, parent)
+                    VALUES
+                        (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ;
+                ''', (campid, mapid, name, objects, flags, grid_type, grid_color, bg_color, parent))
+            else:
+                conn.execute('''
+                    UPDATE maps
+                    SET objects = ?
+                    WHERE campaignid = ? AND mapid = ?;
+                ''', (objects, campid, mapid))
 
 
 with conn:

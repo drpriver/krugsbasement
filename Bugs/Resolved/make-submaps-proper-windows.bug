@@ -1,0 +1,12 @@
+Changelog::kv
+  created:  2023-01-31T07:16:12Z
+  resolved: 2023-02-10T20:00:54Z
+Created Jan 30, 2023, 11:16PM::md .update
+Summary::md .summary
+  This will fix some of the other problems with submaps and will simplify things
+  a lot. It will also require extracting the canvas code so it can render into a
+  view (thus window) instead of just assuming there is a single canvas like I
+  have been doing.
+
+Resolved Feb 10, 2023, 12:00PM::md .update
+  Resolved by replacing submaps with child maps + splits.

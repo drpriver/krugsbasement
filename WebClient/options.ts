@@ -8,26 +8,6 @@ let show_pan = (function():boolean{
     return sp === '1';
 })();
 
-(function():void{
-// idk where to put this
-let SHOW_ZOOMERS = false;
-function set_zoomers(show:boolean):void{
-    by_id('zoomers').style.display = show?'block':'none';
-    store_global(StorageCategory.SETTINGS, 'showzoomers', show);
-    SHOW_ZOOMERS = show;
-}
-document.addEventListener('DOMContentLoaded', function():void{
-    // want boolean, not undefined or null
-    let show = !!get_global(StorageCategory.SETTINGS, 'showzoomers');
-    set_zoomers(show);
-});
-
-function setchatname(name:string):void{
-    if(name) name = name.trim();
-    if(!name) name = 'anon';
-    sync_local(StorageCategory.CHAT, 'name', name);
-}
-
 function set_chat_vis(show:boolean):void{
     SETTINGS.hidechat = show;
     if(SETTINGS.hidechat){
@@ -49,8 +29,49 @@ function set_chat_vis(show:boolean):void{
     signal_for(ListenEvent.LAYOUT_CHANGED);
     store_local(StorageCategory.SETTINGS, 'hidechat', show);
 }
+function set_left_vis(show:boolean):void{
+    SETTINGS.hideleft = show;
+    if(SETTINGS.hideleft)
+        by_id('left').style.display = 'none';
+    else
+        by_id('left').style.display = 'grid';
+    signal_for(ListenEvent.LAYOUT_CHANGED);
+    store_local(StorageCategory.SETTINGS, 'hideleft', show);
+}
+function set_tools_vis(show:boolean):void{
+    SETTINGS.hidetools = show;
+    if(SETTINGS.hidetools)
+        by_id('tool-container').style.display = 'none';
+    else
+        by_id('tool-container').style.display = 'flex';
+    signal_for(ListenEvent.LAYOUT_CHANGED);
+    store_local(StorageCategory.SETTINGS, 'hidetools', show);
+}
+
+(function():void{
+// idk where to put this
+let SHOW_ZOOMERS = false;
+function set_zoomers(show:boolean):void{
+    by_id('zoomers').style.display = show?'block':'none';
+    store_global(StorageCategory.SETTINGS, 'showzoomers', show);
+    SHOW_ZOOMERS = show;
+}
+document.addEventListener('DOMContentLoaded', function():void{
+    // want boolean, not undefined or null
+    let show = !!get_global(StorageCategory.SETTINGS, 'showzoomers');
+    set_zoomers(show);
+});
+
+function setchatname(name:string):void{
+    if(name) name = name.trim();
+    if(!name) name = 'anon';
+    sync_local(StorageCategory.CHAT, 'name', name);
+}
+
 document.addEventListener('DOMContentLoaded', function():void{
     set_chat_vis(!!get_local(StorageCategory.SETTINGS, 'hidechat'));
+    set_left_vis(!!get_local(StorageCategory.SETTINGS, 'hideleft'));
+    set_tools_vis(!!get_local(StorageCategory.SETTINGS, 'hidetools'));
     // XXX this doesn't go in this file.
     window.ondragend = function(e:DragEvent):void{
         e.preventDefault();
@@ -164,6 +185,14 @@ function options_dialog():void{
         dialog.f.hidechat.checked = !!SETTINGS.hidechat;
         dialog.f.hidechat.addEventListener('change', function():void{
             set_chat_vis(dialog.f.hidechat.checked);
+        });
+        dialog.f.hideleft.checked = !!SETTINGS.hideleft;
+        dialog.f.hideleft.addEventListener('change', function():void{
+            set_left_vis(dialog.f.hideleft.checked);
+        });
+        dialog.f.hidetools.checked = !!SETTINGS.hidetools;
+        dialog.f.hidetools.addEventListener('change', function():void{
+            set_tools_vis(dialog.f.hidetools.checked);
         });
         switch(SETTINGS.darkmode){
             case DarkMode.SYSTEM: dialog.f.system.checked = true; break;

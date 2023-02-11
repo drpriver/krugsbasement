@@ -8,6 +8,8 @@ type Settings = {
     chat:{name: string;};
     demo: boolean;
     hidechat: boolean;
+    hideleft: boolean;
+    hidetools: boolean;
     macros:{
         macros: Array<Macro>;
         variables: Array<Variable>;

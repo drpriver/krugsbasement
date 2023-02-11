@@ -72,7 +72,6 @@ const enum INDEX {
     BASE_Y = 3,
     FLAGS = 4,
     HIDINGUSER = 5,
-    SUBMAP = 6,
 }
 function bbox_overlaps_ref_unit_hexagon(bbox:Bbox, bx:number, by:number):boolean{
     const inner_bbox = {
@@ -113,9 +112,9 @@ const SORTORDER = [
        1, // FILLED_TILE
        1, // TERRAIN_TILE
        1, // ICON_TILE
-      10, // SUBMAP
+      10, // SUBMAP (submaps were deleted)
 ];
-type Resizable = Rectangle | GridRectangle | FilledRectangle | Ellipse | ImageObj | SubMap | Arc | Stairs;
+type Resizable = Rectangle | GridRectangle | FilledRectangle | Ellipse | ImageObj | Arc | Stairs;
 
 function is_resizable(obj:CanvasObject): obj is Resizable{
     switch(obj.type){
@@ -125,7 +124,6 @@ function is_resizable(obj:CanvasObject): obj is Resizable{
         case CanvasType.ELLIPSE:
         case CanvasType.IMAGE:
         case CanvasType.STAIRS:
-        case CanvasType.SUBMAP:
         case CanvasType.FIXTURE:
         case CanvasType.ARC:
             return true
@@ -167,7 +165,6 @@ type FreehandLine = {
     base_y: number;
     flags: CanvasFlag;
     hidinguser: number;
-    submap: number;
     color: string;
     // points are just raw x,y pairs in a flat array.
     points: Array<number>;
@@ -206,7 +203,6 @@ type Shape = {
     base_y: number;
     flags: CanvasFlag;
     hidinguser: number;
-    submap: number;
     color: string;
     color2: string;
     // points are just raw x,y pairs in a flat array.
@@ -252,7 +248,6 @@ type GridLine = {
     base_y: number;
     flags: CanvasFlag;
     hidinguser: number;
-    submap: number;
     color: string;
     // points are just raw x,y pairs in a flat array.
     points: Array<number>;
@@ -275,7 +270,6 @@ type Rectangle = {
     base_y: number,
     flags: CanvasFlag,
     hidinguser: number;
-    submap: number;
     color: string,
     width: number,
     height: number,
@@ -294,7 +288,6 @@ type FilledRectangle = {
     base_y: number,
     flags: CanvasFlag,
     hidinguser: number;
-    submap: number;
     color: string,
     color2: string,
     width: number,
@@ -315,7 +308,6 @@ type GridRectangle = {
     base_y: number,
     flags: CanvasFlag,
     hidinguser: number;
-    submap: number;
     color: string,
     width: number,
     height: number,
@@ -343,7 +335,6 @@ type Ellipse = {
     base_y: number,
     flags: CanvasFlag,
     hidinguser: number;
-    submap: number;
     color: string,
     color2: string,
     width: number,
@@ -360,7 +351,6 @@ type ImageObj = {
     base_y: number;
     flags: CanvasFlag;
     hidinguser: number;
-    submap: number;
     width: number;
     height: number;
     url: string;
@@ -376,7 +366,6 @@ type TextObj = {
     base_y: number;
     flags: CanvasFlag;
     hidinguser: number;
-    submap: number;
     text: string;
     size: number;
     bbox: Bbox;
@@ -439,7 +428,6 @@ type EzToken = {
     base_y: number,
     flags: CanvasFlag
     hidinguser: number;
-    submap: number;
     text: string,
     color: string,
     width: number, // in squares (?)
@@ -457,7 +445,6 @@ type ImgToken = {
     base_y: number;
     flags: CanvasFlag;
     hidinguser: number;
-    submap: number;
     url: string;
     img?: HTMLImageElement,
     width: number; // in squares (?)
@@ -474,7 +461,6 @@ type DoorObj = {
     base_y: number,
     flags: CanvasFlag
     hidinguser: number;
-    submap: number;
     doortype: DoorType
     color: string,
     width: number, // in squares (?)
@@ -489,7 +475,6 @@ type Stairs = {
     base_y: number,
     flags: CanvasFlag,
     hidinguser: number;
-    submap: number;
     width: number, // in squares
     height: number, // in squares
     rotation: Rotation,
@@ -505,7 +490,6 @@ type MeasureObj = {
     base_y: number,
     flags: CanvasFlag
     hidinguser: number;
-    submap: number;
     color: string,
     x1: number,
     y1: number,
@@ -536,7 +520,6 @@ type FixtureObj = {
     base_y: number,
     flags: CanvasFlag,
     hidinguser: number;
-    submap: number;
     width: number,
     height: number,
     ftype: FixtureType,
@@ -564,7 +547,6 @@ type FilledTile = {
     base_y: number,
     flags: CanvasFlag,
     hidinguser: number;
-    submap: number;
     color: string,
     size: number,
 }
@@ -578,7 +560,6 @@ type TerrainTile = {
     base_y: number;
     flags: CanvasFlag;
     hidinguser: number;
-    submap: number;
     terrain_id: number;
 }
 
@@ -592,27 +573,7 @@ type IconTile = {
     base_y: number;
     flags: CanvasFlag;
     hidinguser: number;
-    submap: number;
     terrainicon_id: number;
-}
-// SubMap
-// ------
-type SubMap = {
-    type: CanvasType.SUBMAP; // SUBMAP
-    id: number;
-    base_x: number;
-    base_y: number;
-    flags: CanvasFlag;
-    hidinguser: number;
-    submap: number;
-    width: number;
-    height: number;
-    tlx : number;
-    tly: number;
-    grid_type: GridType;
-    title: string;
-    grid_color: string;
-    bg_color: string;
 }
 
 // Arc
@@ -624,7 +585,6 @@ type Arc = {
     base_y: number
     flags: CanvasFlag;
     hidinguser: number;
-    submap: number;
     width: number;
     height: number;
     start_arc: number;
@@ -698,7 +658,7 @@ function arc_components(obj:Arc, offx:number, offy:number):[number, number, numb
 
 
 
-type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj | FilledTile | TerrainTile | IconTile | SubMap | Shape | Arc;
+type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj | FilledTile | TerrainTile | IconTile | Shape | Arc;
 
 // Door subtypes
 // ------------
@@ -855,15 +815,8 @@ document.addEventListener('DOMContentLoaded', function():void{
     by_id('paste').addEventListener('click', function():void{
         const view = get_active_view();
         if(copied_objs.length){
-            let submapid = 0;
             let x = view.mouse.x; let y = view.mouse.y;
-            let sm = get_submap_at(view, x, y);
-            if(sm){
-                submapid = sm.id;
-                x -= sm.base_x + sm.tlx;
-                y -= sm.base_y + sm.tly;
-            }
-            paste_from_copy_buffer_at(view.map, x, y, submapid);
+            paste_from_copy_buffer_at(view.map, x, y);
         }
     });
     by_id('delete').addEventListener('click', function():void{
@@ -876,17 +829,6 @@ document.addEventListener('DOMContentLoaded', function():void{
             if(o.flags & CanvasFlag.DELETED) continue;
             o.flags |= CanvasFlag.DELETED;
             deleted.push(o.id);
-            // #SPEED: faster way to get all objects in this submap
-            if(o.type == CanvasType.SUBMAP){
-                for(let obj of view.map.canvas_obj_array){
-                    if(obj.flags & CanvasFlag.DELETED) continue;
-                    if(obj.submap == o.id){
-                        obj.flags |= CanvasFlag.DELETED;
-                        deleted.push(obj.id);
-                    }
-                }
-
-            }
         }
         if(deleted.length){
             publish_delete_by_ids(view.map.map_id, deleted);
@@ -916,7 +858,6 @@ type DungeonMap = {
     undo_stack: Array<UndoEvent>;
     undo_position: number; // integer
     pings: Array<Ping>;
-    submaps: Array<SubMap>;
 }
 
 function export_maps():Array<InitializeMap>{
@@ -1001,7 +942,6 @@ type DungeonMapView = {
         x1: number;
         y0: number;
         y1: number;
-        submap: number;
     };
     placing_area: {
         is_placing: boolean;
@@ -1040,7 +980,6 @@ function new_map_view(map_id:number): [DungeonMapView, DungeonMapView]{
             is_selecting: false,
             x0:0, y0:0,
             x1:0, y1:0,
-            submap: 0,
         },
         placing_area: {
             is_placing: false,
@@ -1081,11 +1020,13 @@ function new_map_view(map_id:number): [DungeonMapView, DungeonMapView]{
     };
     return [view, other];
 }
+/*
 function center_view_at(view:DungeonMapView, x:number, y:number):void{
     view.camera_x = -x + TheCanvas.width/2/view.scale;
     view.camera_y = -y + TheCanvas.height/2/view.scale;
     request_render();
 }
+*/
 function change_active_map_view(which:WhichSplit, idx: number, store:boolean):void{
     const old_idx = which == WhichSplit.RIGHT && secondary_map_view_index !== null?secondary_map_view_index:active_map_view_index;
     let old_view = old_idx >=0 && old_idx < dungeon_map_views.length? dungeon_map_views[old_idx][which]:null;
@@ -1157,7 +1098,6 @@ function get_map(map_id:number): DungeonMap {
         undo_position: 0,
 
         pings: [],
-        submaps: [],
     };
     EMIT(FromClient.CANVAS_CREATE_MAP, map_id);
     MAPS.set(map_id, new_map);
@@ -1252,9 +1192,7 @@ function sort_canv_objs(map:DungeonMap):void{
     if(map.is_sorted)
         return;
     map.canvas_obj_array.sort(function(first:CanvasObject, second:CanvasObject):number{
-        let a = SORTORDER[first.type] + (first.submap? 50 : 0);
-        let b = SORTORDER[second.type] + (second.submap? 50 : 0);
-        return a - b;
+        return SORTORDER[first.type] - SORTORDER[second.type];
     });
     map.is_sorted = true;
 }
@@ -1435,7 +1373,7 @@ function resize_canvas():void{
 
 //
 // freehand-line stuff.
-function make_freehand_line(id:number, base_x:number, base_y:number, submap:number, color:string, thickness:number):FreehandLine{
+function make_freehand_line(id:number, base_x:number, base_y:number, color:string, thickness:number):FreehandLine{
     // base_x = Math.round(base_x);
     // base_y = Math.round(base_y);
     // nearest tenth seems good enough to get smooth lines
@@ -1448,7 +1386,6 @@ function make_freehand_line(id:number, base_x:number, base_y:number, submap:numb
         base_y: base_y,
         flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
-        submap: submap,
         points: [],
         color: color,
         path: undefined,
@@ -1459,7 +1396,7 @@ function make_freehand_line(id:number, base_x:number, base_y:number, submap:numb
     };
     return obj;
 }
-function make_shape(id:number, base_x:number, base_y:number, submap:number, color:string, color2:string, thickness:number):Shape {
+function make_shape(id:number, base_x:number, base_y:number, color:string, color2:string, thickness:number):Shape {
     // nearest tenth seems good enough to get smooth lines
     base_x = Math.round(base_x*10)/10;
     base_y = Math.round(base_y*10)/10;
@@ -1470,7 +1407,6 @@ function make_shape(id:number, base_x:number, base_y:number, submap:number, colo
         base_y: base_y,
         flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
-        submap: submap,
         points: [],
         color: color,
         color2: color2,
@@ -1482,8 +1418,8 @@ function make_shape(id:number, base_x:number, base_y:number, submap:number, colo
     };
     return obj;
 }
-function add_freehand_line(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string, thickness:number):void{
-    const obj = make_freehand_line(id, base_x, base_y, submap, color, thickness);
+function add_freehand_line(map:DungeonMap, id:number, base_x:number, base_y:number, color:string, thickness:number):void{
+    const obj = make_freehand_line(id, base_x, base_y, color, thickness);
     add_canv_obj(map, obj);
 }
 function add_freehand_point(obj:FreehandLine|Shape, x:number, y:number):void{
@@ -1841,12 +1777,14 @@ function calc_measure_length(map:DungeonMap, x0:number, y0:number, x1:number, y1
         return length.toFixed(0) + "'";
     }
 }
+/*
 function calc_square_length(map:DungeonMap, x0:number, y0:number, x1:number, y1:number):string{
     const h2 = (x0-x1)**2 + (y0-y1)**2;
     const h = Math.sqrt(h2);
     const length = h * 10 / REFERENCE.WIDTH;
     return length.toFixed(0) + "'";
 }
+*/
 
 function add_gridline_point(obj:GridLine, x:number, y:number):void{
     const points = obj.points;
@@ -1906,7 +1844,7 @@ function gridline_recalculate_path(obj:GridLine, base_x:number, base_y:number):v
     }
     obj.path = path;
 }
-function make_gridrect(id:number, base_x:number, base_y:number, submap:number, color:string):GridRectangle{
+function make_gridrect(id:number, base_x:number, base_y:number, color:string):GridRectangle{
     const obj:GridRectangle =  {
         type: CanvasType.GRID_RECT,
         id: id,
@@ -1914,15 +1852,14 @@ function make_gridrect(id:number, base_x:number, base_y:number, submap:number, c
         base_y: base_y,
         flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
-        submap:submap,
         color: color,
         width: 0,
         height: 0,
     };
     return obj;
 }
-function add_gridrect(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string):void{
-    const obj = make_gridrect(id, base_x, base_y, submap, color);
+function add_gridrect(map:DungeonMap, id:number, base_x:number, base_y:number, color:string):void{
+    const obj = make_gridrect(id, base_x, base_y, color);
     add_canv_obj(map, obj);
 }
 function change_gridrect(obj:GridRectangle, x0:number, y0:number, x1:number, y1:number):void{
@@ -1945,7 +1882,7 @@ function change_gridrect_by_id(map:DungeonMap, id:number, x0:number, y0:number, 
     let obj = map.canvas_objs.get(id) as GridRectangle;
     change_gridrect(obj, x0, y0, x1, y1);
 }
-function make_door(id:number, x:number, y:number, doortype:DoorType, submap:number, color:string, width:number, orientation:Orientation):DoorObj{
+function make_door(id:number, x:number, y:number, doortype:DoorType, color:string, width:number, orientation:Orientation):DoorObj{
     const obj: DoorObj = {
         type: CanvasType.DOOR,
         id: id,
@@ -1953,7 +1890,6 @@ function make_door(id:number, x:number, y:number, doortype:DoorType, submap:numb
         base_y: y,
         flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
-        submap:submap,
         doortype: doortype,
         color: color,
         width: width,
@@ -1961,11 +1897,11 @@ function make_door(id:number, x:number, y:number, doortype:DoorType, submap:numb
     };
     return obj;
 }
-function add_door(map:DungeonMap, id:number, base_x:number, base_y:number, doortype:DoorType, submap:number, color:string, width:number, orientation:Orientation):void{
-    const obj = make_door(id, base_x, base_y, doortype, submap, color, width, orientation);
+function add_door(map:DungeonMap, id:number, base_x:number, base_y:number, doortype:DoorType, color:string, width:number, orientation:Orientation):void{
+    const obj = make_door(id, base_x, base_y, doortype, color, width, orientation);
     add_canv_obj(map, obj);
 }
-function make_rect(id:number, base_x:number, base_y:number, submap:number, color:string):Rectangle{
+function make_rect(id:number, base_x:number, base_y:number, color:string):Rectangle{
     const obj: Rectangle =  {
         type: CanvasType.RECT,
         id: id,
@@ -1973,15 +1909,14 @@ function make_rect(id:number, base_x:number, base_y:number, submap:number, color
         base_y: base_y,
         flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
-        submap:submap,
         color: color,
         width: 0,
         height: 0,
     };
     return obj;
 }
-function add_rect(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string):void{
-    const obj = make_rect(id, base_x, base_y, submap, color);
+function add_rect(map:DungeonMap, id:number, base_x:number, base_y:number, color:string):void{
+    const obj = make_rect(id, base_x, base_y, color);
     add_canv_obj(map, obj);
 }
 function change_rect(obj:Rectangle, x0:number, y0:number, x1:number, y1:number):void{
@@ -2005,7 +1940,7 @@ function change_rect_by_id(map:DungeonMap, id:number, x0:number, y0:number, x1:n
     let obj = map.canvas_objs.get(id) as Rectangle;
     change_rect(obj, x0, y0, x1, y1);
 }
-function make_filled_rect(id:number, base_x:number, base_y:number, submap:number, color:string, color2:string):FilledRectangle{
+function make_filled_rect(id:number, base_x:number, base_y:number, color:string, color2:string):FilledRectangle{
     const obj: FilledRectangle =  {
         type: CanvasType.FILLED_RECT,
         id: id,
@@ -2013,7 +1948,6 @@ function make_filled_rect(id:number, base_x:number, base_y:number, submap:number
         base_y: Math.round(base_y),
         flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
-        submap:submap,
         color: color,
         color2: color2,
         width: 0,
@@ -2021,8 +1955,8 @@ function make_filled_rect(id:number, base_x:number, base_y:number, submap:number
     };
     return obj;
 }
-function add_filled_rect(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string, color2:string):void{
-    const obj = make_filled_rect(id, base_x, base_y, submap, color, color2);
+function add_filled_rect(map:DungeonMap, id:number, base_x:number, base_y:number, color:string, color2:string):void{
+    const obj = make_filled_rect(id, base_x, base_y, color, color2);
     add_canv_obj(map, obj);
 }
 function change_filled_rect(obj:FilledRectangle, x0:number, y0:number, x1:number, y1:number):void{
@@ -2046,7 +1980,7 @@ function change_filled_rect_by_id(map:DungeonMap, id:number, x0:number, y0:numbe
     let obj = map.canvas_objs.get(id) as FilledRectangle;
     change_filled_rect(obj, x0, y0, x1, y1);
 }
-function make_ellipse(id:number, base_x:number, base_y:number, submap:number, color:string, color2:string, variant:ELLIPSETYPE):Ellipse{
+function make_ellipse(id:number, base_x:number, base_y:number, color:string, color2:string, variant:ELLIPSETYPE):Ellipse{
     const obj:Ellipse = {
         type: CanvasType.ELLIPSE,
         id:id,
@@ -2054,7 +1988,6 @@ function make_ellipse(id:number, base_x:number, base_y:number, submap:number, co
         base_y: Math.round(base_y),
         flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
-        submap:submap,
         color: color,
         color2: color2,
         width: 0,
@@ -2063,11 +1996,11 @@ function make_ellipse(id:number, base_x:number, base_y:number, submap:number, co
     };
     return obj;
 }
-function add_ellipse(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, color:string, color2:string, variant:ELLIPSETYPE):void{
-    const obj = make_ellipse(id, base_x, base_y, submap, color, color2, variant);
+function add_ellipse(map:DungeonMap, id:number, base_x:number, base_y:number, color:string, color2:string, variant:ELLIPSETYPE):void{
+    const obj = make_ellipse(id, base_x, base_y, color, color2, variant);
     add_canv_obj(map, obj);
 }
-function make_text(id:number, base_x:number, base_y:number, submap:number, text:string, size:number, alignment: TextAlignment, map_id:number):TextObj{
+function make_text(id:number, base_x:number, base_y:number, text:string, size:number, alignment: TextAlignment, map_id:number):TextObj{
     let snap = get_snap_center_func();
     base_x = snap(base_x);
     base_y = snap(base_y);
@@ -2078,7 +2011,6 @@ function make_text(id:number, base_x:number, base_y:number, submap:number, text:
         base_y: Math.round(base_y),
         flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
-        submap:submap,
         text: text,
         size: size,
         bbox: {x0:0, y0:0, x1:0, y1:0},
@@ -2089,11 +2021,11 @@ function make_text(id:number, base_x:number, base_y:number, submap:number, text:
     };
     return obj;
 }
-function add_text(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, text:string, size:number, alignment:TextAlignment, map_id:number):void{
-    const obj = make_text(id, base_x, base_y, submap, text, size, alignment, map_id);
+function add_text(map:DungeonMap, id:number, base_x:number, base_y:number, text:string, size:number, alignment:TextAlignment, map_id:number):void{
+    const obj = make_text(id, base_x, base_y,  text, size, alignment, map_id);
     add_canv_obj(map, obj);
 }
-function make_ez_token(id:number, base_x:number, base_y:number, submap:number, text:string, color:string, width:number, height:number):EzToken{
+function make_ez_token(id:number, base_x:number, base_y:number, text:string, color:string, width:number, height:number):EzToken{
     const obj: EzToken = {
         type: CanvasType.EZ_TOKEN,
         id: id,
@@ -2101,7 +2033,6 @@ function make_ez_token(id:number, base_x:number, base_y:number, submap:number, t
         base_y: Math.round(base_y),
         flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
-        submap:submap,
         text: text,
         color:color,
         width: width,
@@ -2110,11 +2041,11 @@ function make_ez_token(id:number, base_x:number, base_y:number, submap:number, t
     };
     return obj;
 }
-function add_ez_token(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, text:string, color:string, width:number, height:number):void{
-    const obj = make_ez_token(id, base_x, base_y, submap, text, color, width, height);
+function add_ez_token(map:DungeonMap, id:number, base_x:number, base_y:number, text:string, color:string, width:number, height:number):void{
+    const obj = make_ez_token(id, base_x, base_y, text, color, width, height);
     add_canv_obj(map, obj);
 }
-function make_img_token(id:number, base_x:number, base_y:number, submap:number, url:string, width:number, height: number):ImgToken{
+function make_img_token(id:number, base_x:number, base_y:number, url:string, width:number, height: number):ImgToken{
     const obj:ImgToken = {
         type: CanvasType.IMG_TOKEN,
         id: id,
@@ -2122,7 +2053,6 @@ function make_img_token(id:number, base_x:number, base_y:number, submap:number, 
         base_y: Math.round(base_y),
         flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
-        submap:submap,
         url: url,
         img: undefined,
         width: width,
@@ -2132,8 +2062,8 @@ function make_img_token(id:number, base_x:number, base_y:number, submap:number, 
     delay_load_obj_image(obj, REFERENCE.WIDTH, REFERENCE.WIDTH, 1, 1);
     return obj;
 }
-function add_img_token(map:DungeonMap, id:number, base_x:number, base_y:number, submap:number, url:string, width:number, height:number):void{
-    const obj = make_img_token(id, base_x, base_y, submap, url, width, height);
+function add_img_token(map:DungeonMap, id:number, base_x:number, base_y:number, url:string, width:number, height:number):void{
+    const obj = make_img_token(id, base_x, base_y, url, width, height);
     add_canv_obj(map, obj);
 }
 
@@ -2166,7 +2096,7 @@ function delay_load_obj_image(obj:ImageObj|ImgToken, width:number, height:number
     }, {once:true});
     img.src = obj.url;
 }
-function make_image(id:number, base_x:number, base_y:number, width:number, height:number, submap:number, url:string):ImageObj{
+function make_image(id:number, base_x:number, base_y:number, width:number, height:number, url:string):ImageObj{
     base_x = Math.round(base_x);
     base_y = Math.round(base_y);
     base_x = base_x - (base_x & (REFERENCE.WIDTH-1)) + 1;
@@ -2178,7 +2108,6 @@ function make_image(id:number, base_x:number, base_y:number, width:number, heigh
         base_y: base_y,
         flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
-        submap:submap,
         width: width,
         height: height,
         url: url,
@@ -2187,8 +2116,8 @@ function make_image(id:number, base_x:number, base_y:number, width:number, heigh
     delay_load_obj_image(obj, width, height, width, height);
     return obj;
 }
-function add_image(map:DungeonMap, id:number, base_x:number, base_y:number, width:number, height:number, submap:number, url:string):void{
-    const obj = make_image(id, base_x, base_y, width, height, submap, url);
+function add_image(map:DungeonMap, id:number, base_x:number, base_y:number, width:number, height:number, url:string):void{
+    const obj = make_image(id, base_x, base_y, width, height,  url);
     add_canv_obj(map, obj);
 }
 function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number, snap:(_:number)=>number):void{
@@ -2225,7 +2154,7 @@ function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number, s
     else
         obj.rotation = Rotation.DOWN;
 }
-function make_measure(id:number, x:number, y:number, submap:number, color:string):MeasureObj{
+function make_measure(id:number, x:number, y:number, color:string):MeasureObj{
     const obj:MeasureObj = {
         type: CanvasType.MEASURE,
         id: id,
@@ -2233,14 +2162,13 @@ function make_measure(id:number, x:number, y:number, submap:number, color:string
         base_y:y,
         flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
-        submap:submap,
         color:color,
         x1:x,
         y1:y,
     };
     return obj;
 }
-function make_fixture(id:number, x:number, y:number, submap:number,ftype:FixtureType):FixtureObj{
+function make_fixture(id:number, x:number, y:number, ftype:FixtureType):FixtureObj{
     const obj:FixtureObj = {
         type: CanvasType.FIXTURE,
         id: id,
@@ -2248,7 +2176,6 @@ function make_fixture(id:number, x:number, y:number, submap:number,ftype:Fixture
         base_y:y,
         flags: CanvasFlag.NONE,
         hidinguser: hiddenid(),
-        submap:submap,
         width:0,
         height:0,
         ftype:ftype,
@@ -2491,7 +2418,7 @@ function copy_selected_objs_to_clipboard(view:DungeonMapView):void{
     let text = JSON.stringify(objs);
     navigator.clipboard.writeText(text);
 }
-function paste_from_clipboard_at(map:DungeonMap, x:number, y:number, submapid:number):void{
+function paste_from_clipboard_at(map:DungeonMap, x:number, y:number):void{
     x = snap_to_grid(x);
     y = snap_to_grid(y);
     function doit(objs:unknown):void{
@@ -2521,9 +2448,6 @@ function paste_from_clipboard_at(map:DungeonMap, x:number, y:number, submapid:nu
         const new_ids = [];
         for(let i = 0; i < valid_objs.length; i++){
             let obj = unstrip_obj(valid_objs[i]);
-            obj.submap = submapid;
-            if(submapid && obj.type == CanvasType.SUBMAP)
-                continue;
             let id = get_new_id();
             obj.id = id;
             translate_object(obj, dx, dy);
@@ -2579,17 +2503,6 @@ function cut_selected_objs_to_copy_buffer(view:DungeonMapView):void{
         copied_objs.push(stripped);
         obj.flags |= CanvasFlag.DELETED;
         deleted.push(obj.id);
-        // #SPEED: faster way to get all objects in this submap
-        if(obj.type == CanvasType.SUBMAP){
-            for(let o of view.map.canvas_obj_array){
-                if(o.flags & CanvasFlag.DELETED) continue;
-                if(o.submap == obj.id){
-                    copied_objs.push(strip_obj(o));
-                    o.flags |= CanvasFlag.DELETED;
-                    deleted.push(o.id);
-                }
-            }
-        }
     }
     publish_delete_by_ids(view.map.map_id, deleted);
     note_delete_by_ids_for_undo(view.map, deleted);
@@ -2813,10 +2726,6 @@ function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
             obj.base_y = r.base_y;
             return strip_obj(obj);
         }
-        case CanvasType.SUBMAP:{
-            rotate_rectangleish(obj);
-            return strip_obj(obj);
-        }
         case CanvasType.ARC:{
             rotate_rectangleish(obj);
             obj.start_arc++;
@@ -2842,7 +2751,7 @@ function rotate_everything_90(view:DungeonMapView):void{
     request_render();
 }
 
-function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number, submapid:number):void{
+function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
     x = snap_to_grid(x);
     y = snap_to_grid(y);
     const length = copied_objs.length;
@@ -2866,9 +2775,6 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number, submapid:
     const new_ids = [];
     for(let i = 0; i < length; ++i){
         const obj = unstrip_obj(copied_objs[i]);
-        obj.submap = submapid;
-        if(submapid && obj.type == CanvasType.SUBMAP)
-            continue;
         let id = get_new_id();
         obj.id = id;
         translate_object(obj, dx, dy);
@@ -2943,8 +2849,6 @@ function initialize_maps(msgs:Array<InitializeMap>):void{
             else {
                 add_canv_obj(map, obj);
             }
-            if(obj.type == CanvasType.SUBMAP)
-                map.submaps.push(obj)
         }
     }
     for(const msg of msgs){
@@ -2980,8 +2884,6 @@ ONRECV(ToClient.CANVAS_CREATE_OBJECTS, function(msgs:Array<CreateObjectsMessage>
             else {
                 add_canv_obj(map,obj);
             }
-            if(obj.type == CanvasType.SUBMAP)
-                map.submaps.push(obj);
         }
     }
     request_render();
@@ -3089,53 +2991,6 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
                     return true;
                 x0 = x1;
                 y0 = y1;
-            }
-            return false;
-        }break;
-        case CanvasType.SUBMAP: {
-            if(!(selection_type & SELECTTYPE.MAP))
-                return false;
-            const th2 = 3;
-            const rect_bbox = {
-                x0:obj.base_x-th2,
-                y0:obj.base_y-th2,
-                x1:obj.base_x+obj.width+th2,
-                y1:obj.base_y+obj.height+th2,
-            };
-            if(!bbox_overlaps(rect_bbox, bbox))
-                return false;
-            // break into four pieces
-            let left = {
-                x0: obj.base_x-th2,
-                y0: obj.base_y-th2,
-                x1: obj.base_x+th2,
-                y1: obj.base_y+obj.height+th2,
-            };
-            let top = {
-                x0: obj.base_x-th2,
-                y0: obj.base_y-th2,
-                x1: obj.base_x+obj.width+th2,
-                y1: obj.base_y+th2+64,
-            };
-            let right = {
-                x0: obj.base_x+obj.width-th2,
-                y0: obj.base_y+th2,
-                x1: obj.base_x+obj.width+th2,
-                y1: obj.base_y+obj.height+th2,
-            };
-            let bottom = {
-                x0: obj.base_x-th2,
-                y0: obj.base_y+obj.height-th2,
-                x1: obj.base_x+obj.width+th2,
-                y1: obj.base_y+obj.height+th2,
-            };
-            if(obj.flags & CanvasFlag.SUBMAP_IS_MINIMIZED){
-                if(bbox_overlaps(top, bbox)) return true;
-            }
-            else {
-                for(let b of [left, top, right, bottom]){
-                    if(bbox_overlaps(b, bbox)) return true;
-                }
             }
             return false;
         }break;
@@ -3443,16 +3298,6 @@ function get_bbox(obj:Readonly<CanvasObject>, is_hex:boolean):Bbox{
             };
             return outer_bbox;
         }break;
-        case CanvasType.SUBMAP: {
-            const th2 = 3;
-            const rect_bbox = {
-                x0:obj.base_x-th2,
-                y0:obj.base_y-th2,
-                x1:obj.base_x+obj.width+th2,
-                y1:obj.base_y+obj.height+th2,
-            };
-            return rect_bbox;
-        }break;
         case CanvasType.RECT:{
             const th2 = 3;
             const rect_bbox = {
@@ -3638,18 +3483,7 @@ function obj_at(view:DungeonMapView, x0:number, y0:number, select_type:SELECTTYP
             continue;
         if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
             continue;
-        if(obj.submap){
-            let sm = view.map.canvas_objs.get(obj.submap)! as SubMap;
-            let bbox_ = {
-                x0: bbox.x0-sm.base_x-sm.tlx,
-                y0: bbox.y0-sm.base_y-sm.tly,
-                x1: bbox.x1-sm.base_x-sm.tlx,
-                y1: bbox.y1-sm.base_y-sm.tly,
-            };
-            if(obj_in_bbox(obj, bbox_, select_type, !!(view.map.grid_type & GridType.HEX)))
-                return obj;
-        }
-        else if(obj_in_bbox(obj, bbox, select_type, !!(view.map.grid_type & GridType.HEX)))
+        if(obj_in_bbox(obj, bbox, select_type, !!(view.map.grid_type & GridType.HEX)))
             return obj;
     }
     return null;
@@ -3662,8 +3496,6 @@ function tile_at(view:DungeonMapView, x0:number, y0:number, tile_type:TileType):
         if(obj.flags & CanvasFlag.DELETED)
             continue;
         if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
-            continue;
-        if(obj.submap)
             continue;
         switch(obj.type){
         case CanvasType.ICON_TILE:
@@ -3697,20 +3529,7 @@ function note_selections(view:DungeonMapView):void{
                 continue;
             if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
                 continue;
-            if(obj.submap){
-                let sm = view.map.canvas_objs.get(obj.submap)! as SubMap;
-                let bbox_ = {
-                    x0: selection_bbox.x0-sm.base_x-sm.tlx,
-                    y0: selection_bbox.y0-sm.base_y-sm.tly,
-                    x1: selection_bbox.x1-sm.base_x-sm.tlx,
-                    y1: selection_bbox.y1-sm.base_y-sm.tly,
-                };
-                if(obj_in_bbox(obj, bbox_, selection_type, !!(view.map.grid_type & GridType.HEX))){
-                    selected.add(obj.id);
-                    break;
-                }
-            }
-            else if(obj_in_bbox(obj, selection_bbox, selection_type, !!(view.map.grid_type & GridType.HEX))){
+            if(obj_in_bbox(obj, selection_bbox, selection_type, !!(view.map.grid_type & GridType.HEX))){
                 selected.add(obj.id);
                 break;
             }
@@ -3723,20 +3542,7 @@ function note_selections(view:DungeonMapView):void{
                 continue;
             if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
                 continue;
-            if(obj.submap !== view.selection_area.submap)
-                continue;
-            if(obj.submap){
-                let sm = view.map.canvas_objs.get(obj.submap)! as SubMap;
-                let bbox_ = {
-                    x0: selection_bbox.x0-sm.base_x-sm.tlx,
-                    y0: selection_bbox.y0-sm.base_y-sm.tly,
-                    x1: selection_bbox.x1-sm.base_x-sm.tlx,
-                    y1: selection_bbox.y1-sm.base_y-sm.tly,
-                };
-                if(obj_in_bbox(obj, bbox_, selection_type, !!(view.map.grid_type & GridType.HEX)))
-                    selected.add(obj.id);
-            }
-            else if(obj_in_bbox(obj, selection_bbox, selection_type, !!(view.map.grid_type & GridType.HEX))){
+            if(obj_in_bbox(obj, selection_bbox, selection_type, !!(view.map.grid_type & GridType.HEX))){
                 selected.add(obj.id);
             }
         }
@@ -3864,85 +3670,81 @@ function strip_obj(obj:CanvasObject): StrippedObj{
     switch(obj.type){
         case CanvasType.FREEHAND_LINE:{
             const stripped_obj: StrippedFreehandLine =
-                [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, Array.from(obj.points), obj.thickness];
+                [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, Array.from(obj.points), obj.thickness];
             return stripped_obj;
         }break;
         case CanvasType.GRID_LINE:{
-            const stripped_obj: StrippedGridLine = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, Array.from(obj.points)];
+            const stripped_obj: StrippedGridLine = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, Array.from(obj.points)];
             return stripped_obj;
         }break;
         case CanvasType.RECT:{
-            const stripped_obj: StrippedRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.width, obj.height];
+            const stripped_obj: StrippedRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.width, obj.height];
             return stripped_obj;
         }break;
         case CanvasType.FILLED_RECT:{
-            const stripped_obj: StrippedFilledRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.color2, obj.width, obj.height];
+            const stripped_obj: StrippedFilledRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.color2, obj.width, obj.height];
             return stripped_obj;
         }break;
         case CanvasType.GRID_RECT:{
-            const stripped_obj: StrippedGridRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.width, obj.height];
+            const stripped_obj: StrippedGridRectangle = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.width, obj.height];
             return stripped_obj;
         }break;
         case CanvasType.ELLIPSE:{
-            const stripped_obj: StrippedEllipse = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.color2, obj.width, obj.height, obj.variant];
+            const stripped_obj: StrippedEllipse = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.color2, obj.width, obj.height, obj.variant];
             return stripped_obj;
         }break;
         case CanvasType.IMAGE:{
-            const stripped_obj: StrippedImageObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.width, obj.height, obj.url];
+            const stripped_obj: StrippedImageObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.width, obj.height, obj.url];
             return stripped_obj;
         }break;
         case CanvasType.TEXT:{
-            const stripped_obj: StrippedTextObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.text, obj.size, obj.alignment, obj.map_id];
+            const stripped_obj: StrippedTextObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.text, obj.size, obj.alignment, obj.map_id];
             return stripped_obj;
         }break;
         case CanvasType.EZ_TOKEN:{
-            const stripped_obj: StrippedEzToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.text, obj.color, obj.width, obj.height, obj.statusflags];
+            const stripped_obj: StrippedEzToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.text, obj.color, obj.width, obj.height, obj.statusflags];
             return stripped_obj;
         }break;
         case CanvasType.IMG_TOKEN:{
-            const stripped_obj: StrippedImgToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.url, obj.width, obj.height, obj.statusflags];
+            const stripped_obj: StrippedImgToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.url, obj.width, obj.height, obj.statusflags];
             return stripped_obj;
         }break;
         case CanvasType.DOOR:{
-            const stripped_obj: StrippedDoorObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.doortype, obj.color, obj.width, obj.orientation];
+            const stripped_obj: StrippedDoorObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.doortype, obj.color, obj.width, obj.orientation];
             return stripped_obj;
         }break;
         case CanvasType.STAIRS:{
-            const stripped_obj: StrippedStairs = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.width, obj.height, obj.rotation];
+            const stripped_obj: StrippedStairs = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.width, obj.height, obj.rotation];
             return stripped_obj;
         }break;
         case CanvasType.MEASURE:{
-            const stripped_obj: StrippedMeasureObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.x1, obj.y1];
+            const stripped_obj: StrippedMeasureObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.x1, obj.y1];
             return stripped_obj;
         }break;
         case CanvasType.FIXTURE:{
-            const stripped_obj: StrippedFixtureObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.width, obj.height, obj.ftype];
+            const stripped_obj: StrippedFixtureObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.width, obj.height, obj.ftype];
             return stripped_obj;
         }break;
         case CanvasType.FILLED_TILE:{
-            const stripped_obj: StrippedFilledTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.size];
+            const stripped_obj: StrippedFilledTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.size];
             return stripped_obj;
         }break;
         case CanvasType.TERRAIN_TILE:{
-            const stripped_obj: StrippedTerrainTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.terrain_id];
+            const stripped_obj: StrippedTerrainTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.terrain_id];
             return stripped_obj;
         }break;
         case CanvasType.ICON_TILE:{
-            const stripped_obj: StrippedIconTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.terrainicon_id];
-            return stripped_obj;
-        }break;
-        case CanvasType.SUBMAP:{
-            const stripped_obj: StrippedSubMap = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.width, obj.height, obj.tlx, obj.tly, obj.grid_type, obj.title, obj.grid_color, obj.bg_color]
+            const stripped_obj: StrippedIconTile = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.terrainicon_id];
             return stripped_obj;
         }break;
         case CanvasType.SHAPE:{
             const stripped_obj: StrippedShape =
-                [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.color, obj.color2, Array.from(obj.points), obj.thickness];
+                [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, obj.color2, Array.from(obj.points), obj.thickness];
             return stripped_obj;
         }break;
         case CanvasType.ARC:{
             const stripped_obj: StrippedArc =
-                [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.submap, obj.width, obj.height, obj.start_arc, obj.end_arc, obj.thickness, obj.color];
+                [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.width, obj.height, obj.start_arc, obj.end_arc, obj.thickness, obj.color];
             return stripped_obj;
         }break;
     }
@@ -3976,11 +3778,10 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
                 // typescript  is being dumb here
-                color: (sobj as StrippedFreehandLine)[7],
-                points: (sobj as StrippedFreehandLine)[8],
-                thickness: (sobj as StrippedFreehandLine)[9],
+                color: (sobj as StrippedFreehandLine)[6],
+                points: (sobj as StrippedFreehandLine)[7],
+                thickness: (sobj as StrippedFreehandLine)[8],
                 bbox:{x0:0, x1:0, y0:0, y1:0}
             };
             obj.points = Array.from(obj.points),
@@ -3996,9 +3797,8 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
-                color:  (sobj as StrippedGridLine)[7],
-                points: (sobj as StrippedGridLine)[8],
+                color:  (sobj as StrippedGridLine)[6],
+                points: (sobj as StrippedGridLine)[7],
                 bbox:{x0:0, x1:0, y0:0, y1:0},
             };
             obj.points = Array.from(obj.points),
@@ -4014,10 +3814,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
-                color: (sobj as StrippedRectangle)[7],
-                width: (sobj as StrippedRectangle)[8],
-                height: (sobj as StrippedRectangle)[9],
+                color: (sobj as StrippedRectangle)[6],
+                width: (sobj as StrippedRectangle)[7],
+                height: (sobj as StrippedRectangle)[8],
             };
             return obj;
         }break;
@@ -4029,11 +3828,10 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
-                color  : (sobj as StrippedFilledRectangle)[7],
-                color2 : (sobj as StrippedFilledRectangle)[8],
-                width  : (sobj as StrippedFilledRectangle)[9],
-                height : (sobj as StrippedFilledRectangle)[10],
+                color  : (sobj as StrippedFilledRectangle)[6],
+                color2 : (sobj as StrippedFilledRectangle)[7],
+                width  : (sobj as StrippedFilledRectangle)[8],
+                height : (sobj as StrippedFilledRectangle)[9],
             };
             return obj;
         }break;
@@ -4045,10 +3843,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
-                color  : (sobj as StrippedGridRectangle)[7],
-                width  : (sobj as StrippedGridRectangle)[8],
-                height : (sobj as StrippedGridRectangle)[9],
+                color  : (sobj as StrippedGridRectangle)[6],
+                width  : (sobj as StrippedGridRectangle)[7],
+                height : (sobj as StrippedGridRectangle)[8],
             };
             return obj;
         }break;
@@ -4060,12 +3857,11 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
-                color   : (sobj as StrippedEllipse)[7],
-                color2  : (sobj as StrippedEllipse)[8],
-                width   : (sobj as StrippedEllipse)[9],
-                height  : (sobj as StrippedEllipse)[10],
-                variant : (sobj as StrippedEllipse)[11],
+                color   : (sobj as StrippedEllipse)[6],
+                color2  : (sobj as StrippedEllipse)[7],
+                width   : (sobj as StrippedEllipse)[8],
+                height  : (sobj as StrippedEllipse)[9],
+                variant : (sobj as StrippedEllipse)[10],
             };
             return obj;
         }break;
@@ -4077,10 +3873,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
-                width  : (sobj as StrippedImageObj)[7],
-                height : (sobj as StrippedImageObj)[8],
-                url    : (sobj as StrippedImageObj)[9],
+                width  : (sobj as StrippedImageObj)[6],
+                height : (sobj as StrippedImageObj)[7],
+                url    : (sobj as StrippedImageObj)[8],
             };
             delay_load_obj_image(obj, obj.width, obj.height, obj.width?obj.width:64, obj.height?obj.height:64);
             return obj;
@@ -4093,14 +3888,13 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
-                text      : (sobj as StrippedTextObj)[7],
-                size      : (sobj as StrippedTextObj)[8],
-                alignment : (sobj as StrippedTextObj)[9],
+                text      : (sobj as StrippedTextObj)[6],
+                size      : (sobj as StrippedTextObj)[7],
+                alignment : (sobj as StrippedTextObj)[8],
                 bbox:{x0:0, x1:0, y0:0, y1:0},
-                lines: (sobj as StrippedTextObj)[7].split('\n'),
+                lines: (sobj as StrippedTextObj)[6].split('\n'),
                 bboxes: [],
-                map_id: (sobj as StrippedTextObj)[10],
+                map_id: (sobj as StrippedTextObj)[9],
             };
             return obj;
         }break;
@@ -4112,12 +3906,11 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
-                text        : (sobj as StrippedEzToken)[7],
-                color       : (sobj as StrippedEzToken)[8],
-                width       : (sobj as StrippedEzToken)[9],
-                height      : (sobj as StrippedEzToken)[10],
-                statusflags : (sobj as StrippedEzToken)[11],
+                text        : (sobj as StrippedEzToken)[6],
+                color       : (sobj as StrippedEzToken)[7],
+                width       : (sobj as StrippedEzToken)[8],
+                height      : (sobj as StrippedEzToken)[9],
+                statusflags : (sobj as StrippedEzToken)[10],
             };
             return obj;
         }break;
@@ -4129,11 +3922,10 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
-                url         : (sobj as StrippedImgToken)[7],
-                width       : (sobj as StrippedImgToken)[8],
-                height      : (sobj as StrippedImgToken)[9],
-                statusflags : (sobj as StrippedImgToken)[10],
+                url         : (sobj as StrippedImgToken)[6],
+                width       : (sobj as StrippedImgToken)[7],
+                height      : (sobj as StrippedImgToken)[8],
+                statusflags : (sobj as StrippedImgToken)[9],
             };
             delay_load_obj_image(obj, obj.width*REFERENCE.WIDTH, obj.height*REFERENCE.WIDTH, obj.width, obj.width);
             return obj;
@@ -4146,11 +3938,10 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
-                doortype    : (sobj as StrippedDoorObj)[7],
-                color       : (sobj as StrippedDoorObj)[8],
-                width       : (sobj as StrippedDoorObj)[9],
-                orientation : (sobj as StrippedDoorObj)[10],
+                doortype    : (sobj as StrippedDoorObj)[6],
+                color       : (sobj as StrippedDoorObj)[7],
+                width       : (sobj as StrippedDoorObj)[8],
+                orientation : (sobj as StrippedDoorObj)[9],
             };
             return obj;
         }break;
@@ -4162,10 +3953,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
-                width    : (sobj as StrippedStairs)[7],
-                height   : (sobj as StrippedStairs)[8],
-                rotation : (sobj as StrippedStairs)[9],
+                width    : (sobj as StrippedStairs)[6],
+                height   : (sobj as StrippedStairs)[7],
+                rotation : (sobj as StrippedStairs)[8],
             };
             return obj;
         }break;
@@ -4177,10 +3967,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
-                color : (sobj as StrippedMeasureObj)[7],
-                x1    : (sobj as StrippedMeasureObj)[8],
-                y1    : (sobj as StrippedMeasureObj)[9],
+                color : (sobj as StrippedMeasureObj)[6],
+                x1    : (sobj as StrippedMeasureObj)[7],
+                y1    : (sobj as StrippedMeasureObj)[8],
             };
             return obj;
             // all fields are good
@@ -4193,10 +3982,9 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
-                width  : (sobj as StrippedFixtureObj)[7],
-                height : (sobj as StrippedFixtureObj)[8],
-                ftype  : (sobj as StrippedFixtureObj)[9],
+                width  : (sobj as StrippedFixtureObj)[6],
+                height : (sobj as StrippedFixtureObj)[7],
+                ftype  : (sobj as StrippedFixtureObj)[8],
             };
             return obj;
         }break;
@@ -4208,9 +3996,8 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
-                color : (sobj as StrippedFilledTile)[7],
-                size  : (sobj as StrippedFilledTile)[8],
+                color : (sobj as StrippedFilledTile)[6],
+                size  : (sobj as StrippedFilledTile)[7],
             };
             return obj;
         }break;
@@ -4222,8 +4009,7 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
-                terrain_id: (sobj as StrippedTerrainTile)[7],
+                terrain_id: (sobj as StrippedTerrainTile)[6],
             };
             return obj;
         }break;
@@ -4235,28 +4021,7 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
-                terrainicon_id: (sobj as StrippedIconTile)[7],
-            };
-            return obj;
-        }break;
-        case CanvasType.SUBMAP:{
-            const obj: SubMap = {
-                type: CanvasType.SUBMAP,
-                id: sobj[INDEX.ID],
-                base_x: sobj[INDEX.BASE_X],
-                base_y: sobj[INDEX.BASE_Y],
-                flags: sobj[INDEX.FLAGS],
-                hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
-                width  : (sobj as StrippedSubMap)[7],
-                height : (sobj as StrippedSubMap)[8],
-                tlx: (sobj as StrippedSubMap)[9],
-                tly: (sobj as StrippedSubMap)[10],
-                grid_type: (sobj as StrippedSubMap)[11],
-                title: (sobj as StrippedSubMap)[12],
-                grid_color: (sobj as StrippedSubMap)[13],
-                bg_color: (sobj as StrippedSubMap)[14],
+                terrainicon_id: (sobj as StrippedIconTile)[6],
             };
             return obj;
         }break;
@@ -4268,12 +4033,11 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
                 // typescript  is being dumb here
-                color: (sobj as StrippedShape)[7],
-                color2: (sobj as StrippedShape)[8],
-                points: (sobj as StrippedShape)[9],
-                thickness: (sobj as StrippedShape)[10],
+                color: (sobj as StrippedShape)[6],
+                color2: (sobj as StrippedShape)[7],
+                points: (sobj as StrippedShape)[8],
+                thickness: (sobj as StrippedShape)[9],
                 bbox:{x0:0, x1:0, y0:0, y1:0}
             };
             obj.points = Array.from(obj.points),
@@ -4289,13 +4053,12 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 base_y: sobj[INDEX.BASE_Y],
                 flags: sobj[INDEX.FLAGS],
                 hidinguser: sobj[INDEX.HIDINGUSER],
-                submap: sobj[INDEX.SUBMAP],
-                width: (sobj as StrippedArc)[7],
-                height: (sobj as StrippedArc)[8],
-                start_arc: (sobj as StrippedArc)[9],
-                end_arc: (sobj as StrippedArc)[10],
-                thickness: (sobj as StrippedArc)[11],
-                color: (sobj as StrippedArc)[12],
+                width: (sobj as StrippedArc)[6],
+                height: (sobj as StrippedArc)[7],
+                start_arc: (sobj as StrippedArc)[8],
+                end_arc: (sobj as StrippedArc)[9],
+                thickness: (sobj as StrippedArc)[10],
+                color: (sobj as StrippedArc)[11],
             };
             return obj;
         }break;
@@ -4447,8 +4210,6 @@ function edit_is_impossible(view:DungeonMapView):boolean{
             return true;
         case CanvasType.ICON_TILE:
             return true;
-        case CanvasType.SUBMAP:
-            return false;
         case CanvasType.SHAPE:
             return true;
         case CanvasType.ARC:
@@ -4530,25 +4291,8 @@ function launch_edit_dialog(view:DungeonMapView):void{
             for(const map of MAPS.values()){
                 elem_parent_text(dialog.f['link-dungeon'], 'option', map.map_name).value = ''+map.map_id;
             }
-            let submapoptions = '<option value="-1">No Link</option>'
-            for(let sm of view.map.submaps){
-                if(sm.flags & CanvasFlag.DELETED) continue;
-                if(sm.hidinguser && sm.hidinguser !== SETTINGS.userid) continue;
-                submapoptions += `<option value="${sm.id}">${sm.title}</option>`;
-            }
-            dialog.f['link-submap'].innerHTML = submapoptions;
             dialog.f['link-dungeon'].value = '-1';
-            dialog.f['link-submap'].value = '-1';
-            if(obj.flags & CanvasFlag.TEXT_LINKS_TO_SUBMAP)
-                dialog.f['link-submap'].value = ""+obj.map_id;
-            else
-                dialog.f['link-dungeon'].value = ""+obj.map_id;
-            dialog.f['link-dungeon'].onchange = function():void{
-                dialog.f['link-submap'].value = '-1'
-            };
-            dialog.f['link-submap'].onchange = function():void{
-                dialog.f['link-dungeon'].value = '-1'
-            };
+            dialog.f['link-dungeon'].value = ""+obj.map_id;
             dialog.show_handler = function():void{
                 dialog.f.text.value = obj.text;
                 if(!IS_TOUCH) dialog.f.text.focus();
@@ -4564,11 +4308,6 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 // This is annoying otherwise
                 if(map_id == view.map.map_id)
                     map_id = -1;
-                let submap = false;
-                if(map_id == -1){
-                    map_id = +dialog.f['link-submap'].value;
-                    submap = true;
-                }
                 obj.size = textsize;
                 obj.text = text;
                 obj.bbox = {x0:0, y0:0, x1:0, y1:0};
@@ -4576,10 +4315,6 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 obj.lines = text.split('\n');
                 obj.map_id = map_id;
                 obj.alignment = alignment;
-                if(submap)
-                    obj.flags |= CanvasFlag.TEXT_LINKS_TO_SUBMAP;
-                else
-                    obj.flags &= ~CanvasFlag.TEXT_LINKS_TO_SUBMAP;
                 if(dialog.f.background.checked)
                     obj.flags |= CanvasFlag.TEXT_HAS_BACKGROUND;
                 else
@@ -4730,40 +4465,6 @@ function launch_edit_dialog(view:DungeonMapView):void{
             return;
         case CanvasType.FIXTURE:
             return;
-        case CanvasType.SUBMAP:{
-            let dialog = get_dialog('submap');
-            if(!dialog) return;
-            dialog.title.textContent = 'Submap';
-            const orig_grid_color = obj.grid_color;
-            const orig_bg_color = obj.bg_color;
-            dialog.f['sm-title'].value = obj.title;
-            link_input_value(obj.grid_color, dialog.f['grid-color'], 'onchange', dialog.f['grid-color-text'], 'oninput', function():void{
-                obj.grid_color = dialog.f['grid-color-text'].value;
-                request_render();
-            });
-            link_input_value(obj.bg_color, dialog.f['bg-color'], 'onchange', dialog.f['bg-color-text'], 'oninput', function():void{
-                obj.bg_color = dialog.f['bg-color-text'].value;
-                request_render();
-            });
-            dialog.show_handler = function():void{
-            };
-            dialog.ok_handler = function():void{
-                const title = dialog.f['sm-title'].value.trim();
-                const changed = title !== obj.title || orig_grid_color !== obj.grid_color || orig_bg_color !== obj.bg_color;
-                if(changed){
-                    obj.title = title;
-                    const after = strip_obj(obj);
-                    publish_obj_updates(view.map.map_id, [after]);
-                    request_render();
-                }
-            };
-            dialog.cancel_handler = function():void{
-                obj.grid_color = orig_grid_color;
-                obj.bg_color = orig_bg_color;
-                request_render();
-            }
-            dialog.show();
-        }return;
     }
 }
 
@@ -4790,17 +4491,16 @@ function fmod(a:number, n:number):number{
 }
 const enum RenderFlags {
     NONE = 0,
-    DRAW_SUBMAPS = 1 << 0,
-    DARK_MODE = 1 << 1,
-    SHOW_FPS = 1 << 2,
-    DO_PINGS = 1 << 3,
-    DRAW_TEXT = 1 << 4,
+    DARK_MODE = 1 << 0,
+    SHOW_FPS = 1 << 1,
+    DO_PINGS = 1 << 2,
+    DRAW_TEXT = 1 << 3,
 }
 function render(timestamp:DOMHighResTimeStamp):void{
     if(!TheCtx) return;
     const view = get_view(WhichSplit.LEFT);
     if(!view) return;
-    let flags = RenderFlags.DRAW_SUBMAPS;
+    let flags = RenderFlags.NONE;
     if(DARKMODE) flags |= RenderFlags.DARK_MODE;
     if(SHOW_FPS) flags |= RenderFlags.SHOW_FPS;
     flags |= RenderFlags.DO_PINGS;
@@ -4817,7 +4517,6 @@ function screenshot_canvas(view:DungeonMapView):void{
     let dialog = get_dialog('screenshot-prefs');
     dialog.f.gridsize.value = '64';
     dialog.f.selection.checked = false;
-    dialog.f.submaps.checked = false;
     dialog.f.darkmode.checked = DARKMODE;
     dialog.f.text.checked = true;
     if(current_tool == ToolType.SELECT){
@@ -4826,7 +4525,6 @@ function screenshot_canvas(view:DungeonMapView):void{
         }
     }
     dialog.ok_handler = function():void{
-        const include_submaps = dialog.f.submaps.checked;
         const darkmode = dialog.f.darkmode.checked;
         const draw_text = dialog.f.text.checked;
         let x0 = 999999999;
@@ -4845,7 +4543,7 @@ function screenshot_canvas(view:DungeonMapView):void{
             gridscale: GRIDSCALE.TEN,
             scale: 1,
             selected: new Set(),
-            selection_area: {is_selecting: false, select_one: false, x0: 0, x1: 0, y0: 0, y1: 0, submap: 0},
+            selection_area: {is_selecting: false, select_one: false, x0: 0, x1: 0, y0: 0, y1: 0},
             placing_area: {is_placing: false, is_line: false, x0: 0, x1: 0, y0: 0, y1: 0},
             mouse: {x: 0, y: 0},
             hovered_id: 0,
@@ -4865,14 +4563,7 @@ function screenshot_canvas(view:DungeonMapView):void{
             for(let o of view.map.canvas_obj_array){
                 if(o.flags & CanvasFlag.DELETED) continue;
                 if(o.hidinguser && o.hidinguser !== SETTINGS.userid) continue;
-                if(o.type == CanvasType.SUBMAP){
-                    if(!include_submaps) continue;
-                    if(o.flags & CanvasFlag.SUBMAP_IS_MINIMIZED) continue;
-                }
                 let bbox = get_bbox(o, is_hex);
-                if(o.submap){
-                    continue;
-                }
                 if(bbox.x0 == bbox.x1 && bbox.y0 == bbox.y1) continue;
                 // if(bbox.y0 < y0) console.log('y0 < y0', bbox, o);
                 // if(bbox.x0 < x0) console.log('x0 < x0', bbox, o);
@@ -4906,7 +4597,6 @@ function screenshot_canvas(view:DungeonMapView):void{
         fake_view.selection_area.is_selecting = false;
         let ctx = canvas.getContext('2d', {alpha:true})!;
         let flags = 0;
-        if(include_submaps) flags |= RenderFlags.DRAW_SUBMAPS;
         if(darkmode) flags |= RenderFlags.DARK_MODE;
         if(draw_text) flags |= RenderFlags.DRAW_TEXT;
         actually_render(0, ctx, fake_view, flags);
@@ -4925,7 +4615,6 @@ function screenshot():void{
 }
 
 function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingContext2D, view:DungeonMapView, flags:RenderFlags):void{
-    const draw_submaps = !!(flags & RenderFlags.DRAW_SUBMAPS);
     // console.log('render', performance.now());
     const before = flags & RenderFlags.SHOW_FPS?performance.now():0;
     // console.log('ctx?', !!ctx);
@@ -4946,7 +4635,6 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
     const COULD_SELECT_COLOR = '#aaccaa';
     const hovered_id = view.hovered_id;
     const canvas_obj_array = map.canvas_obj_array;
-    const canvas_objs = map.canvas_objs;
     const selected = view.selected;
     const camera_x = view.camera_x;
     const camera_y = view.camera_y;
@@ -5252,18 +4940,6 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
         let bx = obj.base_x;
         let by = obj.base_y;
         let is_hidden = obj.hidinguser != 0;
-        if(obj.submap){
-            if(!draw_submaps) continue;
-            const sm = canvas_objs.get(obj.submap)! as SubMap;
-            if(sm.flags & (CanvasFlag.SUBMAP_IS_MINIMIZED | CanvasFlag.DELETED))
-                continue;
-            if(sm.hidinguser && sm.hidinguser != SETTINGS.userid)
-                continue;
-            if(sm.hidinguser)
-                is_hidden = true;
-            bx += sm.base_x + sm.tlx;
-            by += sm.base_y + sm.tly;
-        }
         let is_selected = selected.has(obj.id);
         const is_hovered = obj.id == hovered_id;
         const sel_color = is_selected?SELECTED_COLOR:COULD_SELECT_COLOR;
@@ -5577,10 +5253,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                             }
                             else{
                                 if(obj.map_id != -1){
-                                    if(obj.flags & CanvasFlag.TEXT_LINKS_TO_SUBMAP)
-                                        ctx.fillStyle = '#282';
-                                    else
-                                        ctx.fillStyle = '#44f';
+                                    ctx.fillStyle = '#44f';
                                 }
                                 else
                                     ctx.fillStyle = '#000';
@@ -6391,13 +6064,6 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                 // this looks sus with the change to bx over obj.base_x
                 let x1 = obj.x1;
                 let y1 = obj.y1;
-                if(obj.submap){
-                    const sm = canvas_objs.get(obj.submap)! as SubMap;
-                    if(sm!.flags & CanvasFlag.SUBMAP_IS_MINIMIZED)
-                        continue;
-                    x1 += sm.base_x + sm.tlx;
-                    y1 += sm.base_y + sm.tly;
-                }
                 const bbox = {
                     x0: bx < x1 ? bx : x1,
                     x1: bx > x1 ? bx : x1,
@@ -6434,7 +6100,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                 ctx.textAlign = 'center';
                 ctx.fillStyle = '#000000';
 
-                const measure_length = (obj.submap?calc_square_length:calc_measure_length)(map, bx, by, x1, y1);
+                const measure_length = calc_measure_length(map, bx, by, x1, y1);
 
                 ctx.fillText(measure_length, (bx+x1)/2-fontsize, (by+y1)/2-fontsize);
             }break;
@@ -6581,103 +6247,6 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                 }
                 if(icon)
                     ctx.drawImage(PACKEDIMG, icon[2], icon[3], icon[4], icon[5], bx+4, by+4, 56, 56);
-            }break;
-            case CanvasType.SUBMAP:{ // TAG renderSUBMAP
-                if(!draw_submaps) continue;
-                ctx.save();
-                // if(map.grid_type & GridType.HEX)
-                    // ctx.scale(1, HEX_Y_FIX_INV);
-                const bbox = {
-                    x0:bx,
-                    y0:by,
-                    x1:bx+obj.width,
-                    y1:by+obj.height,
-                };
-                if(!bbox_overlaps(bbox, canvas_bbox)){
-                    break;
-                }
-                if(is_selected){
-                    ctx.lineWidth=8;
-                    ctx.strokeStyle = sel_color;
-                    if(obj.flags & CanvasFlag.SUBMAP_IS_MINIMIZED)
-                        ctx.strokeRect(bx-2, by-2, obj.width+4, 68);
-                    else
-                        ctx.strokeRect(bx-2, by-2, obj.width+4, obj.height+4);
-                }
-                ctx.lineWidth=4;
-                ctx.fillStyle = obj.bg_color.length?obj.bg_color:BACKGROUND;
-                if(obj.flags & CanvasFlag.SUBMAP_IS_MINIMIZED)
-                    ctx.fillRect(bx, by, obj.width, 64);
-                else
-                    ctx.fillRect(bx, by, obj.width, obj.height);
-                ctx.strokeStyle = '#000';
-                if(obj.flags & CanvasFlag.SUBMAP_IS_MINIMIZED)
-                    ctx.strokeRect(bx, by, obj.width, 64);
-                else{
-                    ctx.strokeRect(bx, by, obj.width, obj.height);
-
-                    if(obj.width && obj.height){
-                        let box = new Path2D();
-                        box.rect(bx+2/SCALE, by+2/SCALE, obj.width-4/SCALE, obj.height-4/SCALE);
-                        ctx.clip(box);
-                        ctx.fillStyle = obj.grid_color.length?obj.grid_color:'rgb(150, 150, 150)';
-                        for(let dx = 0; dx < obj.width; dx += REFERENCE.WIDTH){
-                            ctx.fillRect(bx+dx, by+64, 1, obj.height-64);
-                        }
-                        for(let dy = 0; dy < obj.height; dy += REFERENCE.WIDTH){
-                            ctx.fillRect(bx, by+dy, obj.width, 1);
-                        }
-                    }
-                }
-                if(obj.title){
-                    ctx.font = '48px sans-serif';
-                    ctx.textBaseline = 'middle';
-                    ctx.textAlign = 'center';
-                    if(is_darkmode)
-                        ctx.fillStyle = '#ffffff';
-                    else
-                        ctx.fillStyle = '#000000';
-                    ctx.fillText(obj.title, bx+obj.width/2, by+32);
-                }
-                ctx.fillStyle = is_darkmode?'#ffffff':'#000000';
-                ctx.strokeStyle = is_darkmode?'#ffffff':'#000000';
-                const enum M {W=40, H=4};
-                const enum O {BASE=(64-M.W)/2, WIN=64-BASE, MARGIN=BASE/2};
-                ctx.lineWidth = M.H;
-                const y = by + O.BASE;
-                const x = IS_WINDOWS? bx + obj.width - O.WIN : bx + O.BASE;
-                view.action.areas.push({
-                    bbox: {
-                        x0:x - O.MARGIN,
-                        y0:y - O.MARGIN,
-                        x1:x+M.W+O.MARGIN,
-                        y1:y+M.W+O.MARGIN,
-                    },
-                    obj_id: obj.id,
-                    action: 0,
-                });
-                if(point_in_rect(view.mouse.x, view.mouse.y, x-O.MARGIN, y-O.MARGIN, x+M.W+O.MARGIN, y+M.W+O.MARGIN)){
-                    ctx.fillStyle = COULD_SELECT_COLOR;
-                    ctx.fillRect(x-O.MARGIN, y-O.MARGIN, M.W+O.MARGIN*2, M.W+O.MARGIN*2);
-                }
-                const h = obj.flags & CanvasFlag.SUBMAP_IS_MINIMIZED? M.W : 0;
-                ctx.strokeRect(x, y, M.W, h);
-                ctx.restore();
-                if(one_selection && selected.has(obj.id) && !(obj.flags & CanvasFlag.SUBMAP_IS_MINIMIZED)){
-                    ctx.fillStyle = sel_color;
-                    ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
-                    ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
-                    view.resize.handles.push({
-                        bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
-                        obj_id: obj.id,
-                        topleft:true,
-                    });
-                    view.resize.handles.push({
-                        bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
-                        obj_id: obj.id,
-                        topleft:false,
-                    });
-                }
             }break;
             case CanvasType.SHAPE:{ // TAG renderSHAPE
                 // This works well enough for now.
@@ -6850,6 +6419,7 @@ document.addEventListener('DOMContentLoaded', function():void{
 
 // NOTE: The 'Help' tool was removed (it was a proto dialog button).
 // There is now an empty slot due to this.
+// SUBMAP was removed
 const enum ToolType {
     PAN     =  0,
     SELECT  =  1,
@@ -6865,7 +6435,7 @@ const enum ToolType {
     MEASURE = 11,
     FIXTURE = 12,
     TILE    = 13,
-    SUBMAP  = 14,
+    // SUBMAP  = 14,
     SHAPE   = 15,
     ARC     = 16,
 }
@@ -6886,7 +6456,7 @@ const TOOL_IDS_TO_TOOL = (function():Map<string, ToolType>{
     m.set('measure-tool', ToolType.MEASURE);
     m.set('fixture-tool', ToolType.FIXTURE);
     m.set('tile-tool',    ToolType.TILE);
-    m.set('submap-tool',  ToolType.SUBMAP);
+    // m.set('submap-tool',  ToolType.SUBMAP);
     m.set('shape-tool',   ToolType.SHAPE);
     m.set('arc-tool',     ToolType.ARC);
     return m;
@@ -6921,7 +6491,7 @@ const TOOL_TO_TOOL_ID = [
     // ToolType.FILL:
     'tile-tool',
     // ToolType.SUBMAP
-    'submap-tool',
+    'submap-tool', // unused
     // ToolType.SHAPE
     'shape-tool',
     // ToolType.ARC
@@ -7509,13 +7079,6 @@ function event_to_coord(e:MouseEvent, view:DungeonMapView):[number, number]{
         : e.offsetY/view.scale - view.camera_y;
     return [x,y];
 }
-function event_to_coord_off(e:MouseEvent, view:DungeonMapView, off:[number, number]):[number, number]{
-    const x = e.offsetX/view.scale - view.camera_x
-    const y = view.map.grid_type & GridType.HEX?
-        HEX_Y_FIX_INV*(e.offsetY/view.scale - view.camera_y)
-        : e.offsetY/view.scale - view.camera_y;
-    return [x-off[0],y-off[1]];
-}
 function event_to_coord_snapped(e:MouseEvent, view:DungeonMapView, snap:(x:number)=>number):[number, number]{
     const x = e.offsetX/view.scale - view.camera_x
     const y = view.map.grid_type & GridType.HEX?
@@ -7523,21 +7086,13 @@ function event_to_coord_snapped(e:MouseEvent, view:DungeonMapView, snap:(x:numbe
         : e.offsetY/view.scale - view.camera_y;
     return [snap(x),snap(y)];
 }
-function event_to_coord_snapped_off(e:MouseEvent, view:DungeonMapView, snap:(x:number)=>number, off:[number, number]):[number, number]{
+function event_to_coord_snapped2(e:MouseEvent, view:DungeonMapView, snap:(x:number, y:number)=>[number, number]):[number, number]{
     const x = e.offsetX/view.scale - view.camera_x
     const y = view.map.grid_type & GridType.HEX?
         HEX_Y_FIX_INV*(e.offsetY/view.scale - view.camera_y)
         : e.offsetY/view.scale - view.camera_y;
-    return [snap(x-off[0]),snap(y-off[1])];
+    return snap(x, y);
 }
-function event_to_coord_snapped_off2(e:MouseEvent, view:DungeonMapView, snap:(x:number, y:number)=>[number, number], off:[number, number]):[number, number]{
-    const x = e.offsetX/view.scale - view.camera_x
-    const y = view.map.grid_type & GridType.HEX?
-        HEX_Y_FIX_INV*(e.offsetY/view.scale - view.camera_y)
-        : e.offsetY/view.scale - view.camera_y;
-    return snap(x-off[0], y-off[1]);
-}
-
 function hiddenid():number {
     // This is pretty gross, but like who cares man.
     if(by_id('hidden-checkbox').checked)
@@ -7618,25 +7173,6 @@ const redo_canvas_cursor = (function():(canvas:HTMLCanvasElement, view:DungeonMa
     }
     return redo_canvas_cursor;
 }());
-
-
-function get_submap_at(view:DungeonMapView, x:number, y:number):SubMap | null {
-    for(let sm of view.map.submaps){
-        if(sm.flags & CanvasFlag.DELETED)
-            continue;
-        if(sm.hidinguser && sm.hidinguser != SETTINGS.userid)
-            continue;
-        const sm_bbox = {
-            x0:sm.base_x,
-            y0:sm.base_y+64, // The title area.
-            x1:sm.base_x+sm.width,
-            y1:sm.base_y+(sm.flags & CanvasFlag.SUBMAP_IS_MINIMIZED?64:sm.height),
-        };
-        if(point_in_rect(x, y, sm_bbox.x0, sm_bbox.y0, sm_bbox.x1, sm_bbox.y1))
-            return sm;
-    }
-    return null;
-}
 
 function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
     const which_canv = the_canvas.id === 'map'?WhichSplit.LEFT:WhichSplit.RIGHT;
@@ -7759,17 +7295,6 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             prev_tool = current_tool;
             current_tool = ToolType.PAN;
         }
-        let submapid = 0;
-        let smoff:[number, number] = [0, 0];
-        // Find what submap if any we are inside.
-        {
-            let [x, y] = event_to_coord(e, view);
-            let sm = get_submap_at(view, x, y);
-            if(sm){
-                submapid = sm.id;
-                smoff = [sm.base_x+sm.tlx, sm.base_y+sm.tly];
-            }
-        }
         let snap = get_snap_func();
         let snap_corn = get_snap_corner_func(view.map.grid_type);
         switch(current_tool){
@@ -7783,26 +7308,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                             if(!o) break;
                             if(o.flags & CanvasFlag.DELETED) break;
                             if(o.hidinguser && o.hidinguser !== SETTINGS.userid) break;
-                            if(o.type == CanvasType.SUBMAP){
-                                let before = strip_obj(o);
-                                o.flags ^= CanvasFlag.SUBMAP_IS_MINIMIZED;
-                                let after = strip_obj(o);
-                                note_updates_for_undo(view.map, [before], [after]);
-                                publish_obj_updates(view.map.map_id, [after]);
-                            }
-                            else if (o.type == CanvasType.TEXT){
-                                if(o.flags & CanvasFlag.TEXT_LINKS_TO_SUBMAP){
-                                    let sm = view.map.canvas_objs.get(o.map_id) as (SubMap | undefined);
-                                    if(!sm) return;
-                                    let before = strip_obj(sm);
-                                    sm.flags &= ~CanvasFlag.SUBMAP_IS_MINIMIZED;
-                                    let after = strip_obj(sm);
-                                    note_updates_for_undo(view.map, [before], [after]);
-                                    publish_obj_updates(view.map.map_id, [after]);
-                                    center_view_at(view, sm.base_x+sm.width/2, sm.base_y+sm.height/2);
-                                    request_render();
-                                    return;
-                                }
+                            if(o.type == CanvasType.TEXT){
                                 change_map(which_canv, o.map_id);
                                 view.selected.clear();
                                 the_canvas.style.cursor = 'initial';
@@ -7821,13 +7327,11 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                 if(!is_resizable(o)) return;
                                 const obj: Resizable = o;
                                 view.resize.resizing = true;
-                                if(obj.type == CanvasType.SUBMAP)
-                                    smoff = [0, 0];
                                 let o_x = obj.base_x; let o_y = obj.base_y; let o_w = obj.width; let o_h = obj.height;
                                 function change_wh(e:PointerEvent):void{
                                     e.stopPropagation();
                                     e.preventDefault();
-                                    const [x1, y1] = event_to_coord_off(e, view, smoff);
+                                    const [x1, y1] = event_to_coord(e, view);
                                     let x0 = obj.base_x; let y0 = obj.base_y;
                                     if(rh.topleft){
                                         if(obj.type == CanvasType.STAIRS){
@@ -7842,8 +7346,6 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                         if(x1 > x0 || y1 > y0) return;
                                         const xdiff = snap(x0 - x1);
                                         const ydiff = snap(y0 - y1);
-                                        let old_w = obj.width;
-                                        let old_h = obj.height;
                                         obj.width = xdiff;
                                         obj.height = ydiff;
                                         obj.base_x = x0 - obj.width;
@@ -7852,10 +7354,6 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                         if(obj.type == CanvasType.STAIRS){
                                             obj.width /= REFERENCE.WIDTH;
                                             obj.height /= REFERENCE.WIDTH;
-                                        }
-                                        if(obj.type == CanvasType.SUBMAP){
-                                            obj.tlx -= old_w - obj.width;
-                                            obj.tly -= old_h - obj.height;
                                         }
                                     }
                                     else {
@@ -7912,7 +7410,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     finalize_selection(view);
                     request_render();
                 }
-                if(view.selected.size && there_are_selected_objs_at(view, fudged_x0-smoff[0], fudged_y0-smoff[1], fudged_x1-smoff[0], fudged_y1-smoff[1])){
+                if(view.selected.size && there_are_selected_objs_at(view, fudged_x0, fudged_y0, fudged_x1, fudged_y1)){
                     // handle movement
                     let rawclick_x = e.offsetX;
                     let rawclick_y = e.offsetY;
@@ -7949,7 +7447,6 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     sort_canv_objs(view.map);
                     view.selection_area.select_one = true;
                     view.selection_area.is_selecting = true;
-                    view.selection_area.submap = submapid;
                     update_selection(view, fudged_x0, fudged_y0, fudged_x1, fudged_y1);
                     request_render();
                     function select(e:MouseEvent):void{
@@ -7987,26 +7484,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                 if(!o) break;
                                 if(o.flags & CanvasFlag.DELETED) break;
                                 if(o.hidinguser && o.hidinguser !== SETTINGS.userid) break;
-                                if(o.type == CanvasType.SUBMAP){
-                                    let before = strip_obj(o);
-                                    o.flags ^= CanvasFlag.SUBMAP_IS_MINIMIZED;
-                                    let after = strip_obj(o);
-                                    note_updates_for_undo(view.map, [before], [after]);
-                                    publish_obj_updates(view.map.map_id, [after]);
-                                }
-                                else if (o.type == CanvasType.TEXT){
-                                    if(o.flags & CanvasFlag.TEXT_LINKS_TO_SUBMAP){
-                                        let sm = view.map.canvas_objs.get(o.map_id) as (SubMap | undefined);
-                                        if(!sm) return;
-                                        let before = strip_obj(sm);
-                                        sm.flags &= ~CanvasFlag.SUBMAP_IS_MINIMIZED;
-                                        let after = strip_obj(sm);
-                                        note_updates_for_undo(view.map, [before], [after]);
-                                        publish_obj_updates(view.map.map_id, [after]);
-                                        center_view_at(view, sm.base_x+sm.width/2, sm.base_y+sm.height/2);
-                                        request_render();
-                                        return;
-                                    }
+                                if(o.type == CanvasType.TEXT){
                                     change_map(which_canv, o.map_id);
                                     view.selected.clear();
                                     the_canvas.style.cursor = 'initial';
@@ -8058,10 +7536,10 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             }break;
             case ToolType.LINE:{ // TAG toolLINE
                 let id = get_new_id();
-                const [x0, y0] = event_to_coord_off(e, view, smoff);
+                const [x0, y0] = event_to_coord(e, view);
                 const thickness_input = by_id('line-thickness');
                 const thickness = +thickness_input.value || 4;
-                add_freehand_line(view.map, id, x0, y0, submapid, get_primary_color(), thickness);
+                add_freehand_line(view.map, id, x0, y0, get_primary_color(), thickness);
                 if(current_line_type == LineType.ARROW){
                     let obj = view.map.canvas_objs.get(id) as FreehandLine;
                     obj.flags |= CanvasFlag.LINE_IS_ARROW;
@@ -8069,7 +7547,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 function add_point(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
-                    const [x1, y1] = event_to_coord_off(e, view, smoff);
+                    const [x1, y1] = event_to_coord(e, view);
                     if(current_line_type != LineType.PEN){
                         let obj = view.map.canvas_objs.get(id) as FreehandLine;
                         obj.points = [];
@@ -8101,13 +7579,13 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         color2 = get_secondary_color();
                         break;
                 }
-                let [x0, y0] = event_to_coord_off(e, view, smoff);
-                let o = make_shape(id, x0, y0, submapid, color1, color2, thickness);
+                let [x0, y0] = event_to_coord(e, view );
+                let o = make_shape(id, x0, y0, color1, color2, thickness);
                 add_canv_obj(view.map, o);
                 function add_point(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
-                    let [x1, y1] = event_to_coord_off(e, view, smoff);
+                    let [x1, y1] = event_to_coord(e, view);
                     add_freehand_point(o, x1, y1);
                     request_render();
                 }
@@ -8129,12 +7607,12 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 if(0){
                 // if(snapmode == SNAPMODE.FREE){
                     // copy paste from LINE above.
-                    const [x0, y0] = event_to_coord_off(e, view, smoff);
-                    add_freehand_line(view.map, id, x0, y0, submapid, get_primary_color(), 4);
+                    const [x0, y0] = event_to_coord(e, view);
+                    add_freehand_line(view.map, id, x0, y0, get_primary_color(), 4);
                     function add_point(e:MouseEvent):void{
                         e.stopPropagation();
                         e.preventDefault();
-                        const [x1, y1] = event_to_coord_off(e, view, smoff);
+                        const [x1, y1] = event_to_coord(e, view);
                         add_freehand_point_by_id(view.map, id, x1, y1);
                         request_render();
                     }
@@ -8150,16 +7628,15 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     the_canvas.addEventListener('pointerleave', finish_point);
                 }
                 else{
-                    const [x0, y0] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
-                    // const [x0, y0] = event_to_coord_off(e, view, smoff);
+                    const [x0, y0] = event_to_coord_snapped2(e, view, snap_corn);
                     let x1 = x0;
                     let y1 = y0;
                     view.placing_area.is_placing = true;
                     view.placing_area.is_line = true;
-                    view.placing_area.x0 = x0+smoff[0];
-                    view.placing_area.y0 = y0+smoff[1];
-                    view.placing_area.x1 = x1+smoff[0];
-                    view.placing_area.y1 = y1+smoff[1];
+                    view.placing_area.x0 = x0;
+                    view.placing_area.y0 = y0;
+                    view.placing_area.x1 = x1;
+                    view.placing_area.y1 = y1;
                     let obj: GridLine = {
                         type: CanvasType.GRID_LINE,
                         id: id,
@@ -8167,7 +7644,6 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         base_y: y0,
                         flags: CanvasFlag.NONE,
                         hidinguser: hiddenid(),
-                        submap:submapid,
                         points: [],
                         color: get_primary_color(),
                         path: undefined,
@@ -8180,11 +7656,11 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     function add_point(e:MouseEvent):void{
                         e.stopPropagation();
                         e.preventDefault();
-                        const [x, y] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
+                        const [x, y] = event_to_coord_snapped2(e, view, snap_corn);
                         x1 = x;
                         y1 = y;
-                        view.placing_area.x1 = x1+smoff[0];
-                        view.placing_area.y1 = y1+smoff[1];
+                        view.placing_area.x1 = x1;
+                        view.placing_area.y1 = y1;
                         request_render();
                     }
                     the_canvas.addEventListener('pointermove', add_point);
@@ -8203,24 +7679,24 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 }
             }break;
             case ToolType.DOOR:{ // TAG toolDOOR
-                const [x0, y0] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
+                const [x0, y0] = event_to_coord_snapped2(e, view, snap_corn);
                 let x1 = x0;
                 let y1 = y0;
                 view.placing_area.is_placing = true;
                 view.placing_area.is_line = true;
-                view.placing_area.x0 = x0+smoff[0];
-                view.placing_area.y0 = y0+smoff[1];
-                view.placing_area.x1 = x1+smoff[0];
-                view.placing_area.y1 = y1+smoff[1];
+                view.placing_area.x0 = x0;
+                view.placing_area.y0 = y0;
+                view.placing_area.x1 = x1;
+                view.placing_area.y1 = y1;
                 request_render();
                 function change_point(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
-                    [x1, y1] = event_to_coord_snapped_off2(e, view, snap_corn, smoff);
-                    view.placing_area.x0 = x0+smoff[0];
-                    view.placing_area.y0 = y0+smoff[1];
-                    view.placing_area.x1 = x1+smoff[0];
-                    view.placing_area.y1 = y1+smoff[1];
+                    [x1, y1] = event_to_coord_snapped2(e, view, snap_corn);
+                    view.placing_area.x0 = x0;
+                    view.placing_area.y0 = y0;
+                    view.placing_area.x1 = x1;
+                    view.placing_area.y1 = y1;
                     request_render();
                 }
                 the_canvas.addEventListener('pointermove', change_point);
@@ -8255,7 +7731,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                             return;
                         let x = ((x0 + x1)/2) | 0;
                         let y = ((y0 + y1)/2) | 0;
-                        add_door(view.map, id, x, y, current_door, submapid, get_primary_color(), width, orientation);
+                        add_door(view.map, id, x, y, current_door, get_primary_color(), width, orientation);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                     }
@@ -8268,12 +7744,12 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 switch(current_rect_type){
                     case RECTTYPE.HOLLOW:{
                         let id = get_new_id();
-                        const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
-                        add_rect(view.map, id, x0, y0, submapid, get_primary_color());
+                        const [x0, y0] = event_to_coord_snapped(e, view, snap);
+                        add_rect(view.map, id, x0, y0, get_primary_color());
                         function add_point(e:MouseEvent):void{
                             e.stopPropagation();
                             e.preventDefault();
-                            const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
+                            const [x1, y1] = event_to_coord_snapped(e, view, snap);
                             change_rect_by_id(view.map, id, x1, y1, x0, y0);
                             request_render();
                         }
@@ -8290,12 +7766,12 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     }break;
                     case RECTTYPE.FILLED:{
                         let id = get_new_id();
-                        const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
-                        add_filled_rect(view.map, id, x0, y0, submapid, get_primary_color(), get_secondary_color());
+                        const [x0, y0] = event_to_coord_snapped(e, view, snap);
+                        add_filled_rect(view.map, id, x0, y0, get_primary_color(), get_secondary_color());
                         function add_point(e:MouseEvent):void{
                             e.stopPropagation();
                             e.preventDefault();
-                            const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
+                            const [x1, y1] = event_to_coord_snapped(e, view, snap);
                             change_filled_rect_by_id(view.map, id, x1, y1, x0, y0);
                             request_render();
                         }
@@ -8312,25 +7788,25 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     }break;
                     case RECTTYPE.SOLID:{
                         let id = get_new_id();
-                        const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
-                        add_gridrect(view.map, id, x0, y0, submapid, get_primary_color());
+                        const [x0, y0] = event_to_coord_snapped(e, view, snap);
+                        add_gridrect(view.map, id, x0, y0, get_primary_color());
                         const gridrect = view.map.canvas_objs.get(id) as GridRectangle;
                         view.placing_area.is_placing = true;
                         view.placing_area.is_line = false;
-                        view.placing_area.x0 = gridrect.base_x+smoff[0];
-                        view.placing_area.y0 = gridrect.base_y+smoff[1];
-                        view.placing_area.x1 = gridrect.base_x+smoff[0];
-                        view.placing_area.y1 = gridrect.base_y+smoff[1];
+                        view.placing_area.x0 = gridrect.base_x;
+                        view.placing_area.y0 = gridrect.base_y;
+                        view.placing_area.x1 = gridrect.base_x;
+                        view.placing_area.y1 = gridrect.base_y;
                         request_render()
                         function add_point(e:MouseEvent):void{
                             e.stopPropagation();
                             e.preventDefault();
-                            const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
+                            const [x1, y1] = event_to_coord_snapped(e, view, snap);
                             change_gridrect_by_id(view.map, id, x1, y1, x0, y0);
-                            view.placing_area.x0 = gridrect.base_x+smoff[0];
-                            view.placing_area.y0 = gridrect.base_y+smoff[1];
-                            view.placing_area.x1 = gridrect.base_x + gridrect.width+smoff[0];
-                            view.placing_area.y1 = gridrect.base_y + gridrect.height+smoff[1];
+                            view.placing_area.x0 = gridrect.base_x;
+                            view.placing_area.y0 = gridrect.base_y;
+                            view.placing_area.x1 = gridrect.base_x + gridrect.width;
+                            view.placing_area.y1 = gridrect.base_y + gridrect.height;
                             request_render();
                         }
                         the_canvas.addEventListener('pointermove', add_point);
@@ -8350,20 +7826,20 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             }break;
             case ToolType.ELLIPSE:{ // TAG toolELLIPSE
                 let id = get_new_id();
-                const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
-                add_ellipse(view.map, id, x0, y0, submapid, get_primary_color(), get_secondary_color(), current_ellipse);
+                const [x0, y0] = event_to_coord_snapped(e, view, snap);
+                add_ellipse(view.map, id, x0, y0,  get_primary_color(), get_secondary_color(), current_ellipse);
                 const ellipse = view.map.canvas_objs.get(id)! as Ellipse;
                 view.placing_area.is_placing = true;
                 view.placing_area.is_line = false;
-                view.placing_area.x0 = ellipse.base_x+smoff[0];
-                view.placing_area.y0 = ellipse.base_y+smoff[1];
-                view.placing_area.x1 = ellipse.base_x+smoff[0];
-                view.placing_area.y1 = ellipse.base_y+smoff[1];
+                view.placing_area.x0 = ellipse.base_x;
+                view.placing_area.y0 = ellipse.base_y;
+                view.placing_area.x1 = ellipse.base_x;
+                view.placing_area.y1 = ellipse.base_y;
                 request_render()
                 function add_point(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
-                    const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
+                    const [x1, y1] = event_to_coord_snapped(e, view, snap);
                     if(x1 < x0)
                         ellipse.base_x = x1;
                     else
@@ -8374,10 +7850,10 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         ellipse.base_y = y0;
                     ellipse.width = Math.abs(x1-x0);
                     ellipse.height = Math.abs(y1-y0);
-                    view.placing_area.x0 = ellipse.base_x+smoff[0];
-                    view.placing_area.y0 = ellipse.base_y+smoff[1];
-                    view.placing_area.x1 = ellipse.base_x + ellipse.width+smoff[0];
-                    view.placing_area.y1 = ellipse.base_y + ellipse.height+smoff[1];
+                    view.placing_area.x0 = ellipse.base_x;
+                    view.placing_area.y0 = ellipse.base_y;
+                    view.placing_area.x1 = ellipse.base_x + ellipse.width;
+                    view.placing_area.y1 = ellipse.base_y + ellipse.height;
                     request_render();
                 }
                 the_canvas.addEventListener('pointermove', add_point);
@@ -8394,7 +7870,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 the_canvas.addEventListener('pointerleave', finish_point);
             }break;
             case ToolType.TEXT:{ // TAG toolTEXT
-                const [x0, y0] = event_to_coord_off(e, view, smoff);
+                const [x0, y0] = event_to_coord(e, view);
                 let dialog = get_dialog('text-input');
                 if(!dialog) return;
                 dialog.title.textContent = 'Enter Text';
@@ -8411,21 +7887,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 for(const map of MAPS.values()){
                     elem_parent_text(dialog.f['link-dungeon'], 'option', map.map_name).value = ''+map.map_id;
                 }
-                let submapoptions = '<option value="-1">No Link</option>'
-                for(let sm of view.map.submaps){
-                    if(sm.flags & CanvasFlag.DELETED) continue;
-                    if(sm.hidinguser && sm.hidinguser !== SETTINGS.userid) continue;
-                    submapoptions += `<option value="${sm.id}">${sm.title}</option>`;
-                }
-                dialog.f['link-submap'].innerHTML = submapoptions;
                 dialog.f['link-dungeon'].value = '-1';
-                dialog.f['link-submap'].value = '-1';
-                dialog.f['link-dungeon'].onchange = function():void{
-                    dialog.f['link-submap'].value = '-1'
-                };
-                dialog.f['link-submap'].onchange = function():void{
-                    dialog.f['link-dungeon'].value = '-1'
-                };
                 dialog.ok_handler = function():void{
                     const text = dialog.f.text.value.trim();
                     if(!text) return;
@@ -8438,17 +7900,10 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     // This is annoying otherwise
                     if(map_id == view.map.map_id)
                         map_id = -1;
-                    let submap = false;
-                    if(map_id == -1){
-                        map_id = +dialog.f['link-submap'].value;
-                        submap = true;
-                    }
                     let id = get_new_id();
-                    add_text(view.map, id, x0, y0, submapid, text, textsize, alignment, map_id);
+                    add_text(view.map, id, x0, y0, text, textsize, alignment, map_id);
                     // kind of hacky
                     let o = view.map.canvas_objs.get(id)!;
-                    if(submap)
-                        o.flags |= CanvasFlag.TEXT_LINKS_TO_SUBMAP;
                     if(dialog.f.background.checked)
                         o.flags |= CanvasFlag.TEXT_HAS_BACKGROUND;
                     publish_obj_by_id(view.map, id);
@@ -8462,7 +7917,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
 
             }break;
             case ToolType.IMAGE:{ // TAG toolIMAGE
-                const [x0, y0] = event_to_coord_off(e, view, smoff);
+                const [x0, y0] = event_to_coord(e, view);
                 let dialog = get_dialog('image-input');
                 if(!dialog) return;
                 dialog.title.textContent = 'Enter Image';
@@ -8487,7 +7942,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         height = snap_to_grid(height);
                     }
                     let id = get_new_id();
-                    add_image(view.map, id, x0, y0, width, height, submapid, text);
+                    add_image(view.map, id, x0, y0, width, height, text);
                     if(dialog.f.background.checked)
                         view.map.canvas_objs.get(id)!.flags |= CanvasFlag.IMG_IS_BACKGROUND;
                     publish_obj_by_id(view.map, id);
@@ -8498,7 +7953,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             }break;
             case ToolType.TOKEN:{ // TAG toolTOKEN
                 if(current_token_type == TOKENTYPE.EZ){
-                    const [x0, y0] = event_to_coord_off(e, view, smoff);
+                    const [x0, y0] = event_to_coord(e, view);
                     let dialog = get_dialog('ez-token');
                     if(!dialog) return;
                     dialog.title.textContent = 'Enter Token';
@@ -8520,7 +7975,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         let id = get_new_id();
                         ez_token_color = color;
                         let snap = get_snap_tl_func();
-                        add_ez_token(view.map, id, snap(x0), snap(y0), submapid, text, color, width, height);
+                        add_ez_token(view.map, id, snap(x0), snap(y0), text, color, width, height);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                         request_render();
@@ -8529,7 +7984,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
 
                 }
                 else {
-                    const [x0, y0] = event_to_coord_off(e, view, smoff);
+                    const [x0, y0] = event_to_coord(e, view);
                     let dialog = get_dialog('img-token');
                     if(!dialog) return;
                     dialog.title.textContent = 'Choose Token';
@@ -8565,7 +8020,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         let h = +dialog.f.height.value;
                         if(!w || w < 0) w = view.gridscale == GRIDSCALE.TEN?1:0.5;
                         if(!h || h < 0) h = view.gridscale == GRIDSCALE.TEN?1:0.5;
-                        add_img_token(view.map, id, snap(x0), snap(y0), submapid, text, w, h);
+                        add_img_token(view.map, id, snap(x0), snap(y0), text, w, h);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                         request_render();
@@ -8578,7 +8033,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     // Legacy: is its own impl
                     case FixtureType.STAIRS:{
                         let id = get_new_id();
-                        let [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
+                        let [x0, y0] = event_to_coord_snapped(e, view, snap);
                         let obj: Stairs = {
                             type: CanvasType.STAIRS,
                             id: id,
@@ -8586,7 +8041,6 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                             base_y:y0,
                             flags: CanvasFlag.NONE,
                             hidinguser: hiddenid(),
-                            submap:submapid,
                             width: 0,
                             height: 0,
                             rotation: Rotation.UP,
@@ -8595,22 +8049,22 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         view.placing_area.is_placing = true;
                         view.placing_area.is_line = false;
                         const stairs = view.map.canvas_objs.get(id)! as Stairs; // lazy
-                        view.placing_area.x0 = x0+smoff[0];
-                        view.placing_area.y0 = y0+smoff[1];
-                        view.placing_area.x1 = x0+smoff[0];
-                        view.placing_area.y1 = y0+smoff[1];
+                        view.placing_area.x0 = x0;
+                        view.placing_area.y0 = y0;
+                        view.placing_area.x1 = x0;
+                        view.placing_area.y1 = y0;
                         // x0 = stairs.base_x;
                         // y0 = stairs.base_y;
                         request_render();
                         function change_stairs_on_move(e:MouseEvent):void{
                             e.stopPropagation();
                             e.preventDefault();
-                            const [ex0, ey0] = event_to_coord_off(e, view, smoff);
+                            const [ex0, ey0] = event_to_coord(e, view);
                             change_stairs(stairs, x0, y0, ex0, ey0, snap);
-                            view.placing_area.x0 = stairs.base_x+smoff[0];
-                            view.placing_area.y0 = stairs.base_y+smoff[1];
-                            view.placing_area.x1 = stairs.base_x+REFERENCE.WIDTH*stairs.width+smoff[0];
-                            view.placing_area.y1 = stairs.base_y+REFERENCE.WIDTH*stairs.height+smoff[1];
+                            view.placing_area.x0 = stairs.base_x;
+                            view.placing_area.y0 = stairs.base_y;
+                            view.placing_area.x1 = stairs.base_x+REFERENCE.WIDTH*stairs.width;
+                            view.placing_area.y1 = stairs.base_y+REFERENCE.WIDTH*stairs.height;
                             request_render();
                         }
                         the_canvas.addEventListener('pointermove', change_stairs_on_move);
@@ -8633,22 +8087,22 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     }break;
                     default:{
                         let id = get_new_id();
-                        const [x, y] = event_to_coord_snapped_off(e, view, snap, smoff);
-                        const fixture = make_fixture(id, x, y, submapid, current_fixture_type);
+                        const [x, y] = event_to_coord_snapped(e, view, snap);
+                        const fixture = make_fixture(id, x, y, current_fixture_type);
                         add_canv_obj(view.map, fixture);
                         view.placing_area.is_placing = true;
                         view.placing_area.is_line = false;
-                        view.placing_area.x0 = fixture.base_x+smoff[0];
-                        view.placing_area.y0 = fixture.base_y+smoff[1];
-                        view.placing_area.x1 = fixture.base_x+smoff[0];
-                        view.placing_area.y1 = fixture.base_y+smoff[1];
+                        view.placing_area.x0 = fixture.base_x;
+                        view.placing_area.y0 = fixture.base_y;
+                        view.placing_area.x1 = fixture.base_x;
+                        view.placing_area.y1 = fixture.base_y;
                         request_render();
                         function move(e:MouseEvent):void{
                             e.stopPropagation();
                             e.preventDefault();
                             let x0 = x;
                             let y0 = y;
-                            let [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
+                            let [x1, y1] = event_to_coord_snapped(e, view, snap);
                             if(x1 < x0){
                                 let temp = x1; x1 = x0; x0 = temp;
                             }
@@ -8659,10 +8113,10 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                             fixture.base_y = y0;
                             fixture.width = x1 - x0;
                             fixture.height = y1 - y0;
-                            view.placing_area.x0 = x0+smoff[0];
-                            view.placing_area.y0 = y0+smoff[1];
-                            view.placing_area.x1 = x1+smoff[0];
-                            view.placing_area.y1 = y1+smoff[1];
+                            view.placing_area.x0 = x0;
+                            view.placing_area.y0 = y0;
+                            view.placing_area.x1 = x1;
+                            view.placing_area.y1 = y1;
                             request_render();
                         }
                         the_canvas.addEventListener('pointermove', move);
@@ -8688,7 +8142,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             case ToolType.MEASURE:{ // TAG toolMEASURE
                 let id = get_new_id();
                 let snap:(x:number, y:number)=>[number, number];
-                if(!submapid && view.map.grid_type & GridType.HEX){
+                if(view.map.grid_type & GridType.HEX){
                     snap = function(x:number, y:number):[number, number]{
                         return snap_to_hex_center(x, y);
                     };
@@ -8701,16 +8155,16 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         return [x0, y0];
                     };
                 }
-                const [unsnapped_x, unsnapped_y] = event_to_coord_off(e, view, smoff);
+                const [unsnapped_x, unsnapped_y] = event_to_coord(e, view);
                 const [x0, y0] = snap(unsnapped_x, unsnapped_y);
-                let measure = make_measure(id, x0, y0, submapid, '#aa0033');
+                let measure = make_measure(id, x0, y0, '#aa0033');
                 add_canv_obj(view.map, measure);
                 publish_obj_by_id(view.map, id); // don't note create for undo
                 request_render();
                 function move(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
-                    const [x_, y_] = event_to_coord_off(e, view, smoff);
+                    const [x_, y_] = event_to_coord(e, view);
                     const [x, y] = snap(x_, y_);
                     if(x == measure.x1 && y == measure.y1)
                         return;
@@ -8760,7 +8214,6 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                 base_y: y,
                                 flags: CanvasFlag.NONE,
                                 hidinguser: hiddenid(),
-                                submap:submapid,
                                 color: get_primary_color(),
                                 size: view.gridscale == GRIDSCALE.TEN?1:0.5,
                             };
@@ -8774,7 +8227,6 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                 base_y: y,
                                 flags: CanvasFlag.NONE,
                                 hidinguser: hiddenid(),
-                                submap:submapid,
                                 terrain_id: current_terrain_id,
                             };
                             add_canv_obj(view.map, terrain);
@@ -8787,7 +8239,6 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                 base_y: y,
                                 flags: CanvasFlag.NONE,
                                 hidinguser: hiddenid(),
-                                submap:submapid,
                                 terrainicon_id: current_terrain_icon_id,
                             };
                             add_canv_obj(view.map, icon);
@@ -8801,12 +8252,12 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     let x:number;
                     let y:number;
                     if(view.map.grid_type & GridType.HEX){
-                        const [x_, y_] = event_to_coord_off(e, view, smoff);
+                        const [x_, y_] = event_to_coord(e, view);
                         [x, y] = snap_down_to_hex_grid(x_, y_);
                     }
                     else {
                         let snap = get_snap_tl_func();
-                        [x, y] = event_to_coord_snapped_off(e, view, snap, smoff);
+                        [x, y] = event_to_coord_snapped(e, view, snap);
                     }
                     if(prevx !== undefined && prevy !== undefined){
                         let xdiff = x - prevx;
@@ -8852,67 +8303,9 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 window.addEventListener('pointerup', finish);
                 the_canvas.addEventListener('pointerleave', finish);
             }break;
-            case ToolType.SUBMAP:{ // TAG toolSUBMAP
-                // Don't allow nested submaps
-                if(submapid) break;
-                let id = get_new_id();
-                // could use smoff, whatever
-                const [x0, y0] = event_to_coord_snapped(e, view, snap);
-                let submap: SubMap = {
-                    type: CanvasType.SUBMAP,
-                    id: id,
-                    base_x: x0,
-                    base_y: y0,
-                    flags: CanvasFlag.NONE,
-                    hidinguser: hiddenid(),
-                    submap: 0,
-                    width: 0,
-                    height: 0,
-                    tlx: 0, tly:0,
-                    grid_type: GridType.SQUARE,
-                    title: "Untitled",
-                    grid_color: '',
-                    bg_color: '',
-                };
-                add_canv_obj(view.map, submap);
-                request_render();
-                function add_point(e:MouseEvent):void{
-                    e.stopPropagation();
-                    e.preventDefault();
-                    const [x1, y1] = event_to_coord_snapped(e, view, snap);
-                    let bx = x0;
-                    let width = Math.abs(x1 - x0);
-                    if(x1 < bx) bx = x1;
-                    let by = y0;
-                    if(y1 < by) by = y1;
-                    let height = Math.abs(y1 - y0);
-                    submap.base_x = bx;
-                    submap.base_y = by;
-                    submap.width = width;
-                    submap.height = height;
-                    request_render();
-                }
-                the_canvas.addEventListener('pointermove', add_point);
-                function finish_point():void{
-                    the_canvas.removeEventListener('pointermove', add_point);
-                    window.removeEventListener('pointerup', finish_point);
-                    the_canvas.removeEventListener('pointerleave', finish_point);
-                    if(submap.width == 0 || submap.height == 0){
-                        submap.flags |= CanvasFlag.DELETED;
-                    }
-                    else {
-                        view.map.submaps.push(submap);
-                        publish_obj_by_id(view.map, id);
-                        note_create_by_id_for_undo(view.map, id);
-                    }
-                    request_render();
-                }
-                window.addEventListener('pointerup', finish_point);
-                the_canvas.addEventListener('pointerleave', finish_point);
-            }break;
             case ToolType.ARC:{ // TAG toolARC
                 let id = get_new_id();
-                const [x0, y0] = event_to_coord_snapped_off(e, view, snap, smoff);
+                const [x0, y0] = event_to_coord_snapped(e, view, snap);
                 // const thickness_input = by_id('line-thickness');
                 const thickness = 6; // +thickness_input.value || 4;
                 let arc: Arc = {
@@ -8922,7 +8315,6 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     base_y: y0,
                     flags: CanvasFlag.NONE,
                     hidinguser: hiddenid(),
-                    submap: 0,
                     width: 0,
                     height: 0,
                     start_arc: 0,
@@ -8933,15 +8325,15 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 add_canv_obj(view.map, arc);
                 view.placing_area.is_placing = true;
                 view.placing_area.is_line = false;
-                view.placing_area.x0 = arc.base_x+smoff[0];
-                view.placing_area.y0 = arc.base_y+smoff[1];
-                view.placing_area.x1 = arc.base_x+smoff[0];
-                view.placing_area.y1 = arc.base_y+smoff[1];
+                view.placing_area.x0 = arc.base_x;
+                view.placing_area.y0 = arc.base_y;
+                view.placing_area.x1 = arc.base_x;
+                view.placing_area.y1 = arc.base_y;
                 request_render();
                 function add_point(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
-                    const [x1, y1] = event_to_coord_snapped_off(e, view, snap, smoff);
+                    const [x1, y1] = event_to_coord_snapped(e, view, snap);
                     let xmin = x0;
                     let xmax = x0;
                     let ymin = y0;
@@ -8956,7 +8348,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     arc.base_y = ymin;
                     arc.width = xmax - xmin;
                     arc.height = ymax - ymin;
-                    let [rawx, rawy] = event_to_coord_off(e, view, smoff);
+                    let [rawx, rawy] = event_to_coord(e, view);
                     let angle = Math.atan2(rawx-x0, rawy-y0) * 180/Math.PI;
                     if(current_arc_type == ArcType.QUARTER){
                         if(angle >= -180 && angle < -90){
@@ -9010,10 +8402,10 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                             arc.end_arc = 5;
                         }
                     }
-                    view.placing_area.x0 = arc.base_x+smoff[0];
-                    view.placing_area.y0 = arc.base_y+smoff[1];
-                    view.placing_area.x1 = arc.base_x+smoff[0]+arc.width;
-                    view.placing_area.y1 = arc.base_y+smoff[1]+arc.height;
+                    view.placing_area.x0 = arc.base_x;
+                    view.placing_area.y0 = arc.base_y;
+                    view.placing_area.x1 = arc.base_x+arc.width;
+                    view.placing_area.y1 = arc.base_y+arc.height;
                     request_render();
                 }
                 the_canvas.addEventListener('pointermove', add_point);
@@ -9038,7 +8430,6 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
     });
     the_canvas.addEventListener('pointermove', function(e:PointerEvent):void{
         let view = get_view(which_canv);
-        // NOTE: obj_at handles submap
         let [mx, my] = event_to_coord(e, view);
         view.mouse.x = mx;
         view.mouse.y = my;
@@ -9103,6 +8494,15 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     secondary_map_view_index = active_map_view_index;
                 resize_canvas();
             });
+            menu.item(SETTINGS.hidechat?'Show Chat':'Hide Chat', function(){
+                set_chat_vis(!SETTINGS.hidechat);
+            });
+            menu.item(SETTINGS.hideleft?'Show Left':'Hide Left', function(){
+                set_left_vis(!SETTINGS.hideleft);
+            });
+            menu.item(SETTINGS.hidetools?'Show Tools':'Hide Tools', function(){
+                set_tools_vis(!SETTINGS.hidetools);
+            });
             menu.separator();
             if(map_hist.can_go_back())
                 menu.item('Back', map_hist.go_back);
@@ -9161,24 +8561,10 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             menu.disabled('Paste');
         else
             menu.item('Paste', function():void{
-                let submapid = 0;
-                let sm = get_submap_at(view, click_x, click_y);
-                if(sm){
-                    submapid = sm.id;
-                    click_x -= sm.base_x + sm.tlx;
-                    click_y -= sm.base_y + sm.tly;
-                }
-                paste_from_copy_buffer_at(view.map, click_x, click_y, submapid);
+                paste_from_copy_buffer_at(view.map, click_x, click_y);
             });
         menu.item('Paste from Clipboard', function():void{
-            let submapid = 0;
-            let sm = get_submap_at(view, click_x, click_y);
-            if(sm){
-                submapid = sm.id;
-                click_x -= sm.base_x + sm.tlx;
-                click_y -= sm.base_y + sm.tly;
-            }
-            paste_from_clipboard_at(view.map, click_x, click_y, submapid);
+            paste_from_clipboard_at(view.map, click_x, click_y);
         });
         menu.separator();
         if(whenflags & CONTEXTMENUWHENFLAGS.ANY_SELECTED){
@@ -9322,17 +8708,6 @@ document.addEventListener('DOMContentLoaded', function():void{
                     if(o.flags & CanvasFlag.DELETED) continue;
                     o.flags |= CanvasFlag.DELETED;
                     deleted.push(o.id);
-                    // #SPEED: faster way to get all objects in this submap
-                    if(o.type == CanvasType.SUBMAP){
-                        for(let obj of view.map.canvas_obj_array){
-                            if(obj.flags & CanvasFlag.DELETED) continue;
-                            if(obj.submap == o.id){
-                                obj.flags |= CanvasFlag.DELETED;
-                                deleted.push(obj.id);
-                            }
-                        }
-
-                    }
                 }
                 publish_delete_by_ids(view.map.map_id, deleted);
                 note_delete_by_ids_for_undo(view.map, deleted);
@@ -9440,15 +8815,8 @@ document.addEventListener('DOMContentLoaded', function():void{
             case 'v':
                 if(shortcut){
                     if(copied_objs.length){
-                        let submapid = 0;
                         let x = view.mouse.x; let y = view.mouse.y;
-                        let sm = get_submap_at(view, x, y);
-                        if(sm){
-                            submapid = sm.id;
-                            x -= sm.base_x + sm.tlx;
-                            y -= sm.base_y + sm.tly;
-                        }
-                        paste_from_copy_buffer_at(view.map, x, y, submapid);
+                        paste_from_copy_buffer_at(view.map, x, y);
                     }
                     break;
                 }
