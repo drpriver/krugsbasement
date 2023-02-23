@@ -126,6 +126,7 @@ function options_dialog():void{
             dialog.f['import-map'].addEventListener('click', function():void{
                 const inp = document.createElement('input');
                 inp.type = 'file';
+                inp.accept = 'application/json,.json';
                 inp.onchange = function():void{
                     const files = inp.files;
                     if(!files) return;
