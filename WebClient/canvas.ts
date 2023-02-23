@@ -3526,6 +3526,8 @@ function note_selections(view:DungeonMapView):void{
     }
 }
 function selection_is_rigid(view:DungeonMapView):boolean{
+    if(snapmode == SNAPMODE.FREE)
+        return false;
     for(let id of view.selected){
         const obj = view.map.canvas_objs.get(id)!;
         if(obj.flags & CanvasFlag.DELETED)
@@ -3539,7 +3541,7 @@ function selection_is_rigid(view:DungeonMapView):boolean{
             case CanvasType.GRID_LINE:
             case CanvasType.IMAGE:
             case CanvasType.ARC:
-                return snapmode != SNAPMODE.FREE;
+                return true;
             case CanvasType.DOOR:
             case CanvasType.STAIRS:
             case CanvasType.ICON_TILE:
@@ -3547,7 +3549,7 @@ function selection_is_rigid(view:DungeonMapView):boolean{
             case CanvasType.TERRAIN_TILE:
                 return true;
             case CanvasType.FIXTURE:
-                return (obj.ftype == FixtureType.WELL || obj.ftype == FixtureType.PIT || obj.ftype == FixtureType.STATUE) && snapmode != SNAPMODE.FREE;
+                return (obj.ftype == FixtureType.WELL || obj.ftype == FixtureType.PIT || obj.ftype == FixtureType.STATUE);
             default:
                 break;
         }
