@@ -814,10 +814,8 @@ document.addEventListener('DOMContentLoaded', function():void{
     });
     by_id('paste').addEventListener('click', function():void{
         const view = get_active_view();
-        if(copied_objs.length){
-            let x = view.mouse.x; let y = view.mouse.y;
-            paste_from_copy_buffer_at(view.map, x, y);
-        }
+        if(COPIED_OBJS.length)
+            paste_from_copy_buffer_at(view, view.mouse.x, view.mouse.y);
     });
     by_id('delete').addEventListener('click', function():void{
         const view = get_active_view();
@@ -2392,9 +2390,9 @@ function get_new_id(): number{
     return id;
 }
 // Needs to be global as it's shared between buffers.
-const copied_objs: Array<StrippedObj> = [];
+const COPIED_OBJS: Array<StrippedObj> = [];
 function clear_copy_buffer():void{
-    copied_objs.length = 0;
+    COPIED_OBJS.length = 0;
 }
 function copy_selected_objs_to_copy_buffer(view:DungeonMapView):void{
     for(let obj_id of view.selected){
@@ -2402,7 +2400,7 @@ function copy_selected_objs_to_copy_buffer(view:DungeonMapView):void{
         if(obj.flags & CanvasFlag.DELETED)
             continue;
         const stripped = strip_obj(obj);
-        copied_objs.push(stripped);
+        COPIED_OBJS.push(stripped);
     }
 }
 
@@ -2418,9 +2416,7 @@ function copy_selected_objs_to_clipboard(view:DungeonMapView):void{
     let text = JSON.stringify(objs);
     navigator.clipboard.writeText(text);
 }
-function paste_from_clipboard_at(map:DungeonMap, x:number, y:number):void{
-    x = snap_to_grid(x);
-    y = snap_to_grid(y);
+function paste_from_clipboard_at(view:DungeonMapView, x:number, y:number):void{
     function doit(objs:unknown):void{
         if(!Array.isArray(objs)) return;
         const length = objs.length;
@@ -2432,30 +2428,7 @@ function paste_from_clipboard_at(map:DungeonMap, x:number, y:number):void{
             if(!o) return;
             valid_objs.push(o);
         }
-        // Do a pre-pass to get the top left corner of the objects.
-        let x0 = valid_objs[0][INDEX.BASE_X];
-        let y0 = valid_objs[0][INDEX.BASE_Y];
-        for(let i = 0; i < length; ++i){
-            const stripped = valid_objs[i];
-            if(stripped[INDEX.BASE_X] < x0)
-                x0 = stripped[INDEX.BASE_X];
-            if(stripped[INDEX.BASE_Y] < y0)
-                y0 = stripped[INDEX.BASE_Y];
-        }
-        // TODO: might be more intuitive to paste the center of the objects.
-        const dx = x - x0;
-        const dy = y - y0;
-        const new_ids = [];
-        for(let i = 0; i < valid_objs.length; i++){
-            let obj = unstrip_obj(valid_objs[i]);
-            let id = get_new_id();
-            obj.id = id;
-            translate_object(obj, dx, dy);
-            add_canv_obj(map, obj);
-            new_ids.push(obj.id);
-            publish_obj_by_id(map, obj.id);
-        }
-        note_mass_create_for_undo(map, new_ids);
+        paste_at(view, x, y, valid_objs);
         request_render();
     }
     if(navigator.clipboard.readText){
@@ -2500,7 +2473,7 @@ function cut_selected_objs_to_copy_buffer(view:DungeonMapView):void{
         if(obj.flags & CanvasFlag.DELETED)
             continue;
         const stripped = strip_obj(obj);
-        copied_objs.push(stripped);
+        COPIED_OBJS.push(stripped);
         obj.flags |= CanvasFlag.DELETED;
         deleted.push(obj.id);
     }
@@ -2751,19 +2724,19 @@ function rotate_everything_90(view:DungeonMapView):void{
     request_render();
 }
 
-function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
-    x = snap_to_grid(x);
-    y = snap_to_grid(y);
-    const length = copied_objs.length;
+function paste_at(view:DungeonMapView, x:number, y:number, objs: Array<StrippedObj>):void{
+    const snap = (x:number, y:number) => [snap_down_to_grid(x), snap_down_to_grid(y)];
+    [x, y] = snap(x, y);
+    const length = objs.length;
     // Do a pre-pass to get the top left corner of the objects.
     let x0 = 0;
     let y0 = 0;
     if(length){
-        x0 = copied_objs[0][INDEX.BASE_X];
-        y0 = copied_objs[0][INDEX.BASE_Y];
+        x0 = objs[0][INDEX.BASE_X];
+        y0 = objs[0][INDEX.BASE_Y];
     }
     for(let i = 0; i < length; ++i){
-        const stripped = copied_objs[i];
+        const stripped = objs[i];
         if(stripped[INDEX.BASE_X] < x0)
             x0 = stripped[INDEX.BASE_X];
         if(stripped[INDEX.BASE_Y] < y0)
@@ -2774,15 +2747,19 @@ function paste_from_copy_buffer_at(map:DungeonMap, x:number, y:number):void{
     const dy = y - y0;
     const new_ids = [];
     for(let i = 0; i < length; ++i){
-        const obj = unstrip_obj(copied_objs[i]);
-        let id = get_new_id();
+        const obj = unstrip_obj(objs[i]);
+        const id = get_new_id();
         obj.id = id;
         translate_object(obj, dx, dy);
-        add_canv_obj(map, obj);
+        add_canv_obj(view.map, obj);
         new_ids.push(id);
-        publish_obj_by_id(map, obj.id);
+        publish_obj_by_id(view.map, obj.id);
     }
-    note_mass_create_for_undo(map, new_ids);
+    note_mass_create_for_undo(view.map, new_ids);
+}
+
+function paste_from_copy_buffer_at(view:DungeonMapView, x:number, y:number):void{
+    paste_at(view, x, y, COPIED_OBJS);
     request_render();
 }
 
@@ -8557,14 +8534,14 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 copy_selected_objs_to_clipboard(view);
             });
         }
-        if(copied_objs.length === 0)
+        if(COPIED_OBJS.length === 0)
             menu.disabled('Paste');
         else
             menu.item('Paste', function():void{
-                paste_from_copy_buffer_at(view.map, click_x, click_y);
+                paste_from_copy_buffer_at(view, click_x, click_y);
             });
         menu.item('Paste from Clipboard', function():void{
-            paste_from_clipboard_at(view.map, click_x, click_y);
+            paste_from_clipboard_at(view, click_x, click_y);
         });
         menu.separator();
         if(whenflags & CONTEXTMENUWHENFLAGS.ANY_SELECTED){
@@ -8814,10 +8791,8 @@ document.addEventListener('DOMContentLoaded', function():void{
                 break;
             case 'v':
                 if(shortcut){
-                    if(copied_objs.length){
-                        let x = view.mouse.x; let y = view.mouse.y;
-                        paste_from_copy_buffer_at(view.map, x, y);
-                    }
+                    if(COPIED_OBJS.length)
+                        paste_from_copy_buffer_at(view, view.mouse.x, view.mouse.y);
                     break;
                 }
                 else
