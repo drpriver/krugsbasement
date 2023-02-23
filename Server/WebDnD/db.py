@@ -406,7 +406,7 @@ def setup_tables() -> None:
         ''').fetchall()
 
         new_sms = [] # these need map ids assigned
-        txts = {}
+        txts = {} # type: ignore
         mhash_to_smid = {}
         for i, m in enumerate(maps):
             campid, mapid, name, objects, flags, grid_type, grid_color, bg_color, parent = m
