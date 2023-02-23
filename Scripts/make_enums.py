@@ -7,6 +7,7 @@ import textwrap
 from typing import List, Tuple, Union, Optional, Set, NamedTuple, Dict
 import hashlib
 import re
+import io
 def textopen(*args, **kwargs):
     return open(*args, **kwargs, encoding='utf-8')
 Comment = str
@@ -263,8 +264,8 @@ def get_values(filename:str) -> List[Info]:
     fp.close()
     return result
 
-def make_python(filename:str, infos: List[Info]) -> None:
-    fp = textopen('Server/WebDnD/messages.py', 'w')
+def make_python(filename:str, infos: List[Info]) -> Tuple[str, str]:
+    fp = io.StringIO()
     def p(*args, **kwargs):
         print(*args, **kwargs, file=fp)
     p('# Generated via', os.path.relpath(__file__))
@@ -441,9 +442,9 @@ def make_python(filename:str, infos: List[Info]) -> None:
                     inner = typename[1:-1] # hack, only strip one layer off
                     p(f"register_list('{typename}', '{inner}')")
 
-    fp.flush()
-    fp.close()
-    fp = textopen('Server/flask_socketio.pyi', 'w')
+    s1 = fp.getvalue()
+
+    fp = io.StringIO()
     p('from typing import Callable, Union, Dict, Type, Optional, Any, Mapping, overload, Literal')
     p('JSType = Union[str, int, float, dict, list, tuple, Mapping]')
     p('from Server.WebDnD.messages import *')
@@ -497,11 +498,11 @@ def make_python(filename:str, infos: List[Info]) -> None:
                 p(f'def emit(event:Literal[ToClient.{k}], arg:{convert_type(v)}, **kwargs:Any) -> None:')
             p(' '*3, '...')
     p('')
-    fp.flush()
-    fp.close()
+    s2 = fp.getvalue()
+    return s1, s2
 
-def make_ts(filename:str, infos:List[Info]) -> None:
-    fp = textopen('Generated/messages.ts', 'w')
+def make_ts(filename:str, infos:List[Info]) -> str:
+    fp = io.StringIO()
     def p(*args, **kwargs):
         print(*args, **kwargs, file=fp)
     p('//', 'messages.ts')
@@ -799,8 +800,7 @@ def make_ts(filename:str, infos:List[Info]) -> None:
         p('  return '+vname(v.type)+'(o);')
         p('}')
 
-    fp.flush()
-    fp.close();
+    return fp.getvalue()
 
 def make_tags(infos:List[Info]) -> List['TagLoc']: #type: ignore
     # copy-pasted from tag_ts.py
@@ -875,5 +875,11 @@ def make_tags(infos:List[Info]) -> List['TagLoc']: #type: ignore
 if __name__ == '__main__':
     INPUT = 'types.shared'
     infos = get_values(INPUT)
-    make_python(INPUT, infos)
-    make_ts(INPUT, infos)
+    py, py2 = make_python(INPUT, infos)
+    ts = make_ts(INPUT, infos)
+    with textopen('Generated/messages.ts', 'w') as fp:
+        fp.write(ts)
+    with textopen('Server/WebDnD/messages.py', 'w') as fp:
+        fp.write(py)
+    with textopen('Server/flask_socketio.pyi', 'w') as fp:
+        fp.write(py2)
