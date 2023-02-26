@@ -27,6 +27,8 @@ with conn:
     conn.execute('''PRAGMA foreign_keys = ON;''')
     conn.execute('''PRAGMA synchronous = NORMAL;''')
     conn.execute('''PRAGMA journal_mode = WAL;''')
+    for qk in conn.execute('''PRAGMA quick_check;''').fetchall():
+        logging.info('db quick_check: %r', *qk)
 def setup_tables() -> None:
     version = conn.execute('PRAGMA user_version;').fetchone()[0]
     if version == DBVERSION:
