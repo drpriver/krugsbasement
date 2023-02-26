@@ -8606,6 +8606,7 @@ document.addEventListener('DOMContentLoaded', function():void{
             e.stopPropagation();
             // @ts-ignore
             document.activeElement.oncopy();
+            return;
         }
         // @ts-ignore
         if((e.ctrlKey || e.metaKey) && e.key == 'v' && document.activeElement && document.activeElement.onpaste){
@@ -8613,6 +8614,15 @@ document.addEventListener('DOMContentLoaded', function():void{
             e.stopPropagation();
             // @ts-ignore
             document.activeElement.onpaste();
+            return;
+        }
+        // @ts-ignore
+        if((e.ctrlKey || e.metaKey) && e.key == 'x' && document.activeElement && document.activeElement.oncut){
+            e.preventDefault();
+            e.stopPropagation();
+            // @ts-ignore
+            document.activeElement.oncut();
+            return;
         }
         if(e.key == 'Escape' && _ctxmenu_remover){
             remove_ctx_menu();

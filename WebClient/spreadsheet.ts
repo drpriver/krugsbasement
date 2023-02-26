@@ -846,6 +846,15 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         if(!navigator.clipboard.readText)
             spreadsheet_fake_clipboard = s;
     }
+    function on_cut():void{
+        const [row_idx, col_idx] = idx_of(document.activeElement as HTMLDivElement);
+        if(row_idx == -1) return;
+        const s = result.cell_sources[row_idx][col_idx];
+        navigator.clipboard.writeText(s);
+        if(!navigator.clipboard.readText)
+            spreadsheet_fake_clipboard = s;
+        EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELL, result.id, row_idx, col_idx, '']);
+    }
     function on_paste():void{
         const [row_idx, col_idx] = idx_of(document.activeElement as HTMLDivElement);
         if(row_idx == -1) return;
@@ -886,6 +895,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         cell.oncontextmenu = celldropdown;
         cell.oncopy = on_copy;
         cell.onpaste = on_paste;
+        cell.oncut = on_cut;
     }
     function find_prev_elem(row_idx:number, col_idx: number):HTMLElement{
         if(col_idx == 0){
