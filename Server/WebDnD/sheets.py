@@ -253,8 +253,8 @@ class SpreadSheet:
             self._flags_dirty = False
 
         if self._parent_dirty:
-            dlog('saving parent for sheet %r (%r,%r): %r', self.name, self.campaign, self.id, self.flags)
-            db.save_sheet_parent(self.campaign, self.id, self.flags)
+            dlog('saving parent for sheet %r (%r,%r): %r', self.name, self.campaign, self.id, self.parent)
+            db.save_sheet_parent(self.campaign, self.id, self.parent)
             self._parent_dirty = False
 
 # IDK how to express that first arg needs to be a SpreadSheet
