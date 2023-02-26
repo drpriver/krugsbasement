@@ -1335,8 +1335,6 @@ function spreadsheet_from_data(data:SpreadSheetData):SpreadSheet{
         ss.add_row2(-1, data.cells.slice(i, i+data.column_names.length));
     SPREADSHEETS.set(data.id, ss);
     ss.set_flags(data.flags);
-    const id = ss.id;
-    SHEET_TV.add_item(data.name, id, data.parent?data.parent:null);
     return ss;
 }
 
@@ -1479,6 +1477,7 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
             const ss = spreadsheet_from_data(arg[1]);
             ss.mark_dirty();
             ss.show();
+            SHEET_TV.add_item(ss.name, ss.id, ss.parent?ss.parent:null);
             break;
         case SpreadSheetMsgType.SORT:{
             let ss = SPREADSHEETS.get(arg[1]);
@@ -1492,9 +1491,16 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
             for(const d of arg[1]) spreadsheet_from_data(d);
             for(const ss of SPREADSHEETS.values()){
                 ss._dirty = true;
+                SHEET_TV.add_item_(ss.name, ss.id, null);
                 if(ss.hidden) continue;
                 recalc(ss.id);
             }
+            for(const ss of SPREADSHEETS.values()){
+                if(ss.parent){
+                    SHEET_TV.change_parent_(ss.id, ss.parent);
+                }
+            }
+            SHEET_TV.rebuild();
             break;
         case SpreadSheetMsgType.SHOW:{
             let ss = SPREADSHEETS.get(arg[1]);
@@ -1520,6 +1526,9 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
             ss.w.remove();
             SPREADSHEETS.delete(id);
             SHEET_TV.remove(id);
+        }break;
+        case SpreadSheetMsgType.PARENT:{
+            SHEET_TV.change_parent(arg[1], arg[2]);
         }break;
     }
 });

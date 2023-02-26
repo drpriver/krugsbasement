@@ -16,8 +16,10 @@ type TreeView = {
     on_drop?:(dropped:number, onto:number|null) => void;
     add_item:(name:string, key:number, parent:number|null)=>void;
     // like add_item, but doesn't rebuild the tree.
-    _add_item:(name:string, key:number, parent:number|null)=>void;
+    add_item_:(name:string, key:number, parent:number|null)=>void;
     change_parent:(key:number, parent:number|null)=>void;
+    // like change_parent_, but doesn't rebuild the tree.
+    change_parent_:(key:number, parent:number|null)=>void;
     rename:(key:number, name:string)=>void;
     remove:(key:number) => void;
     get_sp:(key:number) => HTMLElement|null;
@@ -29,7 +31,7 @@ type TreeView = {
     _expand_item: (item:TreeItem)=>void;
     // Could do this reactively or whatever, but that was just too
     // complicated.
-    _rebuild:()=>void;
+    rebuild:()=>void;
     mime: string;
 }
 
@@ -66,10 +68,10 @@ make_tree_view(_container: HTMLElement, domain:string):TreeView{
     };
     const result: TreeView = {
         add_item:(name:string, key:number, parent:number|null):void=>{
-            result._add_item(name, key, parent);
-            result._rebuild();
+            result.add_item_(name, key, parent);
+            result.rebuild();
         },
-        _add_item:(name:string, key:number, parent:number|null):void=>{
+        add_item_:(name:string, key:number, parent:number|null):void=>{
             const el = elem('div', null, 'tree-item');
             el.draggable = true;
             const tog = elem_with_parent(el, 'span', null, 'toggle');
@@ -166,6 +168,10 @@ make_tree_view(_container: HTMLElement, domain:string):TreeView{
             item.sp.textContent = name;
         },
         change_parent:(key:number, parent:number|null):void=>{
+            result.change_parent_(key, parent);
+            result.rebuild();
+        },
+        change_parent_:(key:number, parent:number|null):void=>{
             if(key === parent) return;
             const item = result._items.get(key);
             if(!item) return;
@@ -187,7 +193,6 @@ make_tree_view(_container: HTMLElement, domain:string):TreeView{
                     pitem.children = new Map();
                 pitem.children.set(key, item);
             }
-            result._rebuild();
         },
         remove:(key:number):void=>{
             const item = result._items.get(key);
@@ -218,14 +223,14 @@ make_tree_view(_container: HTMLElement, domain:string):TreeView{
         _collapse_item:(item:TreeItem):void=>{
             if(!item.children || !item.children.size) return;
             item.closed = true;
-            result._rebuild();
+            result.rebuild();
         },
         _expand_item:(item:TreeItem):void=>{
             if(!item.children || !item.children.size) return;
             item.closed = false;
-            result._rebuild();
+            result.rebuild();
         },
-        _rebuild:():void=>{
+        rebuild:():void=>{
             result._container.replaceChildren();
             const toplevel = [];
             for(const it of result._items.values()){
