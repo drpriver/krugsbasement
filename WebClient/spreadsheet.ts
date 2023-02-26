@@ -191,7 +191,29 @@ function sheet_dims(id:number):[number,number]{
     if(!sheet.cell_sources.length) return [0, 0];
     return [sheet.cell_sources.length, sheet.cell_sources[0].length];
 }
+const _sheet_name_map: Map<string, number> = new Map();
+function _rebuild_sheet_name_map():void{
+    for(const sheet of SPREADSHEETS.values()){
+        let name = sheet.name.toLowerCase();
+        const id = sheet.id
+        let s = sheet;
+        _sheet_name_map.set(name, id);
+        if(!s.parent) continue;
+        for(let i = 0; i < 50; i++){
+            if(!s.parent) break;
+            s = SPREADSHEETS.get(s.parent)!;
+            if(!s) break;
+            name = `${s.name.toLowerCase()}/${name}`;
+        }
+        _sheet_name_map.set(name, id);
+    }
+    // console.log(Array.from(_sheet_name_map.entries()));
+}
 function sheet_name_to_sheet(s:string):number {
+    s = s.toLowerCase();
+    if(!_sheet_name_map.has(s)) return 0;
+    return _sheet_name_map.get(s)!;
+
     // TODO: maintain a back map
     for(const sheet of SPREADSHEETS.values()){
         if(sheet.name == s){
@@ -1475,6 +1497,7 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
         }break;
         case SpreadSheetMsgType.NEW_SHEET:
             const ss = spreadsheet_from_data(arg[1]);
+            _rebuild_sheet_name_map();
             ss.mark_dirty();
             ss.show();
             SHEET_TV.add_item(ss.name, ss.id, ss.parent?ss.parent:null);
@@ -1489,6 +1512,7 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
             SPREADSHEETS.clear();
             SHEET_TV.clear();
             for(const d of arg[1]) spreadsheet_from_data(d);
+            _rebuild_sheet_name_map();
             for(const ss of SPREADSHEETS.values()){
                 ss._dirty = true;
                 SHEET_TV.add_item_(ss.name, ss.id, null);
@@ -1511,6 +1535,7 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
             let ss = SPREADSHEETS.get(arg[1]);
             if(!ss) break;
             ss.set_title(arg[2]);
+            _rebuild_sheet_name_map();
         }break;
         case SpreadSheetMsgType.FLAG:{
             let ss = SPREADSHEETS.get(arg[1]);
