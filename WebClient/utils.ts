@@ -120,6 +120,7 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
     handle.addEventListener('pointerdown', function(e:PointerEvent):void{
         if(e.target !== handle)
             return;
+        handle.setPointerCapture(e.pointerId);
         iframe_disable();
         dragging = true;
         handle.style.cursor = 'grabbing';
@@ -132,15 +133,13 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
         yorg = r.top;
         win.style.bottom = 'initial';
         win.style.right = 'initial';
-        window.addEventListener('pointermove', pointermove);
-        window.addEventListener('pointerleave', endmove);
-        window.addEventListener('pointerup', endmove);
+        handle.addEventListener('pointermove', pointermove);
+        handle.addEventListener('pointerup', endmove);
     });
     function endmove(e:PointerEvent):void{
         iframe_enable();
-        window.removeEventListener('pointermove', pointermove);
-        window.removeEventListener('pointerleave', endmove);
-        window.removeEventListener('pointerup', endmove);
+        handle.removeEventListener('pointermove', pointermove);
+        handle.removeEventListener('pointerup', endmove);
         handle.style.cursor = 'grab';
         dragging = false;
         let r = win.getBoundingClientRect();
