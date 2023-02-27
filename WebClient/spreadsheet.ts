@@ -191,21 +191,26 @@ function sheet_dims(id:number):[number,number]{
     if(!sheet.cell_sources.length) return [0, 0];
     return [sheet.cell_sources.length, sheet.cell_sources[0].length];
 }
+
+function fully_qualified_sheet_name(s:SpreadSheet):string{
+    const parts = [s.name];
+    // bounded loop to avoid DOS if somehow a sheet is its own parent.
+    for(let i = 0; i < 50; i++){
+        if(!s.parent) break;
+        s = SPREADSHEETS.get(s.parent)!;
+        if(!s) break;
+        parts.push(s.name);
+    }
+    return parts.reverse().join('/');
+}
 const _sheet_name_map: Map<string, number> = new Map();
 function _rebuild_sheet_name_map():void{
+    _sheet_name_map.clear();
     for(const sheet of SPREADSHEETS.values()){
         let name = sheet.name.toLowerCase();
         const id = sheet.id
-        let s = sheet;
         _sheet_name_map.set(name, id);
-        if(!s.parent) continue;
-        for(let i = 0; i < 50; i++){
-            if(!s.parent) break;
-            s = SPREADSHEETS.get(s.parent)!;
-            if(!s) break;
-            name = `${s.name.toLowerCase()}/${name}`;
-        }
-        _sheet_name_map.set(name, id);
+        _sheet_name_map.set(fully_qualified_sheet_name(sheet).toLowerCase(), id);
     }
     // console.log(Array.from(_sheet_name_map.entries()));
 }
@@ -213,20 +218,6 @@ function sheet_name_to_sheet(s:string):number {
     s = s.toLowerCase();
     if(!_sheet_name_map.has(s)) return 0;
     return _sheet_name_map.get(s)!;
-
-    // TODO: maintain a back map
-    for(const sheet of SPREADSHEETS.values()){
-        if(sheet.name == s){
-            // console.log({s, id:sheet.id});
-            return sheet.id;
-        }
-        if(sheet.name.toLowerCase() == s.toLowerCase()){
-            // console.log({s, id:sheet.id});
-            return sheet.id;
-        }
-    }
-    // console.log({s, id:0});
-    return 0;
 }
 
 let sheet_evaluate_formulas: ((id:number)=>Array<number>);
@@ -877,11 +868,15 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                     const v = (a as HTMLInputElement).value;
                     if(v && v[0] == '=' && v[v.length-1] != ']' && a.parentElement! !== cell){
                         const [row_idx, col_idx] = idx_of(cell);
+                        let col_name = result.column_names[col_idx];
+                        if(!col_name && col_idx < 26)
+                            col_name = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[col_idx];
                         if(a.parentElement!.parentElement !== result.w){
-                            (a as HTMLInputElement).value += `[${result.name}, ${result.column_names[col_idx]}, ${row_idx+1}]`;
+                            const sheet_name = fully_qualified_sheet_name(result);
+                            (a as HTMLInputElement).value += `[${sheet_name}, ${col_name}, ${row_idx+1}]`;
                         }
                         else {
-                            (a as HTMLInputElement).value += `[${result.column_names[col_idx]}, ${row_idx+1}]`;
+                            (a as HTMLInputElement).value += `[${col_name}, ${row_idx+1}]`;
                         }
                         e.stopPropagation();
                         e.preventDefault();
