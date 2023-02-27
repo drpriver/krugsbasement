@@ -1,7 +1,13 @@
 Changelog::kv
   created: 2023-02-10T06:42:56Z
-Created Feb 09, 2023, 10:42PM::md.update
-Summary::md.summary
-  A lot of things I have end when the pointer goes out of bounds (such as tools). This feels weird - you expect it to keep working even outside of the bounds of the canvas or whatever.
+  updated: 2023-02-27T17:37:28Z
+Created Feb 09, 2023, 10:42PM::md .update
+Summary::md .summary
+  A lot of things I have end when the pointer goes out of bounds (such as
+  tools). This feels weird - you expect it to keep working even outside of the
+  bounds of the canvas or whatever.
 
   Same thing for moving windows.
+
+Updated Feb 27, 2023, 09:37AM::md .update
+  Turns out the correct way to do this is to set pointer capture

@@ -7270,6 +7270,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             (document.activeElement as any).blur();
         e.stopPropagation();
         e.preventDefault();
+        the_canvas.setPointerCapture(e.pointerId);
         if(e.button === 1){
             prev_tool = current_tool;
             current_tool = ToolType.PAN;
@@ -7356,7 +7357,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                     view.resize.resizing = false;
                                     redo_canvas_cursor(the_canvas, view, false);
                                     the_canvas.removeEventListener('pointermove', change_wh);
-                                    window.removeEventListener('pointerup', finish);
+                                    the_canvas.removeEventListener('pointerup', finish);
                                     the_canvas.removeEventListener('pointerup', finish);
                                     request_render();
                                     if(o_x != obj.base_x || o_y != obj.base_y || o_w != obj.width || o_h != obj.height){
@@ -7366,8 +7367,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                     }
                                     redo_canvas_cursor(the_canvas, view, false);
                                 }
-                                window.addEventListener('pointerup', finish);
-                                the_canvas.addEventListener('pointerleave', finish);
+                                the_canvas.addEventListener('pointerup', finish);
                                 return;
                             }
                         }
@@ -7411,16 +7411,14 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     the_canvas.addEventListener('pointermove', move);
                     function finish_move():void{
                         the_canvas.removeEventListener('pointermove', move);
-                        window.removeEventListener('pointerup', finish_move);
-                        the_canvas.removeEventListener('pointerleave', finish_move);
+                        the_canvas.removeEventListener('pointerup', finish_move);
                         if(!changed)
                             return;
                         const after_update = get_stripped_state_by_id(view.map, Array.from(view.selected));
                         publish_obj_updates(view.map.map_id, after_update);
                         note_updates_for_undo(view.map, before_update, after_update);
                     }
-                    window.addEventListener('pointerup', finish_move);
-                    the_canvas.addEventListener('pointerleave', finish_move);
+                    the_canvas.addEventListener('pointerup', finish_move);
                 }
                 else {
                     sort_canv_objs(view.map);
@@ -7441,13 +7439,11 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     function finish_select():void{
                         finalize_selection(view);
                         the_canvas.removeEventListener('pointermove', select);
-                        window.removeEventListener('pointerup', finish_select);
-                        the_canvas.removeEventListener('pointerleave', finish_select);
+                        the_canvas.removeEventListener('pointerup', finish_select);
                         SELECTING = false;
                         redo_canvas_cursor(the_canvas, view, false);
                     }
-                    window.addEventListener('pointerup', finish_select);
-                    the_canvas.addEventListener('pointerleave', finish_select);
+                    the_canvas.addEventListener('pointerup', finish_select);
                     SELECTING = true;
                     redo_canvas_cursor(the_canvas, view, false);
                 }
@@ -7492,7 +7488,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     clicked_y = pan_y;
                     request_render();
                 }
-                window.addEventListener('pointermove', pan);
+                the_canvas.addEventListener('pointermove', pan);
                 function finish_pan():void{
                     stop_pan = null;
                     GRABBING = false;
@@ -7503,14 +7499,12 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     if(prev_tool == ToolType.PAN || !prev_tool){
                         the_canvas.style.cursor = 'grab';
                     }
-                    window.removeEventListener('pointermove', pan);
-                    window.removeEventListener('pointerup', finish_pan);
-                    // the_canvas.removeEventListener('pointerleave', finish_pan);
+                    the_canvas.removeEventListener('pointermove', pan);
+                    the_canvas.removeEventListener('pointerup', finish_pan);
                     redo_canvas_cursor(the_canvas, view, false);
                 }
                 stop_pan = finish_pan;
-                window.addEventListener('pointerup', finish_pan);
-                // the_canvas.addEventListener('pointerleave', finish_pan);
+                the_canvas.addEventListener('pointerup', finish_pan);
                 redo_canvas_cursor(the_canvas, view, false);
             }break;
             case ToolType.LINE:{ // TAG toolLINE
@@ -7537,13 +7531,11 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 the_canvas.addEventListener('pointermove', add_point);
                 function finish_point():void{
                     the_canvas.removeEventListener('pointermove', add_point);
-                    window.removeEventListener('pointerup', finish_point);
-                    the_canvas.removeEventListener('pointerleave', finish_point);
+                    the_canvas.removeEventListener('pointerup', finish_point);
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                 }
-                window.addEventListener('pointerup', finish_point);
-                the_canvas.addEventListener('pointerleave', finish_point);
+                the_canvas.addEventListener('pointerup', finish_point);
             }break;
             case ToolType.SHAPE:{ // TAG toolSHAPE
                 let id = get_new_id();
@@ -7571,15 +7563,13 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 the_canvas.addEventListener('pointermove', add_point);
                 function finish_point():void{
                     the_canvas.removeEventListener('pointermove', add_point);
-                    window.removeEventListener('pointerup', finish_point);
-                    the_canvas.removeEventListener('pointerleave', finish_point);
+                    the_canvas.removeEventListener('pointerup', finish_point);
                     add_freehand_point(o, x0, y0);
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                     request_render();
                 }
-                window.addEventListener('pointerup', finish_point);
-                the_canvas.addEventListener('pointerleave', finish_point);
+                the_canvas.addEventListener('pointerup', finish_point);
             }break;
             case ToolType.WALL:{ // TAG toolWALL
                 let id = get_new_id();
@@ -7598,13 +7588,11 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     the_canvas.addEventListener('pointermove', add_point);
                     function finish_point():void{
                         the_canvas.removeEventListener('pointermove', add_point);
-                        window.removeEventListener('pointerup', finish_point);
-                        the_canvas.removeEventListener('pointerleave', finish_point);
+                        the_canvas.removeEventListener('pointerup', finish_point);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                     }
-                    window.addEventListener('pointerup', finish_point);
-                    the_canvas.addEventListener('pointerleave', finish_point);
+                    the_canvas.addEventListener('pointerup', finish_point);
                 }
                 else{
                     const [x0, y0] = event_to_coord_snapped2(e, view, snap_corn);
@@ -7647,14 +7635,12 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         view.placing_area.is_placing = false;
                         add_gridline_point(obj, x1, y1);
                         the_canvas.removeEventListener('pointermove', add_point);
-                        window.removeEventListener('pointerup', finish_point);
-                        the_canvas.removeEventListener('pointerleave', finish_point);
+                        the_canvas.removeEventListener('pointerup', finish_point);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                         request_render();
                     }
-                    window.addEventListener('pointerup', finish_point);
-                    the_canvas.addEventListener('pointerleave', finish_point);
+                    the_canvas.addEventListener('pointerup', finish_point);
                 }
             }break;
             case ToolType.DOOR:{ // TAG toolDOOR
@@ -7682,8 +7668,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 function finish_door():void{
                     view.placing_area.is_placing = false;
                     the_canvas.removeEventListener('pointermove', change_point);
-                    window.removeEventListener('pointerup', finish_door);
-                    the_canvas.removeEventListener('pointerleave', finish_door);
+                    the_canvas.removeEventListener('pointerup', finish_door);
                     if(x0 !== x1 || y0 !== y1){
                         let id = get_new_id();
                         let orientation;
@@ -7716,8 +7701,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     }
                     request_render()
                 }
-                window.addEventListener('pointerup', finish_door);
-                the_canvas.addEventListener('pointerleave', finish_door);
+                the_canvas.addEventListener('pointerup', finish_door);
             }break;
             case ToolType.RECT:{ // TAG toolRECT
                 switch(current_rect_type){
@@ -7735,13 +7719,11 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         the_canvas.addEventListener('pointermove', add_point);
                         function finish_point():void{
                             the_canvas.removeEventListener('pointermove', add_point);
-                            window.removeEventListener('pointerup', finish_point);
-                            the_canvas.removeEventListener('pointerleave', finish_point);
+                            the_canvas.removeEventListener('pointerup', finish_point);
                             publish_obj_by_id(view.map, id);
                             note_create_by_id_for_undo(view.map, id);
                         }
-                        window.addEventListener('pointerup', finish_point);
-                        the_canvas.addEventListener('pointerleave', finish_point);
+                        the_canvas.addEventListener('pointerup', finish_point);
                     }break;
                     case RECTTYPE.FILLED:{
                         let id = get_new_id();
@@ -7757,13 +7739,11 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         the_canvas.addEventListener('pointermove', add_point);
                         function finish_point():void{
                             the_canvas.removeEventListener('pointermove', add_point);
-                            window.removeEventListener('pointerup', finish_point);
-                            the_canvas.removeEventListener('pointerleave', finish_point);
+                            the_canvas.removeEventListener('pointerup', finish_point);
                             publish_obj_by_id(view.map, id);
                             note_create_by_id_for_undo(view.map, id);
                         }
-                        window.addEventListener('pointerup', finish_point);
-                        the_canvas.addEventListener('pointerleave', finish_point);
+                        the_canvas.addEventListener('pointerup', finish_point);
                     }break;
                     case RECTTYPE.SOLID:{
                         let id = get_new_id();
@@ -7791,15 +7771,13 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         the_canvas.addEventListener('pointermove', add_point);
                         function finish_point():void{
                             the_canvas.removeEventListener('pointermove', add_point);
-                            window.removeEventListener('pointerup', finish_point);
-                            the_canvas.removeEventListener('pointerleave', finish_point);
+                            the_canvas.removeEventListener('pointerup', finish_point);
                             view.placing_area.is_placing = false;
                             request_render();
                             publish_obj_by_id(view.map, id);
                             note_create_by_id_for_undo(view.map, id);
                         }
-                        window.addEventListener('pointerup', finish_point);
-                        the_canvas.addEventListener('pointerleave', finish_point);
+                        the_canvas.addEventListener('pointerup', finish_point);
                     }break;
                 }
             }break;
@@ -7838,15 +7816,13 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 the_canvas.addEventListener('pointermove', add_point);
                 function finish_point():void{
                     the_canvas.removeEventListener('pointermove', add_point);
-                    window.removeEventListener('pointerup', finish_point);
-                    the_canvas.removeEventListener('pointerleave', finish_point);
+                    the_canvas.removeEventListener('pointerup', finish_point);
                     view.placing_area.is_placing = false;
                     request_render();
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                 }
-                window.addEventListener('pointerup', finish_point);
-                the_canvas.addEventListener('pointerleave', finish_point);
+                the_canvas.addEventListener('pointerup', finish_point);
             }break;
             case ToolType.TEXT:{ // TAG toolTEXT
                 const [x0, y0] = event_to_coord(e, view);
@@ -8051,8 +8027,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                             view.placing_area.is_placing = false;
                             request_render();
                             the_canvas.removeEventListener('pointermove', change_stairs_on_move);
-                            window.removeEventListener('pointerup', finish_point);
-                            the_canvas.removeEventListener('pointerleave', finish_point);
+                            the_canvas.removeEventListener('pointerup', finish_point);
                             if(stairs.width != 0 && stairs.height != 0){
                                 publish_obj_by_id(view.map, id);
                                 note_create_by_id_for_undo(view.map, id);
@@ -8061,8 +8036,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                 stairs.flags |= CanvasFlag.DELETED;
                             }
                         }
-                        window.addEventListener('pointerup', finish_point);
-                        the_canvas.addEventListener('pointerleave', finish_point);
+                        the_canvas.addEventListener('pointerup', finish_point);
                     }break;
                     default:{
                         let id = get_new_id();
@@ -8103,8 +8077,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                             view.placing_area.is_placing = false;
                             request_render();
                             the_canvas.removeEventListener('pointermove', move);
-                            window.removeEventListener('pointerup', finish);
-                            the_canvas.removeEventListener('pointerleave', finish);
+                            the_canvas.removeEventListener('pointerup', finish);
                             if(fixture.width != 0 && fixture.height != 0){
                                 publish_obj_by_id(view.map, id);
                                 note_create_by_id_for_undo(view.map, id);
@@ -8113,8 +8086,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                 fixture.flags |= CanvasFlag.DELETED;
                             }
                         }
-                        window.addEventListener('pointerup', finish);
-                        the_canvas.addEventListener('pointerleave', finish);
+                        the_canvas.addEventListener('pointerup', finish);
                     }break;
                 }
             }break;
@@ -8159,11 +8131,9 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     measure.flags |= CanvasFlag.DELETED;
                     request_render();
                     the_canvas.removeEventListener('pointermove', move);
-                    window.removeEventListener('pointerup', finish);
-                    the_canvas.removeEventListener('pointerleave', finish);
+                    the_canvas.removeEventListener('pointerup', finish);
                 }
-                window.addEventListener('pointerup', finish);
-                the_canvas.addEventListener('pointerleave', finish);
+                the_canvas.addEventListener('pointerup', finish);
 
             }break;
             case ToolType.TILE:{ // TAG toolTILE
@@ -8267,8 +8237,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     // console.log('created_ids', created_ids);
                     // console.log('deleted ids', deleted_ids);
                     the_canvas.removeEventListener('pointermove', make_tile);
-                    the_canvas.removeEventListener('pointerleave', finish);
-                    window.removeEventListener('pointerup', finish);
+                    the_canvas.removeEventListener('pointerup', finish);
                     publish_objs_by_ids(view.map, created_ids);
                     if(deleted_ids.length){
                         publish_delete_by_ids(view.map.map_id, deleted_ids);
@@ -8279,15 +8248,14 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     }
                     request_render();
                 };
-                window.addEventListener('pointerup', finish);
-                the_canvas.addEventListener('pointerleave', finish);
+                the_canvas.addEventListener('pointerup', finish);
             }break;
             case ToolType.ARC:{ // TAG toolARC
-                let id = get_new_id();
+                const id = get_new_id();
                 const [x0, y0] = event_to_coord_snapped(e, view, snap);
                 // const thickness_input = by_id('line-thickness');
                 const thickness = 6; // +thickness_input.value || 4;
-                let arc: Arc = {
+                const arc: Arc = {
                     type: CanvasType.ARC,
                     id: id,
                     base_x: x0,
@@ -8390,8 +8358,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 the_canvas.addEventListener('pointermove', add_point);
                 function finish_point():void{
                     the_canvas.removeEventListener('pointermove', add_point);
-                    window.removeEventListener('pointerup', finish_point);
-                    the_canvas.removeEventListener('pointerleave', finish_point);
+                    the_canvas.removeEventListener('pointerup', finish_point);
                     view.placing_area.is_placing = false;
                     if(arc.width && arc.height){
                         publish_obj_by_id(view.map, id);
@@ -8399,8 +8366,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     }
                     request_render();
                 }
-                window.addEventListener('pointerup', finish_point);
-                the_canvas.addEventListener('pointerleave', finish_point);
+                the_canvas.addEventListener('pointerup', finish_point);
             }break;
             default:{
                 console.log('unknown tool:', current_tool);
