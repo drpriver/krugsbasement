@@ -164,9 +164,8 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
         if(newx < 0) newx = 0;
         win.style.top = 100*newy/window.innerHeight + '%';
         win.style.left = 100*newx/window.innerWidth + '%';
-        r = win.getBoundingClientRect();
-        xorg = r.left;
-        yorg = r.top;
+        xorg += xdiff;
+        yorg += ydiff;
         x = e.screenX;
         y = e.screenY;
     }
