@@ -212,7 +212,8 @@ function make_note_window(id:number):NoteWindow{
     }
     const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
     const t = elem_parent_text(wh, 'span', '', null, 'window-title');
-    setup_movable_window(w, wh, WINDOWFLAGS.LOCAL_REMEMBER | WINDOWFLAGS.REMEMBER_POSITION);
+    if(!IS_MOBILE)
+        setup_movable_window(w, wh, WINDOWFLAGS.LOCAL_REMEMBER | WINDOWFLAGS.REMEMBER_POSITION);
     const make_top = setup_zsorted_window(w);
     const edit_button = elem_parent_text(w, 'button', 'Edit');
     const iframe = elem_with_parent(w, 'iframe');

@@ -3,6 +3,9 @@
 //
 let IS_TOUCH = false;
 let IS_MOBILE = false;
+const enum TOUCH {
+    LONG_CLICK_WAIT = 300,
+}
 document.addEventListener('DOMContentLoaded', function():void{
     if(navigator.userAgent.includes('Mobile')){
         document.body.classList.add('mobile');
@@ -14,8 +17,5 @@ document.addEventListener('DOMContentLoaded', function():void{
     if(window.matchMedia("(pointer: coarse)").matches) {
         IS_TOUCH = true;
         by_id('keyboardless-buttons').style.display = 'initial';
-        const ob = by_id('options-button');
-        ob.remove();
-        by_id('new-sheet-button').insertAdjacentElement('afterend', ob);
     }
 });

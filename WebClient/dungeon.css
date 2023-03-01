@@ -1146,6 +1146,12 @@ body.mobile textarea {
 body.mobile .window {
   touch-action: pan-y;
 }
+body.mobile .notes-window {
+  width: 100%;
+  height: 100%;
+  left: 0px;
+  top: 0px;
+}
 /*}*/
 
 .tracker {

@@ -48,7 +48,6 @@ function set_tools_vis(show:boolean):void{
     store_local(StorageCategory.SETTINGS, 'hidetools', show);
 }
 
-(function():void{
 // idk where to put this
 let SHOW_ZOOMERS = false;
 function set_zoomers(show:boolean):void{
@@ -115,7 +114,7 @@ function options_dialog():void{
             let data = export_maps();
             let a = document.createElement('a');
             a.download = 'maps.json'
-            a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type:'text/plain'}));
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type:'application/json'}));
             a.click();
         });
         dialog.f.screenshot.addEventListener('click', function():void{
@@ -219,4 +218,3 @@ function options_dialog():void{
 document.addEventListener('DOMContentLoaded', function():void{
     by_id('options-button').addEventListener('click', options_dialog);
 });
-}());

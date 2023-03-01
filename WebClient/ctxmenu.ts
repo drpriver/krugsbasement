@@ -97,6 +97,9 @@ function ctx_menu(e:MouseEvent):CtxMenu{
                 result.menu.style.left = 'initial';
                 result.menu.style.right = '0px';
             }
+            if(r.height > window.innerHeight){
+                result.menu.style.columns = '2';
+            }
         },
     };
     return result;

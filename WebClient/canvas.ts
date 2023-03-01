@@ -7421,12 +7421,23 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     the_canvas.addEventListener('pointerup', finish_move);
                 }
                 else {
+                    let timeout: number|undefined = undefined;
+                    if(IS_TOUCH){
+                        timeout = setTimeout(function():void{
+                            finish_select();
+                            onctx(e);
+                        }, TOUCH.LONG_CLICK_WAIT);
+                    }
                     sort_canv_objs(view.map);
                     view.selection_area.select_one = true;
                     view.selection_area.is_selecting = true;
                     update_selection(view, fudged_x0, fudged_y0, fudged_x1, fudged_y1);
                     request_render();
                     function select(e:MouseEvent):void{
+                        if(timeout !== undefined){
+                            clearTimeout(timeout);
+                            timeout = undefined;
+                        }
                         e.stopPropagation();
                         e.preventDefault();
                         let [select_x, select_y] = event_to_coord(e, view);
@@ -7437,6 +7448,10 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     }
                     the_canvas.addEventListener('pointermove', select);
                     function finish_select():void{
+                        if(timeout !== undefined){
+                            clearTimeout(timeout);
+                            timeout = undefined;
+                        }
                         finalize_selection(view);
                         the_canvas.removeEventListener('pointermove', select);
                         the_canvas.removeEventListener('pointerup', finish_select);
@@ -7476,7 +7491,18 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 let clicked_y = e.clientY/view.scale;
                 let pointer_id = e.pointerId;
                 GRABBING = true;
+                let timeout: number|undefined = undefined;
+                if(IS_TOUCH){
+                    timeout = setTimeout(function():void{
+                        finish_pan();
+                        onctx(e);
+                    }, TOUCH.LONG_CLICK_WAIT);
+                }
                 function pan(e:PointerEvent):void{
+                    if(timeout !== undefined){
+                        clearTimeout(timeout);
+                        timeout = undefined;
+                    }
                     e.stopPropagation();
                     e.preventDefault();
                     if(e.pointerId != pointer_id) return;
@@ -7490,6 +7516,10 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 }
                 the_canvas.addEventListener('pointermove', pan);
                 function finish_pan():void{
+                    if(timeout !== undefined){
+                        clearTimeout(timeout);
+                        timeout = undefined;
+                    }
                     stop_pan = null;
                     GRABBING = false;
                     if(prev_tool){
@@ -8394,7 +8424,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
         }
         launch_edit_dialog(view);
     });
-    the_canvas.addEventListener('contextmenu', function(e:MouseEvent):void{
+    function onctx(e:MouseEvent):void{
         const menu = ctx_menu(e);
         const view = get_view(which_canv);
         let [x, y] = event_to_coord(e, view);
@@ -8433,6 +8463,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 });
             }
             menu.separator();
+            menu.item('Options', options_dialog);
             menu.item(canv2_is_hidden?'Show Split':'Hide Split', function(){
                 canv2_is_hidden = !canv2_is_hidden;
                 if(!canv2_is_hidden)
@@ -8559,7 +8590,8 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
         menu.separator();
         menu.item('Cancel');
         menu.install();
-    });
+    }
+    the_canvas.addEventListener('contextmenu', onctx);
 }
 
 document.addEventListener('DOMContentLoaded', function():void{

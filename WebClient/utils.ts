@@ -154,8 +154,8 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
         let newy = yorg + ydiff;
         let newx = xorg + xdiff;
         let r = win.getBoundingClientRect();
-        let xmarg = r.width > 128? 128: r.width;
-        let ymarg = r.height > 128? 128: r.height;
+        let xmarg = IS_TOUCH?r.width:(r.width > 128? 128: r.width);
+        let ymarg = IS_TOUCH?r.height:(r.height > 128? 128: r.height);
         if(newx + xmarg > window.innerWidth)
             newx = window.innerWidth - xmarg;
         if(newy + ymarg > window.innerHeight)
