@@ -351,7 +351,7 @@ span.color-picker-dropdown {
   font-size: 1.5rem;
   position: fixed;
   top: 0;
-  bottom: 20%;
+  bottom: 50%;
   left: 0;
   right: 0;
   margin: auto;
@@ -363,6 +363,7 @@ span.color-picker-dropdown {
   z-index: 999999;
   text-align: center;
   height: max-content;
+  pointer-events: none;
 }
 #help-menu tbody tr td:nth-child(1){
   font-weight: bold;
