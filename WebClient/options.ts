@@ -51,7 +51,7 @@ function set_tools_vis(show:boolean):void{
 // idk where to put this
 let SHOW_ZOOMERS = false;
 function set_zoomers(show:boolean):void{
-    by_id('zoomers').style.display = show?'block':'none';
+    by_id('zoomers').style.display = show?'grid':'none';
     store_global(StorageCategory.SETTINGS, 'showzoomers', show);
     SHOW_ZOOMERS = show;
 }

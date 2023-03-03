@@ -16,6 +16,6 @@ document.addEventListener('DOMContentLoaded', function():void{
     // ask for what you want.
     if(window.matchMedia("(pointer: coarse)").matches) {
         IS_TOUCH = true;
-        by_id('keyboardless-buttons').style.display = 'initial';
+        by_id('keyboardless-buttons').style.display = 'grid';
     }
 });

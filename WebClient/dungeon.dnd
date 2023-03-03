@@ -556,8 +556,6 @@
       Line
     ::div.tool-menu #id(line-tool-menu)
       ☰
-    ::raw
-      <input type="number" id="line-thickness" value="4" max="20" min="1">
     ::div.tool #id(rect-tool)
       <b>R</b>ect
     ::div.tool-menu #id(rect-tool-menu)
@@ -591,28 +589,27 @@
   ::div #id(stuff)
     ::div #id(colors)
       ::raw
+        <div>
         <input type="color" id="color-picker" value="#000000">
         <span id="color-picker-dropdown" class="color-picker-dropdown">▼</span>
+        </div>
+        <label>Hidden <input type="checkbox" id="hidden-checkbox"> </label>
+        <div>
         <input type="color" id="color-picker2" value="#ffffff">
         <span id="color-picker2-dropdown" class="color-picker-dropdown">▼</span>
-        <label for="hidden-checkbox">Place<br>Hidden</label>
-        <input type="checkbox" id="hidden-checkbox" name="hidden-checkbox">
+        </div>
+        <label>Thick<input type="number" id="line-thickness" value="4" max="20" min="1"></label>
     ::div #id(zoomers)
       ::raw
         <button id="zoom-out">Zoom -</button>
         <button id="zoom-in">Zoom +</button>
     ::div #id(keyboardless-buttons)
-      ::div
         ::raw
           <button id="undo">Undo</button>
           <button id="redo">Redo</button>
-      ::div
-        ::raw
           <button id="cut">Cut</button>
           <button id="copy">Copy</button>
           <button id="paste">Paste</button>
-      ::div
-        ::raw
           <button id="edit">Edit</button>
           <button id="delete">Delete</button>
 
