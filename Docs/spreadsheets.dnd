@@ -21,8 +21,11 @@
     max-width: 80ch;
   }
   @media (prefers-color-scheme: dark) {
+    a:visited {
+      color: rgb(20, 140, 220);
+    }
     a {
-      color: rgb(40, 160, 240);
+      color: rgb(0, 80, 200);
     }
     body{
       background-color: #202020;
@@ -159,6 +162,26 @@
       ::pre
         call('pow', 2, 3)
       The above will yield 8.
+
+  cat::def
+    ::pre
+      cat(arg, arg)
+      cat(arg, arg, arg)
+      cat(arg, arg, arg, arg)
+      ...
+    Con<b><u>cat</u></b>enates the strings together. If at least one argument is an
+    array, the output is an array. Otherwise it outputs a string.
+
+    Arguments::dl
+      arg::def
+        A string or an array of strings.
+
+        If there is more than one array and they are different lengths, the
+        shorter arrays will be treated as if the missing elements were blanks.
+    Example::md
+      ::pre
+        cat('The', ' ', 'Cat')
+      The above will yield <tt>'The Cat'</tt>.
 
   ceil::def
     ::pre
