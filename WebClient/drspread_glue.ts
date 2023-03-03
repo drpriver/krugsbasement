@@ -1,12 +1,10 @@
 //
 // Copyright © 2023, David Priver
 //
-const enum CellKind {
-    CELL_EMPTY = 0, // Empty Cell
-    CELL_NUMBER = 1,
-    CELL_FORMULA = 2,
-    CELL_OTHER = 3,
-    CELL_UNKNOWN = 4,
+const enum DrspResultKind {
+    NULL   = 0, // Empty Cell
+    NUMBER = 1,
+    STRING = 2,
 }
 function drspread(
     wasm_path:string,
@@ -62,12 +60,18 @@ function readdouble(p:number):number{
 }
 const imports = {
     env:{
-        logline:function(p:number, l:number):void{
+        logline:function(p:number, l:number){
             const len = (exports as any).strlen(p);
             const s = wasm_string_to_js(p, len);
             console.trace(`${s}: ${l}`);
         },
-        round: Math.round,
+        // bizarrely, Math.round doesn't round correctly
+        round: (num:number):number => {
+            return Math.sign(num) * Math.round(Math.abs(num))
+        },
+        abort:():void =>{
+            throw new Error();
+        },
         pow: Math.pow,
         sheet_cell_text:function(id:number, row:number, col:number):number{
             return js_string_to_wasm(sheet_cell_text_(id, row, col));
@@ -139,9 +143,9 @@ function evaluate_string(id:number, s:string):number|string{
     }
     const kind = read4(p);
     switch(kind){
-        case CellKind.CELL_EMPTY: return "";
-        case CellKind.CELL_NUMBER: return readdouble(p+8);
-        case CellKind.CELL_OTHER: return wasm_string_to_js(read4(p+12), read4(p+8));
+        case DrspResultKind.NULL: return "";
+        case DrspResultKind.NUMBER: return readdouble(p+8);
+        case DrspResultKind.STRING: return wasm_string_to_js(read4(p+12), read4(p+8));
         default: return "error";
     }
     // reset_memory();
