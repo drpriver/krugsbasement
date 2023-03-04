@@ -365,28 +365,6 @@ span.color-picker-dropdown {
   height: max-content;
   pointer-events: none;
 }
-#help-menu tbody tr td:nth-child(1){
-  font-weight: bold;
-  white-space: nowrap;
-  border-right: 1px dotted #aaa;
-}
-#help-menu tbody tr td:nth-child(2){
-  white-space: nowrap;
-  border-right: 1px dotted #aaa;
-  font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
-  text-align: center;
-}
-#help-menu td{
-  padding: 8px;
-}
-#help-menu {
-  margin: 1em;
-  max-width: 60em;
-  border-collapse: collapse;
-}
-#help-menu tr {
-  border-bottom: 1px solid black;
-}
 #ez-token-conditions, #img-token-conditions {
   display: grid;
   grid-template-rows: repeat(4, 1fr);
@@ -530,15 +508,13 @@ div.tool-menu{
   text-align: center;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }
-@supports (-moz-appearance:none) { /* firefox */
-  #tools>div.tool:hover,
-  #tools>div.tool-menu:hover {
-    background-color: #e8e8e8;
-  }
-  body.dark-mode #tools>div.tool:hover,
-  body.dark-mode #tools>div.tool-menu:hover {
-    background-color: #5D5D5D;
-  }
+#tools>div.tool:hover,
+#tools>div.tool-menu:hover {
+  background-color: #e8e8e8;
+}
+body.dark-mode #tools>div.tool:hover,
+body.dark-mode #tools>div.tool-menu:hover {
+  background-color: #5D5D5D;
 }
 #tools > div.tool:first-child , #tools > div.tool-menu:first-child{
   border-radius: 4px 4px 0px 0px;
