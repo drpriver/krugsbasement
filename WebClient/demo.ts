@@ -238,12 +238,15 @@ function do_emit(type:FromClient, arg?:any, cb?:any):void{
             invoke_cb(ToClient.SESSION_ID, 0);
             break;
         case FromClient.POST_JOIN:
-            invoke_cb(ToClient.CANVAS_INITIALIZE_MAPS, []);
-            invoke_cb(ToClient.CHAT_CLEAR, );
-            invoke_cb(ToClient.CHAT_CREATE, []);
-            invoke_cb(ToClient.CHAT_PRIVATE_CREATE, []);
-            invoke_cb(ToClient.NOTES_INITIALIZE, []);
-            invoke_cb(ToClient.USER_LIST, [[SETTINGS.userid, SETTINGS.chat.name]]);
+            // we need the other DOM listeners to fire first.
+            setTimeout(() => {
+                invoke_cb(ToClient.CANVAS_INITIALIZE_MAPS, []);
+                invoke_cb(ToClient.CHAT_CLEAR, );
+                invoke_cb(ToClient.CHAT_CREATE, []);
+                invoke_cb(ToClient.CHAT_PRIVATE_CREATE, []);
+                invoke_cb(ToClient.NOTES_INITIALIZE, []);
+                invoke_cb(ToClient.USER_LIST, [[SETTINGS.userid, SETTINGS.chat.name]]);
+            }, 0);
             break;
         case FromClient.CANVAS_CREATE_OBJECTS:
             break;

@@ -10,6 +10,8 @@ const {
     resize_canvas,
 } = (function(){
 let CANV_TV: TreeView;
+// XXX: This races the websocket, although the event loop probably
+//      saves you.
 document.addEventListener('DOMContentLoaded', function():void{
     CANV_TV = make_tree_view(by_id('maps-list'), 'maps');
     CANV_TV.on_click = function(map_id:number):void{
