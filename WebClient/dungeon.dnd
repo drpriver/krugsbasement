@@ -225,6 +225,12 @@
               <option value="-1">No Link</option>
             </select>
         <tr>
+          <td>Link To Note:
+          <td>
+            ${selectbegin('link-note')}
+              <option value="-1">No Link</option>
+            </select>
+        <tr>
           <td>${label('background', "Background:")}
           <td>${checkbox('background')}
     </table>

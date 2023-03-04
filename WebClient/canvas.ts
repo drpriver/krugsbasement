@@ -374,7 +374,7 @@ type TextObj = {
     lines: Array<string>;
     bboxes: Array<Bbox>;
     alignment: TextAlignment;
-    map_id: number; // integer
+    link_id: number; // integer
 }
 
 let PACKED: Packed | null = null;
@@ -2017,7 +2017,7 @@ function make_text(id:number, base_x:number, base_y:number, text:string, size:nu
         bboxes: [],
         lines: text.split('\n'),
         alignment: alignment,
-        map_id: map_id,
+        link_id: map_id,
     };
     return obj;
 }
@@ -3679,7 +3679,7 @@ function strip_obj(obj:CanvasObject): StrippedObj{
             return stripped_obj;
         }break;
         case CanvasType.TEXT:{
-            const stripped_obj: StrippedTextObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.text, obj.size, obj.alignment, obj.map_id];
+            const stripped_obj: StrippedTextObj = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.text, obj.size, obj.alignment, obj.link_id];
             return stripped_obj;
         }break;
         case CanvasType.EZ_TOKEN:{
@@ -3875,7 +3875,7 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 bbox:{x0:0, x1:0, y0:0, y1:0},
                 lines: (sobj as StrippedTextObj)[6].split('\n'),
                 bboxes: [],
-                map_id: (sobj as StrippedTextObj)[9],
+                link_id: (sobj as StrippedTextObj)[9],
             };
             return obj;
         }break;
@@ -4272,8 +4272,23 @@ function launch_edit_dialog(view:DungeonMapView):void{
             for(const map of MAPS.values()){
                 elem_parent_text(dialog.f['link-dungeon'], 'option', map.map_name).value = ''+map.map_id;
             }
+            dialog.f['link-note'].replaceChildren()
+            elem_parent_text(dialog.f['link-note'], 'option', 'No Link').value = '-1';
+            for(const note of NOTES.values()){
+                elem_parent_text(dialog.f['link-note'], 'option', note.title).value = ''+note.id;
+            }
             dialog.f['link-dungeon'].value = '-1';
-            dialog.f['link-dungeon'].value = ""+obj.map_id;
+            dialog.f['link-note'].value = '-1';
+            if(obj.flags & CanvasFlag.TEXT_LINKS_NOTE)
+                dialog.f['link-note'].value = ""+obj.link_id;
+            else
+                dialog.f['link-dungeon'].value = ""+obj.link_id;
+            dialog.f['link-note'].onselect = function(){
+                dialog.f['link-dungeon'].value = '-1';
+            }
+            dialog.f['link-dungeon'].onselect = function(){
+                dialog.f['link-note'].value = '-1';
+            }
             dialog.show_handler = function():void{
                 dialog.f.text.value = obj.text;
                 if(!IS_TOUCH) dialog.f.text.focus();
@@ -4286,20 +4301,26 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 if(textsize < 4) textsize = 4;
                 if(textsize > 72) textsize = 72;
                 let map_id = +dialog.f['link-dungeon'].value;
+                let note_id = +dialog.f['link-note'].value;
                 // This is annoying otherwise
                 if(map_id == view.map.map_id)
                     map_id = -1;
+                let link_id = map_id == -1?note_id:map_id;
                 obj.size = textsize;
                 obj.text = text;
                 obj.bbox = {x0:0, y0:0, x1:0, y1:0};
                 obj.bboxes = [];
                 obj.lines = text.split('\n');
-                obj.map_id = map_id;
+                obj.link_id = link_id;
                 obj.alignment = alignment;
                 if(dialog.f.background.checked)
                     obj.flags |= CanvasFlag.TEXT_HAS_BACKGROUND;
                 else
                     obj.flags &= ~CanvasFlag.TEXT_HAS_BACKGROUND;
+                if(map_id == -1 && link_id != -1)
+                    obj.flags |= CanvasFlag.TEXT_LINKS_NOTE;
+                else
+                    obj.flags &= ~CanvasFlag.TEXT_LINKS_NOTE;
                 const after = strip_obj(obj);
                 publish_obj_updates(view.map.map_id, [after]);
                 request_render();
@@ -5219,28 +5240,36 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                             else
                                 ctx.fillStyle = BACKGROUND + '88';
                             if(is_selected || (obj.flags & CanvasFlag.TEXT_HAS_BACKGROUND)){
-                            const x = bx+bbox.x0;
-                            const y = by+bbox.y0;
-                            const width = bbox.x1-bbox.x0;
-                            const height = bbox.y1-bbox.y0;
-                            ctx.fillRect(x, y, width, height);
+                                const x = bx+bbox.x0;
+                                const y = by+bbox.y0;
+                                const width = bbox.x1-bbox.x0;
+                                const height = bbox.y1-bbox.y0;
+                                ctx.fillRect(x, y, width, height);
                             }
                             if(is_darkmode){
-                                if(obj.map_id != -1){
-                                    ctx.fillStyle = '#99f';
+                                if(obj.link_id != -1){
+                                    if(obj.flags & CanvasFlag.TEXT_LINKS_NOTE)
+                                        // XXX: ugly
+                                        ctx.fillStyle = '#f6f';
+                                    else
+                                        ctx.fillStyle = '#99f';
                                 }
                                 else
                                     ctx.fillStyle = '#fff';
                             }
                             else{
-                                if(obj.map_id != -1){
-                                    ctx.fillStyle = '#44f';
+                                if(obj.link_id != -1){
+                                    if(obj.flags & CanvasFlag.TEXT_LINKS_NOTE)
+                                        // XXX: ugly
+                                        ctx.fillStyle = '#b4b';
+                                    else
+                                        ctx.fillStyle = '#44f';
                                 }
                                 else
                                     ctx.fillStyle = '#000';
                             }
                             ctx.fillText(line, bx, by+y_off);
-                            if(obj.map_id != -1){
+                            if(obj.link_id != -1){
                                 ctx.fillRect(bx+bbox.x0, by+bbox.y1-1, bbox.x1-bbox.x0, 2);
                             }
                         }
@@ -5258,7 +5287,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                                 obj.bbox.x1 = bb.x1;
                         }
                     }
-                    if(obj.map_id != -1)
+                    if(obj.link_id != -1)
                         for(let bb of obj.bboxes){
                             view.action.areas.push({
                                 bbox:{x0:bb.x0+bx, y0:bb.y0+by, x1:bb.x1+bx, y1:bb.y1+by},
@@ -7291,7 +7320,12 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                             if(o.flags & CanvasFlag.DELETED) break;
                             if(o.hidinguser && o.hidinguser !== SETTINGS.userid) break;
                             if(o.type == CanvasType.TEXT){
-                                change_map(which_canv, o.map_id);
+                                if(o.flags & CanvasFlag.TEXT_LINKS_NOTE){
+                                    const n = NOTES.get(o.link_id);
+                                    if(n) get_note_window(n.id).show();
+                                }
+                                else
+                                    change_map(which_canv, o.link_id);
                                 view.selected.clear();
                                 the_canvas.style.cursor = 'initial';
                                 return;
@@ -7477,7 +7511,12 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                 if(o.flags & CanvasFlag.DELETED) break;
                                 if(o.hidinguser && o.hidinguser !== SETTINGS.userid) break;
                                 if(o.type == CanvasType.TEXT){
-                                    change_map(which_canv, o.map_id);
+                                    if(o.flags & CanvasFlag.TEXT_LINKS_NOTE){
+                                        const n = NOTES.get(o.link_id);
+                                        if(n) get_note_window(n.id).show();
+                                    }
+                                    else
+                                        change_map(which_canv, o.link_id);
                                     view.selected.clear();
                                     the_canvas.style.cursor = 'initial';
                                     return;
@@ -7869,12 +7908,24 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 r.checked = false;
                 dialog.f.text.value = '';
                 dialog.f.background.checked = false;
-                dialog.f['link-dungeon'].replaceChildren();
+                dialog.f['link-dungeon'].replaceChildren()
                 elem_parent_text(dialog.f['link-dungeon'], 'option', 'No Link').value = '-1';
                 for(const map of MAPS.values()){
                     elem_parent_text(dialog.f['link-dungeon'], 'option', map.map_name).value = ''+map.map_id;
                 }
+                dialog.f['link-note'].replaceChildren()
+                elem_parent_text(dialog.f['link-note'], 'option', 'No Link').value = '-1';
+                for(const note of NOTES.values()){
+                    elem_parent_text(dialog.f['link-note'], 'option', note.title).value = ''+note.id;
+                }
                 dialog.f['link-dungeon'].value = '-1';
+                dialog.f['link-note'].value = '-1';
+                dialog.f['link-note'].onselect = function(){
+                    dialog.f['link-dungeon'].value = '-1';
+                }
+                dialog.f['link-dungeon'].onselect = function(){
+                    dialog.f['link-note'].value = '-1';
+                }
                 dialog.ok_handler = function():void{
                     const text = dialog.f.text.value.trim();
                     if(!text) return;
@@ -7884,15 +7935,19 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     if(textsize < 4) textsize = 4;
                     if(textsize > 72) textsize = 72;
                     let map_id = +dialog.f['link-dungeon'].value;
+                    let note_id = +dialog.f['link-note'].value;
                     // This is annoying otherwise
                     if(map_id == view.map.map_id)
                         map_id = -1;
+                    let link_id = map_id == -1?note_id:map_id;
                     let id = get_new_id();
-                    add_text(view.map, id, x0, y0, text, textsize, alignment, map_id);
+                    add_text(view.map, id, x0, y0, text, textsize, alignment, link_id);
                     // kind of hacky
                     let o = view.map.canvas_objs.get(id)!;
                     if(dialog.f.background.checked)
                         o.flags |= CanvasFlag.TEXT_HAS_BACKGROUND;
+                    if(map_id == -1 && link_id != -1)
+                        o.flags |= CanvasFlag.TEXT_LINKS_NOTE;
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                     request_render();

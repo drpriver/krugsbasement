@@ -1,0 +1,9 @@
+Changelog::kv
+  created:  2023-02-11T06:57:44Z
+  resolved: 2023-03-04T20:50:26Z
+Created Feb 10, 2023, 10:57PM::md .update
+Summary::md .summary
+  It would pop open the notes window.
+
+Resolved Mar 04, 2023, 12:50PM::md .update
+  Done, fuck encapsulation.

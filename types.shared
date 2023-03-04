@@ -428,7 +428,8 @@ enum CanvasFlag: int flag
     // Named versions of the above
     // ------
     // TEXT
-    // FLAG_B and FLAG_A are unused for text (were previously used)
+    // FLAG_A is unused for text (was previously used)
+    duplicate TEXT_LINKS_NOTE = FLAG_B
     duplicate TEXT_HAS_BACKGROUND = FLAG_C
     // FREEHAND_LINE
     duplicate LINE_IS_ARROW = FLAG_A

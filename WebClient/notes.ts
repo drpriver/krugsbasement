@@ -4,7 +4,7 @@
 
 // Don't bother trying to split notes into core vs. ui as they are their
 // own self-contained thing.
-(function():void{
+// (function():void{
 
 let NOTE_TV : TreeView;
 document.addEventListener('DOMContentLoaded', function():void{
@@ -491,4 +491,4 @@ document.addEventListener('DOMContentLoaded', function():void{
         window.show();
     });
 });
-}());
+// }());
