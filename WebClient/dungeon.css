@@ -1181,6 +1181,12 @@ body.mobile .notes-window {
   overflow: auto;
   font-size: 10pt;
 }
+.noscrollbar {
+  scrollbar-width: none;
+}
+.noscrollbar::-webkit-scrollbar {
+    display: none;
+}
 .tracker-grid .window-handle {
   grid-column-start: 1;
   grid-column-end: -1;

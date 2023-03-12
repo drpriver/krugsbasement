@@ -49,6 +49,7 @@ SOCKET.on('disconnect', function(reason:string):void{
     }
 });
 }());
+const IS_FIREFOX = window.navigator.userAgent.search('Firefox') !== -1;
 
 let session_id = 0;
 ONRECV(ToClient.SESSION_ID, function(resp:number):void{
