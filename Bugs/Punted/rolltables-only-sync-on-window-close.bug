@@ -1,0 +1,10 @@
+Changelog::kv
+  created: 2023-02-01T02:52:58Z
+  punted:  2023-03-04T21:19:15Z
+Created Jan 31, 2023, 06:52PM::md .update
+Summary::md .summary
+  That is pretty unexpected.
+
+Punted Mar 04, 2023, 01:19PM::md .update
+  Properly solving this would require send more messages to the server so we can
+  patch the table instead of serializing the whole damn thing every time.

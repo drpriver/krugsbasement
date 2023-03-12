@@ -1,0 +1,14 @@
+Changelog::kv
+  created: 2023-02-20T04:59:25Z
+  punted:  2023-03-04T18:28:09Z
+Created Feb 19, 2023, 08:59PM::md .update
+Summary::md .summary
+  Who cares if it doesn’t fit.
+
+Punted Mar 04, 2023, 10:28AM::md .update
+  This was too heavy (7ms on a small campaign (horror)) and also requires a
+  stabilization of storage format.
+
+  Really, we need something more efficient than JSON, something you can directly
+  edit the serialized data (but local storage is just strings...). Maybe
+  indexDB.
