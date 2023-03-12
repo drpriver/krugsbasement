@@ -3,6 +3,8 @@
 //
 
 let SHEET_TV: TreeView;
+let SHEET_CTX: DrSpreadCtx;
+let DRSP_EXPORTS: DrSpreadExports;
 document.addEventListener('DOMContentLoaded', function():void{
     SHEET_TV = make_tree_view(by_id('sheets-list'), 'sheets');
     SHEET_TV.on_click = function(id:number):void{
@@ -57,11 +59,13 @@ document.addEventListener('DOMContentLoaded', function():void{
 });
 
 type SpreadSheet = {
+    xxx_timing: HTMLSpanElement;
     id: number;
     parent: number;
     w:HTMLDivElement;
     hidden: boolean;
     _dirty: boolean;
+    _wasmed: boolean;
     name: string;
     show:() => void;
     hide:() => void;
@@ -102,29 +106,31 @@ type SpreadSheet = {
     to_tsv:()=>string;
 }
 
-function sheet_cell_text(id:number, row:number, col:number):string{
-    const sheet = SPREADSHEETS.get(id);
-    // Underlying library assumes the SheetHandle is always valid and
-    // you are supposed to return the empty string for out of bounds
-    // accesses to simulate infinite sheet.
-    if(!sheet) return "="; // This will turn into a syntax error.
-    if(row < 0 || row >= sheet.cell_sources.length) return "";
-    const r = sheet.cell_sources[row];
-    if(col < 0 || col >= r.length) return "";
-    return r[col];
+function setup_sheet_for_wasm(sheet:SpreadSheet):void{
+    if(!SHEET_CTX) return;
+    if(sheet._wasmed) return;
+    sheet._wasmed = true;
+    SHEET_CTX.make_sheet(sheet.id, sheet.name);
+    SHEET_CTX.set_sheet_alias(sheet.id, fully_qualified_sheet_name(sheet));
+    for(let r = 0; r < sheet.cell_sources.length; r++){
+        const row = sheet.cell_sources[r];
+        for(let c = 0; c < row.length; c++){
+            const s = row[c];
+            if(!s.length) continue;
+            SHEET_CTX.set_str(sheet.id, r, c, s);
+        }
+    }
+    for(let c = 0; c < sheet.column_names.length; c++){
+        SHEET_CTX.set_col_name(sheet.id, c, sheet.column_names[c]);
+    }
 }
 
-function sheet_col_height(id:number, col:number):number{
-    const sheet = SPREADSHEETS.get(id);
-    if(!sheet) return 0;
-    return sheet.cell_sources.length;
+function sheet_dewasm(sheet:SpreadSheet):void{
+    if(!sheet._wasmed) return;
+    sheet._wasmed = false;
+    if(SHEET_CTX) SHEET_CTX.del_sheet(sheet.id);
 }
-function sheet_row_width(id:number, row:number):number{
-    const sheet = SPREADSHEETS.get(id);
-    if(!sheet) return 0;
-    if(!sheet.cell_sources.length) return 0;
-    return sheet.cell_sources[0].length;
-}
+
 const NumFormatter = new Intl.NumberFormat('en', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 3,
@@ -140,56 +146,13 @@ function sheet_display_number(id:number, row:number, col:number, val:number):voi
 function sheet_display_string(id:number, row:number, col:number, sval:string):void{
     const sheet = SPREADSHEETS.get(id);
     if(!sheet) return;
+    // console.log({row, col, sval});
     sheet.set_display(row, col, sval);
 }
 function sheet_display_error(id:number, row:number, col:number):void{
     const sheet = SPREADSHEETS.get(id);
     if(!sheet) return;
     sheet.set_display(row, col, "#ERROR");
-}
-function sheet_name_to_col_idx(id:number, s:string):number{
-    if(s.length == 1) {
-        const result = s.toLowerCase().charCodeAt(0) - 97;
-        // console.log({s, result});
-        return result;
-    }
-    const sheet = SPREADSHEETS.get(id);
-    if(!sheet) return -1;
-    const idx = sheet.column_names.indexOf(s);
-    if(idx !== -1) {
-        // console.log({s, idx});
-        return idx;
-    }
-    for(let idx = 0; idx < sheet.column_names.length; idx++){
-        if(sheet.column_names[idx].toLowerCase().trim() == s){
-            // console.log({s, idx});
-            return idx;
-        }
-    }
-    // console.log({s, 'result':-1});
-    return -1;
-}
-
-function sheet_next_cell(id:number, i:number, prev_row:number, prev_col:number):[number, number]{
-    const sheet = SPREADSHEETS.get(id);
-    if(!sheet) return [-1, -1];
-    if(prev_row == -1 && prev_col == -1)
-        return sheet.cell_sources.length && sheet.cell_sources[0].length? [0,0]:[-1,-1];
-    prev_col++;
-    while(prev_col >= sheet.cell_sources[prev_row].length){
-        prev_row++;
-        prev_col = 0;
-        if(prev_row == sheet.cell_sources.length)
-            return [-1, -1];
-    }
-    return [prev_row, prev_col];
-}
-
-function sheet_dims(id:number):[number,number]{
-    const sheet = SPREADSHEETS.get(id);
-    if(!sheet) return [0, 0];
-    if(!sheet.cell_sources.length) return [0, 0];
-    return [sheet.cell_sources.length, sheet.cell_sources[0].length];
 }
 
 function fully_qualified_sheet_name(s:SpreadSheet):string{
@@ -202,22 +165,6 @@ function fully_qualified_sheet_name(s:SpreadSheet):string{
         parts.push(s.name);
     }
     return parts.reverse().join('/');
-}
-const _sheet_name_map: Map<string, number> = new Map();
-function _rebuild_sheet_name_map():void{
-    _sheet_name_map.clear();
-    for(const sheet of SPREADSHEETS.values()){
-        let name = sheet.name.toLowerCase();
-        const id = sheet.id
-        _sheet_name_map.set(name, id);
-        _sheet_name_map.set(fully_qualified_sheet_name(sheet).toLowerCase(), id);
-    }
-    // console.log(Array.from(_sheet_name_map.entries()));
-}
-function sheet_name_to_sheet(s:string):number {
-    s = s.toLowerCase();
-    if(!_sheet_name_map.has(s)) return 0;
-    return _sheet_name_map.get(s)!;
 }
 
 let sheet_evaluate_formulas: ((id:number)=>Array<number>);
@@ -238,41 +185,51 @@ function load_sheet_wasm():void{
     if(sheet_wasm_load_in_flight) return;
     sheet_wasm_load_in_flight = true;
     drspread(
-        '/wasm/drspread.wasm',
-        sheet_cell_text,
-        sheet_col_height,
-        sheet_row_width,
+        '/wasm/drspread.wasm?v=6',
         sheet_display_number,
         sheet_display_string,
         sheet_display_error,
-        sheet_name_to_col_idx,
-        sheet_next_cell,
-        sheet_dims,
-        sheet_name_to_sheet,
-    ).then(({evaluate_formulas, evaluate_string})=>{
-        sheet_evaluate_formulas = evaluate_formulas;
-        sheet_eval_string = evaluate_string;
+    ).then(({make_ctx, exports})=>{
+        SHEET_CTX = make_ctx();
+        DRSP_EXPORTS = exports;
+        for(const sheet of SPREADSHEETS.values()){
+            setup_sheet_for_wasm(sheet);
+        }
         for(const sheet of SPREADSHEETS.values()){
             if(sheet.hidden) continue;
             if(!sheet._dirty) continue;
             recalc(sheet.id);
         }
+    })
+    .catch((reason)=>{
+        console.log(reason);
+        sheet_wasm_load_in_flight = false;
     });
 }
 
 function recalc(id:number):void{
-    if(!sheet_evaluate_formulas) {
+    if(!SHEET_CTX){
         load_sheet_wasm();
         return;
     }
     const sheet = SPREADSHEETS.get(id);
     if(!sheet) return;
+    // We can have cross-sheet deps, so make sure they
+    // have all pushed their stuff into wasm.
+    for(const sheet of SPREADSHEETS.values())
+        setup_sheet_for_wasm(sheet);
+    setup_sheet_for_wasm(sheet);
     if(sheet.hidden) return;
     if(!sheet._dirty) return;
-    // const now = window.performance.now();
-    // for(let i = 0; i < 100000; i++)
-    sheet.sheet_deps = sheet_evaluate_formulas(id);
-    // const after = window.performance.now();
+    const now = window.performance.now();
+    const enum N { N = 1};
+    // const enum N { N = 10000};
+    for(let i = 0; i < N.N; i++)
+        sheet.sheet_deps = SHEET_CTX.evaluate_formulas(id);
+    const after = window.performance.now();
+    // @ts-ignore
+    let b: number = DRSP_EXPORTS.bytes_used();
+    sheet.xxx_timing.innerText = `${(after-now).toFixed(2)}ms ${Intl.NumberFormat('en-us', {style:'unit', unit:'kilobyte'}).format(b/1024)}`;
     // console.log({id, 'name':sheet.name});
     // console.log({id, deps:sheet.sheet_deps.join(',')});
     // console.log({id, duration:after-now});
@@ -286,7 +243,12 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
     const openid = `${winid}/open`
     // idk should assert here or something if winid already exists
     const w = elem_with_parent(document.body, 'div', winid, 'tracker-grid');
+    if(IS_WINDOWS){
+        // Windows scrollbars are atrocious
+        w.classList.add('noscrollbar');
+    }
     const wh = elem_with_parent(w, 'div', null, 'window-handle');
+    const xxx_timing = elem_with_parent(wh, 'span');
     wh.oncontextmenu = function(e:MouseEvent):void{
         const menu = ctx_menu(e);
         menu.item('Rename',function(e:MouseEvent):void{
@@ -380,7 +342,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             };
             diag.show();
         });
-        else 
+        else
             menu.disabled('Delete Spreadsheet');
         menu.separator();
         menu.item('Cancel');
@@ -391,10 +353,12 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
 
     setup_movable_window(w, wh, WINDOWFLAGS.REMEMBER_POSITION|WINDOWFLAGS.LOCAL_REMEMBER);
     const result = {
+        xxx_timing,
         id,
         parent,
         w:w,
         _dirty: false,
+        _wasmed: false,
         hidden: true,
         name,
         show: function():void{
@@ -728,7 +692,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 break;
         }
     }
-    function edit_cell(cell:HTMLDivElement, key:string):void{
+    function edit_cell(cell:HTMLDivElement, key:string, from_click?:boolean):void{
         if(!(result.flags & SpreadSheetFlags.CAN_EDIT_CELLS))
             return;
         const [row_idx, col_idx] = idx_of(cell);
@@ -751,6 +715,10 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 inp.value = oldtxt;
             else
                 inp.value = '';
+        }
+        else if(from_click){
+            inp.style.width = w;
+            inp.value = oldtxt;
         }
         else {
             inp.style.width = w;
@@ -827,7 +795,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         e.preventDefault();
         remove_ctx_menu();
         const cell = e.target as HTMLDivElement;
-        edit_cell(cell, '');
+        edit_cell(cell, '', true);
     }
     function on_copy():void{
         const [row_idx, col_idx] = idx_of(document.activeElement as HTMLDivElement);
@@ -939,8 +907,10 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 result.number_els[i].textContent = ''+(i+1);
         w.style.gridTemplateRows = gtr();
         // NOTE: assume adding rows at the end can't trigger a recalc
-        if(whence != result.cell_sources.length-1)
+        if(whence != result.cell_sources.length-1){
+            sheet_dewasm(result);
             recalc_me();
+        }
     };
     result.add_column1 = function(whence:number):void{
         result.add_column3(whence, '', []);
@@ -1107,13 +1077,19 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         }
         w.style.gridTemplateColumns = gtc();
         // NOTE: assume adding columns at the end can't trigger a recalc
-        if(whence != result.column_names.length-1)
+        if(whence != result.column_names.length-1){
+            sheet_dewasm(result);
             recalc_me();
+        }
     };
     result.set_title = function(title:string):void{
         result.name = title;
         t.textContent = title;
         SHEET_TV.rename(id, title);
+        if(result._wasmed){
+            SHEET_CTX.make_sheet(result.id, result.name);
+            SHEET_CTX.set_sheet_alias(result.id, fully_qualified_sheet_name(result));
+        }
     };
     const comparator = Intl.Collator(undefined, {numeric:true});
     result.sort = function(col_idx:number, direction: number):void{
@@ -1166,6 +1142,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 num_el.insertAdjacentElement('afterend', col);
             }
         }
+        sheet_dewasm(result);
         recalc_me();
     };
     result.del_column = function(whence:number):void{
@@ -1201,6 +1178,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 result.number_els[i].textContent = ''+(i+1);
             }
         w.style.gridTemplateRows = gtr();
+        sheet_dewasm(result);
         recalc_me();
     }
     result.move_row = function(from:number, to:number):void{
@@ -1228,6 +1206,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             result.cell_sources[from] = result.cell_sources[to];
             result.cell_sources[to] = tmp;
         }
+        sheet_dewasm(result);
         recalc_me();
     };
     result.move_column = function(from:number, to:number):void{
@@ -1283,12 +1262,15 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 row[to] = fc;
             }
         }
+        sheet_dewasm(result);
         recalc_me();
     };
     result.rename_column = function(whence:number, name:string):void{
         if(whence < 0 || whence >= result.headers.length) return;
         result.column_names[whence] = name;
         result.headers[whence].textContent = name;
+        if(result._wasmed)
+            SHEET_CTX.set_col_name(result.id, whence, name);
         recalc_me();
     };
     result.edit_cell = function(row_idx:number, col_idx:number, val:string):void{
@@ -1299,6 +1281,9 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         // if(row[col_idx].textContent == val) return;
         // row[col_idx].textContent = val;
         row[col_idx] = val;
+        if(result._wasmed){
+            SHEET_CTX.set_str(result.id, row_idx, col_idx, val);
+        }
         recalc_me();
     };
     result.set_display = function(row_idx:number, col_idx:number, val:string):void {
@@ -1502,7 +1487,6 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
         }break;
         case SpreadSheetMsgType.NEW_SHEET:
             const ss = spreadsheet_from_data(arg[1]);
-            _rebuild_sheet_name_map();
             ss.mark_dirty();
             ss.show();
             SHEET_TV.add_item(ss.name, ss.id, ss.parent?ss.parent:null);
@@ -1517,7 +1501,6 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
             SPREADSHEETS.clear();
             SHEET_TV.clear();
             for(const d of arg[1]) spreadsheet_from_data(d);
-            _rebuild_sheet_name_map();
             for(const ss of SPREADSHEETS.values()){
                 ss._dirty = true;
                 SHEET_TV.add_item_(ss.name, ss.id, null);
@@ -1540,7 +1523,8 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
             let ss = SPREADSHEETS.get(arg[1]);
             if(!ss) break;
             ss.set_title(arg[2]);
-            _rebuild_sheet_name_map();
+            // XXX: There might be a bug where sheets that should
+            //      depend on the new name won't get recalced.
         }break;
         case SpreadSheetMsgType.FLAG:{
             let ss = SPREADSHEETS.get(arg[1]);
@@ -1554,6 +1538,7 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
             // Should there be a delete method on the spreadsheet instead of
             // doing it inline here?
             ss.w.remove();
+            sheet_dewasm(ss);
             SPREADSHEETS.delete(id);
             SHEET_TV.remove(id);
         }break;
