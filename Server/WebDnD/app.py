@@ -181,7 +181,7 @@ def register() -> Any:
     hidden.append_child(form.hidden_tag())
     html = ctx.render()
     t1 = time.time()
-    dlog('register rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
+    dlog('register rendering %r took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
     return html
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -219,7 +219,7 @@ def login_page() -> Any:
     hidden.append_child(form.hidden_tag())
     html = ctx.render()
     t1 = time.time()
-    dlog('login rendering %s took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
+    dlog('login rendering %r took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
     return html
 
 
@@ -372,16 +372,16 @@ def chat_test_structured_input(data:ChatCommandMessage)->None:
 @validated
 def chat_dm(data:ChatDirectCommandMessage) -> None:
     assert current_user.is_authenticated
-    dlog('chat_dm: %s', data);
+    dlog('chat_dm: %r', data);
     campaign = get_campaign(request)
     if not data:
         return
     responses = chat.handle_structured_input(current_user.userid, campaign, data['chatname'], data['commands'], private=False, to=data['to'])
     if not responses: return
     msg: ChatDirectResponse = {'users':[current_user.userid, data['to']], 'msgs':responses}
-    # dlog('msg: %s', msg)
+    # dlog('msg: %r', msg)
     sids = sorted(set(get_sids_of_user_for_campaign(campaign, current_user.userid) + get_sids_of_user_for_campaign(campaign, data['to'])))
-    dlog('sids: %s', sids)
+    dlog('sids: %r', sids)
     for sid in sids:
         emit(ToClient.CHAT_DIRECT_MSG, msg, to=sid)
 
@@ -476,7 +476,7 @@ def post_join(mode:UiMode) -> None:
         userlist = []
         for uid in userids:
             chatname = settings.get_local_ckvd(uid, campaign, 'chat', 'name', 'anon')
-            dlog('chatname for uid (%s): %r', uid, chatname)
+            dlog('chatname for uid (%r): %r', uid, chatname)
             userlist.append((uid, chatname))
         emit(ToClient.USER_LIST, userlist)
     if mode == UiMode.NORMAL:
@@ -892,7 +892,7 @@ def log_connections() -> None:
     if nsids == _last_log_num:
         return
     _last_log_num = nsids
-    logging.info('Active connections: %s', nsids)
+    logging.info('Active connections: %r', nsids)
 rt = RepeatTimer(600, log_connections)
 rt.start()
 
