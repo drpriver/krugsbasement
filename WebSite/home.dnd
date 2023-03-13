@@ -9,7 +9,7 @@
     logout = /logout
 ::md.center
   Home::title
-  ::md #id(welcome)
+  ::div #id(welcome)
 
   There's not much here yet, but it is something.
   Campaigns::md

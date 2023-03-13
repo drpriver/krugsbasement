@@ -1,10 +1,11 @@
 #
 # Copyright © 2021-2022, David Priver
 #
+import re
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
-from wtforms.validators import DataRequired, EqualTo, ValidationError, InputRequired, Length, Email
+from wtforms.validators import DataRequired, EqualTo, ValidationError, InputRequired, Length, Email, Regexp
 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
@@ -21,7 +22,7 @@ class LoginForm(FlaskForm):
         )
 
 class RegisterForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired(), Length(min=5, max=32)])
+    username = StringField('Username', validators=[DataRequired(), Length(min=5, max=32), Regexp(re.compile("^[a-zA-Z0-9_]+$"))])
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=8)])
     password2 = PasswordField('Repeat Password', validators=[DataRequired(), EqualTo('password')])

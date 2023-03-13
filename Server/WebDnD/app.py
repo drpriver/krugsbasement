@@ -313,7 +313,7 @@ def home() -> Any:
     ctx, nodes = HOMETEMPLATE.clone()
     camp, your_campaigns, welcome, create = nodes
     if campaigns:
-        camp.parse('Go to a Campaign:')
+        camp.append_child('Go to a Campaign:')
         raw: pydndc.Node = camp.make_child(pydndc.NodeType.RAW)
         raw.append_child('<ul>')
         for id, campaign in campaigns:
@@ -341,7 +341,8 @@ def home() -> Any:
 
     else:
         your_campaigns.hide = True
-    welcome.parse(f'Welcome {name}, this is your home.')
+    welcome: pydndc.Node
+    welcome.append_child(f'Welcome {name}, this is your home.')
     create.children[0].children[1].header = form.hidden_tag()
     html = ctx.render()
     tend = time.time()

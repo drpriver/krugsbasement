@@ -20,11 +20,11 @@
   ::div.error-item #id(username-errors)
   ::div.login-item .hint
     ::raw
-      <span>Between 5 and 32 characters</span>
+      <span>Between 5 and 32 letters and numbers</span>
   ::div.login-item
     ::raw
       <label for="username">Username</label>
-      <input id="username" maxlength="32" minlength="5" name="username" required="" size="32" type="text" value="" autocomplete="username">
+      <input id="username" maxlength="32" minlength="5" name="username" required="" size="32" type="text" value="" autocomplete="username" pattern="[A-Za-z0-9]+">
   ::div.error-item #id(email-errors)
   ::div.login-item
     ::raw
