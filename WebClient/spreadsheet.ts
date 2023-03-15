@@ -783,8 +783,8 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             const v = inp.value.trim();
             if(oldtxt != v){
                 const [row_idx, col_idx] = idx_of(cell);
-                cell.textContent = v;
-                result.cell_displays[row_idx][col_idx] = v; // so that recalc will replace it.
+                // cell.textContent = v;
+                // result.cell_displays[row_idx][col_idx] = v;
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELL, result.id, row_idx, col_idx, v]);
             }
         };

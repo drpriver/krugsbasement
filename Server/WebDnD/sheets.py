@@ -150,8 +150,11 @@ class SpreadSheet:
     def move_column(self, from_:int, to_:int) -> bool:
         if not (self.flags & SpreadSheetFlags.CAN_MOVE_COLUMNS):
             return False
-        self.cells[from_::len(self.column_names)], self.cells[to_::len(self.column_names)] = self.cells[to_::len(self.column_names)], self.cells[from_::len(self.column_names)]
-        self.column_names[from_], self.column_names[to_] = self.column_names[to_], self.column_names[from_]
+        ncols = len(self.column_names)
+        c = self.cells
+        c[from_::ncols], c[to_::ncols] = c[to_::ncols], c[from_::ncols]
+        cn = self.column_names
+        cn[from_], cn[to_] = cn[to_], cn[from_]
         self.col_names_dirty = True
         self.cells_dirty = True
         return True
@@ -159,10 +162,11 @@ class SpreadSheet:
     def move_row(self, from_:int, to_:int) -> bool:
         if not (self.flags & SpreadSheetFlags.CAN_MOVE_ROWS):
             return False
-        c = len(self.column_names)
-        from_ *= c
-        to_ *= c
-        self.cells[from_:from_+c], self.cells[to_:to_+c] = self.cells[to_:to_+c], self.cells[from_:from_+c]
+        ncols = len(self.column_names)
+        from_ *= ncols
+        to_ *= ncols
+        c = self.cells
+        c[from_:from_+ncols], c[to_:to_+ncols] = c[to_:to_+ncols], c[from_:from_+ncols]
         self.cells_dirty = True
         return True
 
