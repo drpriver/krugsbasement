@@ -438,11 +438,14 @@
     ${title('New Sheet')}
     <table class="input-container">
       <tr>
-        <td>${label('name', 'Name:')}
+        <td>${label('name', 'Name')}
         <td>${textbox('name')}
       <tr>
         <td>${label('numbered', 'Numbered')}
         <td>${checkbox('numbered')}
+      <tr>
+        <td>${label('function', 'Function')}
+        <td>${uncheckbox('function')}
       <tr>
         <td>${label('file', 'Upload TSV')}
         <td>${file('file')}

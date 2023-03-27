@@ -1212,6 +1212,13 @@ body.mobile .notes-window {
   padding: 2px 8px;
   cursor: cell;
 }
+
+.tracker-cell.input {
+  border: 3px solid #54f461;
+}
+.tracker-cell.output {
+  border: 3px solid #6495e9;
+}
 .tracker-head.editing, .tracker-cell.editing, .tracker-cell:focus, .tracker-cell.selected {
   border: 1px solid cyan;
   z-index: 5;

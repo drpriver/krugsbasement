@@ -21,7 +21,7 @@ atexit.register(close) # type: ignore
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 17
+DBVERSION = 18
 with conn:
     conn.execute('''PRAGMA encoding = 'UTF-8';''')
     conn.execute('''PRAGMA foreign_keys = ON;''')
@@ -465,6 +465,26 @@ def setup_tables() -> None:
                     SET objects = ?
                     WHERE campaignid = ? AND mapid = ?;
                 ''', (objects, campid, mapid))
+    if version < 18:
+        conn.execute('''
+            ALTER TABLE
+                sheets
+            ADD COLUMN
+                fio_nargs INTEGER NOT NULL DEFAULT 0;
+        ''')
+        conn.execute('''
+            ALTER TABLE
+                sheets
+            ADD COLUMN
+                fio_outx INTEGER NOT NULL DEFAULT -1;
+        ''')
+        conn.execute('''
+            ALTER TABLE
+                sheets
+            ADD COLUMN
+                fio_outy INTEGER NOT NULL DEFAULT -1;
+        ''')
+
 
 
 with conn:
@@ -1048,7 +1068,7 @@ def get_sheets(campaignid:int) -> list[dict]:
     with DBLOCK:
         for row in conn.execute('''
             SELECT
-                sheetid, name, flags, column_names, cells, parent
+                sheetid, name, flags, column_names, cells, parent, fio_nargs, fio_outx, fio_outy
             FROM
                 sheets
             WHERE
@@ -1061,21 +1081,35 @@ def get_sheets(campaignid:int) -> list[dict]:
                 'flags': row[2],
                 'column_names': json.loads(row[3]),
                 'cells': json.loads(row[4]),
-                'parent': row[5]
+                'parent': row[5],
+                'n_args': row[6],
+                'outx': row[7],
+                'outy': row[8],
             })
     return result
 
-def save_sheet(campaign:int, id:int, name:str, flags:int, column_names:list[str], cells:list[str], parent:int) -> None:
+def save_sheet(campaign:int, id:int, name:str, flags:int, column_names:list[str], cells:list[str], parent:int, n_args:int, outx:int, outy:int) -> None:
     cns = json.dumps(column_names, separators=(',',':'))
     c = json.dumps(cells, separators=(',',':'))
     with DBLOCK:
         conn.execute('''
             INSERT INTO
-                sheets(campaignid, sheetid, name, flags, column_names, cells, parent)
+                sheets(campaignid, sheetid, name, flags, column_names, cells, parent, fio_nargs, fio_outx, fio_outy)
             VALUES
-                (?, ?, ?, ?, ?, ?, ?)
+                (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ;
-        ''', (campaign, id, name, flags, cns, c, parent))
+        ''', (campaign, id, name, flags, cns, c, parent, n_args, outx, outy))
+
+def save_sheet_func_io(campaign:int, id:int, n_args:int, outx:int, outy:int) -> None:
+    with DBLOCK:
+        conn.execute('''
+            UPDATE sheets
+            SET
+                fio_nargs = ?,
+                fio_outx = ?,
+                fio_outy = ?
+            WHERE campaignid = ? AND sheetid = ?;
+        ''', (n_args, outx, outy, campaign, id))
 
 def save_sheet_cells(campaign:int, id:int, cells:list[str]) -> None:
     c = json.dumps(cells, separators=(',',':'))

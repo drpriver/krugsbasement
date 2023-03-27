@@ -1101,6 +1101,7 @@ enum SpreadSheetFlags: int flag
     CAN_MOVE_ROWS          = 1 << 8
     LOCKED_FORMULAS        = 1 << 9
     CAN_EDIT_CELLS         = 1 << 10
+    IS_FUNCTION            = 1 << 11 // don't include in ALL
     ALL                    = NONE | CAN_ADD_ROW | CAN_ADD_COL | CAN_SORT_COLS | ADD_ROW_ON_ENTER | CAN_DEL_ROW | CAN_DEL_COL | NUMBERED | CAN_MOVE_COLUMNS | CAN_MOVE_ROWS | CAN_EDIT_CELLS
 
 struct SpreadSheetData: dict
@@ -1110,6 +1111,9 @@ struct SpreadSheetData: dict
     column_names: [str]
     cells: [str]
     parent: int
+    n_args: int
+    outx: int
+    outy: int
 
 enum SpreadSheetMsgType: int
     DELETE_ROW = 0
@@ -1128,6 +1132,7 @@ enum SpreadSheetMsgType: int
     NAME = 13
     DELETE = 14
     PARENT = 15
+    FUNCTION_IO = 16
 
 struct SpreadSheetDeleteRow: array
     type = SpreadSheetMsgType.DELETE_ROW
@@ -1210,6 +1215,14 @@ struct SpreadSheetParent: array
     sheet_id = int
     parent: int
 
+struct SpreadSheetFunctionIO: array
+    type = SpreadSheetMsgType.FUNCTION_IO
+    sheet_id: int
+    # Args start in first row, first column
+    # and go left to right.
+    n_args: int
+    outx: int
+    outy: int
 
 union SpreadSheetMsg: array
     SpreadSheetDeleteRow
@@ -1228,3 +1241,4 @@ union SpreadSheetMsg: array
     SpreadSheetName
     SpreadSheetDelete
     SpreadSheetParent
+    SpreadSheetFunctionIO
