@@ -921,7 +921,9 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
     function edit_header(cell:HTMLDivElement):void{
         const w = '' + (cell.getBoundingClientRect().width-2) + 'px';
         const h = '' + (cell.getBoundingClientRect().height-2) + 'px';
-        let oldtxt = cell.textContent;
+        const col_idx = result.headers.indexOf(cell);
+        if(col_idx == -1) return;
+        let oldtxt = result.column_names[col_idx];
         if(!oldtxt) oldtxt = '';
         cell.classList.add('editing');
         cell.textContent = '';
@@ -954,15 +956,17 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             cell.classList.remove('editing');
             inp.remove();
             if(canceled){
-                cell.textContent = oldtxt;
+                cell.textContent = oldtxt?oldtxt:String.fromCharCode(65+col_idx);
                 return;
             }
             const v = inp.value.trim();
-            if(v != cell.textContent){
-                cell.textContent = v;
-                const col_idx = result.headers.indexOf(cell);
+            if(v != oldtxt){
+                cell.textContent = v?v:String.fromCharCode(65+col_idx);;
+                // const col_idx = result.headers.indexOf(cell);
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.RENAME_COL, result.id, col_idx, v]);
             }
+            else
+                cell.textContent = oldtxt?oldtxt:String.fromCharCode(65+col_idx);
         };
         inp.focus();
     }
@@ -1080,6 +1084,11 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         if(whence != result.column_names.length-1){
             sheet_dewasm(result);
             recalc_me();
+        }
+        for(let i = 0; i < result.column_names.length; i++){
+            if(!result.column_names[i]){
+                result.headers[i].textContent = String.fromCharCode(65+i);
+            }
         }
     };
     result.set_title = function(title:string):void{
