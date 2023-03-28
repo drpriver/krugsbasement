@@ -777,6 +777,11 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         cell.classList.add('editing');
         cell.textContent = '';
         const inp = elem_with_parent(cell, 'input');
+        inp.dataset.sheetId = ''+result.id;
+        inp.type = 'text';
+        inp.autocomplete = 'off';
+        inp.spellcheck = false;
+        inp.autocapitalize = 'off';
         let abs = false;
         if((oldtxt && oldtxt[0] == '=') || key == '='){
             abs = true;
@@ -903,17 +908,18 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             if(a){
                 if(a.tagName == 'INPUT'){
                     const v = (a as HTMLInputElement).value;
-                    if(v && v[0] == '=' && v[v.length-1] != ']' && a.parentElement! !== cell){
+                    const sid = ((a as HTMLInputElement).dataset.sheetId! as any)|0;
+                    if(v && v[0] == '=' && v[v.length-1] != ']' && v[v.length-1] != ')' ){
                         const [row_idx, col_idx] = idx_of(cell);
                         let col_name = result.column_names[col_idx];
                         if(!col_name && col_idx < 26)
                             col_name = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[col_idx];
-                        if(a.parentElement!.parentElement !== result.w){
+                        if(sid != result.id){
                             const sheet_name = fully_qualified_sheet_name(result);
                             (a as HTMLInputElement).value += `[${sheet_name}, ${col_name}, ${row_idx+1}]`;
                         }
                         else {
-                            (a as HTMLInputElement).value += `[${col_name}, ${row_idx+1}]`;
+                            (a as HTMLInputElement).value += `${col_name}${row_idx+1}`;
                         }
                         e.stopPropagation();
                         e.preventDefault();
@@ -1000,6 +1006,10 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         cell.classList.add('editing');
         cell.textContent = '';
         const inp = elem_with_parent(cell, 'input');
+        inp.autocomplete = 'off';
+        inp.spellcheck = false;
+        inp.autocapitalize = 'off';
+        inp.type = 'text';
         inp.style.width = w;
         inp.style.height = h;
         inp.value = oldtxt;
