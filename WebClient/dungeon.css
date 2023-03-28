@@ -1213,11 +1213,19 @@ body.mobile .notes-window {
   cursor: cell;
 }
 
-.tracker-cell.input {
+.tracker-cell.parameter {
   border: 3px solid #54f461;
+}
+.tracker-cell.parameter:before {
+  content: "[in] ";
+  color: #54a461;
 }
 .tracker-cell.output {
   border: 3px solid #6495e9;
+}
+.tracker-cell.output:before {
+  content: "[out] ";
+  color: #6495e9;
 }
 .tracker-head.editing, .tracker-cell.editing, .tracker-cell:focus, .tracker-cell.selected {
   border: 1px solid cyan;

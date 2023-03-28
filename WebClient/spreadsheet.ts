@@ -525,7 +525,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
     }
     function do_func_io():void{
         for(const el of result._func_els){
-            el.classList.remove('input');
+            el.classList.remove('parameter');
             el.classList.remove('output');
         }
         result._func_els.length = 0;
@@ -533,7 +533,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             if(result.cell_elems.length){
                 const row1 = result.cell_elems[0];
                 for(let col = 0; col < result.func_nargs && col < row1.length; col++){
-                    row1[col].classList.add('input');
+                    row1[col].classList.add('parameter');
                     result._func_els.push(row1[col]);
                 }
             }
