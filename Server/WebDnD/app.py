@@ -742,6 +742,7 @@ def get_html(info:db.CampaignInfo, mode:UiMode) -> str:
             'characters':[],
         },
         'uimode': int(mode),
+        'DEV': appconfig.DEV,
     }
     def update_vals(orig:dict, to_update:dict) -> None:
         for k in orig:

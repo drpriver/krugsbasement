@@ -250,7 +250,10 @@ function recalc(id:number):void{
     const after = window.performance.now();
     // @ts-ignore
     let b: number = DRSP_EXPORTS.bytes_used();
-    sheet.xxx_timing.innerText = `${(after-now).toFixed(2)}ms ${Intl.NumberFormat('en-us', {style:'unit', unit:'kilobyte'}).format(b/1024)}`;
+    if(SETTINGS.DEV)
+        sheet.xxx_timing.textContent = `${(after-now).toFixed(2)}ms ${Intl.NumberFormat('en-us', {style:'unit', unit:'kilobyte'}).format(b/1024)}`;
+    else
+        sheet.xxx_timing.textContent = '';
     // console.log({id, 'name':sheet.name});
     // console.log({id, duration:after-now});
     sheet._dirty = false;

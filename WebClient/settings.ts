@@ -16,5 +16,6 @@ type Settings = {
         characters: Array<Character>;
     };
     uimode: UiMode;
+    DEV: boolean;
 }
 declare let SETTINGS: Settings;

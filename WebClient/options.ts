@@ -103,10 +103,9 @@ let options_init = false;
 function options_dialog():void{
     let dialog = get_dialog('options');
     if(!dialog) return;
-    const is_dev = SETTINGS.chat.name == 'dev';
     const pan_tool = by_id('pan-tool');
     dialog.f.chatname.value = SETTINGS.chat.name;
-    dialog.f.dev.style.display = is_dev?'block':'none';
+    dialog.f.dev.style.display = SETTINGS.DEV?'block':'none';
     if(!options_init){
         options_init = true;
         dialog.f['export-map'].addEventListener('click', function():void{
