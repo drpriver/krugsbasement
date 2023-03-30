@@ -912,21 +912,25 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 if(a.tagName == 'INPUT'){
                     const v = (a as HTMLInputElement).value;
                     const sid = ((a as HTMLInputElement).dataset.sheetId! as any)|0;
-                    if(v && v[0] == '=' && v[v.length-1] != ']' && v[v.length-1] != ')' ){
-                        const [row_idx, col_idx] = idx_of(cell);
-                        let col_name = result.column_names[col_idx];
-                        if(!col_name && col_idx < 26)
-                            col_name = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[col_idx];
-                        if(sid != result.id){
-                            const sheet_name = fully_qualified_sheet_name(result);
-                            (a as HTMLInputElement).value += `[${sheet_name}, ${col_name}, ${row_idx+1}]`;
+                    if(v){
+                        const last = v[v.length-1];
+                        const want_insert = v[0] == '=' && (last == '(' || last == '=' || last == ',' || last == '+' || last == '*' || last == '-' || last == '/');
+                        if(want_insert){
+                            const [row_idx, col_idx] = idx_of(cell);
+                            let col_name = result.column_names[col_idx];
+                            if(!col_name && col_idx < 26)
+                                col_name = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[col_idx];
+                            if(sid != result.id){
+                                const sheet_name = fully_qualified_sheet_name(result);
+                                (a as HTMLInputElement).value += `[${sheet_name}, ${col_name}, ${row_idx+1}]`;
+                            }
+                            else {
+                                (a as HTMLInputElement).value += `${col_name}${row_idx+1}`;
+                            }
+                            e.stopPropagation();
+                            e.preventDefault();
+                            return;
                         }
-                        else {
-                            (a as HTMLInputElement).value += `${col_name}${row_idx+1}`;
-                        }
-                        e.stopPropagation();
-                        e.preventDefault();
-                        return;
                     }
                 }
             }
