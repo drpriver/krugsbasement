@@ -321,7 +321,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             });
 
         }
-        menu.item('Configure', function():void{
+        menu.item('Configure…', function():void{
             const diag = get_dialog('sheet-config');
             if(!diag) return;
             diag.f.editcells.checked = !!(result.flags & SpreadSheetFlags.CAN_EDIT_CELLS);

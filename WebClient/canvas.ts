@@ -8520,7 +8520,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 });
             }
             menu.separator();
-            menu.item('Options', options_dialog);
+            menu.item('Options…', options_dialog);
             menu.item(canv2_is_hidden?'Show Split':'Hide Split', function(){
                 canv2_is_hidden = !canv2_is_hidden;
                 if(!canv2_is_hidden)
@@ -8641,7 +8641,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             });
             menu.separator();
         }
-        menu.item('Add Submap', function():void{
+        menu.item('Add Submap…', function():void{
             do_new_map_dialog(view.map.map_id);
         });
         menu.separator();
