@@ -1,5 +1,6 @@
 Changelog::kv
   updated: 2022-07-08T03:03:13Z
+  updated: 2023-04-20T22:22:16Z
 Summary::md .summary
   * [x] Wide stairs
   * [ ] Diagonal stairs
@@ -9,3 +10,7 @@ Summary::md .summary
 
 Updated Jul 07, 2022, 08:03PM::md .update
   Wide stairs can now be achieved via resizing.
+
+Updated Apr 20, 2023, 03:22PM::md .update
+  Crappy diagonal squares are in. They look ok for squares, but not for
+  rectangles, which means I’m doing something wrong.

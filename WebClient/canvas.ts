@@ -497,7 +497,7 @@ type MeasureObj = {
     y1: number,
 }
 
-const FixtureType_MAX = FixtureType.WELL + 1;
+const FixtureType_MAX = FixtureType.DIAG_STAIRS + 1;
 const FixtureType_TO_NAME = [
     // FixtureType.STATUE
     'Statue',
@@ -509,6 +509,8 @@ const FixtureType_TO_NAME = [
     'Rubble',
     // FixtureType.WELL
     'Well',
+    // FixtureType.DIAG_STAIRS
+    'Diag Stairs',
 ];
 
 // Fixture
@@ -2120,7 +2122,7 @@ function add_image(map:DungeonMap, id:number, base_x:number, base_y:number, widt
     const obj = make_image(id, base_x, base_y, width, height,  url);
     add_canv_obj(map, obj);
 }
-function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number, snap:(_:number)=>number):void{
+function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number, snap:(_:number)=>number, diag:number):void{
     const xdiff = x1-x0;
     const ydiff = y1-y0;
     // x0 = snap(x0);
@@ -2144,15 +2146,15 @@ function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number, s
     let angle = Math.atan2(xdiff, ydiff);
     angle /= Math.PI;
     if(angle < -0.75)
-        obj.rotation = Rotation.DOWN;
+        obj.rotation = Rotation.DOWN + diag;
     else if(angle < -0.25)
-        obj.rotation = Rotation.LEFT;
+        obj.rotation = Rotation.LEFT + diag;
     else if(angle < 0.25)
-        obj.rotation = Rotation.UP;
+        obj.rotation = Rotation.UP + diag;
     else if(angle < 0.75)
-        obj.rotation = Rotation.RIGHT;
+        obj.rotation = Rotation.RIGHT + diag;
     else
-        obj.rotation = Rotation.DOWN;
+        obj.rotation = Rotation.DOWN + diag;
 }
 function make_measure(id:number, x:number, y:number, color:string):MeasureObj{
     const obj:MeasureObj = {
@@ -5871,7 +5873,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                             ctx.font = '56px sans-serif';
                             ctx.fillStyle = sel_color;
                             ctx.fillText('S', 0, 0);
-                            }
+                        }
                         ctx.font = '48px sans-serif';
                         if(is_darkmode)
                             ctx.fillStyle = '#888';
@@ -5999,63 +6001,124 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                     ctx.strokeRect(bx, by, obj.width*REFERENCE.WIDTH, obj.height*REFERENCE.WIDTH);
                 }
                 ctx.fillStyle = "#000000";
-                let n = 0;
-                let dx = 0;
-                let dy = 0;
-                let w = 0;
-                let h = 0;
-                let dw = 0;
-                let dh = 0;
-                let x = bx;
-                let y = by;
-                switch(obj.rotation){
-                    case Rotation.UP:{
-                        x += 2;
-                        y += 4;
-                        n = obj.height * 8 - 1;
-                        w = REFERENCE.WIDTH*obj.width-4;
-                        h = 4;
-                        dw = -w / n;
-                        dx = -dw/2;
-                        dy = 8;
-                    }break;
-                    case Rotation.DOWN:{
-                        x += 2;
-                        n = obj.height * 8 - 1;
-                        w = REFERENCE.WIDTH*obj.width-4;
-                        h = 4;
-                        dw = -w / n;
-                        dx = -dw/2;
-                        dy = -8;
-                        y = by + obj.height*64 - 8;
-                    }break;
-                    case Rotation.RIGHT:{
-                        y += 2;
-                        x += 4;
-                        n = obj.width * 8 - 1;
-                        h = REFERENCE.WIDTH*obj.height-4;
-                        w = 4;
-                        dh = -h / n;
-                        dy = -dh/2;
-                        dx = 8;
-                    }break;
-                    case Rotation.LEFT:{
-                        y += 2;
-                        n = obj.width * 8 - 1;
-                        h = REFERENCE.WIDTH*obj.height-4;
-                        w = 4;
-                        dh = -h / n;
-                        dy = -dh/2;
-                        dx = -8;
-                        x = bx + obj.width*64 - 8;
-                    }break;
+                if(obj.rotation & 1){
+                    let x = bx;
+                    let y = by;
+                    let l = Math.sqrt(obj.width*obj.width + obj.height*obj.height)/3*2 * REFERENCE.WIDTH - 4*Math.sqrt(2);
+
+                    let n = Math.floor(Math.sqrt((obj.height*obj.height + obj.width*obj.width))*6) - 1;
+                    let theta = Math.PI/4;
+                    let dx = 0;
+                    let dy = 0;
+                    // This stuff is still wrong...  It looks ok for square
+                    // things, but wrong for rectangles, which means I'm
+                    // probably also over-complicating it.
+                    // I'll check this in for now though since it's better than nothing.
+
+                    switch(obj.rotation){
+                        case Rotation.UP_RIGHT:{
+                            x += 2+REFERENCE.WIDTH*obj.width/3;
+                            y += 2;
+                            dx = -(REFERENCE.WIDTH*obj.width)/(n)/3;
+                            dy = (obj.height*REFERENCE.WIDTH)/(n);
+                        }break;
+                        case Rotation.DOWN_RIGHT:{
+                            theta = 7*Math.PI/4;
+                            x += 2+REFERENCE.WIDTH*obj.width/3;
+                            y += REFERENCE.WIDTH*obj.height-2;
+                            dx = -(obj.width*REFERENCE.WIDTH)/(n)/3;
+                            dy = -(obj.height*REFERENCE.WIDTH)/(n);
+                        }break;
+                        case Rotation.DOWN_LEFT:{
+                            x += 2;
+                            y += 2+REFERENCE.WIDTH*obj.height/3;
+                            dx = +(REFERENCE.WIDTH*obj.width)/(n);
+                            dy = -(obj.height*REFERENCE.WIDTH)/(n)/3;
+                        }break;
+                        case Rotation.UP_LEFT:{
+                            x += 6;
+                            y += 2+2*REFERENCE.WIDTH*obj.height/3;
+                            dx = (obj.width*REFERENCE.WIDTH)/(n);
+                            dy = (obj.height*REFERENCE.WIDTH)/(n)/3;
+                            theta = 7*Math.PI/4;
+                        }break;
+                    }
+                    let dl = -l / (n);
+
+                    ctx.save();
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = 4;
+                    ctx.lineCap = 'butt';
+                    for(let q = 0; q < n; ++q){
+                        ctx.beginPath();
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(x + Math.cos(theta)*l, y + Math.sin(theta)*l);
+                        ctx.stroke();
+                        l += dl;
+                        x += dx;
+                        y += dy;
+                    }
+                    ctx.restore();
                 }
-                for(let q = 0; q < n; ++q){
-                    ctx.fillRect(x, y, w, h);
-                    w += dw;
-                    h += dh;
-                    x += dx;
-                    y += dy;
+                else {
+                    let n = 0;
+                    let dx = 0;
+                    let dy = 0;
+                    let w = 0;
+                    let h = 0;
+                    let dw = 0;
+                    let dh = 0;
+                    let x = bx;
+                    let y = by;
+                    switch(obj.rotation){
+                        case Rotation.UP:{
+                            x += 2;
+                            y += 4;
+                            n = obj.height * 8 - 1;
+                            w = REFERENCE.WIDTH*obj.width-4;
+                            h = 4;
+                            dw = -w / n;
+                            dx = -dw/2;
+                            dy = 8;
+                        }break;
+                        case Rotation.DOWN:{
+                            x += 2;
+                            n = obj.height * 8 - 1;
+                            w = REFERENCE.WIDTH*obj.width-4;
+                            h = 4;
+                            dw = -w / n;
+                            dx = -dw/2;
+                            dy = -8;
+                            y = by + obj.height*64 - 8;
+                        }break;
+                        case Rotation.RIGHT:{
+                            y += 2;
+                            x += 4;
+                            n = obj.width * 8 - 1;
+                            h = REFERENCE.WIDTH*obj.height-4;
+                            w = 4;
+                            dh = -h / n;
+                            dy = -dh/2;
+                            dx = 8;
+                        }break;
+                        case Rotation.LEFT:{
+                            y += 2;
+                            n = obj.width * 8 - 1;
+                            h = REFERENCE.WIDTH*obj.height-4;
+                            w = 4;
+                            dh = -h / n;
+                            dy = -dh/2;
+                            dx = -8;
+                            x = bx + obj.width*64 - 8;
+                        }break;
+                    }
+                    for(let q = 0; q < n; ++q){
+                        ctx.fillRect(x, y, w, h);
+                        w += dw;
+                        h += dh;
+                        x += dx;
+                        y += dy;
+                    }
                 }
                 if(one_selection && selected.has(obj.id)){
                     ctx.fillStyle = sel_color;
@@ -6132,6 +6195,8 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                 switch(obj.ftype){
                     case FixtureType.STAIRS:
                         break; // should be unreachable
+                    case FixtureType.DIAG_STAIRS:
+                        break; // unreachable
                     case FixtureType.STATUE:{
                         const cx = (bbox.x0+bbox.x1)/2;
                         const cy = (bbox.y0+bbox.y1)/2;
@@ -8076,7 +8141,9 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             case ToolType.FIXTURE:{ // TAG toolFIXTURE
                 switch(current_fixture_type){
                     // Legacy: is its own impl
+                    case FixtureType.DIAG_STAIRS:
                     case FixtureType.STAIRS:{
+                        const diag = current_fixture_type == FixtureType.DIAG_STAIRS?1:0;
                         let id = get_new_id();
                         let [x0, y0] = event_to_coord_snapped(e, view, snap);
                         let obj: Stairs = {
@@ -8088,7 +8155,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                             hidinguser: hiddenid(),
                             width: 0,
                             height: 0,
-                            rotation: Rotation.UP,
+                            rotation: Rotation.UP+diag,
                         };
                         add_canv_obj(view.map, obj);
                         view.placing_area.is_placing = true;
@@ -8105,7 +8172,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                             e.stopPropagation();
                             e.preventDefault();
                             const [ex0, ey0] = event_to_coord(e, view);
-                            change_stairs(stairs, x0, y0, ex0, ey0, snap);
+                            change_stairs(stairs, x0, y0, ex0, ey0, snap, diag);
                             view.placing_area.x0 = stairs.base_x;
                             view.placing_area.y0 = stairs.base_y;
                             view.placing_area.x1 = stairs.base_x+REFERENCE.WIDTH*stairs.width;

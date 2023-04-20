@@ -681,12 +681,14 @@ struct StrippedDoorObj: array
     orientation: Orientation
 
 enum Rotation: int
-    # note:
-    # we might add the diagonals
-    UP    = 0
-    RIGHT = 2
-    DOWN  = 4
-    LEFT  = 6
+    UP         = 0
+    UP_RIGHT   = 1
+    RIGHT      = 2
+    DOWN_RIGHT = 3
+    DOWN       = 4
+    DOWN_LEFT  = 5
+    LEFT       = 6
+    UP_LEFT    = 7
 
 struct StrippedStairs: array
     type = CanvasType.STAIRS
@@ -719,6 +721,7 @@ enum FixtureType: int
     PIT = 2
     RUBBLE = 3
     WELL   = 4
+    DIAG_STAIRS = 5
 
 // Fixture
 // ----------
