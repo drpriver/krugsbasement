@@ -562,7 +562,7 @@
     ::div.tool-menu #id(fixture-tool-menu)
       ☰
     ::div.tool #id(line-tool)
-      Line
+      <b>L</b>ine
     ::div.tool-menu #id(line-tool-menu)
       ☰
     ::div.tool #id(rect-tool)
