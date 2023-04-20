@@ -4616,6 +4616,12 @@ function screenshot():void{
     screenshot_canvas(get_view(WhichSplit.LEFT));
 }
 
+function get_text_height(metric: TextMetrics): number {
+    // @ts-ignore
+    if(metric.emHeightAscent) return metric.emHeightAscent;
+    return metric.fontBoundingBoxAscent;
+}
+
 function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingContext2D, view:DungeonMapView, flags:RenderFlags):void{
     // console.log('render', performance.now());
     const before = flags & RenderFlags.SHOW_FPS?performance.now():0;
@@ -5206,11 +5212,8 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
 
                         if(bbox.x0 == bbox.x1){
                             const metric = ctx.measureText(line);
-                            // Metric object varies between browser, but I believe
-                            // they all have width?
                             const width = metric.width;
-                            // Only some have this property.
-                            const height = metric.fontBoundingBoxAscent? metric.fontBoundingBoxAscent + 2 : obj.size;
+                            const height = get_text_height(metric) + (obj.size/5);
                             switch(obj.alignment){
                                 case TextAlignment.LEFT:
                                     bbox.x0 = -2;

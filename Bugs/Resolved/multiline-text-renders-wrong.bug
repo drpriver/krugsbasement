@@ -1,0 +1,11 @@
+Changelog::kv
+  created:  2023-04-20T02:20:44Z
+  resolved: 2023-04-20T04:52:58Z
+Created Apr 19, 2023, 07:20PM::md .update
+Summary::md .summary
+  the text overlaps across lines, I must be using the wrong text metric.
+
+Resolved Apr 19, 2023, 09:52PM::md .update
+  I was using the right metric, but just using that number would mean that
+  things that extend above or below the box would overlap. So add a
+  size-dependent adjustment instead of a hard coded one.
