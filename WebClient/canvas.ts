@@ -510,7 +510,7 @@ const FixtureType_TO_NAME = [
     // FixtureType.WELL
     'Well',
     // FixtureType.DIAG_STAIRS
-    'Diag Stairs',
+    'DiaStair',
 ];
 
 // Fixture
@@ -6002,61 +6002,68 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                 }
                 ctx.fillStyle = "#000000";
                 if(obj.rotation & 1){
-                    let x = bx;
-                    let y = by;
-                    let l = Math.sqrt(obj.width*obj.width + obj.height*obj.height)/3*2 * REFERENCE.WIDTH - 4*Math.sqrt(2);
+                    let x0:  number  = 0;
+                    let x1:  number  = 0;
+                    let y0:  number  = 0;
+                    let y1:  number  = 0;
+                    let x_e: number = 0;
+                    let y_e: number = 0;
+                    const enum W {W=REFERENCE.WIDTH};
 
-                    let n = Math.floor(Math.sqrt((obj.height*obj.height + obj.width*obj.width))*6) - 1;
-                    let theta = Math.PI/4;
-                    let dx = 0;
-                    let dy = 0;
-                    // This stuff is still wrong...  It looks ok for square
-                    // things, but wrong for rectangles, which means I'm
-                    // probably also over-complicating it.
-                    // I'll check this in for now though since it's better than nothing.
+                    const n = Math.floor(Math.sqrt((obj.height*obj.height + obj.width*obj.width))*6) - 1;
+                    const m = Math.min(obj.width, obj.height);
 
                     switch(obj.rotation){
                         case Rotation.UP_RIGHT:{
-                            x += 2+REFERENCE.WIDTH*obj.width/3;
-                            y += 2;
-                            dx = -(REFERENCE.WIDTH*obj.width)/(n)/3;
-                            dy = (obj.height*REFERENCE.WIDTH)/(n);
+                            x0   = bx + W.W*(obj.width-2*m/3);
+                            x1   = bx + obj.width*W.W;
+                            y0   = by;
+                            y1   = by + 2*m*W.W/3;
+                            x_e = bx;
+                            y_e = by + obj.height*W.W;
                         }break;
                         case Rotation.DOWN_RIGHT:{
-                            theta = 7*Math.PI/4;
-                            x += 2+REFERENCE.WIDTH*obj.width/3;
-                            y += REFERENCE.WIDTH*obj.height-2;
-                            dx = -(obj.width*REFERENCE.WIDTH)/(n)/3;
-                            dy = -(obj.height*REFERENCE.WIDTH)/(n);
+                            x0 = bx + W.W*(obj.width-2*m/3);
+                            x1 = bx + W.W*obj.width;
+                            y0   = by + W.W*obj.height;
+                            y1   = by + W.W*(obj.height-2*m/3);
+                            x_e = bx;
+                            y_e = by;
                         }break;
                         case Rotation.DOWN_LEFT:{
-                            x += 2;
-                            y += 2+REFERENCE.WIDTH*obj.height/3;
-                            dx = +(REFERENCE.WIDTH*obj.width)/(n);
-                            dy = -(obj.height*REFERENCE.WIDTH)/(n)/3;
+                            x0 = bx;
+                            x1 = bx+W.W*(2*m/3);
+                            y0 = by + W.W*(obj.height-2*m/3);
+                            y1 = by + W.W*obj.height;
+                            x_e = bx + W.W*obj.width;
+                            y_e = by;
                         }break;
                         case Rotation.UP_LEFT:{
-                            x += 6;
-                            y += 2+2*REFERENCE.WIDTH*obj.height/3;
-                            dx = (obj.width*REFERENCE.WIDTH)/(n);
-                            dy = (obj.height*REFERENCE.WIDTH)/(n)/3;
-                            theta = 7*Math.PI/4;
+                            x0 = bx;
+                            x1 = bx+W.W*(2*m/3);
+                            y0 = by+W.W*2*m/3;
+                            y1 = by;
+                            x_e = bx + W.W*obj.width;
+                            y_e = by + W.W*obj.height;
                         }break;
                     }
-                    let dl = -l / (n);
-
+                    const dx0 = (x_e - x0)/n
+                    const dx1 = (x_e - x1)/n
+                    const dy0 = (y_e - y0)/n
+                    const dy1 = (y_e - y1)/n
                     ctx.save();
                     ctx.strokeStyle = '#000000';
                     ctx.lineWidth = 4;
                     ctx.lineCap = 'butt';
                     for(let q = 0; q < n; ++q){
                         ctx.beginPath();
-                        ctx.moveTo(x, y);
-                        ctx.lineTo(x + Math.cos(theta)*l, y + Math.sin(theta)*l);
+                        ctx.moveTo(x0, y0);
+                        ctx.lineTo(x1, y1);
                         ctx.stroke();
-                        l += dl;
-                        x += dx;
-                        y += dy;
+                        x0 += dx0;
+                        x1 += dx1;
+                        y0 += dy0;
+                        y1 += dy1;
                     }
                     ctx.restore();
                 }
