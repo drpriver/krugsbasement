@@ -1088,8 +1088,6 @@ enum DarkMode: int
 enum UiMode: int
     NORMAL = 1
     CHAT = 2
-    NOTES = 3
-    MACROS = 4
 
 enum SpreadSheetFlags: int flag
     NONE                   = 0

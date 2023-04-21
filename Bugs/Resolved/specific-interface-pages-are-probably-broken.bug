@@ -1,0 +1,9 @@
+Changelog::kv
+  created:  2023-02-07T06:05:28Z
+  resolved: 2023-04-21T01:10:47Z
+Created Feb 06, 2023, 10:05PM::md .update
+Summary::md .summary
+  I changed how a lot of things work so they are probably very bad.
+
+Resolved Apr 20, 2023, 06:10PM::md .update
+  Removed Notes and Macros, kept Chat around as it still works.

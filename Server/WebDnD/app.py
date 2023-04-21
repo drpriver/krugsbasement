@@ -22,7 +22,7 @@ from . import notes
 from . import sheets
 from .persist import Persister, RepeatTimer, AppKVPersister
 from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize, NewNoteMsg, CanvasParentMsg, NoteParentMsg
-from .validator import register_list, validated, validate
+from .validator import register_list, validated, validate, try_validate
 from . import db
 from .users import User
 from .forms import LoginForm, RegisterForm, CampaignForm
@@ -461,8 +461,7 @@ def join(room:str) -> None:
 @socketio.on(FromClient.POST_JOIN)
 # @validated # XXX: somehow we can get a 0 here, which is not a valid ui mode.
 def post_join(mode:UiMode) -> None:
-    mode = mode or 1
-    mode = validate('UiMode', mode)
+    mode = try_validate('UiMode', mode, UiMode.NORMAL)
     campaign = get_campaign(request)
     if mode == UiMode.NORMAL:
         emit(ToClient.CANVAS_INITIALIZE_MAPS, canvas.get_state(campaign))
@@ -470,7 +469,7 @@ def post_join(mode:UiMode) -> None:
         emit(ToClient.CHAT_CLEAR)
         emit(ToClient.CHAT_CREATE, chat.get_history(campaign))
         emit(ToClient.CHAT_PRIVATE_CREATE, chat.get_private_history(current_user.userid, campaign))
-    if mode == UiMode.NORMAL or mode == UiMode.NOTES:
+    if mode == UiMode.NORMAL:
         emit(ToClient.NOTES_INITIALIZE, notes.get_notes_for_room(campaign))
     if mode == UiMode.NORMAL or mode == UiMode.CHAT:
         userids = db.get_users_in_campaign(campaign)
@@ -781,11 +780,9 @@ def get_campaign_request(campaign:str, mode_s:str='full') -> Any:
     mode = {
         'full': UiMode.NORMAL,
         'chat': UiMode.CHAT,
-        'notes': UiMode.NOTES,
-        'macros': UiMode.MACROS,
     }.get(mode_s)
     if mode is None:
-        return abort(404)
+        return flask.redirect(f'/campaigns/{campaign}')
     # logging.info('campaign: %r', campaign)
     campaign_id: Optional[int]
     try:

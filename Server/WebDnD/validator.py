@@ -119,6 +119,12 @@ def register_list(arrayname:str, typename:str) -> None:
 def validate(name:str, obj:T) -> T:
     return TYPES[name](obj)
 
+def try_validate(name:str, obj:T, default:T) -> T:
+    try:
+        return TYPES[name](obj)
+    except Exception:
+        return default
+
 def validated(func:F) -> F:
     @functools.wraps(func)
     def wrapped(*args:Any, **kwargs:Any) -> Any:
