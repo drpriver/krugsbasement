@@ -555,7 +555,7 @@ body.dark-mode #tools>div.tool-menu:hover {
   grid-template-rows: 1fr 1fr;
   grid-template-columns: auto 1fr 1fr 1fr 1fr;
   align-items: center;
-  font-size: 1px;
+  font-size: 10px;
 }
 #scale div {
   background-color: #eee;
