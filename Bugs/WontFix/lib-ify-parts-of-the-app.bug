@@ -1,0 +1,9 @@
+Changelog::kv
+  created: 2022-06-23T17:48:13Z
+  wontfix: 2023-04-21T04:43:15.127233
+Created Jun 23, 2022, 10:48AM::md .update
+Summary::md .summary
+  Lib-ify the renderer so I can embed them in my docs.
+
+WontFix Apr 20, 2023, 09:43PM::md .update
+  This ain’t happening.
