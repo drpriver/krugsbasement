@@ -2146,15 +2146,15 @@ function change_stairs(obj:Stairs, x0:number, y0:number, x1:number, y1:number, s
     let angle = Math.atan2(xdiff, ydiff);
     angle /= Math.PI;
     if(angle < -0.75)
-        obj.rotation = Rotation.DOWN + diag;
-    else if(angle < -0.25)
-        obj.rotation = Rotation.LEFT + diag;
-    else if(angle < 0.25)
         obj.rotation = Rotation.UP + diag;
-    else if(angle < 0.75)
+    else if(angle < -0.25)
         obj.rotation = Rotation.RIGHT + diag;
-    else
+    else if(angle < 0.25)
         obj.rotation = Rotation.DOWN + diag;
+    else if(angle < 0.75)
+        obj.rotation = Rotation.LEFT + diag;
+    else
+        obj.rotation = Rotation.UP + diag;
 }
 function make_measure(id:number, x:number, y:number, color:string):MeasureObj{
     const obj:MeasureObj = {
