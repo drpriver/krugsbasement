@@ -26,6 +26,49 @@ function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string, __:number, _
     };
     chat.addEventListener('keydown', function(e):void{
         e.stopPropagation();
+        if(IS_MAC && e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey){
+            // cut-n-paste from below
+            switch(e.key){
+                case 'p':{
+                    if(chat.value && chat.value != hist.set_text) break;
+                    e.preventDefault();
+                    if(hist.index > 0 && hist.index <= hist.history.length){
+                        if(hist.index == hist.history.length){
+                            hist.current_text = chat.value;
+                        }
+                        hist.index--;
+                        chat.value = hist.history[hist.index];
+                        hist.set_text = chat.value;
+                    }
+                }return;
+                case 'n':{
+                    if(chat.value && chat.value != hist.set_text) break;
+                    e.preventDefault();
+                    if(hist.index >= 0 && hist.index < hist.history.length){
+                        hist.index++;
+                        if(hist.index == hist.history.length)
+                            chat.value = hist.current_text;
+                        else
+                            chat.value = hist.history[hist.index];
+                        hist.set_text = chat.value;
+                    }
+                }return;
+                case 'j':{
+                    e.preventDefault();
+                    const value = chat.value;
+                    if(value.length){
+                        chat.value = "";
+                        hist.enter_func(value, -1, -1);
+                        if(!(hist.history.length && value == hist.history[hist.history.length-1])){
+                            hist.history.push(value);
+                        }
+                        hist.index = hist.history.length;
+                        hist.current_text = "";
+                        hist.set_text = "";
+                    }
+                }return;
+            }
+        }
         let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
         if(modified) return;
         switch(e.key){
