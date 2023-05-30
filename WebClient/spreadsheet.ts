@@ -188,15 +188,13 @@ function fully_qualified_sheet_name(s:SpreadSheet):string{
     return parts.reverse().join('/');
 }
 
-let sheet_evaluate_formulas: ((id:number)=>Array<number>);
-let sheet_eval_string: ((id:number, s:string)=>number|string);
 let sheet_wasm_load_in_flight = false;
 function spread_eval_string(s:string):number|string|null{
-    if(!sheet_eval_string){
+    if(!SHEET_CTX){
         load_sheet_wasm();
         return null;
     }
-    const result = sheet_eval_string(-1, s);
+    const result = SHEET_CTX.evaluate_string(0, s);
     if(result === "error")
         return null;
     return result;

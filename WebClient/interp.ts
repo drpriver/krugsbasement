@@ -1173,7 +1173,9 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
                 return [DieExprTypes.NGROUP, expr.count, e];
             }
             case EXPR.CELL:{
-                let v = spread_eval_string(expr.value);
+                let arg = expr.value.slice(1, expr.value.length-1);
+                let v = spread_eval_string(arg);
+                if(v === null) v = spread_eval_string(expr.value);
                 if(v === null) return null;
                 if(typeof v !== 'string') return [DieExprTypes.NUMBER, v];
                 const tokens = tokenize(v);
