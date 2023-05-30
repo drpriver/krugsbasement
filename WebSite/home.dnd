@@ -16,7 +16,7 @@
   Your Campaigns::md
     ::script
       function getmagic(id, magic){
-        navigator.clipboard.writeText(`${location.host}/campaigns/${id}?magic=${magic}`);
+        navigator.clipboard.writeText(`https://${location.host}/campaigns/${id}?magic=${magic}`);
       }
       function revokemagic(id, magic){
         fetch('/campaigns', {
