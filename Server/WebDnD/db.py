@@ -21,7 +21,7 @@ atexit.register(close) # type: ignore
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 18
+DBVERSION = 19
 with conn:
     conn.execute('''PRAGMA encoding = 'UTF-8';''')
     conn.execute('''PRAGMA foreign_keys = ON;''')
@@ -484,6 +484,29 @@ def setup_tables() -> None:
             ADD COLUMN
                 fio_outy INTEGER NOT NULL DEFAULT -1;
         ''')
+    if version < 19:
+        joined = conn.execute('''SELECT userid, campaignid from joinedcampaigns; ''').fetchall()
+        conn.execute('''DROP TABLE joinedcampaigns;''')
+        conn.execute('''
+            CREATE TABLE joinedcampaigns (
+                userid INTEGER NOT NULL,
+                campaignid INTEGER NOT NULL,
+                FOREIGN KEY(userid) REFERENCES users(userid),
+                FOREIGN KEY(campaignid) REFERENCES campaigns(id)
+                CONSTRAINT unique_uid_cid_pair UNIQUE(userid, campaignid)
+            );
+        ''')
+        for pair in joined:
+            conn.execute('''
+            INSERT OR IGNORE INTO
+                joinedcampaigns(userid, campaignid)
+            VALUES
+                (?, ?)
+            ;
+            ''', pair)
+
+
+
 
 
 
@@ -991,7 +1014,7 @@ def create_user(name:str, passhash:str, email:str) -> Optional[int]:
 def join_campaign(userid:int, campaignid:int) -> None:
     with DBLOCK, conn:
         conn.execute('''
-            INSERT INTO
+            INSERT OR IGNORE INTO
                 joinedcampaigns(userid, campaignid)
             VALUES
                 (?, ?)

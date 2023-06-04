@@ -815,6 +815,7 @@ def get_campaign_request(campaign:str, mode_s:str='full') -> Any:
                     logging.info('Probably already joined campaign: %r', e)
             else:
                 logging.info('bad magic value for %r: %r', campaign_id, magic)
+        return flask.redirect(f'/campaigns/{campaign}')
     if not db.user_may_access_campaign(current_user.userid, campaign_id):
         return abort(404)
     # logging.info('campaign: %r, campaign_id: %r', campaign, campaign_id)
