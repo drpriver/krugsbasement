@@ -323,10 +323,12 @@ function do_emit(type:FromClient, arg?:any, cb?:any):void{
         case FromClient.SPREADSHEET:{
             if(arg[0] == SpreadSheetMsgType.NEW_SHEET){
                 arg[1].id = _spreadsheetid++;
-                for(let i = 0; i < 3; i++)
-                    arg[1].column_names.push('');
-                for(let i = 0; i < 3*4; i++)
-                    arg[1].cells.push('');
+                if(!arg[1].column_names.length){
+                    for(let i = 0; i < 3; i++)
+                        arg[1].column_names.push('');
+                    for(let i = 0; i < 3*4; i++)
+                        arg[1].cells.push('');
+                }
             }
             invoke_cb(ToClient.SPREADSHEET, arg);
         }break;
