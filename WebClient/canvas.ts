@@ -377,6 +377,38 @@ type TextObj = {
     link_id: number; // integer
 }
 
+// XXX: this sucks, but there's a race otherwise
+let QUEUED_IMG_TOKS:Array<[ImgToken, number, number]> = [];
+let PACKED_LOAD = 0;
+function on_pack_load(){
+    // @ts-ignore
+    PACKED_LOAD++;
+    if(PACKED_LOAD != 3) return;
+    for(let t of PACKED!.terrain)
+        TERRAIN_BY_ID.set(t[0], t);
+    for(let t of PACKED!.terrain_icons)
+        TERRAIN_ICON_BY_ID.set(t[0], t);
+    for(let t of PACKED!.tokens)
+        TOKEN_BY_PATH.set(`/tokens/${t[1]}`, t)
+    if(current_tool == ToolType.TILE){
+        switch(current_tile_type){
+            case TileType.ICON:
+                make_terrain_icon_palette();
+                break;
+            case TileType.TERRAIN:
+                make_terrain_palette();
+                break;
+            default:
+                break;
+        }
+    }
+    for(let i = 0; i < QUEUED_IMG_TOKS.length; i++){
+        const [o, w, h] = QUEUED_IMG_TOKS[i];
+        delay_load_obj_image(o, w, h, w, h);
+    }
+    QUEUED_IMG_TOKS = [];
+    request_render();
+}
 let PACKED: Packed | null = null;
 let TERRAIN_BY_ID: Map<number, Terrain> = new Map();
 let TERRAIN_ICON_BY_ID: Map<number, TerrainIcon> = new Map();
@@ -386,6 +418,7 @@ PACKEDIMG.addEventListener('error', function():void{
     // try again with png
     PACKEDIMG.src = '/tiles/packed.png';
 }, {once:true});
+PACKEDIMG.onload = on_pack_load;
 if(SETTINGS.uimode == UiMode.NORMAL)
     PACKEDIMG.src = '/tiles/packed.webp'
 let TOKENIMG = new Image();
@@ -393,30 +426,14 @@ TOKENIMG.addEventListener('error', function():void{
     // try again with png
     TOKENIMG.src = '/tiles/toks.png';
 }, {once:true});
+TOKENIMG.onload = on_pack_load;
 if(SETTINGS.uimode == UiMode.NORMAL)
     TOKENIMG.src = '/tiles/toks.webp'
 
 if(SETTINGS.uimode == UiMode.NORMAL)
     fetch('/tiles/packed.json') .then(response => response.json()) .then(data => {
         PACKED=data;
-        for(let t of PACKED!.terrain)
-            TERRAIN_BY_ID.set(t[0], t);
-        for(let t of PACKED!.terrain_icons)
-            TERRAIN_ICON_BY_ID.set(t[0], t);
-        for(let t of PACKED!.tokens)
-            TOKEN_BY_PATH.set(`/tokens/${t[1]}`, t)
-        if(current_tool == ToolType.TILE){
-            switch(current_tile_type){
-                case TileType.ICON:
-                    make_terrain_icon_palette();
-                    break;
-                case TileType.TERRAIN:
-                    make_terrain_palette();
-                    break;
-                default:
-                    break;
-            }
-        }
+        on_pack_load();
     });
 
 //  ez-token
@@ -2070,12 +2087,19 @@ function add_img_token(map:DungeonMap, id:number, base_x:number, base_y:number, 
 }
 
 function delay_load_obj_image(obj:ImageObj|ImgToken, width:number, height:number, error_width:number, error_height:number):void{
-    if(TOKEN_BY_PATH.has(obj.url)){
-        const tok = TOKEN_BY_PATH.get(obj.url)!;
-        const img = token_to_img(tok[2], tok[3], tok[4], tok[5], width, height);
-        obj.img = img;
-        request_render();
-        return;
+    if(obj.url.startsWith('/')){ // one of our spritesheets
+        if(PACKED_LOAD != 3){
+            // XXX: I don't like this solution, but I don't like doing image loading in the renderer either.
+            QUEUED_IMG_TOKS.push([obj as ImgToken, width, height]);
+            return;
+        }
+        if(TOKEN_BY_PATH.has(obj.url)){
+            const tok = TOKEN_BY_PATH.get(obj.url)!;
+            const img = token_to_img(tok[2], tok[3], tok[4], tok[5], width, height);
+            obj.img = img;
+            request_render();
+            return;
+        }
     }
     const img = width && height? new Image(width, height): new Image();
     img.crossOrigin = 'anonymous';
@@ -4355,7 +4379,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 return onchange;
             }
 
-            if(PACKED)
+            if(PACKED && PACKED_LOAD==3)
             for(let i = 0; i < PACKED.status_icons.length; i++){
                 const si = PACKED.status_icons[i];
                 const flag = 1 << i;
@@ -4421,7 +4445,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 }
                 return onchange;
             }
-            if(PACKED)
+            if(PACKED && PACKED_LOAD==3)
             for(let i = 0; i < PACKED.status_icons.length; i++){
                 const si = PACKED.status_icons[i];
                 const flag = 1 << i;
@@ -4924,7 +4948,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
         const enum STATUSICONSIZE {_ = 24};
         let sx = token_bbox.x0;
         let sy = token_bbox.y1-STATUSICONSIZE._*scale;
-        if(!PACKED)
+        if(!PACKED || PACKED_LOAD != 3)
             return;
         for(let i = 0; i < PACKED.status_icons.length; i++){
             const flag = 1 << i;
@@ -6272,7 +6296,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                             ctx.strokeStyle = sel_color;
                             ctx.strokeRect(bx, by, obj.width, obj.height);
                         }
-                        if(PACKED){
+                        if(PACKED && PACKED_LOAD==3){
                             const ri = PACKED.fixtures[0];
                             ctx.drawImage(PACKEDIMG, ri[2], ri[3], ri[4], ri[5], bx, by, obj.width, obj.height);
                         }
@@ -6759,6 +6783,11 @@ function token_to_img(x:number, y:number, w:number, h:number, imw:number, imh:nu
         c.drawImage(TOKENIMG, x, y, w, h, 0, 0, w, h);
         let durl = cvs.toDataURL();
         let img = new Image();
+        // The load is async, so if we render before that resolves we end up
+        // rendering an unloaded image.
+        img.addEventListener('load', function(){
+            request_render();
+        }, {once:true});
         img.src = durl;
         if(imw){
             img.width = imw;
@@ -6778,7 +6807,7 @@ function make_terrain_palette():void{
         return cb;
     }
     by_id('palette').style.display = 'block';
-    if(PACKED){
+    if(PACKED && PACKED_LOAD == 3){
         const terrains = PACKED.terrain;
         for(let terr of terrains){
             const inp = document.createElement('input');
@@ -6811,7 +6840,7 @@ function make_terrain_icon_palette():void{
         return cb;
     }
     by_id('palette').style.display = 'block';
-    if(PACKED)
+    if(PACKED && PACKED_LOAD==3)
     for(let ti of PACKED.terrain_icons){
         const inp = document.createElement('input');
         inp.type = 'radio';
@@ -8113,7 +8142,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     dialog.f.height.value = view.gridscale == GRIDSCALE.TEN?'1':'0.5';
                     dialog.f.url.value = '';
                     function add_img_buttons():void{
-                        if(PACKED){
+                        if(PACKED && PACKED_LOAD==3){
                             for(let ti of PACKED.tokens){
                                 const button = document.createElement('button');
                                 let path = ti[1];
