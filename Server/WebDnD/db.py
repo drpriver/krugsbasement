@@ -497,6 +497,7 @@ def setup_tables() -> None:
             );
         ''')
         for pair in joined:
+            assert pair is not None
             conn.execute('''
             INSERT OR IGNORE INTO
                 joinedcampaigns(userid, campaignid)
