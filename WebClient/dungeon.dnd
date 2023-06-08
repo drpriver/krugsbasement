@@ -631,6 +631,10 @@
   </div>
 ::div.chat #id(chat)
   ::div #id(tree)
+    ::div #id(home-link)
+      ::raw
+        <a href="/home" target="_blank">Home</a>
+        <a href="/docs" target="_blank">Docs</a>
     ::div.three-buttons
       ::raw
         <button id="tables-button">Tables…</button>

@@ -4,6 +4,16 @@
 a {
   color: #0000ff;
 }
+#home-link{
+  font-size: 70%;
+  padding-left: 12px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+#home-link a {
+  color: rgba(33, 33, 33, 1);
+  margin-left: 16px;
+}
 button {
   text-transform: capitalize;
 }
