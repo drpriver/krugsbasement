@@ -1,0 +1,5 @@
+Changelog::kv
+  created: 2023-04-22T08:12:29.118033
+Created Apr 22, 2023, 01:12AM::md .update
+Summary::md .summary
+  text is blurry since we scale the canvas instead of scaling the font size.
