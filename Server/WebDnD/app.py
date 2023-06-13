@@ -40,10 +40,10 @@ else:
 
 app = Flask('WebDnd')
 app.config['SECRET_KEY'] = appconfig.SECRET_KEY or 'dev'
-app.config['REMEMBER_COOKIE_SAMESITE'] = 'Strict'
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
 app.config['REMEMBER_COOKIE_SECURE'] = not appconfig.DEV
 app.config['SESSION_COOKIE_SECURE'] = not appconfig.DEV
-app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 if appconfig.DEV:
     socketio = SocketIO(app, logger=False)
 else:
