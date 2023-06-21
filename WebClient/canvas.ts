@@ -979,6 +979,7 @@ type DungeonMapView = {
     placing_area: {
         is_placing: boolean;
         is_line: boolean;
+        is_fixture: boolean;
         x0: number;
         x1: number;
         y0: number;
@@ -1017,6 +1018,7 @@ function new_map_view(map_id:number): [DungeonMapView, DungeonMapView]{
         placing_area: {
             is_placing: false,
             is_line: false,
+            is_fixture: false,
             x0: 0, y0: 0,
             x1: 0, y1: 0,
         },
@@ -4586,7 +4588,7 @@ function screenshot_canvas(view:DungeonMapView):void{
             scale: 1,
             selected: new Set(),
             selection_area: {is_selecting: false, select_one: false, x0: 0, x1: 0, y0: 0, y1: 0},
-            placing_area: {is_placing: false, is_line: false, x0: 0, x1: 0, y0: 0, y1: 0},
+            placing_area: {is_placing: false, is_line: false, is_fixture:false, x0: 0, x1: 0, y0: 0, y1: 0},
             mouse: {x: 0, y: 0},
             hovered_id: 0,
             resize: {handles: [], resizing: false},
@@ -6480,30 +6482,32 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
         else {
             ctx.strokeRect(a.x0-2, a.y0-2, w+4, h+4);
         }
-        const fontsize = 24/scale | 0;
-        ctx.font = fontsize + 'px sans-serif';
-        ctx.textBaseline = 'middle';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#3388ff';
-        let measure_length;
-        if(view.placing_area.is_line)
-            measure_length = calc_measure_length(map, a.x0, a.y0, a.x1, a.y1);
-        else {
-            measure_length = calc_measure_length(map, a.x0, a.y0, a.x1, a.y0)+' x '+calc_measure_length(map, a.x0, a.y0, a.x0, a.y1);
+        if(!view.placing_area.is_fixture){
+            const fontsize = 24/scale | 0;
+            ctx.font = fontsize + 'px sans-serif';
+            ctx.textBaseline = 'middle';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#3388ff';
+            let measure_length;
+            if(view.placing_area.is_line)
+                measure_length = calc_measure_length(map, a.x0, a.y0, a.x1, a.y1);
+            else {
+                measure_length = calc_measure_length(map, a.x0, a.y0, a.x1, a.y0)+' x '+calc_measure_length(map, a.x0, a.y0, a.x0, a.y1);
+            }
+            let x = (a.x0+a.x1)/2|0;
+            let y = (a.y0+a.y1)/2|0;
+            if(a.x0 == a.x1 && a.y0 == a.y1){
+                // pass
+            }
+            else if(a.x0 == a.x1)
+                x += fontsize;
+            else if(a.y0 == a.y1)
+                y += fontsize;
+            else {
+                // idk what to put here, everything looks bad
+            }
+            ctx.fillText(measure_length, x, y);
         }
-        let x = (a.x0+a.x1)/2|0;
-        let y = (a.y0+a.y1)/2|0;
-        if(a.x0 == a.x1 && a.y0 == a.y1){
-            // pass
-        }
-        else if(a.x0 == a.x1)
-            x += fontsize;
-        else if(a.y0 == a.y1)
-            y += fontsize;
-        else {
-            // idk what to put here, everything looks bad
-        }
-        ctx.fillText(measure_length, x, y);
     }
     const enum PING {DURATION=1000, RADIUS=64};
     if(flags & RenderFlags.DO_PINGS){
@@ -7959,6 +7963,10 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     the_canvas.removeEventListener('pointerup', finish_point);
                     view.placing_area.is_placing = false;
                     request_render();
+                    if(!rect.width && !rect.height){
+                        rect.flags |= CanvasFlag.DELETED;
+                        return;
+                    }
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                 }
@@ -8204,6 +8212,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         add_canv_obj(view.map, obj);
                         view.placing_area.is_placing = true;
                         view.placing_area.is_line = false;
+                        view.placing_area.is_fixture = true;
                         const stairs = view.map.canvas_objs.get(id)! as Stairs; // lazy
                         view.placing_area.x0 = x0;
                         view.placing_area.y0 = y0;
@@ -8226,6 +8235,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         the_canvas.addEventListener('pointermove', change_stairs_on_move);
                         function finish_point():void{
                             view.placing_area.is_placing = false;
+                            view.placing_area.is_fixture = false;
                             request_render();
                             the_canvas.removeEventListener('pointermove', change_stairs_on_move);
                             the_canvas.removeEventListener('pointerup', finish_point);
@@ -8246,6 +8256,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         add_canv_obj(view.map, fixture);
                         view.placing_area.is_placing = true;
                         view.placing_area.is_line = false;
+                        view.placing_area.is_fixture = true;
                         view.placing_area.x0 = fixture.base_x;
                         view.placing_area.y0 = fixture.base_y;
                         view.placing_area.x1 = fixture.base_x;
@@ -8276,6 +8287,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         the_canvas.addEventListener('pointermove', move);
                         function finish():void{
                             view.placing_area.is_placing = false;
+                            view.placing_area.is_fixture = false;
                             request_render();
                             the_canvas.removeEventListener('pointermove', move);
                             the_canvas.removeEventListener('pointerup', finish);
