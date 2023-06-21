@@ -1,0 +1,19 @@
+Changelog::kv
+  created:  2023-06-21T22:37:48.991689
+  resolved: 2023-06-21T23:32:18.381454
+Created Jun 21, 2023, 03:37PM::md .update
+Summary::md .summary
+  The issue appears with weird sort orders. Sometimes doors will be on top or
+  below walls. It is hard to figure out what is triggering it though.
+
+  Will need to look at SORTORDERS.
+
+  Hopefully it is an easy fix, but who knows at this point.
+
+  It would be nice if JavaScript would show something.
+
+  It is hard to replicate this bug, it is quite strange.
+
+Resolved Jun 21, 2023, 04:32PM::md .update
+  good old javascript, accessing an out of bounds array giving undefined, which
+  would then result in NaN.

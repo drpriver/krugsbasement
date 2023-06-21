@@ -114,8 +114,14 @@ const SORTORDER = [
        1, // FILLED_TILE
        1, // TERRAIN_TILE
        1, // ICON_TILE
-      10, // SUBMAP (submaps were deleted)
-];
+      10, // SUBMAP was deleted
+       3, // SHAPE
+       3, // ARC
+
+// as const protects us from adding types without adding sort
+// order here
+] as const;
+
 type Resizable = Rectangle | GridRectangle | FilledRectangle | Ellipse | ImageObj | Arc | Stairs;
 
 function is_resizable(obj:CanvasObject): obj is Resizable{
