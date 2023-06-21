@@ -120,5 +120,9 @@ function get_dialog<Key extends keyof DialogIdMap>(name:Key):Dialog<Key>{
     // if(!dialog.hidden) return null as unknown as any;
     if(OPENDIALOG) OPENDIALOG.cancel.click();
     dialog.clear_handlers();
+    if(name == 'simple-text'){
+        (dialog as Dialog<'simple-text'>).f.textlabel.textContent = 'Text:';
+        (dialog as Dialog<'simple-text'>).f.text.value = '';
+    }
     return dialog;
 }

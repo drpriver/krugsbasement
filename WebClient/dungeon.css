@@ -14,6 +14,9 @@ a {
   color: rgba(33, 33, 33, 1);
   margin-left: 16px;
 }
+body.dark-mode #home-link a {
+  color: rgba(222, 222, 222, 1);
+}
 button {
   text-transform: capitalize;
 }

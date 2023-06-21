@@ -121,6 +121,10 @@
   function label(name, text){
     return `<label for="${name}">${text}</label>`;
   }
+  function id_label(id, name, text){
+    items[current_prefix].push([id, 'HTMLLabelElement']);
+    return `<label id="${id}" for="${name}">${text}</label>`;
+  }
   function numbox(name){
     items[current_prefix].push([name, 'HTMLInputElement']);
     return `<input type="number" name="${name}" id="${name}" class="numeric-input">`;
@@ -379,7 +383,7 @@
     ${title("Text")}
     <table class="input-container">
       <tr>
-        <td>${label('text', 'Text:')}
+        <td>${id_label('textlabel', 'text', 'Text:')}
         <td>${textbox('text')}
     </table>
     `);
@@ -636,6 +640,7 @@
       ::raw
         <a href="/home" target="_blank">Home</a>
         <a href="/docs" target="_blank">Docs</a>
+        <a id="home-page" target="_blank"></a>
     ::div.three-buttons
       ::raw
         <button id="tables-button">Tables…</button>

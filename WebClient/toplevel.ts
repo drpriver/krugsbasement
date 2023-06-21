@@ -55,3 +55,34 @@ let session_id = 0;
 ONRECV(ToClient.SESSION_ID, function(resp:number):void{
     session_id = resp;
 });
+let HOMEPAGE = '';
+// Idk where to put this
+ONRECV(ToClient.METADATA, function(md:MetadataMsg){
+    switch(md[0]){
+        case MetadataType.HOMEPAGE:{
+            const a = by_id('home-page');
+            HOMEPAGE = md[1];
+            a.href = md[1];
+            a.textContent = 'Campaign Page';
+            break;
+        }
+    }
+});
+document.addEventListener('DOMContentLoaded', function(){
+    by_id('home-link').oncontextmenu = function(e:MouseEvent){
+        const menu = ctx_menu(e);
+        menu.item('Campaign Page…', function(){
+            const diag = get_dialog('simple-text');
+            if(!diag) return;
+            diag.f.text.value = HOMEPAGE;
+            diag.f.title.textContent = 'Campaign Page';
+            diag.f.textlabel.textContent = 'URL:';
+            diag.ok_handler = function(){
+                EMIT(FromClient.METADATA, [MetadataType.HOMEPAGE, diag.f.text.value.trim()]);
+            };
+            diag.show();
+        });
+        menu.item('Cancel');
+        menu.install();
+    };
+});

@@ -61,6 +61,8 @@ enum FromClient: int
     STORE_LOCAL_SETTING = 27
     SPREADSHEET = 28
 
+    METADATA = 36
+
 # ToClient
 # --------
 # Defines messages sent from the server to the client
@@ -120,6 +122,8 @@ enum ToClient: int
     # Init?
     API_VERSION = 35
     SPREADSHEET = 38
+
+    METADATA=42
 
 
 # ChatCommand
@@ -1041,6 +1045,7 @@ message ToClientMsg: ToClient
     SPREADSHEET = SpreadSheetMsg
     NOTE_SHOW = int
     NOTE_PARENT = NoteParentMsg
+    METADATA = MetadataMsg
 
 message FromClientMsg: FromClient
     JOIN = str
@@ -1078,6 +1083,7 @@ message FromClientMsg: FromClient
     SPREADSHEET = SpreadSheetMsg
     NOTE_SHOW = int
     NOTE_PARENT = NoteParentMsg
+    METADATA = MetadataMsg
 
 enum DarkMode: int
     SYSTEM = 0
@@ -1243,3 +1249,13 @@ union SpreadSheetMsg: array
     SpreadSheetDelete
     SpreadSheetParent
     SpreadSheetFunctionIO
+
+enum MetadataType: int
+    HOMEPAGE = 0
+
+struct MetadataHomePageMsg: array
+    type = MetadataType.HOMEPAGE
+    url: str
+
+union MetadataMsg: array
+    MetadataHomePageMsg

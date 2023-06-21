@@ -21,7 +21,7 @@ from . import canvas
 from . import notes
 from . import sheets
 from .persist import Persister, RepeatTimer, AppKVPersister
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize, NewNoteMsg, CanvasParentMsg, NoteParentMsg
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize, NewNoteMsg, CanvasParentMsg, NoteParentMsg, MetadataType, MetadataMsg
 from .validator import register_list, validated, validate, try_validate
 from . import db
 from .users import User
@@ -482,6 +482,9 @@ def post_join(mode:UiMode) -> None:
     if mode == UiMode.NORMAL:
         msg:SpreadSheetInitialize = [SpreadSheetMsgType.INITIALIZE, sheets.get_spreadsheets(campaign)] # type: ignore
         emit(ToClient.SPREADSHEET, msg)
+    url = db.get_campaign_kv(campaign, 'homepage')
+    if url:
+        emit(ToClient.METADATA, [MetadataType.HOMEPAGE, url]) # type: ignore
 
 @socketio.on(FromClient.CANVAS_CREATE_OBJECTS)
 @validated
@@ -725,6 +728,16 @@ def spreadsheet(msg:SpreadSheetMsg) -> None:
     response = sheets.handle(campaign, msg)
     if response is not None:
         emit(ToClient.SPREADSHEET, response, broadcast=True, include_self=True, to=str(campaign))
+
+@socketio.on(FromClient.METADATA)
+@validated
+def campaign_metadata(msg:MetadataMsg) -> None:
+    if msg[0] == MetadataType.HOMEPAGE:
+        url = msg[1]
+        campaign = get_campaign(request)
+        db.store_campaign_kv(campaign, 'homepage', url)
+        emit(ToClient.METADATA, msg, to=str(campaign), broadcast=True, include_self=True)
+        return
 
 def get_html(info:db.CampaignInfo, mode:UiMode) -> str:
     global SCREEN
