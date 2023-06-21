@@ -970,6 +970,7 @@ type DungeonMapView = {
     selected: Set<number>;
     selection_area: {
         is_selecting: boolean;
+        is_dragging: boolean;
         select_one: boolean;
         x0: number;
         x1: number;
@@ -1012,6 +1013,7 @@ function new_map_view(map_id:number): [DungeonMapView, DungeonMapView]{
         selection_area: {
             select_one: false,
             is_selecting: false,
+            is_dragging: false,
             x0:0, y0:0,
             x1:0, y1:0,
         },
@@ -4587,7 +4589,7 @@ function screenshot_canvas(view:DungeonMapView):void{
             gridscale: GRIDSCALE.TEN,
             scale: 1,
             selected: new Set(),
-            selection_area: {is_selecting: false, select_one: false, x0: 0, x1: 0, y0: 0, y1: 0},
+            selection_area: {is_selecting: false, is_dragging:false, select_one: false, x0: 0, x1: 0, y0: 0, y1: 0},
             placing_area: {is_placing: false, is_line: false, is_fixture:false, x0: 0, x1: 0, y0: 0, y1: 0},
             mouse: {x: 0, y: 0},
             hovered_id: 0,
@@ -7262,6 +7264,7 @@ const redo_canvas_cursor = (function():(canvas:HTMLCanvasElement, view:DungeonMa
     let prev_id = -1;
     function redo_canvas_cursor(canvas:HTMLCanvasElement, view: DungeonMapView, modified:boolean):void{
         if(view.resize.resizing) return;
+        if(view.selection_area.is_dragging) return;
         if(GRABBING){
             if(canvas.style.cursor != 'grabbing')
                 canvas.style.cursor = 'grabbing';
@@ -7578,6 +7581,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     let changed = false;
                     const before_update = get_stripped_state_by_id(view.map, Array.from(view.selected));
                     const is_rigid = selection_is_rigid(view);
+                    view.selection_area.is_dragging = true;
                     function move(e:MouseEvent):void{
                         e.stopPropagation();
                         e.preventDefault();
@@ -7599,6 +7603,8 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         const after_update = get_stripped_state_by_id(view.map, Array.from(view.selected));
                         publish_obj_updates(view.map.map_id, after_update);
                         note_updates_for_undo(view.map, before_update, after_update);
+                        view.selection_area.is_dragging = false;
+                        redo_canvas_cursor(the_canvas, view, false);
                     }
                     the_canvas.addEventListener('pointerup', finish_move);
                 }
