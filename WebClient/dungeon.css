@@ -331,7 +331,7 @@ span.color-picker-dropdown {
 * {
   box-sizing: border-box;
 }
-.tool b, #scale b{
+.tool b, .scale b{
   /* wow this is a total hackjob */
   text-decoration: underline;
   font-weight: initial;
@@ -487,10 +487,10 @@ button {
 #keyboardless-buttons {
   display: none;
 }
-#scale input, #tools input {
+.scale input, #tools input {
   padding: 0px;
 }
-#scale input, #stuff input {
+.scale input, #stuff input {
   pointer-events: auto;
   padding: 0px;
   max-width: 3em;
@@ -503,7 +503,7 @@ button {
   bottom: 2px;
   left: 5px;
 }
-#scale label, #tool-container label, #tool-container button {
+.scale label, #tool-container label, #tool-container button {
   pointer-events:auto;
 }
 div.tool-menu{
@@ -536,12 +536,12 @@ body.dark-mode #tools>div.tool-menu:hover {
   background-color: #2962D8;
   color: #fff;
 }
-#scale input[type="radio"]:checked+label,
+.scale input[type="radio"]:checked+label,
 #stuff input[type="radio"]:checked+label {
   background-color: #fff;
   box-shadow: inset 1px 2px 3px rgba(0,0,0,0.3);
 }
-#scale input[type="radio"]+label,
+.scale input[type="radio"]+label,
 #stuff input[type="radio"]+label {
   background-color: #eee;
   box-shadow: 1px 2px 3px rgba(0,0,0,0.3);
@@ -549,7 +549,7 @@ body.dark-mode #tools>div.tool-menu:hover {
   cursor: pointer;
   padding: 4px;
 }
-#scale input[type="radio"],
+.scale input[type="radio"],
 #stuff input[type="radio"] {
   display: none;
 }
@@ -557,18 +557,23 @@ body.dark-mode #tools>div.tool-menu:hover {
   position:fixed;
   bottom: 0;
   left: 200px;
+}
+.scale {
   z-index: 1;
   text-align: center;
   padding: 4px;
   height: auto;
   display: grid;
   grid-template-rows: 1fr 1fr;
-  grid-template-columns: auto 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   align-items: center;
   font-size: 10px;
 }
-#scale div {
-  background-color: #eee;
+.scale div:first-child {
+  grid-column: 1/3;
+}
+.scale div {
+  /*background-color: #eee;*/
   padding: 5px;
 }
 #line-thickness {
@@ -759,7 +764,7 @@ canvas {
   user-select: none;
 }
 
-#tools, #stuff {
+#tools, #stuff, .scale {
   background-color: #fff;
   border: 1px solid #B4B4B4;
   border-radius: 8px;
@@ -997,19 +1002,19 @@ table.ngroup {
     background-color: #2962D8;
   }
   body.dark-mode #stuff,
-  body.dark-mode #scale input[type="radio"]:checked+label,
+  body.dark-mode .scale input[type="radio"]:checked+label,
   body.dark-mode #stuff input[type="radio"]:checked+label {
     background-color: #333;
   }
-  body.dark-mode #scale input[type="radio"]+label,
+  body.dark-mode .scale input[type="radio"]+label,
   body.dark-mode #stuff input[type="radio"]+label {
     background-color: #888;
   }
-  /*body.dark-mode #scale input[type="radio"]+label:hover,*/
+  /*body.dark-mode .scale input[type="radio"]+label:hover,*/
   body.dark-mode #stuff input[type="radio"]+label:hover {
     background-color: #666;
   }
-  body.dark-mode #scale div {
+  body.dark-mode .scale div {
     background-color: #888;
   }
   body.dark-mode section.menu {

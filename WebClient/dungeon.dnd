@@ -522,25 +522,15 @@
 ::raw
   <canvas id="map"></canvas>
   <canvas id="map2"></canvas>
-::div #id(scale)
+::div #id(scale) .scale
   ::raw
-    <div>Scale:</div>
+    <div>Scale</div>
     <input type="radio" id="grid-10" name="grid-scales" checked>
     <label for="grid-10">10'</label>
     <input type="radio" id="grid-5" name="grid-scales">
     <label for="grid-5">5'</label>
     <span></span>
     <span></span>
-  ::raw
-    <div>Snap:</div>
-    <input type="radio" id="grid-snap-grid" name="snap-to-grid" checked>
-    <label for="grid-snap-grid">10'</label>
-    <input type="radio" id="grid-snap-half" name="snap-to-grid">
-    <label for="grid-snap-half">5'</label>
-    <input type="radio" id="grid-snap-quarter" name="snap-to-grid">
-    <label for="grid-snap-quarter">2½' </label>
-    <input type="radio" id="grid-snap-free" name="snap-to-grid">
-    <label for="grid-snap-free">Free</label>
 
 ::div #id(tool-container)
   ::div #id(tool-container-handle)
@@ -621,6 +611,17 @@
           <button id="paste">Paste</button>
           <button id="edit">Edit</button>
           <button id="delete">Delete</button>
+  ::div.scale
+    ::raw
+      <div>Snap</div>
+      <input type="radio" id="grid-snap-grid" name="snap-to-grid" checked>
+      <label for="grid-snap-grid">10'</label>
+      <input type="radio" id="grid-snap-half" name="snap-to-grid">
+      <label for="grid-snap-half">5'</label>
+      <input type="radio" id="grid-snap-quarter" name="snap-to-grid">
+      <label for="grid-snap-quarter">2½' </label>
+      <input type="radio" id="grid-snap-free" name="snap-to-grid">
+      <label for="grid-snap-free">Free</label>
 
 ::raw
   <div id="palette" class="window">
