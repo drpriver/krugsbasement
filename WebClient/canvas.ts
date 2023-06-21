@@ -6480,6 +6480,30 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
         else {
             ctx.strokeRect(a.x0-2, a.y0-2, w+4, h+4);
         }
+        const fontsize = 24/scale | 0;
+        ctx.font = fontsize + 'px sans-serif';
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#3388ff';
+        let measure_length;
+        if(view.placing_area.is_line)
+            measure_length = calc_measure_length(map, a.x0, a.y0, a.x1, a.y1);
+        else {
+            measure_length = calc_measure_length(map, a.x0, a.y0, a.x1, a.y0)+' x '+calc_measure_length(map, a.x0, a.y0, a.x0, a.y1);
+        }
+        let x = (a.x0+a.x1)/2|0;
+        let y = (a.y0+a.y1)/2|0;
+        if(a.x0 == a.x1 && a.y0 == a.y1){
+            // pass
+        }
+        else if(a.x0 == a.x1)
+            x += fontsize;
+        else if(a.y0 == a.y1)
+            y += fontsize;
+        else {
+            // idk what to put here, everything looks bad
+        }
+        ctx.fillText(measure_length, x, y);
     }
     const enum PING {DURATION=1000, RADIUS=64};
     if(flags & RenderFlags.DO_PINGS){
@@ -7893,82 +7917,52 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 the_canvas.addEventListener('pointerup', finish_door);
             }break;
             case ToolType.RECT:{ // TAG toolRECT
+                let id = get_new_id();
+                const [x0, y0] = event_to_coord_snapped(e, view, snap);
+                let change_func = change_rect_by_id;
                 switch(current_rect_type){
                     case RECTTYPE.HOLLOW:{
-                        let id = get_new_id();
-                        const [x0, y0] = event_to_coord_snapped(e, view, snap);
                         add_rect(view.map, id, x0, y0, get_primary_color());
-                        function add_point(e:MouseEvent):void{
-                            e.stopPropagation();
-                            e.preventDefault();
-                            const [x1, y1] = event_to_coord_snapped(e, view, snap);
-                            change_rect_by_id(view.map, id, x1, y1, x0, y0);
-                            request_render();
-                        }
-                        the_canvas.addEventListener('pointermove', add_point);
-                        function finish_point():void{
-                            the_canvas.removeEventListener('pointermove', add_point);
-                            the_canvas.removeEventListener('pointerup', finish_point);
-                            publish_obj_by_id(view.map, id);
-                            note_create_by_id_for_undo(view.map, id);
-                        }
-                        the_canvas.addEventListener('pointerup', finish_point);
+                        change_func = change_rect_by_id;
                     }break;
                     case RECTTYPE.FILLED:{
-                        let id = get_new_id();
-                        const [x0, y0] = event_to_coord_snapped(e, view, snap);
                         add_filled_rect(view.map, id, x0, y0, get_primary_color(), get_secondary_color());
-                        function add_point(e:MouseEvent):void{
-                            e.stopPropagation();
-                            e.preventDefault();
-                            const [x1, y1] = event_to_coord_snapped(e, view, snap);
-                            change_filled_rect_by_id(view.map, id, x1, y1, x0, y0);
-                            request_render();
-                        }
-                        the_canvas.addEventListener('pointermove', add_point);
-                        function finish_point():void{
-                            the_canvas.removeEventListener('pointermove', add_point);
-                            the_canvas.removeEventListener('pointerup', finish_point);
-                            publish_obj_by_id(view.map, id);
-                            note_create_by_id_for_undo(view.map, id);
-                        }
-                        the_canvas.addEventListener('pointerup', finish_point);
+                        change_func = change_filled_rect_by_id;
                     }break;
                     case RECTTYPE.SOLID:{
-                        let id = get_new_id();
-                        const [x0, y0] = event_to_coord_snapped(e, view, snap);
                         add_gridrect(view.map, id, x0, y0, get_primary_color());
-                        const gridrect = view.map.canvas_objs.get(id) as GridRectangle;
-                        view.placing_area.is_placing = true;
-                        view.placing_area.is_line = false;
-                        view.placing_area.x0 = gridrect.base_x;
-                        view.placing_area.y0 = gridrect.base_y;
-                        view.placing_area.x1 = gridrect.base_x;
-                        view.placing_area.y1 = gridrect.base_y;
-                        request_render()
-                        function add_point(e:MouseEvent):void{
-                            e.stopPropagation();
-                            e.preventDefault();
-                            const [x1, y1] = event_to_coord_snapped(e, view, snap);
-                            change_gridrect_by_id(view.map, id, x1, y1, x0, y0);
-                            view.placing_area.x0 = gridrect.base_x;
-                            view.placing_area.y0 = gridrect.base_y;
-                            view.placing_area.x1 = gridrect.base_x + gridrect.width;
-                            view.placing_area.y1 = gridrect.base_y + gridrect.height;
-                            request_render();
-                        }
-                        the_canvas.addEventListener('pointermove', add_point);
-                        function finish_point():void{
-                            the_canvas.removeEventListener('pointermove', add_point);
-                            the_canvas.removeEventListener('pointerup', finish_point);
-                            view.placing_area.is_placing = false;
-                            request_render();
-                            publish_obj_by_id(view.map, id);
-                            note_create_by_id_for_undo(view.map, id);
-                        }
-                        the_canvas.addEventListener('pointerup', finish_point);
+                        change_func = change_gridrect_by_id;
                     }break;
                 }
+                const rect = view.map.canvas_objs.get(id) as (GridRectangle|FilledRectangle|Rectangle);
+                view.placing_area.is_placing = true;
+                view.placing_area.is_line = false;
+                view.placing_area.x0 = rect.base_x;
+                view.placing_area.y0 = rect.base_y;
+                view.placing_area.x1 = rect.base_x;
+                view.placing_area.y1 = rect.base_y;
+                request_render()
+                function add_point(e:MouseEvent):void{
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const [x1, y1] = event_to_coord_snapped(e, view, snap);
+                    change_func(view.map, id, x1, y1, x0, y0);
+                    view.placing_area.x0 = rect.base_x;
+                    view.placing_area.y0 = rect.base_y;
+                    view.placing_area.x1 = rect.base_x + rect.width;
+                    view.placing_area.y1 = rect.base_y + rect.height;
+                    request_render();
+                }
+                the_canvas.addEventListener('pointermove', add_point);
+                function finish_point():void{
+                    the_canvas.removeEventListener('pointermove', add_point);
+                    the_canvas.removeEventListener('pointerup', finish_point);
+                    view.placing_area.is_placing = false;
+                    request_render();
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
+                }
+                the_canvas.addEventListener('pointerup', finish_point);
             }break;
             case ToolType.ELLIPSE:{ // TAG toolELLIPSE
                 let id = get_new_id();

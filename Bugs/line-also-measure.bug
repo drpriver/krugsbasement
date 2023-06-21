@@ -1,5 +1,10 @@
 Changelog::kv
   created: 2023-06-11T18:11:13Z
+  updated: 2023-06-21T18:50:16Z
 Created Jun 11, 2023, 11:11AM::md.update
 Summary::md.summary
   When drawing a line it should also tell you how long it is.
+
+Updated Jun 21, 2023, 11:50AM::md.update
+  Got this working, but it looks pretty bad for stairs and other fixtures, so
+  I’m leaving this open.
