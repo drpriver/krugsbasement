@@ -120,7 +120,7 @@ appconfig.py:
 run: Generated/dungeon.html Generated/demo.html Server/WebDnD/messages.py Generated/favicon.ico | appconfig.py serv_venv
 	$(SERVPY) -m Server.WebDnD.app
 
-Generated/dungeon.html: WebClient/client.dnd | Depends/Generated dev_venv
+Generated/dungeon.html: WebClient/client.dnd | Depends/Generated Generated dev_venv
 	$(DEVPY) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
 Generated/demo.html: WebClient/demo.dnd Generated/demo.js Generated/client.js WebClient/dungeon.css | Depends/Generated dev_venv
 	$(DEVPY) -m pydndc $< --output $@ --depends-path Depends/$@.dep --strip-spaces
