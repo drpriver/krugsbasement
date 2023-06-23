@@ -261,9 +261,9 @@ def structured_roll_die(die:UnrolledDiceExpr) -> None:
         return
     elif t == DieExprTypes.DICE:
         vals = []
-        for _ in range(die[1]):
+        for _ in range(die[1]): # type: ignore
             hi = die[2] # type: ignore
-            if hi < 1:
+            if hi < 1: # type: ignore
                 vals.append(0)
             else:
                 vals.append(random.randint(1, die[2])) # type: ignore
@@ -278,14 +278,14 @@ def structured_roll_die(die:UnrolledDiceExpr) -> None:
         structured_roll_die(die[3]) # type: ignore
         return
     elif t == DieExprTypes.NGROUP:
-        if die[1] > 100 or die[1] < 0:
+        if die[1] > 100 or die[1] < 0: # type: ignore
             # XXX: do we need a way to express errors when rolling dice?
             del die[2] # type: ignore
             die[0] = DieExprTypes.NUMBER # type: ignore
             die[1] = 0 # type: ignore
             return
         exprs = []
-        for _ in range(die[1]):
+        for _ in range(die[1]): # type: ignore
             expr = copy.deepcopy(die[2]) # type: ignore
             structured_roll_die(expr) # type: ignore
             exprs.append(expr)
