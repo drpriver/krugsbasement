@@ -748,6 +748,14 @@ function change_gridscale(view: DungeonMapView, newscale:GRIDSCALE):void{
             default: break;
         }
     }
+    if(newscale == GRIDSCALE.TEN){
+        switch(snapmode){
+            case SNAPMODE.HALF:
+                visually_set_snapmode(SNAPMODE.GRID);
+                break;
+            default: break;
+        }
+    }
     request_render();
 }
 function visually_set_gridscale(newscale:GRIDSCALE):void{
@@ -755,6 +763,12 @@ function visually_set_gridscale(newscale:GRIDSCALE):void{
         case GRIDSCALE.TEN:{
             const g = by_id('grid-10');
             g.click();
+            switch(snapmode){
+                case SNAPMODE.HALF:
+                    visually_set_snapmode(SNAPMODE.GRID);
+                    break;
+                default: break;
+            }
         }break;
         case GRIDSCALE.FIVE:{
             const g = by_id('grid-5');
