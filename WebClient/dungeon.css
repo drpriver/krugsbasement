@@ -588,6 +588,7 @@ body.dark-mode #tools>div.tool-menu:hover {
 html{
   width: 100vw;
   height: 100vh;
+  font-size: 16px;
 }
 html, body {
   margin: 0;
