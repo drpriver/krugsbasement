@@ -1140,6 +1140,7 @@ enum SpreadSheetMsgType: int
     DELETE = 14
     PARENT = 15
     FUNCTION_IO = 16
+    EDIT_CELLS = 17
 
 struct SpreadSheetDeleteRow: array
     type = SpreadSheetMsgType.DELETE_ROW
@@ -1175,6 +1176,13 @@ struct SpreadSheetEditCell: array
     row_idx: int
     col_idx: int
     value: str
+
+struct SpreadSheetEditCells: array
+    type = SpreadSheetMsgType.EDIT_CELLS
+    sheet_id: int
+    row_idx: [int]
+    col_idx: [int]
+    value: [str]
 
 struct SpreadSheetAddRow: array
     type = SpreadSheetMsgType.ADD_ROW
@@ -1249,6 +1257,7 @@ union SpreadSheetMsg: array
     SpreadSheetDelete
     SpreadSheetParent
     SpreadSheetFunctionIO
+    SpreadSheetEditCells
 
 enum MetadataType: int
     HOMEPAGE = 0

@@ -188,6 +188,7 @@ class SpreadSheet:
         return True
 
     def edit_cell(self, row_idx:int, col_idx:int, val:str) -> bool:
+        # TODO: should this just forward to `edit_cells`? or maybe be deleted?
         if row_idx < 0: return False
         if col_idx < 0: return False
         if not (self.flags & SpreadSheetFlags.CAN_EDIT_CELLS):
@@ -195,7 +196,29 @@ class SpreadSheet:
         oldval = self.cells[row_idx * len(self.column_names)+col_idx]
         if (self.flags & SpreadSheetFlags.LOCKED_FORMULAS) and oldval and oldval[0] == '=':
             return False
+        # FIXME: is this not checking the bounds?
         self.cells[row_idx*len(self.column_names)+col_idx] = val
+        self.cells_dirty = True
+        return True
+
+    def edit_cells(self, row_idxes:list[int], col_idxes:list[int], vals:list[str]) -> bool:
+        if len(row_idxes) != len(col_idxes):
+            return False
+        if len(row_idxes) != len(vals):
+            return False
+        for row_idx, col_idx, val in zip(row_idxes, col_idxes, vals):
+            if row_idx < 0: return False
+            if col_idx < 0: return False
+            if not (self.flags & SpreadSheetFlags.CAN_EDIT_CELLS):
+                return False
+            oldval = self.cells[row_idx * len(self.column_names)+col_idx]
+            if (self.flags & SpreadSheetFlags.LOCKED_FORMULAS) and oldval and oldval[0] == '=':
+                return False
+
+        for row_idx, col_idx, val in zip(row_idxes, col_idxes, vals):
+            # FIXME: is this not checking the bounds?
+            self.cells[row_idx*len(self.column_names)+col_idx] = val
+
         self.cells_dirty = True
         return True
 
@@ -305,6 +328,7 @@ METHODS:dict[SpreadSheetMsgType, Callable[..., bool]] = {
     SpreadSheetMsgType.NAME: SpreadSheet.set_name,
     SpreadSheetMsgType.PARENT: SpreadSheet.set_parent,
     SpreadSheetMsgType.FUNCTION_IO: SpreadSheet.set_func_io,
+    SpreadSheetMsgType.EDIT_CELLS: SpreadSheet.edit_cells,
 }
 
 def get_sheet(campaign:int, id:int) -> Optional[SpreadSheet]:

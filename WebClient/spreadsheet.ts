@@ -95,6 +95,8 @@ type SpreadSheet = {
     set_func_io: (nargs:number, outx:number, outy:number) => void;
 
     edit_cell:(row_idx:number, col_idx:number, val:string) => void;
+    edit_cells:(row_idx:Array<number>, col_idx:Array<number>, val:Array<string>) => void;
+
     set_display:(row_idx:number, col_idx:number, val:string) => void;
 
     sort:(col_idx:number, dir:number) => void;
@@ -1408,6 +1410,29 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         }
         recalc_me();
     };
+    result.edit_cells = function(row_idxes:Array<number>, col_idxes:Array<number>, vals:Array<string>):void{
+        if(row_idxes.length != col_idxes.length) return;
+        if(row_idxes.length != vals.length) return;
+        const length = row_idxes.length;
+        for(let i = 0; i < length; i++){
+            const row_idx = row_idxes[i];
+            const col_idx = col_idxes[i];
+            if(row_idx < 0 || row_idx >= result.cell_elems.length) return;
+            const row = result.cell_sources[row_idx];
+            if(col_idx < 0 || col_idx >= row.length) return;
+        }
+        for(let i = 0; i < length; i++){
+            const row_idx = row_idxes[i];
+            const col_idx = col_idxes[i];
+            const val = vals[i];
+            const row = result.cell_sources[row_idx];
+            if(row[col_idx] == val) continue;
+            row[col_idx] = val;
+            if(result._wasmed)
+                SHEET_CTX.set_str(result.id, row_idx, col_idx, val);
+        }
+        recalc_me();
+    };
     result.set_display = function(row_idx:number, col_idx:number, val:string):void {
         const r = result.cell_displays[row_idx];
         const old = r[col_idx];
@@ -1554,6 +1579,11 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
             let ss = SPREADSHEETS.get(arg[1]);
             if(!ss) break;
             ss.edit_cell(arg[2], arg[3], arg[4]);
+        }break;
+        case SpreadSheetMsgType.EDIT_CELLS:{
+            let ss = SPREADSHEETS.get(arg[1]);
+            if(!ss) break;
+            ss.edit_cells(arg[2], arg[3], arg[4]);
         }break;
         case SpreadSheetMsgType.MOVE_COL:{
             const ae = document.activeElement;
