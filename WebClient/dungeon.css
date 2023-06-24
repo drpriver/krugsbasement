@@ -1251,6 +1251,12 @@ body.mobile .notes-window {
   z-index: 5;
   outline: none;
 }
+.tracker-cell.range {
+  background-color: rgb(220, 255, 255);
+}
+body.dark-mode .tracker-cell.range {
+  background-color: rgb(0, 80, 80);
+}
 .tracker-cell.editing, .tracker-head.editing {
   padding: 0px;
 }

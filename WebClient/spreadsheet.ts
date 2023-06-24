@@ -60,6 +60,15 @@ document.addEventListener('DOMContentLoaded', function():void{
 
 type SpreadSheet = {
     xxx_timing: HTMLSpanElement;
+    // selection stuff;
+    r0: number;
+    c0: number;
+    r1: number;
+    c1: number;
+    _old_r0: number;
+    _old_c0: number;
+    _old_r1: number;
+    _old_c1: number;
     // func io stuff
     func_nargs: number;
     func_outx: number;
@@ -71,6 +80,7 @@ type SpreadSheet = {
     hidden: boolean;
     _dirty: boolean;
     _wasmed: boolean;
+    _down: boolean;
     name: string;
     show:() => void;
     hide:() => void;
@@ -400,6 +410,9 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         w:w,
         _dirty: false,
         _wasmed: false,
+        _down: false,
+        r0: -1, r1: -1, c0: -1, c1: -1,
+        _old_r0: -1, _old_r1: -1, _old_c0: -1, _old_c1: -1,
         hidden: true,
         name,
         show: function():void{
@@ -488,7 +501,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, 0]);
             });
             menu.item('Insert Row Bottom', function():void{
-                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, -1]);
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, result.cell_sources.length]);
             });
             menu.separator();
         }
@@ -631,69 +644,113 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         if(e.altKey) return;
         const cell = e.target as HTMLDivElement;
         let [row_idx, col_idx] = idx_of(cell);
+        function do_left():void{
+            if(e.shiftKey){
+                if(result.c1 == -1){
+                    result.r1 = result.r0;
+                    result.c1 = result.c0;
+                }
+                if(result.c1 > 0) result.c1--;
+                update_range();
+                return;
+            }
+            if(col_idx == -1) return;
+            col_idx--;
+            if(col_idx < 0) return;
+            result.cell_elems[row_idx][col_idx].focus();
+        }
+        function do_right():void{
+            if(e.shiftKey){
+                if(result.c1 == -1){
+                    result.r1 = result.r0;
+                    result.c1 = result.c0;
+                }
+                if(result.c1 +1 < result.cell_elems[row_idx].length) result.c1++;
+                update_range();
+                return;
+            }
+            if(col_idx == -1) return;
+            col_idx++;
+            if(col_idx >= result.cell_elems[row_idx].length) return;
+            result.cell_elems[row_idx][col_idx].focus();
+        }
+        function do_up():void{
+            if(e.shiftKey){
+                if(result.r1 == -1){
+                    result.r1 = result.r0;
+                    result.c1 = result.c0;
+                }
+                if(result.r1 != 0) result.r1--;
+                update_range();
+                return;
+            }
+            if(row_idx == -1) return;
+            row_idx--;
+            if(row_idx < 0)
+                result.headers[col_idx].focus();
+            else{
+                result.cell_elems[row_idx][col_idx].focus();
+            }
+        }
+        function do_down():void{
+            if(e.shiftKey){
+                if(result.r1 == -1){
+                    result.r1 = result.r0;
+                    result.c1 = result.c0;
+                }
+                if(result.r1 +1 < result.cell_elems.length) result.r1++;
+                update_range();
+                return;
+            }
+            if(row_idx == -1) return;
+            row_idx++;
+            if(row_idx >= result.cell_elems.length) return;
+            result.cell_elems[row_idx][col_idx].focus();
+        }
         switch(e.key){
             case 'ArrowLeft': {
                 if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
                     e.stopPropagation();
                     EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx-1]);
-                    // result.move_column(col_idx, col_idx-1);
-                    // cell.focus();
                     return;
                 }
-                if(col_idx == -1) return;
-                col_idx--;
-                if(col_idx < 0) return;
-                result.cell_elems[row_idx][col_idx].focus();
+                do_left();
             } return;
             case 'ArrowRight': {
                 if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
                     e.stopPropagation();
                     EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx+1]);
-                    // result.move_column(col_idx, col_idx+1);
-                    // cell.focus();
                     return;
                 }
-                if(col_idx == -1) return;
-                col_idx++;
-                if(col_idx >= result.cell_elems[row_idx].length) return;
-                result.cell_elems[row_idx][col_idx].focus();
+                do_right();
             } return;
             case 'ArrowUp': {
                 if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
                     e.stopPropagation();
                     EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, row_idx, row_idx-1]);
-                    // result.move_row(row_idx, row_idx-1);
-                    // cell.focus();
                     return;
                 }
-                if(row_idx == -1) return;
-                row_idx--;
-                if(row_idx < 0)
-                    result.headers[col_idx].focus();
-                else
-                    result.cell_elems[row_idx][col_idx].focus();
+                do_up();
             } return;
             case 'ArrowDown': {
                 if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
                     e.stopPropagation();
                     EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, row_idx, row_idx+1]);
-                    // result.move_row(row_idx, row_idx+1);
-                    // cell.focus();
                     return;
                 }
-                if(row_idx == -1) return;
-                row_idx++;
-                if(row_idx >= result.cell_elems.length) return;
-                result.cell_elems[row_idx][col_idx].focus();
+                do_down();
             } return;
             case 'Escape':
+                result.r1 = -1;
+                result.c1 = -1;
+                update_range();
                 e.stopPropagation();
                 e.preventDefault();
                 return;
             case 'Delete':
                 e.stopPropagation();
                 e.preventDefault();
-                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELL, result.id, row_idx, col_idx, '']);
+                do_delete();
                 return;
             case 'Shift':
                 return;
@@ -707,50 +764,37 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                         EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, row_idx+1]);
                     return;
                 }
-                if(row_idx == -1) return;
-                row_idx++;
-                if(row_idx >= result.cell_elems.length) return;
-                result.cell_elems[row_idx][col_idx].focus();
+                do_down();
+                // if(row_idx == -1) return;
+                // row_idx++;
+                // if(row_idx >= result.cell_elems.length) return;
+                // result.cell_elems[row_idx][col_idx].focus();
                 break;
             default:
                 if(IS_MAC){
-                    if(e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey){
-                        if(e.key == 'n'){
+                    if(e.ctrlKey && !e.altKey && !e.metaKey){
+                        if(e.key == 'n' || e.key == 'N'){
                             e.stopPropagation();
                             e.preventDefault();
-                            if(row_idx == -1) return;
-                            row_idx++;
-                            if(row_idx >= result.cell_elems.length) return;
-                            result.cell_elems[row_idx][col_idx].focus();
+                            do_down();
                             return;
                         }
-                        if(e.key == 'p'){
+                        if(e.key == 'p' || e.key == 'P'){
                             e.stopPropagation();
                             e.preventDefault();
-                            if(row_idx == -1) return;
-                            row_idx--;
-                            if(row_idx < 0)
-                                result.headers[col_idx].focus();
-                            else
-                                result.cell_elems[row_idx][col_idx].focus();
+                            do_up();
                             return;
                         }
-                        if(e.key == 'b'){
+                        if(e.key == 'b' || e.key == 'B'){
                             e.stopPropagation();
                             e.preventDefault();
-                            if(col_idx == -1) return;
-                            col_idx--;
-                            if(col_idx < 0) return;
-                            result.cell_elems[row_idx][col_idx].focus();
+                            do_left();
                             return;
                         }
-                        if(e.key == 'f'){
+                        if(e.key == 'f' || e.key == 'F'){
                             e.stopPropagation();
                             e.preventDefault();
-                            if(col_idx == -1) return;
-                            col_idx++;
-                            if(col_idx >= result.cell_elems[row_idx].length) return;
-                            result.cell_elems[row_idx][col_idx].focus();
+                            do_right();
                             return;
                         }
                         if(e.key == 'h'){
@@ -874,32 +918,124 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         const cell = e.target as HTMLDivElement;
         edit_cell(cell, '', true);
     }
-    function on_copy():void{
-        const [row_idx, col_idx] = idx_of(document.activeElement as HTMLDivElement);
-        if(row_idx == -1) return;
-        const s = result.cell_sources[row_idx][col_idx];
+    function do_copy():void{
+        let s = "";
+        let r0 = result.r0;
+        let r1 = result.r1;
+        let c0 = result.c0;
+        let c1 = result.c1;
+        if(r1 < r0){
+            const t = r1;
+            r1 = r0;
+            r0 = t;
+        }
+        if(c1 < c0){
+            const t = c1;
+            c1 = c0;
+            c0 = t;
+        }
+        for(let r = r0; r <= r1; r++){
+            for(let c = c0; c <= c1; c++){
+                s += result.cell_sources[r][c];
+                if(c != c1)
+                    s += '\t';
+            }
+            if(r != r1)
+                s += '\n';
+        }
         navigator.clipboard.writeText(s);
         if(!navigator.clipboard.readText)
             spreadsheet_fake_clipboard = s;
     }
+    function do_delete():void{
+        const rows = [];
+        const cols = [];
+        const vals = [];
+        let r0 = result.r0;
+        let r1 = result.r1;
+        let c0 = result.c0;
+        let c1 = result.c1;
+        if(r1 < r0){
+            const t = r1;
+            r1 = r0;
+            r0 = t;
+        }
+        if(c1 < c0){
+            const t = c1;
+            c1 = c0;
+            c0 = t;
+        }
+        for(let r = r0; r <= r1; r++){
+            for(let c = c0; c <= c1; c++){
+                cols.push(c);
+                rows.push(r);
+                vals.push('');
+            }
+        }
+        EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELLS, result.id, rows, cols, vals]);
+    }
+    function on_copy():void{
+        do_copy();
+    }
     function on_cut():void{
-        const [row_idx, col_idx] = idx_of(document.activeElement as HTMLDivElement);
-        if(row_idx == -1) return;
-        const s = result.cell_sources[row_idx][col_idx];
-        navigator.clipboard.writeText(s);
-        if(!navigator.clipboard.readText)
-            spreadsheet_fake_clipboard = s;
-        EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELL, result.id, row_idx, col_idx, '']);
+        do_copy();
+        do_delete();
+    }
+    function paste_stuff(row_idx:number, col_idx:number, s:string):[Array<number>, Array<number>, Array<string>]{
+        if(s.length && s[s.length-1] == '\n')
+            s = s.slice(0, s.length-1);
+        const lines = s.split(/\n/);
+        const r = [];
+        const c = [];
+        const v = [];
+        for(let i = 0; i < lines.length; i++){
+            const line = lines[i];
+            const cells = line.split(/\t/);
+            for(let j = 0; j < cells.length; j++){
+                const cell = cells[j];
+                r.push(row_idx+i);
+                c.push(col_idx+j);
+                v.push(cell);
+            }
+        }
+        return [r, c, v];
+    }
+    function check_bounds(r:Array<number>, c:Array<number>):void{
+        for(let i = 0; i < r.length;){
+            const ri = r[i];
+            i++;
+            while(i < r.length && r[i] == ri){
+                i++;
+            }
+            if(ri >= result.cell_sources.length){
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, result.cell_sources.length]);
+            }
+        }
+        const ct = Array.from(c).sort();
+        for(let i = 0; i < ct.length;){
+            const ci = ct[i];
+            i++;
+            while(i < ct.length && ct[i] == ci){
+                i++;
+            }
+            if(ci >= result.column_names.length){
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, result.column_names.length]);
+            }
+        }
     }
     function on_paste():void{
         const [row_idx, col_idx] = idx_of(document.activeElement as HTMLDivElement);
         if(row_idx == -1) return;
         if(!navigator.clipboard.readText) {
-            EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELL, result.id, row_idx, col_idx, spreadsheet_fake_clipboard]);
+            const [r, c, v] = paste_stuff(row_idx, col_idx, spreadsheet_fake_clipboard);
+            check_bounds(r, c);
+            EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELLS, result.id, r, c, v]);
             return;
         }
         navigator.clipboard.readText().then((s)=>{
-            EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELL, result.id, row_idx, col_idx, s]);
+            const [r, c, v] = paste_stuff(row_idx, col_idx, s);
+            check_bounds(r, c);
+            EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELLS, result.id, r, c, v]);
         });
     }
     function editable_cell(cell:HTMLDivElement):void{
@@ -934,13 +1070,88 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                     }
                 }
             }
+            if(e.shiftKey){
+                const [row_idx, col_idx] = idx_of(cell);
+                result.r1 = row_idx;
+                result.c1 = col_idx;
+                update_range();
+                e.preventDefault();
+                return;
+            }
             (e.target as HTMLDivElement).focus();
+            result._down = true;
+        }
+        cell.onmousemove = function(e:MouseEvent):void{
+            if(!result._down) return;
+            const [row_idx, col_idx] = idx_of(cell);
+            if(row_idx != result.r1 || col_idx != result.c1){
+                result.r1 = row_idx;
+                result.c1 = col_idx;
+                update_range();
+            }
+        };
+        cell.onmouseup = function(e:MouseEvent):void{
+            result._down = false;
         }
         cell.onkeydown = on_cell_keydown;
         cell.oncontextmenu = celldropdown;
         cell.oncopy = on_copy;
         cell.onpaste = on_paste;
         cell.oncut = on_cut;
+        cell.onblur = function(){
+            // result.r0 = -1;
+            // result.c0 = -1;
+            result.r1 = -1;
+            result.c1 = -1;
+            update_range();
+        };
+        cell.onfocus = function():void{
+            const [row_idx, col_idx] = idx_of(cell);
+            result.r0 = row_idx;
+            result.c0 = col_idx;
+            result.r1 = row_idx;
+            result.c1 = col_idx;
+            update_range();
+        }
+    }
+    function update_range():void{
+        if(result._old_r0 == result.r0 && result._old_r1 == result.r1 && result._old_c0 == result.c0 && result._old_c1 == result.c1)
+            return;
+        really_update_range();
+    }
+    function really_update_range():void{
+        result._old_r0 = result.r0;
+        result._old_c0 = result.c0;
+        result._old_r1 = result.r1;
+        result._old_c1 = result.c1;
+        let r0 = result.r0;
+        let r1 = result.r1;
+        if(r0 > r1){
+            const t = r0;
+            r0 = r1;
+            r1 = t;
+        }
+        let c0 = result.c0;
+        let c1 = result.c1;
+        if(c0 > c1){
+            const t = c0;
+            c0 = c1;
+            c1 = t;
+        }
+        // console.log({r0, r1, c0, c1});
+        const can_add_range = (r0 != r1 || c0 != c1) && r0 != -1 && r1 != -1 && c0 != -1 && c1 != -1;
+        // console.log({can_add_range});
+
+        for(let r = 0; r < result.cell_elems.length; r++){
+            const row = result.cell_elems[r];
+            for(let c = 0; c < row.length; c++){
+                const cell = row[c];
+                cell.classList.remove('range');
+                if(!can_add_range) continue;
+                if(r >= r0 && r <= r1 && c >= c0 && c <= c1)
+                    cell.classList.add('range');
+            }
+        }
     }
     function find_prev_elem(row_idx:number, col_idx: number):HTMLElement{
         if(col_idx == 0){
@@ -996,6 +1207,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             sheet_dewasm(result);
             recalc_me();
         }
+        really_update_range();
     };
     result.add_column1 = function(whence:number):void{
         result.add_column3(whence, '', []);
@@ -1132,18 +1344,18 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 default:
                     if(IS_MAC){
                         if(e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey){
-                            if(e.key == 'n'){
+                            if(e.key == 'n' || e.key == 'N'){
                                 result.cell_elems[0][idx].focus();
                                 break;
                             }
-                            if(e.key == 'p'){
+                            if(e.key == 'p' || e.key == 'P'){
                                 break;
                             }
-                            if(e.key == 'b'){
+                            if(e.key == 'b' || e.key == 'B'){
                                 if(idx > 0) result.headers[idx-1].focus();
                                 break;
                             }
-                            if(e.key == 'f'){
+                            if(e.key == 'f' || e.key == 'F'){
                                 if(idx + 1 < result.headers.length) result.headers[idx+1].focus();
                                 break;
                             }
@@ -1181,6 +1393,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             sheet_dewasm(result);
             recalc_me();
         }
+        really_update_range();
     };
     result.set_title = function(title:string):void{
         result.name = title;
@@ -1248,6 +1461,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             do_func_io();
         sheet_dewasm(result);
         recalc_me();
+        really_update_range();
     };
     result.del_column = function(whence:number):void{
         if(!(result.flags & SpreadSheetFlags.CAN_DEL_COL)) return;
@@ -1273,6 +1487,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             do_func_io();
         sheet_dewasm(result);
         recalc_me();
+        really_update_range();
     }
     result.del_row = function(whence:number):void{
         if(!(result.flags & SpreadSheetFlags.CAN_DEL_ROW)) return;
@@ -1294,6 +1509,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             do_func_io();
         sheet_dewasm(result);
         recalc_me();
+        really_update_range();
     }
     result.move_row = function(from:number, to:number):void{
         if(!(result.flags & SpreadSheetFlags.CAN_MOVE_ROWS)) return;
@@ -1324,6 +1540,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             do_func_io();
         sheet_dewasm(result);
         recalc_me();
+        really_update_range();
     };
     result.move_column = function(from:number, to:number):void{
         if(!(result.flags & SpreadSheetFlags.CAN_MOVE_COLUMNS)) return;
@@ -1387,6 +1604,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             do_func_io();
         sheet_dewasm(result);
         recalc_me();
+        really_update_range();
     };
     result.rename_column = function(whence:number, name:string):void{
         if(whence < 0 || whence >= result.headers.length) return;

@@ -193,6 +193,11 @@ class SpreadSheet:
         if col_idx < 0: return False
         if not (self.flags & SpreadSheetFlags.CAN_EDIT_CELLS):
             return False
+        if col_idx >= len(self.column_names):
+            return False
+        if row_idx >= len(self.cells) // len(self.column_names):
+            return False
+
         oldval = self.cells[row_idx * len(self.column_names)+col_idx]
         if (self.flags & SpreadSheetFlags.LOCKED_FORMULAS) and oldval and oldval[0] == '=':
             return False
@@ -210,6 +215,10 @@ class SpreadSheet:
             if row_idx < 0: return False
             if col_idx < 0: return False
             if not (self.flags & SpreadSheetFlags.CAN_EDIT_CELLS):
+                return False
+            if col_idx >= len(self.column_names):
+                return False
+            if row_idx >= len(self.cells) // len(self.column_names):
                 return False
             oldval = self.cells[row_idx * len(self.column_names)+col_idx]
             if (self.flags & SpreadSheetFlags.LOCKED_FORMULAS) and oldval and oldval[0] == '=':
