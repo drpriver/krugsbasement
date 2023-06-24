@@ -1,0 +1,18 @@
+Changelog::kv
+  created: 2023-06-24T22:09:39.907854
+Created Jun 24, 2023, 03:09PM::md .update
+Summary::md .summary
+  We currently spam a bunch of add column and rows when the paste is out of
+  bounds.
+
+  That is pretty inefficient. It would be better to do them as a single larger
+  message.
+
+  We could also combine them into a single message.
+
+  We could also have a composite message type that is a list of a bunch of
+  messages. That would easily add it as a single transaction, but it would bloat
+  the message size over the wire. idk.
+
+  We could also just have the front/backend insert columns for a paste when
+  needed. That would be even less info.
