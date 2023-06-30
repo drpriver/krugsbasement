@@ -1,0 +1,10 @@
+Changelog::kv
+  created:  2023-06-25T20:48:31.083352
+  resolved: 2023-06-30T22:22:55.569431
+Created Jun 25, 2023, 01:48PM::md .update
+Summary::md .summary
+  You can select and you can right click copy, but you can’t use keyboard
+  shortcut.
+
+Resolved Jun 30, 2023, 03:22PM::md .update
+  fixt

@@ -8994,9 +8994,9 @@ document.addEventListener('DOMContentLoaded', function():void{
                         clear_copy_buffer();
                         cut_selected_objs_to_copy_buffer(view);
                     }
+                    else return;
                 }
-                else
-                    return;
+                else return;
                 break;
             case 'c':
                 if(shortcut){
@@ -9004,9 +9004,9 @@ document.addEventListener('DOMContentLoaded', function():void{
                         clear_copy_buffer();
                         copy_selected_objs_to_copy_buffer(view);
                     }
+                    else return;
                 }
-                else
-                    return;
+                else return;
                 break;
             case 'v':
                 if(shortcut){
