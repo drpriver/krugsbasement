@@ -5,6 +5,9 @@
 let SHEET_TV: TreeView;
 let SHEET_CTX: DrSpreadCtx;
 let DRSP_EXPORTS: DrSpreadExports;
+// Evaling expressions needs a sheet, so we just insert a NULL sheet.
+// Ids are guaranteed to be non-zero otherwise.
+const enum SHEET {NULL=0};
 document.addEventListener('DOMContentLoaded', function():void{
     SHEET_TV = make_tree_view(by_id('sheets-list'), 'sheets');
     SHEET_TV.on_click = function(id:number):void{
@@ -206,7 +209,7 @@ function spread_eval_string(s:string):number|string|null{
         load_sheet_wasm();
         return null;
     }
-    const result = SHEET_CTX.evaluate_string(0, s);
+    const result = SHEET_CTX.evaluate_string(SHEET.NULL, s);
     if(result === "error")
         return null;
     return result;
@@ -216,12 +219,13 @@ function load_sheet_wasm():void{
     if(sheet_wasm_load_in_flight) return;
     sheet_wasm_load_in_flight = true;
     drspread(
-        '/wasm/drspread.wasm?v=6',
+        '/wasm/drspread.wasm?v=8',
         sheet_display_number,
         sheet_display_string,
         sheet_display_error,
     ).then(({make_ctx, exports})=>{
         SHEET_CTX = make_ctx();
+        SHEET_CTX.make_sheet(SHEET.NULL, "SHEET.NULL");
         DRSP_EXPORTS = exports;
         for(const sheet of SPREADSHEETS.values()){
             setup_sheet_for_wasm(sheet);
