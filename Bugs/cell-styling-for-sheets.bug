@@ -1,5 +1,17 @@
 Changelog::kv
   created: 2023-03-13T03:36:53Z
+  updated: 2023-07-01T05:23:04Z
 Created Mar 12, 2023, 08:36PM::md.update
 Summary::md.summary
   colored text, background, bold, italic
+
+Updated Jun 30, 2023, 10:23PM::md.update
+  Thoughts:
+
+  * Basic text attributes can be stored as a parallel array of flags. Bold,
+    italic, underline.
+  * Do we allow arbitrary colors? then we’re forced to have another array for
+    that.
+    - Actually, we could pack it into 24 bits and store in the flag array.
+      + Hmm, that actually sounds kind of nice.
+      + Should I have done that for canvas objects too?
