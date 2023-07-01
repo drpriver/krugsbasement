@@ -1,6 +1,7 @@
 Changelog::kv
   created: 2023-03-13T03:36:53Z
   updated: 2023-07-01T05:23:04Z
+  updated: 2023-07-01T05:26:54Z
 Created Mar 12, 2023, 08:36PM::md.update
 Summary::md.summary
   colored text, background, bold, italic
@@ -15,3 +16,7 @@ Updated Jun 30, 2023, 10:23PM::md.update
     - Actually, we could pack it into 24 bits and store in the flag array.
       + Hmm, that actually sounds kind of nice.
       + Should I have done that for canvas objects too?
+
+Updated Jun 30, 2023, 10:26PM::md.update
+  Regarding above, we need both foreground and background so we can’t pack
+  both into a javascript number because javascript is retarded.
