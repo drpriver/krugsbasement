@@ -2,7 +2,16 @@
 ::script
   document.addEventListener('DOMContentLoaded', ()=>{
     for(const node of document.querySelectorAll('dt.func')){
-      console.log(node);
+      node.onclick = ()=>{
+        window.location.hash = node.id;
+      };
+    }
+    for(const node of document.querySelectorAll('.example h3')){
+      node.onclick = ()=>{
+        window.location.hash = node.id;
+      };
+    }
+    for(const node of document.querySelectorAll('h2')){
       node.onclick = ()=>{
         window.location.hash = node.id;
       };
@@ -42,17 +51,21 @@
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
     display: grid;
-    grid-template-columns: 8em auto;
+    grid-template-columns: 12em auto;
     margin: 0;
     padding: 4px;
     align-items: start;
   }
-  dt.func {
+  h2, .example h3, dt.func {
     font-weight: bold;
     font-size: 32px;
     font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
     border-bottom: 1px dotted gray;
     cursor: pointer;
+  }
+  h2 {
+    font-size: 44px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   }
   dt.arg {
     font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
@@ -73,7 +86,47 @@
     padding-bottom: 4px;
     margin: 0;
   }
+  table td, table th {
+    width: 5ch;
+    font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
+    padding: 4px;
+  }
+  table {
+    border-collapse: collapse;
+  }
+  table td {
+    text-align: right;
+    white-space: nowrap;
+  }
+  table td:last-child, table th:last-child {
+    border-right: none;
+  }
+  table td, table th {
+    border-right: 1px solid black;
+  }
+  table td {
+    border-top: 1px solid black;
+  }
+  table {
+    margin-bottom: 3ex;
+  }
+  #udf table tbody tr:first-child td:nth-child(2),
+  #udf table tbody tr:first-child td:nth-child(3) {
+    background-color: green;
+  }
+  #udf table tbody tr:last-child td:nth-child(2) {
+    background-color: blue;
+  }
+  #udf td:nth-child(2), #udf td:nth-child(3) {
+    text-align: left;
+  }
   @media (prefers-color-scheme: dark) {
+    table td, table th {
+      border-right: 1px solid white;
+    }
+    table td {
+      border-top: 1px solid white;
+    }
     div.formula pre {
       background-color: rgba(255, 255, 255, 0.1);
     }
@@ -103,374 +156,546 @@
     }
   }
   //endjs
-::dl
-  ::js
-    for(const child of node.parent.children){
-      child.classes.add('func');
-    }
-    //endjs
-  abs::def
-    ::pre
-      abs(number)
-    Returns the absolute value of the input.
-
-    This can also be applied to a range.
-    Arguments::dl
-      number::def
-        A number argument.
-    Example::md
+::div
+  Formulas::dl
+    Formulas are cells that begin with an <tt>=</tt>.
+    You can write simple math expressions or call functions to compute a
+    value, that will then be the resulting displayed value.
+    ::js
+      for(const child of node.parent.children){
+        if(child.type != NodeType.DEF) continue;
+        child.classes.add('func');
+      }
+      //endjs
+    Numbers::def
+      Just write a number yo.
       ::pre
-        abs(-2)
-      The above yields 2.
-  avg::def
-    ::pre
-      avg(range)
-    Returns the average value of the input range, ignoring non-number inputs.
-
-    Returns 0 for an empty range.
-    Arguments::dl
-      range::def
-        A column range.
-  array::def
-    ::pre
-      array(args)
-      array(args, args)
-      array(args, args, args)
-      ...
-    Returns a computed array composed of the given args, that can be passed to
-    functions expecting a range like <tt>sum</tt>.
-    Arguments::dl
-      args::def
-        Any number of arguments that will be in the array.
-
-        They must evaluate to strings or numbers.
-
-  call::def
-    ::pre
-      call(funcname)
-      call(funcname, args)
-      call(funcname, args, args)
-      call(funcname, args, args, args)
-      ...
-    Calls the function identified by funcname.
-    Arguments::dl
-      funcname::def
-        A string identifying the function to call.
-      args::def
-        Any number of arguments. They are forwarded to the identified function as arguments.
-    Example::md
+        3
+      If you want the cell to just have a number, you don't have to make it a formula.
+    Strings::def
+      Enclose it in either single or double quotes.
       ::pre
-        call('pow', 2, 3)
-      The above will yield 8.
-
-  cat::def
-    ::pre
-      cat(arg, arg)
-      cat(arg, arg, arg)
-      cat(arg, arg, arg, arg)
-      ...
-    Con<b><u>cat</u></b>enates the strings together. If at least one argument is an
-    array, the output is an array. Otherwise it outputs a string.
-
-    Arguments::dl
-      arg::def
-        A string or an array of strings.
-
-        If there is more than one array and they are different lengths, the
-        shorter arrays will be treated as if the missing elements were blanks.
-    Example::md
+        'hello'
       ::pre
-        cat('The', ' ', 'Cat')
-      The above will yield <tt>'The Cat'</tt>.
-
-  ceil::def
-    ::pre
-      ceil(number)
-    Returns the smallest integer greater than or equal to the argument.
-
-    This can also be applied to a range.
-    Arguments::dl
-      number::def
-        A number argument.
-  cell::def
-    ::pre
-      cell(sheetname, col, row)
-      cell(col, row)
-    Returns the value at the identified cell.
-
-    This is the dynamic equivelant to a cell literal.
-
-    Arguments::dl
-      sheetname::def
-        (Optional) A string identifying the sheet the cell is in. If not given, the current sheet is assumed.
-      col::def
-        A string identifying the column the cell is in.
-      row::def
-        A number identifying the row the cell is in.
-  col::def
-    ::pre
-      col(sheetname, colname, rowstart, rowend)
-      col(colname, rowstart, rowend)
-      col(colname, rowstart)
-      col(colname)
-      col(sheetname, colname, rowstart)
-      col(sheetname, colname)
-    Returns the range identified by the parameters.
-
-    This is the dynamic equivelant to a range literal.
-
-    Arguments::dl
-      sheetname::def
-        (Optional) A string identifying the sheet the range is in. If not given, the current sheet is assumed.
-      colname::def
-        A string identifying the column the range is in.
-      rowstart::def
-        (Optional) A number identifying the start of the range. If not given, the beginning of the column is assumed.
-      rowend::def
-        (Optional) A number identifying the end of the range (inclusive). If not given, the end of the column is assumed.
-
-  count::def
-    ::pre
-      count(range)
-    Counts the number of non-empty cells in the range.
-
-    Note that <tt>sum(range)/count(range)</tt> does not give the same
-    result as <tt>avg(range)</tt> as <tt>count</tt> includes strings.
-    Arguments::dl
-      range::def
-        A column range.
-
-  eval::def
-    ::pre
-      eval(code)
-    Evaluates the argument as it if were a formula in a cell.
-    Arguments::dl
-      code::def
-        A string that is the code to evaluate.
-    Example::md
+        "goodbye"
+      If you want the cell to just have a string, you don't have to make it a formula and use quotes. But this is how you would pass one to a function call.
       ::pre
-        eval('round(12.1)')
-      The above evaluates to 12.
-  find::def
-    ::pre
-      find(needle, haystack)
-      find(needle, haystack, default)
-    Returns the 1-based index of the location of needle in haystack.
+        cat('hello ', a1)
+    Cell References::def
+      Shorthand::md
+        You can refer to cells excel-style:
+        ::pre
+          a1
+        The <tt>$</tt> means "this row".
+        ::pre
+          a$
+        Spaces are allowed.
+        ::pre
+          a column
+        Cell references are case-insensitive.
+        ::pre
+          A ColUmN
+      Longhand::md
+        This will probably change. It is kind of pointless for in-sheet references.
 
-    If needle is not found, default is returned, or an error is returned if default is not given.
-    Arguments::dl
-      needle::def
-        The value to lookup
-      haystack::def
-        A range in which to search for needle.
-      default::def
-        The value to return if needle is not found in haystack.
-  floor::def
-    ::pre
-      floor(number)
-    Returns the largest integer value less than or equal to the argument.
+        ::pre
+          [a, 1]
+        The row is optional
+        ::pre
+          [a]
+      Foreign Cells::md
+        You can refer to cells in other sheets.
+        Use the longhand, but with an extra first value.
 
-    This can also be applied to a range.
-    Arguments::dl
-      number::def
-        A number argument.
-  if::def
-    ::pre
-      if(condition, if_true, if_false)
-    Evaluates <tt>condition</tt>. If that evaluates to a truthy value
-    (non-zero-length string or non-zero number), <tt>if_true</tt> is evaluated
-    and returned. Otherwise, <tt>if_false</tt> is evaluated and returned.
+        This is the only use of the "longhand" notation and we're looking for a replacement.
+        ::pre
+          [OtherSheet, a, 1]
+        The row is optional.
+        ::pre
+          [OtherSheet, a]
+    Range References::def
+      Column Reference::md
+        The bare name of a column is treated as a reference to that column, with a length determined by the last non-empty row in the sheet.
+        ::pre
+          a
+        You can also specify the start or end of the column range.
+        ::pre
+          a1:a4
+        You don't have to repeat the column name.
+        ::pre
+          a1:4
+        If you leave out the start, it's assumed to be row 1.
+        ::pre
+          :a4
+        If you leave off the end, it's assumed to be the last non-empty row in the sheet.
+        ::pre
+          a4:
+        If the reference starts in row 1, you can leave that off.
+        ::pre
+          a:4
+        The <tt>$</tt> means "this row".
+        ::pre
+          a$:a4
+      Row Reference::md
+        To specify a row reference, specify two different columns.
+        ::pre
+          a1:c1
+        You don't have to repeat the row number.
+        ::pre
+          a1:c
+        You can leave out the row number to refer to the first row.
+        ::pre
+          a:c
+      2d Reference::md
+        Two-dimensional range references are not supported.
 
-    <tt>condition</tt> can be a range or array, in which each value in the
-    range is evaluated and <tt>if_true</tt> or <tt>if_false</tt> placed in the
-    resulting array at the corresponding position. In this form,
-    <tt>if_true</tt>  and <tt>if_false</tt> can be single values or
-    ranges/arrays. If it is an array, the value from the corresponding position
-    is placed in the output array.
+    Operators::def
+      Binary Operators::md
+        ::pre
+          a1 - b2
+          a1 + b2
+          a1 * b2
+          a1 / b2
+          a1 = b2
+          a1 != b2
+          a1 < b2
+          a1 > b2
+          a1 <= b2
+          a1 >= b2
+      Unary Operators::md
+        ::pre
+          -a1
+          +a1
+          !a1
+    Function Call::def
+      See [Functions] for a list of the functions. You can also define your own. See [User-Defined Functions].
 
-    Arguments::dl
-      condition::def
-        The condition to evaluate. Either a single value or a range/array.
-      if_true::def
-        The value to use if condition is truthy.
-      if_false::def
-        The value to use if condition is falsey.
-
-    Examples::md
+      To call a function, just write it's name and put the arguments to the function in parens.
       ::pre
-        if(1, 2, 3)
-      The above yields 2.
+        abs(a2)
+      Arguments can be numbers, strings, cells, rows, columns.
+      See the function's description for what it expects.
 
-      For the following, assume that column <tt>a</tt> is 0, 1, 0, column
-      <tt>b</tt> is 3, 4, 5 and column <tt>c</tt> is 31, 41, 51.
+      Function calls are case-insensitive.
       ::pre
-        sum(if([a], [b], [c]))
-      Yields 86 (31+4+51).
+        ABS(a2)
+  Functions::dl
+    ::js
+      for(const child of node.parent.children){
+        child.classes.add('func');
+      }
+      //endjs
+    abs::def
       ::pre
-        sum(if([a], 1, [c]))
-      Yields 83 (31+1+51)
+        abs(number)
+      Returns the absolute value of the input.
+
+      This can also be applied to a range.
+      Arguments::dl
+        number::def
+          A number argument.
+      Example::md
+        ::pre
+          abs(-2)
+        The above yields 2.
+    avg::def
       ::pre
-        sum(if([a], [b], 1))
-      Yields 6 (1+4+1).
+        avg(range)
+      Returns the average value of the input range, ignoring non-number inputs.
+
+      Returns 0 for an empty range.
+      Arguments::dl
+        range::def
+          A column range.
+    array::def
       ::pre
-        sum(if([a], 2, 3))
-      Yields 8 (3+2+3).
+        array(args)
+        array(args, args)
+        array(args, args, args)
+        ...
+      Returns a computed array composed of the given args, that can be passed to
+      functions expecting a range like <tt>sum</tt>.
+      Arguments::dl
+        args::def
+          Any number of arguments that will be in the array.
 
-  max::def
-    ::pre
-      max(range)
-      max(num, num)
-      max(num, num, num)
-      max(num, num, num, num)
-    Returns the largest number from range.
+          They must evaluate to strings or numbers.
 
-    Returns 0 for empty ranges (or ranges with no numbers).
-
-    Alternatively, returns the largest from among nums.
-
-    Arguments::dl
-      range::def
-        A column range.
-      num::def
-        Any number of numbers.
-
-  min::def
-    ::pre
-      min(range)
-      max(num, num)
-      max(num, num, num)
-      max(num, num, num, num)
-    Returns the smallest number from range.
-
-    Returns 0 for empty ranges (or ranges with no numbers).
-
-    Alternatively, returns the smallest from among nums.
-
-    Arguments::dl
-      range::def
-        A column range.
-
-      num::def
-        Any number of numbers.
-  mod::def
-    ::pre
-      mod(score)
-    Returns the ability score modifier corresponding to the ability score number.
-
-    This can also be applied to a range.
-
-    Arguments::dl
-      score::def
-        An ability score number.
-  num::def
-    ::pre
-      num(maybe_number)
-      num(maybe_number, default)
-    If maybe_number is a number, then maybe_number is returned. Otherwise, if
-    default is given, default is returned. Finally, 0 is returned if none of
-    the above conditions are met.
-
-    The first argument can also be a range/array.
-
-    Arguments::dl
-      maybe_number::def
-        An expression that might be a number.
-      default::def
-        An expression to be used if <tt>maybe_number</tt> is not a number.
-
-  pow::def
-    ::pre
-      pow(base, exponent)
-    Raises the base to the power of exponent.
-
-    This can also be applied to a range.
-    Arguments::dl
-      base::def
-        The number to be exponentiated.
-      exponent::def
-        The power to raise base to.
-  prod::def
-    ::pre
-     prod(range)
-    Returns the product of the numeric values in range, ignoring strings and blanks.
-
-    Returns 1 for an empty range.
-    Arguments::dl
-      range::def
-        A column range.
-  round::def
-    ::pre
-      round(number)
-    Rounds number to the nearest integral value, rounding .5 away from zero.
-
-    This can also be applied to a range.
-    Arguments::dl
-      number::def
-        The number to round
-  sqrt::def
-    ::pre
-      sqrt(number)
-    Returns the non-negative square root.
-
-    This can also be applied to a range.
-    Arguments::dl
-      number::def
-        The number to sqrt.
-  sum::def
-    ::pre
-      sum(range)
-    Returns the sum of the numeric values in range, ignoring strings and blanks.
-
-    Returns 0 for an empty range.
-    Arguments::dl
-      range::def
-        A column range.
-  tlu::def
-    ::pre
-      tlu(needle, haystack, values)
-      tlu(needle, haystack, values, default)
-    Looks up needle in haystack, return the corresponding value from values.
-
-    If default is given, that value is returned if needle is not found in
-    haystack. Otherwise, an error is returned.
-
-    Needle can also be a range. In which case, a computed range is returned
-    instead of a single value
-    Arguments::dl
-      needle::def
-        The value to lookup
-      haystack::def
-        A range in which to search for needle.
-      values::def
-        A range in which to yield the corresponding value from.
-      default::def
-        If needle is not found, this value is returned.
-    Examples::md
+    call::def
       ::pre
-        tlu('Plate', [Items], [Weights])
-  trunc::def
-    ::pre
-      trunc(number)
-    Removes the part of the number after the decimal point.
-    Arguments::dl
-      number::def
-        The number.
+        call(funcname)
+        call(funcname, args)
+        call(funcname, args, args)
+        call(funcname, args, args, args)
+        ...
+      Calls the function identified by funcname.
+      Arguments::dl
+        funcname::def
+          A string identifying the function to call.
+        args::def
+          Any number of arguments. They are forwarded to the identified function as arguments.
+      Example::md
+        ::pre
+          call('pow', 2, 3)
+        The above will yield 8.
 
-  try::def
-    ::pre
-      try(fallible, default)
-    If the first argument does not fail, returns the first argument.
-
-    Otherwise, returns the second argument.
-    Arguments::dl
-      fallible::def
-        An expression that could result in an error.
-
-      default::def
-        The expression to use if <tt>fallible</tt> fails.
-
-    Example::md
+    cat::def
       ::pre
-        try(call('doesnotexist', 1), 3)
+        cat(arg, arg)
+        cat(arg, arg, arg)
+        cat(arg, arg, arg, arg)
+        ...
+      Con<b><u>cat</u></b>enates the strings together. If at least one argument is an
+      array, the output is an array. Otherwise it outputs a string.
 
-      The above yields 3.
+      Arguments::dl
+        arg::def
+          A string or an array of strings.
+
+          If there is more than one array and they are different lengths, the
+          shorter arrays will be treated as if the missing elements were blanks.
+      Example::md
+        ::pre
+          cat('The', ' ', 'Cat')
+        The above will yield <tt>'The Cat'</tt>.
+
+    ceil::def
+      ::pre
+        ceil(number)
+      Returns the smallest integer greater than or equal to the argument.
+
+      This can also be applied to a range.
+      Arguments::dl
+        number::def
+          A number argument.
+    cell::def
+      ::pre
+        cell(sheetname, col, row)
+        cell(col, row)
+      Returns the value at the identified cell.
+
+      This is the dynamic equivelant to a cell literal.
+
+      Arguments::dl
+        sheetname::def
+          (Optional) A string identifying the sheet the cell is in. If not given, the current sheet is assumed.
+        col::def
+          A string identifying the column the cell is in.
+        row::def
+          A number identifying the row the cell is in.
+    col::def
+      ::pre
+        col(sheetname, colname, rowstart, rowend)
+        col(colname, rowstart, rowend)
+        col(colname, rowstart)
+        col(colname)
+        col(sheetname, colname, rowstart)
+        col(sheetname, colname)
+      Returns the range identified by the parameters.
+
+      This is the dynamic equivelant to a range literal.
+
+      Arguments::dl
+        sheetname::def
+          (Optional) A string identifying the sheet the range is in. If not given, the current sheet is assumed.
+        colname::def
+          A string identifying the column the range is in.
+        rowstart::def
+          (Optional) A number identifying the start of the range. If not given, the beginning of the column is assumed.
+        rowend::def
+          (Optional) A number identifying the end of the range (inclusive). If not given, the end of the column is assumed.
+
+    count::def
+      ::pre
+        count(range)
+      Counts the number of non-empty cells in the range.
+
+      Note that <tt>sum(range)/count(range)</tt> does not give the same
+      result as <tt>avg(range)</tt> as <tt>count</tt> includes strings.
+      Arguments::dl
+        range::def
+          A column range.
+
+    eval::def
+      ::pre
+        eval(code)
+      Evaluates the argument as it if were a formula in a cell.
+      Arguments::dl
+        code::def
+          A string that is the code to evaluate.
+      Example::md
+        ::pre
+          eval('round(12.1)')
+        The above evaluates to 12.
+    find::def
+      ::pre
+        find(needle, haystack)
+        find(needle, haystack, default)
+      Returns the 1-based index of the location of needle in haystack.
+
+      If needle is not found, default is returned, or an error is returned if default is not given.
+      Arguments::dl
+        needle::def
+          The value to lookup
+        haystack::def
+          A range in which to search for needle.
+        default::def
+          The value to return if needle is not found in haystack.
+    floor::def
+      ::pre
+        floor(number)
+      Returns the largest integer value less than or equal to the argument.
+
+      This can also be applied to a range.
+      Arguments::dl
+        number::def
+          A number argument.
+    if::def
+      ::pre
+        if(condition, if_true, if_false)
+      Evaluates <tt>condition</tt>. If that evaluates to a truthy value
+      (non-zero-length string or non-zero number), <tt>if_true</tt> is evaluated
+      and returned. Otherwise, <tt>if_false</tt> is evaluated and returned.
+
+      <tt>condition</tt> can be a range or array, in which each value in the
+      range is evaluated and <tt>if_true</tt> or <tt>if_false</tt> placed in the
+      resulting array at the corresponding position. In this form,
+      <tt>if_true</tt>  and <tt>if_false</tt> can be single values or
+      ranges/arrays. If it is an array, the value from the corresponding position
+      is placed in the output array.
+
+      Arguments::dl
+        condition::def
+          The condition to evaluate. Either a single value or a range/array.
+        if_true::def
+          The value to use if condition is truthy.
+        if_false::def
+          The value to use if condition is falsey.
+
+      Examples::md
+        ::pre
+          if(1, 2, 3)
+        The above yields 2.
+
+        ::table
+            | A | B | C
+          1 | 0 | 3 | 31
+          2 | 1 | 4 | 41
+          3 | 0 | 5 | 51
+        For the following, assume the above table.
+        ::pre
+          sum(if(a, b, c))
+        Yields 86 (31+4+51).
+        ::pre
+          sum(if(a, 1, c))
+        Yields 83 (31+1+51)
+        ::pre
+          sum(if(a, b, 1))
+        Yields 6 (1+4+1).
+        ::pre
+          sum(if(a, 2, 3))
+        Yields 8 (3+2+3).
+
+    max::def
+      ::pre
+        max(range)
+        max(num, num)
+        max(num, num, num)
+        max(num, num, num, num)
+      Returns the largest number from range.
+
+      Returns 0 for empty ranges (or ranges with no numbers).
+
+      Alternatively, returns the largest from among nums.
+
+      Arguments::dl
+        range::def
+          A column range.
+        num::def
+          Any number of numbers.
+
+    min::def
+      ::pre
+        min(range)
+        max(num, num)
+        max(num, num, num)
+        max(num, num, num, num)
+      Returns the smallest number from range.
+
+      Returns 0 for empty ranges (or ranges with no numbers).
+
+      Alternatively, returns the smallest from among nums.
+
+      Arguments::dl
+        range::def
+          A column range.
+
+        num::def
+          Any number of numbers.
+    mod::def
+      ::pre
+        mod(score)
+      Returns the ability score modifier corresponding to the ability score number.
+
+      This can also be applied to a range.
+
+      Arguments::dl
+        score::def
+          An ability score number.
+    num::def
+      ::pre
+        num(maybe_number)
+        num(maybe_number, default)
+      If maybe_number is a number, then maybe_number is returned.
+      If it is a string that starts with a number (like "2 people"), then the numeric portion of the string is converted to a number.
+      Otherwise, if default is given, default is returned.
+      Finally, 0 is returned if none of the above conditions are met.
+
+      The first argument can also be a range/array.
+
+      Arguments::dl
+        maybe_number::def
+          An expression that might be a number.
+        default::def
+          An expression to be used if <tt>maybe_number</tt> is not a number.
+
+    pow::def
+      ::pre
+        pow(base, exponent)
+      Raises the base to the power of exponent.
+
+      This can also be applied to a range.
+      Arguments::dl
+        base::def
+          The number to be exponentiated.
+        exponent::def
+          The power to raise base to.
+    prod::def
+      ::pre
+       prod(range)
+      Returns the product of the numeric values in range, ignoring strings and blanks.
+
+      Returns 1 for an empty range.
+      Arguments::dl
+        range::def
+          A column range.
+    round::def
+      ::pre
+        round(number)
+      Rounds number to the nearest integral value, rounding .5 away from zero.
+
+      This can also be applied to a range.
+      Arguments::dl
+        number::def
+          The number to round
+    sqrt::def
+      ::pre
+        sqrt(number)
+      Returns the non-negative square root.
+
+      This can also be applied to a range.
+      Arguments::dl
+        number::def
+          The number to sqrt.
+    sum::def
+      ::pre
+        sum(range)
+      Returns the sum of the numeric values in range, ignoring strings and blanks.
+
+      Returns 0 for an empty range.
+      Arguments::dl
+        range::def
+          A column range.
+    tlu::def
+      ::pre
+        tlu(needle, haystack, values)
+        tlu(needle, haystack, values, default)
+      Looks up needle in haystack, return the corresponding value from values.
+
+      If default is given, that value is returned if needle is not found in
+      haystack. Otherwise, an error is returned.
+
+      Needle can also be a range. In which case, a computed range is returned
+      instead of a single value
+      Arguments::dl
+        needle::def
+          The value to lookup
+        haystack::def
+          A range in which to search for needle.
+        values::def
+          A range in which to yield the corresponding value from.
+        default::def
+          If needle is not found, this value is returned.
+      Examples::md
+        ::pre
+          tlu('Plate', Items, Weights)
+    trunc::def
+      ::pre
+        trunc(number)
+      Removes the part of the number after the decimal point.
+      Arguments::dl
+        number::def
+          The number.
+
+    try::def
+      ::pre
+        try(fallible, default)
+      If the first argument does not fail, returns the first argument.
+
+      Otherwise, returns the second argument.
+      Arguments::dl
+        fallible::def
+          An expression that could result in an error.
+
+        default::def
+          The expression to use if <tt>fallible</tt> fails.
+
+      Example::md
+        ::pre
+          try(call('doesnotexist', 1), 3)
+        The above yields 3.
+  User-Defined Functions::md.example
+    You can define your own functions.
+
+    You do this by creating a special sheet that is marked as a function.
+    You also give the function a name.
+    Note that you can't use the name of a builtin function for one of your
+    functions.
+
+    Some of the cells of that sheet are the inputs to the function and one
+    of the cells is the output.
+
+    You can then call it like one of the builtin functions.
+
+    UDF Example::md
+      ::div #id(udf)
+        MyFunc::table
+              | A      | B
+            1 |        |
+            2 | =a1*2  | =b1+2
+            3 | =a2/b2 |
+      ::md
+        In this example, the input cells are green and the output cell is blue.
+
+        Given the above is named MyFunc, you can then call it like so:
+        ::pre
+          MyFunc(1, 2)
+        which would yield 0.5.
+
+
+
+  Formula Examples::md.example
+    Sum a column::md
+      Start at row 2 so you can put this formula in row 1.
+      Or you can leave the 2 off to sum the whole column.
+      ::pre
+        sum(a2:)
+    Sum multiplied by another column::md
+      The <tt>num(b, 1)</tt> will either return the value in b or 1, so blanks will be counted as 1.
+
+      ::pre
+        sum(a * num(b, 1))
+    Sum looked up values::md
+
+      ::pre
+        sum(tlu(a, [othersheet, a], [othersheet, b]))

@@ -857,7 +857,14 @@ if appconfig.DEV:
 
     @app.route('/docs/<doc>')
     def get_doc(doc:str) -> Any:
-        return r(doc)
+        try:
+            return r(doc)
+        except IOError:
+            return abort(404)
+
+    @app.route('/docs')
+    def get_doc_index() -> Any:
+        return r('index.html')
 
     @app.route('/js/socket.io.js')
     def get_socket_io() -> Any:
