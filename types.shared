@@ -419,6 +419,7 @@ enum CanvasType: int
     ICON_TILE     = 17
     SHAPE         = 19
     ARC           = 20
+    COACHING      = 21
 
 #
 # flags
@@ -449,6 +450,23 @@ enum CanvasFlag: int flag
 //  points.
 struct StrippedFreehandLine: array
     type = CanvasType.FREEHAND_LINE
+    id: int
+    base_x: float
+    base_y: float
+    flags: CanvasFlag
+    hidinguser: int # userid
+    color: color
+    # points are just raw x,y pairs in a flat array.
+    points: [float]
+    thickness: float
+
+// CoachingLine
+// ------------
+// This is the same as a freehand line, but is drawn above
+// everything else and there is a shortcut to clear all
+// coaching lines.
+struct StrippedCoachingLine: array
+    type = CanvasType.COACHING
     id: int
     base_x: float
     base_y: float
@@ -837,6 +855,7 @@ union StrippedObj: array
     StrippedIconTile
     StrippedShape
     StrippedArc
+    StrippedCoachingLine
 
 validator: StrippedObj
     ts

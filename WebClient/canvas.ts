@@ -117,6 +117,7 @@ const SORTORDER = [
       10, // SUBMAP was deleted
        3, // SHAPE
        3, // ARC
+      10, // COACHING
 
 // as const protects us from adding types without adding sort
 // order here
@@ -168,6 +169,25 @@ function is_resizable(obj:CanvasObject): obj is Resizable{
 // points.
 type FreehandLine = {
     type: CanvasType.FREEHAND_LINE; // FREEHAND_LINE
+    id: number;
+    base_x: number;
+    base_y: number;
+    flags: CanvasFlag;
+    hidinguser: number;
+    color: string;
+    // points are just raw x,y pairs in a flat array.
+    points: Array<number>;
+    path?: Path2D;
+    bbox: Bbox;
+    thickness: number;
+    // These are a hack to know if the path got invalidated.
+    last_bx?:number;
+    last_by?:number;
+}
+
+// Note: this is identical to FreehandLine
+type CoachingLine = {
+    type: CanvasType.COACHING; // COACHING
     id: number;
     base_x: number;
     base_y: number;
@@ -685,7 +705,7 @@ function arc_components(obj:Arc, offx:number, offy:number):[number, number, numb
 
 
 
-type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj | FilledTile | TerrainTile | IconTile | Shape | Arc;
+type CanvasObject = FreehandLine | GridLine | Rectangle | FilledRectangle | GridRectangle | ImageObj | TextObj | EzToken | ImgToken | DoorObj | Stairs | Ellipse | MeasureObj | FixtureObj | FilledTile | TerrainTile | IconTile | Shape | Arc | CoachingLine;
 
 // Door subtypes
 // ------------
@@ -1510,7 +1530,7 @@ function add_freehand_point(obj:FreehandLine|Shape, x:number, y:number):void{
     }
     obj.path = undefined;
 }
-function freehand_recalculate_bbox(obj:FreehandLine|Shape):void{
+function freehand_recalculate_bbox(obj:FreehandLine|Shape|CoachingLine):void{
     const points = obj.points;
     const length = points.length;
     obj.bbox.x0 = 0;
@@ -1534,7 +1554,7 @@ function freehand_recalculate_bbox(obj:FreehandLine|Shape):void{
         }
     }
 }
-function freehand_recalculate_path(obj:FreehandLine, base_x:number, base_y:number):void{
+function freehand_recalculate_path(obj:FreehandLine|CoachingLine, base_x:number, base_y:number):void{
     const points = obj.points;
     let x0 = base_x;
     let y0 = base_y;
@@ -2605,6 +2625,7 @@ function rotate_rectangleish(obj:Rectangleish):void{
 // checking I need to return a value.
 function rotate_and_then_strip_obj(obj: CanvasObject):StrippedObj{
     switch(obj.type){
+        case CanvasType.COACHING:
         case CanvasType.SHAPE: // fall-through
         case CanvasType.FREEHAND_LINE:{
             rotate_base(obj);
@@ -2976,8 +2997,9 @@ const enum SELECTTYPE {
     MAP = 1 << 0,
     TOKEN = 1 << 1,
     BACKGROUND = 1 << 2,
-    NONBACKGROUND = TOKEN | MAP,
-    ANY = MAP | TOKEN | BACKGROUND,
+    COACHING = 1 << 3,
+    NONBACKGROUND = TOKEN | MAP | COACHING,
+    ANY = MAP | TOKEN | BACKGROUND | COACHING,
 }
 let select_type: SELECTTYPE = SELECTTYPE.NONBACKGROUND;
 
@@ -3001,6 +3023,10 @@ function update_selection(view:DungeonMapView, x0:number, y0:number, x1:number, 
 // FIXME: this shouldn't be looking at selection type, hoist to the caller.
 function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_type:SELECTTYPE, is_hex:boolean):boolean{
     switch(obj.type){
+        // @ts-ignore
+        case CanvasType.COACHING:
+            if(!(selection_type & SELECTTYPE.COACHING)) return false;
+            // fall-through
         case CanvasType.SHAPE: // hack
         case CanvasType.FREEHAND_LINE:
         case CanvasType.GRID_LINE:{
@@ -3330,6 +3356,7 @@ function obj_in_bbox(obj:Readonly<CanvasObject>, bbox:Readonly<Bbox>, selection_
 
 function get_bbox(obj:Readonly<CanvasObject>, is_hex:boolean):Bbox{
     switch(obj.type){
+        case CanvasType.COACHING:
         case CanvasType.SHAPE: // hack
         case CanvasType.FREEHAND_LINE:
         case CanvasType.GRID_LINE:{
@@ -3792,6 +3819,11 @@ function strip_obj(obj:CanvasObject): StrippedObj{
                 [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.width, obj.height, obj.start_arc, obj.end_arc, obj.thickness, obj.color];
             return stripped_obj;
         }break;
+        case CanvasType.COACHING:{
+            const stripped_obj: StrippedCoachingLine =
+                [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.color, Array.from(obj.points), obj.thickness];
+            return stripped_obj;
+        }break;
     }
 }
 function strip_objs(objs:Array<CanvasObject>, skip_deleted:boolean): Array<StrippedObj>{
@@ -3833,7 +3865,26 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
             freehand_recalculate_bbox(obj);
             obj.path = undefined;
             return obj;
-            }break;
+        }break;
+        case CanvasType.COACHING:{
+            const obj:CoachingLine = {
+                type: CanvasType.COACHING,
+                id: sobj[INDEX.ID],
+                base_x: sobj[INDEX.BASE_X],
+                base_y: sobj[INDEX.BASE_Y],
+                flags: sobj[INDEX.FLAGS],
+                hidinguser: sobj[INDEX.HIDINGUSER],
+                // typescript  is being dumb here
+                color: (sobj as StrippedCoachingLine)[6],
+                points: (sobj as StrippedCoachingLine)[7],
+                thickness: (sobj as StrippedCoachingLine)[8],
+                bbox:{x0:0, x1:0, y0:0, y1:0}
+            };
+            obj.points = Array.from(obj.points),
+            freehand_recalculate_bbox(obj);
+            obj.path = undefined;
+            return obj;
+        }break;
         case CanvasType.GRID_LINE:{
             const obj:GridLine = {
                 type: CanvasType.GRID_LINE,
@@ -4116,6 +4167,7 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
 //
 function set_obj_from_stripped(obj: CanvasObject, state:StrippedObj):void{
     switch(obj.type){
+        case CanvasType.COACHING:
         case CanvasType.SHAPE:
         case CanvasType.FREEHAND_LINE:{
             const o = unstrip_obj(state);
@@ -4221,6 +4273,7 @@ function edit_is_impossible(view:DungeonMapView):boolean{
     if(obj.flags & CanvasFlag.DELETED)
         return true;
     switch(obj.type){
+        case CanvasType.COACHING:
         case CanvasType.FREEHAND_LINE:
             return true;
         case CanvasType.GRID_LINE:
@@ -4269,6 +4322,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
     if(obj.flags & CanvasFlag.DELETED)
         return;
     switch(obj.type){
+        case CanvasType.COACHING:
         case CanvasType.FREEHAND_LINE:
             return;
         case CanvasType.GRID_LINE:
@@ -5019,6 +5073,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
             is_selected = true;
         ctx.globalAlpha = is_hidden? 0.5 : 1;
         switch(obj.type){
+            case CanvasType.COACHING:
             case CanvasType.FREEHAND_LINE:{ // TAG renderFREEHAND_LINE
                 // This works well enough for now.
                 // If things get hairy, I could build a quadtree or whatever.
@@ -6611,6 +6666,7 @@ const enum ToolType {
     // SUBMAP  = 14,
     SHAPE   = 15,
     ARC     = 16,
+    COACHING = 17,
 }
 const enum TOOLTYPE { MAX = 17}
 const TOOL_IDS_TO_TOOL = (function():Map<string, ToolType>{
@@ -6632,6 +6688,7 @@ const TOOL_IDS_TO_TOOL = (function():Map<string, ToolType>{
     // m.set('submap-tool',  ToolType.SUBMAP);
     m.set('shape-tool',   ToolType.SHAPE);
     m.set('arc-tool',     ToolType.ARC);
+    m.set('coaching-tool', ToolType.COACHING);
     return m;
 }());
 const TOOL_TO_TOOL_ID = [
@@ -6669,7 +6726,9 @@ const TOOL_TO_TOOL_ID = [
     'shape-tool',
     // ToolType.ARC
     'arc-tool',
-];
+    // ToolType.COACHIING
+    'coaching-tool',
+] as const;
 let current_fixture_type = FixtureType.STAIRS;
 const enum TOKENTYPE {
     EZ = 0,
@@ -7021,6 +7080,9 @@ document.addEventListener('DOMContentLoaded', function():void{
                     case SELECTTYPE.BACKGROUND:
                         name.innerText = 'Bg☰';
                         break;
+                    case SELECTTYPE.COACHING:
+                        name.innerText = 'Coa☰';
+                        break;
                     case SELECTTYPE.ANY:
                         name.innerText = 'Any☰';
                         break;
@@ -7057,12 +7119,16 @@ document.addEventListener('DOMContentLoaded', function():void{
                             change_st(SELECTTYPE.BACKGROUND);
                             break;
                         case 4:
+                            change_select_mode(SELECTTYPE.COACHING);
+                            change_st(SELECTTYPE.COACHING);
+                            break;
+                        case 5:
                             change_select_mode(SELECTTYPE.ANY);
                             change_st(SELECTTYPE.ANY);
                             break;
                     }
                 },
-                max_index: 5,
+                max_index: 6,
             });
             name.addEventListener('click', function(e:MouseEvent):void{
                 make_tri_menu(e, [
@@ -7070,6 +7136,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                     {func:make_cb(SELECTTYPE.MAP), text:'Map'},
                     {func:make_cb(SELECTTYPE.TOKEN), text:'Token'},
                     {func:make_cb(SELECTTYPE.BACKGROUND), text:'Background'},
+                    {func:make_cb(SELECTTYPE.COACHING), text:'Coaching'},
                     {func:make_cb(SELECTTYPE.ANY), text:'Any'},
                 ]);
             });
@@ -7750,6 +7817,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 the_canvas.addEventListener('pointerup', finish_pan);
                 redo_canvas_cursor(the_canvas, view, false);
             }break;
+            case ToolType.COACHING:
             case ToolType.LINE:{ // TAG toolLINE
                 let id = get_new_id();
                 const [x0, y0] = event_to_coord(e, view);
@@ -7759,6 +7827,10 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 if(current_line_type == LineType.ARROW){
                     let obj = view.map.canvas_objs.get(id) as FreehandLine;
                     obj.flags |= CanvasFlag.LINE_IS_ARROW;
+                }
+                if(current_tool == ToolType.COACHING){
+                    let obj = view.map.canvas_objs.get(id)!;
+                    obj.type = CanvasType.COACHING;
                 }
                 function add_point(e:MouseEvent):void{
                     e.stopPropagation();
@@ -8671,6 +8743,19 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     EMIT(FromClient.CANVAS_DUNGEON_MODE);
                 });
             }
+            menu.item('Clear Coaching', function():void{
+                let deleted = [];
+                for(const obj of view.map.canvas_obj_array){
+                    if(obj.flags & CanvasFlag.DELETED) continue;
+                    if(obj.type != CanvasType.COACHING) continue;
+                    obj.flags |= CanvasFlag.DELETED;
+                    deleted.push(obj.id);
+                }
+                if(!deleted.length) return;
+                publish_delete_by_ids(view.map.map_id, deleted);
+                note_delete_by_ids_for_undo(view.map, deleted);
+                request_render();
+            });
             menu.separator();
             menu.item('Options…', options_dialog);
             menu.item(canv2_is_hidden?'Show Split':'Hide Split', function(){
@@ -9006,7 +9091,8 @@ document.addEventListener('DOMContentLoaded', function():void{
                     }
                     else return;
                 }
-                else return;
+                else if(modified) return;
+                change_tool(ToolType.COACHING);
                 break;
             case 'v':
                 if(shortcut){
