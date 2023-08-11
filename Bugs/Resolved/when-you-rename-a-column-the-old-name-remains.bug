@@ -1,0 +1,9 @@
+Changelog::kv
+  created:  2023-06-28T22:25:26.759130
+  resolved: 2023-08-11T00:54:26Z
+Created Jun 28, 2023, 03:25PM::md .update
+Summary::md .summary
+  This happened when renaming from HitPoints to HP
+
+Resolved Aug 10, 2023, 05:54PM::md .update
+  Should be fixed by the update to drspread
