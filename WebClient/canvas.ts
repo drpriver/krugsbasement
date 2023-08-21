@@ -7683,6 +7683,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     }
                     the_canvas.addEventListener('pointermove', move);
                     function finish_move():void{
+                        view.selection_area.is_dragging = false;
                         the_canvas.removeEventListener('pointermove', move);
                         the_canvas.removeEventListener('pointerup', finish_move);
                         if(!changed)
@@ -7690,7 +7691,6 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         const after_update = get_stripped_state_by_id(view.map, Array.from(view.selected));
                         publish_obj_updates(view.map.map_id, after_update);
                         note_updates_for_undo(view.map, before_update, after_update);
-                        view.selection_area.is_dragging = false;
                         redo_canvas_cursor(the_canvas, view, false);
                     }
                     the_canvas.addEventListener('pointerup', finish_move);
