@@ -244,18 +244,21 @@ type Shape = {
 }
 
 const enum ShapeType {
-    SOLID_SHAPE = 0,
-    FILLED_SHAPE = 1,
+    HOLLOW_SHAPE = 0,
+    SOLID_SHAPE = 1,
+    FILLED_SHAPE = 2,
 }
 const enum SHAPETYPE {
-    MAX = 2,
+    MAX = 3,
 }
 const SHAPETYPE_TO_NAME = [
+    'Hollow',
     'Solid',
     'Filled',
 ];
 
 const SHAPETYPE_TO_SHORT_NAME = [
+    'Hollow',
     'Solid',
     'Filled',
 ];
@@ -7854,10 +7857,13 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             }break;
             case ToolType.SHAPE:{ // TAG toolSHAPE
                 let id = get_new_id();
-                let thickness = 4;
+                const thickness_input = by_id('line-thickness');
+                const thickness = 2*(+thickness_input.value || 4);
                 let color1 = get_primary_color();
                 let color2 = '';
                 switch(current_shape){
+                    case ShapeType.HOLLOW_SHAPE:
+                        break;
                     case ShapeType.SOLID_SHAPE:
                         color2 = color1;
                         break;
