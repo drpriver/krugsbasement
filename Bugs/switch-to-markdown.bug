@@ -1,0 +1,14 @@
+Changelog::kv
+  created: 2023-08-24T06:36:52Z
+  updated: 2023-08-24T06:38:50Z
+Created Aug 23, 2023, 11:36PM::md .update
+Summary::md .summary
+  The notes currently use .dnd, which is more powerful than it needs to be for
+  what they are.
+
+  Just add markdown.
+
+  Do I write the markdown parser myself? Do I write a DrMD? Would be fun.
+
+Updated Aug 23, 2023, 11:38PM::md .update
+  To clarify, I will probably do this in wasm.

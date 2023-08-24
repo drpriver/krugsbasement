@@ -3,11 +3,13 @@ Changelog::kv
   updated: 2023-07-01T05:23:04Z
   updated: 2023-07-01T05:26:54Z
   updated: 2023-08-21T03:27:58Z
-Created Mar 12, 2023, 08:36PM::md.update
-Summary::md.summary
+  updated: 2023-08-24T06:39:11Z
+  updated: 2023-08-24T06:40:31Z
+Created Mar 12, 2023, 08:36PM::md .update
+Summary::md .summary
   colored text, background, bold, italic
 
-Updated Jun 30, 2023, 10:23PM::md.update
+Updated Jun 30, 2023, 10:23PM::md .update
   Thoughts:
 
   * Basic text attributes can be stored as a parallel array of flags. Bold,
@@ -18,11 +20,17 @@ Updated Jun 30, 2023, 10:23PM::md.update
       + Hmm, that actually sounds kind of nice.
       + Should I have done that for canvas objects too?
 
-Updated Jun 30, 2023, 10:26PM::md.update
+Updated Jun 30, 2023, 10:26PM::md .update
   Regarding above, we need both foreground and background so we can’t pack
   both into a javascript number because javascript is retarded.
 
-Updated Aug 20, 2023, 08:27PM::md.update
+Updated Aug 20, 2023, 08:27PM::md .update
   Problem: dark mode needs to look reasonable in the face of setting the color.
 
   Maybe we provide a color palette instead?
+
+Updated Aug 23, 2023, 11:39PM::md .update
+  Color palette makes sense to me.
+
+Updated Aug 23, 2023, 11:40PM::md .update
+  One design decision is whether we use array of ints or have style ranges.
