@@ -570,73 +570,59 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
         return tokens;
     }
 
-    function eval_expr(expr: Expression, namespaces:Map<string, Map<string, Array<Token>>>, vars:Map<string, Array<Token>>): number | null{
-        switch(expr.type){
-            case EXPR.NUMBER:
-                return expr.value;
-            // can't eval dice client side
-            case EXPR.DICE:
+    function eval_dice(dice: UnrolledDiceExpr|null): number | null{
+        if(dice == null) return null;
+        switch(dice[0]){
+            case DieExprTypes.NUMBER:
+                return dice[1];
+            case DieExprTypes.DICE:
                 return null;
-            case EXPR.IDENT:{
-                let tokens = lookup(expr.ident, vars);
-                if(!tokens) return null;
-                let subexpr = parse_expression(tokens);
-                if(!subexpr) return subexpr;
-                return eval_expr(subexpr, namespaces, vars);
-            }
-            case EXPR.DOTTED_IDENT:{
-                let tokens = lookup_ns(expr.namespace, expr.ident, namespaces);
-                if(!tokens) return null;
-                let subexpr = parse_expression(tokens);
-                if(!subexpr) return subexpr;
-                return eval_expr(subexpr, namespaces, vars);
-            }
-            case EXPR.GROUP:
-                return eval_expr(expr.expr, namespaces, vars);
-            case EXPR.Binary:{
-                let lhs = eval_expr(expr.lhs, namespaces, vars);
-                let rhs = eval_expr(expr.rhs, namespaces, vars);
+            case DieExprTypes.GROUP:
+                return eval_dice(dice[1]);
+            case DieExprTypes.Unary:{
+                let v = eval_dice(dice[2]);
+                if(v === null) return null;
+                switch(dice[1]){
+                    case Unary.NEG:
+                        return -v;
+                    case Unary.NOT:
+                        return !v?1:0;
+                    case Unary.PLUS:
+                        return v;
+                }
+            } return null;
+            case DieExprTypes.Binary:{
+                let lhs = eval_dice(dice[2]);
                 if(lhs === null) return null;
+                let rhs = eval_dice(dice[3]);
                 if(rhs === null) return null;
-                switch(expr.btype){
+                switch(dice[1]){
                     case Binary.ADD: return lhs + rhs;
                     case Binary.SUB: return lhs - rhs;
                     case Binary.MUL: return lhs * rhs;
                     case Binary.DIV:
                         if(!rhs) return 0;
                         return (lhs / rhs) | 0;
-                    case Binary.EQ: return lhs == rhs? 1 : 0;
-                    case Binary.NE: return lhs != rhs? 1 : 0;
-                    case Binary.LT: return lhs <  rhs? 1 : 0;
-                    case Binary.LE: return lhs <= rhs? 1 : 0;
-                    case Binary.GT: return lhs >  rhs? 1 : 0;
-                    case Binary.GE: return lhs >= rhs? 1 : 0;
+                    case Binary.EQ: return lhs == rhs ? 1 : 0;
+                    case Binary.NE: return lhs != rhs ? 1 : 0;
+                    case Binary.GT: return lhs >  rhs ? 1 : 0;
+                    case Binary.GE: return lhs >= rhs ? 1 : 0;
+                    case Binary.LT: return lhs <  rhs ? 1 : 0;
+                    case Binary.LE: return lhs <= rhs ? 1 : 0;
                 }
-            }
-            case EXPR.Unary:{
-                let v = eval_expr(expr.expr, namespaces, vars);
+            } return null;
+            case DieExprTypes.NGROUP:{
+                let v = eval_dice(dice[2]);
                 if(v === null) return null;
-                switch(expr.utype){
-                    case Unary.PLUS: return v;
-                    case Unary.NOT:  return !v? 1 : 0;
-                    case Unary.NEG:  return -v;
-                }
+                return dice[1] * v;
             }
-            case EXPR.NGROUP:{
-                let v = eval_expr(expr.expr, namespaces, vars);
-                if(v === null) return null;
-                return expr.count * v;
-            }
-            case EXPR.CELL:{
-                let v = spread_eval_string(expr.value);
-                if(v === null) return null;
-                if(typeof v !== 'string') return v;
-                const tokens = tokenize(v);
-                const subexpr = parse_expression(tokens);
-                if(!subexpr) return null;
-                return eval_expr(subexpr, namespaces, vars);
-            }
+
         }
+    }
+
+    function eval_expr(expr: Expression, namespaces:Map<string, NameSpace>, vars:Map<string, Array<Token>>): number | null{
+        let dice = expand_dice(expr, namespaces, vars, false, new Set());
+        return eval_dice(dice);
     }
 
     function parse(tokens:Array<Token>, topblock:BlockStatement): string | null{
@@ -1175,7 +1161,6 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
             case EXPR.CELL:{
                 let arg = expr.value.slice(1, expr.value.length-1);
                 let v = spread_eval_string(arg);
-                if(v === null) v = spread_eval_string(expr.value);
                 if(v === null) return null;
                 if(typeof v !== 'string') return [DieExprTypes.NUMBER, v];
                 const tokens = tokenize(v);
