@@ -264,7 +264,7 @@ function recalc(id:number):void{
     const after = window.performance.now();
     // @ts-ignore
     let b: number = DRSP_EXPORTS.bytes_used();
-    if(SETTINGS.DEV)
+    if(0 && SETTINGS.DEV)
         sheet.xxx_timing.textContent = `${(after-now).toFixed(2)}ms ${Intl.NumberFormat('en-us', {style:'unit', unit:'kilobyte'}).format(b/1024)}`;
     else
         sheet.xxx_timing.textContent = '';
