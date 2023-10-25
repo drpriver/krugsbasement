@@ -1845,7 +1845,10 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
             ss.apply_sort(arg[2]);
         }break;
         case SpreadSheetMsgType.INITIALIZE:
-            for(const ss of SPREADSHEETS.values()) ss.w.remove();
+            for(const ss of SPREADSHEETS.values()){
+                ss.w.remove();
+                SHEET_CTX.del_sheet(ss.id);
+            }
             SPREADSHEETS.clear();
             SHEET_TV.clear();
             for(const d of arg[1]) spreadsheet_from_data(d);
