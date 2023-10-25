@@ -1105,6 +1105,24 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
 
     type NameSpace = Map<string, Array<Token>>;
 
+    function simple_expand_token(tokens: Array<Token>, vars:NameSpace, depth: number): string{
+        let s = '';
+        for(const tok of tokens){
+            if(depth < 10 && tok.kind == TokenKind.IDENT){
+                let sub = lookup(tok.text, vars);
+                if(sub == null){
+                    s += tok.text;
+                }
+                else
+                    s += simple_expand_token(sub, vars, depth+1);
+            }
+            else {
+                s += tok.text;
+            }
+        }
+        return s;
+    }
+
 
     function expand_dice(expr: Expression, namespaces:Map<string, NameSpace>, vars:NameSpace, muldiv:boolean, visited:Set<string>): UnrolledDiceExpr | null {
         switch(expr.type){
@@ -1160,7 +1178,9 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
             }
             case EXPR.CELL:{
                 let arg = expr.value.slice(1, expr.value.length-1);
-                let v = spread_eval_string(arg);
+                let argtoks = tokenize(arg);
+                let s = simple_expand_token(argtoks, vars, 1);
+                let v = spread_eval_string(s);
                 if(v === null) return null;
                 if(typeof v !== 'string') return [DieExprTypes.NUMBER, v];
                 const tokens = tokenize(v);

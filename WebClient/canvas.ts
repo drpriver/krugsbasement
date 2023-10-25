@@ -9098,7 +9098,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                     else return;
                 }
                 else if(modified) return;
-                change_tool(ToolType.COACHING);
+                else change_tool(ToolType.COACHING);
                 break;
             case 'v':
                 if(shortcut){
