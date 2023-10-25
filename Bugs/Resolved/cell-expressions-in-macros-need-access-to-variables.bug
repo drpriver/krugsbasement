@@ -1,0 +1,9 @@
+Changelog::kv
+  created:  2023-06-29T17:29:38.804822
+  resolved: 2023-10-25T05:34:40Z
+Created Jun 29, 2023, 10:29AM::md .update
+Summary::md .summary
+  Cell expressions in macros need access to variables
+
+Resolved Oct 24, 2023, 10:34PM::md .update
+  We have a tacky version of this in for now.
