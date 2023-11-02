@@ -4946,7 +4946,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
     }
     ctx.scale(SCALE, SCALE);
     // TAG renderGRID
-    ctx.fillStyle = map.grid_color.length?map.grid_color:'rgb(150, 150, 150)';
+    ctx.fillStyle = map.grid_color.length?map.grid_color:is_darkmode?'#555':'#969696';
     if(map.grid_type & GridType.NOGRID){
     }
     else if(map.grid_type & GridType.HEX){
