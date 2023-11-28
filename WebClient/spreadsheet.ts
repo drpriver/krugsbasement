@@ -32,8 +32,11 @@ document.addEventListener('DOMContentLoaded', function():void{
             });
             remove_ctx_menu();
         });
+        menu.item('Duplicate', function():void{
+            do_new_sheet_dialog(0, id);
+        });
         menu.item('Add Child Sheet', function():void{
-            do_new_sheet_dialog(id);
+            do_new_sheet_dialog(id, 0);
         });
         menu.separator();
         if(!SHEET_TV.has_children(id))
@@ -375,6 +378,9 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             diag.show();
         });
         menu.separator();
+        menu.item('Duplicate', function():void{
+            do_new_sheet_dialog(0, result.id);
+        });
         menu.item('Download', function():void{
             const s = result.to_tsv();
             const a = elem('a');
@@ -1725,7 +1731,7 @@ function spreadsheet_from_data(data:SpreadSheetData):SpreadSheet{
     return ss;
 }
 
-function do_new_sheet_dialog(parent:number):void{
+function do_new_sheet_dialog(parent:number, src:number):void{
     const diag = get_dialog('tracker');
     if(!diag) return;
     diag.f.file.value = '';
@@ -1748,6 +1754,12 @@ function do_new_sheet_dialog(parent:number):void{
             flags &= ~SpreadSheetFlags.NUMBERED;
         if(diag.f['function'].checked)
             flags |= SpreadSheetFlags.IS_FUNCTION;
+        if(src && !tsv){
+            const sp = SPREADSHEETS.get(src);
+            if(sp){
+                tsv = sp.to_tsv();
+            }
+        }
         if(tsv){
             const data = data_from_tsv(tsv);
             if(data){
@@ -1774,7 +1786,7 @@ function do_new_sheet_dialog(parent:number):void{
 document.addEventListener('DOMContentLoaded', function():void{
     const b = by_id('new-sheet-button');
     b.onclick = function():void{
-        do_new_sheet_dialog(0);
+        do_new_sheet_dialog(0, 0);
     };
 });
 
