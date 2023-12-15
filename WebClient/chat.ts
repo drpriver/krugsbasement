@@ -108,6 +108,9 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:st
 function format_new_die_roll_result(roll_result:RolledExpr):string{
     let [total, text] = format_new_die_roll(roll_result, false);
     total = rounddown(total);
+    // Don't do the total, more useful for mass rolling
+    if(roll_result[0] == DieExprTypes.NGROUP)
+        return text;
     return text + `<br> = <span class="dice-total">${total}</span>`;
 }
 
