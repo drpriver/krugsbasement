@@ -158,7 +158,7 @@ function format_new_die_roll(roll_result:RolledExpr, tight:boolean):[number, str
             for(let subexpr of roll_result[1]){
                 let [subtotal, subtext] = format_new_die_roll(subexpr, false);
                 total += subtotal;
-                text += '<tr><td>'+subtext + '</td><td> → ' + subtotal + '</td></tr>';
+                text += '<tr><td>'+subtext + '</td><td>→</td><td>' + subtotal + '</td></tr>';
             }
             text = '<table class="ngroup">' + text + '</table>';
             if(tight) text = '(<br>' + text + ')';

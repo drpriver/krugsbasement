@@ -984,6 +984,9 @@ div.rolltable table{
 table.ngroup {
   font-size: 75%;
 }
+table.ngroup td:last-child {
+  text-align: right;
+}
 
 /*@media (prefers-color-scheme: dark) {*/
   body.dark-mode {
