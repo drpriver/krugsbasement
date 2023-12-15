@@ -425,6 +425,12 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
             while(c = match([TokenKind.PLUS, TokenKind.MINUS])){
                 let rhs = parse_divmul();
                 if(!rhs) return rhs;
+                // treat `a + 0` as `a`.
+                // This should actually be done at a different point, but whatever.
+                if(rhs.type == EXPR.NUMBER && rhs.value == 0){
+                    skip_spaces();
+                    continue;
+                }
                 lhs = {
                     type: EXPR.Binary,
                     btype: c == TokenKind.PLUS? Binary.ADD : Binary.SUB,
