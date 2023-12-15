@@ -1,0 +1,7 @@
+Changelog::kv
+  created: 2023-12-15T01:41:14.701702
+Created Dec 14, 2023, 05:41PM::md .update
+Summary::md .summary
+  Pasting objects suck because you don’t know where they are going to go. The
+  obvious fix is that you have a tool for this and it previews where they are
+  going to be.
