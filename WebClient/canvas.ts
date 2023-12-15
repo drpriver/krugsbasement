@@ -1594,7 +1594,11 @@ function freehand_recalculate_path(obj:FreehandLine|CoachingLine, base_x:number,
     obj.path = path;
 }
 function shape_recalculate_path(obj:Shape, base_x:number, base_y:number):void{
-    const points = obj.points;
+    let points = obj.points;
+    // work-around for safari not liking to fill a path with only one point.
+    if(points.length == 2){
+        points = [points[0], points[1], points[0]+0.01, points[1]+0.01];
+    }
     let x0 = base_x;
     let y0 = base_y;
     const length = points.length;
