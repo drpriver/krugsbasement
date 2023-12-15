@@ -977,6 +977,7 @@ div.rolltable table{
   display: flex;
   flex-direction: row;
   padding-bottom: 1em;
+  flex-wrap: wrap;
 }
 .macro-panel-vars > label.panel-variable{
   height: 1.5em;
