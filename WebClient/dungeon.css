@@ -618,10 +618,13 @@ html, body {
   /*overflow: hidden;*/
 }
 #chat.fullscreen {
-  width: 50vw;
-  grid-template-columns: 50vw;
+  width: 100vw;
+  /*width: 50vw;*/
+  /*grid-template-columns: 50vw;*/
+  box-shadow: none;
+  grid-template-rows: max-content auto max-content max-content max-content;
 }
-#chat.fullscreen #tree #privateroll-button
+#chat.fullscreen #tree
 {
   display: none;
 }

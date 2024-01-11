@@ -172,9 +172,12 @@ document.addEventListener('DOMContentLoaded', function():void{
             lv.activate_handler!(lv.active);
     });
     if(SETTINGS.uimode == UiMode.CHAT){
+        if(0){
         privateroll.show();
         privateroll.make_fullscreen();
         privateroll.outer.style.width = '50vw';
+        privateroll.outer.style.boxShadow = 'none';
+        }
     }
 });
 }());
