@@ -1145,6 +1145,16 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
                     if(rhs[0] == DieExprTypes.NUMBER && rhs[1] == 0)
                         return lhs;
                 }
+                if(expr.btype == Binary.MUL){
+                    if(lhs[0] == DieExprTypes.NUMBER && lhs[1] == 0)
+                        return lhs;
+                    if(rhs[0] == DieExprTypes.NUMBER && rhs[1] == 0)
+                        return rhs;
+                    if(lhs[0] == DieExprTypes.NUMBER && lhs[1] == 1)
+                        return rhs;
+                    if(rhs[0] == DieExprTypes.NUMBER && rhs[1] == 1)
+                        return lhs;
+                }
                 let result: UnrolledDiceExpr = [DieExprTypes.Binary, expr.btype, lhs, rhs];
                 if(muldiv && !childmuldiv)
                     return [DieExprTypes.GROUP, result];
