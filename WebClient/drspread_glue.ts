@@ -1,5 +1,5 @@
 //
-// Copyright © 2023, David Priver
+// Copyright © 2023-2024, David Priver <david@davidpriver.com>
 //
 const enum DrspResultKind {
     NULL   = 0, // Empty Cell

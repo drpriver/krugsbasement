@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2023, David Priver
+// Copyright © 2021-2024, David Priver
 //
 
 // local vs global refers to the website - whether it

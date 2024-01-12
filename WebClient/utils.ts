@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2023, David Priver
+// Copyright © 2021-2024, David Priver
 //
 
 function elem_with_text<K extends keyof HTMLElementTagNameMap>(tag: K, content:string, id?:string|null, class_?:string|null): HTMLElementTagNameMap[K]{

@@ -1,5 +1,5 @@
 //
-// Copyright © 2023, David Priver
+// Copyright © 2023-2024, David Priver
 //
 
 function system_prefers_darkmode():boolean{

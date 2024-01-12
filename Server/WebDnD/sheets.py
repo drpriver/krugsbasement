@@ -1,5 +1,5 @@
 #
-# Copyright © 2021-2023, David Priver
+# Copyright © 2021-2024, David Priver
 #
 from __future__ import annotations
 from typing import Optional, Callable, Any

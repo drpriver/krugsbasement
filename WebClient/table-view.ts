@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2023, David Priver
+// Copyright © 2021-2024, David Priver
 //
 type TableView<K> = {
     width: number;

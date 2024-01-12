@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2023, David Priver
+// Copyright © 2021-2024, David Priver
 //
 
 const ROLLTABLES: {shared:Array<RollTable>, private:Array<RollTable>} = {
