@@ -1867,7 +1867,9 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
             for(const ss of SPREADSHEETS.values()){
                 ss._dirty = true;
                 SHEET_TV.add_item_(ss.name, ss.id, null);
-                if(ss.hidden) continue;
+                // XXX: This means we eagerly load wasm, but that's ok as
+                //      spreadsheets are a heavily used feature.
+                // if(ss.hidden) continue;
                 recalc(ss.id);
             }
             for(const ss of SPREADSHEETS.values()){

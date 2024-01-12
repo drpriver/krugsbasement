@@ -1,0 +1,10 @@
+Changelog::kv
+  created:  2023-12-17T05:59:26.507451
+  resolved: 2024-01-12T00:16:53Z
+Created Dec 16, 2023, 09:59PM::md .update
+Summary::md .summary
+  until you open a spreadsheet, which is a problem for macros and the standalone
+  chat window.
+
+Resolved Jan 11, 2024, 04:16PM::md .update
+  Solved this. Just always setup for wasm
