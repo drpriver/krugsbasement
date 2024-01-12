@@ -212,7 +212,18 @@ function spread_eval_string(s:string):number|string|null{
         load_sheet_wasm();
         return null;
     }
-    const result = SHEET_CTX.evaluate_string(SHEET.NULL, s);
+    const char = CHARACTERS.get(get_active_char());
+    let sheet = SHEET.NULL;
+    if(char){
+        for(let s of SPREADSHEETS.values()){
+            if(s.name.toLowerCase() == char[1].toLowerCase()){
+                sheet = s.id;
+                break;
+            }
+        }
+
+    }
+    const result = SHEET_CTX.evaluate_string(sheet, s);
     if(result === "error")
         return null;
     return result;
