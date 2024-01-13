@@ -2,24 +2,44 @@
 # Copyright © 2021-2024, David Priver
 #
 from __future__ import annotations
-import os
-import textwrap
-from typing import List, Tuple, Union, Optional, Set, NamedTuple, Dict
+
 import hashlib
-import re
 import io
-def textopen(*args, **kwargs):
-    return open(*args, **kwargs, encoding='utf-8')
+import os
+import re
+import sys
+import textwrap
+from typing import List, Tuple, Union, Optional, Set, NamedTuple, Dict, Any, Literal
+
+# This wrapper is needed because you don't want to
+# default to the system locale's encoding!
+def textopen(filename:str, mode:Literal['r'|'w']='r') -> io.TextIOWrapper:
+    return open(filename,  mode, encoding='utf-8')
 Comment = str
 TypeName = str
+class Error(Exception):
+    def __init__(self, lineno:int, msg:str)-> None:
+        super().__init__(lineno, msg)
+
+
+def split_kv(line:str, lineno:int) -> tuple[str, str]:
+    try:
+        k, v = re.split('[=:]', line, 1)
+    except ValueError:
+        raise Error(lineno, f"can't split line by '=' or ':': {line!r}")
+    if not v:
+        raise Error(lineno, f"empty rhs after '=' or ':': {line!r}")
+    return k, v
+
 class CommentInfo:
     def __init__(self) -> None:
         self.comments:List[Comment] = []
-    def add_line(self, line:str) -> None:
+    def add_line(self, line:str, lineno:int) -> None:
         raise Exception('???')
         self.append(line)
     def add_comment(self, comment:Comment) -> None:
         self.comments.append(comment.rstrip())
+
 class EnumInfo:
     def __init__(self, name:str, type:str, filename:str, line:int) -> None:
         self.filename = filename
@@ -31,8 +51,10 @@ class EnumInfo:
             for p in parts[1:]:
                 if p == 'flag':
                     self.flag = True
-
-        assert self.type in {'str', 'int'}
+                else:
+                    raise Error(line, f'Unknown Enum modifier: {p!r}')
+        if self.type not in {'str', 'int'}:
+            raise Error(line, f'Enum type must be int or str, not {self.type!r}')
         self.name = name
         self.items: List[Union[Comment, Tuple[str, str, Optional[Comment]]]] = []
         self.values:Set[str] = set()
@@ -52,13 +74,13 @@ class EnumInfo:
             vals = [x[1] for x in self.values if not isinstance(x, Comment)]
             return vals[0], vals[-1]
         return min, max
-    def add_line(self, line:str) -> None:
-        k, v = re.split('[=:]', line, 1)
+    def add_line(self, line:str, lineno:int) -> None:
+        k, v = split_kv(line, lineno)
         assert v
-        self.append(k, v)
+        self.append(k, v, lineno)
     def add_comment(self, comment:Comment) -> None:
         self.items.append(comment.strip())
-    def append(self, k:str, v:str) -> None:
+    def append(self, k:str, v:str, lineno:int) -> None:
         k = k.strip()
         v = v.strip()
         duplicate = False
@@ -80,9 +102,9 @@ class EnumInfo:
             v = v.strip()
             comment = '//'.join(comment).strip() # type: ignore
         if k in self.keys:
-            raise Exception(self.name, 'duplicate key:', k)
+            raise Error(lineno, f'{self.name}  duplicate key: {k}')
         if not duplicate and v in self.values and k != 'ALL':
-            raise Exception(self.name, 'duplicate value:', v)
+            raise Error(lineno, f'{self.name} duplicate value: {v}')
         self.keys.add(k)
         self.values.add(v)
         self.items.append((k, v, comment))
@@ -94,16 +116,16 @@ class StructInfo:
         self.name = name
         self.base = base
         if base not in {'array', 'dict'}:
-            raise Exception(base)
+            raise Error(line, base)
         self.members: List[Union[Comment, Tuple[str, TypeName, Optional[Comment]]]] = []
         self.member_names: Set[str] = set()
-    def add_line(self, line:str) -> None:
-        k, v = re.split('[=:]', line, 1)
+    def add_line(self, line:str, lineno:int) -> None:
+        k, v = split_kv(line, lineno)
         assert v
-        self.append(k, v)
+        self.append(k, v, lineno)
     def add_comment(self, comment:Comment) -> None:
         self.members.append(comment.strip())
-    def append(self, name:str, type:str) -> None:
+    def append(self, name:str, type:str, lineno:int) -> None:
         name = name.strip()
         type = type.strip()
         comment = None
@@ -116,7 +138,7 @@ class StructInfo:
             type = a.strip()
             comment = '//'.join(b).strip()
         if name in self.member_names:
-            raise Exception(f'duplicate member name: {name}')
+            raise Error(lineno, f'{self.name} duplicate member name: {name}')
         self.member_names.add(name)
         self.members.append((name, type, comment))
 
@@ -136,9 +158,9 @@ class UnionInfo:
         self.variant_types: Set[str] = set()
     def add_comment(self, comment:Comment) -> None:
         self.variants.append(comment.strip())
-    def add_line(self, line:str) -> None:
-        self.append(line)
-    def append(self, type:str) -> None:
+    def add_line(self, line:str, lineno:int) -> None:
+        self.append(line, lineno)
+    def append(self, type:str, lineno:int) -> None:
         type = type.strip()
         comment = None
         if '#' in type:
@@ -150,7 +172,7 @@ class UnionInfo:
             type = a.strip()
             comment = '//'.join(b).strip()
         if type in self.variant_types:
-            raise Exception(f'duplicate type: {type}')
+            raise Error(lineno, f'{self.name} duplicate type: {type}')
         self.variant_types.add(type)
         self.variants.append((type, comment))
 
@@ -161,8 +183,8 @@ class MsgInfo:
         self.name = name
         self.enu = enu
         self.items:List[Union[Comment, Tuple[str, str, Optional[str], Optional[Comment]]]] = []
-    def add_line(self, line:str) -> None:
-        k, v = re.split('[=:]', line, 1)
+    def add_line(self, line:str, lineno:int) -> None:
+        k, v = split_kv(line, lineno)
         comment = None
         cb = None
         if '#' in v:
@@ -192,8 +214,10 @@ class ValidatorInfo:
         self.langs: Set[str] = set()
     def add_comment(self, comment:Comment) -> None:
         pass
-    def add_line(self, line:str) -> None:
+    def add_line(self, line:str, lineno:int) -> None:
         line = line.strip()
+        if line not in {'ts'}:
+            raise Error(lineno, f'Unsupported validator: {line!r}')
         assert line in {'ts'}
         self.langs.add(line)
 
@@ -221,7 +245,7 @@ def get_values(filename:str) -> List[Info]:
                 current_info = None # type: ignore
             continue
         if line[0] == '\t':
-            raise Exception('tab')
+            raise Error(lineno, 'tab')
         if line.startswith(('#', '//')):
             if not isinstance(current_info, CommentInfo):
                 current_info = CommentInfo()
@@ -257,16 +281,16 @@ def get_values(filename:str) -> List[Info]:
                 name, type = line.split(':')
                 current_info = ValidatorInfo(name.strip(), type.strip(), filename, lineno)
             else:
-                raise Exception('Unrecognized type', line)
+                raise Error(lineno, f'Unrecognized type: {line}')
             result.append(current_info)
             continue
-        current_info.add_line(line)
+        current_info.add_line(line, lineno)
     fp.close()
     return result
 
 def make_python(filename:str, infos: List[Info]) -> Tuple[str, str]:
     fp = io.StringIO()
-    def p(*args, **kwargs):
+    def p(*args:Any, **kwargs:Any) -> None:
         print(*args, **kwargs, file=fp)
     p('# Generated via', os.path.relpath(__file__))
     p(f'# Input at "{filename}"')
@@ -386,7 +410,7 @@ def make_python(filename:str, infos: List[Info]) -> Tuple[str, str]:
 
     structs ={info.name:info for info in infos if isinstance(info, StructInfo)}
 
-    def find_discrim(typename):
+    def find_discrim(typename:str) -> str:
         s = structs[typename]
         for member in s.members:
             if isinstance(member, Comment): continue
@@ -503,7 +527,7 @@ def make_python(filename:str, infos: List[Info]) -> Tuple[str, str]:
 
 def make_ts(filename:str, infos:List[Info]) -> str:
     fp = io.StringIO()
-    def p(*args, **kwargs):
+    def p(*args:Any, **kwargs:Any) -> None:
         print(*args, **kwargs, file=fp)
     p('//', 'messages.ts')
     p('//', '-'*len('messages.ts'))
@@ -651,7 +675,7 @@ def make_ts(filename:str, infos:List[Info]) -> str:
         elif isinstance(info, ValidatorInfo):
             validators.append(info)
 
-    tns = {}
+    tns:dict[str, int] = {}
     tni = 0
     def vname(type:str) -> str:
         nonlocal tni
@@ -815,7 +839,7 @@ def make_tags(infos:List[Info]) -> List['TagLoc']: #type: ignore
         query: str
         ident: str
         filename: str
-        lineno:int 
+        lineno:int
         is_global: bool
     result = []
     for info in infos:
@@ -874,7 +898,12 @@ def make_tags(infos:List[Info]) -> List['TagLoc']: #type: ignore
 
 if __name__ == '__main__':
     INPUT = 'types.shared'
-    infos = get_values(INPUT)
+    try:
+        infos = get_values(INPUT)
+    except Error as e:
+        print(f'{INPUT}:{e.args[0]}', *e.args[1:], file=sys.stderr)
+        sys.exit(1)
+        raise Exception(INPUT, *e.args) from e
     py, py2 = make_python(INPUT, infos)
     ts = make_ts(INPUT, infos)
     with textopen('Generated/messages.ts', 'w') as fp:
