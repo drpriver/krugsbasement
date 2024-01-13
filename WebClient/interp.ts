@@ -1170,7 +1170,18 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
                 if(visited.has(key)) return null;
                 visited.add(key);
                 let toks = lookup(expr.ident, vars);
-                if(!toks) return null;
+                if(!toks) {
+                    // try to eval it as a cell reference
+                    let v = spread_eval_string(expr.ident);
+                    if(v === null)
+                        return null;
+                    if(typeof v !== 'string') return [DieExprTypes.NUMBER, v];
+                    // return null;
+                    const tokens = tokenize(v);
+                    const subexpr = parse_expression(tokens);
+                    if(!subexpr) return null;
+                    return expand_dice(subexpr, namespaces, vars, muldiv, visited);
+                }
                 let e = parse_expression(toks);
                 if(!e) return null;
                 return expand_dice(e, namespaces, vars, muldiv, visited);
