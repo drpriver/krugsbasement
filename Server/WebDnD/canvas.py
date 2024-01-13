@@ -1,7 +1,7 @@
 #
 # Copyright © 2021-2024, David Priver
 #
-
+from __future__ import annotations
 from typing import List, Dict, Any, NamedTuple, Callable, Tuple, Union, Mapping, TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import TypedDict

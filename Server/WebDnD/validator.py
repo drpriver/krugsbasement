@@ -1,7 +1,7 @@
 #
 # Copyright © 2021-2024, David Priver
 #
-
+from __future__ import annotations
 from typing import NamedTuple, Tuple, Callable, Any, List, Dict, TypeVar
 T = TypeVar('T')
 F = TypeVar('F', bound=Any)
@@ -10,12 +10,12 @@ import functools
 
 class DictStructTypeInfo(NamedTuple):
     items: List[Tuple[str, Callable]]
-    def parse(self, obj:Any) -> dict:
+    def parse(self, obj:Any) -> dict[str, Any]:
         result = {}
         for key, converter in self.items:
             result[key] = converter(obj[key])
         return result
-    def __call__(self, obj:Any) -> dict:
+    def __call__(self, obj:Any) -> dict[str, Any]:
         return self.parse(obj)
 
 class ArrayStructTypeInfo(NamedTuple):
@@ -40,10 +40,10 @@ class UnionArrayTypeInfo(NamedTuple):
 
 class UnionDictTypeInfo(NamedTuple):
     validators: Dict[Any, Callable]
-    def parse(self, obj:Any) -> dict:
+    def parse(self, obj:Any) -> dict[str, Any]:
         which = obj['type']
         return self.validators[which](obj)
-    def __call__(self, obj:Any) -> dict:
+    def __call__(self, obj:Any) -> dict[str, Any]:
         return self.parse(obj)
 class ListTypeInfo(NamedTuple):
     validator: Callable

@@ -9,3 +9,4 @@ logging.getLogger('socketio').setLevel(logging.INFO)
 logging.getLogger('socketio.server').setLevel(logging.ERROR)
 logging.getLogger('engineio').setLevel(logging.INFO)
 logging.getLogger('geventwebsocket.handler').setLevel(logging.INFO)
+__all__ = ['logging']

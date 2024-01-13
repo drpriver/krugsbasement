@@ -1,7 +1,7 @@
 #
 # Copyright © 2021-2024, David Priver
 #
-
+from __future__ import annotations
 from typing import List, Dict, Union, Any, Tuple, Optional
 import random
 from .persist import Persister, Dummy
@@ -16,10 +16,10 @@ from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg
 from enum import IntEnum, IntFlag
 
 class RollTablePersister(Persister[Dummy[List[RollTable]]]):
-    def read_obj(self, obj:Dummy[list])->Dummy[list]:
+    def read_obj(self, obj:Dummy[list[RollTable]])->Dummy[list[RollTable]]:
         o = db.get_rolltable(self.campaign_id)
         return Dummy(o) if o is not None else obj
-    def write_obj(self, obj:Dummy[list])->None:
+    def write_obj(self, obj:Dummy[list[RollTable]])->None:
         # logging.info('write roll table: %r', obj)
         db.save_rolltable(self.campaign_id, obj.value)
     def __init__(self, campaignid:int)->None:
@@ -30,10 +30,10 @@ class RollTablePersister(Persister[Dummy[List[RollTable]]]):
         super().__init__(Dummy([]), name, dont_persist=dont_persist)
 
 class PrivateRollTablePersister(Persister[Dummy[List[RollTable]]]):
-    def read_obj(self, obj:Dummy[list])->Dummy[list]:
+    def read_obj(self, obj:Dummy[list[RollTable]])->Dummy[list[RollTable]]:
         o = db.get_private_rolltable(self.userid, self.campaign_id)
         return Dummy(o) if o is not None else obj
-    def write_obj(self, obj:Dummy[list])->None:
+    def write_obj(self, obj:Dummy[list[RollTable]])->None:
         # logging.info('write roll table: %r', obj)
         db.save_private_rolltable(self.userid, self.campaign_id, obj.value)
     def __init__(self, userid:int, campaignid:int)->None:

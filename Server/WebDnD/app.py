@@ -502,7 +502,7 @@ def handle_canvas_delete(data:CanvasDeleteMessage) -> None:
     campaign = get_campaign(request)
     response = canvas.handle_delete(campaign, data)
     if response:
-        emit(ToClient.CANVAS_DELETE, response, broadcast=True, include_self=False, to=str(campaign)) # type: ignore
+        emit(ToClient.CANVAS_DELETE, response, broadcast=True, include_self=False, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_UPDATE)
 @validated
@@ -510,19 +510,19 @@ def handle_canvas_update(data:CanvasUpdateMessage) -> None:
     campaign = get_campaign(request)
     response = canvas.handle_update(campaign, data)
     if response:
-        emit(ToClient.CANVAS_UPDATE, response, broadcast=True, include_self=False, to=str(campaign)) # type: ignore
+        emit(ToClient.CANVAS_UPDATE, response, broadcast=True, include_self=False, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_GATHER)
 @validated
 def canvas_gather(where:GatherMessage) -> None:
     campaign = get_campaign(request)
-    emit(ToClient.CANVAS_GATHER, where, broadcast=True, to=str(campaign)) # type: ignore
+    emit(ToClient.CANVAS_GATHER, where, broadcast=True, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_BATTLE)
 @validated
 def canvas_battle(where:GatherMessage) -> None:
     campaign = get_campaign(request)
-    emit(ToClient.CANVAS_BATTLE, where, broadcast=True, to=str(campaign)) # type: ignore
+    emit(ToClient.CANVAS_BATTLE, where, broadcast=True, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_DUNGEON_MODE)
 def canvas_dungeon_mode() -> None:
@@ -541,14 +541,14 @@ def canvas_create_map(data:int) -> None:
 @validated
 def canvas_ping(data:PingMessage) -> None:
     campaign = get_campaign(request)
-    emit(ToClient.CANVAS_PING, data, broadcast=True, include_self=True, to=str(campaign)) # type: ignore
+    emit(ToClient.CANVAS_PING, data, broadcast=True, include_self=True, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_NAME_MAP)
 @validated
 def canvas_name_map(data:NameMapMessage) -> None:
     campaign = get_campaign(request)
     canvas.name_map(campaign, **data)
-    emit(ToClient.CANVAS_NAME_MAP, data, broadcast=True, include_self=False, to=str(campaign)) # type: ignore
+    emit(ToClient.CANVAS_NAME_MAP, data, broadcast=True, include_self=False, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_NEW_MAP_REQUEST)
 @validated
@@ -666,7 +666,7 @@ def note_update_title(data:NoteUpdateTitle) -> None:
     campaign = get_campaign(request)
     notes.note_update_title(campaign, data['note_id'], data['title'])
     dlog('Updating note title. Note: %r. Room: %r. Title: %r', data['note_id'], campaign, data['title'])
-    emit(ToClient.NOTE_UPDATE_TITLE, data, broadcast=True, include_self=False, to=str(campaign)) # type: ignore
+    emit(ToClient.NOTE_UPDATE_TITLE, data, broadcast=True, include_self=False, to=str(campaign))
     # emit(ToClient.NOTE_DIRTY, data['note_id'], broadcast=True, include_self=False, to=str(campaign))
 
 @socketio.on(FromClient.NOTE_PARENT)
@@ -675,7 +675,7 @@ def note_update_parent(data:NoteParentMsg) -> None:
     campaign = get_campaign(request)
     notes.note_update_parent(campaign, data['note_id'], data['parent'])
     dlog('Updating note parent. Note: %r. Room: %r. parent: %r', data['note_id'], campaign, data['parent'])
-    emit(ToClient.NOTE_PARENT, data, broadcast=True, include_self=False, to=str(campaign)) # type: ignore
+    emit(ToClient.NOTE_PARENT, data, broadcast=True, include_self=False, to=str(campaign))
 
 @socketio.on(FromClient.NOTE_UPDATE_BODY)
 @validated
@@ -757,7 +757,7 @@ def get_html(info:db.CampaignInfo, mode:UiMode) -> str:
         'uimode': int(mode),
         'DEV': appconfig.DEV,
     }
-    def update_vals(orig:dict, to_update:dict) -> None:
+    def update_vals(orig:dict[str, Any], to_update:dict[str, Any]) -> None:
         for k in orig:
             if k not in to_update:
                 continue

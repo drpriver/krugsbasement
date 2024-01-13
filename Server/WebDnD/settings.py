@@ -1,7 +1,7 @@
 #
 # Copyright © 2021-2024, David Priver
 #
-
+from __future__ import annotations
 from . import db
 from .logs import logging
 from .persist import RepeatTimer
@@ -20,7 +20,7 @@ else:
         return
 
 class Settings:
-    def __init__(self, userid:int):
+    def __init__(self, userid:int) -> None:
         self.userid = userid
         self.global_settings = None # type: Optional[Dict[str, Any]]
         self.local_settings = {} # type: Dict[int, Dict[str, Dict[str, Any]]]
@@ -30,13 +30,13 @@ class Settings:
         self.last_access = time.time()
         logging.info('Loading settings for %r', userid)
 
-    def get_global(self) -> dict:
+    def get_global(self) -> dict[str, Any]:
 
         self.last_access = time.time()
         if self.global_settings is None:
             self.global_settings = db.get_global_settings(self.userid)
         return self.global_settings
-    def get_local(self, campaignid:int) -> dict:
+    def get_local(self, campaignid:int) -> dict[str, Any]:
         self.last_access = time.time()
         if campaignid not in self.local_settings:
             self.local_settings[campaignid] = db.get_local_settings(self.userid, campaignid)
@@ -92,7 +92,7 @@ def get_settings(userid:int) -> Settings:
         all_settings[userid] = Settings(userid)
     return all_settings[userid]
 
-def get_local(userid:int, campaignid:int) -> dict:
+def get_local(userid:int, campaignid:int) -> dict[str, Any]:
     with settingslock:
         return get_settings(userid).get_local(campaignid)
 
@@ -100,7 +100,7 @@ def get_local_ckvd(userid:int, campaignid: int, category:str, key:str, d:T) -> T
     s = get_local(userid, campaignid)
     return s.get(category, {}).get(key, d)
 
-def get_global(userid:int) -> dict:
+def get_global(userid:int) -> dict[str, Any]:
     with settingslock:
         return get_settings(userid).get_global()
 

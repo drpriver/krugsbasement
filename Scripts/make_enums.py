@@ -469,7 +469,8 @@ def make_python(filename:str, infos: List[Info]) -> Tuple[str, str]:
     s1 = fp.getvalue()
 
     fp = io.StringIO()
-    p('from typing import Callable, Union, Dict, Type, Optional, Any, Mapping, overload, Literal')
+    p('from __future__ import annotations')
+    p('from typing import Callable, Union, Dict, Type, Optional, Any, Mapping, overload, Literal, List')
     p('JSType = Union[str, int, float, dict, list, tuple, Mapping]')
     p('from Server.WebDnD.messages import *')
     # p('def emit(event:Union[str,int], *args:JSType, **kwargs:JSType) -> None:

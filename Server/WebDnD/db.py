@@ -19,7 +19,7 @@ def close()->None:
     logging.info('closing db')
     conn.close()
 
-atexit.register(close) # type: ignore
+atexit.register(close)
 # Make it threadsafe
 # The R is for re-entrant
 DBLOCK = threading.RLock()

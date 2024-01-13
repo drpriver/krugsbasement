@@ -1,6 +1,8 @@
 #
 # Copyright © 2021-2024, David Priver
 #
+from __future__ import annotations
+from typing import Any
 import re
 
 from flask_wtf import FlaskForm
@@ -12,7 +14,7 @@ class LoginForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     remember_me = BooleanField('Remember Me', default='checked')
     login = SubmitField('Sign In')
-    def dictify(self) -> dict:
+    def dictify(self) -> dict[str, Any]:
         return dict(
             hidden = self.hidden_tag(),
             password = dict(errors=self.password.errors),
@@ -29,7 +31,7 @@ class RegisterForm(FlaskForm):
     magic = StringField('Magic Code', validators=[DataRequired()])
     remember_me = BooleanField('Remember Me', default='checked')
     register = SubmitField('Register')
-    def dictify(self) -> dict:
+    def dictify(self) -> dict[str, Any]:
         return dict(
             hidden = self.hidden_tag(),
             username = dict(errors=self.username.errors),
@@ -43,7 +45,7 @@ class RegisterForm(FlaskForm):
 class CampaignForm(FlaskForm):
     campaignname = StringField('Name', validators=[DataRequired(), Length(min=1, max=128)])
     submit = SubmitField('Create')
-    def dictify(self) -> dict:
+    def dictify(self) -> dict[str, Any]:
         return dict(
                 hidden = self.hidden_tag(),
                 campaignname = dict(errors=self.campaignname.errors),

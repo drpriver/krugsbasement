@@ -22,8 +22,8 @@ class RepeatTimer(threading.Timer):
         super().__init__(*args, **kwargs)
         self.daemon = True
     def run(self) -> None:
-        while not self.finished.wait(self.interval): # type: ignore
-            self.function(*self.args, **self.kwargs) # type: ignore
+        while not self.finished.wait(self.interval):
+            self.function(*self.args, **self.kwargs)
 class Persister(Generic[T]):
     '''
     An object that handles saving and loading mutable objects.
@@ -56,7 +56,7 @@ class Persister(Generic[T]):
         rt = RepeatTimer(60, self.save)
         rt.start()
     def save(self) -> None:
-        if hasattr(self.obj, 'dirty') and not self.obj.dirty: # type: ignore
+        if hasattr(self.obj, 'dirty') and not self.obj.dirty:
             return
         t0 = time.time()
         try:
@@ -67,7 +67,7 @@ class Persister(Generic[T]):
         t1 = time.time()
         logging.info('Saving %r took %.3fms', self.name, (t1-t0)*1000)
         if hasattr(self.obj, 'dirty'):
-            self.obj.dirty = False # type: ignore
+            self.obj.dirty = False
 
 class Dummy(Generic[T]):
     def __init__(self, value:T) -> None:
