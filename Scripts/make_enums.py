@@ -343,7 +343,7 @@ def make_python(filename:str, infos: List[Info]) -> Tuple[str, str]:
                         p(f', {typename}', end='')
                     else:
                         p(f'{typename}', end='')
-                p('] # type: ignore')
+                p(']')
             else:
                 p(f'class {info.name}(TypedDict):')
                 for member in info.members:
@@ -363,7 +363,7 @@ def make_python(filename:str, infos: List[Info]) -> Tuple[str, str]:
                     p(f', {typename}', end='')
                 else:
                     p(f'{typename}', end='')
-            p('] # type: ignore')
+            p(']')
             p('')
 
     # first forward declare all the types
