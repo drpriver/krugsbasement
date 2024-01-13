@@ -16,7 +16,7 @@ class CommentInfo:
     def __init__(self) -> None:
         self.comments:List[Comment] = []
     def add_line(self, line:str) -> None:
-        raise Exception
+        raise Exception('???')
         self.append(line)
     def add_comment(self, comment:Comment) -> None:
         self.comments.append(comment.rstrip())
@@ -116,7 +116,7 @@ class StructInfo:
             type = a.strip()
             comment = '//'.join(b).strip()
         if name in self.member_names:
-            raise Exception()
+            raise Exception(f'duplicate member name: {name}')
         self.member_names.add(name)
         self.members.append((name, type, comment))
 
@@ -150,7 +150,7 @@ class UnionInfo:
             type = a.strip()
             comment = '//'.join(b).strip()
         if type in self.variant_types:
-            raise Exception()
+            raise Exception(f'duplicate type: {type}')
         self.variant_types.add(type)
         self.variants.append((type, comment))
 
