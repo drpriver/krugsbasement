@@ -1130,12 +1130,23 @@ enum SpreadSheetFlags: int flag
     IS_FUNCTION            = 1 << 11 // don't include in ALL
     ALL                    = NONE | CAN_ADD_ROW | CAN_ADD_COL | CAN_SORT_COLS | ADD_ROW_ON_ENTER | CAN_DEL_ROW | CAN_DEL_COL | NUMBERED | CAN_MOVE_COLUMNS | CAN_MOVE_ROWS | CAN_EDIT_CELLS
 
+enum CellFlags: int flag
+    NONE      = 0
+    BOLD      = 1 << 0
+    ITALIC    = 1 << 1
+    UNDERLINE = 1 << 2
+
+struct CellData: array
+    text: str
+    name: str
+    flags: CellFlags
+
 struct SpreadSheetData: dict
     id: int
     name: str
     flags: SpreadSheetFlags
     column_names: [str]
-    cells: [str]
+    cells: [CellData]
     parent: int
     n_args: int
     outx: int
@@ -1194,14 +1205,14 @@ struct SpreadSheetEditCell: array
     sheet_id: int
     row_idx: int
     col_idx: int
-    value: str
+    value: CellData
 
 struct SpreadSheetEditCells: array
     type = SpreadSheetMsgType.EDIT_CELLS
     sheet_id: int
     row_idx: [int]
     col_idx: [int]
-    value: [str]
+    value: [CellData]
 
 struct SpreadSheetAddRow: array
     type = SpreadSheetMsgType.ADD_ROW

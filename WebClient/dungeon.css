@@ -1238,6 +1238,17 @@ body.mobile .notes-window {
   padding: 2px 8px;
   cursor: cell;
 }
+.tracker-cell:has(span){
+  display: grid;
+  grid-template-columns: max-content auto;
+  white-space: nowrap;
+  text-align: right;
+}
+.tracker-cell > span {
+  text-align: left;
+  font-weight: bold;
+  padding-right: 1ch;
+}
 
 .tracker-cell.parameter {
   border: 3px solid #54f461;
@@ -1545,4 +1556,17 @@ div.tree-item.dragging {
 
 body.dark-mode div.tree-item.dragging {
   background-color: #444;
+}
+
+.bold {
+  font-weight: bold;
+}
+body.dark-mode .bold {
+  font-weight: 900;
+}
+.italic {
+  font-style: italic;
+}
+.underline {
+  border-bottom: 0px solid black;
 }

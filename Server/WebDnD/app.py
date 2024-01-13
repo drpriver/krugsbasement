@@ -481,6 +481,7 @@ def post_join(mode:UiMode) -> None:
         emit(ToClient.USER_LIST, userlist)
     if mode == UiMode.NORMAL:
         msg:SpreadSheetInitialize = [SpreadSheetMsgType.INITIALIZE, sheets.get_spreadsheets(campaign)] # type: ignore
+        # dlog('spreadsheet: %r', msg)
         emit(ToClient.SPREADSHEET, msg)
     url = db.get_campaign_kv(campaign, 'homepage')
     if url:

@@ -64,7 +64,11 @@ document.addEventListener('DOMContentLoaded', function():void{
     };
 });
 
+//                name    flags
+type CellExtra = [string, CellFlags];
+
 type SpreadSheet = {
+    // debug stuff
     xxx_timing: HTMLSpanElement;
     // selection stuff;
     r0: number;
@@ -80,6 +84,7 @@ type SpreadSheet = {
     func_outx: number;
     func_outy: number;
     _func_els: Array<HTMLElement>;
+    //
     id: number;
     parent: number;
     w:HTMLDivElement;
@@ -99,7 +104,7 @@ type SpreadSheet = {
     //   -1 means at end.
     //    0 means at start.
     add_row1:(whence:number) => void;
-    add_row2:(whence:number, values:Array<string>) => void;
+    add_row2:(whence:number, values:Array<CellData>) => void;
     move_row:(from:number, to:number) => void;
     del_row:(whence:number) => void;
     add_column1:(whence:number) => void;
@@ -110,8 +115,8 @@ type SpreadSheet = {
     del_column:(whence:number) => void;
     set_func_io: (nargs:number, outx:number, outy:number) => void;
 
-    edit_cell:(row_idx:number, col_idx:number, val:string) => void;
-    edit_cells:(row_idx:Array<number>, col_idx:Array<number>, val:Array<string>) => void;
+    edit_cell:(row_idx:number, col_idx:number, val:CellData) => void;
+    edit_cells:(row_idx:Array<number>, col_idx:Array<number>, val:Array<CellData>) => void;
 
     set_display:(row_idx:number, col_idx:number, val:string) => void;
 
@@ -122,6 +127,8 @@ type SpreadSheet = {
     cell_elems: Array<Array<HTMLDivElement>>;
     cell_sources: Array<Array<string>>;
     cell_displays: Array<Array<string>>;
+    cell_extras: Array<Array<CellExtra>>;
+    cell_names: Map<string, [number, number]>;
     column_names: Array<string>;
     headers: Array<HTMLDivElement>;
     number_els: Array<HTMLDivElement>;
@@ -150,7 +157,10 @@ function setup_sheet_for_wasm(sheet:SpreadSheet):void{
     }
     for(let r = 0; r < sheet.cell_sources.length; r++){
         const row = sheet.cell_sources[r];
+        const erow = sheet.cell_extras[r];
         for(let c = 0; c < row.length; c++){
+            const extra = erow[c];
+            if(extra[0]) SHEET_CTX.set_cell_name(sheet.id, extra[0], r, c);
             const s = row[c];
             if(!s.length) continue;
             SHEET_CTX.set_str(sheet.id, r, c, s);
@@ -450,6 +460,8 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         cell_elems: [],
         cell_sources: [],
         cell_displays: [],
+        cell_extras: [],
+        cell_names: new Map(),
         flags,
         column_names:[],
         headers:[],
@@ -586,12 +598,124 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             }
         }
     }
+    function do_cell_flag(flag: CellFlags):void{
+        if(flag == CellFlags.UNDERLINE)
+            return;
+        const add = result.cell_extras[result.r0][result.c0][1] & flag? false: true;
+        const rows = [];
+        const cols = [];
+        const vals: Array<CellData> = [];
+        for(let r = result.r0; r <= result.r1; r++){
+            for(let c = result.c0; c <= result.c1; c++){
+                rows.push(r);
+                cols.push(c);
+                vals.push([
+                    result.cell_sources[r][c],
+                    result.cell_extras[r][c][0],
+                    add?(result.cell_extras[r][c][1] | flag) : (result.cell_extras[r][c][1] & ~flag)
+                ]);
+            }
+        }
+        EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELLS, result.id, rows, cols, vals]);
+    }
+    function add_name_label(elem:HTMLDivElement, txt:string):void{
+        elem.insertAdjacentElement('afterbegin', elem_with_text('span', txt));
+    }
+    function name_cell(row_idx:number, col_idx:number, txt:string):void{
+        const lower = txt.toLowerCase();
+        if(result.cell_names.has(lower)) return;
+        const extra = result.cell_extras[row_idx][col_idx];
+        const val: CellData = [result.cell_sources[row_idx][col_idx], txt, extra[1]];
+        EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELL, result.id, row_idx, col_idx, val]);
+        return;
+        extra[0] = txt;
+        SHEET_CTX.set_cell_name(result.id, txt, row_idx, col_idx);
+        result.cell_names.set(lower, [row_idx, col_idx]);
+        add_name_label(result.cell_elems[row_idx][col_idx], txt);
+        recalc_me();
+    }
+    function unname_cell(name:string, row_idx:number, col_idx:number):void{
+        const extra = result.cell_extras[row_idx][col_idx];
+        const val: CellData = [result.cell_sources[row_idx][col_idx], '', extra[1]];
+        EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELL, result.id, row_idx, col_idx, val]);
+        return;
+        SHEET_CTX.del_cell_name(result.id, extra[0]);
+        result.cell_names.delete(extra[0].toLowerCase());
+        extra[0] = '';
+        result.cell_elems[row_idx][col_idx].children[0].remove();
+        recalc_me();
+    }
     function celldropdown(e:MouseEvent):void{
         const cell = e.target as HTMLDivElement;
         let [row_idx, col_idx] = idx_of(cell);
         if(row_idx == -1) [row_idx, col_idx] = idx_of(cell.parentElement as HTMLDivElement);
         if(row_idx == -1) return;
         const menu = ctx_menu(e);
+        menu.item('Bold', function():void{
+            // hack
+            if(result.r0 != row_idx || result.c0 != col_idx)
+                result.cell_elems[row_idx][col_idx].focus();
+            do_cell_flag(CellFlags.BOLD);
+        });
+        menu.item('Italic', function():void{
+            // hack
+            if(result.r0 != row_idx || result.c0 != col_idx)
+                result.cell_elems[row_idx][col_idx].focus();
+            do_cell_flag(CellFlags.ITALIC);
+        });
+        menu.separator();
+        const extra = result.cell_extras[row_idx][col_idx];
+        if(extra[0]){
+            menu.item('Rename Cell', function():void{
+                const dialog = get_dialog('simple-text');
+                if(!dialog) return;
+                dialog.f.title.textContent = 'Name Cell';
+                dialog.f.textlabel.textContent = 'Cell Name:';
+                dialog.f.text.value = extra[0];
+                dialog.clear_handlers();
+                dialog.show_handler = function():void{
+                    setTimeout(()=>{dialog.f.text.focus();}, 0);
+                };
+                dialog.ok_handler = function():void{
+                    let txt = dialog.f.text.value.trim();
+                    if(txt == extra[0]) return;
+                    unname_cell(extra[0], row_idx, col_idx);
+                    if(!txt.length) return;
+                    name_cell(row_idx, col_idx, txt);
+                    setTimeout(()=>{ result.cell_elems[row_idx][col_idx].focus();}, 0);
+                };
+                dialog.show();
+            });
+            menu.item('Unname Cell', function():void{
+                unname_cell(extra[0], row_idx, col_idx);
+            });
+        }
+        else {
+            menu.item('Name Cell', function():void{
+                const dialog = get_dialog('simple-text');
+                if(!dialog) return;
+                dialog.f.title.textContent = 'Name Cell';
+                dialog.f.textlabel.textContent = 'Cell Name:';
+                dialog.f.text.value = '';
+                dialog.clear_handlers();
+                dialog.show_handler = function():void{
+                    setTimeout(()=>{dialog.f.text.focus();}, 0);
+                };
+                dialog.ok_handler = function():void{
+                    let txt = dialog.f.text.value.trim();
+                    if(!txt.length) return;
+                    name_cell(row_idx, col_idx, txt);
+                    setTimeout(()=>{ result.cell_elems[row_idx][col_idx].focus();}, 0);
+                };
+                dialog.show();
+            });
+        }
+        /*
+        menu.item('Underline', function():void{
+            do_cell_flag(CellFlags.UNDERLINE);
+        });
+        */
+        menu.separator();
         if(result._wasmed && (result.flags & SpreadSheetFlags.IS_FUNCTION)){
             menu.item('Make Output', function():void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.FUNCTION_IO, result.id, result.func_nargs, col_idx, row_idx]);
@@ -762,8 +886,8 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 do_down();
             } return;
             case 'Escape':
-                result.r1 = -1;
-                result.c1 = -1;
+                result.r1 = result.r0;
+                result.c1 = result.c0;
                 update_range();
                 e.stopPropagation();
                 e.preventDefault();
@@ -791,6 +915,42 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 // if(row_idx >= result.cell_elems.length) return;
                 // result.cell_elems[row_idx][col_idx].focus();
                 break;
+            // @ts-ignore
+            case 'b':{
+                if(e.key == 'b'){
+                    if(((!IS_MAC && e.ctrlKey) || (IS_MAC && e.metaKey)) && !e.altKey){
+                        e.stopPropagation();
+                        e.preventDefault();
+                        do_cell_flag(CellFlags.BOLD);
+                        return;
+                    }
+                }
+            }
+            // fall-through
+            // @ts-ignore
+            case 'u':{
+                if(e.key == 'u'){
+                    if(((!IS_MAC && e.ctrlKey) || (IS_MAC && e.metaKey)) && !e.altKey){
+                        e.stopPropagation();
+                        e.preventDefault();
+                        do_cell_flag(CellFlags.UNDERLINE);
+                        return;
+                    }
+                }
+            }
+            // fall-through
+            // @ts-ignore
+            case 'i':{
+                if(e.key == 'i'){
+                    if(((!IS_MAC && e.ctrlKey) || (IS_MAC && e.metaKey)) && !e.altKey){
+                        e.stopPropagation();
+                        e.preventDefault();
+                        do_cell_flag(CellFlags.ITALIC);
+                        return;
+                    }
+                }
+            }
+            // fall-through
             default:
                 if(IS_MAC){
                     if(e.ctrlKey && !e.altKey && !e.metaKey){
@@ -917,7 +1077,10 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             }
         };
         inp.onblur = function():void{
+            const extra = result.cell_extras[row_idx][col_idx];
             cell.textContent = result.cell_displays[row_idx][col_idx];
+            if(extra[0])
+                add_name_label(cell, extra[0]);
             cell.classList.remove('editing');
             inp.remove();
             if(canceled)
@@ -925,9 +1088,10 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             const v = inp.value.trim();
             if(oldtxt != v){
                 const [row_idx, col_idx] = idx_of(cell);
+                const extra = result.cell_extras[row_idx][col_idx];
                 // cell.textContent = v;
                 // result.cell_displays[row_idx][col_idx] = v;
-                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELL, result.id, row_idx, col_idx, v]);
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELL, result.id, row_idx, col_idx, [v, extra[0], extra[1]]]);
             }
         };
         inp.focus();
@@ -958,6 +1122,10 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         for(let r = r0; r <= r1; r++){
             for(let c = c0; c <= c1; c++){
                 s += result.cell_sources[r][c];
+                const extra = result.cell_extras[r][c];
+                if(extra[0] || extra[1]){
+                    s += '\0'+extra[0]+'\0'+extra[1];
+                }
                 if(c != c1)
                     s += '\t';
             }
@@ -971,7 +1139,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
     function do_delete():void{
         const rows = [];
         const cols = [];
-        const vals = [];
+        const vals: Array<CellData> = [];
         let r0 = result.r0;
         let r1 = result.r1;
         let c0 = result.c0;
@@ -990,7 +1158,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             for(let c = c0; c <= c1; c++){
                 cols.push(c);
                 rows.push(r);
-                vals.push('');
+                vals.push(['', '', CellFlags.NONE]);
             }
         }
         EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELLS, result.id, rows, cols, vals]);
@@ -1002,21 +1170,28 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         do_copy();
         do_delete();
     }
-    function paste_stuff(row_idx:number, col_idx:number, s:string):[Array<number>, Array<number>, Array<string>]{
+    function paste_stuff(row_idx:number, col_idx:number, s:string):[Array<number>, Array<number>, Array<CellData>]{
         if(s.length && s[s.length-1] == '\n')
             s = s.slice(0, s.length-1);
         const lines = s.split(/\n/);
         const r = [];
         const c = [];
-        const v = [];
+        const v: Array<CellData> = [];
         for(let i = 0; i < lines.length; i++){
             const line = lines[i];
             const cells = line.split(/\t/);
             for(let j = 0; j < cells.length; j++){
                 const cell = cells[j];
+                const parts:Array<any> = cell.split('\0');
+                if(parts.length == 1){
+                    parts.push('');
+                    parts.push(CellFlags.NONE);
+                }
+                parts[2] |= 0;
+                if(parts.length > 3) parts.splice(3);
                 r.push(row_idx+i);
                 c.push(col_idx+j);
-                v.push(cell);
+                v.push(parts as CellData);
             }
         }
         return [r, c, v];
@@ -1122,8 +1297,8 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         cell.onblur = function(){
             // result.r0 = -1;
             // result.c0 = -1;
-            result.r1 = -1;
-            result.c1 = -1;
+            result.r1 = result.r0;
+            result.c1 = result.c0;
             update_range();
         };
         cell.onfocus = function():void{
@@ -1181,15 +1356,24 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         const row = result.cell_elems[row_idx];
         return row[col_idx-1];
     }
-    function add_cell(s:string, row_idx:number, col_idx:number):void{
+    function add_cell(v:CellData, row_idx:number, col_idx:number):void{
+        const s = v[0]
         const disp_txt = s && s[0] == '='?'':s;
         let cell = elem_with_text('div', disp_txt, null, 'tracker-cell');
+        if(v[1]){
+            add_name_label(cell, v[1]);
+            result.cell_names.set(v[1].toLowerCase(), [row_idx, col_idx]);
+        }
+        if(v[2] & CellFlags.BOLD) cell.classList.add('bold');
+        if(v[2] & CellFlags.UNDERLINE) cell.classList.add('underline');
+        if(v[2] & CellFlags.ITALIC) cell.classList.add('italic');
         editable_cell(cell);
         if(row_idx < 0) row_idx += result.cell_elems.length;
         if(col_idx < 0) col_idx += result.cell_elems[row_idx].length+1;
         result.cell_elems[row_idx].splice(col_idx, 0, cell);
         result.cell_sources[row_idx].splice(col_idx, 0, s);
         result.cell_displays[row_idx].splice(col_idx, 0, disp_txt);
+        result.cell_extras[row_idx].splice(col_idx, 0, [v[1], v[2]]);
         const prev = find_prev_elem(row_idx, col_idx);
         prev.insertAdjacentElement('afterend', cell);
     }
@@ -1197,7 +1381,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
     result.add_row1 = function(whence:number):void{
         result.add_row2(whence, []);
     };
-    result.add_row2 = function(whence:number, values:Array<string>):void{
+    result.add_row2 = function(whence:number, values:Array<CellData>):void{
         if(!(result.flags & SpreadSheetFlags.CAN_ADD_ROW)) return;
         if(whence < 0)
             whence += result.cell_elems.length + 1;
@@ -1213,9 +1397,12 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         result.cell_elems.splice(whence, 0, []);
         result.cell_sources.splice(whence, 0, []);
         result.cell_displays.splice(whence, 0, []);
+        result.cell_extras.splice(whence, 0, []);
         for(let i = 0; i < result.column_names.length; i++){
-            let s = i < values.length? values[i] : '';
-            add_cell(s, whence, -1);
+            if(i < values.length)
+                add_cell(values[i], whence, -1);
+            else
+                add_cell(['', '', CellFlags.NONE], whence, -1);
         }
         if(result.flags & SpreadSheetFlags.NUMBERED)
             for(let i = 0; i < result.number_els.length; i++)
@@ -1399,7 +1586,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         else
             result.headers[whence-1].insertAdjacentElement('afterend', h);
         for(let row_idx = 0; row_idx < result.cell_elems.length; row_idx++){
-            add_cell('', row_idx, whence);
+            add_cell(['', '', CellFlags.NONE], row_idx, whence);
         }
         w.style.gridTemplateColumns = gtc();
         for(let i = 0; i < result.column_names.length; i++){
@@ -1456,15 +1643,18 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
     result.apply_sort = function(sorted:Array<number>):void{
         const cell_elems = [];
         const cell_displays = [];
+        const cell_extras = [];
         const cell_sources = [];
         for(let idx of sorted){
             cell_elems.push(result.cell_elems[idx]);
             cell_displays.push(result.cell_displays[idx]);
+            cell_extras.push(result.cell_extras[idx]);
             cell_sources.push(result.cell_sources[idx]);
         }
         result.cell_elems = cell_elems;
         result.cell_sources = cell_sources;
         result.cell_displays = cell_displays;
+        result.cell_extras = cell_extras;
         for(let row of result.cell_elems){
             for(let col of row){
                 col.remove();
@@ -1496,6 +1686,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             row[whence].remove();
             row.splice(whence, 1);
             result.cell_displays[i].splice(whence, 1);
+            result.cell_extras[i].splice(whence, 1);
             result.cell_sources[i].splice(whence, 1);
         }
         w.style.gridTemplateColumns = gtc();
@@ -1519,6 +1710,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         result.cell_elems.splice(whence, 1);
         result.cell_sources.splice(whence, 1);
         result.cell_displays.splice(whence, 1);
+        result.cell_extras.splice(whence, 1);
         result.number_els[whence].remove();
         result.number_els.splice(whence, 1);
         if(result.flags & SpreadSheetFlags.NUMBERED)
@@ -1551,6 +1743,11 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             const tmp = result.cell_displays[from];
             result.cell_displays[from] = result.cell_displays[to];
             result.cell_displays[to] = tmp;
+        }
+        {
+            const tmp = result.cell_extras[from];
+            result.cell_extras[from] = result.cell_extras[to];
+            result.cell_extras[to] = tmp;
         }
         {
             const tmp = result.cell_sources[from];
@@ -1615,6 +1812,13 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 row[from] = tc;
                 row[to] = fc;
             }
+            {
+                const row = result.cell_extras[i];
+                const fc = row[from];
+                const tc = row[to];
+                row[from] = tc;
+                row[to] = fc;
+            }
         }
         for(let i = 0; i < result.column_names.length; i++){
             if(!result.column_names[i]){
@@ -1636,20 +1840,10 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         }
         recalc_me();
     };
-    result.edit_cell = function(row_idx:number, col_idx:number, val:string):void{
-        if(row_idx < 0 || row_idx >= result.cell_elems.length) return;
-        const row = result.cell_sources[row_idx];
-        if(col_idx < 0 || col_idx >= row.length) return;
-        if(row[col_idx] == val) return;
-        // if(row[col_idx].textContent == val) return;
-        // row[col_idx].textContent = val;
-        row[col_idx] = val;
-        if(result._wasmed){
-            SHEET_CTX.set_str(result.id, row_idx, col_idx, val);
-        }
-        recalc_me();
+    result.edit_cell = function(row_idx:number, col_idx:number, val:CellData):void{
+        result.edit_cells([row_idx], [col_idx], [val]);
     };
-    result.edit_cells = function(row_idxes:Array<number>, col_idxes:Array<number>, vals:Array<string>):void{
+    result.edit_cells = function(row_idxes:Array<number>, col_idxes:Array<number>, vals:Array<CellData>):void{
         if(row_idxes.length != col_idxes.length) return;
         if(row_idxes.length != vals.length) return;
         const length = row_idxes.length;
@@ -1665,10 +1859,40 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             const col_idx = col_idxes[i];
             const val = vals[i];
             const row = result.cell_sources[row_idx];
-            if(row[col_idx] == val) continue;
-            row[col_idx] = val;
+            row[col_idx] = val[0];
+            const old_flags = result.cell_extras[row_idx][col_idx][1];
+            const old_name = result.cell_extras[row_idx][col_idx][0];
+            const el = result.cell_elems[row_idx][col_idx];
+            if((old_flags & CellFlags.BOLD) != (val[2] & CellFlags.BOLD)){
+                if(val[2] & CellFlags.BOLD) el.classList.add('bold');
+                else el.classList.remove('bold');
+            }
+            if((old_flags & CellFlags.UNDERLINE) != (val[2] & CellFlags.UNDERLINE)){
+                if(val[2] & CellFlags.UNDERLINE) el.classList.add('underline');
+                else el.classList.remove('underline');
+            }
+            if((old_flags & CellFlags.ITALIC) != (val[2] & CellFlags.ITALIC)){
+                if(val[2] & CellFlags.ITALIC) el.classList.add('italic');
+                else el.classList.remove('italic');
+            }
+            if(val[1] != old_name){
+                if(old_name) result.cell_names.delete(old_name.toLowerCase());
+                result.cell_names.set(val[1].toLowerCase(), [row_idx, col_idx]);
+                if(result._wasmed){
+                    if(old_name.length) {
+                        result.cell_elems[row_idx][col_idx].children[0].remove();
+                        SHEET_CTX.del_cell_name(result.id, old_name);
+                    }
+                    if(val[1]) {
+                        SHEET_CTX.set_cell_name(result.id, val[1], row_idx, col_idx);
+                        add_name_label(result.cell_elems[row_idx][col_idx], val[1]);
+                    }
+                }
+            }
+            result.cell_extras[row_idx][col_idx][0] = val[1];
+            result.cell_extras[row_idx][col_idx][1] = val[2];
             if(result._wasmed)
-                SHEET_CTX.set_str(result.id, row_idx, col_idx, val);
+                SHEET_CTX.set_str(result.id, row_idx, col_idx, val[0]);
         }
         recalc_me();
     };
@@ -1676,7 +1900,10 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         const r = result.cell_displays[row_idx];
         const old = r[col_idx];
         if(val == old) return;
+        const extra = result.cell_extras[row_idx][col_idx];
         result.cell_elems[row_idx][col_idx].textContent = val;
+        if(extra[0])
+            add_name_label(result.cell_elems[row_idx][col_idx], extra[0]);
         r[col_idx] = val;
     }
     result.set_flags = function(flags:SpreadSheetFlags):void{
@@ -1962,11 +2189,10 @@ function data_from_tsv(s:string):SpreadSheetData|null{
         }
         rows.push(parts);
     }
-    const cells = [];
-    for(const row of rows){
+    const cells: Array<CellData> = [];
+    for(const row of rows)
         for(const c of row)
-            cells.push(c);
-    }
+            cells.push([c, '', CellFlags.NONE]);
     const result: SpreadSheetData = {
         id: -1,
         name: 'Untitled',

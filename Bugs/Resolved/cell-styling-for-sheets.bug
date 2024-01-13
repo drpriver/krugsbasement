@@ -1,10 +1,11 @@
 Changelog::kv
-  created: 2023-03-13T03:36:53Z
-  updated: 2023-07-01T05:23:04Z
-  updated: 2023-07-01T05:26:54Z
-  updated: 2023-08-21T03:27:58Z
-  updated: 2023-08-24T06:39:11Z
-  updated: 2023-08-24T06:40:31Z
+  created:  2023-03-13T03:36:53Z
+  updated:  2023-07-01T05:23:04Z
+  updated:  2023-07-01T05:26:54Z
+  updated:  2023-08-21T03:27:58Z
+  updated:  2023-08-24T06:39:11Z
+  updated:  2023-08-24T06:40:31Z
+  resolved: 2024-01-13T06:22:30Z
 Created Mar 12, 2023, 08:36PM::md .update
 Summary::md .summary
   colored text, background, bold, italic
@@ -34,3 +35,6 @@ Updated Aug 23, 2023, 11:39PM::md .update
 
 Updated Aug 23, 2023, 11:40PM::md .update
   One design decision is whether we use array of ints or have style ranges.
+
+Resolved Jan 12, 2024, 10:22PM::md .update
+  Added bold and italic. Colors can be a different bug.

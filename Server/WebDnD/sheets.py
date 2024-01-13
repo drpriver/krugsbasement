@@ -17,7 +17,7 @@ else:
     def dlog(*args): # type: ignore
         return
 
-from .messages import SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetData, SpreadSheetFlags
+from .messages import SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetData, SpreadSheetFlags, CellFlags, CellData
 
 def sheets_reaper() -> None:
     with SHEETSLOCK:
@@ -38,10 +38,13 @@ def should_unload(sheets:list[SpreadSheet], t:float) -> bool:
             return False
     return True
 
+def blank_cell() -> CellData:
+    return ['', '', CellFlags.NONE] # type: ignore
+
 # We need to have a server side version of the spreadsheet
 # so that we can interpret the abstract commands.
 class SpreadSheet:
-    def __init__(self, campaign:int, id:int, name:str, flags:SpreadSheetFlags, column_names:list[str], cells:list[str], parent:int, n_args:int, outx:int, outy:int) -> None:
+    def __init__(self, campaign:int, id:int, name:str, flags:SpreadSheetFlags, column_names:list[str], cells:list[CellData], parent:int, n_args:int, outx:int, outy:int) -> None:
         self.campaign = campaign
         self.id = id
         self.name = name
@@ -187,7 +190,8 @@ class SpreadSheet:
         self.cells_dirty = True
         return True
 
-    def edit_cell(self, row_idx:int, col_idx:int, val:str) -> bool:
+    def edit_cell(self, row_idx:int, col_idx:int, val:CellData) -> bool:
+        # dlog('edit_cell: %r %r %r', row_idx, col_idx, val)
         # TODO: should this just forward to `edit_cells`? or maybe be deleted?
         if row_idx < 0: return False
         if col_idx < 0: return False
@@ -199,14 +203,15 @@ class SpreadSheet:
             return False
 
         oldval = self.cells[row_idx * len(self.column_names)+col_idx]
-        if (self.flags & SpreadSheetFlags.LOCKED_FORMULAS) and oldval and oldval[0] == '=':
+        if (self.flags & SpreadSheetFlags.LOCKED_FORMULAS) and oldval[0] and oldval[0][0] == '=' and oldval[0] != val[0]:
             return False
         # FIXME: is this not checking the bounds?
         self.cells[row_idx*len(self.column_names)+col_idx] = val
         self.cells_dirty = True
         return True
 
-    def edit_cells(self, row_idxes:list[int], col_idxes:list[int], vals:list[str]) -> bool:
+    def edit_cells(self, row_idxes:list[int], col_idxes:list[int], vals:list[CellData]) -> bool:
+        # dlog('edit_cells: %r %r %r', row_idxes, col_idxes, vals)
         if len(row_idxes) != len(col_idxes):
             return False
         if len(row_idxes) != len(vals):
@@ -221,7 +226,7 @@ class SpreadSheet:
             if row_idx >= len(self.cells) // len(self.column_names):
                 return False
             oldval = self.cells[row_idx * len(self.column_names)+col_idx]
-            if (self.flags & SpreadSheetFlags.LOCKED_FORMULAS) and oldval and oldval[0] == '=':
+            if (self.flags & SpreadSheetFlags.LOCKED_FORMULAS) and oldval[0] and oldval[0][0] == '=' and oldval[0] != val[0]:
                 return False
 
         for row_idx, col_idx, val in zip(row_idxes, col_idxes, vals):
@@ -236,7 +241,7 @@ class SpreadSheet:
             return False
         if whence < 0: return False
         begin = whence * len(self.column_names)
-        self.cells[begin:begin] = ['' for _ in self.column_names]
+        self.cells[begin:begin] = [blank_cell() for _ in self.column_names]
         self.cells_dirty = True
         return True
 
@@ -247,7 +252,7 @@ class SpreadSheet:
         self.column_names.insert(whence, '')
         new_cnl = len(self.column_names)
         for row in range(len(self.cells)//old_cnl):
-            self.cells.insert(whence+row*new_cnl, '')
+            self.cells.insert(whence+row*new_cnl, blank_cell())
         self.col_names_dirty = True
         self.cells_dirty = True
         return True
@@ -382,7 +387,7 @@ def handle(campaign:int, msg:SpreadSheetMsg) -> Optional[SpreadSheetMsg]:
             data['id'] = id
             if not data['column_names']:
                 data['column_names'] = [''] * 3
-                data['cells'] = ['']*12
+                data['cells'] = [blank_cell() for _ in range(12)]
             SPREADSHEETS[campaign].append(SpreadSheet(campaign=campaign, **data))
             db.save_sheet(campaign, **data)
             return msg

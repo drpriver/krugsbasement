@@ -11,6 +11,9 @@ import datetime
 from .logs import logging
 import atexit
 from appconfig import DBNAME
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .messages import CellData
 conn = sqlite3.connect(DBNAME, check_same_thread=False)
 def close()->None:
     logging.info('closing db')
@@ -21,7 +24,7 @@ atexit.register(close) # type: ignore
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 19
+DBVERSION = 20
 with conn:
     conn.execute('''PRAGMA encoding = 'UTF-8';''')
     conn.execute('''PRAGMA foreign_keys = ON;''')
@@ -505,10 +508,21 @@ def setup_tables() -> None:
                 (?, ?)
             ;
             ''', pair)
-
-
-
-
+    if version < 20:
+        sheets = conn.execute('''
+            SELECT campaignid, sheetid, cells
+            FROM sheets
+            ;
+        ''').fetchall()
+        for campaignid, sheetid, cell_blob in sheets:
+            cells = json.loads(cell_blob)
+            cells = [[c, '', 0] for c in cells]
+            cell_blob = json.dumps(cells)
+            conn.execute('''
+                UPDATE sheets
+                SET cells = ?
+                WHERE campaignid = ? AND sheetid = ?;
+            ''', (cell_blob, campaignid, sheetid))
 
 
 with conn:
@@ -1112,7 +1126,7 @@ def get_sheets(campaignid:int) -> list[dict]:
             })
     return result
 
-def save_sheet(campaign:int, id:int, name:str, flags:int, column_names:list[str], cells:list[str], parent:int, n_args:int, outx:int, outy:int) -> None:
+def save_sheet(campaign:int, id:int, name:str, flags:int, column_names:list[str], cells:list[CellData], parent:int, n_args:int, outx:int, outy:int) -> None:
     cns = json.dumps(column_names, separators=(',',':'))
     c = json.dumps(cells, separators=(',',':'))
     with DBLOCK:
@@ -1135,7 +1149,7 @@ def save_sheet_func_io(campaign:int, id:int, n_args:int, outx:int, outy:int) -> 
             WHERE campaignid = ? AND sheetid = ?;
         ''', (n_args, outx, outy, campaign, id))
 
-def save_sheet_cells(campaign:int, id:int, cells:list[str]) -> None:
+def save_sheet_cells(campaign:int, id:int, cells:list[CellData]) -> None:
     c = json.dumps(cells, separators=(',',':'))
     with DBLOCK:
         conn.execute('''
