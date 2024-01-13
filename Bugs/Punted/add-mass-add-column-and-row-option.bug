@@ -1,5 +1,6 @@
 Changelog::kv
   created: 2023-06-24T22:09:39.907854
+  punted:  2024-01-13T18:53:28Z
 Created Jun 24, 2023, 03:09PM::md .update
 Summary::md .summary
   We currently spam a bunch of add column and rows when the paste is out of
@@ -16,3 +17,6 @@ Summary::md .summary
 
   We could also just have the front/backend insert columns for a paste when
   needed. That would be even less info.
+
+Punted Jan 13, 2024, 10:53AM::md .update
+  Meh whatever.
