@@ -1570,3 +1570,6 @@ body.dark-mode .bold {
 .underline {
   border-bottom: 0px solid black;
 }
+.struck{
+  text-decoration: line-through;
+}

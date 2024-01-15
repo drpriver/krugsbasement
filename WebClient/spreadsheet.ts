@@ -664,6 +664,12 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 result.cell_elems[row_idx][col_idx].focus();
             do_cell_flag(CellFlags.ITALIC);
         });
+        menu.item('Strikethrough', function():void{
+            // hack
+            if(result.r0 != row_idx || result.c0 != col_idx)
+                result.cell_elems[row_idx][col_idx].focus();
+            do_cell_flag(CellFlags.STRIKETHROUGH);
+        });
         menu.separator();
         const extra = result.cell_extras[row_idx][col_idx];
         if(extra[0]){
@@ -923,6 +929,17 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                         e.stopPropagation();
                         e.preventDefault();
                         do_cell_flag(CellFlags.BOLD);
+                        return;
+                    }
+                }
+            }
+            // @ts-ignore
+            case 'd':{
+                if(e.key == 'd'){
+                    if(((!IS_MAC && e.ctrlKey) || (IS_MAC && e.metaKey)) && !e.altKey){
+                        e.stopPropagation();
+                        e.preventDefault();
+                        do_cell_flag(CellFlags.STRIKETHROUGH);
                         return;
                     }
                 }
@@ -1368,6 +1385,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         if(v[2] & CellFlags.BOLD) cell.classList.add('bold');
         if(v[2] & CellFlags.UNDERLINE) cell.classList.add('underline');
         if(v[2] & CellFlags.ITALIC) cell.classList.add('italic');
+        if(v[2] & CellFlags.STRIKETHROUGH) cell.classList.add('struck');
         editable_cell(cell);
         if(row_idx < 0) row_idx += result.cell_elems.length;
         if(col_idx < 0) col_idx += result.cell_elems[row_idx].length+1;
@@ -1875,6 +1893,10 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             if((old_flags & CellFlags.ITALIC) != (val[2] & CellFlags.ITALIC)){
                 if(val[2] & CellFlags.ITALIC) el.classList.add('italic');
                 else el.classList.remove('italic');
+            }
+            if((old_flags & CellFlags.STRIKETHROUGH) != (val[2] & CellFlags.STRIKETHROUGH)){
+                if(val[2] & CellFlags.STRIKETHROUGH) el.classList.add('struck');
+                else el.classList.remove('struck');
             }
             if(val[1] != old_name){
                 if(old_name) result.cell_names.delete(old_name.toLowerCase());

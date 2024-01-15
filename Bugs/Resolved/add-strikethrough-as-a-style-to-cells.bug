@@ -1,0 +1,9 @@
+Changelog::kv
+  created:  2024-01-15T00:41:23Z
+  resolved: 2024-01-15T07:00:44Z
+Created Jan 14, 2024, 04:41PM::md .update
+Summary::md .summary
+  Add strikethrough as a style to cells.
+
+Resolved Jan 14, 2024, 11:00PM::md .update
+  done.
