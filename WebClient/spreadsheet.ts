@@ -243,7 +243,7 @@ function load_sheet_wasm():void{
     if(sheet_wasm_load_in_flight) return;
     sheet_wasm_load_in_flight = true;
     drspread(
-        '/wasm/drspread.wasm?v=8',
+        '/wasm/drspread.wasm?v=11',
         sheet_display_number,
         sheet_display_string,
         sheet_display_error,
