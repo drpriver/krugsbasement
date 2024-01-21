@@ -214,11 +214,30 @@ body.dark-mode .window, body.dark-mode .tracker-grid, body.dark-mode #disconnect
   width: 50ch;
   height: 80ex;
 }
-.notes-window iframe {
-  border: none;
+
+.notes-window div.note *{
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+.notes-window div.note pre {
+  font-style: italic;
+}
+.notes-window div.note table, div.note table * {
+  border: 1px solid black;
+  border-collapse: collapse;
+  padding: 8px 8px;
+}
+.notes-window div.note blockquote {
+  font-style: italic;
+}
+.notes-window div.note {
+  padding: 0px 2em;
+  max-width: 40em;
   overflow-y: scroll;
   width: 100%;
   height: 100%;
+  -webkit-user-select: initial;
+  user-select: initial;
+  padding-bottom: 4ch;
 }
 .note-view-editor-container {
   height: 100%;

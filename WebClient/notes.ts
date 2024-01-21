@@ -68,7 +68,7 @@ type NoteWindow = {
     t: HTMLSpanElement;
     make_top: ()=>void;
     edit_button: HTMLButtonElement;
-    iframe: HTMLIFrameElement;
+    content: HTMLDivElement;
     ed_container: HTMLDivElement;
     editor: HTMLTextAreaElement;
     log: HTMLDivElement;
@@ -76,44 +76,13 @@ type NoteWindow = {
     refresh: () => void;
     is_editing: boolean;
 };
-const boilerplate = (''
-    +'::css\n'
-    +'  body {\n'
-    +'    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;\n'
-    +'  }\n'
-    +'  table, table * {\n'
-    +'    border: 1px solid black;\n'
-    +'    border-collapse: collapse;\n'
-    +'    padding: 8px 8px;\n'
-    +'  }\n'
-    +'  blockquote {\n'
-    +'    font-style: italic;\n'
-    +'  }\n'
-    +'  div.free > pre{\n'
-    +'    font-style: italic;\n'
-    +'    font-family: serif;\n'
-    +'  }\n'
-    +'  body {\n'
-    +'    padding: 0px 2em;\n'
-    +'    max-width: 40em;\n'
-    +'  }\n');
 function update_iframe(n:NoteWindow):void{
     let note = NOTES.get(n.id);
     if(!note){
-        if(DARKMODE){
-            // Chromium-based browsers won't inherit
-            // the colorScheme for empty iframes,
-            // so set them here.
-            n.iframe.srcdoc = `<scr` + `ipt>
-                document.documentElement.style.colorScheme = 'dark';
-                </sc` + `ript>`;
-        }
-        else
-            n.iframe.srcdoc = '';
+        n.content.innerHTML = '';
         return;
     }
-    let title = note.title;
-    let s = title + '::title\n' + n.editor.value + '\n' + boilerplate;
+    const s = n.editor.value;
     make_dnd_html(s, function(html:string, errors:Array<string>):void{
         n.log.replaceChildren();
         for(let error of errors){
@@ -122,53 +91,7 @@ function update_iframe(n:NoteWindow):void{
           n.log.appendChild(pp);
         }
         if(html){
-            // This is unbelievably hacky, but for some reason
-            // internal links aren't being recognized as internal,
-            // so we need to do it ourselves.
-
-            // breaking up the tags as a version of safari
-            // interprets them as regex for some reason
-            html += `<scr` + `ipt>
-            document.addEventListener('DOMContentLoaded', function(){
-                const anchors = document.getElementsByTagName('a');
-                function add_interceptor(a){
-                    a.onclick = function(e){
-                        let href = a.href;
-                        if(href.baseVal) href = href.baseVal;
-                       let split = href.split('#');
-                       if(split.length > 1){
-                           let target = split[1];
-                           let t = document.getElementById(target);
-                           if(t){
-                               t.scrollIntoView();
-                           }
-                       }
-                       e.preventDefault();
-                       e.stopPropagation();
-                       return false;
-                       a.setAttribute('target', '_blank');
-                    };
-                }
-                for(let a of anchors){
-                    add_interceptor(a);
-                }
-            });
-            </scr`+ `ipt>
-            `;
-            if(DARKMODE){
-                html += `<scr` + `ipt>
-                document.documentElement.style.colorScheme = 'dark';
-                </sc` + `ript>`;
-                html += `<sty` + `le>
-                @supports (-moz-appearance:none) {
-                  body {
-                    color: #eee;
-                    background-color: #333;
-                  }
-                }
-                </sty` + `le>`;
-            }
-            n.iframe.srcdoc = html;
+            n.content.innerHTML = html;
         }
     });
 }
@@ -216,23 +139,7 @@ function make_note_window(id:number):NoteWindow{
         setup_movable_window(w, wh, WINDOWFLAGS.LOCAL_REMEMBER | WINDOWFLAGS.REMEMBER_POSITION);
     const make_top = setup_zsorted_window(w);
     const edit_button = elem_parent_text(w, 'button', 'Edit');
-    const iframe = elem_with_parent(w, 'iframe');
-    if(DARKMODE){
-        // Chromium-based browsers won't inherit
-        // the colorScheme for empty iframes,
-        // so set them here.
-        // Firefox and Safari don't need this hack, but
-        // it doesn't hurt.
-        //
-        // Do it before activation to avoid flicker.
-        //
-        // Will look weird if the user changes
-        // colorscheme, but if they change colorscheme,
-        // they will understand why something flickers.
-        iframe.srcdoc = `<scr` + `ipt>
-            document.documentElement.style.colorScheme = 'dark';
-            </sc` + `ript>`;
-    }
+    const content = elem_with_parent(w, 'div', null, 'note');
     const ed_container = elem_with_parent(w, 'div', null, 'note-view-editor-container');
     ed_container.style.display = 'none';
     const editor = elem_with_parent(ed_container, 'textarea', null, 'note-view-edit');
@@ -259,7 +166,7 @@ function make_note_window(id:number):NoteWindow{
         editor.selectionStart = editor.selectionEnd = start+2;
     }
     const log = elem_with_parent(ed_container, 'div', null, 'note-view-editor-log');
-    const result: NoteWindow = { id, w, t, make_top, edit_button, iframe, ed_container, editor, log, show:function():void{
+    const result: NoteWindow = { id, w, t, make_top, edit_button, content, ed_container, editor, log, show:function():void{
         const note = NOTES.get(id);
         if(!note) return;
         if(note.need_receive) EMIT(FromClient.GET_NOTE, id);
@@ -290,7 +197,7 @@ function make_note_window(id:number):NoteWindow{
         edit_button.textContent = 'Edit';
         ed_container.style.display = 'none';
         update_iframe(result);
-        iframe.style.display = 'block';
+        content.style.display = 'block';
         sync_note();
 
     }
@@ -299,7 +206,7 @@ function make_note_window(id:number):NoteWindow{
         result.is_editing = true;
         edit_button.textContent = 'Done';
         ed_container.style.display = 'grid';
-        iframe.style.display = 'none';
+        content.style.display = 'none';
     }
     edit_button.onclick = function(e:MouseEvent):void{
         e.stopPropagation();
@@ -375,7 +282,7 @@ const make_dnd_html = (function():(text:string, cb:(_:string, __:Array<string>)=
     let init = false;
     function initialize(text:string, cb:(_:string, __:Array<string>)=>void):void{
         init = true;
-        fetch('/wasm/dndc.wasm').then(response=> response.arrayBuffer())
+        fetch('/wasm/drmd.wasm').then(response=> response.arrayBuffer())
         .then(bytes=> WebAssembly.instantiate(bytes, imports))
         .then(x => {
             wasm_instance = x.instance;

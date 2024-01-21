@@ -1,6 +1,7 @@
 Changelog::kv
-  created: 2023-08-24T06:36:52Z
-  updated: 2023-08-24T06:38:50Z
+  created:  2023-08-24T06:36:52Z
+  updated:  2023-08-24T06:38:50Z
+  resolved: 2024-01-21T00:16:27Z
 Created Aug 23, 2023, 11:36PM::md .update
 Summary::md .summary
   The notes currently use .dnd, which is more powerful than it needs to be for
@@ -12,3 +13,7 @@ Summary::md .summary
 
 Updated Aug 23, 2023, 11:38PM::md .update
   To clarify, I will probably do this in wasm.
+
+Resolved Jan 20, 2024, 04:16PM::md .update
+  Wrote drmd, was simpler than I expected for the stuff I actually want to
+  support. Switched the notes to use it as it had more or less compatible API.

@@ -69,18 +69,6 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
     let xorg = 0;
     let yorg = 0;
 
-    // If we're dragging a window, we need to prevent pointer events from being
-    // grabbed by the iframe.
-    let iframes = Array.from(document.getElementsByTagName('iframe'));
-    function iframe_disable():void{
-        for(let iframe of iframes)
-            iframe.style.pointerEvents = 'none';
-    }
-    function iframe_enable():void{
-        for(let iframe of iframes)
-            iframe.style.pointerEvents = 'auto';
-    }
-
     // To prevent spamming the localStorage, uses this to debounce.
     let save_in_flight = false;
     let save_position = function(x:number, y:number):void{};
@@ -121,7 +109,6 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
         if(e.target !== handle)
             return;
         handle.setPointerCapture(e.pointerId);
-        iframe_disable();
         dragging = true;
         handle.style.cursor = 'grabbing';
         let r = win.getBoundingClientRect();
@@ -137,7 +124,6 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
         handle.addEventListener('pointerup', endmove);
     });
     function endmove(e:PointerEvent):void{
-        iframe_enable();
         handle.removeEventListener('pointermove', pointermove);
         handle.removeEventListener('pointerup', endmove);
         handle.style.cursor = 'grab';
