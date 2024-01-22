@@ -271,12 +271,6 @@ label.panel-variable {
 label.panel-variable span {
   text-align: right;
 }
-/* This should have a better name */
-.note-view-editor-log {
-  height: 100%;
-  overflow-y: auto;
-  border: 1px solid grey;
-}
 .window-group-list {
   display: flex;
   flex-direction: column;

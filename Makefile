@@ -103,6 +103,7 @@ TSFILES:= WebClient/socket.d.ts \
 	  WebClient/drspread_glue.ts \
 	  WebClient/spreadsheet.ts \
 	  WebClient/ctxmenu.ts \
+	  WebClient/md.ts \
 
 Generated/client.js: $(TSFILES) | Generated node_modules
 	$(TSC) $^ $(TSCFLAGS) --outFile $@

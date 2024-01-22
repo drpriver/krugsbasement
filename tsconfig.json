@@ -44,6 +44,7 @@
     "WebClient/tree-view.ts",
     "WebClient/drspread_glue.ts",
     "WebClient/spreadsheet.ts",
-    "WebClient/ctxmenu.ts"
+    "WebClient/ctxmenu.ts",
+    "WebClient/md.ts"
   ]
 }

@@ -71,7 +71,6 @@ type NoteWindow = {
     content: HTMLDivElement;
     ed_container: HTMLDivElement;
     editor: HTMLTextAreaElement;
-    log: HTMLDivElement;
     show: () => void;
     refresh: () => void;
     is_editing: boolean;
@@ -83,16 +82,8 @@ function update_iframe(n:NoteWindow):void{
         return;
     }
     const s = n.editor.value;
-    make_dnd_html(s, function(html:string, errors:Array<string>):void{
-        n.log.replaceChildren();
-        for(let error of errors){
-          const pp = document.createElement('pre');
-          pp.innerHTML = error;
-          n.log.appendChild(pp);
-        }
-        if(html){
-            n.content.innerHTML = html;
-        }
+    md_to_html(s, function(html:string):void{
+        if(html) n.content.innerHTML = html;
     });
 }
 
@@ -165,8 +156,7 @@ function make_note_window(id:number):NoteWindow{
         // restore cursor position
         editor.selectionStart = editor.selectionEnd = start+2;
     }
-    const log = elem_with_parent(ed_container, 'div', null, 'note-view-editor-log');
-    const result: NoteWindow = { id, w, t, make_top, edit_button, content, ed_container, editor, log, show:function():void{
+    const result: NoteWindow = { id, w, t, make_top, edit_button, content, ed_container, editor, show:function():void{
         const note = NOTES.get(id);
         if(!note) return;
         if(note.need_receive) EMIT(FromClient.GET_NOTE, id);
