@@ -711,7 +711,7 @@ def get_campaign_kv(id:int, key:str, default:Any=None)->Optional[Any]:
 # if it is safe to execute this code concurrently.
 # Definitely isn't safe for writes, unclear for reads.
 # Also unclear if the conn object itself is thread-safe.
-def save_chat_msg(campaignid:int, msgtype:int, chatname:str, data:Any, created:Any=None, userid:int=None) -> None:
+def save_chat_msg(campaignid:int, msgtype:int, chatname:str, data:Any, created:Any=None, userid:int|None=None) -> None:
     data = json.dumps(data, separators=(',',':'))
     with DBLOCK, conn:
         conn.execute('''
@@ -882,7 +882,7 @@ def campaign_info(campaignid:int) -> Optional[CampaignInfo]:
         return CampaignInfo(*row)
     return None
 
-def create_campaign(name:str, owner:int=None) -> int:
+def create_campaign(name:str, owner:int|None=None) -> int:
     with DBLOCK, conn:
         cur = conn.execute('''
             INSERT INTO

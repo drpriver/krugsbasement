@@ -136,7 +136,7 @@ def get_private_history(userid:int, campaign:int) -> List[ChatHistory]:
     result = [[k, v[-500:]] for k, v in by_chat.items()]
     return result # type: ignore
 
-def handle_structured_input(userid:int, campaign:int, user:str, commands:List[Command], private:bool, to:int=None) -> List[ChatMsg]:
+def handle_structured_input(userid:int, campaign:int, user:str, commands:List[Command], private:bool, to:int|None=None) -> List[ChatMsg]:
     color = ''
     styleflags = StyleFlags.NONE
     def echo(user:str, text:str) -> ChatMsg:
