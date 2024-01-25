@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded',function():void{
                     }
                 });
                 menu.separator();
-                menu.item('Cancel');
+                menu.canceller();
                 menu.install();
             };
         }

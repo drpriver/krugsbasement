@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         else
             menu.disabled('Delete');
         menu.separator();
-        menu.item('Cancel');
+        menu.canceller();
         menu.install();
     };
     SHEET_TV.on_drop = function(dropped:number, onto:number|null):void{
@@ -425,7 +425,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         else
             menu.disabled('Delete Spreadsheet');
         menu.separator();
-        menu.item('Cancel');
+        menu.canceller();
         menu.install();
     }
     const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
@@ -539,7 +539,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             });
             menu.separator();
         }
-        menu.item('Cancel');
+        menu.canceller();
         menu.install();
     }
     function rdropdown(e:MouseEvent):void{
@@ -570,7 +570,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             });
             menu.separator();
         }
-        menu.item('Cancel');
+        menu.canceller();
         menu.install();
     }
     function do_func_io():void{
@@ -777,7 +777,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             });
             menu.separator();
         }
-        menu.item('Cancel');
+        menu.canceller();
         menu.install();
     }
     result.header_number_el = elem_with_parent(w, 'div', null, 'tracker-numbered');

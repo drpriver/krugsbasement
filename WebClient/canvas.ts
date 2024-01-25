@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         else
             menu.disabled('Delete');
         menu.separator();
-        menu.item('Cancel');
+        menu.canceller();
         menu.install();
     };
     CANV_TV.on_drop = function(dropped:number, onto:number|null):void{
@@ -8892,7 +8892,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             do_new_map_dialog(view.map.map_id);
         });
         menu.separator();
-        menu.item('Cancel');
+        menu.canceller();
         menu.install();
     }
     the_canvas.addEventListener('contextmenu', onctx);

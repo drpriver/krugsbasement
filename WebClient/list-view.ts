@@ -87,7 +87,7 @@ function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):Li
                         dialog.show();
                     });
                 }
-                menu.item('Cancel');
+                menu.canceller();
                 menu.install();
             };
             if(flags & ListViewFlags.FOCUSABLE){
@@ -283,7 +283,7 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                         dialog.show();
                     });
                 }
-                menu.item('Cancel');
+                menu.canceller();
                 menu.install();
             };
             elem_parent_text(item, 'span', text);
@@ -343,7 +343,7 @@ function make_dual_list_view<K1, K2>(col1:HTMLDivElement, col2:HTMLDivElement, f
                         dialog.show();
                     });
                 }
-                menu.item('Cancel');
+                menu.canceller();
                 menu.install();
             }
             if(flags2 & ListViewFlags.USER_MOVABLE){

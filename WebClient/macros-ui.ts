@@ -89,7 +89,7 @@ function make_macro_window(cid:number, id:number):MacroWindow {
             dialog.show();
         });
         menu.separator();
-        menu.item('Cancel');
+        menu.canceller();
         menu.install();
     };
     use.onclick = function():void{
@@ -238,7 +238,7 @@ function make_vars_window(cid:number):VariablesWindow {
 
     wh.oncontextmenu = function(e:MouseEvent):void{
         const menu = ctx_menu(e);
-        menu.item('Cancel');
+        menu.canceller();
         menu.install();
     };
     addvar.onclick = function():void{
@@ -308,7 +308,7 @@ function make_vars_window(cid:number):VariablesWindow {
                         l.remove();
                         uil.remove();
                     });
-                    menu.item('Cancel');
+                    menu.canceller();
                     menu.install();
                 }
                 const inp = elem_with_parent(l, 'input');
@@ -460,7 +460,7 @@ function setup_macro_left():void{
                 dialog.show();
             });
             menu.separator();
-            menu.item('Cancel');
+            menu.canceller();
             menu.install();
         };
         li.onclick = function(e:MouseEvent):void{
@@ -523,7 +523,7 @@ function setup_macro_left():void{
                     dialog.show();
                 });
                 menu.separator();
-                menu.item('Cancel');
+                menu.canceller();
                 menu.install();
             };
             mli.onclick = function(e:MouseEvent):void{
@@ -546,7 +546,7 @@ function setup_macro_panel():void{
         menu.item('Add Macro', function():void{
             add_macro_dialog(get_active_char());
         });
-        menu.item('Cancel');
+        menu.canceller();
         menu.install();
     };
     pb.replaceChildren();

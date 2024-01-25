@@ -20,6 +20,7 @@ function remove_ctx_menu():void{
 type CtxMenu = {
     menu: HTMLElement;
     separator:()=>void;
+    canceller:() => void;
     item:(txt:string, cb?:(()=>void)|((e:MouseEvent)=>void)) => void;
     disabled:(txt:string)=>void;
     install:()=>void;
@@ -78,6 +79,9 @@ function ctx_menu(e:MouseEvent):CtxMenu{
                 if(cb) cb(e)
                 remove_ctx_menu();
             });
+        },
+        canceller: function():void{
+            result.item('Cancel');
         },
         install:function():void{
             remove_ctx_menu();

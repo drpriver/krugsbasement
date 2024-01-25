@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function(){
             };
             diag.show();
         });
-        menu.item('Cancel');
+        menu.canceller();
         menu.install();
     };
 });
