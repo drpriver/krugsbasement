@@ -77,7 +77,7 @@ class Calendar:
             for m, xx in x.items():
                 for d, txt in xx.items():
                     result.append([y, m, d, txt])
-        dlog('%r', result)
+        # dlog('%r', result)
         return result
 
     def persist(self) -> None:
@@ -109,8 +109,10 @@ class Calendar:
 
 
 def load_calendar(campaign:int) -> None:
+    dlog("load calendar for campaign %r", campaign)
     data = db.get_calendar(campaign)
     if data is None:
+        dlog("no calendar for campaign %r", campaign)
         return
     CALENDARS[campaign] = Calendar(**data)
 

@@ -485,7 +485,7 @@ def post_join(mode:UiMode) -> None:
         # dlog('spreadsheet: %r', msg)
         emit(ToClient.SPREADSHEET, msg)
         cal = calendars.get_calendar(campaign)
-        dlog("cal: %r", cal)
+        # dlog("cal: %r", cal)
         if cal is not None:
             emit(ToClient.CALENDAR, cal)
 
@@ -740,7 +740,7 @@ def spreadsheet(msg:SpreadSheetMsg) -> None:
 @validated
 def calendar(msg:CalendarMsg) -> None:
     campaign = get_campaign(request)
-    dlog("msg: %r", msg);
+    # dlog("msg: %r", msg);
     response = calendars.handle(campaign, msg)
     if response is not None:
         emit(ToClient.CALENDAR, response, broadcast=True, include_self=True, to=str(campaign))
