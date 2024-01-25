@@ -104,6 +104,7 @@ TSFILES:= WebClient/socket.d.ts \
 	  WebClient/spreadsheet.ts \
 	  WebClient/ctxmenu.ts \
 	  WebClient/md.ts \
+	  WebClient/calendar.ts \
 
 Generated/client.js: $(TSFILES) | Generated node_modules
 	$(TSC) $^ $(TSCFLAGS) --outFile $@
@@ -173,6 +174,7 @@ WEBDNDFILES=\
 	    Server/WebDnD/users.py \
 	    Server/WebDnD/validator.py \
 	    Server/WebDnD/sheets.py \
+	    Server/WebDnD/calendars.py \
 
 JSFILES=\
 	WebClient/socket.io.js \

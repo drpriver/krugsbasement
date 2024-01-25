@@ -76,5 +76,9 @@ function make_window(name:keyof SubWindowIdMap): SubWindow {
     if(outer.id != 'rolltable-window'){
         setup_window_size(outer);
     }
+    if(outer.id == 'cal-window'){
+        outer.style.height = '100vh';
+        outer.style.width = '80%';
+    }
     return result;
 }

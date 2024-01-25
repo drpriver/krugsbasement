@@ -62,6 +62,7 @@ enum FromClient: int
     SPREADSHEET = 28
 
     METADATA = 36
+    CALENDAR = 37
 
 # ToClient
 # --------
@@ -124,6 +125,7 @@ enum ToClient: int
     SPREADSHEET = 38
 
     METADATA=42
+    CALENDAR=43
 
 
 # ChatCommand
@@ -1065,6 +1067,7 @@ message ToClientMsg: ToClient
     NOTE_SHOW = int
     NOTE_PARENT = NoteParentMsg
     METADATA = MetadataMsg
+    CALENDAR = CalendarMsg
 
 message FromClientMsg: FromClient
     JOIN = str
@@ -1103,6 +1106,7 @@ message FromClientMsg: FromClient
     NOTE_SHOW = int
     NOTE_PARENT = NoteParentMsg
     METADATA = MetadataMsg
+    CALENDAR = CalendarMsg
 
 enum DarkMode: int
     SYSTEM = 0
@@ -1299,3 +1303,40 @@ struct MetadataHomePageMsg: array
 
 union MetadataMsg: array
     MetadataHomePageMsg
+
+enum CalendarMsgType: int
+    INITIALIZE = 0
+    EDITDAY = 1
+    ADDYEAR = 2
+
+struct CalendarDay: array
+    year: int
+    month: int # 0-based
+    day: int # 0-based
+    txt: str
+
+enum CalendarFlags: int flag
+    NONE = 0
+    GREGORIAN = 1 << 0
+
+struct CalendarInitialize: array
+    type = CalendarMsgType.INITIALIZE
+    starting_year: int
+    starting_day_of_week: int # 0-based
+    month_names: [str]
+    month_lengths: [int]
+    weekday_names: [str]
+    flags: CalendarFlags
+    data: [CalendarDay]
+
+struct CalendarEditDay: array
+    type = CalendarMsgType.EDITDAY
+    data: [CalendarDay]
+
+struct CalendarAddYear: array
+    type = CalendarMsgType.ADDYEAR
+
+union CalendarMsg: array
+    CalendarInitialize
+    CalendarEditDay
+    CalendarAddYear

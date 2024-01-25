@@ -335,6 +335,9 @@ function do_emit(type:FromClient, arg?:any, cb?:any):void{
         case FromClient.NOTE_SHOW:{
             invoke_cb(ToClient.NOTE_SHOW, arg);
         }break;
+        case FromClient.CALENDAR:{
+            invoke_cb(ToClient.CALENDAR, arg);
+        }break;
     }
 }
 let _spreadsheetid = 0;

@@ -45,6 +45,7 @@
     "WebClient/drspread_glue.ts",
     "WebClient/spreadsheet.ts",
     "WebClient/ctxmenu.ts",
-    "WebClient/md.ts"
+    "WebClient/md.ts",
+    "WebClient/calendar.ts"
   ]
 }

@@ -23,18 +23,18 @@ def sheets_reaper() -> None:
     with SHEETSLOCK:
         t = time.time()
         for campaign, sheets in list(SPREADSHEETS.items()):
-            if should_unload(sheets, t):
-                logging.info('Unloading sheets for campaign %r', campaign)
-                del SPREADSHEETS[campaign]
             for s in sheets:
                 if s.dirty: s.persist()
                 del s
+            if should_unload(sheets, t):
+                logging.info('Unloading sheets for campaign %r', campaign)
+                del SPREADSHEETS[campaign]
             del sheets
 
 
 def should_unload(sheets:list[SpreadSheet], t:float) -> bool:
     for s in sheets:
-        if t > s._last_mod + 60*10:
+        if t < s._last_mod + 60*10:
             return False
     return True
 

@@ -12,6 +12,7 @@ const enum StorageCategory {
     CANVAS = 'canvas',
     SETTINGS = 'settings',
     WINDOW = 'window',
+    CALENDAR = 'calendar',
 }
 
 const THISPAGE = window.location.pathname;
@@ -64,6 +65,13 @@ function get_local(category:StorageCategory, key:string):any | undefined {
     if(!value) return undefined;
     let result = JSON.parse(value);
     return result;
+}
+
+function get_local_default<T>(category:StorageCategory, key:string, def:T):T{
+    let k = `${THISPAGE}/${category}.${key}`;
+    let value = localStorage.getItem(k);
+    if(!value) return def;
+    return JSON.parse(value);
 }
 
 function store_global(category:StorageCategory, key:string, obj:any):void{

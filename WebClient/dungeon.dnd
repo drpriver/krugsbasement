@@ -77,6 +77,30 @@
       </div>
     </div>
   `);
+  make_window2('cal', 'Calendar',
+  `
+    <div id="cal-container">
+      <div id="cal-year-selector">
+        <div>864</div>
+        <div>865</div>
+      </div>
+      <div id="cal-month-selector">
+        <div>Jan</div>
+        <div>Feb</div>
+        <div>Mar</div>
+        <div>Apr</div>
+        <div>May</div>
+        <div>Jun</div>
+        <div>Jul</div>
+        <div>Aug</div>
+        <div>Sep</div>
+        <div>Oct</div>
+        <div>Nov</div>
+        <div>Dec</div>
+      </div>
+      <div id="cal-month-display"></div>
+    </div>
+  `);
   if(Args && Args.temp){
     let ts = '// NOTE: this file was generated\n'
     ts += '// Do NOT edit it. Your edits will be overwritten!\n'
@@ -116,6 +140,8 @@
       <button type="button" id="${prefix}-cancel">Cancel</button>
     </div>
     </div>`;
+    items[current_prefix].push([`ok`, 'HTMLButtonElement']);
+    items[current_prefix].push([`cancel`, 'HTMLButtonElement']);
     raw.add_child(html);
   }
   function label(name, text){
@@ -387,6 +413,14 @@
         <td>${textbox('text')}
     </table>
     `);
+  begin('multiline-text');
+  make(`
+    ${title("Text")}
+    <table class="input-container">
+    <tr>
+      <td>${textarea('textarea')}
+    </table>
+  `);
   begin('make-variable');
   make(`
     ${title("Variable")}
@@ -412,6 +446,8 @@
         <td>${label('delete', 'Delete?')}
         <td>${checkbox('delete')}
     </table>`);
+  begin('simple-confirm');
+  make(`${title('Confirm')}`)
   begin('screenshot-prefs');
   make(`
     ${title('Screenshot')}
@@ -486,6 +522,103 @@
         <td>${checkbox('sort')}
     </table>
     `);
+  begin('cal-dialog');
+  make(`
+    ${title('Calendar')}
+    <table class="input-container">
+      <tr>
+        <td>${label('start-year', 'First Year')}
+        <td>${numbox('start-year')}
+        <td>${label('gregorian', 'Gregorian')}
+        <td>${checkbox('gregorian')}
+        <td>${label('start-day', "New Year's Day")}
+        <td>${textbox('start-day')}
+      <tr>
+        <td>${label('month0', '1st Month')}
+        <td>${textbox('month0')}
+        <td>${label('month0len', 'Days')}
+        <td>${numbox('month0len')}
+        <td>${label('day0', '1st Day')}
+        <td>${textbox('day0')}
+      <tr>
+        <td>${label('month1', '2nd Month')}
+        <td>${textbox('month1')}
+        <td>${label('month1len', 'Days')}
+        <td>${numbox('month1len')}
+        <td>${label('day1', '2nd Day')}
+        <td>${textbox('day1')}
+      <tr>
+        <td>${label('month2', '3rd Month')}
+        <td>${textbox('month2')}
+        <td>${label('month2len', 'Days')}
+        <td>${numbox('month2len')}
+        <td>${label('day2', '3rd Day')}
+        <td>${textbox('day2')}
+      <tr>
+        <td>${label('month3', '4th Month')}
+        <td>${textbox('month3')}
+        <td>${label('month3len', 'Days')}
+        <td>${numbox('month3len')}
+        <td>${label('day3', '4th Day')}
+        <td>${textbox('day3')}
+      <tr>
+        <td>${label('month4', '5th Month')}
+        <td>${textbox('month4')}
+        <td>${label('month4len', 'Days')}
+        <td>${numbox('month4len')}
+        <td>${label('day4', '5th Day')}
+        <td>${textbox('day4')}
+      <tr>
+        <td>${label('month5', '6th Month')}
+        <td>${textbox('month5')}
+        <td>${label('month5len', 'Days')}
+        <td>${numbox('month5len')}
+        <td>${label('day5', '6th Day')}
+        <td>${textbox('day5')}
+      <tr>
+        <td>${label('month6', '7th Month')}
+        <td>${textbox('month6')}
+        <td>${label('month6len', 'Days')}
+        <td>${numbox('month6len')}
+        <td>${label('day6', '7th Day')}
+        <td>${textbox('day6')}
+      <tr>
+        <td>${label('month7', '8th Month')}
+        <td>${textbox('month7')}
+        <td>${label('month7len', 'Days')}
+        <td>${numbox('month7len')}
+        <td>${label('day7', '8th Day')}
+        <td>${textbox('day7')}
+      <tr>
+        <td>${label('month8', '9th Month')}
+        <td>${textbox('month8')}
+        <td>${label('month8len', 'Days')}
+        <td>${numbox('month8len')}
+        <td>${label('day8', '9th Day')}
+        <td>${textbox('day8')}
+      <tr>
+        <td>${label('month9', '10th Month')}
+        <td>${textbox('month9')}
+        <td>${label('month9len', 'Days')}
+        <td>${numbox('month9len')}
+        <td>${label('day9', '10th Day')}
+        <td>${textbox('day9')}
+      <tr>
+        <td>${label('month10', '11th Month')}
+        <td>${textbox('month10')}
+        <td>${label('month10len', 'Days')}
+        <td>${numbox('month10len')}
+        <td>${label('day10', '11th Day')}
+        <td>${textbox('day10')}
+      <tr>
+        <td>${label('month11', '12th Month')}
+        <td>${textbox('month11')}
+        <td>${label('month11len', 'Days')}
+        <td>${numbox('month11len')}
+        <td>${label('day11', '12th Day')}
+        <td>${textbox('day11')}
+    </table>
+  `);
 
 
   if(Args && Args.temp){
@@ -659,6 +792,8 @@
   ::raw
     <textarea spellcheck="false" id="chatinput" rows="4"></textarea>
 ::div #id(left)
+  ::raw
+    <button id="calendar-button">Calendar</button>
   ::div #id(left-stuff)
     ::raw
       <details open>

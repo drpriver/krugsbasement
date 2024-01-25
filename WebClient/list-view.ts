@@ -154,7 +154,6 @@ function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):Li
     return result;
 }
 
-/*
 type DualListView<K1, K2> = {
     // K1 and K2 are things you use to uniquely identify
     // the entries in the lists. They need to give
@@ -511,4 +510,3 @@ function move_elem_by(e:Node, off:number):void{
     let sib = parent.childNodes[new_idx];
     parent.insertBefore(e, sib);
 }
-*/

@@ -53,6 +53,8 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
                 let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
                 if(modified) return;
                 if(e.key == "Enter"){
+                    if(name == 'multiline-text')
+                        return;
                     e.preventDefault();
                     e.stopPropagation();
                     result.ok.click();
@@ -65,6 +67,10 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
                     return;
                 }
             });
+            if(el.tagName == 'TEXTAREA' && name == 'multiline-text'){
+                el.rows = 20;
+                el.cols = 40;
+            }
         }
         f[field] = el;
     }

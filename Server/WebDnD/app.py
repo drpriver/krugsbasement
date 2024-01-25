@@ -20,8 +20,9 @@ from . import chat
 from . import canvas
 from . import notes
 from . import sheets
+from . import calendars
 from .persist import Persister, RepeatTimer, AppKVPersister
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize, NewNoteMsg, CanvasParentMsg, NoteParentMsg, MetadataType, MetadataMsg
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize, NewNoteMsg, CanvasParentMsg, NoteParentMsg, MetadataType, MetadataMsg, CalendarMsg, CalendarMsgType, CalendarInitialize
 from .validator import register_list, validated, validate, try_validate
 from . import db
 from .users import User
@@ -483,6 +484,11 @@ def post_join(mode:UiMode) -> None:
         msg:SpreadSheetInitialize = [SpreadSheetMsgType.INITIALIZE, sheets.get_spreadsheets(campaign)] # type: ignore
         # dlog('spreadsheet: %r', msg)
         emit(ToClient.SPREADSHEET, msg)
+        cal = calendars.get_calendar(campaign)
+        dlog("cal: %r", cal)
+        if cal is not None:
+            emit(ToClient.CALENDAR, cal)
+
     url = db.get_campaign_kv(campaign, 'homepage')
     if url:
         emit(ToClient.METADATA, [MetadataType.HOMEPAGE, url]) # type: ignore
@@ -729,6 +735,15 @@ def spreadsheet(msg:SpreadSheetMsg) -> None:
     response = sheets.handle(campaign, msg)
     if response is not None:
         emit(ToClient.SPREADSHEET, response, broadcast=True, include_self=True, to=str(campaign))
+
+@socketio.on(FromClient.CALENDAR)
+@validated
+def calendar(msg:CalendarMsg) -> None:
+    campaign = get_campaign(request)
+    dlog("msg: %r", msg);
+    response = calendars.handle(campaign, msg)
+    if response is not None:
+        emit(ToClient.CALENDAR, response, broadcast=True, include_self=True, to=str(campaign))
 
 @socketio.on(FromClient.METADATA)
 @validated

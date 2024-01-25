@@ -24,7 +24,7 @@ atexit.register(close)
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 20
+DBVERSION = 21
 with conn:
     conn.execute('''PRAGMA encoding = 'UTF-8';''')
     conn.execute('''PRAGMA foreign_keys = ON;''')
@@ -523,7 +523,21 @@ def setup_tables() -> None:
                 SET cells = ?
                 WHERE campaignid = ? AND sheetid = ?;
             ''', (cell_blob, campaignid, sheetid))
-
+    if version < 21:
+        conn.execute('''
+            CREATE TABLE calendars (
+                campaignid INTEGER NOT NULL,
+                starting_year INTEGER NOT NULL,
+                starting_day_of_week INTEGER NOT NULL,
+                month_names BLOB NOT NULL,
+                month_lengths BLOB NOT NULL,
+                weekday_names BLOB NOT NULL,
+                flags INTEGER NOT NULL,
+                days BLOB NOT NULL,
+                FOREIGN KEY(campaignid) REFERENCES campaigns(id),
+                PRIMARY KEY(campaignid)
+                );
+            ''')
 
 with conn:
     setup_tables()
@@ -1198,3 +1212,59 @@ def delete_sheet(campaign:int, id:int) -> None:
             WHERE campaignid = ? AND sheetid = ?;
         ''', (campaign, id))
 
+
+def save_calendar(data:tuple) -> None:
+    with DBLOCK:
+        conn.execute('''
+            INSERT INTO
+                calendars(campaignid,
+                          starting_year,
+                          starting_day_of_week,
+                          month_names,
+                          month_lengths,
+                          weekday_names,
+                          flags,
+                          days)
+            VALUES
+                (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(campaignid)
+            DO UPDATE SET
+                starting_year=excluded.starting_year,
+                starting_day_of_week=excluded.starting_day_of_week,
+                month_names=excluded.month_names,
+                month_lengths=excluded.month_lengths,
+                weekday_names=excluded.weekday_names,
+                flags=excluded.flags,
+                days=excluded.days
+                     ;
+                     ''', data)
+
+def get_calendar(campaignid: int) -> dict|None:
+    with DBLOCK:
+        row = conn.execute('''
+            SELECT
+                campaignid,
+                starting_year,
+                starting_day_of_week,
+                month_names,
+                month_lengths,
+                weekday_names,
+                flags,
+                days
+            FROM
+                calendars
+            WHERE
+                campaignid = ?
+            ;''', (campaignid,)).fetchone()
+    if row is None:
+        return None
+    return {
+        'campaign': row[0],
+        'starting_year': row[1],
+        'starting_day_of_week': row[2],
+        'month_names': json.loads(row[3]),
+        'month_lengths': json.loads(row[4]),
+        'weekday_names': json.loads(row[5]),
+        'flags': row[6],
+        'data': json.loads(row[7]),
+    }
