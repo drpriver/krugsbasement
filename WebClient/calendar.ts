@@ -97,11 +97,17 @@ function init_calendar(calendar: Calendar, days: Array<CalendarDay>):void{
 }
 function build_calendar_window(calendar:Calendar):void{
     const w = get_window('cal');
+    function year_month():[number, number]{
+        let year = dv.active1;
+        if(year === undefined) year = calendar.starting_year;
+        let month = dv.active2.get(year);
+        if(month === undefined) month = 0;
+        return [year, month];
+    }
     w.handle.oncontextmenu = function(e:MouseEvent):void{
         const menu = ctx_menu(e);
         menu.item('Show Other People', function():void{
-            const year = dv.active1!;
-            const month = dv.active2!.get(year)!;
+            const [year, month] = year_month();
             EMIT(FromClient.CALENDAR, [CalendarMsgType.SHOW, year, month]);
         });
         menu.separator();
@@ -162,8 +168,7 @@ function build_calendar_window(calendar:Calendar):void{
         const d = get_dialog('multiline-text');
         // @ts-ignore
         const day = target.dataset['day']|0;
-        const year = dv.active1!;
-        const month = dv.active2!.get(year)!;
+        const [year, month] = year_month();
         d.f.textarea.value = get_day(calendar, year, month, day);
         d.show_handler = function(){
             setTimeout(()=>{d.f.textarea.focus();}, 0);
