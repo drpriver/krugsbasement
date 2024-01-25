@@ -146,6 +146,8 @@ def handle(campaign: int, msg: CalendarMsg) -> CalendarMsg | None:
             return msg
         if msg[0] == CalendarMsgType.ADDYEAR:
             return msg
+        if msg[0] == CalendarMsgType.SHOW:
+            return msg
 
 Reaper = RepeatTimer(60, calendar_reaper)
 Reaper.start()

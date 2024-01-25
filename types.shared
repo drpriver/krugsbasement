@@ -1308,6 +1308,7 @@ enum CalendarMsgType: int
     INITIALIZE = 0
     EDITDAY = 1
     ADDYEAR = 2
+    SHOW = 3
 
 struct CalendarDay: array
     year: int
@@ -1336,7 +1337,13 @@ struct CalendarEditDay: array
 struct CalendarAddYear: array
     type = CalendarMsgType.ADDYEAR
 
+struct CalendarShow: array
+    type = CalendarMsgType.SHOW
+    year: int
+    month: int
+
 union CalendarMsg: array
     CalendarInitialize
     CalendarEditDay
     CalendarAddYear
+    CalendarShow

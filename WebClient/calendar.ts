@@ -10,6 +10,7 @@ type Calendar = {
     ending_year: number;
     set_day: (year:number, month:number, day:number, txt:string)=>void;
     add_year: ()=>void;
+    activate: (year:number, month:number) => void;
 };
 let _CALENDAR: Calendar;
 
@@ -96,6 +97,17 @@ function init_calendar(calendar: Calendar, days: Array<CalendarDay>):void{
 }
 function build_calendar_window(calendar:Calendar):void{
     const w = get_window('cal');
+    w.handle.oncontextmenu = function(e:MouseEvent):void{
+        const menu = ctx_menu(e);
+        menu.item('Show Other People', function():void{
+            const year = dv.active1!;
+            const month = dv.active2!.get(year)!;
+            EMIT(FromClient.CALENDAR, [CalendarMsgType.SHOW, year, month]);
+        });
+        menu.separator();
+        menu.canceller();
+        menu.install();
+    };
     const openid = 'cal/open'
     w.hide_handler = function(){
         store_local(StorageCategory.WINDOW, openid, '');
@@ -234,6 +246,10 @@ function build_calendar_window(calendar:Calendar):void{
     dv.activate1_handler = function(y:number):void{
         dv.make_active2(y, 0);
     };
+    calendar.activate = function(year:number, month: number): void{
+        w.show();
+        dv.make_active2(year, month);
+    };
     const nmonths = calendar.month_names.length;
     for(let y = calendar.starting_year; y <= calendar.ending_year; y++){
         dv.add_item1(`${y}`, y);
@@ -359,6 +375,7 @@ ONRECV(ToClient.CALENDAR, function(msg:CalendarMsg):void{
                 ending_year: msg[1],
                 set_day: (_:number, __:number, ___:number, ____:string)=>{},
                 add_year: ()=>{},
+                activate: (_:number, __:number)=>{},
             };
             init_calendar(_CALENDAR, msg[7]);
             build_calendar_window(_CALENDAR);
@@ -370,6 +387,9 @@ ONRECV(ToClient.CALENDAR, function(msg:CalendarMsg):void{
             break;
         case CalendarMsgType.ADDYEAR:
             _CALENDAR.add_year();
+            break;
+        case CalendarMsgType.SHOW:
+            _CALENDAR.activate(msg[1], msg[2]);
             break;
     }
 });
