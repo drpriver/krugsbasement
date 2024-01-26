@@ -88,6 +88,7 @@ function update_content(n:NoteWindow):void{
 }
 
 function make_note_window(id:number):NoteWindow{
+    const openid = `/notes/open/${id}`;
     const w = elem('div', `notes-${id}`, 'window');
     w.classList.add('notes-window');
     const wh = elem_with_parent(w, 'div', null, 'window-handle');
@@ -164,6 +165,7 @@ function make_note_window(id:number):NoteWindow{
         w.style.display = 'grid';
         result.make_top();
         result.refresh();
+        store_local(StorageCategory.WINDOW, openid, '1');
     }, is_editing:false,
     refresh:function():void{
         const note = NOTES.get(id);
@@ -208,6 +210,7 @@ function make_note_window(id:number):NoteWindow{
     setup_closable_window(w, x, function():void{
         stop_editing();
         w.remove();
+        store_local(StorageCategory.WINDOW, openid, '');
     });
     return result;
 }
@@ -278,6 +281,10 @@ document.addEventListener('DOMContentLoaded', function():void{
             note.need_receive = false;
             note.need_send = false;
             add_note(note.id, note);
+            const openid = `/notes/open/${note.id}`;
+            if(get_local(StorageCategory.WINDOW, openid))
+                get_note_window(note.id).show();
+
         }
     });
     ONRECV(ToClient.NEW_NOTE, function(msg:NewNoteMsg):void{
