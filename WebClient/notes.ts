@@ -75,7 +75,7 @@ type NoteWindow = {
     refresh: () => void;
     is_editing: boolean;
 };
-function update_iframe(n:NoteWindow):void{
+function update_content(n:NoteWindow):void{
     let note = NOTES.get(n.id);
     if(!note){
         n.content.innerHTML = '';
@@ -136,7 +136,7 @@ function make_note_window(id:number):NoteWindow{
     const editor = elem_with_parent(ed_container, 'textarea', null, 'note-view-edit');
     editor.spellcheck = false;
     editor.oninput = function():void{
-        update_iframe(result);
+        update_content(result);
         const note = NOTES.get(id);
         if(!note) return;
         note.body = editor.value;
@@ -170,7 +170,7 @@ function make_note_window(id:number):NoteWindow{
         if(!note) return;
         editor.value = note.body;
         t.textContent = note.title;
-        if(w.parentNode) update_iframe(result);
+        if(w.parentNode) update_content(result);
     }};
     function sync_note():void{
         const note = NOTES.get(id);
@@ -186,7 +186,7 @@ function make_note_window(id:number):NoteWindow{
         result.is_editing = false;
         edit_button.textContent = 'Edit';
         ed_container.style.display = 'none';
-        update_iframe(result);
+        update_content(result);
         content.style.display = 'block';
         sync_note();
 
@@ -231,83 +231,6 @@ function get_note_window(id:number):NoteWindow{
     }
     return window;
 }
-
-const make_dnd_html = (function():(text:string, cb:(_:string, __:Array<string>)=>void)=>void{
-    let wasm_instance: WebAssembly.Instance;
-    const decoder = new TextDecoder();
-    const encoder = new TextEncoder();
-    let memory: Uint8Array;
-    function marshall_string(s:string): number{
-        let encoded = encoder.encode(s)
-        let p = (wasm_instance.exports.malloc as any)(encoded.length+5);
-        let lengthp = memory.subarray(p, p+4);
-        lengthp[0] = (encoded.length >> 0) & 255;
-        lengthp[1] = (encoded.length >> 8) & 255;
-        lengthp[2] = (encoded.length >> 16) & 255;
-        lengthp[3] = (encoded.length >> 24) & 255;
-        let sub = memory.subarray(p+4, p+4+encoded.length);
-        sub.set(encoded);
-        memory[p+4+encoded.length] = 0;
-        return p;
-    }
-    function wasm_string_to_js(pstring:number):string{
-        let sub = memory.subarray(pstring, pstring+4);
-        let length = sub[0]| (sub[1]<<8) | (sub[2]<<16) | (sub[3]<<24);
-        let textmem = memory.subarray(pstring+4, pstring+4+length);
-        let text = decoder.decode(textmem);
-        return text;
-    }
-    let errors: Array<string> = [];
-    let imports = {
-      env: {
-          log_string: function(p:number, len:number):void{
-              let sub = memory.subarray(p, p+len);
-              errors.push(decoder.decode(sub));
-          },
-          abort: function():void{
-            throw new WebAssembly.RuntimeError;
-          }
-      }
-    };
-    let init = false;
-    function initialize(text:string, cb:(_:string, __:Array<string>)=>void):void{
-        init = true;
-        fetch('/wasm/drmd.wasm').then(response=> response.arrayBuffer())
-        .then(bytes=> WebAssembly.instantiate(bytes, imports))
-        .then(x => {
-            wasm_instance = x.instance;
-            (wasm_instance.exports.memory as any).grow(1024);
-            memory = new Uint8Array((wasm_instance.exports.memory as any).buffer);
-            do_it(text, cb);
-        });
-    }
-    function make_dnd_html(text:string, cb:(_:string, __:Array<string>)=>void):void{
-        if(!init){
-            initialize(text, cb);
-        }
-        else {
-            do_it(text, cb);
-        }
-    }
-    function do_it(text:string, cb:(_:string, __:Array<string>)=>void):void{
-        errors = [];
-        if(!text.length){
-            cb(" ", []);
-            return;
-        }
-        (wasm_instance.exports as any).reset_memory();
-        const marshalled = marshall_string(text);
-        let result = (wasm_instance.exports as any).make_html(marshalled);
-        if(result){
-            const jsresult = wasm_string_to_js(result);
-            return cb(jsresult, errors);
-        }
-        else {
-            return cb("", errors);
-        }
-    }
-    return make_dnd_html;
-})();
 
 document.addEventListener('DOMContentLoaded', function():void{
     function onget(n_:Note):void{
