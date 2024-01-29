@@ -1372,7 +1372,7 @@ ONRECV(ToClient.CANVAS_DUNGEON_MODE, function():void{
     visually_set_gridscale(GRIDSCALE.TEN);
     request_render();
 });
-const MIN_SCALE = 0.125;
+const MIN_SCALE = 0.125/2;
 const MAX_SCALE = 5;
 function clamp_scale(scale:number): number{
     if(scale < MIN_SCALE)
