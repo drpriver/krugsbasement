@@ -1633,9 +1633,7 @@ div.cal-day {
   border: 1px solid black;
   margin-left: -1px;
   margin-top: -1px;
-  font-size: 8px;
-  /*max-height: 300px;*/
-  /*overflow-y: auto;*/
+  font-size: 0.8rem;
 }
 div.cal-day * {
   margin: 0;
