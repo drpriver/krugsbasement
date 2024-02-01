@@ -3656,6 +3656,23 @@ function selection_is_rigid(view:DungeonMapView):boolean{
     }
     return false;
 }
+function selection_snap(view:DungeonMapView, snapmode:SNAPMODE):SNAPMODE{
+    if(snapmode == SNAPMODE.FREE || snapmode == SNAPMODE.QUARTER)
+        return snapmode;
+    for(let id of view.selected){
+        const obj = view.map.canvas_objs.get(id)!;
+        if(obj.flags & CanvasFlag.DELETED)
+            continue;
+        switch(obj.type){
+            case CanvasType.EZ_TOKEN:
+            case CanvasType.IMG_TOKEN:
+                return SNAPMODE.HALF;
+            default:
+                break;
+        }
+    }
+    return snapmode;
+}
 function there_are_selected_objs_at(view:DungeonMapView, x0:number, y0:number, x1:number, y1:number):boolean{
     const selection_bbox = {x0:x0, y0:y0, x1:x1, y1:y1,};
     const selection_type = select_type;
@@ -3687,7 +3704,7 @@ function change_select_mode(mode:SELECTTYPE):void{
     }
     request_render();
 }
-function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number, base_y:number, dx:number, dy:number):void{
+function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number, base_y:number, dx:number, dy:number, snapmode:SNAPMODE):void{
     const selected_objs = [];
     for(let item of view.selected){
         const obj = view.map.canvas_objs.get(item)!;
@@ -7675,6 +7692,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     let changed = false;
                     const before_update = get_stripped_state_by_id(view.map, Array.from(view.selected));
                     const is_rigid = selection_is_rigid(view);
+                    const snapmode_ = selection_snap(view, snapmode);
                     view.selection_area.is_dragging = true;
                     function move(e:MouseEvent):void{
                         e.stopPropagation();
@@ -7684,7 +7702,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                             return;
                         let [move_x, move_y] = event_to_coord(e, view);
                         changed = true;
-                        move_selected_objects(view, is_rigid, clicked_x, clicked_y, move_x - clicked_x, move_y - clicked_y);
+                        move_selected_objects(view, is_rigid, clicked_x, clicked_y, move_x - clicked_x, move_y - clicked_y, snapmode_);
                         clicked_x = move_x;
                         clicked_y = move_y;
                     }
