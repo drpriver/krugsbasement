@@ -793,7 +793,7 @@
     <textarea spellcheck="false" id="chatinput" rows="4"></textarea>
 ::div #id(left)
   ::raw
-    <button id="calendar-button">Calendar</button>
+    <button id="calendar-button">Calendar…</button>
   ::div #id(left-stuff)
     ::raw
       <details open>
