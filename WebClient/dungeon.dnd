@@ -155,6 +155,10 @@
     items[current_prefix].push([name, 'HTMLInputElement']);
     return `<input type="number" name="${name}" id="${name}" class="numeric-input">`;
   }
+  function tokennumbox(name){
+    items[current_prefix].push([name, 'HTMLInputElement']);
+    return `<input type="number" name="${name}" id="${name}" class="numeric-input" step="0.5" min="0.5" max="3">`;
+  }
   function checkbox(name){
     items[current_prefix].push([name, 'HTMLInputElement']);
     return `<input type="checkbox" name="${name}" id="${name}" checked>`;
@@ -312,9 +316,9 @@
         <td>
       <tr>
         <td>${label('width', 'Width (sq):')}
-        <td>${numbox('width')}
+        <td>${tokennumbox('width')}
         <td>${label('height', 'Height (sq):')}
-        <td>${numbox('height')}
+        <td>${tokennumbox('height')}
       <tr>
         <td>${label('text', 'Text:')}
         <td colspan="3">${textbox('text')}
@@ -328,9 +332,9 @@
     <table class="input-container">
       <tr>
         <td>${label('width', 'Width (sq):')}
-        <td>${numbox('width')}
+        <td>${tokennumbox('width')}
         <td>${label('height', 'Height (sq):')}
-        <td>${numbox('height')}
+        <td>${tokennumbox('height')}
       <tr>
         <td>${label('url', 'Token Image Url:')}
         <td colspan=3>${urlbox('url')}
