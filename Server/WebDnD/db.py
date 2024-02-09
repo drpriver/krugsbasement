@@ -1026,8 +1026,37 @@ def lookup_user_by_name(name:str) -> Optional[Tuple[int, str]]:
             ;
         ''', (name,)).fetchone()
 
+def lookup_user_by_email(email:str) -> Optional[Tuple[int, str, str]]:
+    if not email:
+        return None
+    with DBLOCK:
+        return conn.execute('''
+            SELECT
+                userid, name, passhash
+            FROM
+                users
+            WHERE
+                email = ?
+            ;
+        ''', (email,)).fetchone()
+
 def create_user(name:str, passhash:str, email:str) -> Optional[int]:
     with DBLOCK, conn:
+        if email:
+            try:
+                exists = conn.execute('''
+                    SELECT
+                        1
+                    FROM
+                        users
+                    WHERE
+                        email = ?
+                    ;
+                    ''', (email,)).fetchone()
+                if exists is not None:
+                    return None
+            except sqlite3.DatabaseError:
+                return None
         try:
             cur = conn.execute('''
                 INSERT INTO
@@ -1039,6 +1068,20 @@ def create_user(name:str, passhash:str, email:str) -> Optional[int]:
             return cur.lastrowid
         except sqlite3.DatabaseError:
             return None
+
+def change_user_password(userid:int, passhash:str) -> bool:
+    with DBLOCK, conn:
+        try:
+            conn.execute('''
+            UPDATE users
+            SET passhash = ?
+            WHERE userid = ?;
+            ''', (passhash, userid))
+        except sqlite3.DatabaseError:
+                return False
+        else:
+            return True
+
 
 def join_campaign(userid:int, campaignid:int) -> None:
     with DBLOCK, conn:

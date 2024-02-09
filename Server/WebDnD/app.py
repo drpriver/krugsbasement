@@ -156,7 +156,7 @@ def register() -> Any:
             return flask.redirect(request.path)
         user = User.create(form.username.data, form.password.data, form.email.data)
         if user is None:
-            flask.flash('Invalid username or password')
+            flask.flash('Invalid username, password or email')
             return flask.redirect(request.path)
         logging.info('register user: %r', user)
         login_user(user, remember=form.remember_me.data)
@@ -196,7 +196,10 @@ def login_page() -> Any:
     form = LoginForm()
     if form.validate_on_submit():
         user = User.lookup_by_name(form.username.data)
-        if user is None or not user.check_password(form.password.data):
+        if user is None:
+            flask.flash('Invalid username or password')
+            return flask.redirect('/login')
+        if not user.check_password(form.password.data):
             bad_attempt()
             flask.flash('Invalid username or password')
             return flask.redirect('/login')
