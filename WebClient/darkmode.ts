@@ -7,7 +7,7 @@ function system_prefers_darkmode():boolean{
 }
 
 let DARKMODE = false;
-function change_dark_mode(mode:DarkMode, postit:number):void{
+function change_dark_mode(mode:DarkMode, remember:number):void{
     switch(mode){
         case DarkMode.DARK:
             DARKMODE = true;
@@ -45,17 +45,11 @@ function change_dark_mode(mode:DarkMode, postit:number):void{
     }
     // This is weird to use fetch when I use websockets everywhere
     // else.
-    if(postit && !SETTINGS.demo){
-        fetch('/settings', {
-            method: 'POST',
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({darkmode:mode})
-        });
-    }
+    if(remember)
+        store_global(StorageCategory.SETTINGS, 'darkmode', mode);
 }
-change_dark_mode(SETTINGS.darkmode, 0);
+
+change_dark_mode(get_global_default(StorageCategory.SETTINGS, 'darkmode', 0), 0);
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e):void{
     change_dark_mode(SETTINGS.darkmode, 0);
 });
