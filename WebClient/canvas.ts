@@ -5385,12 +5385,18 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                                 ctx.fillStyle = sel_color+'cc';
                             else
                                 ctx.fillStyle = BACKGROUND + '88';
-                            if(is_selected || (obj.flags & CanvasFlag.TEXT_HAS_BACKGROUND)){
+                            if(is_selected){
                                 const x = bx+bbox.x0;
                                 const y = by+bbox.y0;
                                 const width = bbox.x1-bbox.x0;
                                 const height = bbox.y1-bbox.y0;
                                 ctx.fillRect(x, y, width, height);
+                            }
+                            if((obj.flags & CanvasFlag.TEXT_HAS_BACKGROUND)){
+                                ctx.strokeStyle = is_darkmode?'#000':'#fff';
+                                ctx.lineJoin = 'round';
+                                ctx.lineWidth = 4;
+                                ctx.strokeText(line, bx, by+y_off);
                             }
                             if(is_darkmode){
                                 if(obj.link_id != -1){
