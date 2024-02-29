@@ -7546,7 +7546,14 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
         active_split = which_canv;
         if(did_remove_ctx_menu()) return;
         if(gesturing) return;
-        if(e.button !== 0 && e.button !== 1){ //0 is the 'primary' button
+        const enum BUTTON {
+            PRIMARY = 0, // left button
+            AUXILIARY = 1, // middle or wheel
+            SECONDARY = 2, // right button
+            FOURTH = 3, // browser back
+            FIFTH = 4, // browser forward
+        }
+        if(e.button !== BUTTON.PRIMARY && e.button !== BUTTON.AUXILIARY){
             return;
         }
         const view = get_view(which_canv);
@@ -7562,7 +7569,11 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
         e.stopPropagation();
         e.preventDefault();
         the_canvas.setPointerCapture(e.pointerId);
-        if(e.button === 1){
+        if(e.button === BUTTON.AUXILIARY){
+            prev_tool = current_tool;
+            current_tool = ToolType.PAN;
+        }
+        else if(e.altKey){
             prev_tool = current_tool;
             current_tool = ToolType.PAN;
         }
