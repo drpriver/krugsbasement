@@ -181,7 +181,7 @@
         2. Integer literal, for example "<tt>3</tt>" or "<tt>42</tt>".
         3. Variable, such as "attack" above.
         4. Parenthesized group, like "<tt>(3 + d6)</tt>" or "<tt>(2*3)</tt>."
-        4. Cell reference, like "<tt>[Draclar, Score, 2]</tt>".
+        4. Spreadsheet expression, like "<tt>[cell('Draclar', 'Score', 2)]</tt>".
         5. Repeated group, like "<tt>3{d20+4>=20}</tt>".
         5. Unary operations, like "<tt>!4</tt>" or "<tt>-d6</tt>". The unary
            operations are "<tt>!</tt>" (not, turns 0 to 1 and all other values
@@ -352,6 +352,21 @@
           These are the same as number variables, but their actual value is the 3.5
           ability score modifier that number would produce. For example, a
           17 would be treated as a 3 in macros.
+
+      Spreadsheet Expression::md.comment
+        You can embed references to spreadsheet cells using square brackets.
+        Additionally, bare identifiers will be evaluated as a spreadsheet
+        expression in the context of the spreadsheet that is the same name as
+        the active macro tab. This is useful with named cells. So you can have
+        something like this:
+
+        ::pre.macro
+          d20 + ref
+
+        And if you have a spreadsheet named after your macro group (like
+        named after your character) and on that spreadsheet is a cell named
+        "ref" with the value of 2, then the above will be expanded into
+        <tt>d20 + 2</tt>
 
       Repeat Statements::md .comment
         You might need to roll certain dice multiple times and don't want to
