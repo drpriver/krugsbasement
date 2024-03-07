@@ -432,10 +432,9 @@
       <tr>
         <td>${label('type', 'Type')}
         <td>${selectbegin('type')}
-            <option value="0">Number</option>
             <option value="1">Boolean</option>
+            <option value="0">Number</option>
             <option value="2">Expression</option>
-            <option value="3">3.5 Ability Score</option>
           </select>
       <tr>
         <td>${label('name', 'Name')}
