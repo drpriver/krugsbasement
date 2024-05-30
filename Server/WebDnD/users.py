@@ -6,6 +6,8 @@ from . import db
 from werkzeug.security import generate_password_hash, check_password_hash
 import appconfig
 
+ADMINS: set[str] = set(getattr(appconfig, 'ADMINS', []))
+
 class User:
     def __init__(self,
         userid: int,
@@ -21,6 +23,10 @@ class User:
         self.is_authenticated = is_authenticated
         self.is_anonymous     = is_anonymous
         self.is_active        = is_active
+
+    @property
+    def is_admin(self) -> bool:
+        return self.name in ADMINS
 
     @classmethod
     def lookup_by_id(cls, userid:int) -> User | None:
@@ -63,6 +69,11 @@ class User:
         self.passhash = passhash
         return ok
 
+    def change_email(self, email:str) -> bool:
+        if not email:
+            return False
+        ok = db.change_user_email(self.userid, email)
+        return ok
 
     @classmethod
     def create(cls, name:str, password:str, email:str) -> User | None:

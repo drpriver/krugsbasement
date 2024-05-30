@@ -1040,6 +1040,18 @@ def lookup_user_by_email(email:str) -> Optional[Tuple[int, str, str]]:
             ;
         ''', (email,)).fetchone()
 
+def lookup_email_by_user(userid:int) -> str | None:
+    with DBLOCK:
+        result = conn.execute('''
+            SELECT email
+            FROM users
+            WHERE userid = ?
+            ;
+        ''', (userid,)).fetchone()
+        if result: return result[0]
+        return None
+
+
 def create_user(name:str, passhash:str, email:str) -> Optional[int]:
     with DBLOCK, conn:
         if email:
@@ -1082,6 +1094,18 @@ def change_user_password(userid:int, passhash:str) -> bool:
         else:
             return True
 
+def change_user_email(userid:int, email:str) -> bool:
+    with DBLOCK, conn:
+        try:
+            conn.execute('''
+            UPDATE users
+            SET email = ?
+            WHERE userid = ?;
+            ''', (email, userid))
+        except sqlite3.DatabaseError:
+                return False
+        else:
+            return True
 
 def join_campaign(userid:int, campaignid:int) -> None:
     with DBLOCK, conn:

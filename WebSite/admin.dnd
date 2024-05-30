@@ -1,0 +1,65 @@
+::comment
+  Copyright © 2021-2024, David Priver
+::meta
+  name="apple-mobile-web-app-capable" content="yes"
+
+::md.centered
+  Admin Panel::title
+  Messages::md.center
+  <hr>
+  Edit User::md
+    Use one-of id, email or user name.
+    ::raw
+      <form action="/edit_user" method="post" class="row-form center">
+        <label>ID <input name="id"></label>
+        <label>Email <input name="email"></label>
+        <label>User Name <input name="user"></label>
+        <label>Nop <input type=checkbox name="nop"></label>
+        <label>Print Email <input type=checkbox name="printemail"></label>
+        <label>Ban <input type=checkbox name="ban"></label>
+        <label>Unban <input type=checkbox name="unban"></label>
+        <label>Set Password <input name="password"></label>
+        <label>Set Email <input name="setemail"></label>
+        <input type="submit">
+      </form>
+  <hr>
+  Edit Campaign::md
+    Enter one-of id or name to identify campaign.
+    ::raw
+      <form action="/edit_campaign" method="post" class="row-form center">
+        <label>Campaign ID <input name="id"></label>
+        <label>Campaign Name <input name="name"></label>
+        <label>New Name <input name="newname"></label>
+        <label>Revoke Magic <input type=checkbox name="revoke"></label>
+        <input type="submit">
+      </form>
+  <hr>
+
+::css #import
+  login.css
+::css
+  .row-form label{
+    display: block;
+    width: 100%;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    text-align: right
+  }
+  .row-form label input{
+    width: 50%;
+    margin-left: 1ch;
+  }
+  .row-form.center {
+    margin:auto;
+    width: max-content;
+  }
+  hr {
+    margin:auto;
+    width: 10%;
+  }
+  /*endcss*/
+::script #import
+  darkmode.js

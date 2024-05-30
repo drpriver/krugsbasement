@@ -98,6 +98,7 @@ class PageTemplate:
 HOMETEMPLATE     = PageTemplate.setup('home.dnd',     ('Campaigns', 'Your Campaigns', 'welcome', 'Create a Campaign'))
 REGISTERTEMPLATE = PageTemplate.setup('register.dnd', ('username-errors', 'email-errors', 'password-errors', 'password2-errors', 'hidden'))
 LOGINTEMPLATE    = PageTemplate.setup('login.dnd',    ('username-errors', 'password-errors', 'hidden'))
+ADMINTEMPLATE = PageTemplate.setup('admin.dnd', ('messages',))
 
 
 def bad_attempt() -> None:
@@ -857,6 +858,87 @@ def get_campaign_request(campaign:str, mode_s:str='full') -> Any:
     resp.headers['Cross-Origin-Embedder-Policy']= 'require-corp'
     return resp
     # return get_html(info, mode)
+
+if hasattr(appconfig, 'ADMIN_PANEL') and appconfig.ADMIN_PANEL:
+    @login_required
+    @app.route(appconfig.ADMIN_PANEL)
+    def admin_panel() -> Any:
+        if not current_user.is_admin:
+            return abort(404)
+        ctx, nodes = ADMINTEMPLATE.clone()
+        messages, = nodes
+        l = messages.make_child(pydndc.NodeType.RAW)
+        l.append_child('<ul>')
+        for mess in flask.get_flashed_messages():
+            l.append_child(f'<li>{mess}')
+        l.append_child('</ul>')
+        html = ctx.render()
+        return html
+
+    @login_required
+    @app.route('/edit_user', methods=['POST'])
+    def edit_user() -> Any:
+        if not current_user.is_admin:
+            return abort(404)
+        user_name = request.form['user']
+        user_id = request.form['id']
+        user_email = request.form['email']
+        nids = 0
+        if user_name:
+            nids += 1
+        if user_id:
+            nids += 1
+        if user_email:
+            nids += 1
+        if nids != 1:
+            flask.flash('Provide only one of name, id or email')
+            return flask.redirect(appconfig.ADMIN_PANEL)
+
+        if user_name:
+            user = User.lookup_by_name(user_name)
+            if not user:
+                flask.flash(f'No such user name: {markupsafe.escape(user_name)!r}')
+                return flask.redirect(appconfig.ADMIN_PANEL)
+        elif user_id:
+            user = User.lookup_by_id(int(user_id))
+            if not user:
+                flask.flash(f'No such user id: {user_id!r}')
+                return flask.redirect(appconfig.ADMIN_PANEL)
+        elif user_email:
+            user = User.lookup_by_email(user_email)
+            if not user:
+                flask.flash(f'No such user email: {markupsafe.escape(user_email)!r}')
+                return flask.redirect(appconfig.ADMIN_PANEL)
+        else:
+            return flask.redirect(appconfig.ADMIN_PANEL)
+        safe = str(markupsafe.escape(user.name))
+        flask.flash(f'Found user: {safe!r}')
+        if request.form.get('nop'):
+            return flask.redirect(appconfig.ADMIN_PANEL)
+        if request.form.get('printemail'):
+            email = db.lookup_email_by_user(user.userid)
+            if email:
+                flask.flash(f'email: {str(markupsafe.escape(email))!r}')
+            else:
+                flask.flash('No email for user')
+
+        pw = request.form['password']
+        if pw:
+            ok = user.change_password(pw)
+            if ok:
+                flask.flash(f'Password changed for {safe!r}')
+            else:
+                flask.flash(f'Failed to change password for {safe!r}')
+        set_email = request.form['setemail']
+        if set_email:
+            ok = user.change_email(set_email)
+            if ok:
+                flask.flash(f'Email changed for {safe!r} to {str(markupsafe.escape(set_email))!r}')
+            else:
+                flask.flash(f'Failed to change email for {safe!r}')
+        return flask.redirect(appconfig.ADMIN_PANEL)
+
+
 if appconfig.DEV:
     @app.route('/demos/dungeon.html')
     def get_demo() -> str:

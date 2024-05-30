@@ -154,6 +154,7 @@ PACKEDFILES=\
 DISTFILES=\
 	  Generated/dungeon.html \
 	  Generated/demo.html \
+	  WebSite/admin.dnd \
 	  WebSite/register.dnd \
 	  WebSite/home.dnd \
 	  WebSite/login.dnd \
