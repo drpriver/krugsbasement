@@ -1,12 +1,13 @@
 from __future__ import annotations
-import PIL # type: ignore
+import PIL
 from PIL import Image
 import ast
 import json
 import packrect
-from typing import NamedTuple, Optional, Type, List, Union, Dict, get_type_hints
-def textopen(*args, **kwargs):
-    return open(*args, **kwargs, encoding='utf-8')
+from typing import NamedTuple, Optional, Type, List, Union, Dict, get_type_hints, Any, IO, Sequence
+def textopen(path:str, mode:str) -> IO[Any]:
+    return open(path, mode, encoding='utf-8')
+
 class StatusIconData(NamedTuple):
     id: int
     name: str
@@ -207,11 +208,11 @@ TERRAIN_ICONS_ = [
     TerrainIconData(36, 'Lion',         'lion.png'      ),
     TerrainIconData(37, 'Monument',     'monument.png'  ),
 ]
-def verify():
-    tiids = set()
-    tinames = set()
-    tips = set()
-    def c(s, i):
+def verify() -> None:
+    tiids:set = set()
+    tinames:set = set()
+    tips:set = set()
+    def c(s:set, i:Any) -> None:
         if i in s: raise Exception
         s.add(i)
     for ti in TERRAIN_ICONS_:
@@ -367,9 +368,9 @@ TOKENS = [
 
 Data = Union[StatusIconData, TerrainData, TerrainIconData, FixtureData, TokenData]
 Thing = Union[StatusIcon, Terrain, TerrainIcon, Fixture, Token]
-OutTypes = [StatusIcon, Terrain, TerrainIcon, Fixture, Token]
+OutTypes: list[Type[StatusIcon | Terrain | TerrainIcon | Fixture | Token]] = [StatusIcon, Terrain, TerrainIcon, Fixture, Token]
 ICONDIM=64
-def run_pack(data:List[Data], path_locs:Dict[str, List]) -> Image:
+def run_pack(data:Sequence[Data], path_locs:Dict[str, List]) -> Image:
     boxless = []
     boxed = []
     for d in data:
@@ -400,7 +401,7 @@ def run_pack(data:List[Data], path_locs:Dict[str, List]) -> Image:
         path_locs[th.key()].append(list(th))
     return out
 
-def add_deps(data, fp):
+def add_deps(data:Sequence[Data], fp: IO[Any]) -> None:
         for d in data:
             p = d.path()
             if p[-1] == '/': continue
