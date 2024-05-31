@@ -95,10 +95,10 @@ class PageTemplate:
         handles = [ctx.node_by_id(node_id).handle for node_id in node_ids] # type: ignore
         return cls(filename, node_ids, ctx, handles)
 
-HOMETEMPLATE     = PageTemplate.setup('home.dnd',     ('messages', 'Campaigns', 'Your Campaigns', 'welcome', 'Create a Campaign'))
-REGISTERTEMPLATE = PageTemplate.setup('register.dnd', ('username-errors', 'email-errors', 'password-errors', 'password2-errors', 'hidden'))
-LOGINTEMPLATE    = PageTemplate.setup('login.dnd',    ('username-errors', 'password-errors', 'hidden'))
-ADMINTEMPLATE = PageTemplate.setup('admin.dnd', ('messages',))
+HOMETEMPLATE     = PageTemplate.setup('home.dnd',      ('messages', 'Campaigns', 'Your Campaigns', 'welcome', 'Create a Campaign'))
+REGISTERTEMPLATE = PageTemplate.setup('register.dnd',  ('username-errors', 'email-errors', 'password-errors', 'password2-errors', 'hidden'))
+LOGINTEMPLATE    = PageTemplate.setup('login.dnd',     ('username-errors', 'password-errors', 'hidden'))
+ADMINTEMPLATE    = PageTemplate.setup('admin.dnd',     ('messages',))
 CHANGEPWTEMPLATE = PageTemplate.setup('change_pw.dnd', ('old-pw-errors', 'new-pw-errors', 'hidden'))
 
 
