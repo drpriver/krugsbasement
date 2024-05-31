@@ -3,6 +3,7 @@ Changelog::kv
   created:  2022-02-22T02:08:02.365682
   punted:   2022-04-07T07:47:57Z
   reopened: 2023-01-05T02:40:53.174583
+  punted:   2024-05-31T20:16:53Z
 Summary::md .summary
   Users should be able to recover their account via email or whatever.
 
@@ -13,3 +14,6 @@ Punted Apr 07, 2022, 03:47AM::md .update
 
 Reopened Jan 04, 2023, 06:40PM::md .update
   There’s got to be a way to do a low volume version of this for cheap/free.
+
+Punted May 31, 2024, 01:16PM::md .update
+  New admin panel let’s me do this manually so less of an issue.
