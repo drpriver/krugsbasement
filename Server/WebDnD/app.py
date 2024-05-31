@@ -898,8 +898,8 @@ def get_campaign_request(campaign:str, mode_s:str='full') -> Any:
     # return get_html(info, mode)
 
 if hasattr(appconfig, 'ADMIN_PANEL') and appconfig.ADMIN_PANEL:
-    @login_required
     @app.route(appconfig.ADMIN_PANEL)
+    @login_required
     def admin_panel() -> Any:
         if not current_user.is_admin:
             return abort(404)
@@ -913,8 +913,8 @@ if hasattr(appconfig, 'ADMIN_PANEL') and appconfig.ADMIN_PANEL:
         html = ctx.render()
         return html
 
-    @login_required
     @app.route('/edit_user', methods=['POST'])
+    @login_required
     def edit_user() -> Any:
         if not current_user.is_admin:
             return abort(404)
