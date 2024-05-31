@@ -23,6 +23,20 @@ class LoginForm(FlaskForm):
             username=dict(errors=self.username.errors),
         )
 
+class ChangePwForm(FlaskForm):
+    old_pw = PasswordField('Old Password', validators=[DataRequired()])
+    new_pw = PasswordField('New Password', validators=[DataRequired(), Length(min=8)])
+    new_pw2 = PasswordField('New Password2', validators=[DataRequired(), EqualTo('new_pw')])
+    change = SubmitField('Change Password')
+    def dictify(self) -> dict[str, Any]:
+        return dict(
+            hidden = self.hidden_tag(),
+            old_pw = dict(errors=self.old_pw.errors),
+            new_pw = dict(errors=self.new_pw.errors),
+            new_pw2 = dict(errors=self.new_pw2.errors),
+            change = self.change(),
+        )
+
 class RegisterForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=5, max=32), Regexp(re.compile("^[a-zA-Z0-9_]+$"))])
     email = StringField('Email', validators=[DataRequired(), Email()])

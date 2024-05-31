@@ -1,0 +1,46 @@
+::comment
+  Copyright © 2021-2024, David Priver
+
+::md.right
+  [Home]
+  ::links
+    home = /home
+::div.login
+  Change Password::title
+  ::raw #id(hidden)
+    <form action="" method="post">
+  ::div.error-item #id(old-pw-errors)
+  ::div
+    ::raw
+      <label>Old Password:<input name="old_pw" required="" type="password" value="" autocomplete="current-password"></label>
+  ::div.error-item #id(new-pw-errors)
+  ::div
+    ::raw
+      <label>New Password:<input name="new_pw" size="32" required type="password" maxlength="64" minlength="5" autocomplete="new-password"></label>
+      <label>Repeat New Password:<input name="new_pw2" size="32" required type="password" maxlength="64" minlength="5"></label>
+      <input name="submit" type="submit" value="Change Password">
+  ::raw
+    </form>
+::css #import
+  login.css
+::css
+  label{
+    display: block;
+    width: 100%;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    text-align: right
+  }
+  label input{
+    width: 50%;
+    margin-left: 1ch;
+  }
+  form {
+    text-align: center;
+  }
+  /*endcss*/
+::script #import
+  darkmode.js

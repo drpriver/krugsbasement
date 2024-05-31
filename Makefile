@@ -157,6 +157,7 @@ DISTFILES=\
 	  WebSite/admin.dnd \
 	  WebSite/register.dnd \
 	  WebSite/home.dnd \
+	  WebSite/change_pw.dnd \
 	  WebSite/login.dnd \
 	  WebSite/login.css \
 	  WebSite/darkmode.js \

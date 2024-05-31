@@ -12,6 +12,7 @@
   ::div #id(welcome)
 
   There's not much here yet, but it is something.
+  ::raw #id(messages)
   Campaigns::md
   Your Campaigns::md
     ::script
@@ -59,8 +60,16 @@
       <input id="darkmode-light" name="darkmode" type="radio" value="auto">
       <label for="darkmode-light">Light</label>
       <br>
+  [Change Password]
+  ::links
+    change password = /change_pw
 ::css #import
   login.css
+::css
+  #messages {
+    border: 1px solid black;
+  }
+  /*endcss*/
 ::script #import
   darkmode.js
 ::script

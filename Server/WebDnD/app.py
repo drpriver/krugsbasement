@@ -26,7 +26,7 @@ from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMes
 from .validator import register_list, validated, validate, try_validate
 from . import db
 from .users import User
-from .forms import LoginForm, RegisterForm, CampaignForm
+from .forms import LoginForm, RegisterForm, CampaignForm, ChangePwForm
 from . import settings
 
 import pydndc
@@ -95,10 +95,11 @@ class PageTemplate:
         handles = [ctx.node_by_id(node_id).handle for node_id in node_ids] # type: ignore
         return cls(filename, node_ids, ctx, handles)
 
-HOMETEMPLATE     = PageTemplate.setup('home.dnd',     ('Campaigns', 'Your Campaigns', 'welcome', 'Create a Campaign'))
+HOMETEMPLATE     = PageTemplate.setup('home.dnd',     ('messages', 'Campaigns', 'Your Campaigns', 'welcome', 'Create a Campaign'))
 REGISTERTEMPLATE = PageTemplate.setup('register.dnd', ('username-errors', 'email-errors', 'password-errors', 'password2-errors', 'hidden'))
 LOGINTEMPLATE    = PageTemplate.setup('login.dnd',    ('username-errors', 'password-errors', 'hidden'))
 ADMINTEMPLATE = PageTemplate.setup('admin.dnd', ('messages',))
+CHANGEPWTEMPLATE = PageTemplate.setup('change_pw.dnd', ('old-pw-errors', 'new-pw-errors', 'hidden'))
 
 
 def bad_attempt() -> None:
@@ -228,6 +229,34 @@ def login_page() -> Any:
     return html
 
 
+@app.route('/change_pw', methods=['GET', 'POST'])
+@login_required
+def change_pw_page() -> Any:
+    t0 = time.time()
+    form = ChangePwForm()
+    if form.validate_on_submit():
+        if not current_user.check_password(form.old_pw.data):
+            flask.flash('Invalid old password')
+            return flask.redirect('/change_pw')
+        if form.new_pw.data != form.new_pw2.data:
+            flask.flash('New passwords do not match')
+            return flask.redirect('/change_pw')
+        current_user.change_password(form.new_pw.data)
+        logging.info('changed pw for user: %r', current_user)
+        flask.flash('Password changed')
+        return flask.redirect('/home')
+    ctx, nodes = CHANGEPWTEMPLATE.clone()
+    old_pw_errors, new_pw_errors, hidden = nodes
+    add_errors(old_pw_errors, flask.get_flashed_messages())
+    add_errors(old_pw_errors, form.old_pw.errors)
+    add_errors(new_pw_errors, form.new_pw.errors)
+    add_errors(new_pw_errors, form.new_pw2.errors)
+    hidden.append_child(form.hidden_tag())
+    html = ctx.render()
+    t1 = time.time()
+    dlog('change pw rendering %r took: %.3fµs', 'pydndc', (t1-t0)*1000*1000)
+    return html
+
 @app.route('/logout')
 def logout() -> Any:
     logout_user()
@@ -316,7 +345,16 @@ def home() -> Any:
         ownedcampaigns = [(a, markupsafe.escape(b), str(c) if c is not None else '') for a, b, c in ownedcampaigns]
     name = current_user.name if current_user.is_authenticated else 'Guest User'
     ctx, nodes = HOMETEMPLATE.clone()
-    camp, your_campaigns, welcome, create = nodes
+    messages, camp, your_campaigns, welcome, create = nodes
+    had_mess = False
+    for mess in flask.get_flashed_messages():
+        if not had_mess:
+            messages.append_child('<ul id=messages>')
+            had_mess = True
+        messages.append_child(f'<li>{mess}')
+    if had_mess:
+        messages.append_child('</ul>')
+
     if campaigns:
         camp.append_child('Go to a Campaign:')
         raw: pydndc.Node = camp.make_child(pydndc.NodeType.RAW)
