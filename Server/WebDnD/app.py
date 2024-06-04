@@ -526,6 +526,7 @@ def post_join(mode:UiMode) -> None:
         msg:SpreadSheetInitialize = [SpreadSheetMsgType.INITIALIZE, sheets.get_spreadsheets(campaign)] # type: ignore
         # dlog('spreadsheet: %r', msg)
         emit(ToClient.SPREADSHEET, msg)
+    if mode == UiMode.NORMAL:
         cal = calendars.get_calendar(campaign)
         # dlog("cal: %r", cal)
         if cal is not None:
