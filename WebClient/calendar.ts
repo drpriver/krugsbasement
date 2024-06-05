@@ -365,7 +365,6 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 
 ONRECV(ToClient.CALENDAR, function(msg:CalendarMsg):void{
-    console.log({msg});
     switch(msg[0]){
         case CalendarMsgType.INITIALIZE:
             _CALENDAR = {
