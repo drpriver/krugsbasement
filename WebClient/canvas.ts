@@ -2915,7 +2915,7 @@ function initialize_maps(msgs:Array<InitializeMap>):void{
             const obj = unstrip_obj(objs[i]);
             const existing_obj = map.canvas_objs.get(obj.id);
             if(existing_obj){
-                console.log('object already exists???', obj.id);
+                console.log('object already exists???', 'map_id: ', map.map_id, ' obj.id: ', obj.id);
             }
             else {
                 add_canv_obj(map, obj);

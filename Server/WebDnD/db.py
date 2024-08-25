@@ -24,7 +24,7 @@ atexit.register(close)
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 21
+DBVERSION = 22
 with conn:
     conn.execute('''PRAGMA encoding = 'UTF-8';''')
     conn.execute('''PRAGMA foreign_keys = ON;''')
@@ -538,6 +538,22 @@ def setup_tables() -> None:
                 PRIMARY KEY(campaignid)
                 );
             ''')
+    if version < 22:
+        maps = conn.execute('''
+            SELECT campaignid, mapid, objects FROM MAPS;
+        ''').fetchall()
+        for m in maps:
+            campid, mapid, objs = m
+            objects = json.loads(objs)
+            for i, o in enumerate(objects):
+                o[1] = i + 1
+            objs = json.dumps(objects, separators=(',',':'))
+            conn.execute('''
+                UPDATE maps
+                SET objects = ?
+                WHERE campaignid = ?
+                AND mapid = ?;
+            ''', (objs, campid, mapid))
 
 with conn:
     setup_tables()
