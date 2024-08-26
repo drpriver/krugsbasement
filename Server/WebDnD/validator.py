@@ -115,6 +115,7 @@ def register_list(arrayname:str, typename:str) -> None:
     t = TYPES[typename]
     TYPES[arrayname]= ListTypeInfo(t) # type: ignore
     TYPES['List'+arrayname]= ListTypeInfo(t) # type: ignore
+    TYPES['list'+arrayname]= ListTypeInfo(t) # type: ignore
 
 def validate(name:str, obj:T) -> T:
     return TYPES[name](obj)
