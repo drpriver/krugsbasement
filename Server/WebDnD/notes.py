@@ -1,8 +1,8 @@
 #
 # Copyright © 2021-2024, David Priver
 #
-
-from typing import List, Dict, Union, NamedTuple, Optional
+from __future__ import annotations
+from typing import NamedTuple
 from .persist import JsType, RepeatTimer
 from enum import IntFlag
 from . import db
@@ -43,11 +43,11 @@ atexit.register(save_queued_notes)
 
 
 
-def load_the_notes(campaign_id:int) -> Dict[int, Note]:
+def load_the_notes(campaign_id:int) -> dict[int, Note]:
     notes = db.get_notes(campaign_id)
     return {n['id']:n for n in notes}
 
-NOTES = {} # type: Dict[int, Dict[int, Note]]
+NOTES = {} # type: dict[int, dict[int, Note]]
 
 def new_note_request(campaign:int, parent:int) -> int:
     assert campaign is not None
@@ -68,7 +68,7 @@ def new_note_request(campaign:int, parent:int) -> int:
         )
     return result
 
-def get_notes_for_room(campaign:int) -> List[Note]:
+def get_notes_for_room(campaign:int) -> list[Note]:
     assert campaign is not None
     with noteslock:
         if campaign not in NOTES:
@@ -76,7 +76,7 @@ def get_notes_for_room(campaign:int) -> List[Note]:
         notes = NOTES[campaign]
         return [n for n in notes.values() if not (n['flags'] & NOTEFLAGS.DELETED)]
 
-def get_note(campaign:int, note_id:int) -> Optional[Note]:
+def get_note(campaign:int, note_id:int) -> Note|None:
     with noteslock:
         if campaign not in NOTES:
             logging.error("Updating a note for a campaign that doesn't exist: %r", campaign)

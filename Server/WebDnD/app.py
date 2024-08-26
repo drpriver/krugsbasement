@@ -5,7 +5,7 @@
 from __future__ import annotations
 import os
 import logging
-from typing import List, Dict, Optional, Set, Union, NamedTuple, Tuple, Any
+from typing import NamedTuple, Any
 
 from flask import Flask, jsonify, request, Response, send_from_directory, session, abort
 import flask
@@ -54,7 +54,7 @@ login = LoginManager(app)
 login.login_view = 'login_page'
 
 @login.user_loader
-def load_user(id:str) -> Optional[User]:
+def load_user(id:str) -> User|None:
     return User.lookup_by_id(int(id))
 
 def r(f:str) -> str:
@@ -65,27 +65,27 @@ def r(f:str) -> str:
         return fp.read()
 
 SCREEN = r('dungeon.html')
-ip_ban_list = {} # type: Dict[str, float]
-ip_bad_attempts = {} # type: Dict[str, List[float]]
+ip_ban_list = {} # type: dict[str, float]
+ip_bad_attempts = {} # type: dict[str, list[float]]
 FCACHE = pydndc.FileCache()
 FCACHE.store('login.css', r('login.css'))
 FCACHE.store('darkmode.js', r('darkmode.js'))
 
 class PageTemplate:
-    def __init__(self, filename:str, node_ids: Tuple[str, ...], ctx:pydndc.Context, handles:List[int]) -> None:
+    def __init__(self, filename:str, node_ids: tuple[str, ...], ctx:pydndc.Context, handles:list[int]) -> None:
         self.filename = filename
         self.node_ids = node_ids
         self.ctx = ctx
         self.handles = handles
 
-    def clone(self) -> Tuple[pydndc.Context, List[pydndc.Node]]:
+    def clone(self) -> tuple[pydndc.Context, list[pydndc.Node]]:
         if appconfig.DEV:
             self = self.setup(self.filename, self.node_ids)
         ctx = self.ctx.pseudo_clone()
         return ctx, [ctx.node_from_int(h) for h in self.handles]
 
     @classmethod
-    def setup(cls, filename:str, node_ids:Tuple[str, ...]) -> 'PageTemplate':
+    def setup(cls, filename:str, node_ids:tuple[str, ...]) -> 'PageTemplate':
         text = r(filename)
         ctx = pydndc.Context(filecache=FCACHE)
         ctx.logger = pydndc.stderr_logger
@@ -136,7 +136,7 @@ def block_method() -> None:
 def pydndclog(kind:int, filename:str, line:int, col:int, mes:str) -> None:
     logging.warning('%r:%d:%d: %r', filename, line+1, col, mes)
 
-def add_errors(node:pydndc.Node, error_list:Optional[Union[List[str], List[Tuple[str,str]]]]) -> None:
+def add_errors(node:pydndc.Node, error_list: list[str] | list[tuple[str, str]] | None) -> None:
     if not error_list: return
     raw = node.make_child(pydndc.NodeType.RAW)
     raw.append_child('<ul class="error">')
@@ -429,7 +429,7 @@ def chat_dm(data:ChatDirectCommandMessage) -> None:
     for sid in sids:
         emit(ToClient.CHAT_DIRECT_MSG, msg, to=sid)
 
-def get_sids_of_user_for_campaign(campaign:int, userid:int) -> List[str]:
+def get_sids_of_user_for_campaign(campaign:int, userid:int) -> list[str]:
     result = []
     for sid in user_id_to_sids.get(userid, []):
         if sid_to_campaign.get(sid) == campaign:
@@ -439,8 +439,8 @@ def get_sids_of_user_for_campaign(campaign:int, userid:int) -> List[str]:
 session_id = AppKVPersister('session_id', 0).obj
 logging.info('session_id: %r', session_id.value)
 
-sid_to_campaign = {} # type: Dict[str, int]
-user_id_to_sids = {} # type: Dict[int, List[str]]
+sid_to_campaign = {} # type: dict[str, int]
+user_id_to_sids = {} # type: dict[int, list[str]]
 def get_campaign(req:'flask.Request') -> int:
     return sid_to_campaign[req.sid] # type: ignore
 
@@ -538,7 +538,7 @@ def post_join(mode:UiMode) -> None:
 
 @socketio.on(FromClient.CANVAS_CREATE_OBJECTS)
 @validated
-def handle_canvas_create(data:List[CreateObjectsMessage]) -> None:
+def handle_canvas_create(data:list[CreateObjectsMessage]) -> None:
     dlog('data: %r', data)
     campaign = get_campaign(request)
     response = canvas.handle_create(campaign, data)
@@ -856,7 +856,7 @@ def get_campaign_request(campaign:str, mode_s:str='full') -> Any:
     if mode is None:
         return flask.redirect(f'/campaigns/{campaign}')
     # logging.info('campaign: %r', campaign)
-    campaign_id: Optional[int]
+    campaign_id: int | None
     try:
         campaign_id = int(campaign)
     except ValueError:

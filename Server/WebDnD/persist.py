@@ -5,7 +5,7 @@
 import json
 import atexit
 import os
-from typing import Generic, TypeVar, Callable, Optional, Union, Any
+from typing import Generic, TypeVar, Callable, Any, Union
 import appconfig
 import threading
 import time
@@ -14,7 +14,7 @@ from . import db
 from abc import abstractmethod
 
 T = TypeVar('T')
-JsType = Union[str, dict, list, int, float]
+JsType = Union[str,dict,list,int,float]
 
 
 class RepeatTimer(threading.Timer):

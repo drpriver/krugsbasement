@@ -2,7 +2,7 @@
 # Copyright © 2021-2024, David Priver
 #
 from __future__ import annotations
-from typing import List, Dict, Union, Any, Tuple, Optional
+from typing import Any, List
 import random
 from .persist import Persister, Dummy
 from .logs import logging
@@ -44,16 +44,16 @@ class PrivateRollTablePersister(Persister[Dummy[List[RollTable]]]):
         dont_persist = campaignid == 1
         super().__init__(Dummy([]), name, dont_persist=dont_persist)
 
-ROLLTABLES = {} # type: Dict[int, Dummy[List[RollTable]]]
-PRIVATEROLLTABLES = {} # type: Dict[Tuple[int, int], Dummy[List[RollTable]]]
+ROLLTABLES = {} # type: dict[int, Dummy[list[RollTable]]]
+PRIVATEROLLTABLES = {} # type: dict[tuple[int, int], Dummy[list[RollTable]]]
 
-def get_roll_tables(campaign:int) -> Dummy[List[RollTable]]:
+def get_roll_tables(campaign:int) -> Dummy[list[RollTable]]:
     if campaign in ROLLTABLES:
         return ROLLTABLES[campaign]
     ROLLTABLES[campaign] = RollTablePersister(campaign).obj
     return ROLLTABLES[campaign]
 
-def get_private_tables(user:int, campaign:int) -> Dummy[List[RollTable]]:
+def get_private_tables(user:int, campaign:int) -> Dummy[list[RollTable]]:
     if (user, campaign) in PRIVATEROLLTABLES:
         return PRIVATEROLLTABLES[(user, campaign)]
     PRIVATEROLLTABLES[(user, campaign)] = PrivateRollTablePersister(user, campaign).obj
@@ -62,7 +62,7 @@ def get_private_tables(user:int, campaign:int) -> Dummy[List[RollTable]]:
 def get_both_tables(user:int, campaign:int) -> RollTables:
     return [get_roll_tables(campaign).value, get_private_tables(user, campaign).value] # type: ignore
 
-def update_roll_table(tables:Dummy[List[RollTable]], data:List[RollTable]) -> None:
+def update_roll_table(tables:Dummy[list[RollTable]], data:list[RollTable]) -> None:
     highest = max(t['id'] for t in tables.value) if tables.value else 0
     if highest < 0:
         highest = 1
@@ -85,19 +85,19 @@ def update_roll_tables(user:int, campaign:int, data:RollTables) -> None:
     update_roll_table(get_private_tables(user, campaign), data[1])
     # logging.info('tables: %r', tables)
 
-def parse_and_roll_table(campaign:int, line:str) -> Tuple[str, str]:
+def parse_and_roll_table(campaign:int, line:str) -> tuple[str, str]:
     line = line.strip()
     tables = get_roll_tables(campaign).value
     mapping = {d['name'].lower(): d for d in tables}
     return parse_and_roll_table_inner(mapping, line, line, 0)
 
-def parse_and_roll_private_table(user:int, campaign:int, line:str) -> Tuple[str, str]:
+def parse_and_roll_private_table(user:int, campaign:int, line:str) -> tuple[str, str]:
     line = line.strip()
     tables = get_private_tables(user, campaign).value
     mapping = {d['name'].lower(): d for d in tables}
     return parse_and_roll_table_inner(mapping, line, line, 0)
 
-def parse_and_roll_table_inner(mapping:Dict[str, RollTable], key:str, path:str, depth:int) -> Tuple[str, str]:
+def parse_and_roll_table_inner(mapping:dict[str, RollTable], key:str, path:str, depth:int) -> tuple[str, str]:
     if depth > 10:
         raise Exception('Maximum table depth reached for table path: {}.'.format(path))
     table = mapping.get(key.lower())
@@ -118,14 +118,14 @@ def parse_and_roll_table_inner(mapping:Dict[str, RollTable], key:str, path:str, 
     return value, path
 
 
-def get_history(campaign:int) -> List[ChatMsg]:
+def get_history(campaign:int) -> list[ChatMsg]:
     if campaign is None:
         return []
     return db.get_chat(campaign)
 
-def get_private_history(userid:int, campaign:int) -> List[ChatHistory]:
+def get_private_history(userid:int, campaign:int) -> list[ChatHistory]:
     allmsgs = db.get_private_chat(userid, campaign)
-    by_chat = {} # type: Dict[int, List[ChatMsg]]
+    by_chat = {} # type: dict[int, list[ChatMsg]]
     for type, chatname, data, uid, touserid in allmsgs:
         group = touserid if uid == userid else uid
         if group not in by_chat:
@@ -136,7 +136,7 @@ def get_private_history(userid:int, campaign:int) -> List[ChatHistory]:
     result = [[k, v[-500:]] for k, v in by_chat.items()]
     return result # type: ignore
 
-def handle_structured_input(userid:int, campaign:int, user:str, commands:List[Command], private:bool, to:int|None=None) -> List[ChatMsg]:
+def handle_structured_input(userid:int, campaign:int, user:str, commands:list[Command], private:bool, to:int|None=None) -> list[ChatMsg]:
     color = ''
     styleflags = StyleFlags.NONE
     def echo(user:str, text:str) -> ChatMsg:
@@ -213,11 +213,11 @@ def handle_structured_input(userid:int, campaign:int, user:str, commands:List[Co
         elif cc == ChatCommand.NAME:
             apparent_user = command[1]
         elif cc == ChatCommand.SHUFFLE:
-            stuff: List[str] = command[2] # type: ignore
+            stuff: list[str] = command[2] # type: ignore
             random.shuffle(stuff)
             result.append(plain('', ' '.join(stuff)))
         elif cc == ChatCommand.CHOOSE:
-            options: List[str] = command[2] # type: ignore
+            options: list[str] = command[2] # type: ignore
             if options:
                 choice = random.choice(options)
                 result.append(plain(apparent_user, choice))

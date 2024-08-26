@@ -2,7 +2,7 @@
 # Copyright © 2021-2024, David Priver
 #
 from __future__ import annotations
-from typing import Optional, Callable, Any
+from typing import Callable, Any
 from threading import RLock
 import atexit
 import time
@@ -345,7 +345,7 @@ METHODS:dict[SpreadSheetMsgType, Callable[..., bool]] = {
     SpreadSheetMsgType.EDIT_CELLS: SpreadSheet.edit_cells,
 }
 
-def get_sheet(campaign:int, id:int) -> Optional[SpreadSheet]:
+def get_sheet(campaign:int, id:int) -> SpreadSheet|None:
     if campaign not in SPREADSHEETS:
         dlog('campaign does not have spreadsheets: %r')
         return None
@@ -368,7 +368,7 @@ def load_spreadsheets(campaign:int) -> None:
     SPREADSHEETS[campaign] = sheets
 
 
-def handle(campaign:int, msg:SpreadSheetMsg) -> Optional[SpreadSheetMsg]:
+def handle(campaign:int, msg:SpreadSheetMsg) -> SpreadSheetMsg|None:
     if msg[0] == SpreadSheetMsgType.SHOW:
         return msg
     with SHEETSLOCK:

@@ -6,7 +6,7 @@ from . import db
 from .logs import logging
 from .persist import RepeatTimer
 import time
-from typing import Set, Dict, List, Any, Tuple, Optional, TypeVar
+from typing import Any, TypeVar
 T = TypeVar('T')
 import json
 from threading import RLock
@@ -22,10 +22,10 @@ else:
 class Settings:
     def __init__(self, userid:int) -> None:
         self.userid = userid
-        self.global_settings = None # type: Optional[Dict[str, Any]]
-        self.local_settings = {} # type: Dict[int, Dict[str, Dict[str, Any]]]
-        self.local_dirty = set() # type: Set[Tuple[int, str, str]]
-        self.global_dirty = set() # type: Set[str]
+        self.global_settings = None # type: dict[str, Any]|None
+        self.local_settings = {} # type: dict[int, dict[str, dict[str, Any]]]
+        self.local_dirty = set() # type: set[tuple[int, str, str]]
+        self.global_dirty = set() # type: set[str]
         # record when accessed so we can estimate whether it is worth it to unload
         self.last_access = time.time()
         logging.info('Loading settings for %r', userid)
@@ -86,7 +86,7 @@ class Settings:
         self.global_dirty.clear()
 
 settingslock = RLock()
-all_settings = {} # type: Dict[int, Settings]
+all_settings = {} # type: dict[int, Settings]
 def get_settings(userid:int) -> Settings:
     if userid not in all_settings:
         all_settings[userid] = Settings(userid)

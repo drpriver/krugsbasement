@@ -2,7 +2,7 @@
 # Copyright © 2024, David Priver
 #
 from __future__ import annotations
-from typing import Optional, Callable, Any, DefaultDict
+from typing import Callable, Any, DefaultDict
 from threading import RLock
 import atexit
 import time

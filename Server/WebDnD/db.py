@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import threading
 import sqlite3
-from typing import Optional, Dict, Tuple, List, Any, NamedTuple, Set
+from typing import Any, NamedTuple
 import json
 import datetime
 from .logs import logging
@@ -211,7 +211,7 @@ def setup_tables() -> None:
         ''').fetchall()
         for m in maps:
             campid, mapid, name, objects, flags, grid_type = m
-            objs: List[list] = json.loads(objects)
+            objs: list[list] = json.loads(objects)
             for o in objs:
                 o.insert(5, 0) # hidinguser
             objs_ = json.dumps(objs)
@@ -286,7 +286,7 @@ def setup_tables() -> None:
         ''').fetchall()
         for m in maps:
             campid, mapid, name, objects, flags, grid_type, grid_color, bg_color = m
-            objs: List[list] = json.loads(objects) # type: ignore
+            objs: list[list] = json.loads(objects) # type: ignore
             for o in objs:
                 # add grid_color and bg_color to SUBMAP
                 if o[0] == 18:
@@ -308,9 +308,9 @@ def setup_tables() -> None:
             DELETE FROM usercampprefs
             WHERE category = 'macros';
         ''')
-        variables:Dict[Tuple[int, int], str] = {}
-        macros:Dict[Tuple[int, int], str] = {}
-        ids: Set[Tuple[int, int]] = set()
+        variables:dict[tuple[int, int], str] = {}
+        macros:dict[tuple[int, int], str] = {}
+        ids: set[tuple[int, int]] = set()
         for (uid, cid, cat, key, value) in macrodata:
             assert cat == 'macros'
             if key == 'used_variables':
@@ -543,22 +543,22 @@ def setup_tables() -> None:
             SELECT campaignid, mapid, objects FROM MAPS;
         ''').fetchall()
         for m in maps:
-            campid, mapid, objs = m
-            objects = json.loads(objs)
+            campid, mapid, obj_s = m
+            objects = json.loads(obj_s)
             for i, o in enumerate(objects):
                 o[1] = i + 1
-            objs = json.dumps(objects, separators=(',',':'))
+            obj_s = json.dumps(objects, separators=(',',':'))
             conn.execute('''
                 UPDATE maps
                 SET objects = ?
                 WHERE campaignid = ?
                 AND mapid = ?;
-            ''', (objs, campid, mapid))
+            ''', (obj_s, campid, mapid))
 
 with conn:
     setup_tables()
 
-def get_campaigns() -> Dict[str, int]:
+def get_campaigns() -> dict[str, int]:
     result = {}
     with DBLOCK:
         for row in conn.execute('''
@@ -571,7 +571,7 @@ def get_campaigns() -> Dict[str, int]:
             result[row[1]] = row[0]
     return result
 
-def get_users_campaigns(userid:int) -> List[Tuple[int, str]]:
+def get_users_campaigns(userid:int) -> list[tuple[int, str]]:
     with DBLOCK:
         return conn.execute('''
             SELECT
@@ -599,7 +599,7 @@ def get_users_campaigns(userid:int) -> List[Tuple[int, str]]:
         ''',
         (userid,)).fetchall()
 
-def get_owned_campaigns(userid:int) -> List[Tuple[int, str, str]]:
+def get_owned_campaigns(userid:int) -> list[tuple[int, str, str]]:
     with DBLOCK:
         rows = conn.execute('''
             SELECT id, name, magic
@@ -665,7 +665,7 @@ def store_app_kv(key:str, value:Any) -> None:
                 DO UPDATE SET value=excluded.value
             ;
         ''', (key, value))
-def get_app_kv(key:str, default:Any=None) -> Optional[Any]:
+def get_app_kv(key:str, default:Any=None) -> Any|None:
     with DBLOCK:
         cur = conn.execute('''
             SELECT
@@ -699,7 +699,7 @@ def store_campaign_kv(id: int, key:str, value:Any) -> None:
                 DO UPDATE SET value=excluded.value
             ;
         ''', (id, key, value))
-def get_campaign_kv(id:int, key:str, default:Any=None)->Optional[Any]:
+def get_campaign_kv(id:int, key:str, default:Any=None)->Any|None:
     with DBLOCK:
         cur = conn.execute('''
             SELECT
@@ -781,7 +781,7 @@ def map_convert(row:tuple) -> dict:
     )
     return result
 
-def get_map(id:int, mapid:int) -> Optional[dict]:
+def get_map(id:int, mapid:int) -> dict|None:
     with DBLOCK:
         cur = conn.execute('''
             SELECT
@@ -794,7 +794,7 @@ def get_map(id:int, mapid:int) -> Optional[dict]:
         ''', (id, mapid))
         row = cur.fetchone()
         return map_convert(row) if row is not None else None
-def get_maps(id:int) -> List[dict]:
+def get_maps(id:int) -> list[dict]:
     with DBLOCK, conn:
         cur = conn.execute('''
             SELECT
@@ -807,7 +807,7 @@ def get_maps(id:int) -> List[dict]:
         ''', (id, ))
         return [map_convert(row) for row in cur.fetchall()]
 
-def get_rolltable(id:int) -> Optional[list]:
+def get_rolltable(id:int) -> list|None:
     with DBLOCK:
         cur = conn.execute('''
             SELECT
@@ -820,7 +820,7 @@ def get_rolltable(id:int) -> Optional[list]:
         row = cur.fetchone()
     return json.loads(row[0]) if row else None
 
-def get_private_rolltable(userid:int, campaignid:int) -> Optional[list]:
+def get_private_rolltable(userid:int, campaignid:int) -> list|None:
     with DBLOCK:
         cur = conn.execute('''
             SELECT
@@ -859,7 +859,7 @@ def save_private_rolltable(userid:int, campaignid:int, data:list) -> None:
             ;
         ''', (userid, campaignid, data_))
 
-def lookup_campaign(name:str) -> Optional[int]:
+def lookup_campaign(name:str) -> int|None:
     with DBLOCK:
         cur = conn.execute('''
             SELECT
@@ -883,7 +883,7 @@ class CampaignInfo(NamedTuple):
     public: int
 
 
-def campaign_info(campaignid:int) -> Optional[CampaignInfo]:
+def campaign_info(campaignid:int) -> CampaignInfo|None:
     with DBLOCK:
         row = conn.execute('''
             SELECT
@@ -1018,7 +1018,7 @@ def revoke_invite_link(campaignid:int, magic:int) -> None:
             campaignid = ? AND magic = ?
         ;''', (campaignid, magic))
 
-def lookup_user_by_id(userid:int) -> Optional[Tuple[str, str]]:
+def lookup_user_by_id(userid:int) -> tuple[str, str]|None:
     with DBLOCK:
         return conn.execute('''
             SELECT
@@ -1030,7 +1030,7 @@ def lookup_user_by_id(userid:int) -> Optional[Tuple[str, str]]:
             ;
         ''', (userid,)).fetchone()
 
-def lookup_user_by_name(name:str) -> Optional[Tuple[int, str]]:
+def lookup_user_by_name(name:str) -> tuple[int, str]|None:
     with DBLOCK:
         return conn.execute('''
             SELECT
@@ -1042,7 +1042,7 @@ def lookup_user_by_name(name:str) -> Optional[Tuple[int, str]]:
             ;
         ''', (name,)).fetchone()
 
-def lookup_user_by_email(email:str) -> Optional[Tuple[int, str, str]]:
+def lookup_user_by_email(email:str) -> tuple[int, str, str]|None:
     if not email:
         return None
     with DBLOCK:
@@ -1068,7 +1068,7 @@ def lookup_email_by_user(userid:int) -> str | None:
         return None
 
 
-def create_user(name:str, passhash:str, email:str) -> Optional[int]:
+def create_user(name:str, passhash:str, email:str) -> int|None:
     with DBLOCK, conn:
         if email:
             try:
@@ -1133,7 +1133,7 @@ def join_campaign(userid:int, campaignid:int) -> None:
             ;
         ''', (userid, campaignid))
 
-def get_global_settings(userid:int) -> Dict[str, object]:
+def get_global_settings(userid:int) -> dict[str, object]:
     with DBLOCK:
         rows = conn.execute('''
             SELECT
@@ -1180,7 +1180,7 @@ def get_local_settings(userid:int, campaign:int) -> dict:
                 userid = ? AND campaignid = ?
             ;
         ''', (userid, campaign)).fetchall()
-    result = {} # type: Dict[str, Dict[str, Any]]
+    result = {} # type: dict[str, dict[str, Any]]
     for c, k, v in rows:
         if c not in result:
             result[c] = {}
@@ -1188,7 +1188,7 @@ def get_local_settings(userid:int, campaign:int) -> dict:
     # logging.info('rows: %r, result: %r', rows, result)
     return result
 
-def get_users_in_campaign(campaign:int) -> List[int]:
+def get_users_in_campaign(campaign:int) -> list[int]:
     with DBLOCK:
         rows = conn.execute('''
             SELECT userid
@@ -1198,7 +1198,7 @@ def get_users_in_campaign(campaign:int) -> List[int]:
         ''', (campaign,)).fetchall()
         return [r[0] for r in rows]
 
-def get_sheets(campaignid:int) -> list[dict]:
+def get_sheets(campaignid:int) -> list[dict[str, Any]]:
     result = []
     with DBLOCK:
         for row in conn.execute('''

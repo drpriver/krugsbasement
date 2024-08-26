@@ -4,7 +4,7 @@ from PIL import Image
 import ast
 import json
 import packrect
-from typing import NamedTuple, Optional, Type, List, Union, Dict, get_type_hints, Any, IO, Sequence
+from typing import NamedTuple, Type, Union, get_type_hints, Any, IO, Sequence
 def textopen(path:str, mode:str) -> IO[Any]:
     return open(path, mode, encoding='utf-8')
 
@@ -370,7 +370,7 @@ Data = Union[StatusIconData, TerrainData, TerrainIconData, FixtureData, TokenDat
 Thing = Union[StatusIcon, Terrain, TerrainIcon, Fixture, Token]
 OutTypes: list[Type[StatusIcon | Terrain | TerrainIcon | Fixture | Token]] = [StatusIcon, Terrain, TerrainIcon, Fixture, Token]
 ICONDIM=64
-def run_pack(data:Sequence[Data], path_locs:Dict[str, List]) -> Image:
+def run_pack(data:Sequence[Data], path_locs:dict[str, list]) -> Image:
     boxless = []
     boxed = []
     for d in data:
@@ -413,12 +413,12 @@ def add_deps(data:Sequence[Data], fp: IO[Any]) -> None:
             print(p.replace(' ', r'\ ')+':', file=fp)
 
 def main() -> None:
-    data: List[Data] = []
+    data: list[Data] = []
     data.extend(ICONS)
     data.extend(TERRAINS)
     data.extend(TERRAIN_ICONS_)
     data.extend(FIXTURES)
-    path_locs:Dict[str, List] = {ot.key():[] for ot in OutTypes}
+    path_locs:dict[str, list] = {ot.key():[] for ot in OutTypes}
     out = run_pack(data, path_locs)
     tokout = run_pack(TOKENS, path_locs)
 
