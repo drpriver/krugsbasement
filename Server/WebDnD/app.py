@@ -436,9 +436,6 @@ def get_sids_of_user_for_campaign(campaign:int, userid:int) -> list[str]:
             result.append(sid)
     return result
 
-session_id = AppKVPersister('session_id', 0).obj
-logging.info('session_id: %r', session_id.value)
-
 sid_to_campaign = {} # type: dict[str, int]
 user_id_to_sids = {} # type: dict[int, list[str]]
 def get_campaign(req:'flask.Request') -> int:
@@ -451,12 +448,9 @@ def record_campaign(req:'flask.Request', campaign:int) -> None:
             user_id_to_sids[current_user.userid] = []
         user_id_to_sids[current_user.userid].append(req.sid) # type: ignore
 
-
 @socketio.on('connect')
 def handle_connection() -> None:
-    session_id.value += 1
     emit(ToClient.API_VERSION, Api.VERSION)
-    emit(ToClient.SESSION_ID, session_id.value)
 
 @socketio.on('disconnect')
 def handle_disconnect() -> None:
@@ -506,6 +500,8 @@ def join(room:str) -> None:
 def post_join(mode:UiMode) -> None:
     mode = try_validate('UiMode', mode, UiMode.NORMAL)
     campaign = get_campaign(request)
+    session_id = db.get_and_increment_campaign_session_id(campaign)
+    emit(ToClient.SESSION_ID, session_id)
     if mode == UiMode.NORMAL:
         emit(ToClient.CANVAS_INITIALIZE_MAPS, canvas.get_state(campaign))
     if mode == UiMode.NORMAL or mode == UiMode.CHAT:

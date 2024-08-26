@@ -688,6 +688,28 @@ def get_app_kv(key:str, default:Any=None) -> Any|None:
                 ''', (key, default))
             return default
     return row[0] if row else None
+def get_and_increment_campaign_session_id(campaign:int) -> int:
+    with DBLOCK:
+        cur = conn.execute('''
+        SELECT value
+        FROM campkv
+        WHERE campaignid = ? and key = 'session_id';
+        ''', (campaign,))
+        row = cur.fetchone()
+        if row is None:
+            id = 2
+        else:
+            id = row[0] + 1
+        with conn:
+            conn.execute('''
+                INSERT INTO
+                campkv(campaignid, key, value)
+                VALUES
+                    (?, 'session_id', ?)
+                ON CONFLICT(campaignid, key)
+                    DO UPDATE SET value = excluded.value;
+            ''', (campaign, id))
+        return id
 def store_campaign_kv(id: int, key:str, value:Any) -> None:
     with DBLOCK, conn:
         conn.execute('''
