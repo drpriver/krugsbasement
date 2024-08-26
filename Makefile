@@ -34,6 +34,7 @@ MKDIR=$(PY) Scripts/winmkdir.py
 DEV_ACTIVATE=dev_venv\Scripts\activate
 SERV_ACTIVATE=serv_venv\Scripts\activate
 RMRF=$(PY) Scripts/winrmrf.py
+SHELL:=cmd
 endif
 
 node_modules:
