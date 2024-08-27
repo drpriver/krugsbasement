@@ -2358,7 +2358,7 @@ function note_mass_create_for_undo(map:DungeonMap, created_ids:Array<number>):vo
     };
     push_undo_event(map, undo_event);
 }
-function node_deletes_and_creates_for_undo(map:DungeonMap, deleted:Array<number>, created_ids:Array<number>):void{
+function note_deletes_and_creates_for_undo(map:DungeonMap, deleted:Array<number>, created_ids:Array<number>):void{
     const creat: UndoMassCreate = {
         type: UNDO_EVENT_TYPE.MASS_CREATE,
         ids: created_ids,
@@ -8597,7 +8597,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     publish_objs_by_ids(view.map, created_ids);
                     if(deleted_ids.length){
                         publish_delete_by_ids(view.map.map_id, deleted_ids);
-                        node_deletes_and_creates_for_undo(view.map, deleted_ids, created_ids);
+                        note_deletes_and_creates_for_undo(view.map, deleted_ids, created_ids);
                     }
                     else {
                         note_mass_create_for_undo(view.map, created_ids);
