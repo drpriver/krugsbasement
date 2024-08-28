@@ -59,6 +59,7 @@ ICONS = [
     StatusIconData(13, 'Prone',       'Prone.png',        ),
     StatusIconData(14, 'Restrained',  'Restrained.png',   ),
     StatusIconData(15, 'Stunned',     'Stunned.png',      ),
+    StatusIconData(16, 'Acted',     'Holding Action.png',      ),
 ]
 
 class TerrainData(NamedTuple):

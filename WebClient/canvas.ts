@@ -8980,7 +8980,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;
         const ctrl_or_cmd_is_pressed = e.ctrlKey || e.metaKey;
         const other_modifiers = e.altKey || e.shiftKey;
-        // const shift = e.shiftKey;
+        const shift = e.shiftKey;
         const shortcut = ctrl_or_cmd_is_pressed && !other_modifiers;
         const view = get_active_view();
         switch(e.key){
@@ -9182,6 +9182,33 @@ document.addEventListener('DOMContentLoaded', function():void{
                 const index = (+e.key) - 1;
                 if(index < numeric_hot_key.max_index)
                     numeric_hot_key.func(index);
+            }break;
+            case ' ':{
+                if(!view.selected.size)
+                    break;
+                let changed = [];
+                for(let item of view.selected){
+                    let o = view.map.canvas_objs.get(item)!;
+                    if(o.flags & CanvasFlag.DELETED) continue;
+                    if(o.type != CanvasType.EZ_TOKEN && o.type != CanvasType.IMG_TOKEN) continue;
+                    if(ctrl_or_cmd_is_pressed){
+                        if(!o.statusflags) continue;
+                        o.statusflags = 0;
+                    }
+                    else if(shift){
+                        if(!(o.statusflags & TokenStatusFlags.ACTED)) continue;
+                        o.statusflags &= ~TokenStatusFlags.ACTED;
+                    }
+                    else{
+                        if(o.statusflags & TokenStatusFlags.ACTED) continue;
+                        o.statusflags |= TokenStatusFlags.ACTED;
+                    }
+                    changed.push(strip_obj(o));
+                }
+                if(changed.length){
+                    publish_obj_updates(view.map.map_id, changed);
+                    request_render();
+                }
             }break;
             default:
                 return;

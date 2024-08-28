@@ -640,6 +640,7 @@ enum TokenStatusFlags: int flag
     PRONE      = 1 << 13
     RESTRAINED = 1 << 14
     STUNNED    = 1 << 15
+    ACTED      = 1 << 16
 
 //  ez-token
 //  --------

@@ -535,7 +535,7 @@ def post_join(mode:UiMode) -> None:
 @socketio.on(FromClient.CANVAS_CREATE_OBJECTS)
 @validated
 def handle_canvas_create(data:list[CreateObjectsMessage]) -> None:
-    dlog('data: %r', data)
+    # dlog('data: %r', data)
     campaign = get_campaign(request)
     response = canvas.handle_create(campaign, data)
     if response:
