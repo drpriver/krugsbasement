@@ -141,6 +141,12 @@ function is_resizable(obj:CanvasObject): obj is Resizable{
     }
 }
 
+type TokenType = ImgToken | EzToken;
+
+function is_token(obj:CanvasObject): obj is TokenType{
+    return obj.type == CanvasType.EZ_TOKEN || obj.type == CanvasType.IMG_TOKEN;
+}
+
 //
 // Base of all objects and then the rest of the fields are different.
 // Essentially, they are tagged unions.
@@ -481,6 +487,8 @@ type EzToken = {
     width: number, // in squares (?)
     height: number, // in squares (?)
     statusflags: TokenStatusFlags,
+    hp: number;
+    maxhp: number;
 }
 
 //  img-token
@@ -498,6 +506,8 @@ type ImgToken = {
     width: number; // in squares (?)
     height: number; // in squares (?)
     statusflags: TokenStatusFlags;
+    hp: number;
+    maxhp: number;
 }
 //  door
 //  ----
@@ -2109,7 +2119,7 @@ function add_text(map:DungeonMap, id:number, base_x:number, base_y:number, text:
     const obj = make_text(id, base_x, base_y,  text, size, alignment, map_id);
     add_canv_obj(map, obj);
 }
-function make_ez_token(id:number, base_x:number, base_y:number, text:string, color:string, width:number, height:number):EzToken{
+function make_ez_token(id:number, base_x:number, base_y:number, text:string, color:string, width:number, height:number, hp:number, maxhp:number):EzToken{
     const obj: EzToken = {
         type: CanvasType.EZ_TOKEN,
         id: id,
@@ -2122,14 +2132,16 @@ function make_ez_token(id:number, base_x:number, base_y:number, text:string, col
         width: width,
         height: height,
         statusflags: 0,
+        hp: hp,
+        maxhp: maxhp,
     };
     return obj;
 }
-function add_ez_token(map:DungeonMap, id:number, base_x:number, base_y:number, text:string, color:string, width:number, height:number):void{
-    const obj = make_ez_token(id, base_x, base_y, text, color, width, height);
+function add_ez_token(map:DungeonMap, id:number, base_x:number, base_y:number, text:string, color:string, width:number, height:number, hp:number, maxhp:number):void{
+    const obj = make_ez_token(id, base_x, base_y, text, color, width, height, hp, maxhp);
     add_canv_obj(map, obj);
 }
-function make_img_token(id:number, base_x:number, base_y:number, url:string, width:number, height: number):ImgToken{
+function make_img_token(id:number, base_x:number, base_y:number, url:string, width:number, height: number, hp:number, maxhp:number):ImgToken{
     const obj:ImgToken = {
         type: CanvasType.IMG_TOKEN,
         id: id,
@@ -2142,12 +2154,14 @@ function make_img_token(id:number, base_x:number, base_y:number, url:string, wid
         width: width,
         height: height,
         statusflags: 0,
+        hp: hp,
+        maxhp: maxhp,
     };
     delay_load_obj_image(obj, REFERENCE.WIDTH, REFERENCE.WIDTH, 1, 1);
     return obj;
 }
-function add_img_token(map:DungeonMap, id:number, base_x:number, base_y:number, url:string, width:number, height:number):void{
-    const obj = make_img_token(id, base_x, base_y, url, width, height);
+function add_img_token(map:DungeonMap, id:number, base_x:number, base_y:number, url:string, width:number, height:number, hp:number, maxhp:number):void{
+    const obj = make_img_token(id, base_x, base_y, url, width, height, hp, maxhp);
     add_canv_obj(map, obj);
 }
 
@@ -3798,11 +3812,11 @@ function strip_obj(obj:CanvasObject): StrippedObj{
             return stripped_obj;
         }break;
         case CanvasType.EZ_TOKEN:{
-            const stripped_obj: StrippedEzToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.text, obj.color, obj.width, obj.height, obj.statusflags];
+            const stripped_obj: StrippedEzToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.text, obj.color, obj.width, obj.height, obj.statusflags, obj.hp, obj.maxhp];
             return stripped_obj;
         }break;
         case CanvasType.IMG_TOKEN:{
-            const stripped_obj: StrippedImgToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.url, obj.width, obj.height, obj.statusflags];
+            const stripped_obj: StrippedImgToken = [obj.type, obj.id, obj.base_x, obj.base_y, obj.flags, obj.hidinguser, obj.url, obj.width, obj.height, obj.statusflags, obj.hp, obj.maxhp];
             return stripped_obj;
         }break;
         case CanvasType.DOOR:{
@@ -4031,6 +4045,8 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 width       : (sobj as StrippedEzToken)[8],
                 height      : (sobj as StrippedEzToken)[9],
                 statusflags : (sobj as StrippedEzToken)[10],
+                hp          : (sobj as StrippedEzToken)[11],
+                maxhp       : (sobj as StrippedEzToken)[12],
             };
             return obj;
         }break;
@@ -4046,6 +4062,8 @@ function unstrip_obj(sobj: StrippedObj):CanvasObject{
                 width       : (sobj as StrippedImgToken)[7],
                 height      : (sobj as StrippedImgToken)[8],
                 statusflags : (sobj as StrippedImgToken)[9],
+                hp          : (sobj as StrippedImgToken)[10],
+                maxhp       : (sobj as StrippedImgToken)[11],
             };
             delay_load_obj_image(obj, obj.width*REFERENCE.WIDTH, obj.height*REFERENCE.WIDTH, obj.width, obj.width);
             return obj;
@@ -4479,6 +4497,8 @@ function launch_edit_dialog(view:DungeonMapView):void{
             dialog.f.width.value = ""+obj.width;
             dialog.f.height.value = ""+obj.height;
             dialog.f.text.value = obj.text;
+            dialog.f.hp.value = obj.hp?""+obj.hp:"";
+            dialog.f.maxhp.value = obj.maxhp?""+obj.maxhp:"";
             dialog.hide_handler = function():void{
                 dialog.f.conditions.innerHTML = '';
             };
@@ -4523,6 +4543,9 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 if(text) obj.text = text;
                 let width  = +dialog.f.width.value;
                 let height = +dialog.f.height.value;
+                let hp = +dialog.f.hp.value;
+                let maxhp = +dialog.f.maxhp.value;
+                if(maxhp < 0) maxhp = 0;
                 if(!width) width = 1;
                 if(!height) height = 1;
                 if(!width || width < 0) width = view.gridscale == GRIDSCALE.TEN?1:0.5;
@@ -4532,6 +4555,8 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 const color = dialog.f.color.value;
                 obj.color = color;
                 obj.statusflags = flags_after;
+                obj.hp = hp;
+                obj.maxhp = maxhp;
                 const after = strip_obj(obj);
                 publish_obj_updates(view.map.map_id, [after]);
                 request_render();
@@ -4545,6 +4570,8 @@ function launch_edit_dialog(view:DungeonMapView):void{
             dialog.f.width.value = ""+obj.width;
             dialog.f.height.value = ""+obj.height;
             dialog.f.url.value = obj.url;
+            dialog.f.hp.value = obj.hp?""+obj.hp:"";
+            dialog.f.maxhp.value = obj.maxhp?""+obj.maxhp:"";
             const conditions = dialog.f.conditions;
             dialog.hide_handler = function():void{
                 conditions.innerHTML = '';
@@ -4586,10 +4613,15 @@ function launch_edit_dialog(view:DungeonMapView):void{
             dialog.ok_handler = function():void{
                 let width  = +dialog.f.width.value;
                 let height = +dialog.f.height.value;
+                let hp = +dialog.f.hp.value;
+                let maxhp = +dialog.f.maxhp.value;
+                if(maxhp < 0) maxhp = 0;
                 if(!width || width < 0) width = view.gridscale == GRIDSCALE.TEN?1:0.5;
                 if(!height || height < 0) height = view.gridscale == GRIDSCALE.TEN?1:0.5;
                 obj.width = width;
                 obj.height = height;
+                obj.hp = hp;
+                obj.maxhp = maxhp;
                 obj.statusflags = flags_after;
                 obj.url = dialog.f.url.value.trim();
                 if(obj.url != url_before){
@@ -5079,6 +5111,25 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
             }
         }
     }
+    function draw_hp_bar(token_bbox: Bbox, hp: number, maxhp: number){
+        if(!maxhp) return;
+        if(hp > maxhp) hp = maxhp;
+        if(hp < 0) hp = 0;
+        let y0 = token_bbox.y1 - 6;
+        ctx.fillStyle = '#333';
+        let w = token_bbox.x1-token_bbox.x0-4;
+        let x0 = token_bbox.x0+2;
+        ctx.fillRect(x0, y0, w, 8);
+        ctx.fillStyle = '#555';
+        ctx.fillRect(x0+1, y0+1, (w-2), 6);
+        if(hp <= maxhp/10)
+            ctx.fillStyle = '#e33';
+        else if(hp <= maxhp/2)
+            ctx.fillStyle = '#ee3';
+        else
+            ctx.fillStyle = '#3e3';
+        ctx.fillRect(x0+1, y0+1, (w-2)*hp/maxhp, 6);
+    }
     const one_selection = selected.size == 1;
     // TAG renderOBJECTS
     for(let i = 0; i < length; ++i){
@@ -5493,6 +5544,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                 ctx.fillStyle = '#000';
                 ctx.fillText(obj.text, bx+radius_x, by+radius_y);
                 draw_status_icons(token_bbox, obj.statusflags, obj.width);
+                draw_hp_bar(token_bbox, obj.hp, obj.maxhp);
             }break;
             case CanvasType.IMAGE:{ // TAG renderIMAGE
                 const bbox = {
@@ -5567,6 +5619,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                     ctx.fill();
                 }
                 draw_status_icons(token_bbox, obj.statusflags, obj.width);
+                draw_hp_bar(token_bbox, obj.hp, obj.maxhp);
             }break;
             case CanvasType.DOOR:{ // TAG renderDOOR
                 const is_vertical = obj.orientation === Orientation.VERTICAL;
@@ -7328,8 +7381,7 @@ function maybe_move_selection_one_unit(view:DungeonMapView, dx:number, dy:number
         return false;
     if(obj.flags & CanvasFlag.DELETED)
         return false;
-    if(obj.type != CanvasType.EZ_TOKEN && obj.type != CanvasType.IMG_TOKEN)
-        return false;
+    if(!is_token(obj)) return false;
     const before = strip_obj(obj);
     obj.base_x += dx;
     obj.base_y += dy;
@@ -8274,13 +8326,16 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         if(!text) return;
                         let width  = +dialog.f.width.value;
                         let height = +dialog.f.height.value;
+                        let hp = +dialog.f.hp.value;
+                        let maxhp = +dialog.f.maxhp.value;
+                        if(maxhp < 0) maxhp = 0;
                         if(!width || width < 0) width = view.gridscale == GRIDSCALE.TEN?1:0.5;
                         if(!height || height < 0) height = view.gridscale == GRIDSCALE.TEN?1:0.5;
                         const color = dialog.f.color.value;
                         let id = get_new_id();
                         ez_token_color = color;
                         let snap = get_snap_tl_func();
-                        add_ez_token(view.map, id, snap(x0), snap(y0), text, color, width, height);
+                        add_ez_token(view.map, id, snap(x0), snap(y0), text, color, width, height, hp, maxhp);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                         request_render();
@@ -8325,7 +8380,10 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         let h = +dialog.f.height.value;
                         if(!w || w < 0) w = view.gridscale == GRIDSCALE.TEN?1:0.5;
                         if(!h || h < 0) h = view.gridscale == GRIDSCALE.TEN?1:0.5;
-                        add_img_token(view.map, id, snap(x0), snap(y0), text, w, h);
+                        let hp = +dialog.f.hp.value;
+                        let maxhp = +dialog.f.maxhp.value;
+                        if(maxhp < 0) maxhp = 0;
+                        add_img_token(view.map, id, snap(x0), snap(y0), text, w, h, hp, maxhp);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                         request_render();
@@ -8495,18 +8553,39 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             case ToolType.TILE:{ // TAG toolTILE
                 let deleted_ids: Array<number> = [];
                 let created_ids:Array<number> = [];
-                let drag = false;
+                // let drag = false;
+                let big = by_id('bigfill-checkbox').checked;
+                let protect = by_id('protect-checkbox').checked;
                 let prevx:number|undefined = undefined; let prevy:number|undefined = undefined;
                 function do_tile(x:number, y:number):void{
                     let old_tile = tile_at(view, x, y, current_tile_type);
-                    if(drag){
-                        if(old_tile) return;
-                    }
-                    else {
-                        if(old_tile){
-                            old_tile.flags |= CanvasFlag.DELETED;
-                            deleted_ids.push(old_tile.id);
+                    if(old_tile && old_tile.hidinguser == hiddenid()){
+                        if(protect) return;
+                        switch(current_tile_type){
+                            case TileType.FILLED:
+                                if(old_tile.type == CanvasType.FILLED_TILE){
+                                    const o = old_tile as FilledTile;
+                                    if(o.color === get_primary_color())
+                                        return;
+                                }
+                                break;
+                            case TileType.TERRAIN:
+                                if(old_tile.type == CanvasType.TERRAIN_TILE){
+                                    const o = old_tile as TerrainTile;
+                                    if(o.terrain_id == current_terrain_id)
+                                        return;
+                                }
+                                break;
+                            case TileType.ICON:
+                                if(old_tile.type == CanvasType.ICON_TILE){
+                                    const o = old_tile as IconTile;
+                                    if(o.terrainicon_id == current_terrain_icon_id)
+                                        return;
+                                }
+                                break;
                         }
+                        old_tile.flags |= CanvasFlag.DELETED;
+                        deleted_ids.push(old_tile.id);
                     }
                     let id = get_new_id();
                     created_ids.push(id);
@@ -8553,6 +8632,23 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     }
                     request_render();
                 }
+                function do_tile_big(x:number, y:number):void{
+                    const POINTS = [
+                        -4, 0, -2, -3,
+                        4, 0, 2, -3,
+                        -2, 3, 2, 3,
+                        -3, -1.5, -3, -.5, -3, .5, -3, 1.5,
+                        -2, -2, -2, -1, -2, 0, -2, 1, -2, 2,
+                        -1, -2.5, -1, -1.5, -1, -0.5, -1, 0.5, -1, 1.5, -1, 2.5,
+                        0, -3, 0, -2, 0, -1, 0, 0, 0, 1, 0, 2, 0, 3,
+                        1, -2.5, 1, -1.5, 1, -0.5, 1, 0.5, 1, 1.5, 1, 2.5,
+                        2, -2, 2, -1, 2, 0, 2, 1, 2, 2,
+                        3, -1.5, 3, -.5, 3, .5, 3, 1.5,
+                    ];
+                    const len = POINTS.length;
+                    for(let i = 0; i < len; i+=2)
+                        do_tile(x+POINTS[i]*REFERENCE.WIDTH, y+POINTS[i+1]*REFERENCE.WIDTH);
+                }
                 function make_tile(e:PointerEvent):void{
                     let x:number;
                     let y:number;
@@ -8579,15 +8675,15 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                 x_ = snap(x_);
                                 y_ = snap(y_);
                             }
-                            do_tile(x_, y_);
+                            if(big) do_tile_big(x_, y_); else do_tile(x_, y_);
                         }
                     }
-                    do_tile(x, y);
+                    if(big) do_tile_big(x, y); else do_tile(x, y);
                     prevx = x;
                     prevy = y;
                 }
                 make_tile(e);
-                drag = true;
+                // drag = true;
                 the_canvas.addEventListener('pointermove', make_tile);
                 function finish():void{
                     // console.log('created_ids', created_ids);
@@ -8854,6 +8950,36 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             menu.separator();
         }
         else {
+            let obj:TokenType|undefined;
+            for(let s of view.selected){
+                const o = view.map.canvas_objs.get(s)!;
+                if(!is_token(o)) continue;
+                obj = o;
+            }
+            if(obj && (obj.hp || obj.maxhp)){
+                menu.numbox('HP', obj.hp, (v:number):void=>{
+                    obj!.hp = v;
+                    publish_obj_updates(view.map.map_id, [strip_obj(obj!)]);
+                    request_render();
+                }, obj.maxhp);
+            }
+            if(obj && PACKED && PACKED_LOAD==3){
+                for(let i = 0; i < PACKED.status_icons.length; i++){
+                    const si = PACKED.status_icons[i];
+                    const flag = 1 << i;
+                    const name = si[1];
+                    let img = packed_to_img(si[2], si[3], si[4], si[5], si[1], 16, 16);
+                    menu.checkbox(name, obj.statusflags & flag?true:false, (b:boolean):void=>{
+                        if(b)
+                            obj!.statusflags |= flag;
+                        else
+                            obj!.statusflags &= ~flag;
+                        publish_obj_updates(view.map.map_id, [strip_obj(obj!)]);
+                        request_render();
+                    }, img);
+                }
+                menu.separator();
+            }
             if(whenflags & CONTEXTMENUWHENFLAGS.ONE_SELECTED){
                 if(edit_is_impossible(view))
                     menu.disabled('Edit');
@@ -8965,12 +9091,12 @@ document.addEventListener('DOMContentLoaded', function():void{
             remove_ctx_menu();
             return;
         }
-        if(_ctxmenu_remover && e.key == 'ArrowDown'){
+        if(_ctxmenu_remover && (e.key == 'ArrowDown' || e.key == 'j')){
             const e = document.querySelector('section.menu .menuitem:not(.disabled)');
             if(e) (e as any).focus()
             return;
         }
-        if(_ctxmenu_remover && e.key == 'ArrowUp'){
+        if(_ctxmenu_remover && (e.key == 'ArrowUp' || e.key == 'k')){
             const e = document.querySelector('section.menu .menuitem:last-child:not(.disabled)');
             if(e) (e as any).focus()
             return;
@@ -9039,6 +9165,14 @@ document.addEventListener('DOMContentLoaded', function():void{
                 note_delete_by_ids_for_undo(view.map, deleted);
                 end_selecting(view);
             }break;
+            case 'Enter':
+                const m = new MouseEvent('contextmenu',
+                {
+                    clientX: TheCanvas.width/2,
+                    clientY: TheCanvas.height/2,
+                });
+                TheCanvas.dispatchEvent(m);
+                break;
             case 'q':
                 if(modified) return;
                 visually_set_snapmode(SNAPMODE.GRID);
@@ -9183,6 +9317,9 @@ document.addEventListener('DOMContentLoaded', function():void{
                 if(index < numeric_hot_key.max_index)
                     numeric_hot_key.func(index);
             }break;
+            case 'b':
+                by_id('bigfill-checkbox').click();
+                break;
             case ' ':{
                 if(!view.selected.size)
                     break;
@@ -9190,19 +9327,22 @@ document.addEventListener('DOMContentLoaded', function():void{
                 for(let item of view.selected){
                     let o = view.map.canvas_objs.get(item)!;
                     if(o.flags & CanvasFlag.DELETED) continue;
-                    if(o.type != CanvasType.EZ_TOKEN && o.type != CanvasType.IMG_TOKEN) continue;
-                    if(ctrl_or_cmd_is_pressed){
+                    if(!is_token(o)) continue;
+                    if(shift){
                         if(!o.statusflags) continue;
                         o.statusflags = 0;
                     }
-                    else if(shift){
-                        if(!(o.statusflags & TokenStatusFlags.ACTED)) continue;
-                        o.statusflags &= ~TokenStatusFlags.ACTED;
+                    else {
+                        o.statusflags ^= TokenStatusFlags.ACTED;
                     }
-                    else{
-                        if(o.statusflags & TokenStatusFlags.ACTED) continue;
-                        o.statusflags |= TokenStatusFlags.ACTED;
-                    }
+                    // else if(shift){
+                        // if(!(o.statusflags & TokenStatusFlags.ACTED)) continue;
+                        // o.statusflags &= ~TokenStatusFlags.ACTED;
+                    // }
+                    // else{
+                        // if(o.statusflags & TokenStatusFlags.ACTED) continue;
+                        // o.statusflags |= TokenStatusFlags.ACTED;
+                    // }
                     changed.push(strip_obj(o));
                 }
                 if(changed.length){

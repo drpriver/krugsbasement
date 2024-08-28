@@ -320,6 +320,11 @@
         <td>${label('height', 'Height (sq):')}
         <td>${tokennumbox('height')}
       <tr>
+        <td>${label('hp', 'HP:')}
+        <td>${tokennumbox('hp')}
+        <td>${label('maxhp', 'Max HP:')}
+        <td>${tokennumbox('maxhp')}
+      <tr>
         <td>${label('text', 'Text:')}
         <td colspan="3">${textbox('text')}
     </table>
@@ -335,6 +340,11 @@
         <td>${tokennumbox('width')}
         <td>${label('height', 'Height (sq):')}
         <td>${tokennumbox('height')}
+      <tr>
+        <td>${label('hp', 'HP:')}
+        <td>${tokennumbox('hp')}
+        <td>${label('maxhp', 'Max HP:')}
+        <td>${tokennumbox('maxhp')}
       <tr>
         <td>${label('url', 'Token Image Url:')}
         <td colspan=3>${urlbox('url')}
@@ -740,6 +750,8 @@
         <span id="color-picker2-dropdown" class="color-picker-dropdown">▼</span>
         </div>
         <label>Thick<input type="number" id="line-thickness" value="4" max="20" min="1"></label>
+        <label>BigFill<input type="checkbox" id="bigfill-checkbox"> </label>
+        <label>Protect<input type="checkbox" id="protect-checkbox"> </label>
     ::div #id(zoomers)
       ::raw
         <button id="zoom-out">Zoom -</button>

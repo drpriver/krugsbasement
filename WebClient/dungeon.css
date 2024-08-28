@@ -819,12 +819,18 @@ section.menu {
   padding: 6px 6px;
   white-space: nowrap;
 }
-section.menuitem, section.color-menuitem {
+section.menuitem, label.menuitem, section.color-menuitem {
   padding: 3.5px 8px;
   border-radius: 4px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
   cursor: default;
   font-size: 10pt;
+}
+label.menuitem :last-child {
+  margin-left: auto;
+}
+label.menuitem {
+  display: flex;
 }
 section.menuseparator {
   border-bottom: 1px solid #c8c8c8;
@@ -834,13 +840,18 @@ section.menuseparator {
 section.color-menuitem:hover {
   border: 2px solid yellow !important;
 }
+label.menuitem.disabled,
 section.menuitem.disabled {
   color: gray;
 }
+/*
+label.menuitem:hover:not(.disabled),
 section.menuitem:hover:not(.disabled) {
   background-color: #2962D8;
   color: #fff;
 }
+*/
+label.menuitem:focus:not(.disabled),
 section.menuitem:focus:not(.disabled) {
   background-color: #2962D8;
   color: #fff;

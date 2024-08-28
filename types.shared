@@ -657,6 +657,8 @@ struct StrippedEzToken: array
     width: float # in squares (?)
     height: float # in squares (?)
     statusflags: TokenStatusFlags
+    hp: int
+    maxhp: int
 
 //  img-token
 //  --------
@@ -672,6 +674,8 @@ struct StrippedImgToken: array
     width: float # in squares (?)
     height: float # in squares (?)
     statusflags: TokenStatusFlags
+    hp: int
+    maxhp: int
 
 enum DoorType: int
     DOOR = 0
