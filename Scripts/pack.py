@@ -374,7 +374,7 @@ TOKENS = [
 Data = Union[StatusIconData, TerrainData, TerrainIconData, FixtureData, TokenData]
 Thing = Union[StatusIcon, Terrain, TerrainIcon, Fixture, Token]
 OutTypes: list[Type[StatusIcon | Terrain | TerrainIcon | Fixture | Token]] = [StatusIcon, Terrain, TerrainIcon, Fixture, Token]
-ICONDIM=64
+ICONDIM=128
 def run_pack(data:Sequence[Data], path_locs:dict[str, list]) -> Image:
     boxless = []
     boxed = []
