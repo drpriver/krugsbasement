@@ -644,7 +644,9 @@ enum TokenStatusFlags: int flag
     BLUR            = 1 << 17
     STRENGTH        = 1 << 18
     SHIELD_OF_FAITH = 1 << 19
-    ACTED           = 1 << 20
+    MARKED          = 1 << 20
+    REACTED         = 1 << 21
+    ACTED           = 1 << 22
 
 //  ez-token
 //  --------
