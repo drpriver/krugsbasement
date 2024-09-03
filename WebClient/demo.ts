@@ -327,7 +327,7 @@ function do_emit(type:FromClient, arg?:any, cb?:any):void{
                     for(let i = 0; i < 3; i++)
                         arg[1].column_names.push('');
                     for(let i = 0; i < 3*4; i++)
-                        arg[1].cells.push('');
+                        arg[1].cells.push(['','', 0]);
                 }
             }
             invoke_cb(ToClient.SPREADSHEET, arg);
