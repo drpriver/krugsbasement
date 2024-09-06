@@ -37,7 +37,7 @@ button {
   -webkit-user-select: none;
   user-select: none;
 }
-body.dark-mode .window, body.dark-mode .tracker-grid, body.dark-mode #disconnect, body.dark-mode div.hover {
+body.dark-mode .window, body.dark-mode .tracker-window, body.dark-mode #disconnect, body.dark-mode div.hover {
   box-shadow: 0px 10px 24px rgba(0,0,0,0.8);
 }
 .window.fullscreen-window {
@@ -1081,7 +1081,7 @@ table.ngroup td:last-child {
   body.dark-mode #colors, body.dark-mode #zoomers {
     background-color: #333;
   }
-  body.dark-mode .window, body.dark-mode .window2, body.dark-mode .tracker-grid {
+  body.dark-mode .window, body.dark-mode .window2, body.dark-mode .tracker-grid, body.dark-mode .tracker-window {
     background-color: #333;
   }
   body.dark-mode .window-handle, body.dark-mode #tool-container-handle {
@@ -1132,7 +1132,7 @@ table.ngroup td:last-child {
       color: #eee;
       background-color: #1e1e1e;
     }
-    body.dark-mode .window, body.dark-mode .hover, body.dark-mode .tracker-grid {
+    body.dark-mode .window, body.dark-mode .hover, body.dark-mode .tracker-window {
       color: #fff;
     }
     body.dark-mode input {
@@ -1154,7 +1154,7 @@ table.ngroup td:last-child {
 @media only screen and (hover: none) and (pointer: coarse),
 @media only screen and (hover: none) and (pointer: coarse)
 {
-  .window, #tool-container, #macro-panel, #dice-history, #notifications, .tracker-grid {
+  .window, #tool-container, #macro-panel, #dice-history, #notifications, .tracker-window {
     display: none;
   }
   .three-buttons {
@@ -1213,7 +1213,7 @@ body.mobile .notes-window {
   grid-template-rows: 32px auto;
 }
 
-.tracker-grid {
+.tracker-window {
   position: fixed;
   top: 10%;
   left: 10%;
@@ -1231,6 +1231,14 @@ body.mobile .notes-window {
   max-width: 95%;
   overflow: auto;
   font-size: 10pt;
+  grid-template-rows: max-content max-content;
+  grid-template-columns: 100%;
+}
+.tracker-grid {
+  display: grid;
+  max-width: 90vw;
+  overflow-x: auto;
+  overflow-y: auto;
 }
 .noscrollbar {
   scrollbar-width: none;
@@ -1238,9 +1246,8 @@ body.mobile .notes-window {
 .noscrollbar::-webkit-scrollbar {
     display: none;
 }
-.tracker-grid .window-handle {
-  grid-column-start: 1;
-  grid-column-end: -1;
+.tracker-window .window-handle {
+  width: 100%;
 }
 .tracker-head {
   font-weight: bold;

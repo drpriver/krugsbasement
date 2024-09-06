@@ -87,7 +87,8 @@ type SpreadSheet = {
     //
     id: number;
     parent: number;
-    w:HTMLDivElement;
+    win:HTMLDivElement;
+    grid: HTMLDivElement;
     hidden: boolean;
     _dirty: boolean;
     _wasmed: boolean;
@@ -304,12 +305,14 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
     const winid = `spreadsheet-window-${id}`;
     const openid = `${winid}/open`
     // idk should assert here or something if winid already exists
-    const w = elem_with_parent(document.body, 'div', winid, 'tracker-grid');
+    const win = elem_with_parent(document.body, 'div', winid, 'tracker-window');
+    /*
     if(IS_WINDOWS){
         // Windows scrollbars are atrocious
         w.classList.add('noscrollbar');
     }
-    const wh = elem_with_parent(w, 'div', null, 'window-handle');
+    */
+    const wh = elem_with_parent(win, 'div', null, 'window-handle');
     const xxx_timing = elem_with_parent(wh, 'span');
     wh.oncontextmenu = function(e:MouseEvent):void{
         const menu = ctx_menu(e);
@@ -425,13 +428,18 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         else
             menu.disabled('Delete Spreadsheet');
         menu.separator();
+        menu.item('Close', function():void{
+            x.click();
+        });
         menu.canceller();
         menu.install();
     }
     const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
     const t = elem_parent_text(wh, 'span', '', null, 'window-title');
 
-    setup_movable_window(w, wh, WINDOWFLAGS.REMEMBER_POSITION|WINDOWFLAGS.LOCAL_REMEMBER);
+    const grid = elem_with_parent(win, 'div', null, 'tracker-grid');
+
+    setup_movable_window(win, wh, WINDOWFLAGS.REMEMBER_POSITION|WINDOWFLAGS.LOCAL_REMEMBER);
     const result = {
         xxx_timing,
         func_nargs: 0,
@@ -439,7 +447,8 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         _func_els: [],
         id,
         parent,
-        w:w,
+        win:win,
+        grid:grid,
         _dirty: false,
         _wasmed: false,
         _down: false,
@@ -452,10 +461,10 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             recalc(id);
             result.make_top();
             store_local(StorageCategory.WINDOW, openid, '1');
-            w.style.display = 'grid';
+            win.style.display = 'grid';
         },
         hide: function():void{
-            w.style.display = 'none';
+            win.style.display = 'none';
             result.hidden = true;
         },
         cell_elems: [],
@@ -484,7 +493,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         setTimeout(()=>{recalc(result.id);}, 0);
     }
     function gtr():string{
-        const n = 2 + result.cell_elems.length;
+        const n = 1 + result.cell_elems.length;
         return `repeat(${n}, max-content)`;
     }
     function gtc():string{
@@ -780,7 +789,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         menu.canceller();
         menu.install();
     }
-    result.header_number_el = elem_with_parent(w, 'div', null, 'tracker-numbered');
+    result.header_number_el = elem_with_parent(grid, 'div', null, 'tracker-numbered');
     if(!(result.flags & SpreadSheetFlags.NUMBERED))
         result.header_number_el.style.display = 'none';
     function idx_of(cell:HTMLDivElement):[number, number]{
@@ -1396,7 +1405,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         const prev = find_prev_elem(row_idx, col_idx);
         prev.insertAdjacentElement('afterend', cell);
     }
-    result.make_top = setup_zsorted_window(w);
+    result.make_top = setup_zsorted_window(win);
     result.add_row1 = function(whence:number):void{
         result.add_row2(whence, []);
     };
@@ -1411,7 +1420,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         if(whence < result.number_els.length)
             result.number_els[whence].insertAdjacentElement('beforebegin', num_el);
         else
-            result.w.appendChild(num_el);
+            result.grid.appendChild(num_el);
         result.number_els.splice(whence, 0, num_el);
         result.cell_elems.splice(whence, 0, []);
         result.cell_sources.splice(whence, 0, []);
@@ -1426,7 +1435,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         if(result.flags & SpreadSheetFlags.NUMBERED)
             for(let i = 0; i < result.number_els.length; i++)
                 result.number_els[i].textContent = ''+(i+1);
-        w.style.gridTemplateRows = gtr();
+        grid.style.gridTemplateRows = gtr();
         if(result.flags & SpreadSheetFlags.IS_FUNCTION)
             do_func_io();
         // NOTE: assume adding rows at the end can't trigger a recalc
@@ -1512,7 +1521,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                     const v = (a as HTMLInputElement).value;
                     if(v && v[0] == '=' && v[v.length-1] != ']'){
                         const col_idx = result.headers.indexOf(h);
-                        if(a.parentElement!.parentElement !== result.w){
+                        if(a.parentElement!.parentElement !== result.grid){
                             (a as HTMLInputElement).value += `[${result.name}, ${result.column_names[col_idx]}]`;
                         }
                         else {
@@ -1607,7 +1616,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         for(let row_idx = 0; row_idx < result.cell_elems.length; row_idx++){
             add_cell(['', '', CellFlags.NONE], row_idx, whence);
         }
-        w.style.gridTemplateColumns = gtc();
+        grid.style.gridTemplateColumns = gtc();
         for(let i = 0; i < result.column_names.length; i++){
             if(!result.column_names[i]){
                 result.headers[i].textContent = String.fromCharCode(65+i);
@@ -1708,7 +1717,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             result.cell_extras[i].splice(whence, 1);
             result.cell_sources[i].splice(whence, 1);
         }
-        w.style.gridTemplateColumns = gtc();
+        grid.style.gridTemplateColumns = gtc();
         for(let i = 0; i < result.column_names.length; i++){
             if(!result.column_names[i]){
                 result.headers[i].textContent = String.fromCharCode(65+i);
@@ -1736,7 +1745,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             for(let i = 0; i < result.number_els.length; i++){
                 result.number_els[i].textContent = ''+(i+1);
             }
-        w.style.gridTemplateRows = gtr();
+        grid.style.gridTemplateRows = gtr();
         if(result.flags & SpreadSheetFlags.IS_FUNCTION)
             do_func_io();
         sheet_dewasm(result);
@@ -1937,7 +1946,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             result.header_number_el.style.display = 'none';
             for(const nel of result.number_els)
                 nel.style.display = 'none';
-            w.style.gridTemplateColumns = gtc();
+            grid.style.gridTemplateColumns = gtc();
         }
         else if(!was_numbered && will_be_numbered){
             result.header_number_el.style.display = 'block';
@@ -1946,7 +1955,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 nel.style.display = 'block';
                 nel.textContent = ''+(i+1);
             }
-            w.style.gridTemplateColumns = gtc();
+            grid.style.gridTemplateColumns = gtc();
         }
     };
     result.mark_dirty = function():void{
@@ -1962,12 +1971,12 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         sheet_dewasm(result);
         recalc_me();
     };
-    setup_closable_window(w, x, function():void{
+    setup_closable_window(win, x, function():void{
         store_local(StorageCategory.WINDOW, openid, '');
         result.hidden = true;
     });
-    w.style.gridTemplateRows = gtr();
-    w.style.gridTemplateColumns = gtc();
+    grid.style.gridTemplateRows = gtr();
+    grid.style.gridTemplateColumns = gtc();
     t.textContent = (result.flags & SpreadSheetFlags.IS_FUNCTION)?`Function — ${name}` : name;
     if(!get_local(StorageCategory.WINDOW, openid)) result.hide();
     else result.show();
@@ -2119,7 +2128,7 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
         }break;
         case SpreadSheetMsgType.INITIALIZE:
             for(const ss of SPREADSHEETS.values()){
-                ss.w.remove();
+                ss.grid.remove();
                 SHEET_CTX.del_sheet(ss.id);
             }
             SPREADSHEETS.clear();
@@ -2163,7 +2172,7 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
             if(!ss) break;
             // Should there be a delete method on the spreadsheet instead of
             // doing it inline here?
-            ss.w.remove();
+            ss.grid.remove();
             sheet_dewasm(ss);
             SPREADSHEETS.delete(id);
             SHEET_TV.remove(id);

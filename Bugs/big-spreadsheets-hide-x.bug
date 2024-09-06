@@ -1,5 +1,10 @@
 Changelog::kv
   created: 2024-05-05T21:00:36Z
+  updated: 2024-09-05T23:58:21.590689
 Created May 05, 2024, 02:00PM::md.update
 Summary::md.summary
   The top bar scrolls when it shouldn’t.
+
+Updated Sep 05, 2024, 04:58PM::md.update
+  Sort of fixed, but now the number column gets hidden when it should remain
+  fixed.
