@@ -21,9 +21,8 @@ ifneq ($(OS),Windows_NT)
 PY?=python3
 CP=cp
 MKDIR=mkdir -p
-# using `.` is the portable way to source a shell file
-DEV_ACTIVATE=. dev_venv/bin/activate
-SERV_ACTIVATE=. serv_venv/bin/activate
+DEVPY=dev_venv/bin/python3
+SERVPY=serv_venv/bin/python3
 RMRF=rm -rf
 
 else
@@ -31,18 +30,14 @@ else
 PY?=py
 CP=$(PY) Scripts/wincpy.py
 MKDIR=$(PY) Scripts/winmkdir.py
-DEV_ACTIVATE=dev_venv\Scripts\activate
-SERV_ACTIVATE=serv_venv\Scripts\activate
+DEVPY=dev_venv/Scripts/python.exe
+SERVPY=serv_venv/Scripts/python.exe
 RMRF=$(PY) Scripts/winrmrf.py
-SHELL:=cmd
 endif
 
 node_modules:
 	$(NPM) install terser --save-dev
 	$(NPM) install typescript --save-dev
-
-SERVPY=$(SERV_ACTIVATE) && $(PY)
-DEVPY=$(DEV_ACTIVATE) && $(PY)
 
 # To try to prevent accidental dependency on dev tools in the server,
 # we use two separate venvs.
