@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 if(!name) name = "anon";
                 lv.rename(`(*)\u00A0${name}`, user);
             }
-            if(privateroll.hidden){
+            if(privateroll.hidden && user !== SETTINGS.userid){
                 let noti = by_id('notifications');
                 let name = USERS.get(user);
                 if(!name) name = "anon";
