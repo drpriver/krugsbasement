@@ -251,7 +251,5 @@ bug: | dev_venv
 .PHONY: all
 all: $(ZIPFILES)
 
-include WebClient/decls.mak
-
 # For private operations like server admin
 include $(wildcard private.mak)
