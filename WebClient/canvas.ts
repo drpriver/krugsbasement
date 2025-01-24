@@ -270,6 +270,7 @@ const SHAPETYPE_TO_SHORT_NAME = [
 ];
 
 let current_shape = ShapeType.SOLID_SHAPE;
+let current_polygon = ShapeType.SOLID_SHAPE;
 //  grid-line
 //  ---------
 //  A grid line are straight line-fragments whose points snap
@@ -1553,19 +1554,30 @@ function add_freehand_point(obj:FreehandLine|Shape, x:number, y:number):void{
     }
     points.push(x);
     points.push(y);
-    if(x < obj.bbox.x0){
-        obj.bbox.x0 = x;
-    }
-    if(x > obj.bbox.x1){
-        obj.bbox.x1 = x;
-    }
-    if(y < obj.bbox.y0){
-        obj.bbox.y0 = y;
-    }
-    if(y > obj.bbox.y1){
-        obj.bbox.y1 = y;
-    }
+    if(x < obj.bbox.x0) obj.bbox.x0 = x;
+    if(x > obj.bbox.x1) obj.bbox.x1 = x;
+    if(y < obj.bbox.y0) obj.bbox.y0 = y;
+    if(y > obj.bbox.y1) obj.bbox.y1 = y;
     obj.path = undefined;
+}
+function pop_freehand_point(obj:FreehandLine|Shape):void{
+  const points = obj.points;
+  if(points.length < 2) return;
+  points.pop();
+  points.pop();
+  obj.bbox.x0 = 0;
+  obj.bbox.x1 = 0;
+  obj.bbox.y0 = 0;
+  obj.bbox.y1 = 0;
+  for(let i = 0; i < points.length; i+= 2){
+    const x = points[i];
+    const y = points[i+1];
+    if(x < obj.bbox.x0) obj.bbox.x0 = x;
+    if(x > obj.bbox.x1) obj.bbox.x1 = x;
+    if(y < obj.bbox.y0) obj.bbox.y0 = y;
+    if(y > obj.bbox.y1) obj.bbox.y1 = y;
+  }
+  obj.path = undefined;
 }
 function freehand_recalculate_bbox(obj:FreehandLine|Shape|CoachingLine):void{
     const points = obj.points;
@@ -1638,17 +1650,30 @@ function shape_recalculate_path(obj:Shape, base_x:number, base_y:number):void{
     const length = points.length;
     const path = new Path2D();
     path.moveTo(x0, y0);
-    for(let i = 0; i < length; i+=2){
-        const x1 = points[i] + base_x
+    if(obj.flags & CanvasFlag.SHAPE_IS_POLYGON){
+      for(let i = 0; i < length; i+=2){
+        const x1 = points[i] + base_x;
         const y1 = points[i+1] + base_y;
-        const xc = (x0+x1)/2;
-        const yc = (y0+y1)/2;
-        path.quadraticCurveTo(x0, y0, xc, yc);
-        x0 = x1;
-        y0 = y1;
+        path.lineTo(x1, y1);
+      }
+      if(!length)
+        path.lineTo(x0+0.01, y0+0.01);
     }
-    if(length > 2){
-        path.quadraticCurveTo(points[length-4]+base_x, points[length-3]+base_y, x0, y0);
+    else {
+      for(let i = 0; i < length; i+=2){
+          const x1 = points[i] + base_x
+          const y1 = points[i+1] + base_y;
+          const xc = (x0+x1)/2;
+          const yc = (y0+y1)/2;
+          path.quadraticCurveTo(x0, y0, xc, yc);
+          x0 = x1;
+          y0 = y1;
+      }
+      if(length > 2){
+          path.quadraticCurveTo(points[length-4]+base_x, points[length-3]+base_y, x0, y0);
+      }
+      if(!length)
+        path.lineTo(x0+0.01, y0+0.01);
     }
     obj.path = path;
 }
@@ -3688,6 +3713,8 @@ function selection_is_rigid(view:DungeonMapView):boolean{
                 return true;
             case CanvasType.FIXTURE:
                 return (obj.ftype == FixtureType.WELL || obj.ftype == FixtureType.PIT || obj.ftype == FixtureType.STATUE);
+            case CanvasType.SHAPE:
+                return !!(obj.flags & CanvasFlag.SHAPE_IS_POLYGON);
             default:
                 break;
         }
@@ -6762,6 +6789,7 @@ const enum ToolType {
     SHAPE   = 15,
     ARC     = 16,
     COACHING = 17,
+    POLYGON = 18,
 }
 const enum TOOLTYPE { MAX = 17}
 const TOOL_IDS_TO_TOOL = (function():Map<string, ToolType>{
@@ -6784,6 +6812,7 @@ const TOOL_IDS_TO_TOOL = (function():Map<string, ToolType>{
     m.set('shape-tool',   ToolType.SHAPE);
     m.set('arc-tool',     ToolType.ARC);
     m.set('coaching-tool', ToolType.COACHING);
+    m.set('polygon-tool', ToolType.POLYGON);
     return m;
 }());
 const TOOL_TO_TOOL_ID = [
@@ -6823,6 +6852,8 @@ const TOOL_TO_TOOL_ID = [
     'arc-tool',
     // ToolType.COACHIING
     'coaching-tool',
+    // ToolType.POLYGON
+    'polygon-tool',
 ] as const;
 let current_fixture_type = FixtureType.STAIRS;
 const enum TOKENTYPE {
@@ -7088,6 +7119,7 @@ document.addEventListener('DOMContentLoaded', function():void{
 });
 let tools: Array<HTMLElement> = [];
 function change_tool(tool:ToolType):void{
+    if(finish_click_based_tool) finish_click_based_tool();
     store_global(StorageCategory.CANVAS, 'current_tool', TOOL_TO_TOOL_ID[tool]);
     if(!tools) return;
     current_tool = tool;
@@ -7338,6 +7370,15 @@ document.addEventListener('DOMContentLoaded', function():void{
                                    SHAPETYPE_TO_NAME, SHAPETYPE_TO_SHORT_NAME, SHAPETYPE.MAX,
                                    get_global_default(StorageCategory.CANVAS, 'shapetype', current_shape));
             break;
+            case ToolType.POLYGON:
+                setup_multi_option(toolel, 'polygon-tool-menu', ToolType.POLYGON,
+                                   function(i:number):void{
+                                       current_polygon=i;
+                                       store_global(StorageCategory.CANVAS, 'polygontype', current_polygon);
+                                   },
+                                   SHAPETYPE_TO_NAME, SHAPETYPE_TO_SHORT_NAME, SHAPETYPE.MAX,
+                                   get_global_default(StorageCategory.CANVAS, 'polygontype', current_polygon));
+            break;
             case ToolType.LINE:
                 setup_multi_option(toolel, 'line-tool-menu', ToolType.LINE,
                                    function(i:number):void{
@@ -7514,6 +7555,46 @@ const redo_canvas_cursor = (function():(canvas:HTMLCanvasElement, view:DungeonMa
     return redo_canvas_cursor;
 }());
 
+let finish_click_based_tool: null| (()=>void) = null;
+let undo_click_based_tool: null| (()=>void) = null;
+function set_finish_click_tool(cb:()=>void):void{
+  finish_click_based_tool = function():void{
+    finish_click_based_tool = null;
+    undo_click_based_tool = null;
+    cb();
+    const b = by_id('finish-click-tool');
+    b.disabled = true;
+  };
+  const b = by_id('finish-click-tool');
+  b.disabled = false;
+};
+document.addEventListener('DOMContentLoaded', function():void{
+  const b = by_id('finish-click-tool');
+  b.onclick = function(e:MouseEvent){
+    e.stopPropagation();
+    e.preventDefault();
+    if(finish_click_based_tool)
+      finish_click_based_tool();
+  };
+});
+document.addEventListener('DOMContentLoaded', function():void{
+    const l = by_id('line-thickness');
+    l.value = '' + get_global_default(StorageCategory.CANVAS, 'thick', +l.value || 4);
+    l.onchange = function():void{
+        store_global(StorageCategory.CANVAS, 'thick', ""+(+l.value || 4));
+    };
+    l.onkeydown = function(e:KeyboardEvent):void{
+      switch(e.key){
+        case 'Enter':
+        case 'Escape':
+          l.blur();
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+      }
+    };
+});
+
 function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
     const which_canv = the_canvas.id === 'map'?WhichSplit.LEFT:WhichSplit.RIGHT;
     the_canvas.ondragover = function(e:DragEvent):void{
@@ -7609,6 +7690,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
     let prev_tool:ToolType = ToolType.PAN;
     // this state variable is kind of janky.
     let ez_token_color = '#ff3333';
+    let click_based_tool_is_active = false;
     // TAG toolimpl
     // TAG pointerdown
     // TAG click
@@ -7634,6 +7716,8 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             e.preventDefault();
             return;
         }
+        if(click_based_tool_is_active)
+          return;
         if(document.activeElement)
             (document.activeElement as any).blur();
         e.stopPropagation();
@@ -7994,6 +8078,54 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     request_render();
                 }
                 the_canvas.addEventListener('pointerup', finish_point);
+                request_render();
+            }break;
+            case ToolType.POLYGON:{ // TAG toolPOLYGON
+                click_based_tool_is_active = true;
+                let id = get_new_id();
+                const thickness_input = by_id('line-thickness');
+                const thickness = 2*(+thickness_input.value || 4);
+                let color1 = get_primary_color();
+                let color2 = '';
+                switch(current_polygon){
+                    case ShapeType.HOLLOW_SHAPE:
+                        break;
+                    case ShapeType.SOLID_SHAPE:
+                        color2 = color1;
+                        break;
+                    case ShapeType.FILLED_SHAPE:
+                        color2 = get_secondary_color();
+                        break;
+                }
+                const snap = get_snap_func();
+                let [x0, y0] = event_to_coord_snapped(e, view, snap);
+                let o = make_shape(id, x0, y0, color1, color2, thickness);
+                o.flags |= CanvasFlag.SHAPE_IS_POLYGON;
+                add_canv_obj(view.map, o);
+                function add_point(e:MouseEvent):void{
+                    e.stopPropagation();
+                    e.preventDefault();
+                    let [x1, y1] = event_to_coord_snapped(e, view, snap);
+                    add_freehand_point(o, x1, y1);
+                    if(x1 == x0 && y1 == y0){
+                      finish_click_based_tool!();
+                    }
+                    request_render();
+                }
+                function finish_polygon():void{
+                    the_canvas.removeEventListener('pointerdown', add_point);
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
+                    click_based_tool_is_active = false;
+                    finish_click_based_tool = null;
+                }
+                set_finish_click_tool(finish_polygon);
+                undo_click_based_tool = function():void{
+                    pop_freehand_point(o);
+                    request_render();
+                };
+                the_canvas.addEventListener('pointerdown', add_point);
+                request_render();
             }break;
             case ToolType.WALL:{ // TAG toolWALL
                 let id = get_new_id();
@@ -9103,6 +9235,10 @@ document.addEventListener('DOMContentLoaded', function():void{
             remove_ctx_menu();
             return;
         }
+        if(e.key == 'Escape' && finish_click_based_tool){
+          finish_click_based_tool();
+          return;
+        }
         if(_ctxmenu_remover && (e.key == 'ArrowDown' || e.key == 'j')){
             const e = document.querySelector('section.menu .menuitem:not(.disabled)');
             if(e) (e as any).focus()
@@ -9178,6 +9314,10 @@ document.addEventListener('DOMContentLoaded', function():void{
                 end_selecting(view);
             }break;
             case 'Enter':
+                if(finish_click_based_tool){
+                    finish_click_based_tool();
+                    break;
+                }
                 const m = new MouseEvent('contextmenu',
                 {
                     clientX: TheCanvas.width/2,
@@ -9259,6 +9399,10 @@ document.addEventListener('DOMContentLoaded', function():void{
                 break;
             case 'z':
                 if(shortcut){
+                    if(undo_click_based_tool){
+                      undo_click_based_tool();
+                      return;
+                    }
                     do_one_undo(view.map);
                 }
                 else
