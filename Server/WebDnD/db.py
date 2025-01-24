@@ -1,5 +1,5 @@
 #
-# Copyright © 2021-2024, David Priver
+# Copyright © 2021-2025, David Priver
 #
 from __future__ import annotations
 import os
@@ -24,7 +24,7 @@ atexit.register(close)
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 23
+DBVERSION = 24
 with conn:
     conn.execute('''PRAGMA encoding = 'UTF-8';''')
     conn.execute('''PRAGMA foreign_keys = ON;''')
@@ -572,6 +572,22 @@ def setup_tables() -> None:
                 WHERE campaignid = ?
                 AND mapid = ?;
             ''', (obj_s, campid, mapid))
+    if version < 24:
+        conn.execute('''
+            CREATE TABLE clocks (
+                campaignid INTEGER NOT NULL,
+                id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                flags INTEGER NOT NULL,
+                value_name TEXT NOT NULL,
+                value INTEGER NOT NULL,
+                events BLOB NOT NULL,
+                hidinguser INTEGER NOT NULL,
+                FOREIGN KEY(campaignid) REFERENCES campaigns(id),
+                PRIMARY KEY(campaignid, id)
+                );
+            ''')
+
 
 with conn:
     setup_tables()
@@ -1337,7 +1353,7 @@ def delete_sheet(campaign:int, id:int) -> None:
 
 
 def save_calendar(data:tuple) -> None:
-    with DBLOCK:
+    with DBLOCK, conn:
         conn.execute('''
             INSERT INTO
                 calendars(campaignid,
@@ -1391,3 +1407,48 @@ def get_calendar(campaignid: int) -> dict|None:
         'flags': row[6],
         'data': json.loads(row[7]),
     }
+
+def save_clocks(data:list[tuple[int, int, str, int, str, int, str, int]]) -> None:
+    with DBLOCK, conn:
+        conn.executemany('''
+            INSERT INTO
+                clocks(campaignid,
+                       id,
+                       name,
+                       flags,
+                       value_name,
+                       value,
+                       events,
+                       hidinguser)
+            VALUES
+                (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(campaignid, id)
+            DO UPDATE SET
+                name = excluded.name,
+                flags = excluded.flags,
+                value_name = excluded.value_name,
+                value = excluded.value,
+                events = excluded.events,
+                hidinguser = excluded.hidinguser
+                ;
+        ''', data)
+
+def get_clocks(campaign:int) -> None | list:
+    with DBLOCK:
+        rows = conn.execute('''
+            SELECT id, name, flags, value_name, value, events, hidinguser
+            FROM clocks
+            WHERE campaignid = ?;
+        ''', (campaign,)).fetchall()
+    if not rows:
+        return None
+    return [{
+        'id': r[0],
+        'name': r[1],
+        'flags': r[2],
+        'value_name': r[3],
+        'value': r[4],
+        'events': json.loads(r[5]),
+        'hidinguser': r[6],
+    } for r in rows ]
+

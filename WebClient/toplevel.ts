@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2024, David Priver
+// Copyright © 2021-2025, David Priver
 //
 
 (function():void{
@@ -74,6 +74,7 @@ document.addEventListener('DOMContentLoaded', function(){
         menu.item('Campaign Page…', function(){
             const diag = get_dialog('simple-text');
             if(!diag) return;
+            diag.clear_handlers();
             diag.f.text.value = HOMEPAGE;
             diag.f.title.textContent = 'Campaign Page';
             diag.f.textlabel.textContent = 'URL:';

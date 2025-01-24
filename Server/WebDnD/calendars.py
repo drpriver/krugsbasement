@@ -127,7 +127,7 @@ def get_calendar(campaign:int) -> CalendarMsg | None:
 
 
 def handle(campaign: int, msg: CalendarMsg) -> CalendarMsg | None:
-    dlog("msg: %r", msg)
+    # dlog("msg: %r", msg)
     with LOCK:
         if campaign not in CALENDARS:
             load_calendar(campaign)

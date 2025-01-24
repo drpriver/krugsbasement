@@ -1,5 +1,5 @@
 #
-# Copyright © 2021-2024, David Priver
+# Copyright © 2021-2025, David Priver
 #
 
 from __future__ import annotations
@@ -21,8 +21,9 @@ from . import canvas
 from . import notes
 from . import sheets
 from . import calendars
+from . import clocks
 from .persist import Persister, RepeatTimer, AppKVPersister
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize, NewNoteMsg, CanvasParentMsg, NoteParentMsg, MetadataType, MetadataMsg, CalendarMsg, CalendarMsgType, CalendarInitialize
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize, NewNoteMsg, CanvasParentMsg, NoteParentMsg, MetadataType, MetadataMsg, CalendarMsg, CalendarMsgType, CalendarInitialize, ClockMsg
 from .validator import register_list, validated, validate, try_validate
 from . import db
 from .users import User
@@ -527,6 +528,10 @@ def post_join(mode:UiMode) -> None:
         # dlog("cal: %r", cal)
         if cal is not None:
             emit(ToClient.CALENDAR, cal)
+    if mode == UiMode.NORMAL:
+        clo = clocks.get_clocks(campaign)
+        if clo is not None:
+            emit(ToClient.CLOCK, clo)
 
     url = db.get_campaign_kv(campaign, 'homepage')
     if url:
@@ -783,6 +788,14 @@ def calendar(msg:CalendarMsg) -> None:
     response = calendars.handle(campaign, msg)
     if response is not None:
         emit(ToClient.CALENDAR, response, broadcast=True, include_self=True, to=str(campaign))
+
+@socketio.on(FromClient.CLOCK)
+@validated
+def clock(msg:ClockMsg) -> None:
+    campaign = get_campaign(request)
+    response = clocks.handle(campaign, msg)
+    if response is not None:
+        emit(ToClient.CLOCK, response, broadcast=True, include_self=True, to=str(campaign))
 
 @socketio.on(FromClient.METADATA)
 @validated

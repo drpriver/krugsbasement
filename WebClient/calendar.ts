@@ -1,3 +1,6 @@
+//
+// Copyright © 2024-2025, David Priver
+//
 type Calendar = {
     starting_year: number;
     starting_day_of_week: number;

@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2024, David Priver
+// Copyright © 2021-2025, David Priver
 //
 
 # FromClient
@@ -64,6 +64,8 @@ enum FromClient: int
     METADATA = 36
     CALENDAR = 37
 
+    CLOCK = 38
+
 # ToClient
 # --------
 # Defines messages sent from the server to the client
@@ -124,8 +126,9 @@ enum ToClient: int
     API_VERSION = 35
     SPREADSHEET = 38
 
-    METADATA=42
-    CALENDAR=43
+    METADATA = 42
+    CALENDAR = 43
+    CLOCK = 44
 
 
 # ChatCommand
@@ -1079,6 +1082,7 @@ message ToClientMsg: ToClient
     NOTE_PARENT = NoteParentMsg
     METADATA = MetadataMsg
     CALENDAR = CalendarMsg
+    CLOCK = ClockMsg
 
 message FromClientMsg: FromClient
     JOIN = str
@@ -1118,6 +1122,7 @@ message FromClientMsg: FromClient
     NOTE_PARENT = NoteParentMsg
     METADATA = MetadataMsg
     CALENDAR = CalendarMsg
+    CLOCK = ClockMsg
 
 enum DarkMode: int
     SYSTEM = 0
@@ -1358,3 +1363,114 @@ union CalendarMsg: array
     CalendarEditDay
     CalendarAddYear
     CalendarShow
+
+enum ClockMsgType: int
+    INITIALIZE = 0
+    SHOW = 1
+    NEW = 2
+    EDIT = 3
+    DELETE = 4
+    CLEAR = 5
+    # Clock Events
+    EVENT_NEW = 6
+    EVENT_EDIT = 7
+    EVENT_DELETE = 8
+
+struct ClockInitialize: dict
+    type = ClockMsgType.INITIALIZE
+    clocks: [ClockData]
+
+enum ClockFlags: int flag
+    NONE = 0
+    # Clock counts down instead of up
+    DESCENDING = 1 << 0
+    # Jump to next event when advancing the clock
+    ADVANCES_BY_EVENT = 1 << 1
+    # Wraps to first/last event
+    # Currently only works with ADVANCES_BY_EVENT
+    CYCLIC = 1 << 2
+
+struct ClockData: dict
+    id: int
+    name: str
+    value_name: str
+    value: int
+    flags: ClockFlags
+    events: [ClockEvent]
+    hidinguser: int # userid
+
+enum ClockEventFlags: int flag
+    NONE = 0
+    # Delete the event after advancing past it
+    ONE_SHOT = 1 << 0
+
+struct ClockEvent: dict
+    name: str
+    when: int
+    flags: ClockEventFlags
+    id: int
+
+struct ClockShow: dict
+    type = ClockMsgType.SHOW
+    id: int
+
+struct ClockNew: dict
+    type = ClockMsgType.NEW
+    name: str
+    flags: ClockFlags
+    id: int
+    value: int
+    value_name: str
+    hidinguser: int # userid
+
+struct ClockEdit: dict
+    type = ClockMsgType.EDIT
+    id: int
+    name: str
+    value_name: str
+    value: int
+    flags: ClockFlags
+    hidinguser: int # userid
+
+struct ClockDelete: dict
+    type = ClockMsgType.DELETE
+    id: int
+
+struct ClockEventNew: dict
+    type = ClockMsgType.EVENT_NEW
+    clock_id: int
+    name: str
+    when: int
+    flags: ClockEventFlags
+    id: int
+
+struct ClockEventEdit: dict
+    type = ClockMsgType.EVENT_EDIT
+    clock_id: int
+    id: int
+    name: str
+    when: int
+    flags: ClockEventFlags
+
+
+struct ClockEventDelete: dict
+    type = ClockMsgType.EVENT_DELETE
+    clock_id: int
+    id: int
+
+struct ClockClear: dict
+    type = ClockMsgType.CLEAR
+    id: int
+
+union ClockMsg: dict
+    ClockInitialize
+    ClockShow
+    ClockClear
+
+    ClockNew
+    ClockDelete
+    ClockEdit
+
+    ClockEventNew
+    ClockEventEdit
+    ClockEventDelete

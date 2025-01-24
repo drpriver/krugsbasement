@@ -101,6 +101,7 @@ TSFILES:= WebClient/socket.d.ts \
 	  WebClient/ctxmenu.ts \
 	  WebClient/md.ts \
 	  WebClient/calendar.ts \
+	  WebClient/clock.ts \
 
 Generated/client.js: $(TSFILES) | Generated node_modules
 	$(TSC) $^ $(TSCFLAGS) --outFile $@
@@ -109,7 +110,7 @@ Generated/client.min.js: Generated/client.js | Generated node_modules
 Generated/demo.js: WebClient/demo.ts Generated/messages.ts | Generated node_modules
 	$(TSC) $^ $(TSCFLAGS) --outFile $@
 
-.DEFAULT_GOAL:=Generated/dungeon.html
+.DEFAULT_GOAL=all
 
 appconfig.py:
 	$(CP) defaultconfig.py $@
@@ -173,6 +174,7 @@ WEBDNDFILES=\
 	    Server/WebDnD/validator.py \
 	    Server/WebDnD/sheets.py \
 	    Server/WebDnD/calendars.py \
+	    Server/WebDnD/clocks.py \
 
 JSFILES=\
 	WebClient/socket.io.js \

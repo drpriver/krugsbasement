@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2024, David Priver
+// Copyright © 2021-2025, David Priver
 //
 
 "use strict";
@@ -338,9 +338,18 @@ function do_emit(type:FromClient, arg?:any, cb?:any):void{
         case FromClient.CALENDAR:{
             invoke_cb(ToClient.CALENDAR, arg);
         }break;
+        case FromClient.CLOCK:{
+            if(arg.type == ClockMsgType.NEW)
+                arg.id = ++_clockid;
+            if(arg.type == ClockMsgType.EVENT_NEW)
+                arg.id = ++_clockeventid;
+            invoke_cb(ToClient.CLOCK, arg);
+        }break;
     }
 }
 let _spreadsheetid = 0;
+let _clockid = 0;
+let _clockeventid = 0;
 
 let SOCKET = {
     emit: do_emit,

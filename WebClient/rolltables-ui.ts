@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2024, David Priver
+// Copyright © 2021-2025, David Priver
 //
 
 // TAG rolltables_window
@@ -426,6 +426,7 @@ document.addEventListener('DOMContentLoaded',function():void{
     by_id('rolltable-add-table').onclick = function():void{
         let dialog = get_dialog('simple-text');
         if(!dialog) return;
+        dialog.clear_handlers();
         dialog.title.textContent = 'Table Name';
         dialog.f.text.value = '';
         dialog.ok_handler = function():void{

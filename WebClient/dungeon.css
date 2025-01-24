@@ -1,5 +1,5 @@
 /*
- * Copyright © 2021-2024, David Priver
+ * Copyright © 2021-2025, David Priver
  */
 a {
   color: #0000ff;
@@ -1425,7 +1425,7 @@ body.dark-mode .tracker-numbered {
   display: grid;
   overflow-y: auto;
   grid-template-columns: 100%;
-  grid-template-rows: max-content max-content max-content max-content;
+  grid-template-rows: max-content max-content max-content max-content max-content;
   /*border-bottom: 1px solid #aeaeae;*/
 }
 #left ul {
@@ -1508,7 +1508,7 @@ body.dark-mode .tracker-numbered {
   list-style: inside;
 }
 
-#maps-list, #notes-list, #sheets-list {
+#maps-list, #notes-list, #sheets-list, #clock-list {
   display: grid;
   grid-template-columns: 100%;
   margin: 0;
@@ -1566,6 +1566,7 @@ div.tree-item {
 #maps-list.dragover,
 #notes-list.dragover,
 #sheets-list.dragover,
+#clock-list.dragover,
 .dragover,
 div.tree-item.dragover {
   /*this is kind of ugly, but whatever*/
@@ -1576,6 +1577,7 @@ div.tree-item.dragover {
 body.dark-mode #maps-list.dragover,
 body.dark-mode #notes-list.dragover,
 body.dark-mode #sheets-list.dragover,
+body.dark-mode #clock-list.dragover,
 body.dark-mode .dragover,
 body.dark-mode div.tree-item.dragover {
   background-color: rgba(0,0,0,0.3);
@@ -1707,4 +1709,70 @@ div.cal-day-content {
 }
 .clicked {
   background-color: green;
+}
+.clock-list {
+  margin-bottom: 1ch;
+}
+.clock-event {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: .5ch 1ch;
+  border-radius: 8px;
+  margin: 2px;
+}
+.clock-event :last-child{
+  text-align: right;
+}
+.clock-event :first-child{
+  text-align: left;
+}
+.clock-event :first-child:has(input){
+  padding: 0px;
+}
+.clock-event :last-child input{
+  font-size: 100%;
+  text-align: right;
+  border: 0px;
+  padding: 0px;
+}
+.clock-event :first-child input{
+  font-size: 100%;
+  text-align: left;
+  border: 0px;
+  padding: 0px;
+}
+
+.clock-event.past {
+  background-color: #eee;
+}
+body.dark-mode .clock-event.past {
+  background-color: #222;
+}
+.clock-event.current {
+  outline: 2px solid cyan;
+}
+.clock-event.one-shot {
+  font-style: italic;
+}
+.clock-event-sep {
+  width: 100%;
+  outline: 2px solid cyan;
+}
+
+
+.clock-value {
+  font-size: 200%;
+  text-align: center;
+}
+.clock-value input {
+  font-size: 100%;
+  text-align: center;
+}
+.clock-adv-buttons {
+  padding: 1ch 1ch;
+  border-bottom: 2px solid black;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  font-size: 200%;
+  gap: 1em;
 }

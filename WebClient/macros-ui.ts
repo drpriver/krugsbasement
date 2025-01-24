@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2024, David Priver
+// Copyright © 2021-2025, David Priver
 //
 
 (function():void{
@@ -369,6 +369,7 @@ function get_vars_window(cid:number):VariablesWindow{
 function add_macro_dialog(cid:number):void{
     const dialog = get_dialog('simple-text');
     if(!dialog) return;
+    dialog.clear_handlers();
     dialog.title.textContent = 'Macro Name';
     dialog.f.text.value = '';
     dialog.show_handler = function():void{

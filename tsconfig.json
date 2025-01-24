@@ -46,6 +46,7 @@
     "WebClient/spreadsheet.ts",
     "WebClient/ctxmenu.ts",
     "WebClient/md.ts",
-    "WebClient/calendar.ts"
+    "WebClient/calendar.ts",
+    "WebClient/clock.ts"
   ]
 }

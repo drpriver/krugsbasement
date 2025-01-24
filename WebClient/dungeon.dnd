@@ -1,5 +1,5 @@
 ::comment
-  Copyright © 2021-2024, David Priver
+  Copyright © 2021-2025, David Priver
 ::comment
   This is imported by client.dnd and demo.dnd.
   It is only built directly to generate types and to look
@@ -427,6 +427,48 @@
         <td>${textbox('text')}
     </table>
     `);
+  begin('clock');
+  make(`
+    ${title("Clock")}
+    <table class="input-container">
+    <tr>
+      <td>${label('name', 'Name:')}
+      <td>${textbox('name')}
+    <tr>
+      <td>${label('value_name', 'Unit:')}
+      <td>${textbox('value_name')}
+    <tr>
+      <td>${label('value', 'Initial Value:')}
+      <td>${numbox('value')}
+    <tr>
+      <td>${label('descending', 'Descending:')}
+      <td>${checkbox('descending')}
+    <tr>
+      <td>${label('cyclic', 'Cyclic:')}
+      <td>${checkbox('cyclic')}
+    <tr>
+      <td>${label('by_event', 'Advances by event:')}
+      <td>${checkbox('by_event')}
+    <tr>
+      <td>${label('hidden', 'Hidden from others:')}
+      <td>${checkbox('hidden')}
+    </table>
+  `);
+  begin('clock-event');
+  make(`
+    ${title("Event")}
+    <table class="input-container">
+    <tr>
+      <td>${label('name', 'Name:')}
+      <td>${textbox('name')}
+    <tr>
+      <td>${label('value', 'Value:')}
+      <td>${numbox('value')}
+    <tr>
+      <td>${label('oneshot', 'One-shot:')}
+      <td>${checkbox('oneshot')}
+    </table>
+  `);
   begin('multiline-text');
   make(`
     ${title("Text")}
@@ -821,13 +863,6 @@
       </details>
     ::raw
       <details open>
-        <summary>Notes</summary>
-        <button title="New Note" id="new-note">New Note…</button>
-        <div id="notes-list">
-        </div>
-      </details>
-    ::raw
-      <details open>
         <summary>Sheets</summary>
         <button title="New Sheet" id="new-sheet-button">New Sheet…</button>
         <div id="sheets-list">
@@ -835,8 +870,22 @@
       </details>
     ::raw
       <details open>
+        <summary>Notes</summary>
+        <button title="New Note" id="new-note">New Note…</button>
+        <div id="notes-list">
+        </div>
+      </details>
+    ::raw
+      <details>
         <summary>Macros</summary>
         <button title="New Macro Group" id="new-macro-group-button">New Macro…</button>
         <ul id="left-macro-group-list">
         </ul>
+      </details>
+    ::raw
+      <details>
+        <summary>Clocks</summary>
+        <button title="New Clocks" id="new-clock">New Clock…</button>
+        <div id="clock-list">
+        </div>
       </details>

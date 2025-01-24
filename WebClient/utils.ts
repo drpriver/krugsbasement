@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2024, David Priver
+// Copyright © 2021-2025, David Priver
 //
 
 function elem_with_text<K extends keyof HTMLElementTagNameMap>(tag: K, content:string, id?:string|null, class_?:string|null): HTMLElementTagNameMap[K]{
@@ -250,6 +250,7 @@ function link_input_value(value:string, inp1:HTMLInputElement, event1:'onchange'
 const enum UserEditElementFlags {
     NONE = 0,
     ALWAYS_REFOCUS = 1 << 0,
+    MUST_BE_NUMBER = 1 << 1,
 }
 
 function user_edit_element(cell:HTMLElement, flags:UserEditElementFlags, onfinish:(txt:string)=>void):void{
@@ -264,6 +265,9 @@ function user_edit_element(cell:HTMLElement, flags:UserEditElementFlags, onfinis
     inp.style.height = h;
     inp.value = oldtxt;
     let canceled = false;
+    inp.onclick = function(e):void{
+      e.stopPropagation();
+    }
     inp.onkeydown = function(e):void{
         e.stopPropagation();
         switch(e.key){
@@ -279,10 +283,14 @@ function user_edit_element(cell:HTMLElement, flags:UserEditElementFlags, onfinis
         }
     };
     inp.onblur = function():void{
-        const v = inp.value.trim();
+        let v = inp.value.trim();
         if(canceled)
             cell.textContent = oldtxt;
         else{
+            if(flags & UserEditElementFlags.MUST_BE_NUMBER){
+                if(!v || Number.isNaN(+v))
+                    v = oldtxt!;
+            }
             cell.textContent = v;
             if(oldtxt != v)
                 onfinish(v);
