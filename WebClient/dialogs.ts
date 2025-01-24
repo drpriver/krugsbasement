@@ -48,7 +48,7 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
         let key = name + '-' + field;
         let el = get_by_id(key) as any;
         if(!el) throw new Error();
-        if(el.tagName == 'TEXTAREA' || (el.tagName == 'INPUT' && el.type != 'checkbox')){
+        if(el.tagName == 'TEXTAREA' || el.tagName == 'INPUT'){
             el.addEventListener('keydown', function(e:KeyboardEvent):void{
                 let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
                 if(modified) return;
