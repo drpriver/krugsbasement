@@ -717,6 +717,10 @@
 ::div #id(scale) .scale
   ::raw
     <div>Scale</div>
+    <input type="radio" id="grid-50" name="grid-scales">
+    <label for="grid-50">50'</label>
+    <input type="radio" id="grid-20" name="grid-scales">
+    <label for="grid-20">20'</label>
     <input type="radio" id="grid-10" name="grid-scales" checked>
     <label for="grid-10">10'</label>
     <input type="radio" id="grid-5" name="grid-scales">

@@ -768,7 +768,18 @@ let current_door = DoorType.DOOR;
 const enum GRIDSCALE {
     FIVE = 0,
     TEN  = 1,
+    TWENTY = 2,
+    FIFTY = 3,
 };
+function gs_to_w(gs:GRIDSCALE):number{
+    switch(gs){
+        case GRIDSCALE.FIVE: return 0.5;
+        case GRIDSCALE.TEN: return 1;
+        case GRIDSCALE.TWENTY: return 2;
+        case GRIDSCALE.FIFTY: return 5;
+        default: return 1;
+    }
+}
 function change_gridscale(view: DungeonMapView, newscale:GRIDSCALE):void{
     if(view.gridscale !== newscale)
         store_local(StorageCategory.CANVAS, `gridscale.${view.map.map_id}`, newscale);
@@ -793,6 +804,14 @@ function change_gridscale(view: DungeonMapView, newscale:GRIDSCALE):void{
 }
 function visually_set_gridscale(newscale:GRIDSCALE):void{
     switch(newscale){
+        case GRIDSCALE.FIFTY:{
+            const g = by_id('grid-50');
+            g.click();
+        }break;
+        case GRIDSCALE.TWENTY:{
+            const g = by_id('grid-20');
+            g.click();
+        }break;
         case GRIDSCALE.TEN:{
             const g = by_id('grid-10');
             g.click();
@@ -816,13 +835,18 @@ function visually_set_gridscale(newscale:GRIDSCALE):void{
     }
 }
 document.addEventListener('DOMContentLoaded', function():void{
+    // XXX: left only, add a right interface
     // Checking if the elements is checked
+    by_id('grid-50').onchange = function():void{
+        change_gridscale(get_view(WhichSplit.LEFT), GRIDSCALE.FIFTY);
+    };
+    by_id('grid-20').onchange = function():void{
+        change_gridscale(get_view(WhichSplit.LEFT), GRIDSCALE.TWENTY);
+    };
     by_id('grid-10').onchange = function():void{
-        // XXX: left only, add a right interface
         change_gridscale(get_view(WhichSplit.LEFT), GRIDSCALE.TEN);
     };
     by_id('grid-5').onchange = function():void{
-        // XXX: left only, add a right interface
         change_gridscale(get_view(WhichSplit.LEFT), GRIDSCALE.FIVE);
     };
 });
@@ -1143,7 +1167,7 @@ function change_active_map_view(which:WhichSplit, idx: number, store:boolean):vo
         }
     }
     let gs = get_local(StorageCategory.CANVAS, `gridscale.${view.map.map_id}`);
-    if(gs !== undefined && typeof gs === 'number' && (gs == 0 || gs == 1)){
+    if(gs !== undefined && typeof gs === 'number' && (gs == 0 || gs == 1 || gs == 2 || gs == 3)){
         view.gridscale = gs;
     }
     visually_set_gridscale(view.gridscale);
@@ -4548,8 +4572,8 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 if(maxhp < 0) maxhp = 0;
                 if(!width) width = 1;
                 if(!height) height = 1;
-                if(!width || width < 0) width = view.gridscale == GRIDSCALE.TEN?1:0.5;
-                if(!height || height < 0) height = view.gridscale == GRIDSCALE.TEN?1:0.5;
+                if(!width || width < 0) width = gs_to_w(view.gridscale);
+                if(!height || height < 0) height = gs_to_w(view.gridscale);
                 obj.width = width;
                 obj.height = height;
                 const color = dialog.f.color.value;
@@ -4616,8 +4640,8 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 let hp = +dialog.f.hp.value;
                 let maxhp = +dialog.f.maxhp.value;
                 if(maxhp < 0) maxhp = 0;
-                if(!width || width < 0) width = view.gridscale == GRIDSCALE.TEN?1:0.5;
-                if(!height || height < 0) height = view.gridscale == GRIDSCALE.TEN?1:0.5;
+                if(!width || width < 0) width = gs_to_w(view.gridscale);
+                if(!height || height < 0) height = gs_to_w(view.gridscale);
                 obj.width = width;
                 obj.height = height;
                 obj.hp = hp;
@@ -5064,29 +5088,17 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
         draw_hex_grid();
         ctx.restore();
     }
-    else if(gridscale == GRIDSCALE.FIVE){
-        let grid_base_x = fmod(camera_x, REFERENCE.HALF_WIDTH);
-        let grid_base_y = fmod(camera_y, REFERENCE.HALF_WIDTH);
+    else {
+        const c = gs_to_w(gridscale);
+        const w = c*REFERENCE.WIDTH;
+        let grid_base_x = fmod(camera_x, w);
+        let grid_base_y = fmod(camera_y, w);
         let grid_max_x = width/SCALE;
         let grid_max_y = height/SCALE;
-        for(let x = grid_base_x; x < grid_max_x; x+= REFERENCE.HALF_WIDTH){
-            ctx.fillRect(x, 0, 0.5, height/SCALE);
-        }
-        for(let y = grid_base_y; y < grid_max_y; y+= REFERENCE.HALF_WIDTH){
-            ctx.fillRect(0, y, width/SCALE, 0.5);
-        }
-    }
-    else{
-        let grid_base_x = fmod(camera_x, REFERENCE.WIDTH);
-        let grid_base_y = fmod(camera_y, REFERENCE.WIDTH);
-        let grid_max_x = width/SCALE;
-        let grid_max_y = height/SCALE;
-        for(let x = grid_base_x; x < grid_max_x; x+= REFERENCE.WIDTH){
-            ctx.fillRect(x, 0, 1, height/SCALE);
-        }
-        for(let y = grid_base_y; y < grid_max_y; y+= REFERENCE.WIDTH){
-            ctx.fillRect(0, y, width/SCALE, 1);
-        }
+        for(let x = grid_base_x; x < grid_max_x; x+= w)
+            ctx.fillRect(x, 0, c, height/SCALE);
+        for(let y = grid_base_y; y < grid_max_y; y+= w)
+            ctx.fillRect(0, y, width/SCALE, c);
     }
     ctx.translate(camera_x, camera_y);
     if(map.grid_type & GridType.HEX)
@@ -8315,8 +8327,8 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     if(!dialog) return;
                     dialog.title.textContent = 'Enter Token';
                     dialog.f.color.value = ez_token_color;
-                    dialog.f.width.value = view.gridscale == GRIDSCALE.TEN?'1':'0.5';
-                    dialog.f.height.value = view.gridscale == GRIDSCALE.TEN?'1':'0.5';
+                    dialog.f.width.value = ''+gs_to_w(view.gridscale);
+                    dialog.f.height.value = ''+gs_to_w(view.gridscale);
                     dialog.f.text.value = '';
                     dialog.show_handler = function():void{
                         if(!IS_TOUCH) dialog.f.text.focus();
@@ -8329,8 +8341,8 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         let hp = +dialog.f.hp.value;
                         let maxhp = +dialog.f.maxhp.value;
                         if(maxhp < 0) maxhp = 0;
-                        if(!width || width < 0) width = view.gridscale == GRIDSCALE.TEN?1:0.5;
-                        if(!height || height < 0) height = view.gridscale == GRIDSCALE.TEN?1:0.5;
+                        if(!width || width < 0) width = gs_to_w(view.gridscale);
+                        if(!height || height < 0) height = gs_to_w(view.gridscale);
                         const color = dialog.f.color.value;
                         let id = get_new_id();
                         ez_token_color = color;
@@ -8352,8 +8364,8 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     dialog.hide_handler = function():void{
                         gallery.innerHTML = '';
                     };
-                    dialog.f.width.value = view.gridscale == GRIDSCALE.TEN?'1':'0.5';
-                    dialog.f.height.value = view.gridscale == GRIDSCALE.TEN?'1':'0.5';
+                    dialog.f.width.value = ''+gs_to_w(view.gridscale);
+                    dialog.f.height.value = ''+gs_to_w(view.gridscale);
                     dialog.f.url.value = '';
                     function add_img_buttons():void{
                         if(PACKED && PACKED_LOAD==3){
@@ -8378,8 +8390,8 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         let snap = get_snap_tl_func();
                         let w = +dialog.f.width.value;
                         let h = +dialog.f.height.value;
-                        if(!w || w < 0) w = view.gridscale == GRIDSCALE.TEN?1:0.5;
-                        if(!h || h < 0) h = view.gridscale == GRIDSCALE.TEN?1:0.5;
+                        if(!w || w < 0) w = gs_to_w(view.gridscale);
+                        if(!h || h < 0) h = gs_to_w(view.gridscale);
                         let hp = +dialog.f.hp.value;
                         let maxhp = +dialog.f.maxhp.value;
                         if(maxhp < 0) maxhp = 0;
@@ -8599,7 +8611,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                 flags: CanvasFlag.NONE,
                                 hidinguser: hiddenid(),
                                 color: get_primary_color(),
-                                size: view.gridscale == GRIDSCALE.TEN?1:0.5,
+                                size: gs_to_w(view.gridscale),
                             };
                             add_canv_obj(view.map, filled);
                         }break;
@@ -8864,10 +8876,10 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             whenflags |= CONTEXTMENUWHENFLAGS.MULTIPLE_SELECTED;
         if(view.selected.size == 1)
             whenflags |= CONTEXTMENUWHENFLAGS.ONE_SELECTED;
-        if(view.gridscale == GRIDSCALE.TEN)
-            whenflags |= CONTEXTMENUWHENFLAGS.GRID_TEN;
-        else
+        if(view.gridscale == GRIDSCALE.FIVE)
             whenflags |= CONTEXTMENUWHENFLAGS.GRID_FIVE;
+        else
+            whenflags |= CONTEXTMENUWHENFLAGS.GRID_TEN;
 
         if(whenflags & CONTEXTMENUWHENFLAGS.NO_SELECTION){
             menu.item('Ping', function():void{ping_at(view.map, click_x, click_y);});
