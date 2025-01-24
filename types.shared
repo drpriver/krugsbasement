@@ -903,14 +903,6 @@ struct Character: array
     macros: [int]
     variables: [int]
 
-struct ExportedMacro: array
-    variables: [Variable]
-    macros: [Macro]
-    characters: [Character]
-
-validator: ExportedMacro
-    ts
-
 // GridType
 // --------
 // It looks weird that you can have NOGRID and HEX set at the same time,
