@@ -68,6 +68,11 @@ ONRECV(ToClient.METADATA, function(md:MetadataMsg){
         }
     }
 });
+
+interface ToggleEvent extends Event {
+    readonly newState: "open"|"closed";
+    readonly oldState: "open"|"closed";
+}
 document.addEventListener('DOMContentLoaded', function(){
     by_id('home-link').oncontextmenu = function(e:MouseEvent){
         const menu = ctx_menu(e);
@@ -86,4 +91,16 @@ document.addEventListener('DOMContentLoaded', function(){
         menu.canceller();
         menu.install();
     };
+    function ontoggle(e:ToggleEvent):void{
+        const id = (e.target! as HTMLDetailsElement).id;
+        const skey = `/details/state/${id}`;
+        store_local(StorageCategory.UI, skey, e.newState);
+    }
+    for(const key of ['maps-details', 'sheets-details', 'notes-details', 'macros-details', 'clocks-details'] as const){
+          const elem = by_id(key);
+          const stored = get_local(StorageCategory.UI, `/details/state/${key}`);
+          if(stored) elem.open = stored == 'open';
+          // @ts-ignore
+          setTimeout(()=> elem.ontoggle = ontoggle, 0);
+    }
 });

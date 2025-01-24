@@ -1,6 +1,7 @@
 Changelog::kv
-  created: 2024-01-25T07:19:30Z
-  updated: 2024-01-26T16:19:07Z
+  created:  2024-01-25T07:19:30Z
+  updated:  2024-01-26T16:19:07Z
+  resolved: 2025-01-24T07:47:35Z
 Created Jan 24, 2024, 11:19PM::md .update
 Summary::md .summary
   These should remember if they were open when you reload the page. That would
@@ -8,3 +9,6 @@ Summary::md .summary
 
 Updated Jan 26, 2024, 08:19AM::md .update
   Notes remember now.
+
+Resolved Jan 23, 2025, 11:47PM::md .update
+  Fixed

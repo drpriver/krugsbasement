@@ -857,7 +857,7 @@
     <button id="calendar-button">Calendar…</button>
   ::div #id(left-stuff)
     ::raw
-      <details open>
+      <details id="maps-details" open>
         <summary>Maps</summary>
         <button disabled title="Previous Map" id="back-map-button">←</button>
         <button disabled title="Next Map" id="forward-map-button">→</button>
@@ -866,28 +866,28 @@
         </div>
       </details>
     ::raw
-      <details open>
+      <details id="sheets-details" open>
         <summary>Sheets</summary>
         <button title="New Sheet" id="new-sheet-button">New Sheet…</button>
         <div id="sheets-list">
         </div>
       </details>
     ::raw
-      <details open>
+      <details id="notes-details" open>
         <summary>Notes</summary>
         <button title="New Note" id="new-note">New Note…</button>
         <div id="notes-list">
         </div>
       </details>
     ::raw
-      <details>
+      <details id="macros-details">
         <summary>Macros</summary>
         <button title="New Macro Group" id="new-macro-group-button">New Macro…</button>
         <ul id="left-macro-group-list">
         </ul>
       </details>
     ::raw
-      <details>
+      <details id="clocks-details">
         <summary>Clocks</summary>
         <button title="New Clocks" id="new-clock">New Clock…</button>
         <div id="clock-list">

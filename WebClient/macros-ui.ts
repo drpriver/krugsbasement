@@ -36,6 +36,7 @@ ONRECV(ToClient.CHAT_TEST_STRUCTURED_RESPONSE, function(response:Array<ChatMsg>)
 const VARIABLES_WINDOWS: Map<number, VariablesWindow> = new Map();
 
 function make_macro_window(cid:number, id:number):MacroWindow {
+    const openid = `/macros/open/${cid}-${id}`;
     const ident = (cid << 16) | id;
     const macro = MACROS.get(id);
     const wid = `macrow-${cid}-${id}`;
@@ -142,6 +143,7 @@ function make_macro_window(cid:number, id:number):MacroWindow {
     function close():void{
         w.remove();
         MACRO_WINDOWS.delete(ident);
+        store_local(StorageCategory.WINDOW, openid, '');
     };
     setup_closable_window(w, x, close);
     function show():void{
@@ -150,6 +152,7 @@ function make_macro_window(cid:number, id:number):MacroWindow {
         w.style.display = 'grid';
         make_top();
         if(!IS_TOUCH) editor.focus();
+        store_local(StorageCategory.WINDOW, openid, '1');
     }
     function refresh():void{
         const macro = MACROS.get(id);
@@ -531,6 +534,9 @@ function setup_macro_left():void{
                 e.stopPropagation();
                 get_macro_window(cid, mid).show();
             };
+            const openid = `/macros/open/${cid}-${mid}`;
+            if(get_local(StorageCategory.WINDOW, openid))
+              get_macro_window(cid, mid).show();
         }
     }
 

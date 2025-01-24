@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2024, David Priver
+// Copyright © 2021-2025, David Priver
 //
 
 // local vs global refers to the website - whether it
@@ -13,6 +13,7 @@ const enum StorageCategory {
     SETTINGS = 'settings',
     WINDOW = 'window',
     CALENDAR = 'calendar',
+    UI = 'ui',
 }
 
 const THISPAGE = window.location.pathname;

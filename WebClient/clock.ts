@@ -172,7 +172,6 @@ function make_clock_window(id: number): ClockWindow{
     const w = elem('div', wid, 'window2');
     w.tabIndex = 0;
     w.onclick = function(e:MouseEvent):void{
-      console.log('click');
       e.stopPropagation();
       e.preventDefault();
       w.focus();
@@ -422,7 +421,6 @@ function find_clock_el(clock_id: number, event_id: number):HTMLDivElement|null{
 }
 
 ONRECV(ToClient.CLOCK, function(msg:ClockMsg):void{
-    console.log(msg);
     switch(msg.type){
         case ClockMsgType.INITIALIZE:
             clocks.clear();
