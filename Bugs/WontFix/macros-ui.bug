@@ -1,6 +1,7 @@
 Changelog::kv
   created: 2023-12-15T04:52:20.651353
   updated: 2024-01-13T06:23:26Z
+  wontfix: 2025-01-24T22:18:13Z
 Created Dec 14, 2023, 08:52PM::md .update
 Summary::md .summary
   fix it, the variables and stuff suck and it’s all pretty cramped.
@@ -11,3 +12,7 @@ Updated Jan 12, 2024, 10:23PM::md .update
   I think the direction I want to move in is pushing this stuff into sheets
   instead. So your macros don’t have variables and at all and you just refer
   to named cells or whatever.
+
+WontFix Jan 24, 2025, 02:18PM::md .update
+  This is too non-specific, I’ll just iterate on the UI when I have a good
+  idea.
