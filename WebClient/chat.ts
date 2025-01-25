@@ -6,7 +6,7 @@
 function evaluate(text:string, character_id:number, macro_id:number, outarray:Array<Command>):string{
     let [ns, vars] = get_script_variables(character_id, macro_id);
     try{
-        let result = evaluate_script(text, vars, ns);
+        let result = evaluate_script(text, vars, ns, get_active_char_name());
         if(result.length > 25)
             return "Your command results in too much output. Do less.";
         for(let c of result) outarray.push(c);

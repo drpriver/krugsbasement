@@ -218,21 +218,20 @@ function fully_qualified_sheet_name(s:SpreadSheet):string{
 }
 
 let sheet_wasm_load_in_flight = false;
-function spread_eval_string(s:string):number|string|null{
+function spread_eval_string(sheetname:string|null, s:string):number|string|null{
     if(!SHEET_CTX){
         load_sheet_wasm();
         return null;
     }
-    const char = CHARACTERS.get(get_active_char());
     let sheet = SHEET.NULL;
-    if(char){
+    if(sheetname){
+        sheetname = sheetname.toLowerCase();
         for(let s of SPREADSHEETS.values()){
-            if(s.name.toLowerCase() == char[1].toLowerCase()){
+            if(s.name.toLowerCase() == sheetname){
                 sheet = s.id;
                 break;
             }
         }
-
     }
     const result = SHEET_CTX.evaluate_string(sheet, s);
     if(result === "error")

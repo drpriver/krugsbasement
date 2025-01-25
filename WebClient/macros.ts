@@ -8,6 +8,7 @@ const {
     update_var_value,
     set_active_char,
     get_active_char,
+    get_active_char_name,
     save_variables,
     save_macros,
     save_characters,
@@ -34,6 +35,11 @@ function set_active_char(n:number):void{
 }
 function get_active_char():number{
     return active_character;
+}
+function get_active_char_name():string|null {
+    const char = CHARACTERS.get(get_active_char());
+    if(char) return char[1];
+    return null;
 }
 const VARINPUTS:Map<number, Map<string, HTMLInputElement>> = new Map();
 
@@ -216,6 +222,7 @@ return {
     update_var_value,
     set_active_char,
     get_active_char,
+    get_active_char_name,
     save_variables,
     save_macros,
     save_characters,

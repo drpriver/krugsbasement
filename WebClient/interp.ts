@@ -1,12 +1,12 @@
 //
-// Copyright © 2021-2024, David Priver
+// Copyright © 2021-2025, David Priver
 //
 
 //
 // Definitions for Binary and Unary are shared between
 // client and server and so are in the shared types.
 //
-const evaluate_script = (function():(text:string, vars:Map<string, number|string>, namespaces:Map<string, Map<string,number|string>>)=>Array<Command>{
+const evaluate_script = (function():(text:string, vars:Map<string, number|string>, namespaces:Map<string, Map<string,number|string>>, sheetname:string|null)=>Array<Command>{
     const enum TokenKind {
         // 0 is reserved for "not a token"
         IDENT    =  1,
@@ -620,8 +620,8 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
         }
     }
 
-    function eval_expr(expr: Expression, namespaces:Map<string, NameSpace>, vars:Map<string, Array<Token>>): number | null{
-        let dice = expand_dice(expr, namespaces, vars, false, new Set());
+    function eval_expr(expr: Expression, namespaces:Map<string, NameSpace>, vars:Map<string, Array<Token>>, sheetname:string|null): number | null{
+        let dice = expand_dice(expr, namespaces, vars, sheetname, false, new Set());
         return eval_dice(dice);
     }
 
@@ -1124,22 +1124,22 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
     }
 
 
-    function expand_dice(expr: Expression, namespaces:Map<string, NameSpace>, vars:NameSpace, muldiv:boolean, visited:Set<string>): UnrolledDiceExpr | null {
+    function expand_dice(expr: Expression, namespaces:Map<string, NameSpace>, vars:NameSpace, sheetname:string|null, muldiv:boolean, visited:Set<string>): UnrolledDiceExpr | null {
         switch(expr.type){
             case EXPR.NUMBER:
                 return [DieExprTypes.NUMBER, expr.value];
             case EXPR.DICE:
                 return [DieExprTypes.DICE, expr.n, expr.base];
             case EXPR.GROUP:{
-                let e = expand_dice(expr.expr, namespaces, vars, false, visited);
+                let e = expand_dice(expr.expr, namespaces, vars, sheetname, false, visited);
                 if(!e) return e;
                 return [DieExprTypes.GROUP, e];
             }
             case EXPR.Binary:{
                 let childmuldiv = expr.btype == Binary.MUL || expr.btype == Binary.DIV;
-                let lhs = expand_dice(expr.lhs, namespaces, vars, childmuldiv, visited);
+                let lhs = expand_dice(expr.lhs, namespaces, vars, sheetname, childmuldiv, visited);
                 if(!lhs) return lhs;
-                let rhs = expand_dice(expr.rhs, namespaces, vars, childmuldiv, visited);
+                let rhs = expand_dice(expr.rhs, namespaces, vars, sheetname, childmuldiv, visited);
                 if(!rhs) return rhs;
                 if(expr.btype == Binary.ADD || expr.btype == Binary.SUB){
                     if(rhs[0] == DieExprTypes.NUMBER && rhs[1] == 0)
@@ -1161,7 +1161,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
                 return result;
             }
             case EXPR.Unary:{
-                let e = expand_dice(expr.expr, namespaces, vars, false, visited);
+                let e = expand_dice(expr.expr, namespaces, vars, sheetname, false, visited);
                 if(!e) return e;
                 return [DieExprTypes.Unary, expr.utype, e];
             }
@@ -1172,7 +1172,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
                 let toks = lookup(expr.ident, vars);
                 if(!toks) {
                     // try to eval it as a cell reference
-                    let v = spread_eval_string(expr.ident);
+                    let v = spread_eval_string(sheetname, expr.ident);
                     if(v === null)
                         return null;
                     if(typeof v !== 'string') return [DieExprTypes.NUMBER, v];
@@ -1180,11 +1180,11 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
                     const tokens = tokenize(v);
                     const subexpr = parse_expression(tokens);
                     if(!subexpr) return null;
-                    return expand_dice(subexpr, namespaces, vars, muldiv, visited);
+                    return expand_dice(subexpr, namespaces, vars, sheetname, muldiv, visited);
                 }
                 let e = parse_expression(toks);
                 if(!e) return null;
-                return expand_dice(e, namespaces, vars, muldiv, visited);
+                return expand_dice(e, namespaces, vars, sheetname, muldiv, visited);
             }
             case EXPR.DOTTED_IDENT:{
                 let key = expr.namespace+'.'+expr.ident;
@@ -1194,10 +1194,10 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
                 if(!toks) return null;
                 let e = parse_expression(toks);
                 if(!e) return null;
-                return expand_dice(e, namespaces, vars, muldiv, visited);
+                return expand_dice(e, namespaces, vars, sheetname, muldiv, visited);
             }
             case EXPR.NGROUP:{
-                let e = expand_dice(expr.expr, namespaces, vars, false, visited);
+                let e = expand_dice(expr.expr, namespaces, vars, sheetname, false, visited);
                 if(!e) return e;
                 return [DieExprTypes.NGROUP, expr.count, e];
             }
@@ -1205,13 +1205,13 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
                 let arg = expr.value.slice(1, expr.value.length-1);
                 let argtoks = tokenize(arg);
                 let s = simple_expand_token(argtoks, vars, 1);
-                let v = spread_eval_string(s);
+                let v = spread_eval_string(sheetname, s);
                 if(v === null) return null;
                 if(typeof v !== 'string') return [DieExprTypes.NUMBER, v];
                 const tokens = tokenize(v);
                 const subexpr = parse_expression(tokens);
                 if(!subexpr) return null;
-                return expand_dice(subexpr, namespaces, vars, muldiv, visited);
+                return expand_dice(subexpr, namespaces, vars, sheetname, muldiv, visited);
             }
         }
     }
@@ -1263,14 +1263,14 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
         }
     }
 
-    function interpret(statement:Statement, namespaces:Map<string, NameSpace>, vars:NameSpace, outcommands:Array<Command>):string{
+    function interpret(statement:Statement, namespaces:Map<string, NameSpace>, vars:NameSpace, sheetname:string|null, outcommands:Array<Command>):string{
         switch(statement.kind){
             case StatementKind.LIST:{
                 outcommands.push([statement.command, statement.content, statement.items]);
                 return "";
             }
             case StatementKind.ROLL:{
-                let unrolled = expand_dice(statement.expr, namespaces, vars, false, new Set());
+                let unrolled = expand_dice(statement.expr, namespaces, vars, sheetname, false, new Set());
                 if(!unrolled){
                     let mess = "Failed to expand a variable in '";
                     for(let tok of statement.contents)
@@ -1283,45 +1283,45 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
             }break;
             case StatementKind.BLOCK:{
                 for(let s of statement.statements){
-                    let e = interpret(s, namespaces, vars, outcommands);
+                    let e = interpret(s, namespaces, vars, sheetname, outcommands);
                     if(e) return e;
                 }
                 return "";
             }break;
             case StatementKind.IF:{
-                let cond = eval_expr(statement.test, namespaces, vars);
+                let cond = eval_expr(statement.test, namespaces, vars, sheetname);
                 if(cond === null){
                     return "Failed to evaluate in if statement.";
                 }
                 if(cond){
-                    let e = interpret(statement.iftrue, namespaces, vars, outcommands);
+                    let e = interpret(statement.iftrue, namespaces, vars, sheetname, outcommands);
                     if(e) return e;
                 }
                 else {
                     let handled = false;
                     for(let elif of statement.elifs){
-                        let t2 = eval_expr(elif.test, namespaces, vars);
+                        let t2 = eval_expr(elif.test, namespaces, vars, sheetname);
                         if(t2){
                             handled = true;
-                            let e = interpret(elif.block, namespaces, vars, outcommands);
+                            let e = interpret(elif.block, namespaces, vars, sheetname, outcommands);
                             if(e) return e;
                             return "";
                         }
                     }
                     if(!handled && statement.iffalse !== null){
-                        let e = interpret(statement.iffalse, namespaces, vars, outcommands);
+                        let e = interpret(statement.iffalse, namespaces, vars, sheetname, outcommands);
                         if(e) return e;
                     }
                 }
                 return "";
             }break;
             case StatementKind.REPEAT:{
-                let n = eval_expr(statement.expr, namespaces, vars);
+                let n = eval_expr(statement.expr, namespaces, vars, sheetname);
                 if(n === null){
                     return "Failed to evaluate repeat statement times.";
                 }
                 for(let i = 0; i < n; i++){
-                    let e = interpret(statement.block, namespaces, vars, outcommands);
+                    let e = interpret(statement.block, namespaces, vars, sheetname, outcommands);
                     if(e) return e;
                 }
                 return "";
@@ -1353,21 +1353,21 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
         }
     }
 
-    function really_eval_script(text:string, namespaces:Map<string, NameSpace>, vars:NameSpace):Array<Command>{
+    function really_eval_script(text:string, namespaces:Map<string, NameSpace>, vars:NameSpace, sheetname:string|null):Array<Command>{
         // const before = performance.now();
         let outlines: Array<Command> = [];
         let glob = make_block(null, -1);
         let tokens = tokenize(text);
         let err = parse(tokens, glob);
         if(err !== null) throw new Error(err);
-        let err2 = interpret(glob, namespaces, vars, outlines);
+        let err2 = interpret(glob, namespaces, vars, sheetname, outlines);
         if(err2.length) throw new Error(err2);
         // const after = performance.now();
         // outlines.push(`Parsing took: ${after-before}ms`);
         return outlines;
     }
 
-    function eval_script(text:string, vars:Map<string, number|string>, namespaces:Map<string, Map<string,number|string>>): Array<Command> {
+    function eval_script(text:string, vars:Map<string, number|string>, namespaces:Map<string, Map<string,number|string>>, sheetname:string|null): Array<Command> {
         let newvars: Map<string, Array<Token>> = new Map();
         for(const[k, v] of vars.entries()){
             if(typeof v == 'string'){
@@ -1396,7 +1396,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
             }
             newnamespaces.set(name, newnamespace);
         }
-        return really_eval_script(text, newnamespaces, newvars);
+        return really_eval_script(text, newnamespaces, newvars, sheetname);
     }
     return eval_script;
 })();
