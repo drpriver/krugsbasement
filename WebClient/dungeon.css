@@ -1552,12 +1552,19 @@ body.dark-mode div.tree-item:hover {
   display: none;
   padding: 2px 4px;
   width: 1em;
+  padding-right: 1em;
 }
 div.tree-item.parent .toggle {
   display: inline-block;
   margin-left: -1em;
   background: none;
   /*font-size: 16px;*/
+}
+div.tree-item.parent .toggle:hover {
+  background-color: #ddd;
+}
+body.dark-mode div.tree-item.parent .toggle:hover {
+  background-color: #666;
 }
 div.tree-item {
   border: 1px solid rgba(0, 0, 0, 0);
