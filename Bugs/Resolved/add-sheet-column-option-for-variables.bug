@@ -1,0 +1,13 @@
+Changelog::kv
+  created:  2024-05-31T20:19:18Z
+  resolved: 2025-01-25T23:02:01Z
+Created May 31, 2024, 01:19PM::md .update
+Summary::md .summary
+  Add a variable type that is just a string but the ui is a dropdown
+  (dynamically) populated from a column of a spreadsheet.
+
+  This makes the <code>tlu()</code> function more useful.
+
+Resolved Jan 25, 2025, 03:02PM::md .update
+  Added a jankier but easier to implement version with just a list of strings.
+  Followup bugs can be for improving that.
