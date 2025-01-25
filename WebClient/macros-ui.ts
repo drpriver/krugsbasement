@@ -637,6 +637,17 @@ function setup_macro_panel():void{
             i++;
         }
     }
+    {
+      let active = get_active_char();
+      let i = 0;
+      for(let id of CHARACTERS.keys()){
+          if(id == active){
+            macro_panel_idx = i;
+            break;
+          }
+          i++;
+      }
+    }
     let tv = make_tab_view(tabs, views, 'grid');
     tv.on_change_handler = function(old_idx:number, new_idx:number):void{
         macro_panel_idx = new_idx;

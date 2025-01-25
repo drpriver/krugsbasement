@@ -29,8 +29,9 @@ const MACROS: Map<number, Macro> = new Map();
 let macrocounter = 0;
 const VARIABLES: Map<number, Variable> = new Map();
 let variablecounter = 0;
-let active_character = 0;
+let active_character = +get_local_default(StorageCategory.MACROS, 'active_character', '0')|0;
 function set_active_char(n:number):void{
+    store_local(StorageCategory.MACROS, 'active_character', ''+n);
     active_character = n;
 }
 function get_active_char():number{
@@ -203,7 +204,7 @@ function update_var_value(vid:number, val:string):void{
         VARIABLES.set(v[0], v);
         if(v[0] > variablecounter) variablecounter = v[0];
     }
-    let first = true;
+    let first = !active_character;
     for(const c of SETTINGS.macros.characters){
         if(first) active_character = c[0];
         first = false;
