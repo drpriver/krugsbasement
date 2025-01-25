@@ -57,6 +57,10 @@ function get_script_variables(character_id:number, macro_id:number):[Map<string,
             let value = v[3];
             if(v[2] == ScriptVariableType.ABILITY_SCORE)
                 value = ""+ability_score_to_modifier(+value);
+            else if(v[2] == ScriptVariableType.CHOICE){
+                if(Number.isNaN(+value))
+                    value = '"' + value +'"';
+            }
             ns.set(v[1].toLowerCase(), value);
         }
         namespaces.set(ch[1].toLowerCase(), ns);
@@ -77,6 +81,10 @@ function get_script_variables(character_id:number, macro_id:number):[Map<string,
             let value = v[3];
             if(v[2] == ScriptVariableType.ABILITY_SCORE)
                 value = ""+ability_score_to_modifier(+value);
+            else if(v[2] == ScriptVariableType.CHOICE){
+                if(Number.isNaN(+value))
+                    value = '"' + value +'"';
+            }
             vars.set(v[1].toLowerCase(), value);
         }
     }
@@ -88,6 +96,10 @@ function get_script_variables(character_id:number, macro_id:number):[Map<string,
             let value = v[3];
             if(v[2] == ScriptVariableType.ABILITY_SCORE)
                 value = ""+ability_score_to_modifier(+value);
+            else if(v[2] == ScriptVariableType.CHOICE){
+                if(Number.isNaN(+value))
+                    value = '"' + value +'"';
+            }
             vars.set(v[1].toLowerCase(), value);
         }
     }
@@ -117,7 +129,7 @@ function del_macro(id:number):void{
 
 function alloc_variable():Variable {
     const id = ++variablecounter;
-    const result: Variable = [id, "", ScriptVariableType.NUMBER, "0", 0];
+    const result: Variable = [id, "", ScriptVariableType.NUMBER, "0", 0, []];
     VARIABLES.set(id, result);
     return result;
 }

@@ -119,6 +119,16 @@ function make_macro_window(cid:number, id:number):MacroWindow {
         const dialog = get_dialog('make-variable');
         if(!dialog) return;
         dialog.f.name.value = '';
+        dialog.f.values.value = '';
+        dialog.f.values.rows = 10;
+        dialog.f['value-row'].style.display = dialog.f.type.value == '4'?'table-row':'none';
+        dialog.f.type.onchange = function(){
+          if(dialog.f.type.value == '4'){
+            dialog.f['value-row'].style.display = 'table-row';
+          }
+          else
+            dialog.f['value-row'].style.display = 'none';
+        };
         dialog.show_handler = function():void{
             if(!IS_TOUCH) dialog.f.name.focus();
         };
@@ -127,12 +137,21 @@ function make_macro_window(cid:number, id:number):MacroWindow {
             if(!name) return;
             const m = MACROS.get(id);
             if(!m) return;
+            let lines: Array<string> = [];
+            let type = +dialog.f.type.value;
+            if(type == ScriptVariableType.CHOICE){
+              lines = dialog.f.values.value.trim().split('\n').map(x => x.trim()).filter(x=>x);
+              if(!lines.length) return;
+            }
             let v = alloc_variable();
             v[1] = name;
-            v[2] = +dialog.f.type.value;
+            v[2] = type;
             if(v[2] == ScriptVariableType.BOOLEAN)
                 v[3] = '0';
             m[3].push(v[0]);
+            v[5] = lines;
+            if(v[2] == ScriptVariableType.CHOICE)
+                v[3] = lines[0];
             save_mcv_and_signal();
             refresh();
         };
@@ -189,7 +208,7 @@ function make_macro_window(cid:number, id:number):MacroWindow {
                     });
                     menu.install();
                 }
-                const inp = elem_with_parent(l, 'input');
+                let inp = elem_with_parent(l, 'input');
                 switch(v[2]){
                 case ScriptVariableType.NUMBER:
                     inp.type = 'number';
@@ -206,6 +225,16 @@ function make_macro_window(cid:number, id:number):MacroWindow {
                 case ScriptVariableType.STRING:
                     inp.type = 'text';
                     inp.value = v[3];
+                    break;
+                case ScriptVariableType.CHOICE:
+                    inp.remove();
+                    inp = elem_with_parent(l, 'select') as any;
+                    for(let choice of v[5]){
+                        let o = elem_with_parent(inp, 'option');
+                        o.text = choice;
+                        o.value = choice;
+                    }
+                    (inp as any as HTMLSelectElement).value = v[3];
                     break;
                 }
                 inp.oninput = function():void{
@@ -248,6 +277,16 @@ function make_vars_window(cid:number):VariablesWindow {
         const dialog = get_dialog('make-variable');
         if(!dialog) return;
         dialog.f.name.value = '';
+        dialog.f.values.value = '';
+        dialog.f.values.rows = 10;
+        dialog.f['value-row'].style.display = dialog.f.type.value == '4'?'table-row':'none';
+        dialog.f.type.onchange = function(){
+          if(dialog.f.type.value == '4'){
+            dialog.f['value-row'].style.display = 'table-row';
+          }
+          else
+            dialog.f['value-row'].style.display = 'none';
+        };
         dialog.show_handler = function():void{
             if(!IS_TOUCH) dialog.f.name.focus();
         };
@@ -256,12 +295,21 @@ function make_vars_window(cid:number):VariablesWindow {
             if(!name) return;
             const char = CHARACTERS.get(cid);
             if(!char) return;
+            let lines: Array<string> = [];
+            let type = +dialog.f.type.value;
+            if(type == ScriptVariableType.CHOICE){
+              lines = dialog.f.values.value.trim().split('\n').map(x => x.trim()).filter(x=>x);
+              if(!lines.length) return;
+            }
             let v = alloc_variable();
             v[1] = name;
             v[2] = +dialog.f.type.value;
             if(v[2] == ScriptVariableType.BOOLEAN)
                 v[3] = '0';
             char[3].push(v[0]);
+            v[5] = lines;
+            if(v[2] == ScriptVariableType.CHOICE)
+                v[3] = lines[0];
             save_mcv_and_signal();
             refresh();
         };
@@ -314,7 +362,7 @@ function make_vars_window(cid:number):VariablesWindow {
                     menu.canceller();
                     menu.install();
                 }
-                const inp = elem_with_parent(l, 'input');
+                let inp = elem_with_parent(l, 'input');
                 switch(v[2]){
                 case ScriptVariableType.NUMBER:
                     inp.type = 'number';
@@ -331,6 +379,16 @@ function make_vars_window(cid:number):VariablesWindow {
                 case ScriptVariableType.STRING:
                     inp.type = 'text';
                     inp.value = v[3];
+                    break;
+                case ScriptVariableType.CHOICE:
+                    inp.remove();
+                    inp = elem_with_parent(l, 'select') as any;
+                    for(let choice of v[5]){
+                        let o = elem_with_parent(inp, 'option');
+                        o.text = choice;
+                        o.value = choice;
+                    }
+                    (inp as any as HTMLSelectElement).value = v[3];
                     break;
                 }
                 inp.oninput = function():void{
@@ -569,7 +627,7 @@ function setup_macro_panel():void{
         const l = elem_with_parent(parent, 'label');
         l.classList.add('panel-variable');
         elem_parent_text(l, 'span', v[1]+' ');
-        const inp = elem_with_parent(l, 'input');
+        let inp = elem_with_parent(l, 'input');
         switch(v[2]){
             case ScriptVariableType.NUMBER:
                 inp.type = 'number';
@@ -586,6 +644,16 @@ function setup_macro_panel():void{
             case ScriptVariableType.STRING:
                 inp.type = 'text';
                 inp.value = v[3];
+                break;
+            case ScriptVariableType.CHOICE:
+                inp.remove();
+                inp = elem_with_parent(l, 'select') as any;
+                for(let choice of v[5]){
+                    let o = elem_with_parent(inp, 'option');
+                    o.text = choice;
+                    o.value = choice;
+                }
+                (inp as any as HTMLSelectElement).value = v[3];
                 break;
         }
         reg_var_input(v[0], 'macro-panel', inp);

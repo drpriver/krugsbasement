@@ -487,10 +487,13 @@
             <option value="1">Boolean</option>
             <option value="0">Number</option>
             <option value="2">Expression</option>
+            <option value="4">Choices</option>
           </select>
       <tr>
         <td>${label('name', 'Name')}
         <td>${textbox('name')}
+      ${trbegin('value-row')}
+        <td colspan="2">${textarea('values')}
     </table>
     `);
   begin('simple-delete');

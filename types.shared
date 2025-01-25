@@ -883,6 +883,7 @@ enum ScriptVariableType: int
     BOOLEAN = 1
     STRING = 2
     ABILITY_SCORE = 3 # 3.5 style
+    CHOICE = 4
 
 struct Variable: array
     id: int
@@ -890,6 +891,8 @@ struct Variable: array
     type: ScriptVariableType
     value: str
     ui: int
+    values: [str]
+
 
 struct Macro: array
     id: int
