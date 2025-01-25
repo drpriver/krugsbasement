@@ -9326,24 +9326,23 @@ document.addEventListener('DOMContentLoaded', function():void{
                 TheCanvas.dispatchEvent(m);
                 break;
             case 'q':
-                if(modified) return;
-                visually_set_snapmode(SNAPMODE.GRID);
+                return;
                 break;
             case 'w':
-                if(modified) return;
-                visually_set_snapmode(SNAPMODE.HALF);
+                change_tool(ToolType.WALL);
                 break;
             case 'e':
-                if(modified) return;
-                visually_set_snapmode(SNAPMODE.FREE);
+                change_tool(ToolType.ELLIPSE);
                 break;
             case 's':
-                if(modified) return;
                 change_tool(ToolType.SELECT);
+                break;
+            case 'h':
+                change_tool(ToolType.SHAPE);
                 break;
             case 'p':
                 if(modified) return;
-                change_tool(ToolType.ELLIPSE);
+                change_tool(ToolType.POLYGON);
                 break;
             case 'n':
                 if(modified) return;
@@ -9375,7 +9374,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 break;
             case 'a':
                 if(modified) return;
-                change_tool(ToolType.WALL);
+                change_tool(ToolType.ARC);
                 break;
             case 't':
                 if(modified) return;

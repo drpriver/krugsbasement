@@ -741,7 +741,7 @@
     ::div.tool-menu #id(select-tool-menu)
       ☰
     ::div.tool #id(wall-tool)
-      W<b>a</b>ll
+      <b>W</b>all
     ::div.tool #id(door-tool)
       <b>D</b>oor
     ::div.tool-menu #id(door-tool-menu)
@@ -759,19 +759,19 @@
     ::div.tool-menu #id(rect-tool-menu)
       ☰
     ::div.tool #id(shape-tool)
-      Shape
+      S<b>h</b>ape
     ::div.tool-menu #id(shape-tool-menu)
       ☰
     ::div.tool #id(polygon-tool)
-      Polygon
+      <b>P</b>olygon
     ::div.tool-menu #id(polygon-tool-menu)
       ☰
     ::div.tool #id(ellipse-tool)
-      Elli<b>p</b>se
+      <b>E</b>llipse
     ::div.tool-menu #id(ellipse-tool-menu)
       ☰
     ::div.tool #id(arc-tool)
-      Arc
+      <b>A</b>rc
     ::div.tool-menu #id(arc-tool-menu)
       ☰
     ::div.tool #id(text-tool)

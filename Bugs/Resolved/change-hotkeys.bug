@@ -1,0 +1,10 @@
+Changelog::kv
+  created:  2024-04-06T04:02:25.235311
+  resolved: 2025-01-25T23:14:34Z
+Created Apr 05, 2024, 09:02PM::md .update
+Summary::md .summary
+  Move snapping to numbers and use qwe for their obvious tools
+
+Resolved Jan 25, 2025, 03:14PM::md .update
+  Moved qwe to tools, but numbers are still for subtools. Idk if I like that
+  though.
