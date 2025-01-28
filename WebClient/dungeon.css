@@ -95,8 +95,8 @@ body.dark-mode .window, body.dark-mode .tracker-window, body.dark-mode #disconne
   left: 10%;
   z-index: 4;
   display: grid;
-  grid-template-rows: max-content max-content;
-  grid-template-columns: max-content;
+  grid-template-rows: max-content auto;
+  grid-template-columns: auto;
   padding: 0px;
   border-radius: 8px 8px 0px 0px;
   box-shadow: 0px 10px 24px rgba(0,0,0,0.3);
@@ -1373,7 +1373,7 @@ body.dark-mode .tracker-numbered {
 }
 .macro-only-window {
   display: grid;
-  grid-template-rows: max-content max-content max-content max-content max-content;
+  grid-template-rows: max-content max-content max-content max-content auto;
   grid-template-columns: 100%;
   min-width: 30ch;
 }
@@ -1615,6 +1615,10 @@ body.dark-mode .bold {
   text-decoration: line-through;
 }
 
+#cal-window {
+  height: 95vh;
+  width: 80%;
+}
 
 #cal-container {
   display: grid;

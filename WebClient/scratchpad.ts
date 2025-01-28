@@ -34,9 +34,10 @@ function scratchpad_window():ScratchpadWindow {
     const t = elem_parent_text(wh, 'span', 'Scratchpad', null, 'window-title');
     const content = get_local_default(StorageCategory.UI, 'scratch-0', '');
     const ta = elem_with_parent(w, 'textarea');
+    w.style.minHeight = '40vh';
+    w.style.minWidth = '40ch';
     ta.value = content;
-    ta.style.minHeight = '40vh';
-    ta.style.width = '40ch';
+    ta.style.width = '100%';
     ta.style.fontFamily = 'ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace';
     ta.style.fontSize = '16px';
     ta.spellcheck = false;
@@ -49,23 +50,9 @@ function scratchpad_window():ScratchpadWindow {
         store_local(StorageCategory.UI, storageid, ta.value);
       }, 500)
     };
-    const width = get_local(StorageCategory.UI, `${storageid}/w`);
-    if(width) ta.style.width = width + 'px';
-    const height = get_local(StorageCategory.UI, `${storageid}/h`);
-    if(height) ta.style.height = height + 'px';
-    ta.style.resize = 'both';
-    let wants_store_dimensions = false;
-    new ResizeObserver(function(){
-      if(wants_store_dimensions) return;
-      wants_store_dimensions = true;
-      setTimeout(()=>{
-        wants_store_dimensions = false;
-        store_local(StorageCategory.UI, `${storageid}/w`, ''+ta.offsetWidth);
-        store_local(StorageCategory.UI, `${storageid}/h`, ''+ta.offsetHeight);
-      }, 1000);
-    }).observe(ta);
+    setup_resizable_window(w, RESIZEFLAGS.LOCAL_REMEMBER);
     monospace_textarea(ta, null);
-    setup_movable_window(w, wh, WINDOWFLAGS.LOCAL_REMEMBER | WINDOWFLAGS.REMEMBER_POSITION);
+    setup_movable_window(w, wh, WINDOWFLAGS.LOCAL_REMEMBER);
     const make_top = setup_zsorted_window(w);
     setup_closable_window(w, x, function():void{
         store_local(StorageCategory.WINDOW, openid, '');

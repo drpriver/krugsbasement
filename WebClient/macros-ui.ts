@@ -159,7 +159,8 @@ function make_macro_window(cid:number, id:number):MacroWindow {
         };
         dialog.show();
     };
-    setup_movable_window(w, wh, WINDOWFLAGS.LOCAL_REMEMBER | WINDOWFLAGS.REMEMBER_POSITION);
+    setup_movable_window(w, wh, WINDOWFLAGS.LOCAL_REMEMBER);
+    setup_resizable_window(w, RESIZEFLAGS.NONE);
     const make_top = setup_zsorted_window(w);
     function close():void{
         w.remove();
@@ -317,7 +318,8 @@ function make_vars_window(cid:number):VariablesWindow {
         };
         dialog.show();
     };
-    setup_movable_window(w, wh, WINDOWFLAGS.LOCAL_REMEMBER | WINDOWFLAGS.REMEMBER_POSITION);
+    setup_movable_window(w, wh, WINDOWFLAGS.LOCAL_REMEMBER);
+    setup_resizable_window(w, RESIZEFLAGS.NONE);
     const make_top = setup_zsorted_window(w);
     function close():void{
         w.remove();

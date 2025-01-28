@@ -442,7 +442,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
 
     const grid = elem_with_parent(win, 'div', null, 'tracker-grid');
 
-    setup_movable_window(win, wh, WINDOWFLAGS.REMEMBER_POSITION|WINDOWFLAGS.LOCAL_REMEMBER);
+    setup_movable_window(win, wh, WINDOWFLAGS.LOCAL_REMEMBER);
     const result = {
         xxx_timing,
         func_nargs: 0,

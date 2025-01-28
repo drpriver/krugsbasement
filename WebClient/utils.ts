@@ -58,10 +58,21 @@ function setup_zsorted_window(win:HTMLDivElement):()=>void{
 }
 
 const enum WINDOWFLAGS {
-    NONE = 1 << 0,
-    REMEMBER_POSITION = 1 << 1,
-    LOCAL_REMEMBER = 1 << 2,
-}
+    NONE = 0,
+    // NOTE: both remembers are just stored in LocalStorage.
+    // When we talk about local we mean scoped to a particular campaign.
+
+    // Remember position (shared)
+    REMEMBER_POSITION = 1 << 0,
+    // Remember position for this campaign
+    // Requires REMEMBER_POSITION
+    LOCAL = 1 << 1,
+    LOCAL_REMEMBER = LOCAL|REMEMBER_POSITION,
+    GLOBAL_REMEMBER = REMEMBER_POSITION,
+};
+
+
+
 function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: WINDOWFLAGS):void{
     let dragging = false;
     let x = 0;
@@ -79,7 +90,7 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
             if(save_in_flight) return;
             save_in_flight = true;
             setTimeout(function():void{
-                if(flags & WINDOWFLAGS.LOCAL_REMEMBER)
+                if(flags & WINDOWFLAGS.LOCAL)
                     store_local(StorageCategory.WINDOW, win.id, [x+'%', y+'%']);
                 else
                     store_global(StorageCategory.WINDOW, win.id, [x+'%', y+'%']);
@@ -88,7 +99,7 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
         }
     }
     let old_pos;
-    if(flags & WINDOWFLAGS.LOCAL_REMEMBER)
+    if(flags & WINDOWFLAGS.LOCAL)
         old_pos = get_local(StorageCategory.WINDOW, win.id);
     else
         old_pos = get_global(StorageCategory.WINDOW, win.id);
@@ -158,6 +169,48 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
         y = e.screenY;
     }
 }
+const enum RESIZEFLAGS {
+  NONE = 0,
+  REMEMBER = 1 << 0,
+  LOCAL = 1 << 1,
+  GLOBAL_REMEMBER = REMEMBER,
+  LOCAL_REMEMBER = REMEMBER | LOCAL,
+};
+function setup_resizable_window(win:HTMLDivElement, flags: RESIZEFLAGS):void{
+    const storeid = `${win.id}/winsz`;
+    win.style.resize = 'both';
+    win.style.overflow = 'scroll';
+    // space for resize handle
+    if(IS_SAFARI) win.style.paddingBottom = '12px';
+    let wants_store_dimensions = false;
+    if(flags & RESIZEFLAGS.REMEMBER){
+      const sz = (flags & RESIZEFLAGS.LOCAL)?get_local(StorageCategory.WINDOW, storeid): get_global(StorageCategory.WINDOW, storeid);
+      if(sz){
+        try {
+          const [w, h] = sz;
+          if(w>100 && w < window.innerWidth)
+            win.style.width = ''+w+'px';
+          if(h>100 && h < window.innerHeight)
+            win.style.height = ''+h+'px';
+        }
+        catch(e){
+        }
+      }
+      new ResizeObserver(function(){
+        if(wants_store_dimensions) return;
+        wants_store_dimensions = true;
+        setTimeout(()=>{
+          wants_store_dimensions = false;
+          if(!win.offsetWidth || !win.offsetHeight) return;
+          const sz = [win.offsetWidth, win.offsetHeight];
+          if(flags & RESIZEFLAGS.LOCAL)
+            store_local(StorageCategory.WINDOW, storeid, sz);
+          else
+            store_global(StorageCategory.WINDOW, storeid, sz);
+        }, 500);
+      }).observe(win);
+    }
+}
 // I could have sworn that checking for "Windows" used to work?
 // But now it seems things are reporting "Win32"?.
 const IS_WINDOWS = window.navigator.platform.includes('Windows') || window.navigator.platform.includes('Win32');
@@ -176,19 +229,6 @@ function setup_closable_window(win:HTMLElement, closer:HTMLElement, onclose:()=>
     }
     closer.addEventListener('click', hide_window);
     closer.title = 'Close';
-}
-
-function setup_window_size(win:HTMLElement):void{
-    if (window.innerWidth > 1200)
-        win.style.width = '1000px';
-    else if(window.innerWidth > 800)
-        win.style.width = '800px';
-    else
-        win.style.width = '400px';
-    if(window.innerHeight > 600)
-        win.style.height = '600px';
-    else
-        win.style.height = '300px';
 }
 
 function ensure_window_is_completely_on_screen(win:HTMLElement):void{

@@ -71,14 +71,7 @@ function make_window(name:keyof SubWindowIdMap): SubWindow {
     };
     setup_movable_window(outer, handle, WINDOWFLAGS.REMEMBER_POSITION);
     setup_closable_window(outer, close_x, result.hide);
+    setup_resizable_window(outer, RESIZEFLAGS.GLOBAL_REMEMBER);
     // handle.addEventListener('dblclick', result.hide);
-    // hack
-    if(outer.id != 'rolltable-window'){
-        setup_window_size(outer);
-    }
-    if(outer.id == 'cal-window'){
-        outer.style.height = '100vh';
-        outer.style.width = '80%';
-    }
     return result;
 }

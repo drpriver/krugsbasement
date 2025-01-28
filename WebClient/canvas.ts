@@ -7061,6 +7061,7 @@ function make_terrain_palette():void{
         return cb;
     }
     by_id('palette').style.display = 'block';
+    ensure_window_is_completely_on_screen(by_id('palette'));
     if(PACKED && PACKED_LOAD == 3){
         const terrains = PACKED.terrain;
         for(let terr of terrains){
@@ -7094,6 +7095,7 @@ function make_terrain_icon_palette():void{
         return cb;
     }
     by_id('palette').style.display = 'block';
+    ensure_window_is_completely_on_screen(by_id('palette'));
     if(PACKED && PACKED_LOAD==3)
     for(let ti of PACKED.terrain_icons){
         const inp = document.createElement('input');
@@ -7118,9 +7120,9 @@ let palette_top = function():void{};
 document.addEventListener('DOMContentLoaded', function():void{
     const palette = by_id('palette');
     const handle = by_id('palette-window-handle');
-    setup_movable_window(palette, handle, WINDOWFLAGS.REMEMBER_POSITION);
+    setup_movable_window(palette, handle, WINDOWFLAGS.GLOBAL_REMEMBER);
+    setup_resizable_window(palette, RESIZEFLAGS.GLOBAL_REMEMBER);
     palette_top = setup_zsorted_window(palette);
-    ensure_window_is_completely_on_screen(palette);
 });
 let tools: Array<HTMLElement> = [];
 function change_tool(tool:ToolType):void{

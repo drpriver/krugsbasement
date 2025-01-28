@@ -304,7 +304,8 @@ function make_clock_window(id: number): ClockWindow{
         };
         diag.show();
     };
-    setup_movable_window(w, wh, WINDOWFLAGS.LOCAL_REMEMBER | WINDOWFLAGS.REMEMBER_POSITION);
+    setup_movable_window(w, wh, WINDOWFLAGS.LOCAL_REMEMBER);
+    setup_resizable_window(w, RESIZEFLAGS.LOCAL_REMEMBER);
     const make_top = setup_zsorted_window(w);
     setup_closable_window(w, x, function():void{
       store_local(StorageCategory.WINDOW, openid, '');
