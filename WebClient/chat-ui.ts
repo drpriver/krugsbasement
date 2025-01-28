@@ -5,7 +5,8 @@
 
 const {
     preprocess_and_send_chat,
-} = (function():{preprocess_and_send_chat:(text:string, character_id:number, macro_id:number)=>void}{
+    preprocess_and_send_chat2,
+} = (function():{preprocess_and_send_chat:(text:string, character_id:number, macro_id:number)=>void; preprocess_and_send_chat2:(text:string, sheet_id:number)=>void;}{
 ONRECV(ToClient.CHAT_STRUCTURED_MSG, function(msgs:Array<ChatMsg>):void{
     const log = by_id('chat-history');
     add_chat_msgs(log, msgs, preprocess_and_send_chat);
@@ -124,6 +125,22 @@ function preprocess_and_send_chat(text:string, character_id:number, macro_id:num
         EMIT(FromClient.CHAT_STRUCTURED_INPUT, to_send);
     }
 }
+function preprocess_and_send_chat2(text:string, sheet_id:number):void{
+    let commands: Array<Command> = [];
+    let error = evaluate2(text, sheet_id, commands);
+    if(error.length){
+        const log = by_id('chat-history');
+        const errmess: ChatErrorMsg = [Msg.ERROR, '', error];
+        add_chat_msgs(log, [errmess], undefined);
+        log.scrollTo({behavior:'smooth', top:log.scrollHeight});
+        return;
+    }
+    if(commands.length){
+        let to_send: ChatCommandMessage = {chatname:SETTINGS.chat.name, commands:commands};
+        add_dice_history_commands(commands);
+        EMIT(FromClient.CHAT_STRUCTURED_INPUT, to_send);
+    }
+}
 
 document.addEventListener('DOMContentLoaded', function():void{
     resize_chat();
@@ -137,6 +154,7 @@ document.addEventListener('DOMContentLoaded', function():void{
 });
 return {
     preprocess_and_send_chat,
+    preprocess_and_send_chat2,
 };
 }());
 

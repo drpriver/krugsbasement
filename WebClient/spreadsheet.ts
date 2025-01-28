@@ -217,12 +217,7 @@ function fully_qualified_sheet_name(s:SpreadSheet):string{
     return parts.reverse().join('/');
 }
 
-let sheet_wasm_load_in_flight = false;
-function spread_eval_string(sheetname:string|null, s:string):number|string|null{
-    if(!SHEET_CTX){
-        load_sheet_wasm();
-        return null;
-    }
+function sheetname_to_id(sheetname:string|null):number{
     let sheet = SHEET.NULL;
     if(sheetname){
         sheetname = sheetname.toLowerCase();
@@ -233,7 +228,16 @@ function spread_eval_string(sheetname:string|null, s:string):number|string|null{
             }
         }
     }
-    const result = SHEET_CTX.evaluate_string(sheet, s);
+    return sheet;
+}
+
+let sheet_wasm_load_in_flight = false;
+function spread_eval_string(sheetid:number, s:string):number|string|null{
+    if(!SHEET_CTX){
+        load_sheet_wasm();
+        return null;
+    }
+    const result = SHEET_CTX.evaluate_string(sheetid, s);
     if(result === "error")
         return null;
     return result;
