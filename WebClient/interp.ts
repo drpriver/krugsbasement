@@ -1147,11 +1147,29 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
                 if(!lhs) return lhs;
                 let rhs = expand_dice(expr.rhs, namespaces, vars, sheetid, childmuldiv, visited);
                 if(!rhs) return rhs;
-                if(expr.btype == Binary.ADD || expr.btype == Binary.SUB){
+                let btype = expr.btype;
+                for(;;){
+                  if(btype == Binary.ADD){
+                    if(rhs[0] == DieExprTypes.Unary && rhs[1] == Unary.NEG){
+                      rhs = rhs[2];
+                      btype = Binary.SUB;
+                      continue;
+                    }
+                  }
+                  if(btype == Binary.SUB){
+                    if(rhs[0] == DieExprTypes.Unary && rhs[1] == Unary.NEG){
+                      rhs = rhs[2];
+                      btype = Binary.ADD;
+                      continue;
+                    }
+                  }
+                  break;
+                }
+                if(btype == Binary.ADD || btype == Binary.SUB){
                     if(rhs[0] == DieExprTypes.NUMBER && rhs[1] == 0)
                         return lhs;
                 }
-                if(expr.btype == Binary.MUL){
+                if(btype == Binary.MUL){
                     if(lhs[0] == DieExprTypes.NUMBER && lhs[1] == 0)
                         return lhs;
                     if(rhs[0] == DieExprTypes.NUMBER && rhs[1] == 0)
@@ -1161,7 +1179,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
                     if(rhs[0] == DieExprTypes.NUMBER && rhs[1] == 1)
                         return lhs;
                 }
-                let result: UnrolledDiceExpr = [DieExprTypes.Binary, expr.btype, lhs, rhs];
+                let result: UnrolledDiceExpr = [DieExprTypes.Binary, btype, lhs, rhs];
                 if(muldiv && !childmuldiv)
                     return [DieExprTypes.GROUP, result];
                 return result;
@@ -1169,6 +1187,8 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
             case EXPR.Unary:{
                 let e = expand_dice(expr.expr, namespaces, vars, sheetid, false, visited);
                 if(!e) return e;
+                if(expr.utype == Unary.PLUS)
+                    return e;
                 return [DieExprTypes.Unary, expr.utype, e];
             }
             case EXPR.IDENT:{
