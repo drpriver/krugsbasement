@@ -52,6 +52,8 @@ function make_macro_window(cid:number, id:number):MacroWindow {
     const use = elem_parent_text(buttons, 'button', 'Use');
 
     const editor = elem_with_parent(w, 'textarea');
+    monospace_textarea(editor, null);
+    editor.style.fontFamily = 'ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace';
     editor.spellcheck = false;
     editor.rows = 8;
     editor.oninput = function():void{

@@ -136,27 +136,14 @@ function make_note_window(id:number):NoteWindow{
     ed_container.style.display = 'none';
     const editor = elem_with_parent(ed_container, 'textarea', null, 'note-view-edit');
     editor.spellcheck = false;
-    editor.oninput = function():void{
-        update_content(result);
-        const note = NOTES.get(id);
-        if(!note) return;
-        note.body = editor.value;
-        note.need_send = true;
-    };
-    editor.onkeydown = function(e):void{
-        if(e.key == 'Escape'){
-            stop_editing();
-            return;
-        }
-        if(e.key != 'Tab')
-            return;
-        e.preventDefault();
-        let start = editor.selectionStart;
-        let end = editor.selectionEnd;
-        editor.value = editor.value.substring(0, start) + "  " + editor.value.substring(end);
-        // restore cursor position
-        editor.selectionStart = editor.selectionEnd = start+2;
-    }
+    // editor.oninput = function():void{
+        // update_content(result);
+        // const note = NOTES.get(id);
+        // if(!note) return;
+        // note.body = editor.value;
+        // note.need_send = true;
+    // };
+    monospace_textarea(editor, stop_editing);
     const result: NoteWindow = { id, w, t, make_top, edit_button, content, ed_container, editor, show:function():void{
         const note = NOTES.get(id);
         if(!note) return;
@@ -185,6 +172,10 @@ function make_note_window(id:number):NoteWindow{
     }
     function stop_editing():void{
         if(!result.is_editing) return;
+        const note = NOTES.get(id);
+        if(!note) return;
+        note.body = editor.value;
+        note.need_send = true;
         result.is_editing = false;
         edit_button.textContent = 'Edit';
         ed_container.style.display = 'none';
@@ -199,6 +190,7 @@ function make_note_window(id:number):NoteWindow{
         edit_button.textContent = 'Done';
         ed_container.style.display = 'grid';
         content.style.display = 'none';
+        setTimeout(()=>editor.focus(), 0);
     }
     edit_button.onclick = function(e:MouseEvent):void{
         e.stopPropagation();

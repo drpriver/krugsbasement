@@ -302,3 +302,64 @@ function user_edit_element(cell:HTMLElement, flags:UserEditElementFlags, onfinis
     };
     inp.focus();
 }
+
+function monospace_textarea(ta:HTMLTextAreaElement, blur:null|(()=>void)):void{
+    ta.onkeydown = function(e):void{
+        // NOTE: document.execCommand is deprecated,
+        // but there is no alternative if you want to integrate
+        // with the browser's undo stack.
+        const ctrl = e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey;
+        const shift = e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey;
+        const mod = e.ctrlKey || e.shiftKey || e.altKey || e.metaKey;
+        if(e.key == 'Escape' && !mod){
+            if(blur) blur()
+            else ta.blur();
+            return;
+        }
+        else if(e.key == 'Tab'){
+          if(shift) {
+            e.preventDefault();
+            if(ta.selectionStart != ta.selectionEnd) return;
+            let start = ta.selectionStart;
+            if(start > 1){
+              if(ta.value.substring(start-2, start) == '  '){
+                document.execCommand('delete', false);
+                document.execCommand('delete', false);
+              }
+            }
+            return;
+          }
+          if(!mod) {
+            e.preventDefault();
+            document.execCommand('insertText', false, '  ');
+            return;
+          }
+          return;
+        }
+        else if((e.key == 'Backspace' && !mod) || (ctrl && e.key == 'h')){
+          if(ta.selectionStart != ta.selectionEnd) return;
+          let start = ta.selectionStart;
+          if(start > 1){
+            if(ta.value.substring(start-2, start) == '  '){
+              e.preventDefault();
+              document.execCommand('delete', false);
+              document.execCommand('delete', false);
+              return;
+            }
+          }
+        }
+        else if(e.key == 'Enter' && !mod){
+          if(ta.selectionStart != ta.selectionEnd) return;
+          let indent = 0;
+          let i = ta.selectionStart;
+          let v = ta.value;
+          while(i && v[i] != '\n') i--;
+          if(i != ta.selectionStart) i++;
+          while(v[i] == ' '){ i++; indent++;}
+          if(!indent) return;
+          document.execCommand('insertText', false, '\n' + ' '.repeat(indent));
+          e.preventDefault();
+          return;
+        }
+    };
+}
