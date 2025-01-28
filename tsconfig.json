@@ -49,6 +49,7 @@
     "WebClient/md.ts",
     "WebClient/calendar.ts",
     "WebClient/clock.ts",
-    "WebClient/scratchpad.ts"
+    "WebClient/scratchpad.ts",
+    "WebClient/statblocks.ts"
   ]
 }

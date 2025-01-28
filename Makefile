@@ -104,6 +104,7 @@ TSFILES:= WebClient/socket.d.ts \
 	  WebClient/calendar.ts \
 	  WebClient/clock.ts \
 	  WebClient/scratchpad.ts \
+	  WebClient/statblocks.ts \
 
 Generated/client.js: $(TSFILES) | Generated node_modules
 	$(TSC) $^ $(TSCFLAGS) --outFile $@

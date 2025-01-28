@@ -1471,3 +1471,45 @@ union ClockMsg: dict
     ClockEventNew
     ClockEventEdit
     ClockEventDelete
+
+enum StatItemType: int
+    TABLE = 0
+    MD = 1
+    MACRO = 2
+    IMG = 3
+
+struct StatTableItem: array
+    name: str
+    value: str
+
+struct StatTable: array
+    type = StatItemType.TABLE
+    items: [StatTableItem]
+
+struct StatMd: array
+    type = StatItemType.MD
+    value: str
+
+struct StatMacro: array
+    type = StatItemType.MACRO
+    name: str
+    value: str
+
+struct StatImg: array
+    type = StatItemType.IMG
+    value: str
+
+union StatItem: array
+    StatTable
+    StatMd
+    StatMacro
+    StatImg
+
+struct StatBlock: array
+    id: int
+    name: str
+    contents: [StatItem]
+    parent: int
+
+validator: StatBlock
+    ts

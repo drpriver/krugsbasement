@@ -101,6 +101,13 @@
       <div id="cal-month-display"></div>
     </div>
   `);
+  make_window2('sbw', 'Statblocks',
+    `
+    <div id="sbw-container">
+      <div id="sbw-tv"></div>
+      <div id="sbw-sb"></div>
+    </div>
+    `);
   if(Args && Args.temp){
     let ts = '// NOTE: this file was generated\n'
     ts += '// Do NOT edit it. Your edits will be overwritten!\n'
@@ -854,6 +861,7 @@
       ::raw
         <button id="privateroll-button">DMs…</button>
         <button id="scratch-button">Scratchpad…</button>
+        <button id="statblock-button">Statblocks…</button>
   ::div #id(notifications)
   ::div.log #id(chat-history)
   ::div #id(macro-panel)
