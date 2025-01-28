@@ -32,7 +32,7 @@ function edit_element_inline(cell:HTMLElement, flags:EditElementFlags, onfinish:
             inp.select();
         };
     inp.onclick = function(e):void{
-      e.stopPropagation();
+        e.stopPropagation();
     }
     inp.onkeydown = function(e):void{
         e.stopPropagation();
@@ -49,6 +49,7 @@ function edit_element_inline(cell:HTMLElement, flags:EditElementFlags, onfinish:
             }return;
         }
     };
+    setTimeout(()=>{
     inp.onblur = function():void{
         let v = inp.value.trim();
         if(canceled)
@@ -66,6 +67,29 @@ function edit_element_inline(cell:HTMLElement, flags:EditElementFlags, onfinish:
         cell.classList.remove('editing');
         if(flags & EditElementFlags.REFOCUS)
             cell.focus();
+    };}, 0);
+    setTimeout(()=> inp.focus(), 0);
+}
+
+function md_edit_element(element: HTMLElement, mdtxt:string, onfinish:(newmdtxt:string)=>void):void{
+    const w = '' + (element.getBoundingClientRect().width) + 'px';
+    let hpx = element.getBoundingClientRect().height;
+    let h = '' + hpx + 'px';
+    element.textContent = '';
+    element.classList.add('editing');
+    const ta = elem_with_parent(element, 'textarea');
+    ta.value = mdtxt;
+    ta.onclick = function(e):void{
+        e.stopPropagation();
+    }
+    ta.style.width = w;
+    ta.style.height = h;
+    monospace_textarea(ta, null);
+    ta.onblur = function(){
+        let txt = ta.value.trim();
+        onfinish(txt);
+        md_to_html(txt, function(s:string){ element.innerHTML = s; });
+        ta.remove();
     };
-    inp.focus();
+    setTimeout(()=>ta.focus(), 0);
 }
