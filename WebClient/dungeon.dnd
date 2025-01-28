@@ -853,6 +853,7 @@
     ::div.three-buttons
       ::raw
         <button id="privateroll-button">DMs…</button>
+        <button id="scratch-button">Scratchpad…</button>
   ::div #id(notifications)
   ::div.log #id(chat-history)
   ::div #id(macro-panel)

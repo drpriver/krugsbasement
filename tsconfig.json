@@ -47,6 +47,7 @@
     "WebClient/ctxmenu.ts",
     "WebClient/md.ts",
     "WebClient/calendar.ts",
-    "WebClient/clock.ts"
+    "WebClient/clock.ts",
+    "WebClient/scratchpad.ts"
   ]
 }
