@@ -247,61 +247,6 @@ function link_input_value(value:string, inp1:HTMLInputElement, event1:'onchange'
     };
 }
 
-const enum UserEditElementFlags {
-    NONE = 0,
-    ALWAYS_REFOCUS = 1 << 0,
-    MUST_BE_NUMBER = 1 << 1,
-}
-
-function user_edit_element(cell:HTMLElement, flags:UserEditElementFlags, onfinish:(txt:string)=>void):void{
-    const w = '' + (cell.getBoundingClientRect().width-2) + 'px';
-    const h = '' + (cell.getBoundingClientRect().height-2) + 'px';
-    let oldtxt = cell.textContent;
-    if(!oldtxt) oldtxt = '';
-    cell.textContent = '';
-    cell.classList.add('editing');
-    const inp = elem_with_parent(cell, 'input');
-    inp.style.width = w;
-    inp.style.height = h;
-    inp.value = oldtxt;
-    let canceled = false;
-    inp.onclick = function(e):void{
-      e.stopPropagation();
-    }
-    inp.onkeydown = function(e):void{
-        e.stopPropagation();
-        switch(e.key){
-            // @ts-ignore
-            case 'Escape':
-                remove_ctx_menu();
-                canceled = true;
-            // fall-through
-            case 'Enter':{
-                e.preventDefault();
-                inp.blur();
-            }return;
-        }
-    };
-    inp.onblur = function():void{
-        let v = inp.value.trim();
-        if(canceled)
-            cell.textContent = oldtxt;
-        else{
-            if(flags & UserEditElementFlags.MUST_BE_NUMBER){
-                if(!v || Number.isNaN(+v))
-                    v = oldtxt!;
-            }
-            cell.textContent = v;
-            if(oldtxt != v)
-                onfinish(v);
-        }
-        inp.remove();
-        cell.classList.remove('editing');
-        if(flags & UserEditElementFlags.ALWAYS_REFOCUS)
-            cell.focus();
-    };
-    inp.focus();
-}
 
 function monospace_textarea(ta:HTMLTextAreaElement, blur:null|(()=>void)):void{
     ta.onkeydown = function(e):void{

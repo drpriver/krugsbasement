@@ -339,9 +339,8 @@ document.addEventListener('DOMContentLoaded',function():void{
                     return;
             }
         };
-        // This is basically a copy paste of user_edit_element...
         function edit_cell(cell:HTMLDivElement):void{
-            return user_edit_element(cell, UserEditElementFlags.ALWAYS_REFOCUS, function(s:string):void{
+            return edit_element_inline(cell, EditElementFlags.REFOCUS, function(s:string):void{
                 const row = tableview.get_row(id);
                 if(!row) return;
                 if(row[0] === cell){

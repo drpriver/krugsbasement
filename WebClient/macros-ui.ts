@@ -69,7 +69,7 @@ function make_macro_window(cid:number, id:number):MacroWindow {
         menu.item('Rename', function(e:MouseEvent):void{
             e.stopPropagation();
             e.preventDefault();
-            user_edit_element(t, 0, function(s:string):void{
+            edit_element_inline(t, EditElementFlags.SELECT, function(s:string):void{
                 const m = MACROS.get(id);
                 if(!m) return;
                 m[1] = s;
@@ -197,7 +197,7 @@ function make_macro_window(cid:number, id:number):MacroWindow {
                     menu.item('Rename', function(e:MouseEvent):void{
                         e.stopPropagation();
                         e.preventDefault();
-                        user_edit_element(t, 0, function(s:string):void{
+                        edit_element_inline(t, EditElementFlags.SELECT, function(s:string):void{
                             v[1] = s.trim();
                             save_mcv_and_signal();
                         });
@@ -350,7 +350,7 @@ function make_vars_window(cid:number):VariablesWindow {
                     menu.item('Rename', function(e:MouseEvent):void{
                         e.stopPropagation();
                         e.preventDefault();
-                        user_edit_element(t, 0, function(s:string):void{
+                        edit_element_inline(t, EditElementFlags.SELECT, function(s:string):void{
                             v[1] = s.trim();
                             save_mcv_and_signal();
                         });
@@ -489,7 +489,7 @@ function setup_macro_left():void{
             menu.item('Rename', function(e:MouseEvent):void{
                 e.stopPropagation();
                 e.preventDefault();
-                user_edit_element(namespan, 0, function(s:string):void{
+                edit_element_inline(namespan, EditElementFlags.SELECT, function(s:string):void{
                     const c = CHARACTERS.get(cid);
                     if(!c) return;
                     c[1] = s;
@@ -561,7 +561,7 @@ function setup_macro_left():void{
                 menu.item('Rename', function(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
-                    user_edit_element(mli, 0, function(s:string):void{
+                    edit_element_inline(mli, EditElementFlags.SELECT, function(s:string):void{
                         m[1] = s;
                         save_mcv_and_signal();
                     });

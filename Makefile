@@ -77,6 +77,7 @@ TSFILES:= WebClient/socket.d.ts \
 	  WebClient/canvas.ts \
 	  WebClient/notes.ts \
 	  WebClient/utils.ts \
+	  WebClient/edit_element.ts \
 	  WebClient/interp.ts \
 	  Generated/nodes.ts \
 	  WebClient/dialogs.ts \

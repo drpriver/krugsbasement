@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', function():void{
             e.preventDefault();
             const sp = NOTE_TV.get_sp(id);
             if(!sp) return;
-            user_edit_element(sp, 0, function(v:string):void{
+            edit_element_inline(sp, EditElementFlags.SELECT, function(v:string):void{
                 EMIT(FromClient.NOTE_UPDATE_TITLE, {note_id:id, title:v});
                 const note = NOTES.get(id)!;
                 note.title = v;
@@ -100,7 +100,7 @@ function make_note_window(id:number):NoteWindow{
         menu.item('Rename', function(e:MouseEvent):void{
             e.stopPropagation();
             e.preventDefault();
-            user_edit_element(t, 0, function(v:string):void{
+            edit_element_inline(t, EditElementFlags.SELECT, function(v:string):void{
                 EMIT(FromClient.NOTE_UPDATE_TITLE, {note_id:id, title:v});
                 const note = NOTES.get(id)!;
                 note.title = v;

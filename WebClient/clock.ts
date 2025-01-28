@@ -124,7 +124,7 @@ function clock_add_event(c:Clock, list: HTMLDivElement, ev: ClockEvent):void{
     nm.onclick = function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
-        user_edit_element(nm, UserEditElementFlags.ALWAYS_REFOCUS, function(v:string):void{
+        edit_element_inline(nm, EditElementFlags.SELECT, function(v:string):void{
             const ce : ClockEventEdit = {
                 type:ClockMsgType.EVENT_EDIT, 
                 clock_id:id, 
@@ -139,7 +139,7 @@ function clock_add_event(c:Clock, list: HTMLDivElement, ev: ClockEvent):void{
     wh.onclick = function(e:MouseEvent){
         e.stopPropagation();
         e.preventDefault();
-        user_edit_element(wh, UserEditElementFlags.ALWAYS_REFOCUS|UserEditElementFlags.MUST_BE_NUMBER, function(v:string):void{
+        edit_element_inline(wh, EditElementFlags.NUMBER|EditElementFlags.SELECT, function(v:string):void{
             const t = +v;
             if(!Number.isNaN(t)){
                 const ce : ClockEventEdit = {
@@ -202,9 +202,9 @@ function make_clock_window(id: number): ClockWindow{
     v.onclick = function(e:MouseEvent):void{
       e.stopPropagation();
       e.preventDefault();
-      user_edit_element(
+      edit_element_inline(
           v, 
-          UserEditElementFlags.MUST_BE_NUMBER,
+          EditElementFlags.NUMBER|EditElementFlags.SELECT,
           function(s:string):void{
               const value = +s;
               if(Number.isNaN(value)) return;

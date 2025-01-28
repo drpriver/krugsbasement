@@ -17,6 +17,7 @@
     "WebClient/canvas.ts",
     "WebClient/notes.ts",
     "WebClient/utils.ts",
+    "WebClient/edit_element.ts",
     "Generated/messages.ts",
     "WebClient/interp.ts",
     "WebClient/storage.ts",

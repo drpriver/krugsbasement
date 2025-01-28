@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function():void{
             e.preventDefault();
             const sp = SHEET_TV.get_sp(id);
             if(!sp) return;
-            user_edit_element(sp, 0, function(txt:string):void{
+            edit_element_inline(sp, EditElementFlags.SELECT, function(txt:string):void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NAME, id, txt]);
             });
             remove_ctx_menu();
@@ -318,7 +318,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         menu.item('Rename',function(e:MouseEvent):void{
             e.stopPropagation();
             e.preventDefault();
-            user_edit_element(t, 0, function(v:string):void{
+            edit_element_inline(t, EditElementFlags.SELECT, function(v:string):void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NAME, result.id, v]);
             });
             remove_ctx_menu();
