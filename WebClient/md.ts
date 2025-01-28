@@ -1,3 +1,6 @@
+//
+// Copyright © 2024-2025, David Priver
+//
 let _md_is_init = false;
 const _md_queue: Array<[string, (_:string)=>void]> = [];
 const _md_to_html: (text:string, cb:(_:string)=>void)=>void = (function(){
