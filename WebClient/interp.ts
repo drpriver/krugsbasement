@@ -163,9 +163,15 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
             }
             if(isstartident(c)){
                 for(i++; i < text.length; i++){
-                    if(!iscontinueident(text[i])) break;
+                    let c = text[i];
+                    if(c == '\\' && i+1<text.length){
+                      i++;
+                      continue;
+                    }
+                    if(!iscontinueident(c))
+                      break;
                 }
-                let tok = {kind:TokenKind.IDENT, text:text.slice(start, i)};
+                let tok = {kind:TokenKind.IDENT, text:text.slice(start, i).replace(/\\/g, '')};
                 let lower = tok.text.toLowerCase();
                 if(lower == "if")
                     tok.kind = TokenKind.IF;
