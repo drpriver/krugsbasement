@@ -76,32 +76,34 @@ function get_script_variables(character_id:number, macro_id:number):[Map<string,
     // Then, the current character
     if(character_id > 0){
         let ch = CHARACTERS.get(character_id)!;
-        for(let vid of ch[3]){
-            let v = VARIABLES.get(vid)!;
-            let value = v[3];
-            if(v[2] == ScriptVariableType.ABILITY_SCORE)
-                value = ""+ability_score_to_modifier(+value);
-            else if(v[2] == ScriptVariableType.CHOICE){
-                if(Number.isNaN(+value))
-                    value = '"' + value +'"';
+        if(ch)
+            for(let vid of ch[3]){
+                let v = VARIABLES.get(vid)!;
+                let value = v[3];
+                if(v[2] == ScriptVariableType.ABILITY_SCORE)
+                    value = ""+ability_score_to_modifier(+value);
+                else if(v[2] == ScriptVariableType.CHOICE){
+                    if(Number.isNaN(+value))
+                        value = '"' + value +'"';
+                }
+                vars.set(v[1].toLowerCase(), value);
             }
-            vars.set(v[1].toLowerCase(), value);
-        }
     }
     // Then, the macro's variables
     if(macro_id > 0){
         let mac = MACROS.get(macro_id)!;
-        for(let vid of mac[3]){
-            let v = VARIABLES.get(vid)!;
-            let value = v[3];
-            if(v[2] == ScriptVariableType.ABILITY_SCORE)
-                value = ""+ability_score_to_modifier(+value);
-            else if(v[2] == ScriptVariableType.CHOICE){
-                if(Number.isNaN(+value))
-                    value = '"' + value +'"';
+        if(mac)
+            for(let vid of mac[3]){
+                let v = VARIABLES.get(vid)!;
+                let value = v[3];
+                if(v[2] == ScriptVariableType.ABILITY_SCORE)
+                    value = ""+ability_score_to_modifier(+value);
+                else if(v[2] == ScriptVariableType.CHOICE){
+                    if(Number.isNaN(+value))
+                        value = '"' + value +'"';
+                }
+                vars.set(v[1].toLowerCase(), value);
             }
-            vars.set(v[1].toLowerCase(), value);
-        }
     }
     return [namespaces, vars];
 }
