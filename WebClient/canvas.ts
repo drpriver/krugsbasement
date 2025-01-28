@@ -1443,8 +1443,9 @@ function zoom_out(view:DungeonMapView):void{
     request_render();
 }
 
-//
+let dpr = 0;
 function resize_canvas():void{
+    if(!dpr) dpr = window.devicePixelRatio || 1;
     TheCanvas = by_id('map');
     TheCtx = TheCanvas.getContext('2d', {alpha:false})!;
     const chat = by_id('chat');
@@ -1463,26 +1464,30 @@ function resize_canvas():void{
     width |= 0;
     height |= 0;
     width -= by_id('left').offsetWidth;
+
     if(!canv2_is_hidden){
         TheCanvas2 = by_id('map2');
         TheCtx2 = TheCanvas2.getContext('2d', {alpha:false})!;
         width /= 2;
-        TheCanvas2.width = width;
-        TheCanvas2.height = height;
+        TheCanvas2.width = width * dpr;
+        TheCanvas2.height = height * dpr;
         TheCanvas2.style.height = height + 'px';
         TheCanvas2.style.width = width + 'px';
         TheCanvas2.style.left = by_id('left').offsetWidth + width + 'px';
         TheCanvas2.style.display = 'block';
         TheCanvas2.style.borderLeft = DARKMODE?'1px solid white':'1px solid black';
+        TheCtx2.scale(dpr, dpr);
     }
     else if(TheCanvas2){
         TheCanvas2.style.display = 'none';
     }
-    TheCanvas.width = width;
-    TheCanvas.height = height ;
+
+    TheCanvas.width = width * dpr;
+    TheCanvas.height = height * dpr;
     TheCanvas.style.width = width + 'px';
     TheCanvas.style.height = height + 'px';
     TheCanvas.style.left = by_id('left').offsetWidth + 'px';
+    TheCtx.scale(dpr, dpr);
     request_render();
 }
 
@@ -4875,7 +4880,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
     const gridscale = view.gridscale;
     const width = ctx.canvas.width;
     const height = ctx.canvas.height;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = cvs_bg;
     ctx.fillRect(0, 0, width, height);
@@ -5046,7 +5051,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                 }
             }
         }
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
     ctx.scale(SCALE, SCALE);
     // TAG renderGRID
@@ -6750,7 +6755,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
         ctx.font = '24px sans-serif';
         ctx.textBaseline = 'top';
         ctx.textAlign = 'left';
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, 200, 100);
         ctx.fillStyle = '#000000';

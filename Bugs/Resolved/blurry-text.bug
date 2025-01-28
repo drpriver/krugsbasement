@@ -1,6 +1,7 @@
 Changelog::kv
-  created: 2023-04-22T08:12:29.118033
-  updated: 2025-01-24T22:11:11Z
+  created:  2023-04-22T08:12:29.118033
+  updated:  2025-01-24T22:11:11Z
+  resolved: 2025-01-28T02:16:36Z
 Created Apr 22, 2023, 01:12AM::md .update
 Summary::md .summary
   text is blurry since we scale the canvas instead of scaling the font size.
@@ -9,3 +10,6 @@ Updated Jan 24, 2025, 02:11PM::md .update
   This is the wrong reason. It is blurry because on high DPI screens, you have
   to fuck around with devicePixelRatio, where the canvas is not in CSS pixels or
   something dumb.
+
+Resolved Jan 27, 2025, 06:16PM::md .update
+  Fixed.
