@@ -1,0 +1,5 @@
+Changelog::kv
+  created: 2025-01-28T00:33:05Z
+Created Jan 27, 2025, 04:33PM::md.update
+Summary::md.summary
+  Add a way to have in-client stat blocks with associated stats, macros, descriptions etc.
