@@ -26,6 +26,17 @@ function evaluate2(text:string, sheet_id:number, outarray:Array<Command>):string
     }
     return "";
 }
+function evaluate3(text:string, vars: Map<string, string>, outarray:Array<Command>):string{
+    try{
+        let result = evaluate_script(text, vars, new Map(), SHEET.NULL);
+        if(result.length > 25)
+            return "Your command results in too much output. Do less.";
+        for(let c of result) outarray.push(c);
+    }catch(e){
+        return ""+e;
+    }
+    return "";
+}
 
 const {
     add_chat_msgs,
