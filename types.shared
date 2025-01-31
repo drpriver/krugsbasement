@@ -1477,6 +1477,7 @@ enum StatItemType: int
     MD = 1
     MACRO = 2
     IMG = 3
+    VARIABLE = 4
 
 struct StatTableItem: array
     name: str
@@ -1494,6 +1495,14 @@ struct StatMacro: array
     type = StatItemType.MACRO
     name: str
     value: str
+    variables: [StatVariable]
+
+struct StatVariable: array
+    type = StatItemType.VARIABLE
+    name: str
+    kind: int
+    value: str
+    choices: [str]
 
 struct StatImg: array
     type = StatItemType.IMG
@@ -1504,6 +1513,7 @@ union StatItem: array
     StatMd
     StatMacro
     StatImg
+    StatVariable
 
 struct StatBlock: array
     id: int

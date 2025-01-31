@@ -1139,6 +1139,8 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
             case EXPR.GROUP:{
                 let e = expand_dice(expr.expr, namespaces, vars, sheetid, false, visited);
                 if(!e) return e;
+                while(e[0] == DieExprTypes.GROUP) e = e[1];
+                if(e[0] == DieExprTypes.NUMBER) return e;
                 return [DieExprTypes.GROUP, e];
             }
             case EXPR.Binary:{

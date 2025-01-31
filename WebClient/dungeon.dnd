@@ -861,7 +861,6 @@
       ::raw
         <button id="privateroll-button">DMs…</button>
         <button id="scratch-button">Scratchpad…</button>
-        <button id="statblock-button">Statblocks…</button>
   ::div #id(notifications)
   ::div.log #id(chat-history)
   ::div #id(macro-panel)
@@ -873,6 +872,7 @@
 ::div #id(left)
   ::raw
     <button id="calendar-button">Calendar…</button>
+    <button id="statblock-button">Statblocks…</button>
   ::div #id(left-stuff)
     ::raw
       <details id="maps-details" open>

@@ -71,6 +71,14 @@ function edit_element_inline(cell:HTMLElement, flags:EditElementFlags, onfinish:
     setTimeout(()=> inp.focus(), 0);
 }
 
+function edit_onclick(element: HTMLElement, flags:EditElementFlags, onfinish:(txt:string)=>void):void{
+    element.onclick = function(e):void{
+        e.stopPropagation();
+        e.preventDefault();
+        edit_element_inline(element, flags, onfinish);
+    };
+}
+
 function md_edit_element(element: HTMLElement, mdtxt:string, onfinish:(newmdtxt:string)=>void):void{
     const w = '' + (element.getBoundingClientRect().width) + 'px';
     let hpx = element.getBoundingClientRect().height;

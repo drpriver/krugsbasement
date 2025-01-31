@@ -2,31 +2,19 @@
 // Copyright © 2025-2025, David Priver
 //
 
-type StatBlockWindow = {
-    w: HTMLElement;
-    wh: HTMLElement;
-    title: HTMLElement;
-    content: HTMLElement;
-    show: ()=>void;
-    close: ()=>void;
-};
-
 const statblocks: Map<number, StatBlock> = new Map();
-const statblock_windows: Map<number, StatBlockWindow> = new Map();
-const statblock_sheethandles: Map<number, number> = new Map();
 
-function use_sb_macro(block:StatBlock, mtxt:string):void{
-  let vars = new Map();
+function use_sb_macro(block:StatBlock, macro: StatMacro):void{
+  let vars: Map<string, string> = new Map();
   for(let content of block[2]){
-    if(content[0] == StatItemType.TABLE){
-      for(let row of content[1]){
-        let paren = row[1].indexOf('(');
-        let v = (row[0].toLowerCase() == 'hp' && paren>-1)?row[1].slice(0, paren):row[1];
-        vars.set(row[0].toLowerCase(), v);
-      }
-    }
+    if(content[0] == StatItemType.TABLE)
+      for(let row of content[1])
+        vars.set(row[0].toLowerCase(), row[1]);
+    else if(content[0] == StatItemType.VARIABLE)
+      vars.set(content[1].toLowerCase(), content[3]);
   }
-  preprocess_and_send_chat3(mtxt, vars);
+  for(let v of macro[3]) vars.set(v[1].toLowerCase(), v[3]);
+  preprocess_and_send_chat3(macro[2], vars);
 }
 
 let STATS_TV: TreeView;
@@ -55,8 +43,10 @@ function get_sbw(){
       elem_parent_text(sb_el, 'h2', name);
       function add_table_row(table: HTMLTableElement, row: StatTableItem){
           const tr = elem_with_parent(table, 'tr');
-          elem_parent_text(tr, 'td', row[0]);
-          elem_parent_text(tr, 'td', row[1]);
+          const key = elem_parent_text(tr, 'td', row[0]);
+          const value = elem_parent_text(tr, 'td', row[1]);
+          edit_onclick(key, EditElementFlags.NONE, (txt:string)=>{ row[0] = txt; });
+          edit_onclick(value, EditElementFlags.NONE, (txt:string)=>{ row[1] = txt; });
       }
       let macro_container:null|HTMLDivElement = null;
       let table_container:null|HTMLDivElement = null;
@@ -81,8 +71,9 @@ function get_sbw(){
                     macro_container = elem_with_parent(sb_el, 'div', null, 'sb-macro-container');
                   }
                   const b = elem_parent_text(macro_container, 'button', item[1]);
-                  elem_parent_text(macro_container, 'pre', item[2]);
-                  b.onclick = function(e){ use_sb_macro(sb, item[2]); };
+                  const p = elem_parent_text(macro_container, 'pre', item[2]);
+                  b.onclick = function(e){ e.stopPropagation(); e.preventDefault(); use_sb_macro(sb, item); };
+                  edit_onclick(p, EditElementFlags.NONE, (txt:string)=>{ item[2] = txt; });
               } break;
               case StatItemType.IMG:{
                   table_container = null;
@@ -173,21 +164,23 @@ document.addEventListener('DOMContentLoaded', function():void{
     const openid = '/sbs/open/sbw';
     if(get_local(StorageCategory.WINDOW, openid))
       get_sbw().show();
-    by_id('statblock-button').onclick = function(){
-      get_sbw().show();
-    };
+    by_id('statblock-button').onclick = ()=>{ get_sbw().show(); };
 });
 
 
+type StatBlockWindow = {
+    w: HTMLElement;
+    wh: HTMLElement;
+    title: HTMLElement;
+    content: HTMLElement;
+    show: ()=>void;
+};
+
 function create_statblock_window(block: StatBlock):StatBlockWindow{
-    const [id, name, contents, _] = block;
-    const sbw = statblock_windows.get(id);
-    if(sbw) return sbw;
+    block = structuredClone(block);
+    let [_, name, contents, __] = block;
 
-    const wid = `statblock-${id}`;
-    const openid = `${wid}-open`;
-
-    const w = elem('div', wid, 'window2');
+    const w = elem('div', null, 'window2');
     const wh = elem_with_parent(w, 'div', null, 'window-handle');
     const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
     const t = elem_parent_text(wh, 'span', name, null, 'window-title');
@@ -196,14 +189,51 @@ function create_statblock_window(block: StatBlock):StatBlockWindow{
     function add_table_row(table: HTMLTableElement, row: StatTableItem){
         const tr = elem_with_parent(table, 'tr');
         elem_parent_text(tr, 'td', row[0]);
-        elem_parent_text(tr, 'td', row[1]);
+        const value = elem_parent_text(tr, 'td', row[1]);
+        edit_onclick(value, EditElementFlags.NONE, (txt:string)=>{ row[1] = txt; });
     }
     let macro_container:null|HTMLDivElement = null;
     let table_container:null|HTMLDivElement = null;
+    let variable_container:null|HTMLDivElement = null;
+    function add_variable(container: HTMLDivElement, v: StatVariable):void{
+        const label = elem_parent_text(container, 'label', v[1]);
+        switch(v[2]){
+            case ScriptVariableType.BOOLEAN:{
+                const input = elem_with_parent(label, 'input');
+                input.type = 'checkbox';
+                input.checked = v[3] === '1';
+                input.onchange = function(){ v[3] = input.checked ? '1' : '0'; };
+            }break;
+            case ScriptVariableType.NUMBER:
+            case ScriptVariableType.ABILITY_SCORE:{
+                const input = elem_with_parent(label, 'input');
+                input.type = 'number';
+                input.value = v[3];
+                input.onchange = function(){ v[3] = input.value; };
+            }break;
+            case ScriptVariableType.STRING:{
+                const input = elem_with_parent(label, 'input');
+                input.type = 'text';
+                input.value = v[3];
+                input.onchange = function(){ v[3] = input.value; };
+            }break;
+            case ScriptVariableType.CHOICE:{
+                const select = elem_with_parent(label, 'select');
+                for(const choice of v[4]){
+                    const option = elem_with_parent(select, 'option');
+                    option.value = choice;
+                    option.textContent = choice;
+                }
+                label.onclick = function(e){ e.stopPropagation(); e.preventDefault(); select.focus(); };
+                select.onchange = function(){ v[3] = select.value; };
+            }break;
+        }
+    }
     for(const item of contents){
         switch(item[0]){
             case StatItemType.TABLE:{
                 macro_container = null;
+                variable_container = null;
                 if(!table_container) table_container = elem_with_parent(content, 'div', null, 'sb-table-container');
                 const table = elem_with_parent(table_container, 'table');
                 for(const row of item[1]) add_table_row(table, row);
@@ -211,50 +241,64 @@ function create_statblock_window(block: StatBlock):StatBlockWindow{
             case StatItemType.MD:{
                 macro_container = null;
                 table_container = null;
+                variable_container = null;
                 const div = elem_with_parent(content, 'div', null, 'sb-md-container');
                 md_to_html(item[1], (h:string)=>{ div.innerHTML = h; });
             } break;
             case StatItemType.MACRO:{
                 if(!macro_container) macro_container = elem_with_parent(content, 'div', null, 'sb-macro-container');
-                table_container = null;
-                const b = elem_with_parent(macro_container, 'button');
-                b.textContent = item[1];
-                const inp = elem_with_parent(macro_container, 'input');
-                inp.type = 'number';
-                b.onclick = function(e){
-                  e.stopPropagation();
-                  let txt = item[2];
-                  const v = +inp.value|0;
-                  if(v) txt = `${txt} + ${v}`;
-                  use_sb_macro(block, txt);
-                };
+                table_container = null
+                const b = elem_parent_text(macro_container, 'button', item[1]);
+                b.style.gridColumn = '0 / 1';
+                variable_container = elem_with_parent(macro_container, 'div', null, 'sb-variable-container');
+                b.onclick = function(e){ e.stopPropagation(); e.preventDefault(); use_sb_macro(block, item); };
+                for(const v of item[3]) add_variable(variable_container, v);
+                variable_container = null;
             } break;
             case StatItemType.IMG:{
+                macro_container = null;
+                table_container = null;
+                variable_container = null;
                 const img = elem_with_parent(content, 'img');
                 img.crossOrigin = 'anonymous';
                 img.src = item[1];
             } break;
+            case StatItemType.VARIABLE:{
+                macro_container = null;
+                table_container = null;
+                if(!variable_container) variable_container = elem_with_parent(content, 'div', null, 'sb-variable-container');
+                add_variable(variable_container, item);
+            } break;
         }
     }
 
-    setup_movable_window(w, wh, WINDOWFLAGS.LOCAL_REMEMBER);
+    setup_movable_window(w, wh, WINDOWFLAGS.NONE);
     setup_resizable_window(w, RESIZEFLAGS.NONE);
     const make_top = setup_zsorted_window(w);
-    setup_closable_window(w, x, function():void{
-        store_local(StorageCategory.WINDOW, openid, '');
-    });
+    setup_closable_window(w, x, function():void{ w.remove(); });
 
     function show():void{
         if(!w.parentElement) document.body.appendChild(w);
         w.style.display = 'grid';
         make_top();
-        store_local(StorageCategory.WINDOW, openid, '1');
     }
 
     wh.oncontextmenu = function(e:MouseEvent):void {
         e.preventDefault();
         const menu = ctx_menu(e);
         menu.item('Close', function():void {x.click();});
+        menu.separator();
+        menu.item('Rename', function(){
+          edit_element_inline(t, EditElementFlags.NONE, (txt:string)=>{ block[1] = name = txt; });
+        });
+        menu.item('Duplicate', function(e:MouseEvent):void {
+          const w = create_statblock_window(block);
+          w.show();
+          w.w.style.left = (e.clientX-w.w.clientWidth/2)+'px';
+          w.w.style.top = e.clientY+'px';
+          ensure_window_is_completely_on_screen(w.w);
+        });
+        menu.separator();
         menu.canceller();
         menu.install();
     };
@@ -265,12 +309,7 @@ function create_statblock_window(block: StatBlock):StatBlockWindow{
         title: t,
         content: content,
         show: show,
-        close: function():void{
-            w.style.display = 'none';
-            store_local(StorageCategory.WINDOW, openid, '');
-        },
     };
-    statblock_windows.set(id, result);
     return result;
 }
 
@@ -296,5 +335,10 @@ document.addEventListener('drop', function(e:DragEvent):void{
     const data = +e.dataTransfer!.getData(STATS_TV.mime);
     const block = statblocks.get(data);
     if(!block) return;
-    create_statblock_window(block).show();
+    let w = create_statblock_window(block);
+    w.show();
+    w.w.style.left = (e.clientX-w.w.clientWidth/2)+'px';
+    w.w.style.top = (e.clientY-w.w.clientHeight/2)+'px';
+    ensure_window_is_completely_on_screen(w.w);
+    w.wh.click();
 });
