@@ -21,7 +21,7 @@ type CtxMenu = {
     menu: HTMLElement;
     separator:()=>void;
     canceller:() => void;
-    item:(txt:string, cb?:(()=>void)|((e:MouseEvent)=>void)) => void;
+    item:(txt:string, cb?:(()=>void)|((e:MouseEvent)=>void), disabled?:boolean) => void;
     checkbox:(txt:string, b:boolean, cb:(b:boolean)=>void, el?:HTMLElement) => void;
     numbox:(txt:string, v:number, cb:(v:number)=>void, max?:number) => void;
     disabled:(txt:string)=>void;
@@ -43,7 +43,11 @@ function ctx_menu(e:MouseEvent):CtxMenu{
             d.classList.add('disabled');
             d.onpointerdown = function(e):void{e.stopPropagation();};
         },
-        item:function(txt:string, cb?:(()=>void)|((e:MouseEvent)=>void)):void{
+        item:function(txt:string, cb?:(()=>void)|((e:MouseEvent)=>void), disabled?:boolean):void{
+            if(disabled){
+                result.disabled(txt);
+                return;
+            }
             const d = elem_parent_text(result.menu, 'section', txt, null, 'menuitem');
             d.tabIndex = -1;
             d.onmouseover = function(){
