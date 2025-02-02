@@ -175,6 +175,7 @@
   }
   //endjs
 ::div
+  Spreadsheets::title
   Formulas::dl
     Formulas are cells that begin with an <tt>=</tt>.
     You can write simple math expressions or call functions to compute a
