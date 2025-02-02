@@ -5,16 +5,17 @@
 const statblocks: Map<number, StatBlock> = new Map();
 
 function use_sb_macro(block:StatBlock, macro: StatMacro):void{
-  let vars: Map<string, string> = new Map();
-  for(let content of block[2]){
-    if(content[0] == StatItemType.TABLE)
-      for(let row of content[1])
-        vars.set(row[0].toLowerCase(), row[1]);
-    else if(content[0] == StatItemType.VARIABLE)
-      vars.set(content[1].toLowerCase(), content[3]);
-  }
-  for(let v of macro[3]) vars.set(v[1].toLowerCase(), v[3]);
-  preprocess_and_send_chat3(macro[2], vars);
+    let vars: Map<string, string> = new Map();
+    for(let content of block[2]){
+        if(content[0] == StatItemType.TABLE)
+            for(let row of content[1])
+                vars.set(row[0].toLowerCase(), row[1]);
+        else if(content[0] == StatItemType.VARIABLE)
+            vars.set(content[1].toLowerCase(), content[3]);
+    }
+    for(let v of macro[3])
+        vars.set(v[1].toLowerCase(), v[3]);
+    preprocess_and_send_chat3(macro[2], vars);
 }
 
 let STATS_TV: TreeView;
@@ -26,9 +27,7 @@ function sb_populate(container:HTMLDivElement, block:StatBlock):void{
     const lock = elem_with_parent(lock_label, 'input');
     lock.type = 'checkbox';
     lock.checked = true;
-    lock.onchange = function(){
-        locked = lock.checked;
-    };
+    lock.onchange = function(){ locked = lock.checked; };
     const pop = elem_parent_text(container, 'button', 'Clone into Window');
     pop.onclick = function(e):void{
         e.stopPropagation();
@@ -320,30 +319,27 @@ function get_sbw(): SubWindow{
 }
 
 function sb_file_upload(inp:HTMLInputElement):void{
-  inp.onchange = function(){
-    const filelist = inp.files;
-    if(!filelist || filelist.length != 1)
-        return;
-    const file = filelist[0];
-    file.text().then(s=>{
-      const data = JSON.parse(s);
-      if(Array.isArray(data)){
-        let i = 0;
-        for(let sb of statblocks.values()){
-          if(sb[0] > i) i = sb[0];
-        }
-        for(let sb of data){
-          sb = v_StatBlock(sb);
-          if(sb){
-            sb[0] = ++i;
-            statblocks.set(sb[0], sb);
-            STATS_TV.add_item(sb[1], sb[0], null);
-            if(sb[0] == 1) STATS_TV.on_click!(1);
-          }
-}
-      }
-    });
-  };
+    inp.onchange = function(){
+        const filelist = inp.files;
+        if(!filelist || filelist.length != 1)
+            return;
+        const file = filelist[0];
+        file.text().then(s=>{
+            const data = JSON.parse(s);
+            if(!Array.isArray(data)) return;
+            let i = 0;
+            for(let sb of statblocks.values())
+                if(sb[0] > i) i = sb[0];
+            for(let sb of data){
+                sb = v_StatBlock(sb);
+                if(!sb) continue;
+                sb[0] = ++i;
+                statblocks.set(sb[0], sb);
+                STATS_TV.add_item(sb[1], sb[0], null);
+                if(sb[0] == 1) STATS_TV.on_click!(1);
+            }
+        });
+    };
 }
 document.addEventListener('DOMContentLoaded', function():void{
     const openid = '/sbs/open/sbw';
@@ -388,14 +384,14 @@ function create_statblock_window(block: StatBlock):StatBlockWindow{
         menu.item('Close', function():void {x.click();});
         menu.separator();
         menu.item('Rename', function(){
-          edit_element_inline(t, EditElementFlags.NONE, (txt:string)=>{ block[1] = txt; });
+            edit_element_inline(t, EditElementFlags.NONE, (txt:string)=>{ block[1] = txt; });
         });
         menu.item('Duplicate', function(e:MouseEvent):void {
-          const w = create_statblock_window(block);
-          w.show();
-          w.w.style.left = (e.clientX-w.w.clientWidth/2)+'px';
-          w.w.style.top = e.clientY+'px';
-          ensure_window_is_completely_on_screen(w.w);
+            const w = create_statblock_window(block);
+            w.show();
+            w.w.style.left = (e.clientX-w.w.clientWidth/2)+'px';
+            w.w.style.top = e.clientY+'px';
+            ensure_window_is_completely_on_screen(w.w);
         });
         menu.separator();
         menu.canceller();
