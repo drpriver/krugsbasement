@@ -123,7 +123,7 @@
         The above also creates a local variable, named attack. This one
         indirectly references the local variable we created before. When it
         comes time to use this variable, multiple expansions will need to
-        happen. I'll explain that in a second
+        happen. I'll explain that in a second.
 
       ::pre .macro
         /roll attack
@@ -160,6 +160,48 @@
         /roll attack
         /roll ATTACK
         /roll Attack
+      ::md .comment
+        Variables can contain spaces. They cannot contain two consecutive spaces.
+      ::pre.macro
+        Power Attack = 3
+        roll d20 - Power Attack
+      ::md.comment
+        In a multi-word variable, the first word cannot be one of the following
+        as they are used to start commands.
+      ::pre.comment
+        roll
+        rolll
+        rll
+        rol
+        rl
+        ro
+        r
+        name
+        n
+        shuffle
+        shuff
+        shuf
+        sh
+        choose
+        ch
+        table
+        tab
+        t
+        mytable
+        say
+        s
+        color
+        colour
+        bold
+        italic
+        anon
+        reset
+        underline
+        underlined
+        box
+        boxed
+        big
+
 
       Expressions::md .comment
         ::js
@@ -182,7 +224,7 @@
         3. Variable, such as "attack" above.
         4. Parenthesized group, like "<tt>(3 + d6)</tt>" or "<tt>(2*3)</tt>."
         4. Spreadsheet expression, like "<tt>[cell('Draclar', 'Score', 2)]</tt>".
-        5. Repeated group, like "<tt>3{d20+4>=20}</tt>".
+        5. Repeated group, like "<tt>3(d20+4>=20)</tt>".
         5. Unary operations, like "<tt>!4</tt>" or "<tt>-d6</tt>". The unary
            operations are "<tt>!</tt>" (not, turns 0 to 1 and all other values
            to 0), "<tt>-</tt>" (negative), and "<tt>+</tt>" (which does
@@ -192,7 +234,7 @@
         7. Addition and subtraction, like "<tt>d20+4</tt>", or "<tt>d6 -
            1</tt>".
         8. Comparisons, like "<tt>d6 == 1</tt>" or "<tt>d10 <= 2</tt>". The
-           comparison operatiors are "<tt>=</tt>", "<tt><</tt>", "<tt><=</tt>",
+           comparison operators are "<tt>=</tt>", "<tt><</tt>", "<tt><=</tt>",
            "<tt>></tt>", "<tt>>=</tt>", "<tt>!=</tt>".
         When substituted, variables are implicitly grouped. This means that
         something like:
@@ -209,9 +251,8 @@
         Parenthesized vs Repeated groups::md.comment
           A parenthesized group can be anywhere in an expression and is just
           for changing precedence. A repeated roll must always start with an
-          integer and is for evaluating the bracketed group multiple time,
-          summing their results. Brackets were chosen to avoid conflating it
-          with multiplication like you would get with parentheses.
+          integer and is for evaluating the parenthesized group multiple times,
+          summing their results.
 
 
       Rounding::md .comment
@@ -325,6 +366,7 @@
         * [Boolean    | boolean variables]
         * [Expression | expression variables]
         * [Ability Score | ability score variables]
+        * [Choice | choice variables]
 
         Number Variables::md .comment
           These are pretty straightforward, they are negative or positive
@@ -352,6 +394,10 @@
           These are the same as number variables, but their actual value is the 3.5
           ability score modifier that number would produce. For example, a
           17 would be treated as a 3 in macros.
+
+        Choice Variables::md .comment
+          These are like expression variables, but instead of a string you edit,
+          you choose one from a list of strings. You can define this list.
 
       Spreadsheet Expression::md.comment
         You can embed references to spreadsheet cells using square brackets.
