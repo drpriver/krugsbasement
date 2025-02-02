@@ -105,7 +105,7 @@
     `
     <div id="sbw-container">
       <div id="sbw-tv"></div>
-      <div id="sbw-sb"></div>
+      <div id="sbw-sb" class="statblock-content"></div>
     </div>
     `);
   if(Args && Args.temp){

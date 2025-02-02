@@ -1827,25 +1827,17 @@ body.dark-mode .clock-event.past {
 .sb-macro-container *{
   margin: 0;
 }
-.sb-macro-container pre{
-  padding: 2px;
-  font-size: 70%;
-}
-.statblock-content label,
-.sb-macro-container label {
+.statblock-content label {
   padding: 0px 0.5ch;
   border-radius: 0.5ch;
 }
-.statblock-content label:hover,
-.sb-macro-container label:hover {
+.statblock-content label:hover {
   background-color: rgba(0, 0, 0, 0.1);
 }
-body.dark-mode .statblock-content label:hover,
-body.dark-mode .sb-macro-container label:hover {
+body.dark-mode .statblock-content label:hover{
   background-color: rgba(255, 255, 255, 0.2);
 }
-.statblock-content input[type="number"],
-.sb-macro-container input[type="number"] {
+.statblock-content input[type="number"]{
   width: 8ch;
 }
 .statblock-content {
