@@ -21,6 +21,7 @@
 ::css
   nav {
     position: sticky;
+    max-width: 20ch;
     top: 0;
   }
   :root {
@@ -34,7 +35,7 @@
       color: rgb(20, 140, 220);
     }
     a {
-      color: rgb(0, 80, 200);
+      color: rgb(0, 150, 200);
     }
     body{
       background-color: #202020;
@@ -51,10 +52,11 @@
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
     display: grid;
-    grid-template-columns: 12em auto;
+    grid-template-columns: max-content auto;
     margin: 0;
     padding: 4px;
     align-items: start;
+    gap: 1em;
   }
   h2, .example h3, dt.func {
     font-weight: bold;
@@ -110,14 +112,14 @@
   table {
     margin-bottom: 3ex;
   }
-  #udf table tbody tr:first-child td:nth-child(2),
-  #udf table tbody tr:first-child td:nth-child(3) {
-    background-color: green;
+  .udf table tbody tr:first-child td:nth-child(2),
+  .udf table tbody tr:first-child td:nth-child(3) {
+    background-color: #afa;
   }
-  #udf table tbody tr:last-child td:nth-child(2) {
-    background-color: blue;
+  .udf table tbody tr:last-child td:nth-child(2) {
+    background-color: #8af;
   }
-  #udf td:nth-child(2), #udf td:nth-child(3) {
+  .udf td:nth-child(2), .udf td:nth-child(3) {
     text-align: left;
   }
   @media (prefers-color-scheme: dark) {
@@ -130,6 +132,22 @@
     div.formula pre {
       background-color: rgba(255, 255, 255, 0.1);
     }
+    .udf table tbody tr:first-child td:nth-child(2),
+    .udf table tbody tr:first-child td:nth-child(3) {
+        background-color: #080;
+    }
+    .udf table tbody tr:last-child td:nth-child(2) {
+      background-color: #00f;
+    }
+  }
+  .udf.inline-tables {
+    display: grid;
+    grid-template-columns: max-content max-content max-content;
+    gap: 4em;
+
+  }
+  body>div:last-child{
+    padding-bottom: 90vh;
   }
   /*endcss*/
 ::js
@@ -163,8 +181,8 @@
     value, that will then be the resulting displayed value.
     ::js
       for(const child of node.parent.children){
-        if(child.type != NodeType.DEF) continue;
-        child.classes.add('func');
+        if(child.type != NodeType.PARA)
+          child.classes.add('func');
       }
       //endjs
     Numbers::def
@@ -383,6 +401,8 @@
           A string identifying the column the cell is in.
         row::def
           A number identifying the row the cell is in.
+    column::def
+      See [col].
     col::def
       ::pre
         col(sheetname, colname, rowstart, rowend)
@@ -668,7 +688,7 @@
     You can then call it like one of the builtin functions.
 
     UDF Example::md
-      ::div #id(udf)
+      ::div .udf
         MyFunc::table
               | A      | B
             1 |        |
@@ -680,6 +700,23 @@
         Given the above is named MyFunc, you can then call it like so:
         ::pre
           MyFunc(1, 2)
+      ::div .udf .inline-tables
+        MyFunc(1, 2)::table #noid
+              | A      | B
+            1 | 1      | 2
+            2 | =a1*2  | =b1+2
+            3 | =a2/b2 |
+        MyFunc(1, 2)::table #noid
+              | A      | B
+            1 | 1      | 2
+            2 | =1*2   | =2+2
+            3 | =a2/b2 |
+        MyFunc(1, 2)::table #noid
+              | A      | B
+            1 | 1      | 2
+            2 | 2      | 4
+            3 | =2/4   |
+      ::md
         which would yield 0.5.
 
 
@@ -691,11 +728,17 @@
       ::pre
         sum(a2:)
     Sum multiplied by another column::md
-      The <tt>num(b, 1)</tt> will either return the value in b or 1, so blanks will be counted as 1.
+      The <tt>[num](b, 1)</tt> will either return the value in b or 1, so blanks will be counted as 1.
 
       ::pre
         sum(a * num(b, 1))
     Sum looked up values::md
+      Grab the column of a different sheet using the
+      <tt>[col](sheetname, colname)</tt> version of <tt>[col]</tt> and use them
+      as args to <tt>[tlu]</tt>.
+
+      Output is a computed range, so use <tt>[sum]</tt> to turn into a single
+      number.
 
       ::pre
-        sum(tlu(a, [othersheet, a], [othersheet, b]))
+        sum(tlu(a, col('s', 'a'), col('s', 'b')))
