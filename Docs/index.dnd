@@ -5,6 +5,7 @@
 
 ::nav.left
 ::div
+  Documentation::title #hide
   Documentation::md
     This is the (work-in-progress) documentation for the features on krug's
     basement that need a longform explanation.
