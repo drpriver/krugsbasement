@@ -139,6 +139,22 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
         return (/\s/).test(char);
     }
 
+    const PSEUDO_KWS = new Set([
+        'r', 'roll', 'ro', 'rol', 'rolll', 'rl', 'rll',
+        'n', 'name',
+        'sh', 'shuffle', 'shuff', 'shuf',
+        'ch', 'choose',
+        't', 'tab', 'table',
+        'mytable',
+        's', 'say',
+        'color', 'colour',
+        'bold', 'italic',
+        'anon', 'reset',
+        'underline', 'underlined',
+        'box', 'boxed',
+        'big',
+    ]);
+
     function tokenize(text:string): Array<Token> {
         let result:Array<Token> = [];
         for(let i = 0; i < text.length; i++){
@@ -187,6 +203,20 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
                     tok.kind = TokenKind.REPEAT;
                 else if(lower == "times")
                     tok.kind = TokenKind.REPEAT;
+                else if(!PSEUDO_KWS.has(lower)){
+                    while(text[i] == ' ' && i+1 < text.length && isstartident(text[i+1])){
+                        for(i++; i < text.length; i++){
+                            let c = text[i];
+                            if(c == '\\' && i+1 < text.length){
+                                i++;
+                                continue;
+                            }
+                            if(!iscontinueident(c))
+                                break;
+                        }
+                    }
+                    tok.text = text.slice(start, i).replace(/\\/g, '');
+                }
                 result.push(tok);
                 i--;
                 continue;
@@ -1198,7 +1228,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
                 if(visited.has(key)) return null;
                 visited.add(key);
                 let toks = lookup(expr.ident, vars);
-                if(!toks) {
+                if(!toks){
                     // try to eval it as a cell reference
                     let v = spread_eval_string(sheetid, expr.ident);
                     if(v === null)
