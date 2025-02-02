@@ -37,6 +37,16 @@ function edit_element_inline(cell:HTMLElement, flags:EditElementFlags, onfinish:
     inp.onkeydown = function(e):void{
         e.stopPropagation();
         switch(e.key){
+            case ' ':
+                // Workaround for bug in at least Safari where buttons activate
+                // on space when input is focused, even though the event doesn't
+                // propagate.
+                if(cell.tagName == 'BUTTON'){
+                    e.stopPropagation();
+                    e.preventDefault();
+                    // Insert a space without a keydown.
+                    document.execCommand('insertText', false, ' ');
+                }break;
             case 'Escape':
                 remove_ctx_menu();
                 canceled = true;
@@ -71,13 +81,6 @@ function edit_element_inline(cell:HTMLElement, flags:EditElementFlags, onfinish:
     setTimeout(()=> inp.focus(), 0);
 }
 
-function edit_onclick(element: HTMLElement, flags:EditElementFlags, onfinish:(txt:string)=>void):void{
-    element.onclick = function(e):void{
-        e.stopPropagation();
-        e.preventDefault();
-        edit_element_inline(element, flags, onfinish);
-    };
-}
 
 function md_edit_element(element: HTMLElement, mdtxt:string, onfinish:(newmdtxt:string)=>void):void{
     const w = '' + (element.getBoundingClientRect().width) + 'px';

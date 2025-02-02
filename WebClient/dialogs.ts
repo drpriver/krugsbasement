@@ -52,9 +52,17 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
             if(!(el.tagName == 'TEXTAREA' && name == 'make-variable'))
             el.addEventListener('keydown', function(e:KeyboardEvent):void{
                 let modified = e.ctrlKey || e.altKey || e.metaKey || e.shiftKey;
+                if(name == 'multiline-text' || name == 'md-text'){
+                    if(e.key == 'Enter' && e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey){
+                        e.preventDefault();
+                        e.stopPropagation();
+                        result.ok.click();
+                        return;
+                    }
+                }
                 if(modified) return;
                 if(e.key == "Enter"){
-                    if(name == 'multiline-text')
+                    if(name == 'multiline-text' || name == 'md-text')
                         return;
                     e.preventDefault();
                     e.stopPropagation();

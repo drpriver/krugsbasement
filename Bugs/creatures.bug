@@ -1,5 +1,10 @@
 Changelog::kv
   created: 2025-01-28T00:33:05Z
-Created Jan 27, 2025, 04:33PM::md.update
-Summary::md.summary
-  Add a way to have in-client stat blocks with associated stats, macros, descriptions etc.
+  updated: 2025-02-02T06:47:27Z
+Created Jan 27, 2025, 04:33PM::md .update
+Summary::md .summary
+  Add a way to have in-client stat blocks with associated stats, macros,
+  descriptions etc.
+
+Updated Feb 01, 2025, 10:47PM::md .update
+  Implemented, but it’s not synced to the server yet.

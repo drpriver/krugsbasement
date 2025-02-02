@@ -190,6 +190,10 @@
     items[current_prefix].push([name, 'HTMLTextAreaElement']);
     return `<textarea name="${name}" id="${name}"></textarea>`
   }
+  function mdtextarea(name){
+    items[current_prefix].push([name, 'HTMLTextAreaElement']);
+    return `<textarea name="${name}" id="${name}" class="md-editor"></textarea>`
+  }
   function radio(name){
     items[current_prefix].push([name, 'HTMLInputElement']);
     return `<input type="radio" id="${name}" name="${name}" value="auto">`;
@@ -483,6 +487,10 @@
     <tr>
       <td>${textarea('textarea')}
     </table>
+  `);
+  begin('md-text');
+  make(`
+    ${mdtextarea('textarea')}
   `);
   begin('make-variable');
   make(`
