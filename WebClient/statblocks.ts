@@ -284,10 +284,36 @@ function get_sbw(): SubWindow{
             });
             for(const m of matches){
                 const id = m[0];
-                elem_parent_text(list, 'li', m[1]).onclick = function(e){
+                const li = elem_parent_text(list, 'li', m[1]);
+                li.tabIndex = 0;
+                li.onclick = function(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
                     show_sb(id, e);
+                };
+                li.onkeydown = function(e:KeyboardEvent):void{
+                    if(e.key == 'Enter' || e.key == ' '){
+                        show_sb(id, e as any);
+                        e.stopPropagation();
+                        e.preventDefault();
+                        return;
+                    }
+                    if(e.key == 'ArrowUp' || e.key == 'k'){
+                        if(li.previousElementSibling && li.previousElementSibling.tagName == 'LI'){
+                            (li.previousElementSibling as any).focus();
+                        }
+                        e.stopPropagation();
+                        e.preventDefault();
+                        return;
+                    }
+                    if(e.key == 'ArrowDown' || e.key == 'j'){
+                        if(li.nextElementSibling && li.nextElementSibling.tagName == 'LI'){
+                            (li.nextElementSibling as any).focus();
+                        }
+                        e.stopPropagation();
+                        e.preventDefault();
+                        return;
+                    }
                 };
             }
         }
