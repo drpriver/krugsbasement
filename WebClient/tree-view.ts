@@ -11,7 +11,7 @@ type TreeItem = {
 }
 
 type TreeView = {
-    on_click?:(key:number) => void;
+    on_click?: ((key:number) => void) | ((key:number, e:MouseEvent)=>void);
     on_ctxmenu?:(key:number, e:MouseEvent) => void;
     on_drop?:(dropped:number, onto:number|null) => void;
     add_item:(name:string, key:number, parent:number|null)=>void;
@@ -129,7 +129,7 @@ make_tree_view(_container: HTMLElement, domain:string):TreeView{
                 if(IS_MAC && e.ctrlKey) return;
                 e.stopPropagation();
                 e.preventDefault();
-                if(result.on_click) result.on_click(key);
+                if(result.on_click) result.on_click(key, e);
             };
             tog.onclick = function(e:MouseEvent):void{
                 e.stopPropagation();

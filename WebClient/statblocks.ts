@@ -287,10 +287,7 @@ function get_sbw(): SubWindow{
                 elem_parent_text(list, 'li', m[1]).onclick = function(e){
                     e.stopPropagation();
                     e.preventDefault();
-                    if(e.shiftKey)
-                        create_statblock_window(statblocks.get(id)!).show();
-                    else
-                        show_sb(id);
+                    show_sb(id, e);
                 };
             }
         }
@@ -314,7 +311,15 @@ function get_sbw(): SubWindow{
 
         STATS_TV = make_tree_view(tv_el, 'statblock');
         let current_id = 0;
-        function show_sb(id:number):void {
+        function show_sb(id:number, e?:MouseEvent):void {
+            if(e && e.shiftKey && !e.altKey && !e.metaKey && !e.ctrlKey){
+                const w = create_statblock_window(statblocks.get(id)!);
+                w.show();
+                w.w.style.left = (e.clientX-w.w.clientWidth/2)+'px';
+                w.w.style.top = (e.clientY)+'px';
+                ensure_window_is_completely_on_screen(w.w);
+                return;
+            }
             current_id = id;
             const sb = statblocks.get(id);
             if(!sb) return;
@@ -390,7 +395,8 @@ function sb_file_upload(inp:HTMLInputElement):void{
                 sb[0] = ++i;
                 statblocks.set(sb[0], sb);
                 STATS_TV.add_item(sb[1], sb[0], null);
-                if(sb[0] == 1) STATS_TV.on_click!(1);
+                // @ts-ignore
+                if(sb[0] == 1) STATS_TV.on_click!(1, undefined);
             }
         });
     };
