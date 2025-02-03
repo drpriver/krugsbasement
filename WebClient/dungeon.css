@@ -1775,11 +1775,26 @@ body.dark-mode .clock-event.past {
 
 #sbw-container {
   display: grid;
-  grid-template-columns: max-content auto;
+  grid-template-columns: max-content 21ch auto;
   grid-template-rows: auto;
   column-gap: 1em;
   /*height: 100%;*/
   height: calc(100% - 32px);
+}
+#sbw-search {
+  overflow-x: hidden;
+}
+#sbw-filter {
+  width: 20ch;
+}
+#sbw-filter-list li {
+  cursor: pointer;
+}
+#sbw-filter-list li:hover {
+  background-color: #ddd;
+}
+body.dark-mode #sbw-filter-list li:hover {
+  background-color: #666;
 }
 
 #sbw-container > div {

@@ -258,6 +258,60 @@ function get_sbw(): SubWindow{
         };
         const sb_el = by_id('sbw-sb');
         const tv_el = by_id('sbw-tv');
+        const filt = by_id('sbw-filter');
+        const list = by_id('sbw-filter-list');
+        filt.oninput = function(){
+            list.replaceChildren();
+            const txt = filt.value.trim().toLowerCase();
+            if(!txt) return;
+            const matches:Array<[number, string, number]> = [];
+            for(const sb of statblocks.values()){
+                const name = sb[1].toLowerCase();;
+                if(name.startsWith(txt)){
+                    matches.push([sb[0], sb[1], 2]);
+                }
+                else if(name.split(' ').some(x => x.startsWith(txt))){
+                    matches.push([sb[0], sb[1], 1]);
+                }
+                else if(name.includes(txt)){
+                    matches.push([sb[0], sb[1], 0]);
+                }
+            }
+            matches.sort(function(a:[number, string, number], b:[number, string, number]):number{
+                if(a[2] > b[2]) return -1;
+                if(a[2] < b[2]) return 1;
+                return a[1].localeCompare(b[1]);
+            });
+            for(const m of matches){
+                const id = m[0];
+                elem_parent_text(list, 'li', m[1]).onclick = function(e){
+                    e.stopPropagation();
+                    e.preventDefault();
+                    if(e.shiftKey)
+                        create_statblock_window(statblocks.get(id)!).show();
+                    else
+                        show_sb(id);
+                };
+            }
+        }
+        filt.onkeydown = function(e):void{
+            if(e.key == 'Escape'){
+                filt.value = '';
+                list.replaceChildren();
+                e.stopPropagation();
+                e.preventDefault();
+                return;
+            }
+            if(e.key == 'Enter'){
+                e.stopPropagation();
+                e.preventDefault();
+                if(list.children.length)
+                    (list.children[0] as HTMLElement).onclick!(e as any);
+                return;
+            }
+        }
+
+
         STATS_TV = make_tree_view(tv_el, 'statblock');
         let current_id = 0;
         function show_sb(id:number):void {

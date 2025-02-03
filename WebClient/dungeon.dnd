@@ -105,6 +105,10 @@
     `
     <div id="sbw-container">
       <div id="sbw-tv"></div>
+      <div id="sbw-search">
+        <label>Search<input type=search id="sbw-filter" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></label>
+        <ul id="sbw-filter-list"></ul>
+      </div>
       <div id="sbw-sb" class="statblock-content"></div>
     </div>
     `);
