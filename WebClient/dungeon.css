@@ -37,6 +37,12 @@ button {
   -webkit-user-select: none;
   user-select: none;
 }
+body.dark-mode .window, body.dark-mode .window2, body.dark-mode .tracker-window, body.dark-mode #disconnect, body.dark-mode div.hover {
+  border: 1px solid #585858;
+}
+.window, .window2, .tracker-window, #disconnect, div.hover {
+  border: 1px solid #aaa;
+}
 body.dark-mode .window, body.dark-mode .tracker-window, body.dark-mode #disconnect, body.dark-mode div.hover {
   box-shadow: 0px 10px 24px rgba(0,0,0,0.8);
 }
@@ -1080,7 +1086,7 @@ table.ngroup td:last-child {
     background-color: #333;
   }
   body.dark-mode .window-handle, body.dark-mode #tool-container-handle {
-    background-color: #444;
+    background-color: #2d2d2d;
   }
   body.dark-mode .window-group-list div {
     color: #aaa;
