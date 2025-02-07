@@ -333,7 +333,7 @@
         array(args, args, args)
         ...
       Returns a computed array composed of the given args, that can be passed to
-      functions expecting a range like <tt>sum</tt>.
+      functions expecting a range like <tt>[sum]</tt>.
       Arguments::dl
         args::def
           Any number of arguments that will be in the array.
@@ -393,7 +393,7 @@
         cell(col, row)
       Returns the value at the identified cell.
 
-      This is the dynamic equivelant to a cell literal.
+      This is the dynamic equivalent to a cell literal.
 
       Arguments::dl
         sheetname::def
@@ -414,7 +414,7 @@
         col(sheetname, colname)
       Returns the range identified by the parameters.
 
-      This is the dynamic equivelant to a range literal.
+      This is the dynamic equivalent to a range literal.
 
       Arguments::dl
         sheetname::def
@@ -431,8 +431,8 @@
         count(range)
       Counts the number of non-empty cells in the range.
 
-      Note that <tt>sum(range)/count(range)</tt> does not give the same
-      result as <tt>avg(range)</tt> as <tt>count</tt> includes strings.
+      Note that <tt>[sum](range)/count(range)</tt> does not give the same
+      result as <tt>[avg](range)</tt> as <tt>count</tt> includes strings.
       Arguments::dl
         range::def
           A column range.
@@ -517,6 +517,22 @@
           sum(if(a, 2, 3))
         Yields 8 (3+2+3).
 
+    log::def
+      ::pre
+        log(num)
+        log(num, base)
+        log(range)
+        log(range, base)
+
+      Returns the natural logarithm of the argument, or applies it to every
+      element in a range.
+
+      If base, is given, the logarithm is calculated with that as the base
+      instead of e.
+    ln::def
+      An alias for <tt>[log]</tt>.
+    lu::def
+      An alias for <tt>[tlu]</tt>.
     max::def
       ::pre
         max(range)
@@ -535,6 +551,8 @@
         num::def
           Any number of numbers.
 
+    mean::def
+      Alias for <tt>[avg]</tt>.
     min::def
       ::pre
         min(range)
@@ -609,6 +627,11 @@
       Arguments::dl
         number::def
           The number to round
+    row::def
+      ::pre
+        row(column1, column2, row)
+        row(sheetname, column1, column2, row)
+      Returns a row range bounded by the given args.
     sqrt::def
       ::pre
         sqrt(number)
