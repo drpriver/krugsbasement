@@ -12,16 +12,16 @@ document.addEventListener('DOMContentLoaded', function():void{
     SHEET_TV = make_tree_view(by_id('sheets-list'), 'sheets');
     SHEET_TV.on_click = function(id:number):void{
         const ss = SPREADSHEETS.get(id);
-        if(ss) ss.show();
+        if(ss) ss.win.show();
     };
     SHEET_TV.on_ctxmenu = function(id:number, e:MouseEvent):void{
         const menu = ctx_menu(e);
         const ss = SPREADSHEETS.get(id);
         if(!ss) return;
         if(ss.win.state != WinState.OPEN)
-            menu.item('Show', ss.show);
+            menu.item('Show', ss.win.show);
         else
-            menu.item('Hide', ss.hide);
+            menu.item('Hide', ss.win.close);
         menu.item('Rename', function(e:MouseEvent):void{
             e.stopPropagation();
             e.preventDefault();
@@ -94,8 +94,6 @@ type SpreadSheet = {
     _wasmed: boolean;
     _down: boolean;
     name: string;
-    show:() => void;
-    hide:() => void;
     make_top:() => void;
     set_title:(_:string) => void;
     set_flags:(_:SpreadSheetFlags) => void;
@@ -310,12 +308,12 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
     // idk should assert here or something if winid already exists
     let win: Win;
     {
-        const w = elem_with_parent(document.body, 'div', winid, 'tracker-window');
+        const w = elem('div', winid, 'tracker-window');
         const wh = elem_with_parent(w, 'div', null, 'window-handle');
         const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
         const m = elem_parent_text(wh, 'span', '_', null, 'window-minimizer');
         const t = elem_parent_text(wh, 'span', '', null, 'window-title');
-        win = normal_window(w, wh, x, m, t, NormalWindow.LOCAL);
+        win = normal_window(w, wh, x, m, t, NormalWindow.LOCAL, openid);
     }
     const xxx_timing = elem_with_parent(win.wh, 'span');
     win.wh_ctxmenu_handler = function(menu:CtxMenu):void{
@@ -430,16 +428,13 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         });
         else
             menu.disabled('Delete Spreadsheet');
-        menu.separator();
     };
     win.show_handler = function():void{
         result.hidden = false;
-        store_local(StorageCategory.WINDOW, openid, '1');
         recalc(id);
     };
     win.close_handler = function():void{
         result.hidden = true;
-        store_local(StorageCategory.WINDOW, openid, '');
     };
     win.restore_handler = function():void{
         result.hidden = false;
@@ -466,8 +461,6 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         _old_r0: -1, _old_r1: -1, _old_c0: -1, _old_c1: -1,
         hidden: true,
         name,
-        show: win.show,
-        hide: win.close,
         cell_elems: [],
         cell_sources: [],
         cell_displays: [],
@@ -1974,8 +1967,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
     grid.style.gridTemplateRows = gtr();
     grid.style.gridTemplateColumns = gtc();
     win.t.textContent = (result.flags & SpreadSheetFlags.IS_FUNCTION)?`Function — ${name}` : name;
-    if(!get_local(StorageCategory.WINDOW, openid)) result.hide();
-    else result.show();
+    reopen_window(()=>result.win, NormalWindow.LOCAL, openid);
     return result;
 }
 const SPREADSHEETS:Map<number, SpreadSheet> = new Map();
@@ -2114,7 +2106,7 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
         case SpreadSheetMsgType.NEW_SHEET:
             const ss = spreadsheet_from_data(arg[1]);
             ss.mark_dirty();
-            ss.show();
+            ss.win.show();
             SHEET_TV.add_item(ss.name, ss.id, ss.parent?ss.parent:null);
             break;
         case SpreadSheetMsgType.SORT:{
@@ -2148,7 +2140,7 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
         case SpreadSheetMsgType.SHOW:{
             let ss = SPREADSHEETS.get(arg[1]);
             if(!ss) break;
-            ss.show();
+            ss.win.show();
         }break;
         case SpreadSheetMsgType.NAME:{
             let ss = SPREADSHEETS.get(arg[1]);

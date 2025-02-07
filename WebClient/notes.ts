@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         if(!note) return;
         const window = get_note_window(id);
         window.win.t.textContent = note.title;
-        window.show();
+        window.win.show();
     };
     NOTE_TV.on_ctxmenu = function(id:number, e:MouseEvent):void{
         const menu = ctx_menu(e);
@@ -69,7 +69,6 @@ type NoteWindow = {
     content: HTMLDivElement;
     ed_container: HTMLDivElement;
     editor: HTMLTextAreaElement;
-    show: () => void;
     refresh: () => void;
     is_editing: boolean;
 };
@@ -95,7 +94,7 @@ function make_note_window(id:number):NoteWindow{
         const m = elem_parent_text(wh, 'span', '_', null, 'window-minimizer');
         const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
         const t = elem_parent_text(wh, 'span', '', null, 'window-title');
-        win = normal_window(w, wh, x, m, t, NormalWindow.LOCAL);
+        win = normal_window(w, wh, x, m, t, NormalWindow.LOCAL, openid);
     }
     win.wh_ctxmenu_handler = function(menu:CtxMenu):void{
         menu.item('Show Others', function():void{
@@ -141,14 +140,8 @@ function make_note_window(id:number):NoteWindow{
         // note.need_send = true;
     // };
     monospace_textarea(editor, stop_editing);
-    const result: NoteWindow = { id, win, edit_button, content, ed_container, editor, show:function():void{
-        const note = NOTES.get(id);
-        if(!note) return;
-        if(note.need_receive) EMIT(FromClient.GET_NOTE, id);
-        win.show();
-        result.refresh();
-        store_local(StorageCategory.WINDOW, openid, '1');
-    }, is_editing:false,
+    const result: NoteWindow = { id, win, edit_button, content, ed_container, editor,
+    is_editing:false,
     refresh:function():void{
         const note = NOTES.get(id);
         if(!note) return;
@@ -194,12 +187,17 @@ function make_note_window(id:number):NoteWindow{
         else
             stop_editing();
     }
+    win.show_handler = function():void{
+        const note = NOTES.get(id);
+        if(!note) return;
+        if(note.need_receive) EMIT(FromClient.GET_NOTE, id);
+        result.refresh();
+    };
     win.close_handler = function():void{
         stop_editing();
-        store_local(StorageCategory.WINDOW, openid, '');
         win.win.remove();
         win.state = WinState.NONE;
-    }
+    };
     return result;
 }
 type Note_ = {
@@ -270,9 +268,7 @@ document.addEventListener('DOMContentLoaded', function():void{
             note.need_send = false;
             add_note(note.id, note);
             const openid = `/notes/open/${note.id}`;
-            if(get_local(StorageCategory.WINDOW, openid))
-                get_note_window(note.id).show();
-
+            reopen_window(()=>get_note_window(note.id).win, NormalWindow.LOCAL, openid);
         }
     });
     ONRECV(ToClient.NEW_NOTE, function(msg:NewNoteMsg):void{
@@ -282,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function():void{
     ONRECV(ToClient.NEW_NOTE_RESPONSE, function(msg:NewNoteMsg):void{
         const {note_id, parent} = msg;
         add_note(note_id, {id:note_id, title:'Untitled', body:'', flags:0, need_send:false,  need_receive:false, parent});
-        get_note_window(note_id).show();
+        get_note_window(note_id).win.show();
     });
     by_id('new-note').addEventListener('click', function(e:MouseEvent):void{
         e.stopPropagation();
@@ -303,7 +299,7 @@ document.addEventListener('DOMContentLoaded', function():void{
     ONRECV(ToClient.NOTE_SHOW, function(noteid:number):void{
         const window = get_note_window(noteid);
         if(!window) return;
-        window.show();
+        window.win.show();
     });
 });
 // }());

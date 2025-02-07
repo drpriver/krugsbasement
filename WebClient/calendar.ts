@@ -112,15 +112,7 @@ function build_calendar_window(calendar:Calendar):void{
             const [year, month] = year_month();
             EMIT(FromClient.CALENDAR, [CalendarMsgType.SHOW, year, month]);
         });
-        menu.separator();
     }
-    const openid = 'cal/open'
-    w.close_handler = function(){
-        store_local(StorageCategory.WINDOW, openid, '');
-    };
-    w.show_handler = function(){
-        store_local(StorageCategory.WINDOW, openid, '1');
-    };
     const year_selector = by_id('cal-year-selector');
     year_selector.replaceChildren();
     year_selector.style.gridTemplateRows = 'max-content max-content';
@@ -269,7 +261,8 @@ function build_calendar_window(calendar:Calendar):void{
     if(active_month < 0) active_month = 0;
     if(active_month >= calendar.month_names.length) active_month = calendar.month_names.length-1;
     dv.make_active2(active_year, active_month);
-    if(get_local(StorageCategory.WINDOW, openid)) w.show();
+    const openid = `cal/open`;
+    reopen_window(()=>w, NormalWindow.GLOBAL, openid);
 }
 
 document.addEventListener('DOMContentLoaded', function(){

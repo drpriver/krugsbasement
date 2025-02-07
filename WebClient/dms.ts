@@ -171,5 +171,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         if(lv.active !== undefined)
             lv.activate_handler!(lv.active);
     });
+    const openid = 'privateroll/open'
+    reopen_window(()=>privateroll, NormalWindow.GLOBAL, openid);
 });
 }());

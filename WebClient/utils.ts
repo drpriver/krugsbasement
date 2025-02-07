@@ -230,55 +230,6 @@ function setup_closable_window(win:HTMLElement, closer:HTMLElement, onclose:()=>
     closer.addEventListener('click', hide_window);
     closer.title = 'Close';
 }
-function setup_minimizable_window(win:HTMLElement, titlebar:HTMLElement, minimizer:HTMLElement, onmin:()=>void, onrestore:()=>void, make_top:(()=>void)|null, close:(()=>void)|null):[()=>void, ()=>void, ()=>void]{
-    if(IS_WINDOWS)
-        minimizer.style.gridColumn = '4';
-    else
-        minimizer.style.gridColumn = '2';
-
-    let minimized = false;
-    let restorer : HTMLElement|null = null;
-    function remove():void{
-        if(restorer) {restorer.remove(); restorer = null;}
-    }
-    function restore():void{
-        if(!minimized) return;
-        remove();
-        minimized = false;
-        win.classList.remove('minimized');
-        if(make_top) make_top();
-        onrestore();
-    }
-    function minimize():void{
-        if(minimized) return;
-        win.classList.add('minimized');
-        minimized = true;
-        restorer = elem_parent_text(by_id('minimized'), 'span', titlebar.textContent+' □');
-        restorer.onclick = function(e:MouseEvent):void{
-            e.preventDefault();
-            e.stopPropagation();
-            restore();
-        }
-        restorer.oncontextmenu = function(e:MouseEvent):void{
-            const menu = ctx_menu(e);
-            menu.item('Restore', restore);
-            menu.item('Close', function(){
-                if(close) close();
-                remove();
-            }, close == null);
-            menu.separator();
-            menu.canceller();
-            menu.install();
-        }
-        onmin();
-    }
-    minimizer.onclick = function(e:MouseEvent):void{
-        e.preventDefault();
-        e.stopPropagation();
-        minimize();
-    };
-    return [minimize, restore, remove];
-}
 
 function ensure_window_is_completely_on_screen(win:HTMLElement):void{
     let r = win.getBoundingClientRect();
@@ -399,13 +350,13 @@ function monospace_textarea(ta:HTMLTextAreaElement, blur:null|(()=>void)):void{
 }
 
 const enum WinState {
-    NONE,
-    CLOSED,
-    OPEN,
-    MINIMIZED,
+    NONE      = 0,
+    OPEN      = 1,
+    MINIMIZED = 2,
+    CLOSED    = 3,
 };
 const enum NormalWindow {
-    LOCAL = 0,
+    LOCAL  = 0,
     GLOBAL = 1,
 }
 type Win = {
@@ -429,7 +380,7 @@ type Win = {
     close_handler?: ()=>void;
     wh_ctxmenu_handler?: (m:CtxMenu) => void;
 }
-function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement, m:HTMLSpanElement, t:HTMLSpanElement, global_window:NormalWindow){
+function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement, m:HTMLSpanElement, t:HTMLSpanElement, global_window:NormalWindow, openid:null|string){
     x.title = 'Close';
     x.onclick = function(e:MouseEvent):void{
         e.stopPropagation();
@@ -467,6 +418,7 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
     wh.oncontextmenu = function(e:MouseEvent):void{
         const menu = ctx_menu(e);
         if(result.wh_ctxmenu_handler) result.wh_ctxmenu_handler(menu);
+        menu.separator();
         menu.item('Close', result.close);
         menu.item('Minimize', result.minimize);
         menu.separator();
@@ -478,6 +430,7 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
         e.preventDefault();
         result.minimize();
     };
+    const store = global_window == NormalWindow.GLOBAL?store_global:store_local;
     const result: Win = {
         win, wh, x, m, t,
         close: function():void{
@@ -487,6 +440,7 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
                 restorer.remove();
             result.state = WinState.CLOSED;
             result.win.style.display = 'none';
+            if(openid) store(StorageCategory.WINDOW, openid, ''+result.state);
             if(result.close_handler) result.close_handler();
         },
         show: function(): void{
@@ -502,6 +456,7 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
             result.win.style.display = 'grid';
             result.make_top();
             ensure_window_is_completely_on_screen(result.win);
+            if(openid) store(StorageCategory.WINDOW, openid, ''+result.state);
             if(result.show_handler) result.show_handler();
         },
         minimize: function(): void{
@@ -510,6 +465,7 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
             by_id('minimized').append(restorer);
             result.win.style.display = 'none';
             result.state = WinState.MINIMIZED;
+            if(openid) store(StorageCategory.WINDOW, openid, ''+result.state);
             if(result.minimize_handler) result.minimize_handler();
         },
         restore: function():void {
@@ -518,6 +474,7 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
             result.win.style.display = 'grid';
             result.state = WinState.OPEN;
             result.make_top();
+            if(openid) store(StorageCategory.WINDOW, openid, ''+result.state);
             if(result.restore_handler) result.restore_handler();
         },
         make_top: function():void{ },
@@ -525,9 +482,20 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
     };
     result.make_top = setup_zsorted_window(win);
     let wf = !win.id? WINDOWFLAGS.NONE: global_window?WINDOWFLAGS.GLOBAL_REMEMBER:WINDOWFLAGS.LOCAL_REMEMBER;
-    let rf = !win.id?RESIZEFLAGS.NONE:global_window?RESIZEFLAGS.GLOBAL_REMEMBER:RESIZEFLAGS.LOCAL_REMEMBER;
+    let rf = !win.id? RESIZEFLAGS.NONE: global_window?RESIZEFLAGS.GLOBAL_REMEMBER:RESIZEFLAGS.LOCAL_REMEMBER;
     setup_movable_window(win, wh, wf);
     setup_resizable_window(win, rf);
 
     return result;
+}
+
+function reopen_window(w:()=>Win, global_window:NormalWindow, openid:string):void{
+    const get = global_window?get_global_default:get_local_default;
+    const state = +get(StorageCategory.WINDOW, openid, ''+WinState.NONE);
+    if(state == WinState.OPEN || state == WinState.MINIMIZED){
+        const win = w();
+        win.show();
+        if(state == WinState.MINIMIZED)
+            win.minimize();
+    }
 }

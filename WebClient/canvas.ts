@@ -7754,7 +7754,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                             if(o.type == CanvasType.TEXT){
                                 if(o.flags & CanvasFlag.TEXT_LINKS_NOTE){
                                     const n = NOTES.get(o.link_id);
-                                    if(n) get_note_window(n.id).show();
+                                    if(n) get_note_window(n.id).win.show();
                                 }
                                 else
                                     change_map(which_canv, o.link_id);
@@ -7949,7 +7949,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                 if(o.type == CanvasType.TEXT){
                                     if(o.flags & CanvasFlag.TEXT_LINKS_NOTE){
                                         const n = NOTES.get(o.link_id);
-                                        if(n) get_note_window(n.id).show();
+                                        if(n) get_note_window(n.id).win.show();
                                     }
                                     else
                                         change_map(which_canv, o.link_id);

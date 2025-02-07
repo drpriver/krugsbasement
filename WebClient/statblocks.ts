@@ -246,16 +246,9 @@ function sb_populate(container:HTMLDivElement, block:StatBlock):void{
 }
 
 function get_sbw(): Win{
-    const openid = '/sbs/open/sbw';
     if(!_sbw){
         by_id('sbw-window').style.width = '70ch';
         _sbw = get_window('sbw');
-        _sbw.show_handler = function():void{
-            store_local(StorageCategory.WINDOW, openid, '1');
-        };
-        _sbw.close_handler = function():void{
-            store_local(StorageCategory.WINDOW, openid, '');
-        };
         const sb_el = by_id('sbw-sb');
         const tv_el = by_id('sbw-tv');
         const filt = by_id('sbw-filter');
@@ -393,7 +386,6 @@ function get_sbw(): Win{
         }
         _sbw.wh_ctxmenu_handler = function(menu:CtxMenu):void{
             menu.item('Upload', function(){ (sb_el.firstChild as any).click(); });
-            menu.separator();
         }
     }
     return _sbw;
@@ -424,9 +416,7 @@ function sb_file_upload(inp:HTMLInputElement):void{
     };
 }
 document.addEventListener('DOMContentLoaded', function():void{
-    const openid = '/sbs/open/sbw';
-    if(get_local(StorageCategory.WINDOW, openid))
-      get_sbw().show();
+    reopen_window(get_sbw, NormalWindow.GLOBAL, 'sbw/open');
     by_id('statblock-button').onclick = ()=>{ get_sbw().show(); };
 });
 
@@ -446,7 +436,7 @@ function create_statblock_window(block: StatBlock):StatBlockWindow{
         const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
         const t = elem_parent_text(wh, 'span', block[1], null, 'window-title');
         const m = elem_parent_text(wh, 'span', '_', null, 'window-minimizer');
-        win = normal_window(w, wh, x, m, t, 0);
+        win = normal_window(w, wh, x, m, t, 0, null);
     }
     const content = elem_with_parent(win.win, 'div', null, 'statblock-content');
     sb_populate(content, block);
@@ -462,7 +452,6 @@ function create_statblock_window(block: StatBlock):StatBlockWindow{
             w.win.win.style.top = e.clientY+'px';
             ensure_window_is_completely_on_screen(win.win);
         });
-        menu.separator();
     };
 
     const result: StatBlockWindow = {

@@ -10,15 +10,11 @@ type MacroWindow = {
     win: Win;
     editor: HTMLTextAreaElement;
     log: HTMLDivElement;
-    show: () => void;
-    close: () => void;
 };
 
 type VariablesWindow = {
     cid: number;
     win: Win;
-    show: () => void;
-    close: () => void;
 };
 
 const MACRO_WINDOWS: Map<number, MacroWindow> = new Map();
@@ -44,7 +40,7 @@ function make_macro_window(cid:number, id:number):MacroWindow {
         const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
         const t = elem_parent_text(wh, 'span', macro?macro[1]:'', null, 'window-title');
         const m = elem_parent_text(wh, 'span', '_', null, 'window-minimizer');
-        win = normal_window(w, wh, x, m, t, NormalWindow.LOCAL);
+        win = normal_window(w, wh, x, m, t, NormalWindow.LOCAL, openid);
     }
     const buttons = elem_with_parent(win.win, 'div', null, 'macro-win-buttons');
     const vars = elem_with_parent(win.win, 'div', null, 'macro-vars');
@@ -85,13 +81,12 @@ function make_macro_window(cid:number, id:number):MacroWindow {
             dialog.f.delete.checked = false;
             dialog.ok_handler = function():void{
                 if(!dialog.f.delete.checked) return;
-                result.close();
+                result.win.close();
                 del_macro(id);
                 save_mcv_and_signal();
             };
             dialog.show();
         });
-        menu.separator();
     };
     use.onclick = function():void{
         const m = MACROS.get(id);
@@ -160,12 +155,10 @@ function make_macro_window(cid:number, id:number):MacroWindow {
     win.close_handler = function():void{
         win.win.remove();
         MACRO_WINDOWS.delete(ident);
-        store_local(StorageCategory.WINDOW, openid, '');
     };
     win.show_handler = function():void{
         refresh();
         if(!IS_TOUCH) editor.focus();
-        store_local(StorageCategory.WINDOW, openid, '1');
     }
     function refresh():void{
         const macro = MACROS.get(id);
@@ -245,7 +238,7 @@ function make_macro_window(cid:number, id:number):MacroWindow {
         }
     }
     const result: MacroWindow = {
-        cid, id, win, editor, log, show: win.show, close: win.close
+        cid, id, win, editor, log
     };
     refresh();
     return result;
@@ -262,7 +255,7 @@ function make_vars_window(cid:number):VariablesWindow {
         const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
         const t = elem_parent_text(wh, 'span', char?char[1]:'', null, 'window-title');
         const m = elem_parent_text(wh, 'span', '_', null, 'window-minimizer');
-        win = normal_window(w, wh, x, m, t, NormalWindow.LOCAL);
+        win = normal_window(w, wh, x, m, t, NormalWindow.LOCAL, null);
     }
     const vars = elem_with_parent(win.win, 'div', null, 'macro-vars');
     const addvar = elem_parent_text(win.win, 'button', '+');
@@ -391,9 +384,7 @@ function make_vars_window(cid:number):VariablesWindow {
             }
         }
     }
-    const result: VariablesWindow = {
-        cid, win, show:win.show, close:win.close,
-    };
+    const result: VariablesWindow = { cid, win };
     refresh();
     return result;
 }
@@ -433,7 +424,7 @@ function add_macro_dialog(cid:number):void{
         save_mcv_and_signal();
         setup_macro_panel();
         const w = get_macro_window(cid, m[0]);
-        w.show();
+        w.win.show();
         if(!IS_TOUCH) setTimeout(()=>{w.editor.focus()}, 0);
     };
     dialog.show();
@@ -499,10 +490,10 @@ function setup_macro_left():void{
                     for(const mid of c[2]){
                         const ident = (cid << 16) | mid;
                         const w = MACRO_WINDOWS.get(ident);
-                        if(w) w.close();
+                        if(w) w.win.close();
                     }
                     const vw = VARIABLES_WINDOWS.get(cid);
-                    if(vw) vw.close();
+                    if(vw) vw.win.close();
                     del_character(cid);
                     save_mcv_and_signal();
                 };
@@ -522,7 +513,7 @@ function setup_macro_left():void{
         const vars = elem_parent_text(nested, 'li', `Variables…`);
         vars.onclick = function(e:MouseEvent):void{
             e.stopPropagation();
-            get_vars_window(cid).show();
+            get_vars_window(cid).win.show();
         };
         vars.oncontextmenu = function(e:Event):void{
             e.stopPropagation();
@@ -553,7 +544,7 @@ function setup_macro_left():void{
                     remove_ctx_menu();
                 });
                 menu.item('Edit', function():void{
-                    get_macro_window(cid, mid).show();
+                    get_macro_window(cid, mid).win.show();
                 });
                 menu.separator();
                 menu.item('Delete', function():void{
@@ -566,7 +557,7 @@ function setup_macro_left():void{
                         del_macro(mid);
                         const ident = (cid << 16) | mid;
                         const w = MACRO_WINDOWS.get(ident);
-                        if(w) w.close();
+                        if(w) w.win.close();
                         save_mcv_and_signal();
                     };
                     dialog.show();
@@ -577,11 +568,10 @@ function setup_macro_left():void{
             };
             mli.onclick = function(e:MouseEvent):void{
                 e.stopPropagation();
-                get_macro_window(cid, mid).show();
+                get_macro_window(cid, mid).win.show();
             };
             const openid = `/macros/open/${cid}-${mid}`;
-            if(get_local(StorageCategory.WINDOW, openid))
-              get_macro_window(cid, mid).show();
+            reopen_window(()=>get_macro_window(cid, mid).win, NormalWindow.LOCAL, openid);
         }
     }
 

@@ -487,4 +487,5 @@ document.addEventListener('DOMContentLoaded',function():void{
         preprocess_and_send_chat(`${cmd} ${current_table.name}`, -1, -1);
     };
     by_id('tables-button').onclick = tablewindow.show;
+    reopen_window(()=>tablewindow, NormalWindow.GLOBAL, 'rolltable/open');
 });

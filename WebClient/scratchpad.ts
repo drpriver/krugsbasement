@@ -11,10 +11,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         w.show();
     }
     const openid = '/scratch/open/0';
-    if(get_local(StorageCategory.WINDOW, openid)){
-        const w = scratchpad_window();
-        w.show();
-    }
+    reopen_window(scratchpad_window, NormalWindow.LOCAL, openid);
 });
 
 let spw_want_focus = false;
@@ -32,7 +29,7 @@ function scratchpad_window():Win {
         const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
         const t = elem_parent_text(wh, 'span', 'Scratchpad', null, 'window-title');
         const m = elem_parent_text(wh, 'span', '_', null, 'window-minimizer');
-        win = normal_window(w, wh, x, m, t, NormalWindow.LOCAL);
+        win = normal_window(w, wh, x, m, t, NormalWindow.LOCAL, openid);
     }
     const content = get_local_default(StorageCategory.UI, 'scratch-0', '');
     const ta = elem_with_parent(win.win, 'textarea');
@@ -50,12 +47,8 @@ function scratchpad_window():Win {
             store_local(StorageCategory.UI, storageid, ta.value);
         }, 500)
     };
-    win.close_handler = function():void{
-        store_local(StorageCategory.WINDOW, openid, '');
-    };
     monospace_textarea(ta, null);
     win.show_handler = function():void{
-        store_local(StorageCategory.WINDOW, openid, '1');
         if(spw_want_focus){
             setTimeout(()=>ta.focus(), 0);
             spw_want_focus = false;
@@ -66,7 +59,6 @@ function scratchpad_window():Win {
             ta.value = '';
             store_local(StorageCategory.UI, storageid, '');
         });
-        menu.separator();
     };
 
     spw = win;

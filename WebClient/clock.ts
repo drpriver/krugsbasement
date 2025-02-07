@@ -11,8 +11,6 @@ type ClockWindow = {
     list_el: HTMLDivElement;
     value_el: HTMLDivElement;
     add_event_button: HTMLButtonElement;
-    show: () => void;
-    close: () => void;
 };
 const clock_windows: Map<number, ClockWindow> = new Map();
 let clock_wants_show_new = false;
@@ -200,7 +198,7 @@ function make_clock_window(id: number): ClockWindow{
         const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
         const m = elem_parent_text(wh, 'span', '_', null, 'window-minimizer');
         const t = elem_parent_text(wh, 'span', c.name, null, 'window-title');
-        win = normal_window(w, wh, x, m, t, NormalWindow.LOCAL);
+        win = normal_window(w, wh, x, m, t, NormalWindow.LOCAL, openid);
     }
     const vtext = c.value_name?`${c.value_name}: ${c.value}`:`${c.value}`;
     const v = elem_parent_text(win.win, 'div', vtext, null, 'clock-value');
@@ -309,14 +307,10 @@ function make_clock_window(id: number): ClockWindow{
         };
         diag.show();
     };
-    win.close_handler = function():void{
-        store_local(StorageCategory.WINDOW, openid, '');
-    };
     win.show_handler = function():void{
         if(c.hidinguser && c.hidinguser != SETTINGS.userid)
             return;
         clock_apply(c);
-        store_local(StorageCategory.WINDOW, openid, '1');
     };
     win.wh_ctxmenu_handler = function(menu:CtxMenu):void{
         menu.item('Show Others', function():void{
@@ -363,7 +357,6 @@ function make_clock_window(id: number): ClockWindow{
         menu.item('Clear', function():void{
             EMIT(FromClient.CLOCK, {type:ClockMsgType.CLEAR, id:id});
         });
-        menu.separator();
     };
 
     const result: ClockWindow= {
@@ -372,8 +365,6 @@ function make_clock_window(id: number): ClockWindow{
         list_el: list,
         value_el: v,
         add_event_button: add_event_button,
-        show: win.show,
-        close: win.close,
     };
     return result;
 }
@@ -424,15 +415,12 @@ ONRECV(ToClient.CLOCK, function(msg:ClockMsg):void{
                   clock_tv.add_item(c.name, c.id, null);
                 clock_apply(c);
                 const openid = `/clocks/open/${c.id}`;
-                if(get_local(StorageCategory.WINDOW, openid)){
-                  const w = get_or_create_clock_window(c.id);
-                  if(w) w.show();
-                }
+                reopen_window(()=>get_or_create_clock_window(c.id)!.win, NormalWindow.LOCAL, openid);
             }
             break;
         case ClockMsgType.SHOW:{
             const w = get_or_create_clock_window(msg.id);
-            if(w) w.show();
+            if(w) w.win.show();
         }break;
         case ClockMsgType.NEW:{
             const c: Clock = {name:msg.name, flags:msg.flags, id:msg.id, value:msg.value, events:[], value_name:msg.value_name, hidinguser:msg.hidinguser}
@@ -442,9 +430,9 @@ ONRECV(ToClient.CLOCK, function(msg:ClockMsg):void{
             if(clock_wants_show_new){
                 clock_wants_show_new = false;
                 const w = get_or_create_clock_window(c.id);
-                if(w) {
-                  w.show();
-                  setTimeout(() => w.add_event_button.focus(), 0);
+                if(w){
+                    w.win.show();
+                    setTimeout(() => w.add_event_button.focus(), 0);
                 }
             }
         }break;
@@ -468,7 +456,7 @@ ONRECV(ToClient.CLOCK, function(msg:ClockMsg):void{
                 c.hidinguser = msg.hidinguser;
                 if(w) w.value_el.textContent = c.value_name?`${c.value_name}: ${c.value}`:`${c.value}`;
                 if(w && c.hidinguser && c.hidinguser != SETTINGS.userid){
-                    w.close();
+                    w.win.close();
                     clock_tv.remove(id);
                 }
                 clock_apply(c);
@@ -476,7 +464,7 @@ ONRECV(ToClient.CLOCK, function(msg:ClockMsg):void{
         }break;
         case ClockMsgType.DELETE:{
             const w = get_clock_window(msg.id);
-            if(w) w.close();
+            if(w) w.win.close();
             clock_windows.delete(msg.id);
             clock_tv.remove(msg.id);
             clocks.delete(msg.id);
@@ -565,7 +553,7 @@ document.addEventListener('DOMContentLoaded', function():void{
     clock_tv.on_click = function(id:number):void{
         const w = get_or_create_clock_window(id);
         if(w){
-            w.show();
+            w.win.show();
             setTimeout(()=>w.win.win.focus(), 0);
         }
     };

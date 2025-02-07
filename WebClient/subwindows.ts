@@ -23,5 +23,5 @@ function make_window(name:keyof SubWindowIdMap): Win {
     let x = get_by_id<HTMLSpanElement>(name+'-close');
     let t = get_by_id<HTMLSpanElement>(name+'-title');
     let m = get_by_id<HTMLSpanElement>(name+'-minimizer');
-    return normal_window(win, wh, x, m, t, NormalWindow.GLOBAL);
+    return normal_window(win, wh, x, m, t, NormalWindow.GLOBAL, `${name}/open`);
 }
