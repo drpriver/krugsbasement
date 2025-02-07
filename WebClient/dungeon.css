@@ -85,7 +85,7 @@ body.dark-mode .tracker-window, body.dark-mode #disconnect, body.dark-mode div.h
   left: 280px;
   bottom: 0px;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: wrap-reverse;
   width: calc(100vw - 540px);
   z-index: 5;
 }
