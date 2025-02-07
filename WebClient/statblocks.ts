@@ -28,7 +28,7 @@ function sb_populate(container:HTMLDivElement, block:StatBlock):void{
     lock.type = 'checkbox';
     lock.checked = true;
     lock.onchange = function(){ locked = lock.checked; };
-    const pop = elem_parent_text(container, 'button', 'Clone into Window');
+    const pop = elem_parent_text(container, 'button', 'Window');
     pop.onclick = function(e):void{
         e.stopPropagation();
         const w = create_statblock_window(structuredClone(block));
@@ -37,7 +37,7 @@ function sb_populate(container:HTMLDivElement, block:StatBlock):void{
         w.w.style.top = (e.clientY)+'px';
         ensure_window_is_completely_on_screen(w.w);
     }
-    const lightpop = elem_parent_text(container, 'button', 'Clone w/o md');
+    const lightpop = elem_parent_text(container, 'button', 'Thin Window');
     lightpop.onclick = function(e):void{
         e.stopPropagation();
         let b = structuredClone(block);
