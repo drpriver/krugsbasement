@@ -4,7 +4,6 @@
 
 // Don't bother trying to split notes into core vs. ui as they are their
 // own self-contained thing.
-// (function():void{
 
 let NOTE_TV : TreeView;
 document.addEventListener('DOMContentLoaded', function():void{
@@ -69,7 +68,7 @@ type NoteWindow = {
     content: HTMLDivElement;
     ed_container: HTMLDivElement;
     editor: HTMLTextAreaElement;
-    refresh: () => void;
+    refresh: ()=>void;
     is_editing: boolean;
 };
 function update_content(n:NoteWindow):void{
@@ -195,8 +194,7 @@ function make_note_window(id:number):NoteWindow{
     };
     win.close_handler = function():void{
         stop_editing();
-        win.win.remove();
-        win.state = WinState.NONE;
+        win.remove();
     };
     return result;
 }
@@ -254,14 +252,14 @@ document.addEventListener('DOMContentLoaded', function():void{
         NOTE_TV.remove(id);
         const window = NOTE_WINDOWS.get(id);
         if(!window) return;
-        window.win.win.remove();
+        window.win.remove();
         NOTE_WINDOWS.delete(id);
     });
     ONRECV(ToClient.NOTES_INITIALIZE, function(notes:Array<Note>):void{
         NOTE_TV.clear();
         NOTES.clear();
         for(const w of NOTE_WINDOWS.values())
-            w.win.win.remove();
+            w.win.remove();
         NOTE_WINDOWS.clear();
         for(const note of (notes as Array<Note_>)){
             note.need_receive = false;
@@ -302,4 +300,3 @@ document.addEventListener('DOMContentLoaded', function():void{
         window.win.show();
     });
 });
-// }());

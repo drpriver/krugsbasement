@@ -367,18 +367,22 @@ type Win = {
     t: HTMLSpanElement;
 
     state: WinState;
+    openid: string|null;
 
     close: ()=>void;
     show: ()=>void;
     minimize: ()=>void;
     restore: ()=>void;
     make_top: ()=>void;
+    // Does not store the window state.
+    remove: ()=>void;
 
     restore_handler?: ()=>void;
     minimize_handler?: ()=>void;
     show_handler?: ()=>void;
     close_handler?: ()=>void;
     wh_ctxmenu_handler?: (m:CtxMenu) => void;
+    remove_handler?: ()=>void;
 }
 function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement, m:HTMLSpanElement, t:HTMLSpanElement, global_window:NormalWindow, openid:null|string){
     x.title = 'Close';
@@ -432,7 +436,7 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
     };
     const store = global_window == NormalWindow.GLOBAL?store_global:store_local;
     const result: Win = {
-        win, wh, x, m, t,
+        win, wh, x, m, t, openid,
         close: function():void{
             if(result.state == WinState.CLOSED)
                 return;
@@ -440,7 +444,7 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
                 restorer.remove();
             result.state = WinState.CLOSED;
             result.win.style.display = 'none';
-            if(openid) store(StorageCategory.WINDOW, openid, ''+result.state);
+            if(result.openid) store(StorageCategory.WINDOW, result.openid, ''+result.state);
             if(result.close_handler) result.close_handler();
         },
         show: function(): void{
@@ -456,7 +460,7 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
             result.win.style.display = 'grid';
             result.make_top();
             ensure_window_is_completely_on_screen(result.win);
-            if(openid) store(StorageCategory.WINDOW, openid, ''+result.state);
+            if(result.openid) store(StorageCategory.WINDOW, result.openid, ''+result.state);
             if(result.show_handler) result.show_handler();
         },
         minimize: function(): void{
@@ -465,7 +469,7 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
             by_id('minimized').append(restorer);
             result.win.style.display = 'none';
             result.state = WinState.MINIMIZED;
-            if(openid) store(StorageCategory.WINDOW, openid, ''+result.state);
+            if(result.openid) store(StorageCategory.WINDOW, result.openid, ''+result.state);
             if(result.minimize_handler) result.minimize_handler();
         },
         restore: function():void {
@@ -474,8 +478,14 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
             result.win.style.display = 'grid';
             result.state = WinState.OPEN;
             result.make_top();
-            if(openid) store(StorageCategory.WINDOW, openid, ''+result.state);
+            if(result.openid) store(StorageCategory.WINDOW, result.openid, ''+result.state);
             if(result.restore_handler) result.restore_handler();
+        },
+        remove: function():void{
+            restorer.remove();
+            result.win.remove();
+            result.state = WinState.NONE;
+            if(result.remove_handler) result.remove_handler();
         },
         make_top: function():void{ },
         state: WinState.NONE,

@@ -442,6 +442,9 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
     win.minimize_handler = function():void{
         result.hidden = true;
     };
+    win.remove_handler = function():void{
+        sheet_dewasm(result);
+    };
 
     const grid = elem_with_parent(win.win, 'div', null, 'tracker-grid');
 
@@ -2116,8 +2119,7 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
         }break;
         case SpreadSheetMsgType.INITIALIZE:
             for(const ss of SPREADSHEETS.values()){
-                ss.grid.remove();
-                SHEET_CTX.del_sheet(ss.id);
+                ss.win.remove();
             }
             SPREADSHEETS.clear();
             SHEET_TV.clear();
@@ -2160,8 +2162,7 @@ ONRECV(ToClient.SPREADSHEET, function(arg:SpreadSheetMsg):void{
             if(!ss) break;
             // Should there be a delete method on the spreadsheet instead of
             // doing it inline here?
-            ss.grid.remove();
-            sheet_dewasm(ss);
+            ss.win.remove();
             SPREADSHEETS.delete(id);
             SHEET_TV.remove(id);
         }break;
