@@ -19,7 +19,7 @@ function use_sb_macro(block:StatBlock, macro: StatMacro):void{
 }
 
 let STATS_TV: TreeView;
-let _sbw: SubWindow;
+let _sbw: Win;
 
 function sb_populate(container:HTMLDivElement, block:StatBlock):void{
     let locked = true;
@@ -33,9 +33,9 @@ function sb_populate(container:HTMLDivElement, block:StatBlock):void{
         e.stopPropagation();
         const w = create_statblock_window(structuredClone(block));
         w.show();
-        w.w.style.left = (e.clientX-w.w.clientWidth/2)+'px';
-        w.w.style.top = (e.clientY)+'px';
-        ensure_window_is_completely_on_screen(w.w);
+        w.win.win.style.left = (e.clientX-w.win.win.clientWidth/2)+'px';
+        w.win.win.style.top = (e.clientY)+'px';
+        ensure_window_is_completely_on_screen(w.win.win);
     }
     const lightpop = elem_parent_text(container, 'button', 'Thin Window');
     lightpop.onclick = function(e):void{
@@ -49,9 +49,9 @@ function sb_populate(container:HTMLDivElement, block:StatBlock):void{
         b[2] = contents;
         const w = create_statblock_window(b);
         w.show();
-        w.w.style.left = (e.clientX-w.w.clientWidth/2)+'px';
-        w.w.style.top = (e.clientY)+'px';
-        ensure_window_is_completely_on_screen(w.w);
+        w.win.win.style.left = (e.clientX-w.win.win.clientWidth/2)+'px';
+        w.win.win.style.top = (e.clientY)+'px';
+        ensure_window_is_completely_on_screen(w.win.win);
     }
     const contents: Array<StatItem> = block[2];
     function edit_onclick(element: HTMLElement, onfinish:(txt:string)=>void):void{
@@ -245,7 +245,7 @@ function sb_populate(container:HTMLDivElement, block:StatBlock):void{
     }
 }
 
-function get_sbw(): SubWindow{
+function get_sbw(): Win{
     const openid = '/sbs/open/sbw';
     if(!_sbw){
         by_id('sbw-window').style.width = '70ch';
@@ -253,7 +253,7 @@ function get_sbw(): SubWindow{
         _sbw.show_handler = function():void{
             store_local(StorageCategory.WINDOW, openid, '1');
         };
-        _sbw.hide_handler = function():void{
+        _sbw.close_handler = function():void{
             store_local(StorageCategory.WINDOW, openid, '');
         };
         const sb_el = by_id('sbw-sb');
@@ -341,9 +341,9 @@ function get_sbw(): SubWindow{
             if(e && e.shiftKey && !e.altKey && !e.metaKey && !e.ctrlKey){
                 const w = create_statblock_window(statblocks.get(id)!);
                 w.show();
-                w.w.style.left = (e.clientX-w.w.clientWidth/2)+'px';
-                w.w.style.top = (e.clientY)+'px';
-                ensure_window_is_completely_on_screen(w.w);
+                w.win.win.style.left = (e.clientX-w.win.win.clientWidth/2)+'px';
+                w.win.win.style.top = (e.clientY)+'px';
+                ensure_window_is_completely_on_screen(w.win.win);
                 return;
             }
             current_id = id;
@@ -391,14 +391,10 @@ function get_sbw(): SubWindow{
             inp.accept = '.json';
             sb_file_upload(inp);
         }
-        _sbw.handle.oncontextmenu = function(e){
-            const menu = ctx_menu(e);
-            menu.item('Close', function(){ _sbw.close_x.click(); });
+        _sbw.wh_ctxmenu_handler = function(menu:CtxMenu):void{
             menu.item('Upload', function(){ (sb_el.firstChild as any).click(); });
             menu.separator();
-            menu.canceller();
-            menu.install();
-        };
+        }
     }
     return _sbw;
 }
@@ -436,60 +432,43 @@ document.addEventListener('DOMContentLoaded', function():void{
 
 
 type StatBlockWindow = {
-    w: HTMLElement;
-    wh: HTMLElement;
-    title: HTMLElement;
+    win: Win;
     content: HTMLElement;
     show: ()=>void;
 };
 
 function create_statblock_window(block: StatBlock):StatBlockWindow{
     block = structuredClone(block);
-
-    const w = elem('div', null, 'window2');
-    const wh = elem_with_parent(w, 'div', null, 'window-handle');
-    const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
-    const t = elem_parent_text(wh, 'span', block[1], null, 'window-title');
-    const content = elem_with_parent(w, 'div', null, 'statblock-content');
+    let win: Win;
+    {
+        const w = elem('div', null, 'window');
+        const wh = elem_with_parent(w, 'div', null, 'window-handle');
+        const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
+        const t = elem_parent_text(wh, 'span', block[1], null, 'window-title');
+        const m = elem_parent_text(wh, 'span', '_', null, 'window-minimizer');
+        win = normal_window(w, wh, x, m, t, 0);
+    }
+    const content = elem_with_parent(win.win, 'div', null, 'statblock-content');
     sb_populate(content, block);
 
-    setup_movable_window(w, wh, WINDOWFLAGS.NONE);
-    setup_resizable_window(w, RESIZEFLAGS.NONE);
-    const make_top = setup_zsorted_window(w);
-    setup_closable_window(w, x, function():void{ w.remove(); });
-
-    function show():void{
-        if(!w.parentElement) document.body.appendChild(w);
-        w.style.display = 'grid';
-        make_top();
-    }
-
-    wh.oncontextmenu = function(e:MouseEvent):void {
-        e.preventDefault();
-        const menu = ctx_menu(e);
-        menu.item('Close', function():void {x.click();});
-        menu.separator();
+    win.wh_ctxmenu_handler = function(menu:CtxMenu):void {
         menu.item('Rename', function(){
-            edit_element_inline(t, EditElementFlags.NONE, (txt:string)=>{ block[1] = txt; });
+            edit_element_inline(win.t, EditElementFlags.NONE, (txt:string)=>{ block[1] = txt; });
         });
         menu.item('Duplicate', function(e:MouseEvent):void {
             const w = create_statblock_window(block);
             w.show();
-            w.w.style.left = (e.clientX-w.w.clientWidth/2)+'px';
-            w.w.style.top = e.clientY+'px';
-            ensure_window_is_completely_on_screen(w.w);
+            w.win.win.style.left = (e.clientX-win.win.clientWidth/2)+'px';
+            w.win.win.style.top = e.clientY+'px';
+            ensure_window_is_completely_on_screen(win.win);
         });
         menu.separator();
-        menu.canceller();
-        menu.install();
     };
 
     const result: StatBlockWindow = {
-        w: w,
-        wh: wh,
-        title: t,
+        win: win,
         content: content,
-        show: show,
+        show: win.show,
     };
     return result;
 }
@@ -518,8 +497,7 @@ document.addEventListener('drop', function(e:DragEvent):void{
     if(!block) return;
     let w = create_statblock_window(block);
     w.show();
-    w.w.style.left = (e.clientX-w.w.clientWidth/2)+'px';
-    w.w.style.top = (e.clientY-w.w.clientHeight/2)+'px';
-    ensure_window_is_completely_on_screen(w.w);
-    w.wh.click();
+    w.win.win.style.left = (e.clientX-w.win.win.clientWidth/2)+'px';
+    w.win.win.style.top = (e.clientY-w.win.win.clientHeight/2)+'px';
+    ensure_window_is_completely_on_screen(w.win.win);
 });

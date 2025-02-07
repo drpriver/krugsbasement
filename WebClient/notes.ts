@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2024, David Priver
+// Copyright © 2021-2025, David Priver
 //
 
 // Don't bother trying to split notes into core vs. ui as they are their
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         const note = NOTES.get(id);
         if(!note) return;
         const window = get_note_window(id);
-        window.t.textContent = note.title;
+        window.win.t.textContent = note.title;
         window.show();
     };
     NOTE_TV.on_ctxmenu = function(id:number, e:MouseEvent):void{
@@ -64,9 +64,7 @@ document.addEventListener('DOMContentLoaded', function():void{
 });
 type NoteWindow = {
     id: number;
-    w: HTMLDivElement;
-    t: HTMLSpanElement;
-    make_top: ()=>void;
+    win: Win;
     edit_button: HTMLButtonElement;
     content: HTMLDivElement;
     ed_container: HTMLDivElement;
@@ -89,18 +87,24 @@ function update_content(n:NoteWindow):void{
 
 function make_note_window(id:number):NoteWindow{
     const openid = `/notes/open/${id}`;
-    const w = elem('div', `notes-${id}`, 'window');
-    w.classList.add('notes-window');
-    const wh = elem_with_parent(w, 'div', null, 'window-handle');
-    wh.oncontextmenu = function(e:MouseEvent):void{
-        const menu = ctx_menu(e);
+    let win: Win;
+    {
+        const w = elem('div', `notes-${id}`, 'window');
+        w.classList.add('notes-window');
+        const wh = elem_with_parent(w, 'div', null, 'window-handle');
+        const m = elem_parent_text(wh, 'span', '_', null, 'window-minimizer');
+        const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
+        const t = elem_parent_text(wh, 'span', '', null, 'window-title');
+        win = normal_window(w, wh, x, m, t, NormalWindow.LOCAL);
+    }
+    win.wh_ctxmenu_handler = function(menu:CtxMenu):void{
         menu.item('Show Others', function():void{
             EMIT(FromClient.NOTE_SHOW, id);
         });
         menu.item('Rename', function(e:MouseEvent):void{
             e.stopPropagation();
             e.preventDefault();
-            edit_element_inline(t, EditElementFlags.SELECT, function(v:string):void{
+            edit_element_inline(win.t, EditElementFlags.SELECT, function(v:string):void{
                 EMIT(FromClient.NOTE_UPDATE_TITLE, {note_id:id, title:v});
                 const note = NOTES.get(id)!;
                 note.title = v;
@@ -122,19 +126,10 @@ function make_note_window(id:number):NoteWindow{
             dialog.show();
         });
         menu.separator();
-        menu.item('Cancel');
-        menu.install();
-    }
-    const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
-    const t = elem_parent_text(wh, 'span', '', null, 'window-title');
-    if(!IS_MOBILE){
-        setup_movable_window(w, wh, WINDOWFLAGS.LOCAL_REMEMBER);
-        setup_resizable_window(w, RESIZEFLAGS.LOCAL_REMEMBER);
-    }
-    const make_top = setup_zsorted_window(w);
-    const edit_button = elem_parent_text(w, 'button', 'Edit');
-    const content = elem_with_parent(w, 'div', null, 'note');
-    const ed_container = elem_with_parent(w, 'div', null, 'note-view-editor-container');
+    };
+    const edit_button = elem_parent_text(win.win, 'button', 'Edit');
+    const content = elem_with_parent(win.win, 'div', null, 'note');
+    const ed_container = elem_with_parent(win.win, 'div', null, 'note-view-editor-container');
     ed_container.style.display = 'none';
     const editor = elem_with_parent(ed_container, 'textarea', null, 'note-view-edit');
     editor.spellcheck = false;
@@ -146,13 +141,11 @@ function make_note_window(id:number):NoteWindow{
         // note.need_send = true;
     // };
     monospace_textarea(editor, stop_editing);
-    const result: NoteWindow = { id, w, t, make_top, edit_button, content, ed_container, editor, show:function():void{
+    const result: NoteWindow = { id, win, edit_button, content, ed_container, editor, show:function():void{
         const note = NOTES.get(id);
         if(!note) return;
         if(note.need_receive) EMIT(FromClient.GET_NOTE, id);
-        if(!w.parentNode) document.body.appendChild(w);
-        w.style.display = 'grid';
-        result.make_top();
+        win.show();
         result.refresh();
         store_local(StorageCategory.WINDOW, openid, '1');
     }, is_editing:false,
@@ -160,8 +153,8 @@ function make_note_window(id:number):NoteWindow{
         const note = NOTES.get(id);
         if(!note) return;
         editor.value = note.body;
-        t.textContent = note.title;
-        if(w.parentNode) update_content(result);
+        win.t.textContent = note.title;
+        if(win.win.parentNode) update_content(result);
     }};
     function sync_note():void{
         const note = NOTES.get(id);
@@ -201,11 +194,12 @@ function make_note_window(id:number):NoteWindow{
         else
             stop_editing();
     }
-    setup_closable_window(w, x, function():void{
+    win.close_handler = function():void{
         stop_editing();
-        w.remove();
         store_local(StorageCategory.WINDOW, openid, '');
-    });
+        win.win.remove();
+        win.state = WinState.NONE;
+    }
     return result;
 }
 type Note_ = {
@@ -236,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         n.need_send = false;
         NOTES.set(n.id, n);
         const window = NOTE_WINDOWS.get(n.id);
-        if(window && window.w.parentElement){
+        if(window && window.win.win.parentElement){
             window.refresh();
         }
         // TODO: rename li
@@ -248,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         note.need_receive = true;
         const window = NOTE_WINDOWS.get(note_id);
         if(!window) return;
-        if(window.w.parentNode)
+        if(window.win.win.parentNode)
             EMIT(FromClient.GET_NOTE, note_id);
     });
     function add_note(id:number, note:Note_):void{
@@ -262,14 +256,14 @@ document.addEventListener('DOMContentLoaded', function():void{
         NOTE_TV.remove(id);
         const window = NOTE_WINDOWS.get(id);
         if(!window) return;
-        window.w.remove();
+        window.win.win.remove();
         NOTE_WINDOWS.delete(id);
     });
     ONRECV(ToClient.NOTES_INITIALIZE, function(notes:Array<Note>):void{
         NOTE_TV.clear();
         NOTES.clear();
         for(const w of NOTE_WINDOWS.values())
-            w.w.remove();
+            w.win.win.remove();
         NOTE_WINDOWS.clear();
         for(const note of (notes as Array<Note_>)){
             note.need_receive = false;

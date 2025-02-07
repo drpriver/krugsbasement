@@ -1,5 +1,5 @@
 //
-// Copyright © 2023-2024, David Priver
+// Copyright © 2023-2025, David Priver
 //
 
 let SHEET_TV: TreeView;
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         const menu = ctx_menu(e);
         const ss = SPREADSHEETS.get(id);
         if(!ss) return;
-        if(ss.hidden)
+        if(ss.win.state != WinState.OPEN)
             menu.item('Show', ss.show);
         else
             menu.item('Hide', ss.hide);
@@ -87,7 +87,7 @@ type SpreadSheet = {
     //
     id: number;
     parent: number;
-    win:HTMLDivElement;
+    win: Win;
     grid: HTMLDivElement;
     hidden: boolean;
     _dirty: boolean;
@@ -308,21 +308,21 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
     const winid = `spreadsheet-window-${id}`;
     const openid = `${winid}/open`
     // idk should assert here or something if winid already exists
-    const win = elem_with_parent(document.body, 'div', winid, 'tracker-window');
-    /*
-    if(IS_WINDOWS){
-        // Windows scrollbars are atrocious
-        w.classList.add('noscrollbar');
+    let win: Win;
+    {
+        const w = elem_with_parent(document.body, 'div', winid, 'tracker-window');
+        const wh = elem_with_parent(w, 'div', null, 'window-handle');
+        const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
+        const m = elem_parent_text(wh, 'span', '_', null, 'window-minimizer');
+        const t = elem_parent_text(wh, 'span', '', null, 'window-title');
+        win = normal_window(w, wh, x, m, t, NormalWindow.LOCAL);
     }
-    */
-    const wh = elem_with_parent(win, 'div', null, 'window-handle');
-    const xxx_timing = elem_with_parent(wh, 'span');
-    wh.oncontextmenu = function(e:MouseEvent):void{
-        const menu = ctx_menu(e);
+    const xxx_timing = elem_with_parent(win.wh, 'span');
+    win.wh_ctxmenu_handler = function(menu:CtxMenu):void{
         menu.item('Rename',function(e:MouseEvent):void{
             e.stopPropagation();
             e.preventDefault();
-            edit_element_inline(t, EditElementFlags.SELECT, function(v:string):void{
+            edit_element_inline(win.t, EditElementFlags.SELECT, function(v:string):void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NAME, result.id, v]);
             });
             remove_ctx_menu();
@@ -431,18 +431,25 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         else
             menu.disabled('Delete Spreadsheet');
         menu.separator();
-        menu.item('Close', function():void{
-            x.click();
-        });
-        menu.canceller();
-        menu.install();
-    }
-    const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
-    const t = elem_parent_text(wh, 'span', '', null, 'window-title');
+    };
+    win.show_handler = function():void{
+        result.hidden = false;
+        store_local(StorageCategory.WINDOW, openid, '1');
+        recalc(id);
+    };
+    win.close_handler = function():void{
+        result.hidden = true;
+        store_local(StorageCategory.WINDOW, openid, '');
+    };
+    win.restore_handler = function():void{
+        result.hidden = false;
+    };
+    win.minimize_handler = function():void{
+        result.hidden = true;
+    };
 
-    const grid = elem_with_parent(win, 'div', null, 'tracker-grid');
+    const grid = elem_with_parent(win.win, 'div', null, 'tracker-grid');
 
-    setup_movable_window(win, wh, WINDOWFLAGS.LOCAL_REMEMBER);
     const result = {
         xxx_timing,
         func_nargs: 0,
@@ -459,17 +466,8 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         _old_r0: -1, _old_r1: -1, _old_c0: -1, _old_c1: -1,
         hidden: true,
         name,
-        show: function():void{
-            result.hidden = false;
-            recalc(id);
-            result.make_top();
-            store_local(StorageCategory.WINDOW, openid, '1');
-            win.style.display = 'grid';
-        },
-        hide: function():void{
-            win.style.display = 'none';
-            result.hidden = true;
-        },
+        show: win.show,
+        hide: win.close,
         cell_elems: [],
         cell_sources: [],
         cell_displays: [],
@@ -1408,7 +1406,6 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         const prev = find_prev_elem(row_idx, col_idx);
         prev.insertAdjacentElement('afterend', cell);
     }
-    result.make_top = setup_zsorted_window(win);
     result.add_row1 = function(whence:number):void{
         result.add_row2(whence, []);
     };
@@ -1636,7 +1633,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
     };
     result.set_title = function(title:string):void{
         result.name = title;
-        t.textContent = (result.flags & SpreadSheetFlags.IS_FUNCTION)?`Func — ${title}` : title;
+        result.win.t.textContent = (result.flags & SpreadSheetFlags.IS_FUNCTION)?`Func — ${title}` : title;
         SHEET_TV.rename(id, title);
         if(result._wasmed){
             SHEET_CTX.make_sheet(result.id, result.name);
@@ -1974,13 +1971,9 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         sheet_dewasm(result);
         recalc_me();
     };
-    setup_closable_window(win, x, function():void{
-        store_local(StorageCategory.WINDOW, openid, '');
-        result.hidden = true;
-    });
     grid.style.gridTemplateRows = gtr();
     grid.style.gridTemplateColumns = gtc();
-    t.textContent = (result.flags & SpreadSheetFlags.IS_FUNCTION)?`Function — ${name}` : name;
+    win.t.textContent = (result.flags & SpreadSheetFlags.IS_FUNCTION)?`Function — ${name}` : name;
     if(!get_local(StorageCategory.WINDOW, openid)) result.hide();
     else result.show();
     return result;

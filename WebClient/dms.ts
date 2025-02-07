@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2024, David Priver
+// Copyright © 2021-2025, David Priver
 //
 (function():void{
 // TAG chat
@@ -13,8 +13,8 @@ document.addEventListener('DOMContentLoaded', function():void{
     by_id('privateroll-button').addEventListener('click', function():void{
         privateroll.show();
     });
-    privateroll.outer.style.width = '30em';
-    privateroll.outer.style.height = '400px';
+    privateroll.win.style.width = '30em';
+    privateroll.win.style.height = '400px';
     let log = by_id('privateroll-history');
     let chats: Map<number, Array<ChatMsg>> = new Map();
     let histories: Map<number, Array<string>> = new Map();
@@ -68,13 +68,13 @@ document.addEventListener('DOMContentLoaded', function():void{
                     prev.push(m);
             }
         }
-        if(lv.active !== user || privateroll.hidden){
+        if(lv.active !== user || privateroll.state != WinState.OPEN){
             if(user !== SETTINGS.userid){
                 let name = USERS.get(user);
                 if(!name) name = "anon";
                 lv.rename(`(*)\u00A0${name}`, user);
             }
-            if(privateroll.hidden && user !== SETTINGS.userid){
+            if(privateroll.state != WinState.OPEN && user !== SETTINGS.userid){
                 let noti = by_id('notifications');
                 let name = USERS.get(user);
                 if(!name) name = "anon";
@@ -171,13 +171,5 @@ document.addEventListener('DOMContentLoaded', function():void{
         if(lv.active !== undefined)
             lv.activate_handler!(lv.active);
     });
-    if(SETTINGS.uimode == UiMode.CHAT){
-        if(0){
-        privateroll.show();
-        privateroll.make_fullscreen();
-        privateroll.outer.style.width = '50vw';
-        privateroll.outer.style.boxShadow = 'none';
-        }
-    }
 });
 }());

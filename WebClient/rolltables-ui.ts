@@ -5,8 +5,7 @@
 // TAG rolltables_window
 document.addEventListener('DOMContentLoaded',function():void{
     const tablewindow = get_window('rolltable');
-    tablewindow.outer.style.minHeight = '300px';
-    setup_resizable_window(tablewindow.outer, RESIZEFLAGS.LOCAL_REMEMBER);
+    tablewindow.win.style.minHeight = '300px';
     const tbody = by_id('rolltable-table-container');
     const listview = make_list_view<number>(by_id('rolltable-group-list'), ListViewFlags.USER_RENAMABLE|ListViewFlags.USER_DELETABLE);
     const tableview = make_table_view<number>(tbody, 3);
@@ -18,7 +17,7 @@ document.addEventListener('DOMContentLoaded',function():void{
     let current_table: RollTable | undefined;
     let rowid = 0;
     let newtableid = -1;
-    tablewindow.hide_handler = function():void{
+    tablewindow.close_handler = function():void{
         submit_tables();
     };
     const sh_tab = by_id('rolltable-shared');

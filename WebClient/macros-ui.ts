@@ -7,22 +7,18 @@
 type MacroWindow = {
     cid: number;
     id: number
-    w: HTMLDivElement;
+    win: Win;
     editor: HTMLTextAreaElement;
     log: HTMLDivElement;
-    make_top: () => void;
     show: () => void;
     close: () => void;
-    refresh: () => void;
 };
 
 type VariablesWindow = {
     cid: number;
-    w: HTMLDivElement;
-    make_top: () => void;
+    win: Win;
     show: () => void;
     close: () => void;
-    refresh: () => void;
 };
 
 const MACRO_WINDOWS: Map<number, MacroWindow> = new Map();
@@ -40,18 +36,23 @@ function make_macro_window(cid:number, id:number):MacroWindow {
     const ident = (cid << 16) | id;
     const macro = MACROS.get(id);
     const wid = `macrow-${cid}-${id}`;
-    const w = elem('div', wid, 'window2');
-    w.classList.add('macro-only-window');
-    const wh = elem_with_parent(w, 'div', null, 'window-handle');
-    const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
-    const t = elem_parent_text(wh, 'span', macro?macro[1]:'', null, 'window-title');
-    const buttons = elem_with_parent(w, 'div', null, 'macro-win-buttons');
-    const vars = elem_with_parent(w, 'div', null, 'macro-vars');
+    let win: Win;
+    {
+        const w = elem('div', wid, 'window');
+        w.classList.add('macro-only-window');
+        const wh = elem_with_parent(w, 'div', null, 'window-handle');
+        const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
+        const t = elem_parent_text(wh, 'span', macro?macro[1]:'', null, 'window-title');
+        const m = elem_parent_text(wh, 'span', '_', null, 'window-minimizer');
+        win = normal_window(w, wh, x, m, t, NormalWindow.LOCAL);
+    }
+    const buttons = elem_with_parent(win.win, 'div', null, 'macro-win-buttons');
+    const vars = elem_with_parent(win.win, 'div', null, 'macro-vars');
     const addvar = elem_parent_text(buttons, 'button', '+');
     const test = elem_parent_text(buttons, 'button', 'Test');
     const use = elem_parent_text(buttons, 'button', 'Use');
 
-    const editor = elem_with_parent(w, 'textarea');
+    const editor = elem_with_parent(win.win, 'textarea');
     monospace_textarea(editor, null);
     editor.style.fontFamily = 'ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace';
     editor.spellcheck = false;
@@ -63,13 +64,12 @@ function make_macro_window(cid:number, id:number):MacroWindow {
         save_macros(); // XXX wtf why so broad
     };
     if(macro) editor.value = macro[2];
-    const log = elem_with_parent(w, 'div', null, 'macro-log');
-    wh.oncontextmenu = function(e:MouseEvent):void{
-        const menu = ctx_menu(e);
+    const log = elem_with_parent(win.win, 'div', null, 'macro-log');
+    win.wh_ctxmenu_handler = function(menu:CtxMenu):void{
         menu.item('Rename', function(e:MouseEvent):void{
             e.stopPropagation();
             e.preventDefault();
-            edit_element_inline(t, EditElementFlags.SELECT, function(s:string):void{
+            edit_element_inline(win.t, EditElementFlags.SELECT, function(s:string):void{
                 const m = MACROS.get(id);
                 if(!m) return;
                 m[1] = s;
@@ -92,8 +92,6 @@ function make_macro_window(cid:number, id:number):MacroWindow {
             dialog.show();
         });
         menu.separator();
-        menu.canceller();
-        menu.install();
     };
     use.onclick = function():void{
         const m = MACROS.get(id);
@@ -159,27 +157,20 @@ function make_macro_window(cid:number, id:number):MacroWindow {
         };
         dialog.show();
     };
-    setup_movable_window(w, wh, WINDOWFLAGS.LOCAL_REMEMBER);
-    setup_resizable_window(w, RESIZEFLAGS.NONE);
-    const make_top = setup_zsorted_window(w);
-    function close():void{
-        w.remove();
+    win.close_handler = function():void{
+        win.win.remove();
         MACRO_WINDOWS.delete(ident);
         store_local(StorageCategory.WINDOW, openid, '');
     };
-    setup_closable_window(w, x, close);
-    function show():void{
+    win.show_handler = function():void{
         refresh();
-        if(!w.parentElement) document.body.appendChild(w);
-        w.style.display = 'grid';
-        make_top();
         if(!IS_TOUCH) editor.focus();
         store_local(StorageCategory.WINDOW, openid, '1');
     }
     function refresh():void{
         const macro = MACROS.get(id);
         if(!macro) return;
-        t.textContent = macro[1];
+        win.t.textContent = macro[1];
         editor.value = macro[2];
         log.replaceChildren();
         vars.replaceChildren();
@@ -254,7 +245,7 @@ function make_macro_window(cid:number, id:number):MacroWindow {
         }
     }
     const result: MacroWindow = {
-        cid, id, w, editor, log, make_top, close, refresh, show,
+        cid, id, win, editor, log, show: win.show, close: win.close
     };
     refresh();
     return result;
@@ -263,19 +254,18 @@ function make_macro_window(cid:number, id:number):MacroWindow {
 function make_vars_window(cid:number):VariablesWindow {
     const char = CHARACTERS.get(cid);
     const wid = `macrov-${cid}`;
-    const w = elem('div', wid, 'window2');
-    w.classList.add('vars-only-window');
-    const wh = elem_with_parent(w, 'div', null, 'window-handle');
-    const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
-    const t = elem_parent_text(wh, 'span', char?char[1]:'', null, 'window-title');
-    const vars = elem_with_parent(w, 'div', null, 'macro-vars');
-    const addvar = elem_parent_text(w, 'button', '+');
-
-    wh.oncontextmenu = function(e:MouseEvent):void{
-        const menu = ctx_menu(e);
-        menu.canceller();
-        menu.install();
-    };
+    let win: Win;
+    {
+        const w = elem('div', wid, 'window');
+        w.classList.add('vars-only-window');
+        const wh = elem_with_parent(w, 'div', null, 'window-handle');
+        const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
+        const t = elem_parent_text(wh, 'span', char?char[1]:'', null, 'window-title');
+        const m = elem_parent_text(wh, 'span', '_', null, 'window-minimizer');
+        win = normal_window(w, wh, x, m, t, NormalWindow.LOCAL);
+    }
+    const vars = elem_with_parent(win.win, 'div', null, 'macro-vars');
+    const addvar = elem_parent_text(win.win, 'button', '+');
     addvar.onclick = function():void{
         const dialog = get_dialog('make-variable');
         if(!dialog) return;
@@ -318,24 +308,17 @@ function make_vars_window(cid:number):VariablesWindow {
         };
         dialog.show();
     };
-    setup_movable_window(w, wh, WINDOWFLAGS.LOCAL_REMEMBER);
-    setup_resizable_window(w, RESIZEFLAGS.NONE);
-    const make_top = setup_zsorted_window(w);
-    function close():void{
-        w.remove();
+    win.close_handler = function():void{
+        win.win.remove();
         VARIABLES_WINDOWS.delete(cid);
     };
-    setup_closable_window(w, x, close);
-    function show():void{
+    win.show_handler = function():void{
         refresh();
-        if(!w.parentElement) document.body.appendChild(w);
-        w.style.display = 'grid';
-        make_top();
-    }
+    };
     function refresh():void{
         const char = CHARACTERS.get(cid);
         if(!char) return;
-        t.textContent = `${char[1]} - Variables`;
+        win.t.textContent = `${char[1]} - Variables`;
         vars.replaceChildren();
         if(char){
             for(const vid of char[3]){
@@ -409,7 +392,7 @@ function make_vars_window(cid:number):VariablesWindow {
         }
     }
     const result: VariablesWindow = {
-        cid, w, make_top, close, refresh, show,
+        cid, win, show:win.show, close:win.close,
     };
     refresh();
     return result;

@@ -21,20 +21,8 @@
     const inner = `
       <div id="${prefix}-window" style="display:none" class="window">
       <div id="${prefix}-window-handle" class="window-handle">
-        <span class="window-title">${title}</span>
-        <span id="${prefix}-close" class="window-closer">×</span>
-      </div>
-      ${content}
-      </div>
-    `;
-    raw.add_child(inner);
-  }
-  function make_window2(prefix, title, content){
-    windows.push(prefix);
-    const inner = `
-      <div id="${prefix}-window" style="display:none" class="window2">
-      <div id="${prefix}-window-handle" class="window-handle">
-        <span class="window-title">${title}</span>
+        <span id="${prefix}-title" class="window-title">${title}</span>
+        <span id="${prefix}-minimizer" class="window-minimizer">_</span>
         <span id="${prefix}-close" class="window-closer">×</span>
       </div>
       ${content}
@@ -60,11 +48,9 @@
   `);
   make_window('privateroll', 'Private Rolls',
   `
-    <div id="privateroll-container" class="window-container">
-      <div id="privateroll-targets" class="window-group-list"> </div>
-      <div class="log" id="privateroll-history">
+    <div id="privateroll-container">
+      <div id="privateroll-targets" class="window-group-list">
       </div>
-      <textarea spellcheck="false" id="privateroll-input" rows="4"></textarea>
       <div id="privateroll-tables">
         <div id="privateroll-tables-tabs">
           <div id="privateroll-tables-tab">Tables</div>
@@ -75,9 +61,11 @@
         <div id="privateroll-tables-private">
         </div>
       </div>
+      <div class="log" id="privateroll-history"> </div>
+      <textarea spellcheck="false" id="privateroll-input" rows="4"></textarea>
     </div>
   `);
-  make_window2('cal', 'Calendar',
+  make_window('cal', 'Calendar',
   `
     <div id="cal-container">
       <div id="cal-year-selector">
@@ -101,7 +89,7 @@
       <div id="cal-month-display"></div>
     </div>
   `);
-  make_window2('sbw', 'Statblocks',
+  make_window('sbw', 'Statblocks',
     `
     <div id="sbw-container">
       <div id="sbw-tv"></div>
@@ -118,7 +106,7 @@
     ts += '\n';
     ts += 'interface SubWindowIdMap {\n';
     for(let prefix of windows){
-      ts += `  '${prefix}': SubWindow;\n`;
+      ts += `  '${prefix}': Win;\n`;
     }
     ts += '}\n\n';
     FileSystem.write_file('Generated/subwindowdefs.ts', ts);
@@ -923,3 +911,5 @@
         <div id="clock-list">
         </div>
       </details>
+
+::div #id(minimized)

@@ -218,7 +218,7 @@ const IS_MAC = window.navigator.platform.includes('Mac');
 
 function setup_closable_window(win:HTMLElement, closer:HTMLElement, onclose:()=>void):void{
     if(IS_WINDOWS)
-        closer.style.gridColumn = '3';
+        closer.style.gridColumn = '5';
     else
         closer.style.gridColumn = '1';
     function hide_window(e:MouseEvent):void{
@@ -229,6 +229,55 @@ function setup_closable_window(win:HTMLElement, closer:HTMLElement, onclose:()=>
     }
     closer.addEventListener('click', hide_window);
     closer.title = 'Close';
+}
+function setup_minimizable_window(win:HTMLElement, titlebar:HTMLElement, minimizer:HTMLElement, onmin:()=>void, onrestore:()=>void, make_top:(()=>void)|null, close:(()=>void)|null):[()=>void, ()=>void, ()=>void]{
+    if(IS_WINDOWS)
+        minimizer.style.gridColumn = '4';
+    else
+        minimizer.style.gridColumn = '2';
+
+    let minimized = false;
+    let restorer : HTMLElement|null = null;
+    function remove():void{
+        if(restorer) {restorer.remove(); restorer = null;}
+    }
+    function restore():void{
+        if(!minimized) return;
+        remove();
+        minimized = false;
+        win.classList.remove('minimized');
+        if(make_top) make_top();
+        onrestore();
+    }
+    function minimize():void{
+        if(minimized) return;
+        win.classList.add('minimized');
+        minimized = true;
+        restorer = elem_parent_text(by_id('minimized'), 'span', titlebar.textContent+' □');
+        restorer.onclick = function(e:MouseEvent):void{
+            e.preventDefault();
+            e.stopPropagation();
+            restore();
+        }
+        restorer.oncontextmenu = function(e:MouseEvent):void{
+            const menu = ctx_menu(e);
+            menu.item('Restore', restore);
+            menu.item('Close', function(){
+                if(close) close();
+                remove();
+            }, close == null);
+            menu.separator();
+            menu.canceller();
+            menu.install();
+        }
+        onmin();
+    }
+    minimizer.onclick = function(e:MouseEvent):void{
+        e.preventDefault();
+        e.stopPropagation();
+        minimize();
+    };
+    return [minimize, restore, remove];
 }
 
 function ensure_window_is_completely_on_screen(win:HTMLElement):void{
@@ -347,4 +396,138 @@ function monospace_textarea(ta:HTMLTextAreaElement, blur:null|(()=>void)):void{
           return;
         }
     };
+}
+
+const enum WinState {
+    NONE,
+    CLOSED,
+    OPEN,
+    MINIMIZED,
+};
+const enum NormalWindow {
+    LOCAL = 0,
+    GLOBAL = 1,
+}
+type Win = {
+    win: HTMLDivElement;
+    wh: HTMLSpanElement;
+    x: HTMLSpanElement;
+    m: HTMLSpanElement;
+    t: HTMLSpanElement;
+
+    state: WinState;
+
+    close: ()=>void;
+    show: ()=>void;
+    minimize: ()=>void;
+    restore: ()=>void;
+    make_top: ()=>void;
+
+    restore_handler?: ()=>void;
+    minimize_handler?: ()=>void;
+    show_handler?: ()=>void;
+    close_handler?: ()=>void;
+    wh_ctxmenu_handler?: (m:CtxMenu) => void;
+}
+function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement, m:HTMLSpanElement, t:HTMLSpanElement, global_window:NormalWindow){
+    x.title = 'Close';
+    x.onclick = function(e:MouseEvent):void{
+        e.stopPropagation();
+        e.preventDefault();
+        result.close();
+    };
+    m.title = 'Minimize';
+    m.onclick = function(e:MouseEvent):void{
+        e.stopPropagation();
+        e.preventDefault();
+        result.minimize();
+    };
+    if(IS_WINDOWS){
+        m.style.gridColumn = '4';
+        x.style.gridColumn = '5';
+    }
+    else {
+        m.style.gridColumn = '2';
+        x.style.gridColumn = '1';
+    }
+    const restorer = elem('span');
+    restorer.onclick = function(e:MouseEvent):void{
+        e.preventDefault();
+        e.stopPropagation();
+        result.restore();
+    };
+    restorer.oncontextmenu = function(e:MouseEvent):void{
+        const menu = ctx_menu(e);
+        menu.item('Restore', result.restore);
+        menu.item('Close', result.close);
+        menu.separator();
+        menu.canceller();
+        menu.install();
+    };
+    wh.oncontextmenu = function(e:MouseEvent):void{
+        const menu = ctx_menu(e);
+        if(result.wh_ctxmenu_handler) result.wh_ctxmenu_handler(menu);
+        menu.item('Close', result.close);
+        menu.item('Minimize', result.minimize);
+        menu.separator();
+        menu.canceller();
+        menu.install();
+    };
+    wh.ondblclick = function(e:MouseEvent):void{
+        e.stopPropagation();
+        e.preventDefault();
+        result.minimize();
+    };
+    const result: Win = {
+        win, wh, x, m, t,
+        close: function():void{
+            if(result.state == WinState.CLOSED)
+                return;
+            if(result.state == WinState.MINIMIZED)
+                restorer.remove();
+            result.state = WinState.CLOSED;
+            result.win.style.display = 'none';
+            if(result.close_handler) result.close_handler();
+        },
+        show: function(): void{
+            if(result.state == WinState.OPEN)
+                return;
+            if(result.state == WinState.MINIMIZED){
+                result.restore();
+                return;
+            }
+            if(result.state == WinState.NONE)
+                document.body.append(result.win);
+            result.state = WinState.OPEN;
+            result.win.style.display = 'grid';
+            result.make_top();
+            ensure_window_is_completely_on_screen(result.win);
+            if(result.show_handler) result.show_handler();
+        },
+        minimize: function(): void{
+            if(result.state != WinState.OPEN) return;
+            restorer.textContent = result.t.textContent +' □';
+            by_id('minimized').append(restorer);
+            result.win.style.display = 'none';
+            result.state = WinState.MINIMIZED;
+            if(result.minimize_handler) result.minimize_handler();
+        },
+        restore: function():void {
+            if(result.state != WinState.MINIMIZED) return;
+            restorer.remove();
+            result.win.style.display = 'grid';
+            result.state = WinState.OPEN;
+            result.make_top();
+            if(result.restore_handler) result.restore_handler();
+        },
+        make_top: function():void{ },
+        state: WinState.NONE,
+    };
+    result.make_top = setup_zsorted_window(win);
+    let wf = !win.id? WINDOWFLAGS.NONE: global_window?WINDOWFLAGS.GLOBAL_REMEMBER:WINDOWFLAGS.LOCAL_REMEMBER;
+    let rf = !win.id?RESIZEFLAGS.NONE:global_window?RESIZEFLAGS.GLOBAL_REMEMBER:RESIZEFLAGS.LOCAL_REMEMBER;
+    setup_movable_window(win, wh, wf);
+    setup_resizable_window(win, rf);
+
+    return result;
 }

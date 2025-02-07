@@ -1,12 +1,12 @@
 //
-// Copyright © 2025, David Priver
+// Copyright © 2025-2025, David Priver
 //
 type Clock = ClockData;
 
 
 const clocks: Map<number, Clock> = new Map();
 type ClockWindow = {
-    w: HTMLElement;
+    win: Win;
     title: HTMLSpanElement;
     list_el: HTMLDivElement;
     value_el: HTMLDivElement;
@@ -34,8 +34,8 @@ function clock_rename_dialog(id: number):void{
         if(!text) return;
         if(text == c.name) return;
         const msg: ClockEdit = {
-          type:ClockMsgType.EDIT, 
-          id:id, 
+          type:ClockMsgType.EDIT,
+          id:id,
           name:text,
           value_name: c.value_name,
           value: c.value,
@@ -54,7 +54,7 @@ function clock_apply(c: Clock): void{
   const events = c.events;
   events.sort(function(a: ClockEvent, b:ClockEvent):number{
       let aw = a.when;
-      let bw = b.when; 
+      let bw = b.when;
       if(aw == bw) return 0;
       if(c.flags & ClockFlags.DESCENDING)
           return aw < bw ? 1 : -1;
@@ -96,8 +96,8 @@ function clock_add_event(c:Clock, list: HTMLDivElement, ev: ClockEvent):void{
             if(b) flags |= ClockEventFlags.ONE_SHOT;
             else flags &= ~ClockEventFlags.ONE_SHOT;
             const ce : ClockEventEdit = {
-                type:ClockMsgType.EVENT_EDIT, 
-                clock_id:id, 
+                type:ClockMsgType.EVENT_EDIT,
+                clock_id:id,
                 id:ev.id,
                 name: ev.name,
                 when: ev.when,
@@ -126,8 +126,8 @@ function clock_add_event(c:Clock, list: HTMLDivElement, ev: ClockEvent):void{
         e.preventDefault();
         edit_element_inline(nm, EditElementFlags.SELECT, function(v:string):void{
             const ce : ClockEventEdit = {
-                type:ClockMsgType.EVENT_EDIT, 
-                clock_id:id, 
+                type:ClockMsgType.EVENT_EDIT,
+                clock_id:id,
                 id:ev.id,
                 name:v,
                 when: ev.when,
@@ -143,8 +143,8 @@ function clock_add_event(c:Clock, list: HTMLDivElement, ev: ClockEvent):void{
             const t = +v;
             if(!Number.isNaN(t)){
                 const ce : ClockEventEdit = {
-                    type:ClockMsgType.EVENT_EDIT, 
-                    clock_id: id, 
+                    type:ClockMsgType.EVENT_EDIT,
+                    clock_id: id,
                     id: ev.id,
                     when: t,
                     name: ev.name,
@@ -169,119 +169,124 @@ function make_clock_window(id: number): ClockWindow{
     const openid = `/clocks/open/${id}`;
     const c = clocks.get(id)!;
     const wid = `clock-window-${id}`;
-    const w = elem('div', wid, 'window2');
-    w.tabIndex = 0;
-    w.onclick = function(e:MouseEvent):void{
-      e.stopPropagation();
-      e.preventDefault();
-      w.focus();
-    }
-    w.onkeydown = function(e:KeyboardEvent){
-      switch(e.key){
-        case 'ArrowDown':
-        case 'ArrowRight':
-        case 'n':
+    let win: Win;
+    {
+        const w = elem('div', wid, 'window');
+        w.tabIndex = 0;
+        w.onclick = function(e:MouseEvent):void{
           e.stopPropagation();
           e.preventDefault();
-          advance_b.click();
-          break;
-        case 'ArrowUp':
-        case 'ArrowLeft':
-        case 'p':
-          e.stopPropagation();
-          e.preventDefault();
-          prev_b.click();
-          break;
-      }
-    }
-    const wh = elem_with_parent(w, 'div', null, 'window-handle');
-    const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
-    const t = elem_parent_text(wh, 'span', c.name, null, 'window-title');
-    const vtext = c.value_name?`${c.value_name}: ${c.value}`:`${c.value}`;
-    const v = elem_parent_text(w, 'div', vtext, null, 'clock-value');
-    v.onclick = function(e:MouseEvent):void{
-      e.stopPropagation();
-      e.preventDefault();
-      edit_element_inline(
-          v, 
-          EditElementFlags.NUMBER|EditElementFlags.SELECT,
-          function(s:string):void{
-              const value = +s;
-              if(Number.isNaN(value)) return;
-              const ce: ClockEdit = {
-                  type: ClockMsgType.EDIT,
-                  id:id,
-                  name: c.name,
-                  value: value,
-                  value_name: c.value_name,
-                  flags: c.flags,
-                  hidinguser: c.hidinguser,
-              };
-              EMIT(FromClient.CLOCK, ce);
+          w.focus();
+        }
+        w.onkeydown = function(e:KeyboardEvent){
+          switch(e.key){
+            case 'ArrowDown':
+            case 'ArrowRight':
+            case 'n':
+              e.stopPropagation();
+              e.preventDefault();
+              advance_b.click();
+              break;
+            case 'ArrowUp':
+            case 'ArrowLeft':
+            case 'p':
+              e.stopPropagation();
+              e.preventDefault();
+              prev_b.click();
+              break;
           }
-      );
+        }
+        const wh = elem_with_parent(w, 'div', null, 'window-handle');
+        const x = elem_parent_text(wh, 'span', '×', null, 'window-closer');
+        const m = elem_parent_text(wh, 'span', '_', null, 'window-minimizer');
+        const t = elem_parent_text(wh, 'span', c.name, null, 'window-title');
+        win = normal_window(w, wh, x, m, t, NormalWindow.LOCAL);
+    }
+    const vtext = c.value_name?`${c.value_name}: ${c.value}`:`${c.value}`;
+    const v = elem_parent_text(win.win, 'div', vtext, null, 'clock-value');
+    v.onclick = function(e:MouseEvent):void{
+        e.stopPropagation();
+        e.preventDefault();
+        edit_element_inline(
+            v,
+            EditElementFlags.NUMBER|EditElementFlags.SELECT,
+            function(s:string):void{
+                const value = +s;
+                if(Number.isNaN(value)) return;
+                const ce: ClockEdit = {
+                    type: ClockMsgType.EDIT,
+                    id:id,
+                    name: c.name,
+                    value: value,
+                    value_name: c.value_name,
+                    flags: c.flags,
+                    hidinguser: c.hidinguser,
+                };
+                EMIT(FromClient.CLOCK, ce);
+            }
+        );
     };
-    const buttons = elem_with_parent(w, 'div', null, 'clock-adv-buttons');
+    const buttons = elem_with_parent(win.win, 'div', null, 'clock-adv-buttons');
     const prev_b = elem_parent_text(buttons, 'button', '←');
     const advance_b = elem_parent_text(buttons, 'button', '→');
     function emit_value(val:number):void{
-      const msg: ClockEdit = {
-        type: ClockMsgType.EDIT,
-        id:id,
-        name: c.name,
-        value: val,
-        value_name: c.value_name,
-        flags: c.flags,
-        hidinguser: c.hidinguser,
-      };
-      EMIT(FromClient.CLOCK, msg);
+        const msg: ClockEdit = {
+            type: ClockMsgType.EDIT,
+            id:id,
+            name: c.name,
+            value: val,
+            value_name: c.value_name,
+            flags: c.flags,
+            hidinguser: c.hidinguser,
+        };
+        EMIT(FromClient.CLOCK, msg);
     }
     function advance(direction:number):void{
-      if(direction > 0)
-        for(let i = 0; i < c.events.length; i++){
-          const ev = c.events[i];
-          if(ev.flags & ClockEventFlags.ONE_SHOT && ev.when == c.value){
-            const msg: ClockEventDelete = {
-              type: ClockMsgType.EVENT_DELETE,
-              clock_id: id,
-              id: ev.id,
-            };
-            EMIT(FromClient.CLOCK, msg);
-          }
+        if(direction > 0)
+            for(let i = 0; i < c.events.length; i++){
+                const ev = c.events[i];
+                if(ev.flags & ClockEventFlags.ONE_SHOT && ev.when == c.value){
+                    const msg: ClockEventDelete = {
+                        type: ClockMsgType.EVENT_DELETE,
+                        clock_id: id,
+                        id: ev.id,
+                    };
+                    EMIT(FromClient.CLOCK, msg);
+                }
+            }
+        if(c.flags & ClockFlags.DESCENDING)
+            direction *= -1;
+        if(!(c.flags & ClockFlags.ADVANCES_BY_EVENT))
+            return emit_value(c.value+direction);
+        const length = c.events.length;
+        let di = (c.flags & ClockFlags.DESCENDING)?-direction:direction;
+        let i = di < 0 ? length-1:0;
+        for(;i >= 0 && i < length; i += di){
+            const ev = c.events[i];
+            if(direction < 0 && ev.when < c.value)
+                return emit_value(ev.when);
+            if(direction > 0 && ev.when > c.value)
+                return emit_value(ev.when);
         }
-      if(c.flags & ClockFlags.DESCENDING)
-        direction *= -1;
-      if(!(c.flags & ClockFlags.ADVANCES_BY_EVENT))
-        return emit_value(c.value+direction);
-      const length = c.events.length;
-      let di = (c.flags & ClockFlags.DESCENDING)?-direction:direction;
-      let i = di < 0 ? length-1:0;
-      for(;i >= 0 && i < length; i += di){
-        const ev = c.events[i];
-        if(direction < 0 && ev.when < c.value)
-            return emit_value(ev.when);
-        if(direction > 0 && ev.when > c.value)
-            return emit_value(ev.when);
-      }
-      if(c.flags & ClockFlags.CYCLIC && length){
-        i = di < 0 ? length-1:0;
-        return emit_value(c.events[i].when);
-      }
-      return emit_value(c.value + direction);
+        if(c.flags & ClockFlags.CYCLIC && length){
+            i = di < 0 ? length-1:0;
+            return emit_value(c.events[i].when);
+        }
+        return emit_value(c.value + direction);
     }
     prev_b.onclick = function(e:MouseEvent):void{
-      e.stopPropagation();
-      e.preventDefault();
-      advance(-1);
+        e.stopPropagation();
+        e.preventDefault();
+        advance(-1);
     };
     advance_b.onclick = function(e:MouseEvent):void{
-      e.stopPropagation();
-      e.preventDefault();
-      advance(1);
+        e.stopPropagation();
+        e.preventDefault();
+        advance(1);
     };
     void prev_b; void advance_b;
-    const list = elem_with_parent(w, 'div', null, 'clock-list');
-    const add_event_button = elem_parent_text(w, 'button', '+');
+    const list = elem_with_parent(win.win, 'div', null, 'clock-list');
+    const add_event_button = elem_parent_text(win.win, 'button', '+');
     add_event_button.onclick = function():void{
         const diag = get_dialog('clock-event');
         if(!diag) return;
@@ -289,38 +294,31 @@ function make_clock_window(id: number): ClockWindow{
         diag.f.value.value = '';
         diag.f.oneshot.checked = false;
         diag.show_handler = function(){
-          setTimeout(() => diag.f.name.focus(), 0);
+            setTimeout(() => diag.f.name.focus(), 0);
         };
         diag.ok_handler = function(){
-          const name = diag.f.name.value.trim();
-          if(!name) return;
-          const value = +diag.f.value.value;
-          if(Number.isNaN(value)) return;
-          let flags = 0;
-          if(diag.f.oneshot.checked)
-            flags |= ClockEventFlags.ONE_SHOT;
-          EMIT(FromClient.CLOCK, {type:ClockMsgType.EVENT_NEW, clock_id:id, name:name, when:value, flags:flags, id:0});
-          setTimeout(() => add_event_button.focus(), 0);
+            const name = diag.f.name.value.trim();
+            if(!name) return;
+            const value = +diag.f.value.value;
+            if(Number.isNaN(value)) return;
+            let flags = 0;
+            if(diag.f.oneshot.checked)
+                flags |= ClockEventFlags.ONE_SHOT;
+            EMIT(FromClient.CLOCK, {type:ClockMsgType.EVENT_NEW, clock_id:id, name:name, when:value, flags:flags, id:0});
+            setTimeout(() => add_event_button.focus(), 0);
         };
         diag.show();
     };
-    setup_movable_window(w, wh, WINDOWFLAGS.LOCAL_REMEMBER);
-    setup_resizable_window(w, RESIZEFLAGS.LOCAL_REMEMBER);
-    const make_top = setup_zsorted_window(w);
-    setup_closable_window(w, x, function():void{
-      store_local(StorageCategory.WINDOW, openid, '');
-    });
-    function show():void{
+    win.close_handler = function():void{
+        store_local(StorageCategory.WINDOW, openid, '');
+    };
+    win.show_handler = function():void{
         if(c.hidinguser && c.hidinguser != SETTINGS.userid)
-          return;
+            return;
         clock_apply(c);
-        if(!w.parentElement) document.body.appendChild(w);
-        w.style.display = 'grid';
-        make_top();
         store_local(StorageCategory.WINDOW, openid, '1');
-    }
-    wh.oncontextmenu = function(e:MouseEvent):void{
-        const menu = ctx_menu(e);
+    };
+    win.wh_ctxmenu_handler = function(menu:CtxMenu):void{
         menu.item('Show Others', function():void{
             EMIT(FromClient.CLOCK, {type:ClockMsgType.SHOW, id:id});
         });
@@ -334,13 +332,13 @@ function make_clock_window(id: number): ClockWindow{
                 if(b) flags |= flag;
                 else  flags &= ~flag;
                 const msg: ClockEdit = {
-                  type:ClockMsgType.EDIT, 
-                  id:id, 
-                  flags:flags,
-                  name: c.name,
-                  value_name: c.value_name,
-                  value: c.value,
-                  hidinguser: c.hidinguser,
+                    type:ClockMsgType.EDIT,
+                    id:id,
+                    flags:flags,
+                    name: c.name,
+                    value_name: c.value_name,
+                    value: c.value,
+                    hidinguser: c.hidinguser,
                 };
                 EMIT(FromClient.CLOCK, msg);
                 // remove_ctx_menu();
@@ -351,13 +349,13 @@ function make_clock_window(id: number): ClockWindow{
         f('Advances By Event', ClockFlags.ADVANCES_BY_EVENT);
         menu.checkbox('Hidden', c.hidinguser != 0, function(b:boolean):void{
             const msg: ClockEdit = {
-              type:ClockMsgType.EDIT, 
-              id:id, 
-              flags: c.flags,
-              name: c.name,
-              value_name: c.value_name,
-              value: c.value,
-              hidinguser: b?SETTINGS.userid:0,
+                type:ClockMsgType.EDIT,
+                id:id,
+                flags: c.flags,
+                name: c.name,
+                value_name: c.value_name,
+                value: c.value,
+                hidinguser: b?SETTINGS.userid:0,
             };
             EMIT(FromClient.CLOCK, msg);
         });
@@ -366,22 +364,16 @@ function make_clock_window(id: number): ClockWindow{
             EMIT(FromClient.CLOCK, {type:ClockMsgType.CLEAR, id:id});
         });
         menu.separator();
-        menu.item('Close', function():void{x.click();});
-        menu.canceller();
-        menu.install();
     };
 
-    const result = {
-        w: w,
-        wh: wh,
-        title: t,
+    const result: ClockWindow= {
+        win: win,
+        title: win.t,
         list_el: list,
         value_el: v,
         add_event_button: add_event_button,
-        show: show,
-        close: function():void{
-            w.style.display = 'none';
-        },
+        show: win.show,
+        close: win.close,
     };
     return result;
 }
@@ -545,38 +537,36 @@ document.addEventListener('DOMContentLoaded', function():void{
         diag.f.cyclic.checked = false;
         diag.f.by_event.checked = false;
         diag.f.hidden.checked = false;
-        diag.show_handler = function(){
-          diag.f.name.focus();
-        };
+        diag.show_handler = function(){ diag.f.name.focus(); };
         diag.ok_handler = function(){
-          clock_wants_show_new = true;
-          let name = diag.f.name.value;
-          let flags = 0;
-          if(diag.f.descending.checked) flags |= ClockFlags.DESCENDING;
-          if(diag.f.cyclic.checked) flags |= ClockFlags.CYCLIC;
-          if(diag.f.by_event.checked) flags |= ClockFlags.ADVANCES_BY_EVENT;
-          let hidinguser = 0;
-          if(diag.f.hidden.checked) hidinguser = SETTINGS.userid;
-          if(!name) name = 'Untitled';
-          const c: ClockNew = {
-            type:ClockMsgType.NEW,
-            name:name,
-            flags:flags,
-            id:1,
-            value:+diag.f.value.value,
-            value_name:diag.f.value_name.value,
-            hidinguser: hidinguser,
-          };
-          EMIT(FromClient.CLOCK, c);
+            clock_wants_show_new = true;
+            let name = diag.f.name.value;
+            let flags = 0;
+            if(diag.f.descending.checked) flags |= ClockFlags.DESCENDING;
+            if(diag.f.cyclic.checked) flags |= ClockFlags.CYCLIC;
+            if(diag.f.by_event.checked) flags |= ClockFlags.ADVANCES_BY_EVENT;
+            let hidinguser = 0;
+            if(diag.f.hidden.checked) hidinguser = SETTINGS.userid;
+            if(!name) name = 'Untitled';
+            const c: ClockNew = {
+                type:ClockMsgType.NEW,
+                name:name,
+                flags:flags,
+                id:1,
+                value:+diag.f.value.value,
+                value_name:diag.f.value_name.value,
+                hidinguser: hidinguser,
+            };
+            EMIT(FromClient.CLOCK, c);
         }
         diag.show();
     };
     clock_tv = make_tree_view(by_id('clock-list'), 'clocks');
-    clock_tv.on_click = function(id:number):void {
+    clock_tv.on_click = function(id:number):void{
         const w = get_or_create_clock_window(id);
-        if(w) {
-          w.show();
-          setTimeout(()=>w.w.focus(), 0);
+        if(w){
+            w.show();
+            setTimeout(()=>w.win.win.focus(), 0);
         }
     };
     clock_tv.on_ctxmenu = function(id:number, e:MouseEvent):void{

@@ -107,18 +107,15 @@ function build_calendar_window(calendar:Calendar):void{
         if(month === undefined) month = 0;
         return [year, month];
     }
-    w.handle.oncontextmenu = function(e:MouseEvent):void{
-        const menu = ctx_menu(e);
+    w.wh_ctxmenu_handler = function(menu:CtxMenu):void{
         menu.item('Show Other People', function():void{
             const [year, month] = year_month();
             EMIT(FromClient.CALENDAR, [CalendarMsgType.SHOW, year, month]);
         });
         menu.separator();
-        menu.canceller();
-        menu.install();
-    };
+    }
     const openid = 'cal/open'
-    w.hide_handler = function(){
+    w.close_handler = function(){
         store_local(StorageCategory.WINDOW, openid, '');
     };
     w.show_handler = function(){
