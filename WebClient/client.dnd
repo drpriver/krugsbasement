@@ -14,7 +14,7 @@
 ::css #noinline #id(css)
   /js/dungeon.css
 ::js
-  const VERSION = 22;
+  const VERSION = 23;
   for(let id of ['js', 'css']){
     ctx.select_nodes({id})[0].children[0].header += `?v=${VERSION}`
   }

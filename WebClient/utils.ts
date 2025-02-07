@@ -495,7 +495,9 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
     let wf = !win.id? WINDOWFLAGS.NONE: global_window?WINDOWFLAGS.GLOBAL_REMEMBER:WINDOWFLAGS.LOCAL_REMEMBER;
     let rf = !win.id? RESIZEFLAGS.NONE: global_window?RESIZEFLAGS.GLOBAL_REMEMBER:RESIZEFLAGS.LOCAL_REMEMBER;
     setup_movable_window(win, wh, wf);
-    setup_resizable_window(win, rf);
+    // XXX: hack
+    if(!(openid && openid.startsWith('spreadsheet')))
+        setup_resizable_window(win, rf);
 
     return result;
 }
