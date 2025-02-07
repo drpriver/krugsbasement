@@ -38,12 +38,35 @@ function set_left_vis(show:boolean):void{
     signal_for(ListenEvent.LAYOUT_CHANGED);
     store_local(StorageCategory.SETTINGS, 'hideleft', show);
 }
+let tools_restorer: HTMLSpanElement | null;
 function set_tools_vis(show:boolean):void{
     SETTINGS.hidetools = show;
-    if(SETTINGS.hidetools)
+    if(SETTINGS.hidetools){
+        if(!tools_restorer){
+
+            tools_restorer = elem_with_parent(by_id('minimized'), 'span');
+            elem_parent_text(tools_restorer, 'span', 'Tools □');
+            tools_restorer.onclick = function(e:MouseEvent):void{
+                e.stopPropagation();
+                e.preventDefault();
+                set_tools_vis(false);
+            };
+            tools_restorer.oncontextmenu = function(e:MouseEvent):void{
+                const menu = ctx_menu(e);
+                menu.item('Restore', function(){set_tools_vis(false);});
+                menu.separator();
+                menu.canceller();
+                menu.install();
+            };
+        }
+        tools_restorer.style.display = 'inline';
         by_id('tool-container').style.display = 'none';
-    else
+    }
+    else{
+        if(tools_restorer)
+            tools_restorer.style.display = 'none';
         by_id('tool-container').style.display = 'flex';
+    }
     signal_for(ListenEvent.LAYOUT_CHANGED);
     store_local(StorageCategory.SETTINGS, 'hidetools', show);
 }

@@ -406,6 +406,7 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
         x.style.gridColumn = '1';
     }
     const restorer = elem('span');
+    const restorer_text = elem_with_parent(restorer, 'span');
     restorer.onclick = function(e:MouseEvent):void{
         e.preventDefault();
         e.stopPropagation();
@@ -465,7 +466,7 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
         },
         minimize: function(): void{
             if(result.state != WinState.OPEN) return;
-            restorer.textContent = result.t.textContent +' □';
+            restorer_text.textContent = result.t.textContent +' □';
             by_id('minimized').append(restorer);
             result.win.style.display = 'none';
             result.state = WinState.MINIMIZED;

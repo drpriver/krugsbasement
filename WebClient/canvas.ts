@@ -6767,6 +6767,18 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
 document.addEventListener('DOMContentLoaded', function():void{
     const container = by_id('tool-container');
     const handle = by_id('tool-container-handle');
+    handle.ondblclick = function(e:MouseEvent):void{
+        e.stopPropagation();
+        e.preventDefault();
+        set_tools_vis(!SETTINGS.hidetools);
+    };
+    container.oncontextmenu = function(e:MouseEvent):void{
+        const menu = ctx_menu(e);
+        menu.item('Minimize', function(){set_tools_vis(true);});
+        menu.separator();
+        menu.canceller();
+        menu.install();
+    };
     setup_movable_window(container, handle, WINDOWFLAGS.REMEMBER_POSITION);
     setup_zsorted_window(container)();
     ensure_window_is_completely_on_screen(container);
