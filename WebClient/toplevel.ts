@@ -105,3 +105,22 @@ document.addEventListener('DOMContentLoaded', function(){
           setTimeout(()=> elem.ontoggle = ontoggle, 0);
     }
 });
+
+let render_funcs: Array<(ts:DOMHighResTimeStamp)=>void> = [];
+// State variable so that we don't double render in a single frame.
+// requestAnimationFrame calls stack, so to avoid double drawing, you
+// need to keep track of this.
+let animation_requested = false;
+function do_render(ts:DOMHighResTimeStamp):void{
+    for(let rf of render_funcs)
+        rf(ts);
+    render_funcs = [];
+}
+function request_render(rf: (ts:DOMHighResTimeStamp)=>void):void{
+    if(SETTINGS.uimode != UiMode.NORMAL) return;
+    if(render_funcs.includes(rf)) return;
+    render_funcs.push(rf);
+    if(animation_requested) return;
+    animation_requested = true;
+    requestAnimationFrame(do_render);
+}

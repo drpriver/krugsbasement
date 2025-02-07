@@ -6,7 +6,6 @@ const {
     export_maps,
     import_maps,
     screenshot,
-    request_render,
     resize_canvas,
 } = (function(){
 let CANV_TV: TreeView;
@@ -53,13 +52,11 @@ if(SETTINGS.uimode != UiMode.NORMAL){
         return;
     }
     function dummy_screenshot():void{}
-    function dummy_request_render():void{}
     function dummy_resize_canvas():void{}
     return {
         export_maps: dummy_export,
         import_maps: dummy_import,
         screenshot: dummy_screenshot,
-        request_render: dummy_request_render,
         resize_canvas: dummy_resize_canvas,
     };
 }
@@ -443,7 +440,7 @@ function on_pack_load(){
         delay_load_obj_image(o, w, h, w, h);
     }
     QUEUED_IMG_TOKS = [];
-    request_render();
+    canvas_request_render();
 }
 let PACKED: Packed | null = null;
 let TERRAIN_BY_ID: Map<number, Terrain> = new Map();
@@ -801,7 +798,7 @@ function change_gridscale(view: DungeonMapView, newscale:GRIDSCALE):void{
             default: break;
         }
     }
-    request_render();
+    canvas_request_render();
 }
 function visually_set_gridscale(newscale:GRIDSCALE):void{
     switch(newscale){
@@ -1017,12 +1014,12 @@ function ping_at(map:DungeonMap, x:number, y:number):void{
     };;
     // map.pings.push(ping);
     EMIT(FromClient.CANVAS_PING, ping);
-    request_render();
+    canvas_request_render();
 }
 ONRECV(ToClient.CANVAS_PING, function(data:PingMessage):void{
     const map = get_map(data.map_id);
     map.pings.push(data.ping);
-    request_render();
+    canvas_request_render();
 });
 type ResizeHandle = {
     bbox: Bbox;
@@ -1139,7 +1136,7 @@ function new_map_view(map_id:number): [DungeonMapView, DungeonMapView]{
 function center_view_at(view:DungeonMapView, x:number, y:number):void{
     view.camera_x = -x + TheCanvas.width/2/view.scale;
     view.camera_y = -y + TheCanvas.height/2/view.scale;
-    request_render();
+    canvas_request_render();
 }
 */
 function change_active_map_view(which:WhichSplit, idx: number, store:boolean):void{
@@ -1172,7 +1169,7 @@ function change_active_map_view(which:WhichSplit, idx: number, store:boolean):vo
         view.gridscale = gs;
     }
     visually_set_gridscale(view.gridscale);
-    request_render();
+    canvas_request_render();
 }
 const enum WhichSplit {
     LEFT = 0,
@@ -1301,7 +1298,7 @@ function change_map(which:WhichSplit, map_id:number):void{
             break;
         }
     }
-    request_render();
+    canvas_request_render();
 }
 function sort_canv_objs(map:DungeonMap):void{
     if(map.is_sorted)
@@ -1328,7 +1325,7 @@ ONRECV(ToClient.CANVAS_NAME_MAP, function(data:NameMapMessage):void{
 ONRECV(ToClient.CANVAS_GRID_TYPE, function(data:CanvasGridTypeMsg):void{
     const map = get_map(data.map_id);
     map.grid_type = data.grid_type;
-    request_render();
+    canvas_request_render();
 });
 // FIXME: misnumbered
 ONRECV(ToClient.CANVAS_GRID_NUMBERED, function(data:CanvasGridNumberedMsg):void{
@@ -1342,18 +1339,18 @@ ONRECV(ToClient.CANVAS_GRID_NUMBERED, function(data:CanvasGridNumberedMsg):void{
         map.flags |= MapFlags.BIG_HEX
     else
         map.flags &= ~(MapFlags.BIG_HEX);
-    request_render();
+    canvas_request_render();
 });
 ONRECV(ToClient.CANVAS_GRID_COLOR, function(data:CanvasColorMsg):void{
     const map = get_map(data.map_id);
     map.grid_color = data.color;
-    request_render();
+    canvas_request_render();
 });
 
 ONRECV(ToClient.CANVAS_BG_COLOR, function(data:CanvasColorMsg):void{
     const map = get_map(data.map_id);
     map.bg_color = data.color;
-    request_render();
+    canvas_request_render();
 });
 
 ONRECV(ToClient.CANVAS_PARENT, function(data:CanvasParentMsg):void{
@@ -1385,7 +1382,7 @@ ONRECV(ToClient.CANVAS_GATHER, function(where:GatherMessage): void{
     const view = get_view(which);
     view.camera_x = where.x;
     view.camera_y = where.y;
-    request_render();
+    canvas_request_render();
 });
 ONRECV(ToClient.CANVAS_BATTLE, function(where:GatherMessage): void{
     let which: WhichSplit = WhichSplit.LEFT;
@@ -1401,11 +1398,11 @@ ONRECV(ToClient.CANVAS_BATTLE, function(where:GatherMessage): void{
     view.camera_x = where.x;
     view.camera_y = where.y;
     visually_set_gridscale(GRIDSCALE.FIVE);
-    request_render();
+    canvas_request_render();
 });
 ONRECV(ToClient.CANVAS_DUNGEON_MODE, function():void{
     visually_set_gridscale(GRIDSCALE.TEN);
-    request_render();
+    canvas_request_render();
 });
 const MIN_SCALE = 0.125/2;
 const MAX_SCALE = 5;
@@ -1422,7 +1419,7 @@ function reset_zoom(view:DungeonMapView): void{
     view.scale = 1;
     view.camera_x = TheCanvas.width/2/view.scale - center_x;
     view.camera_y = TheCanvas.height/2/view.scale - center_y;
-    request_render();
+    canvas_request_render();
 }
 function zoom_in(view:DungeonMapView):void{
     const center_x = TheCanvas.width/2/view.scale - view.camera_x;
@@ -1431,7 +1428,7 @@ function zoom_in(view:DungeonMapView):void{
     view.scale = clamp_scale(view.scale);
     view.camera_x = TheCanvas.width/2/view.scale - center_x;
     view.camera_y = TheCanvas.height/2/view.scale - center_y;
-    request_render();
+    canvas_request_render();
 }
 function zoom_out(view:DungeonMapView):void{
     const center_x = TheCanvas.width/2/view.scale - view.camera_x;
@@ -1440,7 +1437,7 @@ function zoom_out(view:DungeonMapView):void{
     view.scale = clamp_scale(view.scale);
     view.camera_x = TheCanvas.width/2/view.scale - center_x;
     view.camera_y = TheCanvas.height/2/view.scale - center_y;
-    request_render();
+    canvas_request_render();
 }
 
 let dpr = 0;
@@ -1488,7 +1485,7 @@ function resize_canvas():void{
     TheCanvas.style.height = height + 'px';
     TheCanvas.style.left = by_id('left').offsetWidth + 'px';
     TheCtx.scale(dpr, dpr);
-    request_render();
+    canvas_request_render();
 }
 
 //
@@ -2082,7 +2079,7 @@ function change_rect(obj:Rectangle, x0:number, y0:number, x1:number, y1:number):
     obj.base_y = y0;
     obj.width = x1 - x0;
     obj.height = y1 - y0;
-    request_render();
+    canvas_request_render();
 }
 function change_rect_by_id(map:DungeonMap, id:number, x0:number, y0:number, x1:number, y1:number):void{
     let obj = map.canvas_objs.get(id) as Rectangle;
@@ -2122,7 +2119,7 @@ function change_filled_rect(obj:FilledRectangle, x0:number, y0:number, x1:number
     obj.base_y = Math.round(y0);
     obj.width = Math.round(x1 - x0);
     obj.height = Math.round(y1 - y0);
-    request_render();
+    canvas_request_render();
 }
 function change_filled_rect_by_id(map:DungeonMap, id:number, x0:number, y0:number, x1:number, y1:number):void{
     let obj = map.canvas_objs.get(id) as FilledRectangle;
@@ -2230,7 +2227,7 @@ function delay_load_obj_image(obj:ImageObj|ImgToken, width:number, height:number
             const tok = TOKEN_BY_PATH.get(obj.url)!;
             const img = token_to_img(tok[2], tok[3], tok[4], tok[5], width, height);
             obj.img = img;
-            request_render();
+            canvas_request_render();
             return;
         }
     }
@@ -2242,7 +2239,7 @@ function delay_load_obj_image(obj:ImageObj|ImgToken, width:number, height:number
             obj.width = img.width;
             obj.height = img.height;
         }
-        request_render();
+        canvas_request_render();
     }, {once:true});
     img.addEventListener('error', function():void{
         obj.width = error_width;
@@ -2251,7 +2248,7 @@ function delay_load_obj_image(obj:ImageObj|ImgToken, width:number, height:number
             obj.width = REFERENCE.WIDTH;
             obj.height = REFERENCE.WIDTH;
         }
-        request_render();
+        canvas_request_render();
     }, {once:true});
     img.src = obj.url;
 }
@@ -2356,7 +2353,7 @@ function clear_canvas(map:DungeonMap):void{
         if(view[0].map.map_id == map.map_id)
             view[0].selected.clear();
     }
-    request_render();
+    canvas_request_render();
 }
 
 const enum UNDO_EVENT_TYPE {
@@ -2487,7 +2484,7 @@ function do_one_undo(map:DungeonMap):void{
     map.undo_position--;
     const undo_event = map.undo_stack[map.undo_position];
     do_one_undo_event(map, undo_event);
-    request_render();
+    canvas_request_render();
 }
 function do_one_redo_event(map:DungeonMap, undo_event:UndoEvent):void{
     switch(undo_event.type){
@@ -2532,7 +2529,7 @@ function do_one_redo(map:DungeonMap):void{
     const undo_event = map.undo_stack[map.undo_position];
     do_one_redo_event(map, undo_event);
     map.undo_position++;
-    request_render();
+    canvas_request_render();
 }
 function undo_is_impossible(map:DungeonMap):boolean{
     return !map.undo_position;
@@ -2590,7 +2587,7 @@ function paste_from_clipboard_at(view:DungeonMapView, x:number, y:number):void{
             valid_objs.push(o);
         }
         paste_at(view, x, y, valid_objs);
-        request_render();
+        canvas_request_render();
     }
     if(navigator.clipboard.readText){
         navigator.clipboard.readText().then(
@@ -2641,7 +2638,7 @@ function cut_selected_objs_to_copy_buffer(view:DungeonMapView):void{
     publish_delete_by_ids(view.map.map_id, deleted);
     note_delete_by_ids_for_undo(view.map, deleted);
     view.selected.clear()
-    request_render();
+    canvas_request_render();
 }
 function translate_object(obj: CanvasObject, dx: number, dy: number):void{
     obj.base_x += dx;
@@ -2883,7 +2880,7 @@ function rotate_everything_90(view:DungeonMapView):void{
     }
     note_updates_for_undo(view.map, before_rotate, after_rotate);
     publish_obj_updates(view.map.map_id, after_rotate);
-    request_render();
+    canvas_request_render();
 }
 
 function paste_at(view:DungeonMapView, x:number, y:number, objs: Array<StrippedObj>):void{
@@ -2922,7 +2919,7 @@ function paste_at(view:DungeonMapView, x:number, y:number, objs: Array<StrippedO
 
 function paste_from_copy_buffer_at(view:DungeonMapView, x:number, y:number):void{
     paste_at(view, x, y, COPIED_OBJS);
-    request_render();
+    canvas_request_render();
 }
 
 ONRECV(ToClient.CANVAS_DELETE_MAP, function(map_id:number):void{
@@ -3002,7 +2999,7 @@ function initialize_maps(msgs:Array<InitializeMap>):void{
     map_hist.clear();
     map_hist.add(get_view(WhichSplit.LEFT).map.map_id);
     resize_canvas();
-    request_render();
+    canvas_request_render();
 }
 ONRECV(ToClient.CANVAS_INITIALIZE_MAPS, initialize_maps);
 ONRECV(ToClient.CANVAS_CREATE_OBJECTS, function(msgs:Array<CreateObjectsMessage>):void{
@@ -3025,7 +3022,7 @@ ONRECV(ToClient.CANVAS_CREATE_OBJECTS, function(msgs:Array<CreateObjectsMessage>
             }
         }
     }
-    request_render();
+    canvas_request_render();
 });
 ONRECV(ToClient.CANVAS_DELETE, function(msg:CanvasDeleteMessage):void{
     const map_id = msg.map_id;
@@ -3042,7 +3039,7 @@ ONRECV(ToClient.CANVAS_DELETE, function(msg:CanvasDeleteMessage):void{
             console.log('Deleting unknown object??', id);
         }
     }
-    request_render();
+    canvas_request_render();
 });
 
 
@@ -3051,7 +3048,7 @@ ONRECV(ToClient.CANVAS_UPDATE, function(msg:CanvasUpdateMessage):void{
     const map = get_map(map_id);
     const obj_states = msg.obj_states;
     set_obj_states_from_stripped_objs(map, obj_states);
-    request_render();
+    canvas_request_render();
 });
 function set_obj_states_from_stripped_objs(map:DungeonMap, obj_states:Array<StrippedObj>):void{
     const length = obj_states.length;
@@ -3759,12 +3756,12 @@ function finalize_selection(view:DungeonMapView):void{
     view.selected.clear();
     view.selection_area.is_selecting = false;
     note_selections(view);
-    request_render();
+    canvas_request_render();
 }
 function end_selecting(view:DungeonMapView):void{
     view.selected.clear();
     view.selection_area.is_selecting = false;
-    request_render();
+    canvas_request_render();
 }
 function change_select_mode(mode:SELECTTYPE):void{
     select_type = mode;
@@ -3772,7 +3769,7 @@ function change_select_mode(mode:SELECTTYPE):void{
         view[0].selected.clear();
         note_selections(view[0]);
     }
-    request_render();
+    canvas_request_render();
 }
 function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number, base_y:number, dx:number, dy:number, snapmode:SNAPMODE):void{
     const selected_objs = [];
@@ -3819,7 +3816,7 @@ function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number
             translate_object(obj, dx, dy);
         }
     }
-    request_render();
+    canvas_request_render();
 }
 
 function add_canv_obj(map:DungeonMap, obj:CanvasObject):void{
@@ -4466,7 +4463,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 delay_load_obj_image(obj, obj.width, obj.height, obj.width?obj.width:64, obj.height?obj.height:64);
                 note_updates_for_undo(view.map,[before], [after]);
                 publish_obj_updates(view.map.map_id, [after]);
-                request_render();
+                canvas_request_render();
             };
             dialog.show();
         }return;
@@ -4539,7 +4536,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
                     obj.flags &= ~CanvasFlag.TEXT_LINKS_NOTE;
                 const after = strip_obj(obj);
                 publish_obj_updates(view.map.map_id, [after]);
-                request_render();
+                canvas_request_render();
             }
 
             dialog.show();
@@ -4615,7 +4612,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 obj.maxhp = maxhp;
                 const after = strip_obj(obj);
                 publish_obj_updates(view.map.map_id, [after]);
-                request_render();
+                canvas_request_render();
             };
             dialog.show();
         }return;
@@ -4685,7 +4682,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 }
                 const after = strip_obj(obj);
                 publish_obj_updates(view.map.map_id, [after]);
-                request_render();
+                canvas_request_render();
             };
             dialog.show();
         }return;
@@ -4700,17 +4697,8 @@ function launch_edit_dialog(view:DungeonMapView):void{
     }
 }
 
-// State variable so that we don't double render in a single frame.
-// requestAnimationFrame calls stack, so to avoid double drawing, you
-// need to keep track of this.
-let animation_requested = false;
-function request_render():void{
-    if(SETTINGS.uimode != UiMode.NORMAL) return;
-    if(animation_requested)
-        return;
-    animation_requested = true;
-    // only call this from here to avoid double renders.
-    requestAnimationFrame(render);
+function canvas_request_render():void{
+    request_render(render);
 }
 const timings: Array<number> = [];
 // It's kind of janky, but so that hexmaps and staggered squares
@@ -6732,11 +6720,11 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                 }
             }
             map.pings = new_pings;
-            request_render();
+            canvas_request_render();
         }
     }
     if(flags & RenderFlags.SHOW_FPS){
-        request_render();
+        canvas_request_render();
         timings.push(performance.now()-before);
         while(timings.length > 30){
             timings.splice(0, 1);
@@ -7052,7 +7040,7 @@ function token_to_img(x:number, y:number, w:number, h:number, imw:number, imh:nu
         // The load is async, so if we render before that resolves we end up
         // rendering an unloaded image.
         img.addEventListener('load', function(){
-            request_render();
+            canvas_request_render();
         }, {once:true});
         img.src = durl;
         if(imw){
@@ -7546,13 +7534,13 @@ const redo_canvas_cursor = (function():(canvas:HTMLCanvasElement, view:DungeonMa
         let o = obj_at(view, view.mouse.x, view.mouse.y, select_type);
         if(o){
             if(prev_id != o.id)
-                request_render();
+                canvas_request_render();
             if(canvas.style.cursor != 'default')
                 canvas.style.cursor = 'default';
         }
         else {
             if(prev_id != -1)
-                request_render();
+                canvas_request_render();
             if(canvas.style.cursor != 'crosshair')
                 canvas.style.cursor = 'crosshair';
         }
@@ -7564,7 +7552,7 @@ const redo_canvas_cursor = (function():(canvas:HTMLCanvasElement, view:DungeonMa
         if(!modified)
             for(let aa of view.action.areas){
                 if(point_in_rect(view.mouse.x, view.mouse.y, aa.bbox.x0, aa.bbox.y0, aa.bbox.x1, aa.bbox.y1)){
-                    request_render();
+                    canvas_request_render();
                     canvas.style.cursor = 'pointer';
                     prev_id = -1;
                     return;
@@ -7674,7 +7662,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             view.camera_x = cx;
             view.camera_y = cy;
 
-            request_render();
+            canvas_request_render();
         });
         the_canvas.addEventListener('gestureend', function(e:any):void{
             e.stopPropagation();
@@ -7704,7 +7692,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
         view.camera_y += e.offsetY/view.scale;
         // view.camera_x = Math.round(view.camera_x);
         // view.camera_y = Math.round(view.camera_y);
-        request_render();
+        canvas_request_render();
     });
     let prev_tool:ToolType = ToolType.PAN;
     // this state variable is kind of janky.
@@ -7774,7 +7762,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                 the_canvas.style.cursor = 'initial';
                                 return;
                             }
-                            request_render();
+                            canvas_request_render();
                             return;
                         }
                     }
@@ -7829,7 +7817,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                             obj.height /= REFERENCE.WIDTH;
                                         }
                                     }
-                                    request_render();
+                                    canvas_request_render();
                                 }
                                 the_canvas.addEventListener('pointermove', change_wh);
                                 const before = strip_obj(obj);
@@ -7839,7 +7827,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                     the_canvas.removeEventListener('pointermove', change_wh);
                                     the_canvas.removeEventListener('pointerup', finish);
                                     the_canvas.removeEventListener('pointerup', finish);
-                                    request_render();
+                                    canvas_request_render();
                                     if(o_x != obj.base_x || o_y != obj.base_y || o_w != obj.width || o_h != obj.height){
                                         const after = strip_obj(obj);
                                         note_updates_for_undo(view.map, [before], [after]);
@@ -7867,7 +7855,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     view.selection_area.is_selecting = true;
                     update_selection(view, fudged_x0, fudged_y0, fudged_x1, fudged_y1);
                     finalize_selection(view);
-                    request_render();
+                    canvas_request_render();
                 }
                 if(view.selected.size && there_are_selected_objs_at(view, fudged_x0, fudged_y0, fudged_x1, fudged_y1)){
                     // handle movement
@@ -7916,7 +7904,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     view.selection_area.select_one = true;
                     view.selection_area.is_selecting = true;
                     update_selection(view, fudged_x0, fudged_y0, fudged_x1, fudged_y1);
-                    request_render();
+                    canvas_request_render();
                     function select(e:MouseEvent):void{
                         if(timeout !== undefined){
                             clearTimeout(timeout);
@@ -7928,7 +7916,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         if(select_x != clicked_x || select_y != clicked_y)
                             view.selection_area.select_one = false;
                         update_selection(view, clicked_x, clicked_y, select_x, select_y);
-                        request_render();
+                        canvas_request_render();
                     }
                     the_canvas.addEventListener('pointermove', select);
                     function finish_select():void{
@@ -7969,7 +7957,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                                     the_canvas.style.cursor = 'initial';
                                     return;
                                 }
-                                request_render();
+                                canvas_request_render();
                                 return;
                             }
                         }
@@ -8001,7 +7989,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     view.camera_y -= clicked_y - pan_y;
                     clicked_x = pan_x;
                     clicked_y = pan_y;
-                    request_render();
+                    canvas_request_render();
                 }
                 the_canvas.addEventListener('pointermove', pan);
                 function finish_pan():void{
@@ -8050,7 +8038,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         obj.points = [];
                     }
                     add_freehand_point_by_id(view.map, id, x1, y1);
-                    request_render();
+                    canvas_request_render();
                 }
                 the_canvas.addEventListener('pointermove', add_point);
                 function finish_point():void{
@@ -8085,7 +8073,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     e.preventDefault();
                     let [x1, y1] = event_to_coord(e, view);
                     add_freehand_point(o, x1, y1);
-                    request_render();
+                    canvas_request_render();
                 }
                 the_canvas.addEventListener('pointermove', add_point);
                 function finish_point():void{
@@ -8094,10 +8082,10 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     add_freehand_point(o, x0, y0);
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
-                    request_render();
+                    canvas_request_render();
                 }
                 the_canvas.addEventListener('pointerup', finish_point);
-                request_render();
+                canvas_request_render();
             }break;
             case ToolType.POLYGON:{ // TAG toolPOLYGON
                 click_based_tool_is_active = true;
@@ -8129,7 +8117,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     if(x1 == x0 && y1 == y0){
                       finish_click_based_tool!();
                     }
-                    request_render();
+                    canvas_request_render();
                 }
                 function finish_polygon():void{
                     the_canvas.removeEventListener('pointerdown', add_point);
@@ -8141,10 +8129,10 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 set_finish_click_tool(finish_polygon);
                 undo_click_based_tool = function():void{
                     pop_freehand_point(o);
-                    request_render();
+                    canvas_request_render();
                 };
                 the_canvas.addEventListener('pointerdown', add_point);
-                request_render();
+                canvas_request_render();
             }break;
             case ToolType.WALL:{ // TAG toolWALL
                 let id = get_new_id();
@@ -8158,7 +8146,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         e.preventDefault();
                         const [x1, y1] = event_to_coord(e, view);
                         add_freehand_point_by_id(view.map, id, x1, y1);
-                        request_render();
+                        canvas_request_render();
                     }
                     the_canvas.addEventListener('pointermove', add_point);
                     function finish_point():void{
@@ -8203,7 +8191,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         y1 = y;
                         view.placing_area.x1 = x1;
                         view.placing_area.y1 = y1;
-                        request_render();
+                        canvas_request_render();
                     }
                     the_canvas.addEventListener('pointermove', add_point);
                     function finish_point():void{
@@ -8213,7 +8201,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         the_canvas.removeEventListener('pointerup', finish_point);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
-                        request_render();
+                        canvas_request_render();
                     }
                     the_canvas.addEventListener('pointerup', finish_point);
                 }
@@ -8228,7 +8216,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 view.placing_area.y0 = y0;
                 view.placing_area.x1 = x1;
                 view.placing_area.y1 = y1;
-                request_render();
+                canvas_request_render();
                 function change_point(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
@@ -8237,7 +8225,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     view.placing_area.y0 = y0;
                     view.placing_area.x1 = x1;
                     view.placing_area.y1 = y1;
-                    request_render();
+                    canvas_request_render();
                 }
                 the_canvas.addEventListener('pointermove', change_point);
                 function finish_door():void{
@@ -8274,7 +8262,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                     }
-                    request_render()
+                    canvas_request_render()
                 }
                 the_canvas.addEventListener('pointerup', finish_door);
             }break;
@@ -8303,7 +8291,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 view.placing_area.y0 = rect.base_y;
                 view.placing_area.x1 = rect.base_x;
                 view.placing_area.y1 = rect.base_y;
-                request_render()
+                canvas_request_render()
                 function add_point(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
@@ -8313,14 +8301,14 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     view.placing_area.y0 = rect.base_y;
                     view.placing_area.x1 = rect.base_x + rect.width;
                     view.placing_area.y1 = rect.base_y + rect.height;
-                    request_render();
+                    canvas_request_render();
                 }
                 the_canvas.addEventListener('pointermove', add_point);
                 function finish_point():void{
                     the_canvas.removeEventListener('pointermove', add_point);
                     the_canvas.removeEventListener('pointerup', finish_point);
                     view.placing_area.is_placing = false;
-                    request_render();
+                    canvas_request_render();
                     if(!rect.width && !rect.height){
                         rect.flags |= CanvasFlag.DELETED;
                         return;
@@ -8341,7 +8329,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 view.placing_area.y0 = ellipse.base_y;
                 view.placing_area.x1 = ellipse.base_x;
                 view.placing_area.y1 = ellipse.base_y;
-                request_render()
+                canvas_request_render()
                 function add_point(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
@@ -8360,14 +8348,14 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     view.placing_area.y0 = ellipse.base_y;
                     view.placing_area.x1 = ellipse.base_x + ellipse.width;
                     view.placing_area.y1 = ellipse.base_y + ellipse.height;
-                    request_render();
+                    canvas_request_render();
                 }
                 the_canvas.addEventListener('pointermove', add_point);
                 function finish_point():void{
                     the_canvas.removeEventListener('pointermove', add_point);
                     the_canvas.removeEventListener('pointerup', finish_point);
                     view.placing_area.is_placing = false;
-                    request_render();
+                    canvas_request_render();
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
                 }
@@ -8428,7 +8416,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         o.flags |= CanvasFlag.TEXT_LINKS_NOTE;
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
-                    request_render();
+                    canvas_request_render();
                 };
                 dialog.show_handler = function():void{
                     if(!IS_TOUCH) dialog.f.text.focus();
@@ -8467,7 +8455,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         view.map.canvas_objs.get(id)!.flags |= CanvasFlag.IMG_IS_BACKGROUND;
                     publish_obj_by_id(view.map, id);
                     note_create_by_id_for_undo(view.map, id);
-                    request_render();
+                    canvas_request_render();
                 };
                 dialog.show();
             }break;
@@ -8501,7 +8489,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         add_ez_token(view.map, id, snap(x0), snap(y0), text, color, width, height, hp, maxhp);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
-                        request_render();
+                        canvas_request_render();
                     };
                     dialog.show();
 
@@ -8549,7 +8537,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         add_img_token(view.map, id, snap(x0), snap(y0), text, w, h, hp, maxhp);
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
-                        request_render();
+                        canvas_request_render();
                     };
                     dialog.show();
                 }
@@ -8584,7 +8572,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         view.placing_area.y1 = y0;
                         // x0 = stairs.base_x;
                         // y0 = stairs.base_y;
-                        request_render();
+                        canvas_request_render();
                         function change_stairs_on_move(e:MouseEvent):void{
                             e.stopPropagation();
                             e.preventDefault();
@@ -8594,13 +8582,13 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                             view.placing_area.y0 = stairs.base_y;
                             view.placing_area.x1 = stairs.base_x+REFERENCE.WIDTH*stairs.width;
                             view.placing_area.y1 = stairs.base_y+REFERENCE.WIDTH*stairs.height;
-                            request_render();
+                            canvas_request_render();
                         }
                         the_canvas.addEventListener('pointermove', change_stairs_on_move);
                         function finish_point():void{
                             view.placing_area.is_placing = false;
                             view.placing_area.is_fixture = false;
-                            request_render();
+                            canvas_request_render();
                             the_canvas.removeEventListener('pointermove', change_stairs_on_move);
                             the_canvas.removeEventListener('pointerup', finish_point);
                             if(stairs.width != 0 && stairs.height != 0){
@@ -8625,7 +8613,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         view.placing_area.y0 = fixture.base_y;
                         view.placing_area.x1 = fixture.base_x;
                         view.placing_area.y1 = fixture.base_y;
-                        request_render();
+                        canvas_request_render();
                         function move(e:MouseEvent):void{
                             e.stopPropagation();
                             e.preventDefault();
@@ -8646,13 +8634,13 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                             view.placing_area.y0 = y0;
                             view.placing_area.x1 = x1;
                             view.placing_area.y1 = y1;
-                            request_render();
+                            canvas_request_render();
                         }
                         the_canvas.addEventListener('pointermove', move);
                         function finish():void{
                             view.placing_area.is_placing = false;
                             view.placing_area.is_fixture = false;
-                            request_render();
+                            canvas_request_render();
                             the_canvas.removeEventListener('pointermove', move);
                             the_canvas.removeEventListener('pointerup', finish);
                             if(fixture.width != 0 && fixture.height != 0){
@@ -8688,7 +8676,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 let measure = make_measure(id, x0, y0, '#aa0033');
                 add_canv_obj(view.map, measure);
                 publish_obj_by_id(view.map, id); // don't note create for undo
-                request_render();
+                canvas_request_render();
                 function move(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
@@ -8700,13 +8688,13 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     measure.y1 = y;
                     const stripped = strip_obj(measure);
                     publish_obj_updates(view.map.map_id, [stripped]);
-                    request_render();
+                    canvas_request_render();
                 }
                 the_canvas.addEventListener('pointermove', move);
                 function finish():void{
                     publish_delete_by_ids(view.map.map_id, [id]);
                     measure.flags |= CanvasFlag.DELETED;
-                    request_render();
+                    canvas_request_render();
                     the_canvas.removeEventListener('pointermove', move);
                     the_canvas.removeEventListener('pointerup', finish);
                 }
@@ -8793,7 +8781,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         default:
                             console.assert(false);
                     }
-                    request_render();
+                    canvas_request_render();
                 }
                 function do_tile_big(x:number, y:number):void{
                     const POINTS = [
@@ -8861,7 +8849,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     else {
                         note_mass_create_for_undo(view.map, created_ids);
                     }
-                    request_render();
+                    canvas_request_render();
                 };
                 the_canvas.addEventListener('pointerup', finish);
             }break;
@@ -8891,7 +8879,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 view.placing_area.y0 = arc.base_y;
                 view.placing_area.x1 = arc.base_x;
                 view.placing_area.y1 = arc.base_y;
-                request_render();
+                canvas_request_render();
                 function add_point(e:MouseEvent):void{
                     e.stopPropagation();
                     e.preventDefault();
@@ -8968,7 +8956,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     view.placing_area.y0 = arc.base_y;
                     view.placing_area.x1 = arc.base_x+arc.width;
                     view.placing_area.y1 = arc.base_y+arc.height;
-                    request_render();
+                    canvas_request_render();
                 }
                 the_canvas.addEventListener('pointermove', add_point);
                 function finish_point():void{
@@ -8979,7 +8967,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
                     }
-                    request_render();
+                    canvas_request_render();
                 }
                 the_canvas.addEventListener('pointerup', finish_point);
             }break;
@@ -9058,7 +9046,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 if(!deleted.length) return;
                 publish_delete_by_ids(view.map.map_id, deleted);
                 note_delete_by_ids_for_undo(view.map, deleted);
-                request_render();
+                canvas_request_render();
             });
             menu.separator();
             menu.item('Options…', options_dialog);
@@ -9104,7 +9092,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 view.camera_x=0;
                 view.camera_y=0;
                 view.scale=1;
-                request_render();
+                canvas_request_render();
             });
             menu.separator();
             menu.item('Rotate Everything', function():void{
@@ -9123,7 +9111,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 menu.numbox('HP', obj.hp, (v:number):void=>{
                     obj!.hp = v;
                     publish_obj_updates(view.map.map_id, [strip_obj(obj!)]);
-                    request_render();
+                    canvas_request_render();
                 }, obj.maxhp);
             }
             if(obj && PACKED && PACKED_LOAD==3){
@@ -9138,7 +9126,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         else
                             obj!.statusflags &= ~flag;
                         publish_obj_updates(view.map.map_id, [strip_obj(obj!)]);
-                        request_render();
+                        canvas_request_render();
                     }, img);
                 }
                 menu.separator();
@@ -9188,7 +9176,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 if(changed){
                     note_updates_for_undo(view.map, before, after);
                     publish_obj_updates(view.map.map_id, after);
-                    request_render();
+                    canvas_request_render();
                 }
             });
             menu.item('Unhide', function():void{
@@ -9207,7 +9195,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 if(changed){
                     note_updates_for_undo(view.map, before, after);
                     publish_obj_updates(view.map.map_id, after);
-                    request_render();
+                    canvas_request_render();
                 }
             });
             menu.separator();
@@ -9283,7 +9271,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 else {
                     view.camera_x += 256;
                 }
-                request_render();
+                canvas_request_render();
             }break;
             case 'ArrowRight':{
                 if(maybe_move_selection_one_unit(view, +64, 0)){
@@ -9291,7 +9279,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 else {
                     view.camera_x -= 256;
                 }
-                request_render();
+                canvas_request_render();
             }break;
             case 'ArrowUp':{
                 if(maybe_move_selection_one_unit(view, 0, -64)){
@@ -9299,7 +9287,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 else {
                     view.camera_y += 256;
                 }
-                request_render();
+                canvas_request_render();
             }break;
             case 'ArrowDown':{
                 if(maybe_move_selection_one_unit(view, 0, +64)){
@@ -9307,14 +9295,14 @@ document.addEventListener('DOMContentLoaded', function():void{
                 else {
                     view.camera_y -= 256;
                 }
-                request_render();
+                canvas_request_render();
             }break;
             case 'Escape':{
                 if(OPENDIALOG)
                     OPENDIALOG.close.click();
                 else{
                     view.selected.clear();
-                    request_render();
+                    canvas_request_render();
                 }
             }break;
             case 'Backspace': // fall-through
@@ -9481,7 +9469,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                     if(changed){
                         note_updates_for_undo(view.map, before, after);
                         publish_obj_updates(view.map.map_id, after);
-                        request_render();
+                        canvas_request_render();
                     }
                 }
                 break;
@@ -9521,7 +9509,7 @@ document.addEventListener('DOMContentLoaded', function():void{
                 }
                 if(changed.length){
                     publish_obj_updates(view.map.map_id, changed);
-                    request_render();
+                    canvas_request_render();
                 }
             }break;
             default:
@@ -9566,13 +9554,13 @@ function edit_map_dialog(map:DungeonMap):void{
     link_input_value(orig_grid_color.length?orig_grid_color:'#969696',
         dialog.f['grid-color'], 'onchange', dialog.f['grid-color-text'], 'oninput', function():void{
             map.grid_color = dialog.f['grid-color-text'].value;
-            request_render();
+            canvas_request_render();
         });
     const orig_bg_color = map.bg_color;
     link_input_value(orig_bg_color.length?orig_bg_color:'#ffffff',
         dialog.f['bg-color'], 'onchange', dialog.f['bg-color-text'], 'oninput', function():void{
             map.bg_color = dialog.f['bg-color-text'].value;
-            request_render();
+            canvas_request_render();
         });
     const hg = dialog.f['hex-grid'];
     const ng = dialog.f['no-grid']
@@ -9620,7 +9608,7 @@ function edit_map_dialog(map:DungeonMap):void{
     dialog.cancel_handler = function():void{
         map.grid_color = orig_grid_color;
         map.bg_color = orig_bg_color;
-        request_render();
+        canvas_request_render();
     };
     dialog.show();
 }
@@ -9678,13 +9666,12 @@ document.addEventListener('DOMContentLoaded', function():void{
         map_hist.go_forward();
     });
 });
-listen_for(ListenEvent.DARKMODE_CHANGED, request_render);
+listen_for(ListenEvent.DARKMODE_CHANGED, canvas_request_render);
 listen_for(ListenEvent.LAYOUT_CHANGED, resize_canvas);
 return {
     export_maps,
     import_maps,
     screenshot,
-    request_render,
     resize_canvas,
 };
 }());
