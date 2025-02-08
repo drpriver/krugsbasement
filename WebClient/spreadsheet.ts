@@ -348,22 +348,18 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             }
             menu.separator();
         }
-        menu.item('Toggle Number', function():void{
-            EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.FLAG, result.id, result.flags ^ SpreadSheetFlags.NUMBERED]);
+        menu.checkbox('Row Numbers', !!(result.flags & SpreadSheetFlags.NUMBERED), (b:boolean)=>{
+            let flags = result.flags;
+            if(b) flags |= SpreadSheetFlags.NUMBERED;
+            else  flags &=~SpreadSheetFlags.NUMBERED;
+            EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.FLAG, result.id, flags]);
         });
-        {
-            const txt = (result.flags & SpreadSheetFlags.LOCKED_FORMULAS)?'Unlock Formulas' : 'Lock Formulas';
-            menu.item(txt, function(e:MouseEvent):void{
-                if(result.flags & SpreadSheetFlags.LOCKED_FORMULAS){
-                    if(txt[0] == 'L') return;
-                }
-                else {
-                    if(txt[0] == 'U') return;
-                }
-                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.FLAG, result.id, result.flags ^ SpreadSheetFlags.LOCKED_FORMULAS]);
-            });
-
-        }
+        menu.checkbox('Lock Formulas', !!(result.flags & SpreadSheetFlags.LOCKED_FORMULAS), (b:boolean)=>{
+            let flags = result.flags;
+            if(b) flags |= SpreadSheetFlags.LOCKED_FORMULAS;
+            else flags &= ~SpreadSheetFlags.LOCKED_FORMULAS;
+            EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.FLAG, result.id, flags]);
+        });
         menu.item('Configure…', function():void{
             const diag = get_dialog('sheet-config');
             if(!diag) return;
