@@ -922,6 +922,16 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                         EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, row_idx+1]);
                     return;
                 }
+                if(e.shiftKey)
+                    if(col_idx+1 >= result.headers.length){
+                        EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, col_idx+1]);
+                        return;
+                    }
+                else
+                    if(row_idx+1 >= result.cell_elems.length){
+                        EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, row_idx+1]);
+                        return;
+                    }
                 do_down();
                 // if(row_idx == -1) return;
                 // row_idx++;
@@ -1081,14 +1091,16 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 case 'Enter': {
                     e.preventDefault();
                     if(e.shiftKey){
-                        if(col_idx != result.headers.length-1){
+                        if(col_idx != result.headers.length-1)
                             col_idx++;
-                        }
+                        else
+                            EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, col_idx+1]);
                     }
                     else {
-                        if(row_idx != result.cell_elems.length-1){
+                        if(row_idx != result.cell_elems.length-1)
                             row_idx++;
-                        }
+                        else
+                            EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, row_idx+1]);
                     }
                     inp.blur();
                     result.cell_elems[row_idx][col_idx].focus();
