@@ -38,6 +38,23 @@ function set_left_vis(show:boolean):void{
     signal_for(ListenEvent.LAYOUT_CHANGED);
     store_local(StorageCategory.SETTINGS, 'hideleft', show);
 }
+listen_for(ListenEvent.LAYOUT_CHANGED, function(){
+    const m = by_id('minimized');
+    let w = 80;
+    if(by_id('left').style.display != 'none'){
+        by_id('minimized').style.left = '';
+        by_id('scale').style.left = '';
+        w += 200;
+    }
+    else {
+        by_id('minimized').style.left = '80px';
+        by_id('scale').style.left = '0px';
+    }
+    if(by_id('chat').style.height == ''){
+        w += 260;
+    }
+    m.style.width = `calc(100vw - ${w}px)`;
+});
 let tools_restorer: HTMLSpanElement | null;
 function set_tools_vis(show:boolean):void{
     SETTINGS.hidetools = show;
