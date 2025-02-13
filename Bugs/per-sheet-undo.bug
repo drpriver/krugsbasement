@@ -1,5 +1,9 @@
 Changelog::kv
   created: 2023-03-13T03:34:57Z
-Created Mar 12, 2023, 08:34PM::md.update
-Summary::md.summary
+  updated: 2025-02-13T02:27:51Z
+Created Mar 12, 2023, 08:34PM::md .update
+Summary::md .summary
   Undo sorts, deletes, edits, etc.
+
+Updated Feb 12, 2025, 06:27PM::md .update
+  Partial implementation.

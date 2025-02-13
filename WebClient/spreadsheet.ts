@@ -66,6 +66,95 @@ document.addEventListener('DOMContentLoaded', function():void{
 
 //                name    flags
 type CellExtra = [string, CellFlags];
+const enum SpreadUndoKind {
+    DELETE_ROW = 0,
+    DELETE_COL = 1,
+    RENAME_COL = 2,
+    EDIT_CELLS = 3,
+    ADD_ROW = 4,
+    ADD_COL = 5,
+    /*
+    SORT = 6,
+    MOVE_COL = 7,
+    MOVE_ROW = 8,
+    */
+    MULTI = 9,
+};
+
+type SpreadUndoDeleteRow = {
+    type: SpreadUndoKind.DELETE_ROW;
+    row_idx: number;
+    data: Array<CellData>;
+};
+type SpreadUndoDeleteCol = {
+    type: SpreadUndoKind.DELETE_COL;
+    col_idx: number;
+    data: Array<CellData>;
+};
+type SpreadUndoRenameCol = {
+    type: SpreadUndoKind.RENAME_COL;
+    col_idx: number;
+    old_name: string;
+    new_name: string;
+};
+/*
+type SpreadUndoMoveCol = {
+    type: SpreadUndoKind.MOVE_COL;
+    from_col_idx: number;
+    to_col_idx: number;
+};
+type SpreadUndoMoveRow = {
+    type: SpreadUndoKind.MOVE_ROW;
+    from_row_idx: number;
+    to_col_idx: number;
+};
+*/
+type SpreadUndoAddRow = {
+    type: SpreadUndoKind.ADD_ROW;
+    row_idx: number;
+};
+type SpreadUndoAddCol = {
+    type: SpreadUndoKind.ADD_COL;
+    col_idx: number;
+};
+/*
+type SpreadUndoSort = {
+    type: SpreadUndoKind.SORT;
+    idxes: Array<number>;
+};
+
+*/
+
+type SpreadUndoMulti = {
+    type: SpreadUndoKind.MULTI;
+    undos: Array<SpreadUndoEvent>;
+};
+
+type SpreadUndoEditCells = {
+    type: SpreadUndoKind.EDIT_CELLS;
+    row_idx: Array<number>;
+    col_idx: Array<number>;
+    old_data: Array<CellData>;
+    new_data: Array<CellData>;
+};
+
+
+type SpreadUndoEvent = SpreadUndoMulti
+    | SpreadUndoDeleteRow
+    | SpreadUndoDeleteCol
+    | SpreadUndoRenameCol
+    /*
+    | SpreadUndoMoveCol
+    | SpreadUndoMoveRow
+    */
+    | SpreadUndoAddRow
+    | SpreadUndoAddCol
+    /*
+    | SpreadUndoSort
+    */
+    | SpreadUndoEditCells
+;
+
 
 type SpreadSheet = {
     // debug stuff
@@ -133,6 +222,9 @@ type SpreadSheet = {
     number_els: Array<HTMLDivElement>;
     header_number_el: HTMLDivElement;
     to_tsv:()=>string;
+
+    undo_stack: Array<SpreadUndoEvent>;
+    undo_position: number;
 }
 
 function setup_sheet_for_wasm(sheet:SpreadSheet):void{
@@ -334,18 +426,14 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         });
         menu.separator();
         if(result.flags & SpreadSheetFlags.IS_FUNCTION){
-            if(result.func_nargs != 4){
-                menu.item('Add Input', function():void{
-                    if(result.func_nargs >= 4) return;
-                    EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.FUNCTION_IO, result.id, result.func_nargs+1, result.func_outx, result.func_outy]);
-                });
-            }
-            if(result.func_nargs > 0){
-                menu.item('Remove Input', function():void{
-                    if(result.func_nargs <= 0) return;
-                    EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.FUNCTION_IO, result.id, result.func_nargs-1, result.func_outx, result.func_outy]);
-                });
-            }
+            menu.item('Add Input', function():void{
+                if(result.func_nargs >= 4) return;
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.FUNCTION_IO, result.id, result.func_nargs+1, result.func_outx, result.func_outy]);
+            }, result.func_nargs >= 4);
+            menu.item('Remove Input', function():void{
+                if(result.func_nargs <= 0) return;
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.FUNCTION_IO, result.id, result.func_nargs-1, result.func_outx, result.func_outy]);
+            }, result.func_nargs <= 0);
             menu.separator();
         }
         menu.checkbox('Row Numbers', !!(result.flags & SpreadSheetFlags.NUMBERED), (b:boolean)=>{
@@ -411,7 +499,6 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             a.click();
         });
         menu.separator();
-        if(!SHEET_TV.has_children(result.id))
         menu.item('Delete Spreadsheet', function():void{
             const diag = get_dialog('simple-delete');
             if(!diag) return;
@@ -421,9 +508,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                     EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE, result.id]);
             };
             diag.show();
-        });
-        else
-            menu.disabled('Delete Spreadsheet');
+        }, SHEET_TV.has_children(result.id));
     };
     win.show_handler = function():void{
         result.hidden = false;
@@ -478,7 +563,239 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             }
             return s;
         },
+        undo_stack: [],
+        undo_position: 0,
     } as any as SpreadSheet;
+    const enum UNDO_STACK {MAX= 10000, MAX_HALF=MAX/2};
+    function push_undo(u:SpreadUndoEvent):void{
+        result.undo_stack.length = result.undo_position;
+        result.undo_stack.push(u);
+        if(result.undo_stack.length > UNDO_STACK.MAX)
+            result.undo_stack = Array.from(result.undo_stack.slice(UNDO_STACK.MAX_HALF));
+        result.undo_position = result.undo_stack.length;
+    }
+    function may_undo(u:SpreadUndoEvent):boolean{
+        switch(u.type){
+            case SpreadUndoKind.EDIT_CELLS:{
+                const l = u.row_idx.length;
+                for(let i = 0; i < l; i++){
+                    const r = u.row_idx[i];
+                    const c = u.col_idx[i];
+                    const [text, name, flags] = u.new_data[i];
+                    if(r >= result.cell_sources.length)
+                        return false;
+                    if(c >= result.cell_sources[r].length)
+                        return false;
+                    if(text != result.cell_sources[r][c])
+                        return false;
+                    const extra = result.cell_extras[r][c];
+                    if(name != extra[0])
+                        return false;
+                    if(flags != extra[1])
+                        return false;
+                }
+                return true;
+            }break;
+            case SpreadUndoKind.DELETE_ROW:
+                return true;
+            case SpreadUndoKind.DELETE_COL:
+                return true;
+            case SpreadUndoKind.ADD_ROW:{
+                if(u.row_idx >= result.cell_sources.length)
+                    return false;
+                for(const t of result.cell_sources[u.row_idx])
+                    if(t.length) return false;
+                for(const e of result.cell_extras[u.row_idx])
+                    if(e[0].length || e[1]) return false;
+                return true;
+            }break;
+            case SpreadUndoKind.ADD_COL:{
+                if(!result.cell_sources.length) return false;
+                if(u.col_idx >= result.cell_sources[0].length) return false;
+                for(let r = 0; r < result.cell_sources.length; r++){
+                    const row = result.cell_sources[r];
+                    const e = result.cell_extras[r];
+                    if(row[u.col_idx].length) return false;
+                    if(e[u.col_idx][0].length || e[u.col_idx][1]) return false;
+                }
+                return true;
+            }break;
+            case SpreadUndoKind.RENAME_COL:{
+                if(u.col_idx >= result.headers.length) return false;
+                const h = result.headers[u.col_idx];
+                return h.textContent == u.new_name;
+            }break;
+            case SpreadUndoKind.MULTI:{
+                for(let i = u.undos.length; i--;)
+                    if(!may_undo(u.undos[i])) return false;
+                return true;
+            }break;
+        }
+    }
+    function apply_undo(u:SpreadUndoEvent):void{
+        switch(u.type){
+            case SpreadUndoKind.EDIT_CELLS:{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELLS, result.id, u.row_idx, u.col_idx, u.old_data]);
+            }break;
+            case SpreadUndoKind.DELETE_ROW:{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, u.row_idx]);
+                let r: Array<number> = [];
+                let c: Array<number> = [];
+                for(let i = 0; i < u.data.length; i++){
+                    c.push(i);
+                    r.push(u.row_idx);
+                }
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELLS, result.id, r, c, u.data]);
+            }break;
+            case SpreadUndoKind.DELETE_COL:{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, u.col_idx]);
+                let r: Array<number> = [];
+                let c: Array<number> = [];
+                for(let i = 0; i < u.data.length; i++){
+                    c.push(u.col_idx);
+                    r.push(i);
+                }
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELLS, result.id, r, c, u.data]);
+            }break;
+            case SpreadUndoKind.ADD_ROW:{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE_ROW, result.id, u.row_idx]);
+            }break;
+            case SpreadUndoKind.ADD_COL:{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE_COL, result.id, u.col_idx]);
+            }break;
+            case SpreadUndoKind.RENAME_COL:{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.RENAME_COL, result.id, u.col_idx, u.old_name]);
+            }break;
+            case SpreadUndoKind.MULTI:{
+                for(let i = u.undos.length; i--;)
+                    apply_undo(u.undos[i]);
+            }break;
+        }
+    }
+    function pop_undo():void{
+        if(!result.undo_position) return;
+        const u = result.undo_stack[result.undo_position-1];
+        console.log(u, may_undo(u));
+        if(may_undo(u)){
+            apply_undo(u);
+            result.undo_position--;
+        }
+    }
+    function may_redo(u:SpreadUndoEvent):boolean{
+        switch(u.type){
+            case SpreadUndoKind.EDIT_CELLS:{
+                const l = u.row_idx.length;
+                for(let i = 0; i < l; i++){
+                    const r = u.row_idx[i];
+                    const c = u.col_idx[i];
+                    const [text, name, flags] = u.old_data[i];
+                    if(r >= result.cell_sources.length)
+                        return false;
+                    if(c >= result.cell_sources[r].length)
+                        return false;
+                    if(text != result.cell_sources[r][c])
+                        return false;
+                    const extra = result.cell_extras[r][c];
+                    if(name != extra[0])
+                        return false;
+                    if(flags != extra[1])
+                        return false;
+                }
+                return true;
+            }break;
+            case SpreadUndoKind.DELETE_ROW:{
+                if(u.row_idx >= result.cell_sources.length) return false;
+                const row = result.cell_sources[u.row_idx];
+                const extra = result.cell_extras[u.row_idx];
+                if(row.length > u.data.length)
+                    return false;
+                if(row.length > u.data.length){
+                    // allow this if the extra are blank
+                    for(let i = u.data.length; i < row.length; i++){
+                        const r = row[i];
+                        const e = extra[i];
+                        if(r.length) return false;
+                        if(e[0].length) return false;
+                        if(e[1]) return false;
+                    }
+                }
+                for(let i = 0; i < row.length; i++){
+                    const r = row[i];
+                    const e = extra[i];
+                    const d = u.data[i];
+                    if(d[0] != r) return false;
+                    if(d[1] != e[0]) return false;
+                    if(d[2] != e[1]) return false;
+                }
+                return true;
+            }break;
+            case SpreadUndoKind.DELETE_COL:{
+                for(let row of result.cell_sources)
+                    if(u.col_idx >= row.length) return false;
+                if(result.cell_sources.length > u.data.length)
+                    return false;
+                for(let i = 0; i < result.cell_sources.length; i++){
+                    const row = result.cell_sources[i];
+                    const extra = result.cell_extras[i];
+                    const d = u.data[i];
+                    const r = row[u.col_idx];
+                    const e = extra[u.col_idx];
+                    if(d[0] != r) return false;
+                    if(d[1] != e[0]) return false;
+                    if(d[2] != e[1]) return false;
+                }
+                return true;
+            }break;
+            case SpreadUndoKind.ADD_ROW:
+                return true;
+            case SpreadUndoKind.ADD_COL:
+                return true;
+            case SpreadUndoKind.RENAME_COL:{
+                if(u.col_idx >= result.headers.length) return false;
+                const h = result.headers[u.col_idx];
+                return h.textContent == u.old_name;
+            }break;
+            case SpreadUndoKind.MULTI:{
+                for(const u_ of u.undos)
+                    if(!may_redo(u_)) return false;
+                return true;
+            }break;
+        }
+    }
+    function apply_redo(u:SpreadUndoEvent):void{
+        switch(u.type){
+            case SpreadUndoKind.EDIT_CELLS:{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELLS, result.id, u.row_idx, u.col_idx, u.new_data]);
+            }break;
+            case SpreadUndoKind.DELETE_ROW:{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE_ROW, result.id, u.row_idx]);
+            }break;
+            case SpreadUndoKind.DELETE_COL:{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE_COL, result.id, u.col_idx]);
+            }break;
+            case SpreadUndoKind.ADD_ROW:{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, u.row_idx]);
+            }break;
+            case SpreadUndoKind.ADD_COL:{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, u.col_idx]);
+            }break;
+            case SpreadUndoKind.RENAME_COL:{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.RENAME_COL, result.id, u.col_idx, u.new_name]);
+            }break;
+            case SpreadUndoKind.MULTI:{
+                for(const u_ of u.undos) apply_redo(u_);
+            }break;
+        }
+    }
+    function redo():void{
+        if(result.undo_position == result.undo_stack.length)
+            return;
+        const u = result.undo_stack[result.undo_position];
+        if(may_redo(u)){
+            apply_redo(u);
+            result.undo_position++;
+        }
+    }
     function recalc_me():void{
         if(result._dirty) return;
         result.mark_dirty();
@@ -510,15 +827,30 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         }
         if(result.flags & SpreadSheetFlags.CAN_ADD_COL){
             menu.item('Insert Column Left', function():void{
+                push_undo({type:SpreadUndoKind.ADD_COL, col_idx:col_idx});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, col_idx]);
             });
             menu.item('Insert Column Right',function():void{
+                push_undo({type:SpreadUndoKind.ADD_COL, col_idx:col_idx+1});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, col_idx+1]);
             });
             menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_DEL_COL){
             menu.item('Delete Column', function():void{
+                if(!result.cell_sources.length) return;
+                if(col_idx >= result.cell_sources[0].length) return;
+                const u: SpreadUndoDeleteCol = {
+                    type:SpreadUndoKind.DELETE_COL,
+                    col_idx: col_idx,
+                    data: [],
+                };
+                for(let r = 0; r < result.cell_sources.length; r++){
+                    const row = result.cell_sources[r];
+                    const extra = result.cell_extras[r];
+                    u.data.push([row[col_idx], extra[col_idx][0], extra[col_idx][1]]);
+                }
+                push_undo(u);
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE_COL, result.id, col_idx]);
             });
             menu.separator();
@@ -534,9 +866,11 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         }
         if(result.flags & SpreadSheetFlags.CAN_ADD_ROW){
             menu.item('Insert Row Top', function():void{
+                push_undo({type:SpreadUndoKind.ADD_ROW, row_idx:0});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, 0]);
             });
             menu.item('Insert Row Bottom', function():void{
+                push_undo({type:SpreadUndoKind.ADD_ROW, row_idx:result.cell_sources.length});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, result.cell_sources.length]);
             });
             menu.separator();
@@ -550,9 +884,11 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         const menu = ctx_menu(e);
         if(result.flags & SpreadSheetFlags.CAN_ADD_ROW){
             menu.item('Insert Row Above', function():void{
+                push_undo({type:SpreadUndoKind.ADD_ROW, row_idx:row_idx});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, row_idx]);
             });
             menu.item('Insert Row Below', function():void{
+                push_undo({type:SpreadUndoKind.ADD_ROW, row_idx:row_idx+1});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, row_idx+1]);
             });
             menu.separator();
@@ -568,6 +904,17 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         }
         if(result.flags & SpreadSheetFlags.CAN_DEL_ROW){
             menu.item('Delete Row', function():void{
+                if(row_idx >= result.cell_sources.length) return;
+                const u: SpreadUndoDeleteRow = {
+                    type:SpreadUndoKind.DELETE_ROW,
+                    row_idx: row_idx,
+                    data: [],
+                };
+                const row = result.cell_sources[row_idx];
+                const extra = result.cell_extras[row_idx];
+                for(let c = 0; c < row.length; c++)
+                    u.data.push([row[c], extra[c][0], extra[c][1]]);
+                push_undo(u);
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE_ROW, result.id, row_idx]);
             });
             menu.separator();
@@ -608,10 +955,12 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         const rows = [];
         const cols = [];
         const vals: Array<CellData> = [];
+        const oldvals: Array<CellData> = [];
         for(let r = result.r0; r <= result.r1; r++){
             for(let c = result.c0; c <= result.c1; c++){
                 rows.push(r);
                 cols.push(c);
+                oldvals.push([result.cell_sources[r][c], result.cell_extras[r][c][0], result.cell_extras[r][c][1]]);
                 vals.push([
                     result.cell_sources[r][c],
                     result.cell_extras[r][c][0],
@@ -620,6 +969,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             }
         }
         EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELLS, result.id, rows, cols, vals]);
+        push_undo({type:SpreadUndoKind.EDIT_CELLS, row_idx:rows, col_idx:cols, old_data:oldvals, new_data:vals});
     }
     function add_name_label(elem:HTMLDivElement, txt:string):void{
         elem.insertAdjacentElement('afterbegin', elem_with_text('span', txt));
@@ -629,6 +979,8 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         if(result.cell_names.has(lower)) return;
         const extra = result.cell_extras[row_idx][col_idx];
         const val: CellData = [result.cell_sources[row_idx][col_idx], txt, extra[1]];
+        const oldval: CellData = [result.cell_sources[row_idx][col_idx], extra[0], extra[1]];
+        push_undo({type:SpreadUndoKind.EDIT_CELLS, row_idx:[row_idx], col_idx:[col_idx], old_data:[oldval], new_data:[val]});
         EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELL, result.id, row_idx, col_idx, val]);
         return;
         extra[0] = txt;
@@ -640,7 +992,9 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
     function unname_cell(name:string, row_idx:number, col_idx:number):void{
         const extra = result.cell_extras[row_idx][col_idx];
         const val: CellData = [result.cell_sources[row_idx][col_idx], '', extra[1]];
+        const oldval: CellData = [result.cell_sources[row_idx][col_idx], extra[0], extra[1]];
         EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELL, result.id, row_idx, col_idx, val]);
+        push_undo({type:SpreadUndoKind.EDIT_CELLS, row_idx:[row_idx], col_idx:[col_idx], old_data:[oldval], new_data:[val]});
         return;
         SHEET_CTX.del_cell_name(result.id, extra[0]);
         result.cell_names.delete(extra[0].toLowerCase());
@@ -733,15 +1087,28 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         }
         if(result.flags & SpreadSheetFlags.CAN_ADD_ROW){
             menu.item('Insert Row Above', function():void{
+                push_undo({type:SpreadUndoKind.ADD_ROW, row_idx:row_idx});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, row_idx]);
             });
             menu.item('Insert Row Below', function():void{
+                push_undo({type:SpreadUndoKind.ADD_ROW, row_idx:row_idx+1});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, row_idx+1]);
             });
             menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_DEL_ROW){
             menu.item('Delete Row', function():void{
+                if(row_idx >= result.cell_sources.length) return;
+                const u: SpreadUndoDeleteRow = {
+                    type:SpreadUndoKind.DELETE_ROW,
+                    row_idx: row_idx,
+                    data: [],
+                };
+                const row = result.cell_sources[row_idx];
+                const extra = result.cell_extras[row_idx];
+                for(let c = 0; c < row.length; c++)
+                    u.data.push([row[c], extra[c][0], extra[c][1]]);
+                push_undo(u);
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE_ROW, result.id, row_idx]);
             });
             menu.separator();
@@ -757,15 +1124,30 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         }
         if(result.flags & SpreadSheetFlags.CAN_ADD_COL){
             menu.item('Insert Column Left', function():void{
+                push_undo({type:SpreadUndoKind.ADD_COL, col_idx:col_idx});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, col_idx]);
             });
             menu.item('Insert Column Right', function():void{
+                push_undo({type:SpreadUndoKind.ADD_COL, col_idx:col_idx+1});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, col_idx+1]);
             });
             menu.separator();
         }
         if(result.flags & SpreadSheetFlags.CAN_DEL_COL){
             menu.item('Delete Column', function():void{
+                if(!result.cell_sources.length) return;
+                if(col_idx >= result.cell_sources[0].length) return;
+                const u: SpreadUndoDeleteCol = {
+                    type:SpreadUndoKind.DELETE_COL,
+                    col_idx: col_idx,
+                    data: [],
+                };
+                for(let r = 0; r < result.cell_sources.length; r++){
+                    const row = result.cell_sources[r];
+                    const extra = result.cell_extras[r];
+                    u.data.push([row[col_idx], extra[col_idx][0], extra[col_idx][1]]);
+                }
+                push_undo(u);
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.DELETE_COL, result.id, col_idx]);
             });
             menu.separator();
@@ -912,10 +1294,14 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 e.stopPropagation();
                 e.preventDefault();
                 if(e.ctrlKey){
-                    if(e.shiftKey)
+                    if(e.shiftKey){
+                        push_undo({type:SpreadUndoKind.ADD_COL, col_idx:col_idx+1});
                         EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, col_idx+1]);
-                    else
+                    }
+                    else{
+                        push_undo({type:SpreadUndoKind.ADD_ROW, row_idx:row_idx+1});
                         EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, row_idx+1]);
+                    }
                     return;
                 }
                 if(e.shiftKey)
@@ -976,6 +1362,30 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                         e.stopPropagation();
                         e.preventDefault();
                         do_cell_flag(CellFlags.ITALIC);
+                        return;
+                    }
+                }
+            }
+            // fall-through
+            // @ts-ignore
+            case 'z':{
+                if(e.key == 'z'){
+                    if(((!IS_MAC && e.ctrlKey) || (IS_MAC && e.metaKey)) && !e.altKey){
+                        e.stopPropagation();
+                        e.preventDefault();
+                        pop_undo();
+                        return;
+                    }
+                }
+            }
+            // fall-through
+            // @ts-ignore
+            case 'y':{
+                if(e.key == 'y'){
+                    if(((!IS_MAC && e.ctrlKey) || (IS_MAC && e.metaKey)) && !e.altKey){
+                        e.stopPropagation();
+                        e.preventDefault();
+                        redo();
                         return;
                     }
                 }
@@ -1123,7 +1533,10 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 const extra = result.cell_extras[row_idx][col_idx];
                 // cell.textContent = v;
                 // result.cell_displays[row_idx][col_idx] = v;
-                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELL, result.id, row_idx, col_idx, [v, extra[0], extra[1]]]);
+                const oldval: CellData = [result.cell_sources[row_idx][col_idx], extra[0], extra[1]];
+                const newval: CellData = [v, extra[0], extra[1]];
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELL, result.id, row_idx, col_idx, newval]);
+                push_undo({type:SpreadUndoKind.EDIT_CELLS, row_idx:[row_idx], col_idx:[col_idx], old_data:[oldval], new_data:[newval]});
             }
         };
         inp.focus();
@@ -1171,6 +1584,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
     function do_delete():void{
         const rows = [];
         const cols = [];
+        const oldvals: Array<CellData> = [];
         const vals: Array<CellData> = [];
         let r0 = result.r0;
         let r1 = result.r1;
@@ -1190,10 +1604,13 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             for(let c = c0; c <= c1; c++){
                 cols.push(c);
                 rows.push(r);
+                const extra = result.cell_extras[r][c];
+                oldvals.push([result.cell_sources[r][c], extra[0], extra[1]]);
                 vals.push(['', '', CellFlags.NONE]);
             }
         }
         EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELLS, result.id, rows, cols, vals]);
+        push_undo({type:SpreadUndoKind.EDIT_CELLS, row_idx:rows, col_idx:cols, old_data:oldvals, new_data:vals});
     }
     function on_copy():void{
         do_copy();
@@ -1257,12 +1674,38 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         if(!navigator.clipboard.readText) {
             const [r, c, v] = paste_stuff(row_idx, col_idx, spreadsheet_fake_clipboard);
             check_bounds(r, c);
+            const ov: Array<CellData> = [];
+            for(let i = 0; i < r.length; i++){
+                let ro = r[i];
+                let co = c[i];
+                if(ro < result.cell_sources.length){
+                    if(co < result.cell_sources[ro].length){
+                        ov.push([result.cell_sources[ro][co], result.cell_extras[ro][co][0], result.cell_extras[ro][co][1]]);
+                        continue;
+                    }
+                }
+                ov.push(['', '', CellFlags.NONE]);
+            }
+            push_undo({type:SpreadUndoKind.EDIT_CELLS, row_idx:r, col_idx:c, old_data:ov, new_data:v});
             EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELLS, result.id, r, c, v]);
             return;
         }
         navigator.clipboard.readText().then((s)=>{
             const [r, c, v] = paste_stuff(row_idx, col_idx, s);
             check_bounds(r, c);
+            const ov: Array<CellData> = [];
+            for(let i = 0; i < r.length; i++){
+                let ro = r[i];
+                let co = c[i];
+                if(ro < result.cell_sources.length){
+                    if(co < result.cell_sources[ro].length){
+                        ov.push([result.cell_sources[ro][co], result.cell_extras[ro][co][0], result.cell_extras[ro][co][1]]);
+                        continue;
+                    }
+                }
+                ov.push(['', '', CellFlags.NONE]);
+            }
+            push_undo({type:SpreadUndoKind.EDIT_CELLS, row_idx:r, col_idx:c, old_data:ov, new_data:v});
             EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.EDIT_CELLS, result.id, r, c, v]);
         });
     }
@@ -1504,6 +1947,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             if(v != oldtxt){
                 cell.textContent = v?v:String.fromCharCode(65+col_idx);;
                 // const col_idx = result.headers.indexOf(cell);
+                push_undo({type:SpreadUndoKind.RENAME_COL, col_idx:col_idx, new_name:v, old_name:oldtxt});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.RENAME_COL, result.id, col_idx, v]);
             }
             else
@@ -1570,7 +2014,24 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                     }
                     if(idx + 1 < result.headers.length) result.headers[idx+1].focus();
                     break;
-                case 'Enter':
+                // @ts-ignore
+                case 'Enter':{
+                    if(e.ctrlKey){
+                        if(e.shiftKey){
+                            push_undo({type:SpreadUndoKind.ADD_COL, col_idx:idx+1});
+                            EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_COL, result.id, idx+1]);
+                        }
+                        else {
+                            push_undo({type:SpreadUndoKind.ADD_ROW, row_idx:0});
+                            EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.ADD_ROW, result.id, 0]);
+                        }
+                        break;
+                    }
+                    else if(e.shiftKey){
+                        if(idx + 1 < result.headers.length) result.headers[idx+1].focus();
+                        break;
+                    }
+                }
                 case 'ArrowDown':
                     if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
                         break;
@@ -1581,6 +2042,30 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 case 'Shift':
                 case 'ArrowUp':
                     break
+                // fall-through
+                // @ts-ignore
+                case 'z':{
+                    if(e.key == 'z'){
+                        if(((!IS_MAC && e.ctrlKey) || (IS_MAC && e.metaKey)) && !e.altKey){
+                            e.stopPropagation();
+                            e.preventDefault();
+                            pop_undo();
+                            return;
+                        }
+                    }
+                }
+                // fall-through
+                // @ts-ignore
+                case 'y':{
+                    if(e.key == 'y'){
+                        if(((!IS_MAC && e.ctrlKey) || (IS_MAC && e.metaKey)) && !e.altKey){
+                            e.stopPropagation();
+                            e.preventDefault();
+                            redo();
+                            return;
+                        }
+                    }
+                }
                 default:
                     if(IS_MAC){
                         if(e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey){
