@@ -73,11 +73,9 @@ const enum SpreadUndoKind {
     EDIT_CELLS = 3,
     ADD_ROW = 4,
     ADD_COL = 5,
-    /*
     SORT = 6,
     MOVE_COL = 7,
     MOVE_ROW = 8,
-    */
     MULTI = 9,
 };
 
@@ -97,7 +95,6 @@ type SpreadUndoRenameCol = {
     old_name: string;
     new_name: string;
 };
-/*
 type SpreadUndoMoveCol = {
     type: SpreadUndoKind.MOVE_COL;
     from_col_idx: number;
@@ -106,9 +103,8 @@ type SpreadUndoMoveCol = {
 type SpreadUndoMoveRow = {
     type: SpreadUndoKind.MOVE_ROW;
     from_row_idx: number;
-    to_col_idx: number;
+    to_row_idx: number;
 };
-*/
 type SpreadUndoAddRow = {
     type: SpreadUndoKind.ADD_ROW;
     row_idx: number;
@@ -117,13 +113,10 @@ type SpreadUndoAddCol = {
     type: SpreadUndoKind.ADD_COL;
     col_idx: number;
 };
-/*
 type SpreadUndoSort = {
     type: SpreadUndoKind.SORT;
     idxes: Array<number>;
 };
-
-*/
 
 type SpreadUndoMulti = {
     type: SpreadUndoKind.MULTI;
@@ -143,15 +136,11 @@ type SpreadUndoEvent = SpreadUndoMulti
     | SpreadUndoDeleteRow
     | SpreadUndoDeleteCol
     | SpreadUndoRenameCol
-    /*
     | SpreadUndoMoveCol
     | SpreadUndoMoveRow
-    */
     | SpreadUndoAddRow
     | SpreadUndoAddCol
-    /*
     | SpreadUndoSort
-    */
     | SpreadUndoEditCells
 ;
 
@@ -425,6 +414,13 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.SHOW, result.id]);
         });
         menu.separator();
+        menu.item('Undo', function():void{
+            pop_undo();
+        }, !result.undo_position || !may_undo(result.undo_stack[result.undo_position-1]));
+        menu.item('Redo', function():void{
+            redo();
+        }, result.undo_position == result.undo_stack.length || !may_redo(result.undo_stack[result.undo_position]));
+        menu.separator();
         if(result.flags & SpreadSheetFlags.IS_FUNCTION){
             menu.item('Add Input', function():void{
                 if(result.func_nargs >= 4) return;
@@ -625,6 +621,17 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 const h = result.headers[u.col_idx];
                 return h.textContent == u.new_name;
             }break;
+            case SpreadUndoKind.MOVE_COL:{
+                // TODO
+                return true;
+            }break;
+            case SpreadUndoKind.MOVE_ROW:{
+                // TODO
+                return true;
+            }break;
+            case SpreadUndoKind.SORT:{
+                return u.idxes.length == result.cell_sources.length;
+            }break;
             case SpreadUndoKind.MULTI:{
                 for(let i = u.undos.length; i--;)
                     if(!may_undo(u.undos[i])) return false;
@@ -666,6 +673,20 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             case SpreadUndoKind.RENAME_COL:{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.RENAME_COL, result.id, u.col_idx, u.old_name]);
             }break;
+            case SpreadUndoKind.MOVE_COL:{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, u.to_col_idx, u.from_col_idx]);
+            }break;
+            case SpreadUndoKind.MOVE_ROW:{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, u.to_row_idx, u.from_row_idx]);
+            }break;
+            case SpreadUndoKind.SORT:{
+                const idxes = [];
+                for(let i = 0; i < u.idxes.length; i++)
+                    idxes.push(i);
+                for(let i = 0; i < u.idxes.length; i++)
+                    idxes[u.idxes[i]] = i;
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.SORT, result.id, idxes]);
+            }break;
             case SpreadUndoKind.MULTI:{
                 for(let i = u.undos.length; i--;)
                     apply_undo(u.undos[i]);
@@ -675,7 +696,6 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
     function pop_undo():void{
         if(!result.undo_position) return;
         const u = result.undo_stack[result.undo_position-1];
-        console.log(u, may_undo(u));
         if(may_undo(u)){
             apply_undo(u);
             result.undo_position--;
@@ -755,6 +775,17 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                 const h = result.headers[u.col_idx];
                 return h.textContent == u.old_name;
             }break;
+            case SpreadUndoKind.MOVE_COL:{
+                // TODO
+                return true;
+            }break;
+            case SpreadUndoKind.MOVE_ROW:{
+                // TODO
+                return true;
+            }break;
+            case SpreadUndoKind.SORT:{
+                return u.idxes.length == result.cell_sources.length;
+            }break;
             case SpreadUndoKind.MULTI:{
                 for(const u_ of u.undos)
                     if(!may_redo(u_)) return false;
@@ -781,6 +812,15 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             }break;
             case SpreadUndoKind.RENAME_COL:{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.RENAME_COL, result.id, u.col_idx, u.new_name]);
+            }break;
+            case SpreadUndoKind.MOVE_COL:{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, u.from_col_idx, u.to_col_idx]);
+            }break;
+            case SpreadUndoKind.MOVE_ROW:{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, u.from_row_idx, u.to_row_idx]);
+            }break;
+            case SpreadUndoKind.SORT:{
+                EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.SORT, result.id, u.idxes]);
             }break;
             case SpreadUndoKind.MULTI:{
                 for(const u_ of u.undos) apply_redo(u_);
@@ -857,9 +897,11 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         }
         if(result.flags & SpreadSheetFlags.CAN_MOVE_COLUMNS){
             menu.item('Move Column Left', function():void{
+                push_undo({type:SpreadUndoKind.MOVE_COL, from_col_idx: col_idx, to_col_idx:col_idx-1});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx-1]);
             });
             menu.item('Move Column Right', function():void{
+                push_undo({type:SpreadUndoKind.MOVE_COL, from_col_idx: col_idx, to_col_idx:col_idx+1});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx+1]);
             });
             menu.separator();
@@ -895,9 +937,11 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         }
         if(result.flags & SpreadSheetFlags.CAN_MOVE_ROWS){
             menu.item('Move Row Up', function():void{
+                push_undo({type:SpreadUndoKind.MOVE_ROW, from_row_idx: row_idx, to_row_idx:row_idx-1});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, row_idx, row_idx-1]);
             });
             menu.item('Move Row Down', function():void{
+                push_undo({type:SpreadUndoKind.MOVE_ROW, from_row_idx: row_idx, to_row_idx:row_idx+1});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, row_idx, row_idx+1]);
             });
             menu.separator();
@@ -1115,9 +1159,11 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         }
         if(result.flags & SpreadSheetFlags.CAN_MOVE_ROWS){
             menu.item('Move Row Up', function():void{
+                push_undo({type:SpreadUndoKind.MOVE_ROW, from_row_idx: row_idx, to_row_idx:row_idx-1});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, row_idx, row_idx-1]);
             });
             menu.item('Move Row Down', function():void{
+                push_undo({type:SpreadUndoKind.MOVE_ROW, from_row_idx: row_idx, to_row_idx:row_idx+1});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, row_idx, row_idx+1]);
             });
             menu.separator();
@@ -1154,9 +1200,11 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         }
         if(result.flags & SpreadSheetFlags.CAN_MOVE_COLUMNS){
             menu.item('Move Column Left', function():void{
+                push_undo({type:SpreadUndoKind.MOVE_COL, from_col_idx: col_idx, to_col_idx:col_idx-1});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx-1]);
             });
             menu.item('Move Column Right', function():void{
+                push_undo({type:SpreadUndoKind.MOVE_COL, from_col_idx: col_idx, to_col_idx:col_idx+1});
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx+1]);
             });
             menu.separator();
@@ -1247,6 +1295,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             case 'ArrowLeft': {
                 if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
                     e.stopPropagation();
+                    push_undo({type:SpreadUndoKind.MOVE_COL, from_col_idx: col_idx, to_col_idx:col_idx-1});
                     EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx-1]);
                     return;
                 }
@@ -1255,6 +1304,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             case 'ArrowRight': {
                 if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
                     e.stopPropagation();
+                    push_undo({type:SpreadUndoKind.MOVE_COL, from_col_idx: col_idx, to_col_idx:col_idx+1});
                     EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, col_idx, col_idx+1]);
                     return;
                 }
@@ -1263,6 +1313,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             case 'ArrowUp': {
                 if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
                     e.stopPropagation();
+                    push_undo({type:SpreadUndoKind.MOVE_ROW, from_row_idx: row_idx, to_row_idx:row_idx-1});
                     EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, row_idx, row_idx-1]);
                     return;
                 }
@@ -1271,6 +1322,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             case 'ArrowDown': {
                 if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
                     e.stopPropagation();
+                    push_undo({type:SpreadUndoKind.MOVE_ROW, from_row_idx: row_idx, to_row_idx:row_idx+1});
                     EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_ROW, result.id, row_idx, row_idx+1]);
                     return;
                 }
@@ -1998,6 +2050,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             switch(e.key){
                 case 'ArrowLeft':
                     if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
+                        push_undo({type:SpreadUndoKind.MOVE_COL, from_col_idx:idx, to_col_idx:idx-1});
                         EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, idx, idx-1]);
                         // result.move_column(idx, idx-1);
                         // cell.focus();
@@ -2007,6 +2060,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
                     break;
                 case 'ArrowRight':
                     if(e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey){
+                        push_undo({type:SpreadUndoKind.MOVE_COL, from_col_idx:idx, to_col_idx:idx+1});
                         EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.MOVE_COL, result.id, idx, idx+1]);
                         // result.move_column(idx, idx+1);
                         // cell.focus();
@@ -2133,7 +2187,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
     };
     const comparator = Intl.Collator(undefined, {numeric:true});
     result.sort = function(col_idx:number, direction: number):void{
-        const sorted = [];
+        const sorted:Array<number> = [];
         for(let i = 0; i < result.cell_elems.length; i++){
             sorted.push(i);
         }
@@ -2155,6 +2209,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             break;
         }
         if(!did_sort) return;
+        push_undo({type:SpreadUndoKind.SORT, idxes:sorted});
         EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.SORT, result.id, sorted]);
     };
     result.apply_sort = function(sorted:Array<number>):void{
@@ -2460,6 +2515,29 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         sheet_dewasm(result);
         recalc_me();
     };
+    result.win.win.addEventListener('keydown', function(e:KeyboardEvent):void{
+        if(IS_MAC){
+            if(!e.metaKey) return;
+            if(e.ctrlKey || e.shiftKey || e.altKey) return;
+        }
+        else {
+            if(!e.ctrlKey) return;
+            if(e.metaKey || e.shiftKey || e.altKey) return;
+        }
+        switch(e.key){
+            case 'z':
+                e.preventDefault();
+                e.stopPropagation();
+                pop_undo();
+                return;
+            case 'y':
+                e.preventDefault();
+                e.stopPropagation();
+                redo();
+                return;
+        }
+    });
+    result.win.win.tabIndex = 0;
     grid.style.gridTemplateRows = gtr();
     grid.style.gridTemplateColumns = gtc();
     win.t.textContent = (result.flags & SpreadSheetFlags.IS_FUNCTION)?`Function — ${name}` : name;
