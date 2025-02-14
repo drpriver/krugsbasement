@@ -1,6 +1,7 @@
 Changelog::kv
   created: 2025-01-28T00:33:05Z
   updated: 2025-02-02T06:47:27Z
+  updated: 2025-02-13T23:08:22Z
 Created Jan 27, 2025, 04:33PM::md .update
 Summary::md .summary
   Add a way to have in-client stat blocks with associated stats, macros,
@@ -8,3 +9,6 @@ Summary::md .summary
 
 Updated Feb 01, 2025, 10:47PM::md .update
   Implemented, but it’s not synced to the server yet.
+
+Updated Feb 13, 2025, 03:08PM::md .update
+  Might actually want this to be more general purpose document format.
