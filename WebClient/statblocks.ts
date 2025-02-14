@@ -37,7 +37,7 @@ function sb_populate(container:HTMLDivElement, block:StatBlock):void{
         w.win.win.style.top = (e.clientY)+'px';
         ensure_window_is_completely_on_screen(w.win.win);
     }
-    const lightpop = elem_parent_text(container, 'button', 'Thin Window');
+    const lightpop = elem_parent_text(container, 'button', 'Window w/o MD');
     lightpop.onclick = function(e):void{
         e.stopPropagation();
         let b = structuredClone(block);
