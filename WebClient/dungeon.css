@@ -1255,6 +1255,7 @@ body.mobile .notes-window {
 .tracker-grid {
   display: grid;
   max-width: 90vw;
+  max-height: 90vh;
   overflow-x: auto;
   overflow-y: auto;
 }
