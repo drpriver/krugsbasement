@@ -860,7 +860,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
                 }
                 if(t.kind == TokenKind.SPACE)
                     continue;
-                items.push(t.text);
+                items.push(...t.text.split(/\s+/));
             }
             if(item)
                 items.push(item);
