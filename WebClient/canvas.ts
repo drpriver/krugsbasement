@@ -7636,7 +7636,12 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
         let start_scale = 1.0;
         let start_x = 0;
         let start_y = 0;
-        the_canvas.addEventListener('gesturestart', function(e:any):void{
+        interface GestureEvent extends Event {
+            readonly rotation: number;
+            readonly scale: number;
+        }
+        // @ts-ignore
+        the_canvas.addEventListener('gesturestart', function(e:GestureEvent):void{
             e.stopPropagation();
             e.preventDefault();
             if(stop_pan) stop_pan();
@@ -7646,17 +7651,18 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             start_y = view.camera_y;
             gesturing = true;
         });
-        the_canvas.addEventListener('gesturechange', function(e:any):void{
+        // @ts-ignore
+        the_canvas.addEventListener('gesturechange', function(e:GestureEvent):void{
             e.stopPropagation();
             e.preventDefault();
             if(stop_pan) stop_pan();
             const view = get_view(which_canv);
             view.scale = start_scale * e.scale;
             view.scale = clamp_scale(view.scale);
-            let cx = start_x - the_canvas.width/2/start_scale;
-            let cy = start_y - the_canvas.height/2/start_scale;
-            cx += the_canvas.width/2/view.scale;
-            cy += the_canvas.height/2/view.scale;
+            let cx = start_x - the_canvas.width/window.devicePixelRatio/2/start_scale;
+            let cy = start_y - the_canvas.height/window.devicePixelRatio/2/start_scale;
+            cx += the_canvas.width/window.devicePixelRatio/2/view.scale;
+            cy += the_canvas.height/window.devicePixelRatio/2/view.scale;
             // cx = Math.round(cx);
             // cy = Math.round(cy);
             view.camera_x = cx;
@@ -7664,7 +7670,8 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
 
             canvas_request_render();
         });
-        the_canvas.addEventListener('gestureend', function(e:any):void{
+        // @ts-ignore
+        the_canvas.addEventListener('gestureend', function(e:GestureEvent):void{
             e.stopPropagation();
             e.preventDefault();
             gesturing = false;
