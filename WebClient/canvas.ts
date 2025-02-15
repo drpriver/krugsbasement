@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         menu.item('Configure', function():void{
             edit_map_dialog(MAPS.get(map_id)!);
         });
-        menu.item('Show Right', function():void{
+        menu.item('Show Split', function():void{
             if(canv2_is_hidden) canv2_is_hidden = false;
             resize_canvas();
             change_map(WhichSplit.RIGHT, map_id);
