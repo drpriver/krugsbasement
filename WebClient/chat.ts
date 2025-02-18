@@ -5,36 +5,30 @@
 // Where should this go?
 function evaluate(text:string, character_id:number, macro_id:number, outarray:Array<Command>):string{
     let [ns, vars] = get_script_variables(character_id, macro_id);
-    try{
-        let result = evaluate_script(text, vars, ns, sheetname_to_id(get_active_char_name()));
-        if(result.length > 25)
-            return "Your command results in too much output. Do less.";
-        for(let c of result) outarray.push(c);
-    }catch(e){
-        return ""+e;
-    }
+    let result = evaluate_script(text, vars, ns, sheetname_to_id(get_active_char_name()));
+    if(typeof result == 'string')
+        return result;
+    if(result.length > 25)
+        return "Your command results in too much output. Do less.";
+    for(let c of result) outarray.push(c);
     return "";
 }
 function evaluate2(text:string, sheet_id:number, outarray:Array<Command>):string{
-    try{
-        let result = evaluate_script(text, new Map(), new Map(), sheet_id);
-        if(result.length > 25)
-            return "Your command results in too much output. Do less.";
-        for(let c of result) outarray.push(c);
-    }catch(e){
-        return ""+e;
-    }
+    let result = evaluate_script(text, new Map(), new Map(), sheet_id);
+    if(typeof result == 'string')
+        return result;
+    if(result.length > 25)
+        return "Your command results in too much output. Do less.";
+    for(let c of result) outarray.push(c);
     return "";
 }
 function evaluate3(text:string, vars: Map<string, string>, outarray:Array<Command>):string{
-    try{
-        let result = evaluate_script(text, vars, new Map(), SHEET.NULL);
-        if(result.length > 25)
-            return "Your command results in too much output. Do less.";
-        for(let c of result) outarray.push(c);
-    }catch(e){
-        return ""+e;
-    }
+    let result = evaluate_script(text, vars, new Map(), SHEET.NULL);
+    if(typeof result == 'string')
+        return result;
+    if(result.length > 25)
+        return "Your command results in too much output. Do less.";
+    for(let c of result) outarray.push(c);
     return "";
 }
 

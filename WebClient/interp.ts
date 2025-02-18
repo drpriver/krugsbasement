@@ -6,7 +6,7 @@
 // Definitions for Binary and Unary are shared between
 // client and server and so are in the shared types.
 //
-const evaluate_script = (function():(text:string, vars:Map<string, number|string>, namespaces:Map<string, Map<string,number|string>>, sheetid:number)=>Array<Command>{
+const evaluate_script = (function():(text:string, vars:Map<string, number|string>, namespaces:Map<string, Map<string,number|string>>, sheetid:number)=>Array<Command>|string{
     const enum TokenKind {
         // 0 is reserved for "not a token"
         IDENT    =  1,
@@ -605,6 +605,9 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
         if(!tokens) return null;
         return tokens;
     }
+
+    // This is an ugly hack, we should just return the error, but whatever.
+    let current_err_mess = '';
 
     function eval_dice(dice: UnrolledDiceExpr|null): number | null{
         if(dice == null) return null;
@@ -1225,19 +1228,27 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
             }
             case EXPR.IDENT:{
                 let key = expr.ident;
-                if(visited.has(key)) return null;
+                if(visited.has(key)) {
+                    current_err_mess = `Recursive variable: '${key}'`;
+                    return null;
+                }
                 visited.add(key);
                 let toks = lookup(expr.ident, vars);
                 if(!toks){
                     // try to eval it as a cell reference
                     let v = spread_eval_string(sheetid, expr.ident);
-                    if(v === null)
+                    if(v === null){
+                        current_err_mess = `Failed to evaluate '${expr.ident}' as cell reference or variable.`;
                         return null;
+                    }
                     if(typeof v !== 'string') return [DieExprTypes.NUMBER, v];
                     // return null;
                     const tokens = tokenize(v);
                     const subexpr = parse_expression(tokens);
-                    if(!subexpr) return null;
+                    if(!subexpr){
+                        current_err_mess = `Failure to parse '${tokens}' as expression`;
+                        return null;
+                    }
                     return expand_dice(subexpr, namespaces, vars, sheetid, muldiv, visited);
                 }
                 let e = parse_expression(toks);
@@ -1246,12 +1257,21 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
             }
             case EXPR.DOTTED_IDENT:{
                 let key = expr.namespace+'.'+expr.ident;
-                if(visited.has(key)) return null;
+                if(visited.has(key)){
+                    current_err_mess = `Recursive variable: '${key}'`;
+                    return null;
+                }
                 visited.add(key);
                 let toks = lookup_ns(expr.namespace, expr.ident, namespaces);
-                if(!toks) return null;
+                if(!toks){
+                    current_err_mess = `Failed to lookup '${key}'`;
+                    return null;
+                }
                 let e = parse_expression(toks);
-                if(!e) return null;
+                if(!e){
+                    current_err_mess = `Failure to parse '${toks}' as expression`;
+                    return null;
+                }
                 return expand_dice(e, namespaces, vars, sheetid, muldiv, visited);
             }
             case EXPR.NGROUP:{
@@ -1264,11 +1284,17 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
                 let argtoks = tokenize(arg);
                 let s = simple_expand_token(argtoks, vars, 1);
                 let v = spread_eval_string(sheetid, s);
-                if(v === null) return null;
+                if(v === null) {
+                    current_err_mess = `Failed to evaluate [${s}] as cell formula.`;
+                    return null;
+                }
                 if(typeof v !== 'string') return [DieExprTypes.NUMBER, v];
                 const tokens = tokenize(v);
                 const subexpr = parse_expression(tokens);
-                if(!subexpr) return null;
+                if(!subexpr){
+                    current_err_mess = `Failure to parse '${tokens}' as expression`;
+                    return null;
+                }
                 return expand_dice(subexpr, namespaces, vars, sheetid, muldiv, visited);
             }
         }
@@ -1330,10 +1356,10 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
             case StatementKind.ROLL:{
                 let unrolled = expand_dice(statement.expr, namespaces, vars, sheetid, false, new Set());
                 if(!unrolled){
-                    let mess = "Failed to expand a variable in '";
+                    let mess = "Error in '";
                     for(let tok of statement.contents)
                         mess += tok.text;
-                    mess += "'";
+                    mess += "': " + current_err_mess;
                     return mess;
                 }
                 outcommands.push([ChatCommand.ROLL, stringify_unrolled_dice(unrolled), unrolled]);
@@ -1349,7 +1375,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
             case StatementKind.IF:{
                 let cond = eval_expr(statement.test, namespaces, vars, sheetid);
                 if(cond === null){
-                    return "Failed to evaluate in if statement.";
+                    return "Errorl in if statement: " + current_err_mess;
                 }
                 if(cond){
                     let e = interpret(statement.iftrue, namespaces, vars, sheetid, outcommands);
@@ -1376,7 +1402,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
             case StatementKind.REPEAT:{
                 let n = eval_expr(statement.expr, namespaces, vars, sheetid);
                 if(n === null){
-                    return "Failed to evaluate repeat statement times.";
+                    return "Error in repeat statement: " + current_err_mess;
                 }
                 for(let i = 0; i < n; i++){
                     let e = interpret(statement.block, namespaces, vars, sheetid, outcommands);
@@ -1411,21 +1437,22 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
         }
     }
 
-    function really_eval_script(text:string, namespaces:Map<string, NameSpace>, vars:NameSpace, sheetid:number):Array<Command>{
+    function really_eval_script(text:string, namespaces:Map<string, NameSpace>, vars:NameSpace, sheetid:number):Array<Command>|string{
         // const before = performance.now();
         let outlines: Array<Command> = [];
         let glob = make_block(null, -1);
         let tokens = tokenize(text);
         let err = parse(tokens, glob);
-        if(err !== null) throw new Error(err);
+        if(err !== null) return err;
         let err2 = interpret(glob, namespaces, vars, sheetid, outlines);
-        if(err2.length) throw new Error(err2);
+        if(err2.length) return err2;
         // const after = performance.now();
         // outlines.push(`Parsing took: ${after-before}ms`);
         return outlines;
     }
 
-    function eval_script(text:string, vars:Map<string, number|string>, namespaces:Map<string, Map<string,number|string>>, sheetid:number): Array<Command> {
+    function eval_script(text:string, vars:Map<string, number|string>, namespaces:Map<string, Map<string,number|string>>, sheetid:number): Array<Command>|string {
+        current_err_mess = '';
         let newvars: Map<string, Array<Token>> = new Map();
         for(const[k, v] of vars.entries()){
             if(typeof v == 'string'){
