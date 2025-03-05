@@ -1,10 +1,11 @@
 //
-// Copyright © 2023-2024, David Priver <david@davidpriver.com>
+// Copyright © 2023-2025, David Priver <david@davidpriver.com>
 //
 const enum DrspResultKind {
     NULL   = 0, // Empty Cell
     NUMBER = 1,
     STRING = 2,
+    ERROR = 3,
 }
 const enum DrspSheetFlags {
     NONE = 0x0,
@@ -64,7 +65,7 @@ function drspread(
     wasm_path:string,
     sheet_set_display_number:(id:number, row:number, col:number, val:number)=>void,
     sheet_set_display_string_:(id:number, row:number, col:number, s:string)=>void,
-    sheet_set_display_error:(id:number, row:number, col:number)=>void,
+    sheet_set_display_error:(id:number, row:number, col:number, s:string)=>void,
 ):Promise<{
     make_ctx: () => DrSpreadCtx;
     exports: DrSpreadExports;
@@ -120,7 +121,10 @@ const imports = {
             const s = wasm_string_to_js(p, len);
             sheet_set_display_string_(id, row, col, s);
         },
-        sheet_set_display_error,
+        sheet_set_display_error: function(id:number, row:number, col:number, p:number, len:number):void{
+            const s = wasm_string_to_js(p, len);
+            sheet_set_display_error(id, row, col, s);
+        },
     },
 };
 
@@ -147,13 +151,14 @@ return fetch(wasm_path)
                     const encoded = encoder.encode(s);
                     mem.set(encoded, exports.wasm_str_buff.value);
                     const err = exports.drsp_evaluate_string(ctx, sheet, exports.wasm_str_buff.value, encoded.length, exports.wasm_result.value, -1, -1);
-                    if(err) return "error";
-                    const kind = read4(exports.wasm_result.value);
+                    const kind = err? DrspResultKind.ERROR: read4(exports.wasm_result.value);
                     let v: string|number = "error";
                     switch(kind){
                         case DrspResultKind.NULL:   v = ""; break;
                         case DrspResultKind.NUMBER: v = readdouble(exports.wasm_result.value+8); break;
                         case DrspResultKind.STRING: v =  wasm_string_to_js(read4(exports.wasm_result.value+12), read4(exports.wasm_result.value+8)); break;
+                        case DrspResultKind.ERROR: v += ": " + wasm_string_to_js(read4(exports.wasm_result.value+12), read4(exports.wasm_result.value+8));
+                        break;
                         default: break;
                     }
                     return v;

@@ -1307,6 +1307,10 @@ body.dark-mode .tracker-head{
   padding-right: 1ch;
 }
 
+.tracker-cell.error {
+  color: red;
+}
+
 .tracker-cell.parameter {
   border: 3px solid #54f461;
 }

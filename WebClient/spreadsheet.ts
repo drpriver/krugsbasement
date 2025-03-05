@@ -278,10 +278,10 @@ function sheet_display_string(id:number, row:number, col:number, sval:string):vo
     // console.log({row, col, sval});
     sheet.set_display(row, col, sval);
 }
-function sheet_display_error(id:number, row:number, col:number):void{
+function sheet_display_error(id:number, row:number, col:number, s:string):void{
     const sheet = SPREADSHEETS.get(id);
     if(!sheet) return;
-    sheet.set_display(row, col, "#ERROR");
+    sheet.set_display(row, col, 'Error: '+s);
 }
 
 function fully_qualified_sheet_name(s:SpreadSheet):string{
@@ -2473,11 +2473,17 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
         recalc_me();
     };
     result.set_display = function(row_idx:number, col_idx:number, val:string):void {
+        const is_error = val.startsWith('Error:');
         const r = result.cell_displays[row_idx];
         const old = r[col_idx];
         if(val == old) return;
         const extra = result.cell_extras[row_idx][col_idx];
-        result.cell_elems[row_idx][col_idx].textContent = val;
+        const c = result.cell_elems[row_idx][col_idx];
+        c.textContent = val;
+        if(is_error)
+            c.classList.add('error');
+        else
+            c.classList.remove('error');
         if(extra[0])
             add_name_label(result.cell_elems[row_idx][col_idx], extra[0]);
         r[col_idx] = val;
