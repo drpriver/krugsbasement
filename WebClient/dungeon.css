@@ -1642,10 +1642,11 @@ body.dark-mode .bold {
   display: grid;
   grid-template-rows: max-content auto;
   grid-template-columns: 8ch auto;
-  height: 95vh;
+  height: 100%;
   width: 100%;
   padding-left: 8px;
   padding-right: 8px;
+  overflow: hidden;
 }
 
 #cal-year-selector {
@@ -1813,7 +1814,8 @@ body.dark-mode .clock-event.past {
   grid-template-rows: auto;
   column-gap: 1em;
   /*height: 100%;*/
-  height: calc(100% - 32px);
+  /*height: calc(100% - 32px);*/
+  overflow: hidden;
 }
 #sbw-search {
   overflow-x: hidden;
@@ -1833,7 +1835,7 @@ body.dark-mode #sbw-filter-list li:hover {
 
 #sbw-container > div {
   overflow-y: scroll;
-  /*height: 100%;*/
+  /*height: 90%;*/
 }
 #sbw-container>:first-child {
   min-width: 12ch;

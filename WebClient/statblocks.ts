@@ -4,6 +4,54 @@
 
 const statblocks: Map<number, StatBlock> = new Map();
 
+let db: IDBDatabase;
+(function(){
+    const dbo = window.indexedDB.open('statblocks', 7);
+    dbo.onerror = function(e: Event):void {
+        console.log(e);
+    };
+    dbo.onsuccess = function(e:Event):void {
+        db = dbo.result;
+        load_statblocks();
+    };
+    dbo.onupgradeneeded = function(e:IDBVersionChangeEvent):void{
+        db = (e.target as any).result;
+        db.deleteObjectStore('statblocks');
+        const store = db.createObjectStore('statblocks', { keyPath: 'key' });
+        void store;
+    };
+}());
+function load_statblocks():void {
+    if(!db) return;
+    const store = db.transaction('statblocks').objectStore('statblocks');
+    let first = true;
+    statblocks.clear();
+    store.openCursor().onsuccess = function(e: Event):void{
+        const cursor: IDBCursorWithValue = (e as any).target.result;
+        if(!cursor){
+            return;
+        }
+        const {key, data} = cursor.value;
+        statblocks.set(key, data);
+        if(STATS_TV){
+            STATS_TV.add_item(data[1], data[0], null);
+            // @ts-ignore
+            if(first) STATS_TV.on_click!(1, undefined);
+            first = false;
+        }
+        cursor.continue();
+    };
+}
+function save_statblocks():void {
+    if(!db) return;
+    const tran = db.transaction('statblocks', 'readwrite');
+    const store = tran.objectStore('statblocks');
+    store.clear();
+    for(let sb of statblocks.values())
+        store.put({key:sb[0], data:sb});
+    tran.commit();
+}
+
 function use_sb_macro(block:StatBlock, macro: StatMacro):void{
     let vars: Map<string, string> = new Map();
     for(let content of block[2]){
@@ -385,7 +433,13 @@ function get_sbw(): Win{
             sb_file_upload(inp);
         }
         _sbw.wh_ctxmenu_handler = function(menu:CtxMenu):void{
-            menu.item('Upload', function(){ (sb_el.firstChild as any).click(); });
+            menu.item('Upload', function(){
+                const inp = elem('input');
+                inp.type = 'file';
+                inp.accept = '.json';
+                sb_file_upload(inp);
+                inp.click();
+            });
         }
     }
     return _sbw;
@@ -412,6 +466,7 @@ function sb_file_upload(inp:HTMLInputElement):void{
                 // @ts-ignore
                 if(sb[0] == 1) STATS_TV.on_click!(1, undefined);
             }
+            save_statblocks();
         });
     };
 }
