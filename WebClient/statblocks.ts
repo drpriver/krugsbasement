@@ -16,7 +16,7 @@ let db: IDBDatabase;
     };
     dbo.onupgradeneeded = function(e:IDBVersionChangeEvent):void{
         db = (e.target as any).result;
-        db.deleteObjectStore('statblocks');
+        try{ db.deleteObjectStore('statblocks'); } catch(err){ }
         const store = db.createObjectStore('statblocks', { keyPath: 'key' });
         void store;
     };
