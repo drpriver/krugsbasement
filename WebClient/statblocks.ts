@@ -48,6 +48,15 @@ function save_statblocks():void {
         store.put({key:sb[0], data:sb});
     tran.commit();
 }
+function delete_statblock(sb:StatBlock):void {
+    statblocks.delete(sb[0]);
+    if(STATS_TV) STATS_TV.remove(sb[0]);
+    if(!db) return;
+    const tran = db.transaction('statblocks', 'readwrite');
+    const store = tran.objectStore('statblocks');
+    store.delete(sb[0]);
+    tran.commit();
+}
 
 function save_statblock(sb:StatBlock):void{
     if(!db) return;
@@ -81,6 +90,21 @@ function sb_populate(container:HTMLDivElement, block:StatBlock, save:boolean):vo
     lock.type = 'checkbox';
     lock.checked = true;
     lock.onchange = function(){ locked = lock.checked; };
+    if(save){
+        const d = elem_parent_text(container, 'button', 'Delete');
+        d.onclick = function(){
+            const diag = get_dialog('simple-delete');
+            diag.clear_handlers();
+            diag.f.title.textContent = 'Delete Statblock?';
+            diag.ok_handler = function():void{
+                if(diag.f.delete.checked){
+                    delete_statblock(block);
+                    container.replaceChildren();
+                }
+            };
+            diag.show();
+        };
+    }
     const pop = elem_parent_text(container, 'button', 'Window');
     let commit_in_flight = false;
     function commit():void {
