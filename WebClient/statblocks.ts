@@ -7,9 +7,6 @@ const statblocks: Map<number, StatBlock> = new Map();
 let db: IDBDatabase;
 (function(){
     const dbo = window.indexedDB.open('statblocks', 7);
-    dbo.onerror = function(e: Event):void {
-        console.log(e);
-    };
     dbo.onsuccess = function(e:Event):void {
         db = dbo.result;
         load_statblocks();
@@ -357,9 +354,9 @@ function get_sbw(): Win{
                             [ "Ranged Dmg", "d6" ]
                         ]],
                         [0,[
+                            [ "Fort", "+2" ],
                             [ "Ref",  "+2" ],
                             [ "Will", "+2" ],
-                            [ "Fort", "+2" ],
                             [ "Per",  "+2" ]
                         ]],
                         [4,"Bless",1,"0",[]],
@@ -416,6 +413,9 @@ function get_sbw(): Win{
                     e.preventDefault();
                     show_sb(id, e);
                 };
+                li.onfocus = function():void{
+                    show_sb(id);
+                }
                 li.onkeydown = function(e:KeyboardEvent):void{
                     if(e.key == 'Enter' || e.key == ' '){
                         show_sb(id, e as any);
