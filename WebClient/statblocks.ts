@@ -548,6 +548,13 @@ function get_sbw(): Win{
                 sb_file_upload(inp);
                 inp.click();
             });
+            menu.item('Download', function(){
+                const a = document.createElement('a');
+                const data = Array.from(statblocks.values());
+                a.download = 'statblocks.json';
+                a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type:'application/json'}));
+                a.click();
+            });
         }
     }
     return _sbw;
