@@ -1829,6 +1829,11 @@ body.dark-mode .clock-event.past {
 #sbw-filter-list li:hover {
   background-color: #ddd;
 }
+#sbw-filter-list li:focus {
+  outline: 1px solid cyan;
+  border-radius: 4px;
+  width: 95%;
+}
 body.dark-mode #sbw-filter-list li:hover {
   background-color: #666;
 }
