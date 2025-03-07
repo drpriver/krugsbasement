@@ -94,6 +94,7 @@
     <div id="sbw-container">
       <div id="sbw-tv"></div>
       <div id="sbw-search">
+        <button id="new-sb">New SB</button><br>
         <label>Search<input type=search id="sbw-filter" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></label>
         <ul id="sbw-filter-list"></ul>
       </div>

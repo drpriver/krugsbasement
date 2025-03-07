@@ -52,6 +52,14 @@ function save_statblocks():void {
     tran.commit();
 }
 
+function save_statblock(sb:StatBlock):void{
+    if(!db) return;
+    const tran = db.transaction('statblocks', 'readwrite');
+    const store = tran.objectStore('statblocks');
+    store.put({key:sb[0], data:sb});
+    tran.commit();
+}
+
 function use_sb_macro(block:StatBlock, macro: StatMacro):void{
     let vars: Map<string, string> = new Map();
     for(let content of block[2]){
@@ -69,7 +77,7 @@ function use_sb_macro(block:StatBlock, macro: StatMacro):void{
 let STATS_TV: TreeView;
 let _sbw: Win;
 
-function sb_populate(container:HTMLDivElement, block:StatBlock):void{
+function sb_populate(container:HTMLDivElement, block:StatBlock, save:boolean):void{
     let locked = true;
     const lock_label = elem_parent_text(container, 'label', 'Locked');
     const lock = elem_with_parent(lock_label, 'input');
@@ -77,6 +85,19 @@ function sb_populate(container:HTMLDivElement, block:StatBlock):void{
     lock.checked = true;
     lock.onchange = function(){ locked = lock.checked; };
     const pop = elem_parent_text(container, 'button', 'Window');
+    let commit_in_flight = false;
+    function commit():void {
+        if(!save) return;
+        if(locked) return;
+        if(commit_in_flight) return;
+        commit_in_flight = true;
+        setTimeout(_commit, 500);
+    }
+    function _commit():void{
+        commit_in_flight = false;
+        // console.log("saving", block);
+        save_statblock(block);
+    }
     pop.onclick = function(e):void{
         e.stopPropagation();
         const w = create_statblock_window(structuredClone(block));
@@ -115,8 +136,8 @@ function sb_populate(container:HTMLDivElement, block:StatBlock):void{
     function add_table_row(tr: HTMLTableRowElement, st:StatTable, row: StatTableItem):void{
         const key = elem_parent_text(tr, 'td', row[0]);
         const value = elem_parent_text(tr, 'td', row[1]);
-        edit_onclick(key, (txt:string)=>{row[0] = txt;});
-        edit_onclick(value, (txt:string)=>{ row[1] = txt; });
+        edit_onclick(key, (txt:string)=>{row[0] = txt; commit();});
+        edit_onclick(value, (txt:string)=>{ row[1] = txt; commit();});
         tr.oncontextmenu = function(e):void{
             const menu = ctx_menu(e);
             menu.item('Add Row Above', function():void{
@@ -143,6 +164,7 @@ function sb_populate(container:HTMLDivElement, block:StatBlock):void{
                 if(idx < 0) return;
                 tr.remove();
                 st[1].splice(idx, 1);
+                commit();
             }, locked);
             menu.separator();
             menu.canceller();
@@ -165,7 +187,7 @@ function sb_populate(container:HTMLDivElement, block:StatBlock):void{
               add_macro(container, macro);
             }, locked);
             menu.separator();
-            menu.item('Rename', function(){ edit_element_inline(b,  EditElementFlags.NONE, (txt:string)=>{ macro[1] = txt; }); }, locked);
+            menu.item('Rename', function(){ edit_element_inline(b,  EditElementFlags.NONE, (txt:string)=>{ macro[1] = txt; commit(); }); }, locked);
             menu.item('Edit', function(){
                 const d = get_dialog('simple-text');
                 if(!d) return;
@@ -213,6 +235,7 @@ function sb_populate(container:HTMLDivElement, block:StatBlock):void{
             diag.ok_handler = function(){
                 md[1] = diag.f.textarea.value.trim();
                 md_to_html(md[1], (h:string)=>{ div.innerHTML = h; });
+                commit();
             };
             diag.show();
         };
@@ -227,20 +250,20 @@ function sb_populate(container:HTMLDivElement, block:StatBlock):void{
                 const input = elem_with_parent(label, 'input');
                 input.type = 'checkbox';
                 input.checked = v[3] === '1';
-                input.onchange = function(){ v[3] = input.checked ? '1' : '0'; };
+                input.onchange = function(){ v[3] = input.checked ? '1' : '0'; commit(); };
             }break;
             case ScriptVariableType.NUMBER:
             case ScriptVariableType.ABILITY_SCORE:{
                 const input = elem_with_parent(label, 'input');
                 input.type = 'number';
                 input.value = v[3];
-                input.onchange = function(){ v[3] = input.value; };
+                input.onchange = function(){ v[3] = input.value; commit(); };
             }break;
             case ScriptVariableType.STRING:{
                 const input = elem_with_parent(label, 'input');
                 input.type = 'text';
                 input.value = v[3];
-                input.onchange = function(){ v[3] = input.value; };
+                input.onchange = function(){ v[3] = input.value; commit(); };
             }break;
             case ScriptVariableType.CHOICE:{
                 const select = elem_with_parent(label, 'select');
@@ -250,7 +273,7 @@ function sb_populate(container:HTMLDivElement, block:StatBlock):void{
                     option.textContent = choice;
                 }
                 label.onclick = function(e){ e.stopPropagation(); e.preventDefault(); select.focus(); };
-                select.onchange = function(){ v[3] = select.value; };
+                select.onchange = function(){ v[3] = select.value; commit(); };
             }break;
         }
     }
@@ -301,6 +324,67 @@ function get_sbw(): Win{
         const tv_el = by_id('sbw-tv');
         const filt = by_id('sbw-filter');
         const list = by_id('sbw-filter-list');
+        const new_sb = by_id('new-sb');
+        new_sb.onclick = function(e:MouseEvent):void{
+            let diag = get_dialog('simple-text');
+            if(!diag) return;
+            diag.f.title.textContent = 'Monster Name';
+            diag.f.textlabel.textContent = 'Name';
+            diag.f.text.value = '';
+            diag.clear_handlers();
+            diag.show_handler = function(){
+                diag.f.text.focus();
+            };
+            diag.ok_handler = function(){
+                const name = diag.f.text.value.trim();
+                if(!name) return;
+                let id = 0;
+                for(let key of statblocks.keys())
+                    if(key > id) id = key + 1;
+                const sb: StatBlock = [
+                    id,
+                    name,
+                    [
+                        [0,[
+                            [ "HP", "1d8" ],
+                            [ "AC", "14" ],
+                            [ "Speed", "30" ]
+                        ]],
+                        [0,[
+                            [ "Melee Atk", "+0" ],
+                            [ "Melee Dmg", "d8" ],
+                            [ "Ranged Atk", "+0" ],
+                            [ "Ranged Dmg", "d6" ]
+                        ]],
+                        [0,[
+                            [ "Ref",  "+2" ],
+                            [ "Will", "+2" ],
+                            [ "Fort", "+2" ],
+                            [ "Per",  "+2" ]
+                        ]],
+                        [4,"Bless",1,"0",[]],
+                        [4,"Prayer",1,"0",[]],
+                        [4,"Debuff Prayer",1,"0",[]],
+                        [4,"PA",0,"0",[]],
+                        [4,"Twohanded",1,"0",[]],
+                        [2,"HP","roll HP + Misc",[ [4,"Misc",0,"0",[]] ]],
+                        [2,"Melee Atk","d20 + Melee Atk + Misc + Bless + Prayer - Debuff Prayer - PA",[ [4,"Misc",0,"0",[]] ]],
+                        [2,"Melee Dmg","roll Melee Dmg + Misc + Bless + Prayer - Debuff Prayer + PA*(1+Twohanded)",[ [4,"Misc",0,"0",[]] ]],
+                        [2,"Ranged Atk","d20 + Ranged Atk + Misc + Bless + Prayer - Debuff Prayer - PA",[ [4,"Misc",0,"0",[]] ]],
+                        [2,"Ranged Dmg","roll Ranged Dmg + Misc + Bless + Prayer - Debuff Prayer + PA*(1+Twohanded)",[ [4,"Misc",0,"0",[]] ]],
+                        [2,"Ref","d20 + Ref + Misc",[ [4,"Misc",0,"0",[]] ]],
+                        [2,"Will","d20 + Will + Misc",[ [4,"Misc",0,"0",[]] ]],
+                        [2,"Fort","d20 + Fort + Misc",[ [4,"Misc",0,"0",[]] ]]
+                    ],
+                    0,
+                ];
+                statblocks.set(id, sb);
+                STATS_TV.add_item(sb[1], sb[0], null);
+                // @ts-ignore
+                STATS_TV.on_click!(sb[0], undefined);
+            };
+            diag.show();
+        };
         filt.oninput = function(){
             list.replaceChildren();
             const txt = filt.value.trim().toLowerCase();
@@ -392,7 +476,7 @@ function get_sbw(): Win{
             if(!sb) return;
             sb_el.replaceChildren();
             elem_parent_text(sb_el, 'h2', sb[1]);
-            sb_populate(sb_el, sb);
+            sb_populate(sb_el, sb, true);
         };
         sb_el.oncontextmenu = function(e){
             const menu = ctx_menu(e);
@@ -494,7 +578,7 @@ function create_statblock_window(block: StatBlock):StatBlockWindow{
         win = normal_window(w, wh, x, m, t, 0, null);
     }
     const content = elem_with_parent(win.win, 'div', null, 'statblock-content');
-    sb_populate(content, block);
+    sb_populate(content, block, false);
 
     win.wh_ctxmenu_handler = function(menu:CtxMenu):void {
         menu.item('Rename', function(){
