@@ -7722,6 +7722,9 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
         if(e.button !== BUTTON.PRIMARY && e.button !== BUTTON.AUXILIARY){
             return;
         }
+        // Why do I have to handle this? Web is so dumb.
+        if(IS_MAC && e.ctrlKey)
+            return;
         const view = get_view(which_canv);
         if(e.shiftKey){
             const [click_x, click_y] = event_to_coord(e, view);
