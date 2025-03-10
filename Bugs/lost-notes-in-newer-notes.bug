@@ -1,0 +1,7 @@
+Changelog::kv
+  created: 2025-03-09T21:55:07Z
+Created Mar 09, 2025, 02:55PM::md.update
+Summary::md.summary
+  if you make a note a child of a newer note, it is not accessible on reload.
+
+  this might just be a ui problem, they’re still in the db

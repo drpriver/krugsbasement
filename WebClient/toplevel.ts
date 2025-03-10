@@ -112,9 +112,11 @@ let render_funcs: Array<(ts:DOMHighResTimeStamp)=>void> = [];
 // need to keep track of this.
 let animation_requested = false;
 function do_render(ts:DOMHighResTimeStamp):void{
-    for(let rf of render_funcs)
-        rf(ts);
+    animation_requested = false;
+    let funcs = render_funcs.slice();
     render_funcs = [];
+    for(let rf of funcs)
+        rf(ts);
 }
 function request_render(rf: (ts:DOMHighResTimeStamp)=>void):void{
     if(SETTINGS.uimode != UiMode.NORMAL) return;

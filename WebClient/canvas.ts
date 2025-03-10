@@ -4725,7 +4725,6 @@ function render(timestamp:DOMHighResTimeStamp):void{
     if(SHOW_FPS) flags |= RenderFlags.SHOW_FPS;
     flags |= RenderFlags.DO_PINGS;
     flags |= RenderFlags.DRAW_TEXT;
-    animation_requested = false;
     actually_render(timestamp, TheCtx, view, flags);
     if(!canv2_is_hidden){
         const view2 = get_view(WhichSplit.RIGHT);
