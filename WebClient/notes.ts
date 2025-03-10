@@ -241,8 +241,8 @@ document.addEventListener('DOMContentLoaded', function():void{
         if(window.win.win.parentNode)
             EMIT(FromClient.GET_NOTE, note_id);
     });
-    function add_note(id:number, note:Note_):void{
-        NOTE_TV.add_item(note.title, id, note.parent?note.parent:null);
+    function add_note(id:number, note:Note_, parent:number|null):void{
+        NOTE_TV.add_item(note.title, id, parent);
         NOTES.set(id, note);
     }
     ONRECV(ToClient.NOTE_DELETE, function(id:number):void{
@@ -264,18 +264,21 @@ document.addEventListener('DOMContentLoaded', function():void{
         for(const note of (notes as Array<Note_>)){
             note.need_receive = false;
             note.need_send = false;
-            add_note(note.id, note);
+            add_note(note.id, note, null);
             const openid = `/notes/open/${note.id}`;
             reopen_window(()=>get_note_window(note.id).win, NormalWindow.LOCAL, openid);
         }
+        for(const note of (notes as Array<Note_>))
+            if(note.parent)
+                NOTE_TV.change_parent(note.id, note.parent);
     });
     ONRECV(ToClient.NEW_NOTE, function(msg:NewNoteMsg):void{
         const {note_id, parent} = msg;
-        add_note(note_id, {flags:0, title:'Untitled', body:'', id:note_id, need_send:false, need_receive:false, parent});
+        add_note(note_id, {flags:0, title:'Untitled', body:'', id:note_id, need_send:false, need_receive:false, parent}, parent);
     });
     ONRECV(ToClient.NEW_NOTE_RESPONSE, function(msg:NewNoteMsg):void{
         const {note_id, parent} = msg;
-        add_note(note_id, {id:note_id, title:'Untitled', body:'', flags:0, need_send:false,  need_receive:false, parent});
+        add_note(note_id, {id:note_id, title:'Untitled', body:'', flags:0, need_send:false,  need_receive:false, parent}, parent);
         get_note_window(note_id).win.show();
     });
     by_id('new-note').addEventListener('click', function(e:MouseEvent):void{
