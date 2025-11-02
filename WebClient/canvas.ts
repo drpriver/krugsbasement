@@ -1794,7 +1794,7 @@ function snap_to_hex_corner2(x:number, y:number): [number, number]{
 }
 
 function get_snap_corner_func(gt:GridType):(x:number, y:number)=>[number, number]{
-    if(gt & GridType.HEX) {
+    if(gt & GridType.HEX){
         if(snapmode == SNAPMODE.FREE) return snap_identity2;
         return snap_to_hex_corner2;
     }
@@ -2677,12 +2677,12 @@ function rotate_rectangleish(obj:Rectangleish):void{
     let y1 = obj.base_y + obj.height;
     [x1, y1] = rotate_pair(x1, y1);
     let [x0, y0] = rotate_pair(obj.base_x, obj.base_y);
-    if (x0 > x1){
+    if(x0 > x1){
         const temp = x0;
         x0 = x1;
         x1 = temp;
     }
-    if (y0 > y1){
+    if(y0 > y1){
         const temp = y0;
         y0 = y1;
         y1 = temp;
@@ -4473,7 +4473,7 @@ function launch_edit_dialog(view:DungeonMapView):void{
             dialog.title.textContent = 'Edit Text';
             dialog.f.size.value = "" + obj.size;
             const [l, c, r] = [dialog.f.left, dialog.f.center, dialog.f.right];
-            for(let a of [l, c, r]) {
+            for(let a of [l, c, r]){
                 a.name = 'text-input-alignment';
                 a.checked = false;
             }
@@ -7778,7 +7778,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             case ToolType.SELECT:{ // TAG toolSELECT
                 let [clicked_x, clicked_y] = event_to_coord(e, view);
                 const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;
-                if(!modified) {
+                if(!modified){
                     for(let aa of view.action.areas){
                         if(point_in_rect(clicked_x, clicked_y, aa.bbox.x0, aa.bbox.y0, aa.bbox.x1, aa.bbox.y1)){
                             let o = view.map.canvas_objs.get(aa.obj_id);
@@ -7973,7 +7973,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 { // copy-pasta from above
                     let [clicked_x, clicked_y] = event_to_coord(e, view);
                     const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;
-                    if(!modified) {
+                    if(!modified){
                         for(let aa of view.action.areas){
                             if(point_in_rect(clicked_x, clicked_y, aa.bbox.x0, aa.bbox.y0, aa.bbox.x1, aa.bbox.y1)){
                                 let o = view.map.canvas_objs.get(aa.obj_id);
@@ -9027,8 +9027,8 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
         const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;
         redo_canvas_cursor(the_canvas, view, modified);
 
-        if (current_tool === ToolType.PASTE) {
-            if (COPIED_OBJS.length === 0) {
+        if(current_tool === ToolType.PASTE){
+            if(COPIED_OBJS.length === 0){
                 return;
             }
 
