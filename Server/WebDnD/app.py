@@ -1071,7 +1071,8 @@ rt2 = RepeatTimer(6000, alive)
 rt2.start()
 
 if __name__ == '__main__':
+    port = getattr(appconfig, 'PORT', 5000)
     if appconfig.DEV:
-        socketio.run(app, host="0.0.0.0")
+        socketio.run(app, host="0.0.0.0", port=port)
     else:
-        socketio.run(app)
+        socketio.run(app, port=port)
