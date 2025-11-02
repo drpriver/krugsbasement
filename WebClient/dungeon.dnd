@@ -774,6 +774,8 @@
       <b>P</b>olygon
     ::div.tool-menu #id(polygon-tool-menu)
       ☰
+    ::div.tool #id(paste-tool)
+      Paste
     ::div.tool #id(ellipse-tool)
       <b>E</b>llipse
     ::div.tool-menu #id(ellipse-tool-menu)

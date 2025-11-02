@@ -5122,7 +5122,6 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
     ctx.translate(camera_x, camera_y);
     if(map.grid_type & GridType.HEX)
         ctx.scale(1, HEX_Y_FIX);
-    let length = canvas_obj_array.length;
     function draw_status_icons(token_bbox: Bbox, statusflags: TokenStatusFlags, scale:number):void{
         const enum STATUSICONSIZE {_ = 24};
         let sx = token_bbox.x0;
@@ -5162,126 +5161,172 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
         ctx.fillRect(x0+1, y0+1, (w-2)*hp/maxhp, 6);
     }
     const one_selection = selected.size == 1;
-    // TAG renderOBJECTS
-    for(let i = 0; i < length; ++i){
-        let obj = canvas_obj_array[i];
-        if(obj.flags & CanvasFlag.DELETED)
-            continue;
-        if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
-            continue;
-        let bx = obj.base_x;
-        let by = obj.base_y;
-        let is_hidden = obj.hidinguser != 0;
-        let is_selected = selected.has(obj.id);
-        const is_hovered = obj.id == hovered_id;
-        const sel_color = is_selected?SELECTED_COLOR:COULD_SELECT_COLOR;
-        if(is_hovered)
-            is_selected = true;
-        ctx.globalAlpha = is_hidden? 0.5 : 1;
-        switch(obj.type){
-            case CanvasType.COACHING:
-            case CanvasType.FREEHAND_LINE:{ // TAG renderFREEHAND_LINE
-                // This works well enough for now.
-                // If things get hairy, I could build a quadtree or whatever.
-                const line_bbox = {
-                    x0:obj.bbox.x0 + bx,
-                    y0:obj.bbox.y0 + by,
-                    x1:obj.bbox.x1 + bx,
-                    y1:obj.bbox.y1 + by,
-                };
-                if(!bbox_overlaps(canvas_bbox, line_bbox)){
-                    break;
-                }
-                if(obj.last_bx !== bx || obj.last_by !== by)
-                    obj.path = undefined;
-                if(!obj.path){
-                    obj.last_bx = bx;
-                    obj.last_by = by;
-                    freehand_recalculate_path(obj, bx, by);
-                }
-                const oldcap = ctx.lineCap;
-                const oldjoin = ctx.lineJoin;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                if(is_selected){
-                    ctx.lineWidth=obj.thickness+4;
-                    ctx.strokeStyle = sel_color;
-                    ctx.stroke(obj.path!);
-                }
-                ctx.lineWidth = obj.thickness;
-                ctx.strokeStyle = obj.color;
-                ctx.stroke(obj.path!);
-                ctx.lineCap = oldcap;
-                ctx.lineJoin = oldjoin;
-            }break;
-            case CanvasType.GRID_LINE:{ // TAG renderGRID_LINE
-                const line_bbox = {
-                    x0:obj.bbox.x0 + bx,
-                    y0:obj.bbox.y0 + by,
-                    x1:obj.bbox.x1 + bx,
-                    y1:obj.bbox.y1 + by,
-                };
-                if(!bbox_overlaps(canvas_bbox, line_bbox)){
-                    break;
-                }
-                // TODO: delete incomplete objects that are canceled.
-                const oldcap = ctx.lineCap;
-                const oldjoin = ctx.lineJoin;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                if(obj.last_bx !== bx || obj.last_by !== by)
-                    obj.path = undefined;
-                if(!obj.path){
-                    obj.last_bx = bx;
-                    obj.last_by = by;
-                    gridline_recalculate_path(obj, bx, by);
-                }
-                if(is_selected){
-                    ctx.lineWidth=12;
-                    ctx.strokeStyle = sel_color;
-                    ctx.stroke(obj.path!);
-                }
-                ctx.lineWidth = 6;
-                ctx.strokeStyle = obj.color;
-                ctx.stroke(obj.path!);
-                ctx.lineCap = oldcap;
-                ctx.lineJoin = oldjoin;
-            }break;
-            case CanvasType.ELLIPSE:{ // TAG renderELLIPSE
-                const bbox = {
-                    x0:bx,
-                    y0:by,
-                    x1:bx+obj.width,
-                    y1:by+obj.height,
-                };
-                if(!bbox_overlaps(bbox, canvas_bbox))
-                    break;
-                const cx = bx+obj.width/2;
-                const cy = by+obj.height/2;
-                if(obj.width && obj.height){
+    const arrays = [canvas_obj_array, preview_objs];
+    for(let a = 0; a < 2; a++){
+        let array = arrays[a];
+        let length = array.length;
+        // TAG renderOBJECTS
+        for(let i = 0; i < length; ++i){
+            let obj = array[i];
+            if(obj.flags & CanvasFlag.DELETED)
+                continue;
+            if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
+                continue;
+            let bx = obj.base_x;
+            let by = obj.base_y;
+            let is_hidden = obj.hidinguser != 0;
+            let is_selected = selected.has(obj.id);
+            const is_hovered = obj.id == hovered_id;
+            const sel_color = is_selected?SELECTED_COLOR:COULD_SELECT_COLOR;
+            if(is_hovered)
+                is_selected = true;
+            if(a == 0)
+                ctx.globalAlpha = is_hidden? 0.5 : 1;
+            else
+                ctx.globalAlpha = 0.5;
+            switch(obj.type){
+                case CanvasType.COACHING:
+                case CanvasType.FREEHAND_LINE:{ // TAG renderFREEHAND_LINE
+                    // This works well enough for now.
+                    // If things get hairy, I could build a quadtree or whatever.
+                    const line_bbox = {
+                        x0:obj.bbox.x0 + bx,
+                        y0:obj.bbox.y0 + by,
+                        x1:obj.bbox.x1 + bx,
+                        y1:obj.bbox.y1 + by,
+                    };
+                    if(!bbox_overlaps(canvas_bbox, line_bbox)){
+                        break;
+                    }
+                    if(obj.last_bx !== bx || obj.last_by !== by)
+                        obj.path = undefined;
+                    if(!obj.path){
+                        obj.last_bx = bx;
+                        obj.last_by = by;
+                        freehand_recalculate_path(obj, bx, by);
+                    }
+                    const oldcap = ctx.lineCap;
+                    const oldjoin = ctx.lineJoin;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
                     if(is_selected){
-                        ctx.lineWidth=8;
+                        ctx.lineWidth=obj.thickness+4;
                         ctx.strokeStyle = sel_color;
+                        ctx.stroke(obj.path!);
+                    }
+                    ctx.lineWidth = obj.thickness;
+                    ctx.strokeStyle = obj.color;
+                    ctx.stroke(obj.path!);
+                    ctx.lineCap = oldcap;
+                    ctx.lineJoin = oldjoin;
+                }break;
+                case CanvasType.GRID_LINE:{ // TAG renderGRID_LINE
+                    const line_bbox = {
+                        x0:obj.bbox.x0 + bx,
+                        y0:obj.bbox.y0 + by,
+                        x1:obj.bbox.x1 + bx,
+                        y1:obj.bbox.y1 + by,
+                    };
+                    if(!bbox_overlaps(canvas_bbox, line_bbox)){
+                        break;
+                    }
+                    // TODO: delete incomplete objects that are canceled.
+                    const oldcap = ctx.lineCap;
+                    const oldjoin = ctx.lineJoin;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    if(obj.last_bx !== bx || obj.last_by !== by)
+                        obj.path = undefined;
+                    if(!obj.path){
+                        obj.last_bx = bx;
+                        obj.last_by = by;
+                        gridline_recalculate_path(obj, bx, by);
+                    }
+                    if(is_selected){
+                        ctx.lineWidth=12;
+                        ctx.strokeStyle = sel_color;
+                        ctx.stroke(obj.path!);
+                    }
+                    ctx.lineWidth = 6;
+                    ctx.strokeStyle = obj.color;
+                    ctx.stroke(obj.path!);
+                    ctx.lineCap = oldcap;
+                    ctx.lineJoin = oldjoin;
+                }break;
+                case CanvasType.ELLIPSE:{ // TAG renderELLIPSE
+                    const bbox = {
+                        x0:bx,
+                        y0:by,
+                        x1:bx+obj.width,
+                        y1:by+obj.height,
+                    };
+                    if(!bbox_overlaps(bbox, canvas_bbox))
+                        break;
+                    const cx = bx+obj.width/2;
+                    const cy = by+obj.height/2;
+                    if(obj.width && obj.height){
+                        if(is_selected){
+                            ctx.lineWidth=8;
+                            ctx.strokeStyle = sel_color;
+                            ctx.beginPath();
+                            ctx.ellipse(cx, cy, obj.width/2, obj.height/2, 0, 0, Math.PI*2);
+                            ctx.stroke();
+                        }
+                        ctx.lineWidth=4;
                         ctx.beginPath();
+                        ctx.strokeStyle = obj.color;
                         ctx.ellipse(cx, cy, obj.width/2, obj.height/2, 0, 0, Math.PI*2);
                         ctx.stroke();
+                        switch(obj.variant){
+                            case ELLIPSETYPE.HOLLOW:
+                                break;
+                            case ELLIPSETYPE.SOLID:
+                                ctx.fillStyle = obj.color;
+                                ctx.fill();
+                                break;
+                            case ELLIPSETYPE.FILLED:
+                                ctx.fillStyle = obj.color2;
+                                ctx.fill();
+                                break;
+                        }
+                        if(one_selection && selected.has(obj.id)){
+                            ctx.fillStyle = sel_color;
+                            ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
+                            ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
+                            view.resize.handles.push({
+                                bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
+                                obj_id: obj.id,
+                                topleft:true,
+                            });
+                            view.resize.handles.push({
+                                bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
+                                obj_id: obj.id,
+                                topleft:false,
+                            });
+                        }
                     }
-                    ctx.lineWidth=4;
-                    ctx.beginPath();
-                    ctx.strokeStyle = obj.color;
-                    ctx.ellipse(cx, cy, obj.width/2, obj.height/2, 0, 0, Math.PI*2);
-                    ctx.stroke();
-                    switch(obj.variant){
-                        case ELLIPSETYPE.HOLLOW:
-                            break;
-                        case ELLIPSETYPE.SOLID:
-                            ctx.fillStyle = obj.color;
-                            ctx.fill();
-                            break;
-                        case ELLIPSETYPE.FILLED:
-                            ctx.fillStyle = obj.color2;
-                            ctx.fill();
-                            break;
+                }break;
+                case CanvasType.FILLED_RECT:{ // TAG renderFILLED_RECT
+                    const bbox = {
+                        x0:bx,
+                        y0:by,
+                        x1:bx+obj.width,
+                        y1:by+obj.height,
+                    };
+                    if(!bbox_overlaps(bbox, canvas_bbox)){
+                        break;
+                    }
+                    if(obj.width && obj.height){
+                        if(is_selected){
+                            ctx.lineWidth=8;
+                            ctx.strokeStyle = sel_color;
+                            ctx.strokeRect(bx-2, by-2, obj.width+4, obj.height+4);
+                        }
+                        ctx.lineWidth=4;
+                        ctx.fillStyle = obj.color2;
+                        ctx.fillRect(bx, by, obj.width, obj.height);
+                        ctx.strokeStyle = obj.color;
+                        ctx.strokeRect(bx, by, obj.width, obj.height);
                     }
                     if(one_selection && selected.has(obj.id)){
                         ctx.fillStyle = sel_color;
@@ -5298,720 +5343,717 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                             topleft:false,
                         });
                     }
-                }
-            }break;
-            case CanvasType.FILLED_RECT:{ // TAG renderFILLED_RECT
-                const bbox = {
-                    x0:bx,
-                    y0:by,
-                    x1:bx+obj.width,
-                    y1:by+obj.height,
-                };
-                if(!bbox_overlaps(bbox, canvas_bbox)){
-                    break;
-                }
-                if(obj.width && obj.height){
-                    if(is_selected){
-                        ctx.lineWidth=8;
-                        ctx.strokeStyle = sel_color;
-                        ctx.strokeRect(bx-2, by-2, obj.width+4, obj.height+4);
+                }break;
+                case CanvasType.RECT:{ // TAG renderRECT
+                    const bbox = {
+                        x0:bx,
+                        y0:by,
+                        x1:bx+obj.width,
+                        y1:by+obj.height,
+                    };
+                    if(!bbox_overlaps(bbox, canvas_bbox)){
+                        break;
                     }
-                    ctx.lineWidth=4;
-                    ctx.fillStyle = obj.color2;
-                    ctx.fillRect(bx, by, obj.width, obj.height);
-                    ctx.strokeStyle = obj.color;
-                    ctx.strokeRect(bx, by, obj.width, obj.height);
-                }
-                if(one_selection && selected.has(obj.id)){
-                    ctx.fillStyle = sel_color;
-                    ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
-                    ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
-                    view.resize.handles.push({
-                        bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
-                        obj_id: obj.id,
-                        topleft:true,
-                    });
-                    view.resize.handles.push({
-                        bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
-                        obj_id: obj.id,
-                        topleft:false,
-                    });
-                }
-            }break;
-            case CanvasType.RECT:{ // TAG renderRECT
-                const bbox = {
-                    x0:bx,
-                    y0:by,
-                    x1:bx+obj.width,
-                    y1:by+obj.height,
-                };
-                if(!bbox_overlaps(bbox, canvas_bbox)){
-                    break;
-                }
-                // if(obj.width && obj.height){
-                if(1){
-                    if(is_selected){
-                        ctx.lineWidth=8;
-                        ctx.strokeStyle = sel_color;
-                        ctx.strokeRect(bx-2, by-2, obj.width+4, obj.height+4);
+                    // if(obj.width && obj.height){
+                    if(1){
+                        if(is_selected){
+                            ctx.lineWidth=8;
+                            ctx.strokeStyle = sel_color;
+                            ctx.strokeRect(bx-2, by-2, obj.width+4, obj.height+4);
+                        }
+                        ctx.lineWidth=6;
+                        ctx.strokeStyle = obj.color;
+                        ctx.strokeRect(bx, by, obj.width, obj.height);
                     }
-                    ctx.lineWidth=6;
-                    ctx.strokeStyle = obj.color;
-                    ctx.strokeRect(bx, by, obj.width, obj.height);
-                }
-                if(one_selection && selected.has(obj.id)){
-                    ctx.fillStyle = sel_color;
-                    ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
-                    ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
-                    view.resize.handles.push({
-                        bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
-                        obj_id: obj.id,
-                        topleft:true,
-                    });
-                    view.resize.handles.push({
-                        bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
-                        obj_id: obj.id,
-                        topleft:false,
-                    });
-                }
-            }break;
-            case CanvasType.GRID_RECT:{ // TAG renderGRID_RECT
-                const bbox = {
-                    x0:bx,
-                    y0:by,
-                    x1:bx+obj.width,
-                    y1:by+obj.height,
-                };
-                if(!bbox_overlaps(bbox, canvas_bbox)){
-                    break;
-                }
-                if(obj.width && obj.height){
-                    if(is_selected){
+                    if(one_selection && selected.has(obj.id)){
                         ctx.fillStyle = sel_color;
-                        ctx.fillRect(bx-2, by-2, obj.width+4, obj.height+4);
+                        ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
+                        ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
+                        view.resize.handles.push({
+                            bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
+                            obj_id: obj.id,
+                            topleft:true,
+                        });
+                        view.resize.handles.push({
+                            bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
+                            obj_id: obj.id,
+                            topleft:false,
+                        });
                     }
-                    ctx.fillStyle = obj.color;
-                    ctx.fillRect(bx-0.5, by-0.5, obj.width+1, obj.height+1);
-                }
-                if(one_selection && selected.has(obj.id)){
-                    ctx.fillStyle = sel_color;
-                    ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
-                    ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
-                    view.resize.handles.push({
-                        bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
-                        obj_id: obj.id,
-                        topleft:true,
-                    });
-                    view.resize.handles.push({
-                        bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
-                        obj_id: obj.id,
-                        topleft:false,
-                    });
-                }
-            }break;
-            case CanvasType.TEXT:{ // TAG renderTEXT
-                if(!draw_text) continue;
-                if(obj.text){
-                    let y_off = 0;
-                    ctx.font = obj.size + 'px sans-serif';
-                    ctx.textBaseline = 'middle';
-                    switch(obj.alignment){
-                        case TextAlignment.LEFT:
-                            ctx.textAlign = 'left';
-                            break;
-                        case TextAlignment.CENTER:
-                            ctx.textAlign = 'center';
-                            break;
-                        case TextAlignment.RIGHT:
-                            ctx.textAlign = 'right';
-                            break;
+                }break;
+                case CanvasType.GRID_RECT:{ // TAG renderGRID_RECT
+                    const bbox = {
+                        x0:bx,
+                        y0:by,
+                        x1:bx+obj.width,
+                        y1:by+obj.height,
+                    };
+                    if(!bbox_overlaps(bbox, canvas_bbox)){
+                        break;
                     }
-                    if(obj.bboxes.length != obj.lines.length){
+                    if(obj.width && obj.height){
+                        if(is_selected){
+                            ctx.fillStyle = sel_color;
+                            ctx.fillRect(bx-2, by-2, obj.width+4, obj.height+4);
+                        }
+                        ctx.fillStyle = obj.color;
+                        ctx.fillRect(bx-0.5, by-0.5, obj.width+1, obj.height+1);
+                    }
+                    if(one_selection && selected.has(obj.id)){
+                        ctx.fillStyle = sel_color;
+                        ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
+                        ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
+                        view.resize.handles.push({
+                            bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
+                            obj_id: obj.id,
+                            topleft:true,
+                        });
+                        view.resize.handles.push({
+                            bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
+                            obj_id: obj.id,
+                            topleft:false,
+                        });
+                    }
+                }break;
+                case CanvasType.TEXT:{ // TAG renderTEXT
+                    if(!draw_text) continue;
+                    if(obj.text){
+                        let y_off = 0;
+                        ctx.font = obj.size + 'px sans-serif';
+                        ctx.textBaseline = 'middle';
+                        switch(obj.alignment){
+                            case TextAlignment.LEFT:
+                                ctx.textAlign = 'left';
+                                break;
+                            case TextAlignment.CENTER:
+                                ctx.textAlign = 'center';
+                                break;
+                            case TextAlignment.RIGHT:
+                                ctx.textAlign = 'right';
+                                break;
+                        }
+                        if(obj.bboxes.length != obj.lines.length){
+                            for(let i = 0; i < obj.lines.length; i++){
+                                obj.bboxes.push({x0:0, y0:0, x1:0, y1:0});
+                            }
+                        }
                         for(let i = 0; i < obj.lines.length; i++){
-                            obj.bboxes.push({x0:0, y0:0, x1:0, y1:0});
-                        }
-                    }
-                    for(let i = 0; i < obj.lines.length; i++){
-                        const line = obj.lines[i];
-                        const bbox = obj.bboxes[i];
+                            const line = obj.lines[i];
+                            const bbox = obj.bboxes[i];
 
-                        if(bbox.x0 == bbox.x1){
-                            const metric = ctx.measureText(line);
-                            const width = metric.width;
-                            const height = get_text_height(metric) + (obj.size/5);
-                            switch(obj.alignment){
-                                case TextAlignment.LEFT:
-                                    bbox.x0 = -2;
-                                    bbox.x1 = width+2;
-                                    break;
-                                case TextAlignment.CENTER:
-                                    bbox.x0 = -width/2-2;
-                                    bbox.x1 = width/2+2;
-                                    break;
-                                case TextAlignment.RIGHT:
-                                    bbox.x0 = -width-2;
-                                    bbox.x1 = 2;
-                                    break;
-                            }
-                            bbox.y0 = -height/2 + y_off-2;
-                            bbox.y1 = height/2 + y_off+2;
-                        }
-                        const text_bbox = {
-                            x0:bbox.x0 + bx,
-                            y0:bbox.y0 + by,
-                            x1:bbox.x1 + bx,
-                            y1:bbox.y1 + by,
-                        };
-                        if(bbox_overlaps(text_bbox, canvas_bbox)){
-                            if(is_selected)
-                                ctx.fillStyle = sel_color+'cc';
-                            else
-                                ctx.fillStyle = BACKGROUND + '88';
-                            if(is_selected){
-                                const x = bx+bbox.x0;
-                                const y = by+bbox.y0;
-                                const width = bbox.x1-bbox.x0;
-                                const height = bbox.y1-bbox.y0;
-                                ctx.fillRect(x, y, width, height);
-                            }
-                            if((obj.flags & CanvasFlag.TEXT_HAS_BACKGROUND)){
-                                ctx.strokeStyle = is_darkmode?'#000':'#fff';
-                                ctx.lineJoin = 'round';
-                                ctx.lineWidth = 4;
-                                ctx.strokeText(line, bx, by+y_off);
-                            }
-                            if(is_darkmode){
-                                if(obj.link_id != -1){
-                                    if(obj.flags & CanvasFlag.TEXT_LINKS_NOTE)
-                                        // XXX: ugly
-                                        ctx.fillStyle = '#f6f';
-                                    else
-                                        ctx.fillStyle = '#99f';
+                            if(bbox.x0 == bbox.x1){
+                                const metric = ctx.measureText(line);
+                                const width = metric.width;
+                                const height = get_text_height(metric) + (obj.size/5);
+                                switch(obj.alignment){
+                                    case TextAlignment.LEFT:
+                                        bbox.x0 = -2;
+                                        bbox.x1 = width+2;
+                                        break;
+                                    case TextAlignment.CENTER:
+                                        bbox.x0 = -width/2-2;
+                                        bbox.x1 = width/2+2;
+                                        break;
+                                    case TextAlignment.RIGHT:
+                                        bbox.x0 = -width-2;
+                                        bbox.x1 = 2;
+                                        break;
                                 }
-                                else
-                                    ctx.fillStyle = '#fff';
+                                bbox.y0 = -height/2 + y_off-2;
+                                bbox.y1 = height/2 + y_off+2;
                             }
-                            else{
-                                if(obj.link_id != -1){
-                                    if(obj.flags & CanvasFlag.TEXT_LINKS_NOTE)
-                                        // XXX: ugly
-                                        ctx.fillStyle = '#b4b';
-                                    else
-                                        ctx.fillStyle = '#44f';
+                            const text_bbox = {
+                                x0:bbox.x0 + bx,
+                                y0:bbox.y0 + by,
+                                x1:bbox.x1 + bx,
+                                y1:bbox.y1 + by,
+                            };
+                            if(bbox_overlaps(text_bbox, canvas_bbox)){
+                                if(is_selected)
+                                    ctx.fillStyle = sel_color+'cc';
+                                else
+                                    ctx.fillStyle = BACKGROUND + '88';
+                                if(is_selected){
+                                    const x = bx+bbox.x0;
+                                    const y = by+bbox.y0;
+                                    const width = bbox.x1-bbox.x0;
+                                    const height = bbox.y1-bbox.y0;
+                                    ctx.fillRect(x, y, width, height);
                                 }
-                                else
-                                    ctx.fillStyle = '#000';
+                                if((obj.flags & CanvasFlag.TEXT_HAS_BACKGROUND)){
+                                    ctx.strokeStyle = is_darkmode?'#000':'#fff';
+                                    ctx.lineJoin = 'round';
+                                    ctx.lineWidth = 4;
+                                    ctx.strokeText(line, bx, by+y_off);
+                                }
+                                if(is_darkmode){
+                                    if(obj.link_id != -1){
+                                        if(obj.flags & CanvasFlag.TEXT_LINKS_NOTE)
+                                            // XXX: ugly
+                                            ctx.fillStyle = '#f6f';
+                                        else
+                                            ctx.fillStyle = '#99f';
+                                    }
+                                    else
+                                        ctx.fillStyle = '#fff';
+                                }
+                                else{
+                                    if(obj.link_id != -1){
+                                        if(obj.flags & CanvasFlag.TEXT_LINKS_NOTE)
+                                            // XXX: ugly
+                                            ctx.fillStyle = '#b4b';
+                                        else
+                                            ctx.fillStyle = '#44f';
+                                    }
+                                    else
+                                        ctx.fillStyle = '#000';
+                                }
+                                ctx.fillText(line, bx, by+y_off);
+                                if(obj.link_id != -1){
+                                    ctx.fillRect(bx+bbox.x0, by+bbox.y1-1, bbox.x1-bbox.x0, 2);
+                                }
                             }
-                            ctx.fillText(line, bx, by+y_off);
-                            if(obj.link_id != -1){
-                                ctx.fillRect(bx+bbox.x0, by+bbox.y1-1, bbox.x1-bbox.x0, 2);
+                            y_off += bbox.y1 - bbox.y0;
+                        }
+                        if(obj.bbox.x0 == obj.bbox.x1){
+                            for(let bb of obj.bboxes){
+                                if(obj.bbox.y0 > bb.y0)
+                                    obj.bbox.y0 = bb.y0;
+                                if(obj.bbox.y1 < bb.y1)
+                                    obj.bbox.y1 = bb.y1;
+                                if(obj.bbox.x0 > bb.x0)
+                                    obj.bbox.x0 = bb.x0;
+                                if(obj.bbox.x1 < bb.x1)
+                                    obj.bbox.x1 = bb.x1;
                             }
                         }
-                        y_off += bbox.y1 - bbox.y0;
+                        if(obj.link_id != -1)
+                            for(let bb of obj.bboxes){
+                                view.action.areas.push({
+                                    bbox:{x0:bb.x0+bx, y0:bb.y0+by, x1:bb.x1+bx, y1:bb.y1+by},
+                                    obj_id:obj.id,
+                                    action: 0,
+                                });
+                            }
                     }
-                    if(obj.bbox.x0 == obj.bbox.x1){
-                        for(let bb of obj.bboxes){
-                            if(obj.bbox.y0 > bb.y0)
-                                obj.bbox.y0 = bb.y0;
-                            if(obj.bbox.y1 < bb.y1)
-                                obj.bbox.y1 = bb.y1;
-                            if(obj.bbox.x0 > bb.x0)
-                                obj.bbox.x0 = bb.x0;
-                            if(obj.bbox.x1 < bb.x1)
-                                obj.bbox.x1 = bb.x1;
-                        }
+                }break;
+                case CanvasType.EZ_TOKEN:{ // TAG renderEZ_TOKEN
+                    // TODO: currently we don't consider radius_y
+                    const radius_x = obj.width*REFERENCE.WIDTH/2;
+                    const radius_y = obj.height*REFERENCE.WIDTH/2;
+                    if(!radius_x || !radius_y)
+                        continue;
+                    const token_bbox = {
+                        x0: bx,
+                        x1: bx + 2*radius_x,
+                        y0: by,
+                        y1: by + 2*radius_y,
+                    };
+                    if(!bbox_overlaps(token_bbox, canvas_bbox)){
+                        break;
                     }
-                    if(obj.link_id != -1)
-                        for(let bb of obj.bboxes){
-                            view.action.areas.push({
-                                bbox:{x0:bb.x0+bx, y0:bb.y0+by, x1:bb.x1+bx, y1:bb.y1+by},
-                                obj_id:obj.id,
-                                action: 0,
-                            });
-                        }
-                }
-            }break;
-            case CanvasType.EZ_TOKEN:{ // TAG renderEZ_TOKEN
-                // TODO: currently we don't consider radius_y
-                const radius_x = obj.width*REFERENCE.WIDTH/2;
-                const radius_y = obj.height*REFERENCE.WIDTH/2;
-                if(!radius_x || !radius_y)
-                    continue;
-                const token_bbox = {
-                    x0: bx,
-                    x1: bx + 2*radius_x,
-                    y0: by,
-                    y1: by + 2*radius_y,
-                };
-                if(!bbox_overlaps(token_bbox, canvas_bbox)){
-                    break;
-                }
-                if(is_selected){
+                    if(is_selected){
+                        ctx.beginPath();
+                        ctx.fillStyle = sel_color;
+                        if(radius_x == radius_y)
+                            ctx.arc(bx+radius_x, by+radius_y, radius_x+4, 0, 2*Math.PI);
+                        else
+                            ctx.ellipse(bx+radius_x, by+radius_y, radius_x+4, radius_y+4, 0, 0, 2*Math.PI);
+                        ctx.fill();
+                    }
                     ctx.beginPath();
-                    ctx.fillStyle = sel_color;
+                    ctx.fillStyle = '#000';
                     if(radius_x == radius_y)
-                        ctx.arc(bx+radius_x, by+radius_y, radius_x+4, 0, 2*Math.PI);
+                        ctx.arc(bx+radius_x, by+radius_y, radius_x, 0, 2*Math.PI);
                     else
-                        ctx.ellipse(bx+radius_x, by+radius_y, radius_x+4, radius_y+4, 0, 0, 2*Math.PI);
+                        ctx.ellipse(bx+radius_x, by+radius_y, radius_x, radius_y, 0, 0, 2*Math.PI);
                     ctx.fill();
-                }
-                ctx.beginPath();
-                ctx.fillStyle = '#000';
-                if(radius_x == radius_y)
-                    ctx.arc(bx+radius_x, by+radius_y, radius_x, 0, 2*Math.PI);
-                else
-                    ctx.ellipse(bx+radius_x, by+radius_y, radius_x, radius_y, 0, 0, 2*Math.PI);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.fillStyle = obj.color;
-                if(radius_x == radius_y)
-                    ctx.arc(bx+radius_x, by+radius_y, radius_x-2, 0, 2*Math.PI);
-                else
-                    ctx.ellipse(bx+radius_x, by+radius_y, radius_x-2, radius_y-2, 0, 0, 2*Math.PI);
-                ctx.fill();
-                ctx.font = "" + ((18 * obj.width)|0) + 'px sans-serif';
-                ctx.textBaseline = 'middle';
-                ctx.textAlign = "center";
-                ctx.fillStyle = '#000';
-                ctx.fillText(obj.text, bx+radius_x, by+radius_y);
-                draw_status_icons(token_bbox, obj.statusflags, obj.width);
-                draw_hp_bar(token_bbox, obj.hp, obj.maxhp);
-            }break;
-            case CanvasType.IMAGE:{ // TAG renderIMAGE
-                const bbox = {
-                    x0:bx,
-                    y0:by,
-                    x1:bx+obj.width,
-                    y1:by+obj.height,
-                };
-                if(!bbox_overlaps(bbox, canvas_bbox)){
-                    break;
-                }
-                if(is_selected){
-                    ctx.fillStyle = sel_color+'aa';
-                    ctx.fillRect(bx-4, by-4, obj.width+8, obj.height+8);
-                }
-                if(obj.img)
-                    ctx.drawImage(obj.img, bx, by, obj.width, obj.height);
-                else {
-                    ctx.fillStyle = '#ff0000';
-                    ctx.fillRect(bx, by, obj.width, obj.height);
-                    ctx.fillStyle = '#000000';
-                    ctx.fillText(`broken image url: ${obj.url}`, bx+32, by+32);
-                }
-                if(one_selection && selected.has(obj.id)){
-                    ctx.fillStyle = sel_color;
-                    ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
-                    ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
-                    view.resize.handles.push({
-                        bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
-                        obj_id: obj.id,
-                        topleft:true,
-                    });
-                    view.resize.handles.push({
-                        bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
-                        obj_id: obj.id,
-                        topleft:false,
-                    });
-                }
-            }break;
-            case CanvasType.IMG_TOKEN:{ // TAG renderIMG_TOKEN
-                // TODO: currently we don't consider radius_y
-                const radius_x = obj.width*REFERENCE.WIDTH/2;
-                const radius_y = obj.height*REFERENCE.WIDTH/2;
-                const token_bbox = {
-                    x0: bx,
-                    x1: bx + 2*radius_x,
-                    y0: by,
-                    y1: by + 2*radius_y,
-                };
-                if(!bbox_overlaps(token_bbox, canvas_bbox)){
-                    break;
-                }
-                if(is_selected){
+                    ctx.beginPath();
+                    ctx.fillStyle = obj.color;
+                    if(radius_x == radius_y)
+                        ctx.arc(bx+radius_x, by+radius_y, radius_x-2, 0, 2*Math.PI);
+                    else
+                        ctx.ellipse(bx+radius_x, by+radius_y, radius_x-2, radius_y-2, 0, 0, 2*Math.PI);
+                    ctx.fill();
+                    ctx.font = "" + ((18 * obj.width)|0) + 'px sans-serif';
+                    ctx.textBaseline = 'middle';
+                    ctx.textAlign = "center";
+                    ctx.fillStyle = '#000';
+                    ctx.fillText(obj.text, bx+radius_x, by+radius_y);
+                    draw_status_icons(token_bbox, obj.statusflags, obj.width);
+                    draw_hp_bar(token_bbox, obj.hp, obj.maxhp);
+                }break;
+                case CanvasType.IMAGE:{ // TAG renderIMAGE
+                    const bbox = {
+                        x0:bx,
+                        y0:by,
+                        x1:bx+obj.width,
+                        y1:by+obj.height,
+                    };
+                    if(!bbox_overlaps(bbox, canvas_bbox)){
+                        break;
+                    }
+                    if(is_selected){
+                        ctx.fillStyle = sel_color+'aa';
+                        ctx.fillRect(bx-4, by-4, obj.width+8, obj.height+8);
+                    }
+                    if(obj.img)
+                        ctx.drawImage(obj.img, bx, by, obj.width, obj.height);
+                    else {
+                        ctx.fillStyle = '#ff0000';
+                        ctx.fillRect(bx, by, obj.width, obj.height);
+                        ctx.fillStyle = '#000000';
+                        ctx.fillText(`broken image url: ${obj.url}`, bx+32, by+32);
+                    }
+                    if(one_selection && selected.has(obj.id)){
+                        ctx.fillStyle = sel_color;
+                        ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
+                        ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
+                        view.resize.handles.push({
+                            bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
+                            obj_id: obj.id,
+                            topleft:true,
+                        });
+                        view.resize.handles.push({
+                            bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
+                            obj_id: obj.id,
+                            topleft:false,
+                        });
+                    }
+                }break;
+                case CanvasType.IMG_TOKEN:{ // TAG renderIMG_TOKEN
+                    // TODO: currently we don't consider radius_y
+                    const radius_x = obj.width*REFERENCE.WIDTH/2;
+                    const radius_y = obj.height*REFERENCE.WIDTH/2;
+                    const token_bbox = {
+                        x0: bx,
+                        x1: bx + 2*radius_x,
+                        y0: by,
+                        y1: by + 2*radius_y,
+                    };
+                    if(!bbox_overlaps(token_bbox, canvas_bbox)){
+                        break;
+                    }
+                    if(is_selected){
+                        ctx.beginPath();
+                        ctx.lineWidth = 4;
+                        ctx.strokeStyle = sel_color;
+                        ctx.arc(bx+radius_x, by+radius_y, radius_x+2, 0, 2*Math.PI);
+                        ctx.stroke();
+                    }
                     ctx.beginPath();
                     ctx.lineWidth = 4;
-                    ctx.strokeStyle = sel_color;
-                    ctx.arc(bx+radius_x, by+radius_y, radius_x+2, 0, 2*Math.PI);
+                    ctx.strokeStyle = '#000';
+                    ctx.arc(bx+radius_x, by+radius_y, radius_x-2, 0, 2*Math.PI);
                     ctx.stroke();
-                }
-                ctx.beginPath();
-                ctx.lineWidth = 4;
-                ctx.strokeStyle = '#000';
-                ctx.arc(bx+radius_x, by+radius_y, radius_x-2, 0, 2*Math.PI);
-                ctx.stroke();
-                if(obj.img){
-                    ctx.drawImage(obj.img, bx, by, radius_x*2, radius_y*2);
-                }
-                else {
-                    ctx.beginPath();
-                    ctx.fillStyle = '#333333';
-                    ctx.arc(bx+radius_x, by+radius_y, radius_x-4, 0, 2*Math.PI);
-                    ctx.fill();
-                }
-                draw_status_icons(token_bbox, obj.statusflags, obj.width);
-                draw_hp_bar(token_bbox, obj.hp, obj.maxhp);
-            }break;
-            case CanvasType.DOOR:{ // TAG renderDOOR
-                const is_vertical = obj.orientation === Orientation.VERTICAL;
-                const w = obj.width;
-                const th = obj.width < 1.0? 0.5 : 1.0;
-                if(!is_vertical){
-                    // FIXME: I just hardcoded some random values.
-                    const bbox = {
-                        x0 : bx - 32 * w,
-                        x1 : bx + 32 * w,
-                        y0 : by - 5,
-                        y1 : by +5,
-                    };
-                    if(!bbox_overlaps(bbox, canvas_bbox)){
-                        break;
+                    if(obj.img){
+                        ctx.drawImage(obj.img, bx, by, radius_x*2, radius_y*2);
                     }
-                }
-                else {
-                    // FIXME: I just hardcoded some random values.
-                    const bbox = {
-                        x0 : bx - 5,
-                        x1 : bx + 5,
-                        y0 : by - 32 * w,
-                        y1 : by + 32 * w,
-                    };
-                    if(!bbox_overlaps(bbox, canvas_bbox)){
-                        break;
-                    }
-                }
-                switch(obj.doortype){
-                    case DoorType.DOUBLE:{
-                        const length = REFERENCE.WIDTH*w - 16*th;
-                        const off = length/2;
-                        if(is_selected){
-                            ctx.strokeStyle = sel_color;
-                            ctx.lineWidth=8;
-                            switch(obj.orientation){
-                                case Orientation.VERTICAL:
-                                    ctx.strokeRect(bx-10*th, by-off, 20*th, length);
-                                    break;
-                                case Orientation.HORIZONTAL:
-                                    ctx.strokeRect(bx-off, by-10*th, length, 20*th);
-                                    break;
-                                case Orientation.TOPLEFT_DOWNRIGHT:
-                                    ctx.lineWidth=22;
-                                    ctx.beginPath();
-                                    ctx.moveTo(bx-22*w, by-22*w)
-                                    ctx.lineTo(bx+22*w, by+22*w);
-                                    ctx.stroke();
-                                    break;
-                                case Orientation.TOPRIGHT_DOWNLEFT:
-                                    ctx.lineWidth=22;
-                                    ctx.beginPath();
-                                    ctx.moveTo(bx+22*w, by-22*w)
-                                    ctx.lineTo(bx-22*w, by+22*w);
-                                    ctx.stroke();
-                                    break;
-                            }
-                        }
-                        ctx.fillStyle = BACKGROUND;
-                        ctx.strokeStyle = obj.color;
-                        ctx.lineWidth=4;
-                        switch(obj.orientation){
-                            case Orientation.VERTICAL:
-                                ctx.fillRect(bx-10*th, by-off, 20*th, length);
-                                ctx.strokeRect(bx-10*th, by-off, 20*th, length);
-                                ctx.strokeRect(bx-10*th, by, 20*th, 1);
-                                break;
-                            case Orientation.HORIZONTAL:
-                                ctx.fillRect(bx-off, by-10*th, length, 20*th);
-                                ctx.strokeRect(bx-off, by-10*th, length, 20*th);
-                                ctx.strokeRect(bx, by-10*th, 1, 20*th);
-                                break;
-                            case Orientation.TOPLEFT_DOWNRIGHT:
-                                ctx.lineWidth=18;
-                                ctx.beginPath();
-                                ctx.moveTo(bx-20*w, by-20*w)
-                                ctx.lineTo(bx+20*w, by+20*w);
-                                ctx.stroke();
-                                ctx.strokeStyle = BACKGROUND;
-                                ctx.lineWidth=10;
-                                ctx.beginPath();
-                                ctx.moveTo(bx-16*w, by-16*w)
-                                ctx.lineTo(bx-2*w, by-2*w);
-                                ctx.stroke();
-                                ctx.beginPath();
-                                ctx.moveTo(bx+2*w, by+2*w)
-                                ctx.lineTo(bx+16*w, by+16*w);
-                                ctx.stroke();
-                                break;
-                            case Orientation.TOPRIGHT_DOWNLEFT:
-                                ctx.lineWidth=18;
-                                ctx.beginPath();
-                                ctx.moveTo(bx+20*w, by-20*w)
-                                ctx.lineTo(bx-20*w, by+20*w);
-                                ctx.stroke();
-                                ctx.strokeStyle = BACKGROUND;
-                                ctx.lineWidth=10;
-                                ctx.beginPath();
-                                ctx.moveTo(bx+16*w, by-16*w)
-                                ctx.lineTo(bx+2*w, by-2*w);
-                                ctx.stroke();
-                                ctx.beginPath();
-                                ctx.moveTo(bx-2*w, by+2*w)
-                                ctx.lineTo(bx-16*w, by+16*w);
-                                ctx.stroke();
-                                break;
-                        }
-                    }break;
-                    case DoorType.DOOR:{
-                        const length = REFERENCE.WIDTH*w - 16*th;
-                        const off = length/2;
-                        if(is_selected){
-                            ctx.strokeStyle = sel_color;
-                            ctx.lineWidth=8;
-                            switch(obj.orientation){
-                                case Orientation.VERTICAL:
-                                    ctx.strokeRect(bx-10*th, by-off, 20*th, length);
-                                    break;
-                                case Orientation.HORIZONTAL:
-                                    ctx.strokeRect(bx-off, by-10*th, length, 20*th);
-                                    break;
-                                case Orientation.TOPLEFT_DOWNRIGHT:
-                                    ctx.lineWidth=22;
-                                    ctx.beginPath();
-                                    ctx.moveTo(bx-22*w, by-22*w)
-                                    ctx.lineTo(bx+22*w, by+22*w);
-                                    ctx.stroke();
-                                    break;
-                                case Orientation.TOPRIGHT_DOWNLEFT:
-                                    ctx.lineWidth=22;
-                                    ctx.beginPath();
-                                    ctx.moveTo(bx+22*w, by-22*w)
-                                    ctx.lineTo(bx-22*w, by+22*w);
-                                    ctx.stroke();
-                                    break;
-                            }
-                        }
-                        ctx.fillStyle = BACKGROUND;
-                        ctx.strokeStyle = obj.color;
-                        ctx.lineWidth=4;
-                        switch(obj.orientation){
-                            case Orientation.VERTICAL:
-                                ctx.fillRect(bx-10*th, by-off, 20*th, length);
-                                ctx.strokeRect(bx-10*th, by-off, 20*th, length);
-                                break;
-                            case Orientation.HORIZONTAL:
-                                ctx.fillRect(bx-off, by-10*th, length, 20*th);
-                                ctx.strokeRect(bx-off, by-10*th, length, 20*th);
-                                break;
-                            case Orientation.TOPLEFT_DOWNRIGHT:
-                                ctx.lineWidth=18;
-                                ctx.beginPath();
-                                ctx.moveTo(bx-20*w, by-20*w)
-                                ctx.lineTo(bx+20*w, by+20*w);
-                                ctx.stroke();
-                                ctx.strokeStyle = BACKGROUND;
-                                ctx.lineWidth=10;
-                                ctx.beginPath();
-                                ctx.moveTo(bx-16*w, by-16*w)
-                                ctx.lineTo(bx+16*w, by+16*w);
-                                ctx.stroke();
-                                break;
-                            case Orientation.TOPRIGHT_DOWNLEFT:
-                                ctx.lineWidth=18;
-                                ctx.beginPath();
-                                ctx.moveTo(bx+20*w, by-20*w)
-                                ctx.lineTo(bx-20*w, by+20*w);
-                                ctx.stroke();
-                                ctx.strokeStyle = BACKGROUND;
-                                ctx.lineWidth=10;
-                                ctx.beginPath();
-                                ctx.moveTo(bx+16*w, by-16*w)
-                                ctx.lineTo(bx-16*w, by+16*w);
-                                ctx.stroke();
-                                break;
-                        }
-                    }break;
-                    case DoorType.PORTCULLIS:{
-                        if(is_selected){
-                            ctx.strokeStyle = sel_color;
-                            ctx.lineWidth=8;
-                            switch(obj.orientation){
-                                case Orientation.VERTICAL:
-                                    ctx.strokeRect(bx-10*th, by-16*w, 20*th, 32*w);
-                                    break;
-                                case Orientation.HORIZONTAL:
-                                    ctx.strokeRect(bx-16*w, by-10*th, 32*w, 20*th);
-                                    break;
-                                case Orientation.TOPLEFT_DOWNRIGHT:
-                                    ctx.lineWidth=22;
-                                    ctx.beginPath();
-                                    ctx.moveTo(bx-22*w, by-22*w)
-                                    ctx.lineTo(bx+22*w, by+22*w);
-                                    ctx.stroke();
-                                    break;
-                                case Orientation.TOPRIGHT_DOWNLEFT:
-                                    ctx.lineWidth=22;
-                                    ctx.beginPath();
-                                    ctx.moveTo(bx+22*w, by-22*w)
-                                    ctx.lineTo(bx-22*w, by+22*w);
-                                    ctx.stroke();
-                                    break;
-                            }
-                        }
-                        const length = REFERENCE.WIDTH*w;
-                        ctx.strokeStyle = BACKGROUND;
-                        ctx.lineWidth=12;
-                        ctx.setLineDash([6, 4]);
+                    else {
                         ctx.beginPath();
-                        switch(obj.orientation){
-                            case Orientation.VERTICAL:
-                                ctx.moveTo(bx, by-length/2+8);
-                                ctx.lineTo(bx, by+length/2-6);
-                                break;
-                            case Orientation.HORIZONTAL:
-                                ctx.moveTo(bx-length/2+8, by);
-                                ctx.lineTo(bx+length/2-6, by);
-                                break;
-                            case Orientation.TOPLEFT_DOWNRIGHT:
-                                ctx.moveTo(bx-16*w, by-16*w)
-                                ctx.lineTo(bx+16*w, by+16*w);
-                                break;
-                            case Orientation.TOPRIGHT_DOWNLEFT:
-                                ctx.moveTo(bx+16*w, by-16*w)
-                                ctx.lineTo(bx-16*w, by+16*w);
-                                break;
+                        ctx.fillStyle = '#333333';
+                        ctx.arc(bx+radius_x, by+radius_y, radius_x-4, 0, 2*Math.PI);
+                        ctx.fill();
+                    }
+                    draw_status_icons(token_bbox, obj.statusflags, obj.width);
+                    draw_hp_bar(token_bbox, obj.hp, obj.maxhp);
+                }break;
+                case CanvasType.DOOR:{ // TAG renderDOOR
+                    const is_vertical = obj.orientation === Orientation.VERTICAL;
+                    const w = obj.width;
+                    const th = obj.width < 1.0? 0.5 : 1.0;
+                    if(!is_vertical){
+                        // FIXME: I just hardcoded some random values.
+                        const bbox = {
+                            x0 : bx - 32 * w,
+                            x1 : bx + 32 * w,
+                            y0 : by - 5,
+                            y1 : by +5,
+                        };
+                        if(!bbox_overlaps(bbox, canvas_bbox)){
+                            break;
                         }
-                        ctx.stroke();
-                        ctx.setLineDash([]);
-                    }break;
-                    case DoorType.PORTAL:{
-                        if(is_selected){
-                            ctx.strokeStyle = sel_color;
-                            ctx.lineWidth=8;
-                            switch(obj.orientation){
-                                case Orientation.VERTICAL:
-                                    ctx.strokeRect(bx-10, by-16*th, 20, 32*th);
-                                    break;
-                                case Orientation.HORIZONTAL:
-                                    ctx.strokeRect(bx-16*th, by-10, 32*th, 20);
-                                    break;
-                                case Orientation.TOPLEFT_DOWNRIGHT:
-                                    ctx.lineWidth=22;
-                                    ctx.beginPath();
-                                    ctx.moveTo(bx-22*th, by-22*th)
-                                    ctx.lineTo(bx+22*th, by+22*th);
-                                    ctx.stroke();
-                                    break;
-                                case Orientation.TOPRIGHT_DOWNLEFT:
-                                    ctx.lineWidth=22;
-                                    ctx.beginPath();
-                                    ctx.moveTo(bx+22*th, by-22*th)
-                                    ctx.lineTo(bx-22*th, by+22*th);
-                                    ctx.stroke();
-                                    break;
+                    }
+                    else {
+                        // FIXME: I just hardcoded some random values.
+                        const bbox = {
+                            x0 : bx - 5,
+                            x1 : bx + 5,
+                            y0 : by - 32 * w,
+                            y1 : by + 32 * w,
+                        };
+                        if(!bbox_overlaps(bbox, canvas_bbox)){
+                            break;
+                        }
+                    }
+                    switch(obj.doortype){
+                        case DoorType.DOUBLE:{
+                            const length = REFERENCE.WIDTH*w - 16*th;
+                            const off = length/2;
+                            if(is_selected){
+                                ctx.strokeStyle = sel_color;
+                                ctx.lineWidth=8;
+                                switch(obj.orientation){
+                                    case Orientation.VERTICAL:
+                                        ctx.strokeRect(bx-10*th, by-off, 20*th, length);
+                                        break;
+                                    case Orientation.HORIZONTAL:
+                                        ctx.strokeRect(bx-off, by-10*th, length, 20*th);
+                                        break;
+                                    case Orientation.TOPLEFT_DOWNRIGHT:
+                                        ctx.lineWidth=22;
+                                        ctx.beginPath();
+                                        ctx.moveTo(bx-22*w, by-22*w)
+                                        ctx.lineTo(bx+22*w, by+22*w);
+                                        ctx.stroke();
+                                        break;
+                                    case Orientation.TOPRIGHT_DOWNLEFT:
+                                        ctx.lineWidth=22;
+                                        ctx.beginPath();
+                                        ctx.moveTo(bx+22*w, by-22*w)
+                                        ctx.lineTo(bx-22*w, by+22*w);
+                                        ctx.stroke();
+                                        break;
+                                }
                             }
-                        }
-                        const thingy = th * 13;
-                        const length = 64*w-thingy*2;
-                        ctx.fillStyle = BACKGROUND;
-                        ctx.lineWidth=4;
-                        switch(obj.orientation){
-                            case Orientation.VERTICAL:
-                                ctx.fillRect(bx-5, by-length/2, 10, length);
-                                if((bx & (REFERENCE.WIDTH-1)) == 0){
-                                    ctx.fillStyle = 'rgb(150, 150, 150)';
-                                    ctx.fillRect(bx, by-length/2, 1/SCALE, length);
-                                }
-                                break;
-                            case Orientation.HORIZONTAL:
-                                ctx.fillRect(bx-length/2, by-5, length, 10);
-                                if((by & (REFERENCE.WIDTH-1)) == 0){
-                                    ctx.fillStyle = 'rgb(150, 150, 150)';
-                                    ctx.fillRect(bx-length/2, by, length, 1/SCALE);
-                                }
-                                break;
-                            case Orientation.TOPLEFT_DOWNRIGHT:
-                                ctx.strokeStyle = BACKGROUND;
-                                ctx.lineWidth=10;
-                                ctx.beginPath();
-                                ctx.moveTo(bx-24*w, by-24*w)
-                                ctx.lineTo(bx+24*w, by+24*w);
-                                ctx.stroke();
-                                break;
-                            case Orientation.TOPRIGHT_DOWNLEFT:
-                                ctx.strokeStyle = BACKGROUND;
-                                ctx.lineWidth=10;
-                                ctx.beginPath();
-                                ctx.moveTo(bx+16*w, by-16*w)
-                                ctx.lineTo(bx-16*w, by+16*w);
-                                ctx.stroke();
-                                break;
-                        }
-                    }break;
-                    case DoorType.HALLWAY:{
-                        if(is_selected){
-                            ctx.strokeStyle = sel_color;
-                            ctx.lineWidth=8;
-                            switch(obj.orientation){
-                                case Orientation.VERTICAL:
-                                    ctx.strokeRect(bx-10, by-32*w, 20, 64*w);
-                                    break;
-                                case Orientation.HORIZONTAL:
-                                    ctx.strokeRect(bx-32*w, by-10, 64*w, 20);
-                                    break;
-                                case Orientation.TOPLEFT_DOWNRIGHT:
-                                    ctx.lineWidth=22;
-                                    ctx.beginPath();
-                                    ctx.moveTo(bx-32*w, by-32*w)
-                                    ctx.lineTo(bx+32*w, by+32*w);
-                                    ctx.stroke();
-                                    break;
-                                case Orientation.TOPRIGHT_DOWNLEFT:
-                                    ctx.lineWidth=22;
-                                    ctx.beginPath();
-                                    ctx.moveTo(bx+32*w, by-32*w)
-                                    ctx.lineTo(bx-32*w, by+32*w);
-                                    ctx.stroke();
-                                    break;
-                            }
-                        }
-                        ctx.fillStyle = BACKGROUND;
-                        ctx.lineWidth=4;
-                        switch(obj.orientation){
-                            case Orientation.VERTICAL:
-                                ctx.fillRect(bx-5, by-32*w+3, 10, 64*w-6);
-                                if((bx & (REFERENCE.WIDTH-1)) == 0){
-                                    ctx.fillStyle = 'rgb(150, 150, 150)';
-                                    ctx.fillRect(bx, by-32*w+3, 1/SCALE, 64*w-6);
-                                }
-                                break;
-                            case Orientation.HORIZONTAL:
-                                ctx.fillRect(bx-32*w+3, by-5, 64*w-6, 10);
-                                if((by & (REFERENCE.WIDTH-1)) == 0){
-                                    ctx.fillStyle = 'rgb(150, 150, 150)';
-                                    ctx.fillRect(bx-32*w+3, by, 64*w-6, 1/SCALE);
-                                }
-                                break;
-                            case Orientation.TOPLEFT_DOWNRIGHT:
-                                ctx.strokeStyle = BACKGROUND;
-                                ctx.lineWidth=10;
-                                ctx.beginPath();
-                                ctx.moveTo(bx-28*w, by-28*w)
-                                ctx.lineTo(bx+28*w, by+28*w);
-                                ctx.stroke();
-                                break;
-                            case Orientation.TOPRIGHT_DOWNLEFT:
-                                ctx.strokeStyle = BACKGROUND;
-                                ctx.lineWidth=10;
-                                ctx.beginPath();
-                                ctx.moveTo(bx+28*w, by-28*w)
-                                ctx.lineTo(bx-28*w, by+28*w);
-                                ctx.stroke();
-                                break;
-                        }
-                    }break;
-                    case DoorType.CURTAINS:{
-                        if(is_selected){
-                            ctx.strokeStyle = sel_color;
+                            ctx.fillStyle = BACKGROUND;
+                            ctx.strokeStyle = obj.color;
                             ctx.lineWidth=4;
+                            switch(obj.orientation){
+                                case Orientation.VERTICAL:
+                                    ctx.fillRect(bx-10*th, by-off, 20*th, length);
+                                    ctx.strokeRect(bx-10*th, by-off, 20*th, length);
+                                    ctx.strokeRect(bx-10*th, by, 20*th, 1);
+                                    break;
+                                case Orientation.HORIZONTAL:
+                                    ctx.fillRect(bx-off, by-10*th, length, 20*th);
+                                    ctx.strokeRect(bx-off, by-10*th, length, 20*th);
+                                    ctx.strokeRect(bx, by-10*th, 1, 20*th);
+                                    break;
+                                case Orientation.TOPLEFT_DOWNRIGHT:
+                                    ctx.lineWidth=18;
+                                    ctx.beginPath();
+                                    ctx.moveTo(bx-20*w, by-20*w)
+                                    ctx.lineTo(bx+20*w, by+20*w);
+                                    ctx.stroke();
+                                    ctx.strokeStyle = BACKGROUND;
+                                    ctx.lineWidth=10;
+                                    ctx.beginPath();
+                                    ctx.moveTo(bx-16*w, by-16*w)
+                                    ctx.lineTo(bx-2*w, by-2*w);
+                                    ctx.stroke();
+                                    ctx.beginPath();
+                                    ctx.moveTo(bx+2*w, by+2*w)
+                                    ctx.lineTo(bx+16*w, by+16*w);
+                                    ctx.stroke();
+                                    break;
+                                case Orientation.TOPRIGHT_DOWNLEFT:
+                                    ctx.lineWidth=18;
+                                    ctx.beginPath();
+                                    ctx.moveTo(bx+20*w, by-20*w)
+                                    ctx.lineTo(bx-20*w, by+20*w);
+                                    ctx.stroke();
+                                    ctx.strokeStyle = BACKGROUND;
+                                    ctx.lineWidth=10;
+                                    ctx.beginPath();
+                                    ctx.moveTo(bx+16*w, by-16*w)
+                                    ctx.lineTo(bx+2*w, by-2*w);
+                                    ctx.stroke();
+                                    ctx.beginPath();
+                                    ctx.moveTo(bx-2*w, by+2*w)
+                                    ctx.lineTo(bx-16*w, by+16*w);
+                                    ctx.stroke();
+                                    break;
+                            }
+                        }break;
+                        case DoorType.DOOR:{
+                            const length = REFERENCE.WIDTH*w - 16*th;
+                            const off = length/2;
+                            if(is_selected){
+                                ctx.strokeStyle = sel_color;
+                                ctx.lineWidth=8;
+                                switch(obj.orientation){
+                                    case Orientation.VERTICAL:
+                                        ctx.strokeRect(bx-10*th, by-off, 20*th, length);
+                                        break;
+                                    case Orientation.HORIZONTAL:
+                                        ctx.strokeRect(bx-off, by-10*th, length, 20*th);
+                                        break;
+                                    case Orientation.TOPLEFT_DOWNRIGHT:
+                                        ctx.lineWidth=22;
+                                        ctx.beginPath();
+                                        ctx.moveTo(bx-22*w, by-22*w)
+                                        ctx.lineTo(bx+22*w, by+22*w);
+                                        ctx.stroke();
+                                        break;
+                                    case Orientation.TOPRIGHT_DOWNLEFT:
+                                        ctx.lineWidth=22;
+                                        ctx.beginPath();
+                                        ctx.moveTo(bx+22*w, by-22*w)
+                                        ctx.lineTo(bx-22*w, by+22*w);
+                                        ctx.stroke();
+                                        break;
+                                }
+                            }
+                            ctx.fillStyle = BACKGROUND;
+                            ctx.strokeStyle = obj.color;
+                            ctx.lineWidth=4;
+                            switch(obj.orientation){
+                                case Orientation.VERTICAL:
+                                    ctx.fillRect(bx-10*th, by-off, 20*th, length);
+                                    ctx.strokeRect(bx-10*th, by-off, 20*th, length);
+                                    break;
+                                case Orientation.HORIZONTAL:
+                                    ctx.fillRect(bx-off, by-10*th, length, 20*th);
+                                    ctx.strokeRect(bx-off, by-10*th, length, 20*th);
+                                    break;
+                                case Orientation.TOPLEFT_DOWNRIGHT:
+                                    ctx.lineWidth=18;
+                                    ctx.beginPath();
+                                    ctx.moveTo(bx-20*w, by-20*w)
+                                    ctx.lineTo(bx+20*w, by+20*w);
+                                    ctx.stroke();
+                                    ctx.strokeStyle = BACKGROUND;
+                                    ctx.lineWidth=10;
+                                    ctx.beginPath();
+                                    ctx.moveTo(bx-16*w, by-16*w)
+                                    ctx.lineTo(bx+16*w, by+16*w);
+                                    ctx.stroke();
+                                    break;
+                                case Orientation.TOPRIGHT_DOWNLEFT:
+                                    ctx.lineWidth=18;
+                                    ctx.beginPath();
+                                    ctx.moveTo(bx+20*w, by-20*w)
+                                    ctx.lineTo(bx-20*w, by+20*w);
+                                    ctx.stroke();
+                                    ctx.strokeStyle = BACKGROUND;
+                                    ctx.lineWidth=10;
+                                    ctx.beginPath();
+                                    ctx.moveTo(bx+16*w, by-16*w)
+                                    ctx.lineTo(bx-16*w, by+16*w);
+                                    ctx.stroke();
+                                    break;
+                            }
+                        }break;
+                        case DoorType.PORTCULLIS:{
+                            if(is_selected){
+                                ctx.strokeStyle = sel_color;
+                                ctx.lineWidth=8;
+                                switch(obj.orientation){
+                                    case Orientation.VERTICAL:
+                                        ctx.strokeRect(bx-10*th, by-16*w, 20*th, 32*w);
+                                        break;
+                                    case Orientation.HORIZONTAL:
+                                        ctx.strokeRect(bx-16*w, by-10*th, 32*w, 20*th);
+                                        break;
+                                    case Orientation.TOPLEFT_DOWNRIGHT:
+                                        ctx.lineWidth=22;
+                                        ctx.beginPath();
+                                        ctx.moveTo(bx-22*w, by-22*w)
+                                        ctx.lineTo(bx+22*w, by+22*w);
+                                        ctx.stroke();
+                                        break;
+                                    case Orientation.TOPRIGHT_DOWNLEFT:
+                                        ctx.lineWidth=22;
+                                        ctx.beginPath();
+                                        ctx.moveTo(bx+22*w, by-22*w)
+                                        ctx.lineTo(bx-22*w, by+22*w);
+                                        ctx.stroke();
+                                        break;
+                                }
+                            }
+                            const length = REFERENCE.WIDTH*w;
+                            ctx.strokeStyle = BACKGROUND;
+                            ctx.lineWidth=12;
+                            ctx.setLineDash([6, 4]);
+                            ctx.beginPath();
+                            switch(obj.orientation){
+                                case Orientation.VERTICAL:
+                                    ctx.moveTo(bx, by-length/2+8);
+                                    ctx.lineTo(bx, by+length/2-6);
+                                    break;
+                                case Orientation.HORIZONTAL:
+                                    ctx.moveTo(bx-length/2+8, by);
+                                    ctx.lineTo(bx+length/2-6, by);
+                                    break;
+                                case Orientation.TOPLEFT_DOWNRIGHT:
+                                    ctx.moveTo(bx-16*w, by-16*w)
+                                    ctx.lineTo(bx+16*w, by+16*w);
+                                    break;
+                                case Orientation.TOPRIGHT_DOWNLEFT:
+                                    ctx.moveTo(bx+16*w, by-16*w)
+                                    ctx.lineTo(bx-16*w, by+16*w);
+                                    break;
+                            }
+                            ctx.stroke();
+                            ctx.setLineDash([]);
+                        }break;
+                        case DoorType.PORTAL:{
+                            if(is_selected){
+                                ctx.strokeStyle = sel_color;
+                                ctx.lineWidth=8;
+                                switch(obj.orientation){
+                                    case Orientation.VERTICAL:
+                                        ctx.strokeRect(bx-10, by-16*th, 20, 32*th);
+                                        break;
+                                    case Orientation.HORIZONTAL:
+                                        ctx.strokeRect(bx-16*th, by-10, 32*th, 20);
+                                        break;
+                                    case Orientation.TOPLEFT_DOWNRIGHT:
+                                        ctx.lineWidth=22;
+                                        ctx.beginPath();
+                                        ctx.moveTo(bx-22*th, by-22*th)
+                                        ctx.lineTo(bx+22*th, by+22*th);
+                                        ctx.stroke();
+                                        break;
+                                    case Orientation.TOPRIGHT_DOWNLEFT:
+                                        ctx.lineWidth=22;
+                                        ctx.beginPath();
+                                        ctx.moveTo(bx+22*th, by-22*th)
+                                        ctx.lineTo(bx-22*th, by+22*th);
+                                        ctx.stroke();
+                                        break;
+                                }
+                            }
+                            const thingy = th * 13;
+                            const length = 64*w-thingy*2;
+                            ctx.fillStyle = BACKGROUND;
+                            ctx.lineWidth=4;
+                            switch(obj.orientation){
+                                case Orientation.VERTICAL:
+                                    ctx.fillRect(bx-5, by-length/2, 10, length);
+                                    if((bx & (REFERENCE.WIDTH-1)) == 0){
+                                        ctx.fillStyle = 'rgb(150, 150, 150)';
+                                        ctx.fillRect(bx, by-length/2, 1/SCALE, length);
+                                    }
+                                    break;
+                                case Orientation.HORIZONTAL:
+                                    ctx.fillRect(bx-length/2, by-5, length, 10);
+                                    if((by & (REFERENCE.WIDTH-1)) == 0){
+                                        ctx.fillStyle = 'rgb(150, 150, 150)';
+                                        ctx.fillRect(bx-length/2, by, length, 1/SCALE);
+                                    }
+                                    break;
+                                case Orientation.TOPLEFT_DOWNRIGHT:
+                                    ctx.strokeStyle = BACKGROUND;
+                                    ctx.lineWidth=10;
+                                    ctx.beginPath();
+                                    ctx.moveTo(bx-24*w, by-24*w)
+                                    ctx.lineTo(bx+24*w, by+24*w);
+                                    ctx.stroke();
+                                    break;
+                                case Orientation.TOPRIGHT_DOWNLEFT:
+                                    ctx.strokeStyle = BACKGROUND;
+                                    ctx.lineWidth=10;
+                                    ctx.beginPath();
+                                    ctx.moveTo(bx+16*w, by-16*w)
+                                    ctx.lineTo(bx-16*w, by+16*w);
+                                    ctx.stroke();
+                                    break;
+                            }
+                        }break;
+                        case DoorType.HALLWAY:{
+                            if(is_selected){
+                                ctx.strokeStyle = sel_color;
+                                ctx.lineWidth=8;
+                                switch(obj.orientation){
+                                    case Orientation.VERTICAL:
+                                        ctx.strokeRect(bx-10, by-32*w, 20, 64*w);
+                                        break;
+                                    case Orientation.HORIZONTAL:
+                                        ctx.strokeRect(bx-32*w, by-10, 64*w, 20);
+                                        break;
+                                    case Orientation.TOPLEFT_DOWNRIGHT:
+                                        ctx.lineWidth=22;
+                                        ctx.beginPath();
+                                        ctx.moveTo(bx-32*w, by-32*w)
+                                        ctx.lineTo(bx+32*w, by+32*w);
+                                        ctx.stroke();
+                                        break;
+                                    case Orientation.TOPRIGHT_DOWNLEFT:
+                                        ctx.lineWidth=22;
+                                        ctx.beginPath();
+                                        ctx.moveTo(bx+32*w, by-32*w)
+                                        ctx.lineTo(bx-32*w, by+32*w);
+                                        ctx.stroke();
+                                        break;
+                                }
+                            }
+                            ctx.fillStyle = BACKGROUND;
+                            ctx.lineWidth=4;
+                            switch(obj.orientation){
+                                case Orientation.VERTICAL:
+                                    ctx.fillRect(bx-5, by-32*w+3, 10, 64*w-6);
+                                    if((bx & (REFERENCE.WIDTH-1)) == 0){
+                                        ctx.fillStyle = 'rgb(150, 150, 150)';
+                                        ctx.fillRect(bx, by-32*w+3, 1/SCALE, 64*w-6);
+                                    }
+                                    break;
+                                case Orientation.HORIZONTAL:
+                                    ctx.fillRect(bx-32*w+3, by-5, 64*w-6, 10);
+                                    if((by & (REFERENCE.WIDTH-1)) == 0){
+                                        ctx.fillStyle = 'rgb(150, 150, 150)';
+                                        ctx.fillRect(bx-32*w+3, by, 64*w-6, 1/SCALE);
+                                    }
+                                    break;
+                                case Orientation.TOPLEFT_DOWNRIGHT:
+                                    ctx.strokeStyle = BACKGROUND;
+                                    ctx.lineWidth=10;
+                                    ctx.beginPath();
+                                    ctx.moveTo(bx-28*w, by-28*w)
+                                    ctx.lineTo(bx+28*w, by+28*w);
+                                    ctx.stroke();
+                                    break;
+                                case Orientation.TOPRIGHT_DOWNLEFT:
+                                    ctx.strokeStyle = BACKGROUND;
+                                    ctx.lineWidth=10;
+                                    ctx.beginPath();
+                                    ctx.moveTo(bx+28*w, by-28*w)
+                                    ctx.lineTo(bx-28*w, by+28*w);
+                                    ctx.stroke();
+                                    break;
+                            }
+                        }break;
+                        case DoorType.CURTAINS:{
+                            if(is_selected){
+                                ctx.strokeStyle = sel_color;
+                                ctx.lineWidth=4;
+                                const r = 8;
+                                switch(obj.orientation){
+                                    case Orientation.VERTICAL:
+                                        for(let y = by-REFERENCE.WIDTH*w/2+r, i=0; y < by+REFERENCE.WIDTH*w/2+r; y+= 2*r, i++){
+                                            ctx.beginPath();
+                                            ctx.arc(bx, y, r, Math.PI/2, 3*Math.PI/2, !!(i & 1));
+                                            ctx.stroke();
+                                        }
+                                        break;
+                                    case Orientation.HORIZONTAL:
+                                        for(let x = bx-REFERENCE.WIDTH*w/2+r, i=0; x < bx+REFERENCE.WIDTH*w/2+r; x+= 2*r, i++){
+                                            ctx.beginPath();
+                                            ctx.arc(x, by, r, 0, Math.PI, !!(i & 1));
+                                            ctx.stroke();
+                                        }
+                                        break;
+                                    case Orientation.TOPLEFT_DOWNRIGHT:{
+                                        let r = 64*1.4159/12;
+                                        for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
+                                            ctx.beginPath();
+                                            ctx.arc(bx-REFERENCE.WIDTH/2+d+r/1.41519, by-REFERENCE.WIDTH/2+d+r/1.41519, r, Math.PI/4, 5*Math.PI/4, !!(i & 1));
+                                            ctx.stroke();
+                                        }
+                                    }break;
+                                    case Orientation.TOPRIGHT_DOWNLEFT:{
+                                        let r = 64*1.4159/12;
+                                        for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
+                                            ctx.beginPath();
+                                            ctx.arc(bx-REFERENCE.WIDTH/2+d+r/1.41519, by+REFERENCE.WIDTH/2-d-r/1.41519, r, 3*Math.PI/4, 7*Math.PI/4, !!(i & 1));
+                                            ctx.stroke();
+                                        }
+                                    }break;
+                                }
+                            }
+                            ctx.strokeStyle = '#444';
+                            ctx.lineWidth=2;
                             const r = 8;
                             switch(obj.orientation){
                                 case Orientation.VERTICAL:
@@ -6045,78 +6087,65 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                                     }
                                 }break;
                             }
-                        }
-                        ctx.strokeStyle = '#444';
-                        ctx.lineWidth=2;
-                        const r = 8;
-                        switch(obj.orientation){
-                            case Orientation.VERTICAL:
-                                for(let y = by-REFERENCE.WIDTH*w/2+r, i=0; y < by+REFERENCE.WIDTH*w/2+r; y+= 2*r, i++){
-                                    ctx.beginPath();
-                                    ctx.arc(bx, y, r, Math.PI/2, 3*Math.PI/2, !!(i & 1));
-                                    ctx.stroke();
-                                }
-                                break;
-                            case Orientation.HORIZONTAL:
-                                for(let x = bx-REFERENCE.WIDTH*w/2+r, i=0; x < bx+REFERENCE.WIDTH*w/2+r; x+= 2*r, i++){
-                                    ctx.beginPath();
-                                    ctx.arc(x, by, r, 0, Math.PI, !!(i & 1));
-                                    ctx.stroke();
-                                }
-                                break;
-                            case Orientation.TOPLEFT_DOWNRIGHT:{
-                                let r = 64*1.4159/12;
-                                for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
-                                    ctx.beginPath();
-                                    ctx.arc(bx-REFERENCE.WIDTH/2+d+r/1.41519, by-REFERENCE.WIDTH/2+d+r/1.41519, r, Math.PI/4, 5*Math.PI/4, !!(i & 1));
-                                    ctx.stroke();
-                                }
-                            }break;
-                            case Orientation.TOPRIGHT_DOWNLEFT:{
-                                let r = 64*1.4159/12;
-                                for(let d = 0, i=0; i < w*6; d+= 2*r/1.4159, i++){
-                                    ctx.beginPath();
-                                    ctx.arc(bx-REFERENCE.WIDTH/2+d+r/1.41519, by+REFERENCE.WIDTH/2-d-r/1.41519, r, 3*Math.PI/4, 7*Math.PI/4, !!(i & 1));
-                                    ctx.stroke();
-                                }
-                            }break;
-                        }
-                    }break;
-                    case DoorType.SECRET:{
-                        ctx.save();
-                        ctx.textBaseline = 'middle';
-                        ctx.textAlign = 'center';
-                        ctx.translate(bx, by);
-                        switch(obj.orientation){
-                            case Orientation.VERTICAL:
-                                break;
-                            case Orientation.HORIZONTAL:
-                                ctx.rotate(Math.PI/2);
-                                break;
-                            case Orientation.TOPLEFT_DOWNRIGHT:
-                                ctx.rotate(3*Math.PI/4);
-                                break;
-                            case Orientation.TOPRIGHT_DOWNLEFT:
-                                ctx.rotate(Math.PI/4);
-                                break;
-                        }
-                        if(is_selected){
-                            ctx.font = '56px sans-serif';
-                            ctx.fillStyle = sel_color;
+                        }break;
+                        case DoorType.SECRET:{
+                            ctx.save();
+                            ctx.textBaseline = 'middle';
+                            ctx.textAlign = 'center';
+                            ctx.translate(bx, by);
+                            switch(obj.orientation){
+                                case Orientation.VERTICAL:
+                                    break;
+                                case Orientation.HORIZONTAL:
+                                    ctx.rotate(Math.PI/2);
+                                    break;
+                                case Orientation.TOPLEFT_DOWNRIGHT:
+                                    ctx.rotate(3*Math.PI/4);
+                                    break;
+                                case Orientation.TOPRIGHT_DOWNLEFT:
+                                    ctx.rotate(Math.PI/4);
+                                    break;
+                            }
+                            if(is_selected){
+                                ctx.font = '56px sans-serif';
+                                ctx.fillStyle = sel_color;
+                                ctx.fillText('S', 0, 0);
+                            }
+                            ctx.font = '48px sans-serif';
+                            if(is_darkmode)
+                                ctx.fillStyle = '#888';
+                            else
+                                ctx.fillStyle = '#444';
                             ctx.fillText('S', 0, 0);
-                        }
-                        ctx.font = '48px sans-serif';
-                        if(is_darkmode)
-                            ctx.fillStyle = '#888';
-                        else
-                            ctx.fillStyle = '#444';
-                        ctx.fillText('S', 0, 0);
-                        ctx.restore();
-                    }break;
-                    case DoorType.BRICKED_WALL:{
-                        if(is_selected){
-                            ctx.strokeStyle = sel_color;
-                            ctx.lineWidth=12;
+                            ctx.restore();
+                        }break;
+                        case DoorType.BRICKED_WALL:{
+                            if(is_selected){
+                                ctx.strokeStyle = sel_color;
+                                ctx.lineWidth=12;
+                                ctx.beginPath();
+                                switch(obj.orientation){
+                                    case Orientation.VERTICAL:
+                                        ctx.moveTo(bx, by-22*w)
+                                        ctx.lineTo(bx, by+22*w);
+                                        break;
+                                    case Orientation.HORIZONTAL:
+                                        ctx.moveTo(bx-22*w, by)
+                                        ctx.lineTo(bx+22*w, by);
+                                        break;
+                                    case Orientation.TOPLEFT_DOWNRIGHT:
+                                        ctx.moveTo(bx-22*w, by-22*w)
+                                        ctx.lineTo(bx+22*w, by+22*w);
+                                        break;
+                                    case Orientation.TOPRIGHT_DOWNLEFT:
+                                        ctx.moveTo(bx+22*w, by-22*w)
+                                        ctx.lineTo(bx-22*w, by+22*w);
+                                        break;
+                                }
+                                ctx.stroke();
+                            }
+                            ctx.strokeStyle = '#ff1111';
+                            ctx.lineWidth=6;
                             ctx.beginPath();
                             switch(obj.orientation){
                                 case Orientation.VERTICAL:
@@ -6137,502 +6166,204 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                                     break;
                             }
                             ctx.stroke();
-                        }
-                        ctx.strokeStyle = '#ff1111';
-                        ctx.lineWidth=6;
-                        ctx.beginPath();
-                        switch(obj.orientation){
-                            case Orientation.VERTICAL:
-                                ctx.moveTo(bx, by-22*w)
-                                ctx.lineTo(bx, by+22*w);
-                                break;
-                            case Orientation.HORIZONTAL:
-                                ctx.moveTo(bx-22*w, by)
-                                ctx.lineTo(bx+22*w, by);
-                                break;
-                            case Orientation.TOPLEFT_DOWNRIGHT:
-                                ctx.moveTo(bx-22*w, by-22*w)
-                                ctx.lineTo(bx+22*w, by+22*w);
-                                break;
-                            case Orientation.TOPRIGHT_DOWNLEFT:
-                                ctx.moveTo(bx+22*w, by-22*w)
-                                ctx.lineTo(bx-22*w, by+22*w);
-                                break;
-                        }
-                        ctx.stroke();
-                    }break;
-                    case DoorType.WINDOW:{
-                        if(is_selected){
-                            ctx.strokeStyle = sel_color;
-                            ctx.lineWidth=12;
+                        }break;
+                        case DoorType.WINDOW:{
+                            if(is_selected){
+                                ctx.strokeStyle = sel_color;
+                                ctx.lineWidth=12;
+                                ctx.beginPath();
+                                switch(obj.orientation){
+                                    case Orientation.VERTICAL:
+                                        ctx.moveTo(bx, by-22*w)
+                                        ctx.lineTo(bx, by+22*w);
+                                        break;
+                                    case Orientation.HORIZONTAL:
+                                        ctx.moveTo(bx-22*w, by)
+                                        ctx.lineTo(bx+22*w, by);
+                                        break;
+                                    case Orientation.TOPLEFT_DOWNRIGHT:
+                                        ctx.moveTo(bx-22*w, by-22*w)
+                                        ctx.lineTo(bx+22*w, by+22*w);
+                                        break;
+                                    case Orientation.TOPRIGHT_DOWNLEFT:
+                                        ctx.moveTo(bx+22*w, by-22*w)
+                                        ctx.lineTo(bx-22*w, by+22*w);
+                                        break;
+                                }
+                                ctx.stroke();
+                            }
+                            if(obj.color === '#000000')
+                                ctx.strokeStyle = '#73f9fd';
+                            else
+                                ctx.strokeStyle = obj.color;
+                            ctx.lineWidth=6;
                             ctx.beginPath();
                             switch(obj.orientation){
                                 case Orientation.VERTICAL:
-                                    ctx.moveTo(bx, by-22*w)
-                                    ctx.lineTo(bx, by+22*w);
+                                    ctx.moveTo(bx, by-30*w+1)
+                                    ctx.lineTo(bx, by+30*w);
                                     break;
                                 case Orientation.HORIZONTAL:
-                                    ctx.moveTo(bx-22*w, by)
-                                    ctx.lineTo(bx+22*w, by);
+                                    ctx.moveTo(bx-30*w+1, by)
+                                    ctx.lineTo(bx+30*w, by);
                                     break;
                                 case Orientation.TOPLEFT_DOWNRIGHT:
-                                    ctx.moveTo(bx-22*w, by-22*w)
-                                    ctx.lineTo(bx+22*w, by+22*w);
+                                    ctx.moveTo(bx-30*w+1, by-30*w+1)
+                                    ctx.lineTo(bx+30*w, by+30*w);
                                     break;
                                 case Orientation.TOPRIGHT_DOWNLEFT:
-                                    ctx.moveTo(bx+22*w, by-22*w)
-                                    ctx.lineTo(bx-22*w, by+22*w);
+                                    ctx.moveTo(bx+30*w+1, by-30*w+1)
+                                    ctx.lineTo(bx-30*w, by+30*w);
                                     break;
                             }
                             ctx.stroke();
-                        }
-                        if(obj.color === '#000000')
-                            ctx.strokeStyle = '#73f9fd';
-                        else
-                            ctx.strokeStyle = obj.color;
-                        ctx.lineWidth=6;
-                        ctx.beginPath();
-                        switch(obj.orientation){
-                            case Orientation.VERTICAL:
-                                ctx.moveTo(bx, by-30*w+1)
-                                ctx.lineTo(bx, by+30*w);
-                                break;
-                            case Orientation.HORIZONTAL:
-                                ctx.moveTo(bx-30*w+1, by)
-                                ctx.lineTo(bx+30*w, by);
-                                break;
-                            case Orientation.TOPLEFT_DOWNRIGHT:
-                                ctx.moveTo(bx-30*w+1, by-30*w+1)
-                                ctx.lineTo(bx+30*w, by+30*w);
-                                break;
-                            case Orientation.TOPRIGHT_DOWNLEFT:
-                                ctx.moveTo(bx+30*w+1, by-30*w+1)
-                                ctx.lineTo(bx-30*w, by+30*w);
-                                break;
-                        }
-                        ctx.stroke();
-                    }break;
-                }
-            }break;
-            case CanvasType.STAIRS:{ // TAG renderSTAIRS
-                if(!obj.width || !obj.height)
-                    break;
-                const bbox = {
-                    x0:bx,
-                    y0:by,
-                    x1:bx+obj.width*REFERENCE.WIDTH,
-                    y1:by+obj.height*REFERENCE.WIDTH,
-                };
-                if(!bbox_overlaps(bbox, canvas_bbox)){
-                    break;
-                }
-                if(is_selected){
-                    ctx.lineWidth=4;
-                    ctx.strokeStyle = sel_color;
-                    ctx.strokeRect(bx, by, obj.width*REFERENCE.WIDTH, obj.height*REFERENCE.WIDTH);
-                }
-                ctx.fillStyle = "#000000";
-                if(obj.rotation & 1){
-                    let x0:  number  = 0;
-                    let x1:  number  = 0;
-                    let y0:  number  = 0;
-                    let y1:  number  = 0;
-                    let x_e: number = 0;
-                    let y_e: number = 0;
-                    const enum W {W=REFERENCE.WIDTH};
-
-                    const n = Math.floor(Math.sqrt((obj.height*obj.height + obj.width*obj.width))*6) - 1;
-                    const m = Math.min(obj.width, obj.height);
-
-                    switch(obj.rotation){
-                        case Rotation.UP_RIGHT:{
-                            x0   = bx + W.W*(obj.width-2*m/3);
-                            x1   = bx + obj.width*W.W;
-                            y0   = by;
-                            y1   = by + 2*m*W.W/3;
-                            x_e = bx;
-                            y_e = by + obj.height*W.W;
-                        }break;
-                        case Rotation.DOWN_RIGHT:{
-                            x0 = bx + W.W*(obj.width-2*m/3);
-                            x1 = bx + W.W*obj.width;
-                            y0   = by + W.W*obj.height;
-                            y1   = by + W.W*(obj.height-2*m/3);
-                            x_e = bx;
-                            y_e = by;
-                        }break;
-                        case Rotation.DOWN_LEFT:{
-                            x0 = bx;
-                            x1 = bx+W.W*(2*m/3);
-                            y0 = by + W.W*(obj.height-2*m/3);
-                            y1 = by + W.W*obj.height;
-                            x_e = bx + W.W*obj.width;
-                            y_e = by;
-                        }break;
-                        case Rotation.UP_LEFT:{
-                            x0 = bx;
-                            x1 = bx+W.W*(2*m/3);
-                            y0 = by+W.W*2*m/3;
-                            y1 = by;
-                            x_e = bx + W.W*obj.width;
-                            y_e = by + W.W*obj.height;
                         }break;
                     }
-                    const dx0 = (x_e - x0)/n
-                    const dx1 = (x_e - x1)/n
-                    const dy0 = (y_e - y0)/n
-                    const dy1 = (y_e - y1)/n
-                    ctx.save();
-                    ctx.strokeStyle = '#000000';
-                    ctx.lineWidth = 4;
-                    ctx.lineCap = 'butt';
-                    for(let q = 0; q < n; ++q){
-                        ctx.beginPath();
-                        ctx.moveTo(x0, y0);
-                        ctx.lineTo(x1, y1);
-                        ctx.stroke();
-                        x0 += dx0;
-                        x1 += dx1;
-                        y0 += dy0;
-                        y1 += dy1;
+                }break;
+                case CanvasType.STAIRS:{ // TAG renderSTAIRS
+                    if(!obj.width || !obj.height)
+                        break;
+                    const bbox = {
+                        x0:bx,
+                        y0:by,
+                        x1:bx+obj.width*REFERENCE.WIDTH,
+                        y1:by+obj.height*REFERENCE.WIDTH,
+                    };
+                    if(!bbox_overlaps(bbox, canvas_bbox)){
+                        break;
                     }
-                    ctx.restore();
-                }
-                else {
-                    let n = 0;
-                    let dx = 0;
-                    let dy = 0;
-                    let w = 0;
-                    let h = 0;
-                    let dw = 0;
-                    let dh = 0;
-                    let x = bx;
-                    let y = by;
-                    switch(obj.rotation){
-                        case Rotation.UP:{
-                            x += 2;
-                            y += 4;
-                            n = obj.height * 8 - 1;
-                            w = REFERENCE.WIDTH*obj.width-4;
-                            h = 4;
-                            dw = -w / n;
-                            dx = -dw/2;
-                            dy = 8;
-                        }break;
-                        case Rotation.DOWN:{
-                            x += 2;
-                            n = obj.height * 8 - 1;
-                            w = REFERENCE.WIDTH*obj.width-4;
-                            h = 4;
-                            dw = -w / n;
-                            dx = -dw/2;
-                            dy = -8;
-                            y = by + obj.height*64 - 8;
-                        }break;
-                        case Rotation.RIGHT:{
-                            y += 2;
-                            x += 4;
-                            n = obj.width * 8 - 1;
-                            h = REFERENCE.WIDTH*obj.height-4;
-                            w = 4;
-                            dh = -h / n;
-                            dy = -dh/2;
-                            dx = 8;
-                        }break;
-                        case Rotation.LEFT:{
-                            y += 2;
-                            n = obj.width * 8 - 1;
-                            h = REFERENCE.WIDTH*obj.height-4;
-                            w = 4;
-                            dh = -h / n;
-                            dy = -dh/2;
-                            dx = -8;
-                            x = bx + obj.width*64 - 8;
-                        }break;
-                    }
-                    for(let q = 0; q < n; ++q){
-                        ctx.fillRect(x, y, w, h);
-                        w += dw;
-                        h += dh;
-                        x += dx;
-                        y += dy;
-                    }
-                }
-                if(one_selection && selected.has(obj.id)){
-                    ctx.fillStyle = sel_color;
-                    ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
-                    ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
-                    view.resize.handles.push({
-                        bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
-                        obj_id: obj.id,
-                        topleft:true,
-                    });
-                    view.resize.handles.push({
-                        bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
-                        obj_id: obj.id,
-                        topleft:false,
-                    });
-                }
-            }break;
-            case CanvasType.MEASURE:{ // TAG renderMEASURE
-                // this looks sus with the change to bx over obj.base_x
-                let x1 = obj.x1;
-                let y1 = obj.y1;
-                const bbox = {
-                    x0: bx < x1 ? bx : x1,
-                    x1: bx > x1 ? bx : x1,
-                    y0: by < y1 ? by : y1,
-                    y1: by > y1 ? by : y1,
-                };
-                if(!bbox_overlaps(bbox, canvas_bbox))
-                    break;
-                if(bbox.x0 == bbox.x1 && bbox.y0 == bbox.y1)
-                    break;
-                ctx.strokeStyle = obj.color;
-                ctx.lineWidth = 4/scale;
-                ctx.lineJoin = 'miter';
-                ctx.beginPath();
-                ctx.moveTo(bx, by);
-                const head_length = 20/scale;
-                const dx = x1 - bx;
-                const dy = y1 - by;
-                const angle = Math.atan2(dy, dx);
-                ctx.lineTo(x1, y1);
-                ctx.stroke();
-                ctx.beginPath();
-                let x_off = head_length * Math.cos(angle - Math.PI/6);
-                let y_off = head_length * Math.sin(angle - Math.PI/6);
-                ctx.lineTo(x1 - x_off, y1 - y_off);
-                ctx.lineTo(x1, y1);
-                x_off = head_length * Math.cos(angle + Math.PI/6);
-                y_off = head_length * Math.sin(angle + Math.PI/6);
-                ctx.lineTo(x1 - x_off, y1 - y_off);
-                ctx.stroke();
-                const fontsize = 24/scale | 0;
-                ctx.font = fontsize+'px sans-serif';
-                ctx.textBaseline = 'middle';
-                ctx.textAlign = 'center';
-                ctx.fillStyle = '#000000';
-
-                const measure_length = calc_measure_length(map, bx, by, x1, y1);
-
-                ctx.fillText(measure_length, (bx+x1)/2-fontsize, (by+y1)/2-fontsize);
-            }break;
-            case CanvasType.FIXTURE:{ // TAG renderFIXTURE
-                if(!obj.width || !obj.height)
-                    break;
-                const bbox = {
-                    x0:bx,
-                    y0:by,
-                    x1:bx+obj.width,
-                    y1:by+obj.height,
-                };
-                if(!bbox_overlaps(bbox, canvas_bbox)){
-                    break;
-                }
-                switch(obj.ftype){
-                    case FixtureType.STAIRS:
-                        break; // should be unreachable
-                    case FixtureType.DIAG_STAIRS:
-                        break; // unreachable
-                    case FixtureType.STATUE:{
-                        const cx = (bbox.x0+bbox.x1)/2;
-                        const cy = (bbox.y0+bbox.y1)/2;
-                        if(is_selected){
-                            ctx.lineWidth=4;
-                            ctx.strokeStyle = sel_color;
-                            ctx.beginPath();
-                            ctx.ellipse(cx, cy, obj.width/2, obj.height/2, 0, 0, Math.PI*2);
-                            ctx.stroke();
-                        }
-                        ctx.strokeStyle = '#000000';
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.ellipse(cx, cy, obj.width/2, obj.height/2, 0, 0, Math.PI*2);
-                        const r = Math.min(obj.width/2, obj.height/2)-1;
-                        const ir = r/2; // inner radius
-                        ctx.stroke();
-                        ctx.beginPath();
-                        let angle = 3*Math.PI/10;
-                        ctx.moveTo(cx+r*Math.cos(angle), cy+r*Math.sin(angle));
-                        for(let i = 0; i < 5; i++){
-                            angle += Math.PI/5;
-                            ctx.lineTo(cx+ir*Math.cos(angle), cy+ir*Math.sin(angle));
-                            angle += Math.PI/5;
-                            ctx.lineTo(cx+r*Math.cos(angle), cy+r*Math.sin(angle));
-                        }
-                        ctx.closePath();
-                        ctx.stroke();
-                    }break;
-                    case FixtureType.PIT:{
-                        let w = obj.width - 8;
-                        let h = obj.height - 8;
-                        let x = bx + 4;
-                        let y = by + 4;
-                        if(is_selected){
-                            ctx.lineWidth = 4;
-                            ctx.strokeStyle = sel_color;
-                            ctx.strokeRect(x-2,y-2,w+4,h+4);
-                        }
-                        ctx.lineWidth = 2;
-                        ctx.strokeStyle = '#000000';
-                        ctx.fillStyle = '#00000011';
-                        ctx.fillRect(x,y, w, h);
-                        ctx.fillStyle = '#00000033';
-                        const thick = Math.min(10, Math.min(obj.height/6, obj.width/6));
-                        ctx.fillRect(x+thick,y+thick, w-2*thick, h-2*thick);
-                        ctx.strokeRect(x,y,w,h);
-                        ctx.beginPath();
-                        ctx.moveTo(x, y);
-                        ctx.lineTo(x+thick, y+thick);
-                        ctx.lineTo(x+thick, y+h-thick);
-                        ctx.lineTo(x, y+h);
-                        ctx.lineTo(x+thick, y+h-thick);
-                        ctx.lineTo(x+w-thick, y+h-thick);
-                        ctx.lineTo(x+w, y+h);
-                        ctx.lineTo(x+w-thick, y+h-thick);
-                        ctx.lineTo(x+w-thick, y+thick);
-                        ctx.lineTo(x+w, y);
-                        ctx.lineTo(x+w-thick, y+thick);
-                        ctx.lineTo(x+thick, y+thick);
-                        ctx.stroke();
-                    }break;
-                    case FixtureType.RUBBLE:{
-                        if(is_selected){
-                            ctx.lineWidth = 4;
-                            ctx.strokeStyle = sel_color;
-                            ctx.strokeRect(bx, by, obj.width, obj.height);
-                        }
-                        if(PACKED && PACKED_LOAD==3){
-                            const ri = PACKED.fixtures[0];
-                            ctx.drawImage(PACKEDIMG, ri[2], ri[3], ri[4], ri[5], bx, by, obj.width, obj.height);
-                        }
-                    }break;
-                    case FixtureType.WELL:{
-                        let rx = obj.width/2 - 2;
-                        let ry = obj.height/2 - 2;
-                        let cx = bx + obj.width/2+0.5;
-                        let cy = by + obj.height/2+0.5;
-                        if(is_selected){
-                            ctx.lineWidth = 4;
-                            ctx.strokeStyle = sel_color;
-                            ctx.beginPath();
-                            ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2);
-                            ctx.stroke();
-                        }
-                        ctx.strokeStyle = '#000000';
-                        ctx.fillStyle = '#000000cc';
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2);
-                        ctx.stroke();
-
-                        ctx.beginPath();
-                        ctx.ellipse(cx, cy, rx-8, ry-8, 0, 0, Math.PI*2);
-                        ctx.stroke();
-                        ctx.fill();
-                    }break;
-                }
-                if(one_selection && selected.has(obj.id)){
-                    ctx.fillStyle = sel_color;
-                    ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
-                    ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
-                    view.resize.handles.push({
-                        bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
-                        obj_id: obj.id,
-                        topleft:true,
-                    });
-                    view.resize.handles.push({
-                        bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
-                        obj_id: obj.id,
-                        topleft:false,
-                    });
-                }
-            }break;
-            case CanvasType.FILLED_TILE:{ // TAG renderFILLED_TILE
-                // drawn already
-            }break;
-            case CanvasType.TERRAIN_TILE:{ // TAG renderTERRAIN_TILE
-                // drawn already
-            }break;
-            case CanvasType.ICON_TILE:{ // TAG renderICON_TILE
-                const icon = TERRAIN_ICON_BY_ID.get(obj.terrainicon_id);
-                if(is_selected){
-                    ctx.fillStyle = sel_color+'aa';
-                    ctx.fillRect(bx+4, by+4, 56, 56);
-                }
-                if(icon)
-                    ctx.drawImage(PACKEDIMG, icon[2], icon[3], icon[4], icon[5], bx+4, by+4, 56, 56);
-            }break;
-            case CanvasType.SHAPE:{ // TAG renderSHAPE
-                // This works well enough for now.
-                // If things get hairy, I could build a quadtree or whatever.
-                const line_bbox = {
-                    x0:obj.bbox.x0 + bx,
-                    y0:obj.bbox.y0 + by,
-                    x1:obj.bbox.x1 + bx,
-                    y1:obj.bbox.y1 + by,
-                };
-                if(!bbox_overlaps(canvas_bbox, line_bbox)){
-                    break;
-                }
-                if(obj.last_bx !== bx || obj.last_by !== by)
-                    obj.path = undefined;
-                if(!obj.path){
-                    obj.last_bx = bx;
-                    obj.last_by = by;
-                    shape_recalculate_path(obj, bx, by);
-                }
-                const oldcap = ctx.lineCap;
-                const oldjoin = ctx.lineJoin;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                if(is_selected){
-                    ctx.lineWidth=obj.thickness+4;
-                    ctx.strokeStyle = sel_color;
-                    ctx.stroke(obj.path!);
-                }
-                ctx.lineWidth = obj.thickness;
-                ctx.strokeStyle = obj.color;
-                ctx.stroke(obj.path!);
-                if(obj.color2.length){
-                    ctx.fillStyle = obj.color2;
-                    ctx.fill(obj.path!);
-                }
-                ctx.lineCap = oldcap;
-                ctx.lineJoin = oldjoin;
-            }break;
-            case CanvasType.ARC:{ // TAG renderARC
-                const bbox = {
-                    x0:bx,
-                    y0:by,
-                    x1:bx+obj.width,
-                    y1:by+obj.height,
-                };
-                if(!bbox_overlaps(bbox, canvas_bbox))
-                    break;
-                let sa = obj.start_arc & 3;
-                let ea = obj.end_arc & 3;
-                let th0 = sa * Math.PI/2;
-                let th1 = ea * Math.PI/2;
-                let [cx, cy, rx, ry] = arc_components(obj, bx-obj.base_x, by-obj.base_y);
-                if(obj.width && obj.height){
                     if(is_selected){
-                        ctx.lineWidth=8;
+                        ctx.lineWidth=4;
                         ctx.strokeStyle = sel_color;
-                        ctx.beginPath();
-                        ctx.ellipse(cx, cy, rx, ry, 0, th0, th1);
-                        ctx.stroke();
+                        ctx.strokeRect(bx, by, obj.width*REFERENCE.WIDTH, obj.height*REFERENCE.WIDTH);
                     }
-                    ctx.lineWidth=obj.thickness;
-                    ctx.beginPath();
-                    // ctx.strokeStyle = '#000000';
-                    ctx.strokeStyle = obj.color;
-                    ctx.ellipse(cx, cy, rx, ry, 0, th0, th1);
-                    ctx.stroke();
-                    // ctx.strokeStyle = '#8f0000';
-                    // ctx.strokeRect(bbox.x0, bbox.y0, obj.width, obj.height);
-                    // ctx.fillText(`${obj.end_arc} - ${obj.start_arc} = ${obj.end_arc - obj.start_arc} (${sa}, ${ea})`, bx, by);
+                    ctx.fillStyle = "#000000";
+                    if(obj.rotation & 1){
+                        let x0:  number  = 0;
+                        let x1:  number  = 0;
+                        let y0:  number  = 0;
+                        let y1:  number  = 0;
+                        let x_e: number = 0;
+                        let y_e: number = 0;
+                        const enum W {W=REFERENCE.WIDTH};
+
+                        const n = Math.floor(Math.sqrt((obj.height*obj.height + obj.width*obj.width))*6) - 1;
+                        const m = Math.min(obj.width, obj.height);
+
+                        switch(obj.rotation){
+                            case Rotation.UP_RIGHT:{
+                                x0   = bx + W.W*(obj.width-2*m/3);
+                                x1   = bx + obj.width*W.W;
+                                y0   = by;
+                                y1   = by + 2*m*W.W/3;
+                                x_e = bx;
+                                y_e = by + obj.height*W.W;
+                            }break;
+                            case Rotation.DOWN_RIGHT:{
+                                x0 = bx + W.W*(obj.width-2*m/3);
+                                x1 = bx + W.W*obj.width;
+                                y0   = by + W.W*obj.height;
+                                y1   = by + W.W*(obj.height-2*m/3);
+                                x_e = bx;
+                                y_e = by;
+                            }break;
+                            case Rotation.DOWN_LEFT:{
+                                x0 = bx;
+                                x1 = bx+W.W*(2*m/3);
+                                y0 = by + W.W*(obj.height-2*m/3);
+                                y1 = by + W.W*obj.height;
+                                x_e = bx + W.W*obj.width;
+                                y_e = by;
+                            }break;
+                            case Rotation.UP_LEFT:{
+                                x0 = bx;
+                                x1 = bx+W.W*(2*m/3);
+                                y0 = by+W.W*2*m/3;
+                                y1 = by;
+                                x_e = bx + W.W*obj.width;
+                                y_e = by + W.W*obj.height;
+                            }break;
+                        }
+                        const dx0 = (x_e - x0)/n
+                        const dx1 = (x_e - x1)/n
+                        const dy0 = (y_e - y0)/n
+                        const dy1 = (y_e - y1)/n
+                        ctx.save();
+                        ctx.strokeStyle = '#000000';
+                        ctx.lineWidth = 4;
+                        ctx.lineCap = 'butt';
+                        for(let q = 0; q < n; ++q){
+                            ctx.beginPath();
+                            ctx.moveTo(x0, y0);
+                            ctx.lineTo(x1, y1);
+                            ctx.stroke();
+                            x0 += dx0;
+                            x1 += dx1;
+                            y0 += dy0;
+                            y1 += dy1;
+                        }
+                        ctx.restore();
+                    }
+                    else {
+                        let n = 0;
+                        let dx = 0;
+                        let dy = 0;
+                        let w = 0;
+                        let h = 0;
+                        let dw = 0;
+                        let dh = 0;
+                        let x = bx;
+                        let y = by;
+                        switch(obj.rotation){
+                            case Rotation.UP:{
+                                x += 2;
+                                y += 4;
+                                n = obj.height * 8 - 1;
+                                w = REFERENCE.WIDTH*obj.width-4;
+                                h = 4;
+                                dw = -w / n;
+                                dx = -dw/2;
+                                dy = 8;
+                            }break;
+                            case Rotation.DOWN:{
+                                x += 2;
+                                n = obj.height * 8 - 1;
+                                w = REFERENCE.WIDTH*obj.width-4;
+                                h = 4;
+                                dw = -w / n;
+                                dx = -dw/2;
+                                dy = -8;
+                                y = by + obj.height*64 - 8;
+                            }break;
+                            case Rotation.RIGHT:{
+                                y += 2;
+                                x += 4;
+                                n = obj.width * 8 - 1;
+                                h = REFERENCE.WIDTH*obj.height-4;
+                                w = 4;
+                                dh = -h / n;
+                                dy = -dh/2;
+                                dx = 8;
+                            }break;
+                            case Rotation.LEFT:{
+                                y += 2;
+                                n = obj.width * 8 - 1;
+                                h = REFERENCE.WIDTH*obj.height-4;
+                                w = 4;
+                                dh = -h / n;
+                                dy = -dh/2;
+                                dx = -8;
+                                x = bx + obj.width*64 - 8;
+                            }break;
+                        }
+                        for(let q = 0; q < n; ++q){
+                            ctx.fillRect(x, y, w, h);
+                            w += dw;
+                            h += dh;
+                            x += dx;
+                            y += dy;
+                        }
+                    }
                     if(one_selection && selected.has(obj.id)){
                         ctx.fillStyle = sel_color;
                         ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
@@ -6647,6 +6378,282 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                             obj_id: obj.id,
                             topleft:false,
                         });
+                    }
+                }break;
+                case CanvasType.MEASURE:{ // TAG renderMEASURE
+                    // this looks sus with the change to bx over obj.base_x
+                    let x1 = obj.x1;
+                    let y1 = obj.y1;
+                    const bbox = {
+                        x0: bx < x1 ? bx : x1,
+                        x1: bx > x1 ? bx : x1,
+                        y0: by < y1 ? by : y1,
+                        y1: by > y1 ? by : y1,
+                    };
+                    if(!bbox_overlaps(bbox, canvas_bbox))
+                        break;
+                    if(bbox.x0 == bbox.x1 && bbox.y0 == bbox.y1)
+                        break;
+                    ctx.strokeStyle = obj.color;
+                    ctx.lineWidth = 4/scale;
+                    ctx.lineJoin = 'miter';
+                    ctx.beginPath();
+                    ctx.moveTo(bx, by);
+                    const head_length = 20/scale;
+                    const dx = x1 - bx;
+                    const dy = y1 - by;
+                    const angle = Math.atan2(dy, dx);
+                    ctx.lineTo(x1, y1);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    let x_off = head_length * Math.cos(angle - Math.PI/6);
+                    let y_off = head_length * Math.sin(angle - Math.PI/6);
+                    ctx.lineTo(x1 - x_off, y1 - y_off);
+                    ctx.lineTo(x1, y1);
+                    x_off = head_length * Math.cos(angle + Math.PI/6);
+                    y_off = head_length * Math.sin(angle + Math.PI/6);
+                    ctx.lineTo(x1 - x_off, y1 - y_off);
+                    ctx.stroke();
+                    const fontsize = 24/scale | 0;
+                    ctx.font = fontsize+'px sans-serif';
+                    ctx.textBaseline = 'middle';
+                    ctx.textAlign = 'center';
+                    ctx.fillStyle = '#000000';
+
+                    const measure_length = calc_measure_length(map, bx, by, x1, y1);
+
+                    ctx.fillText(measure_length, (bx+x1)/2-fontsize, (by+y1)/2-fontsize);
+                }break;
+                case CanvasType.FIXTURE:{ // TAG renderFIXTURE
+                    if(!obj.width || !obj.height)
+                        break;
+                    const bbox = {
+                        x0:bx,
+                        y0:by,
+                        x1:bx+obj.width,
+                        y1:by+obj.height,
+                    };
+                    if(!bbox_overlaps(bbox, canvas_bbox)){
+                        break;
+                    }
+                    switch(obj.ftype){
+                        case FixtureType.STAIRS:
+                            break; // should be unreachable
+                        case FixtureType.DIAG_STAIRS:
+                            break; // unreachable
+                        case FixtureType.STATUE:{
+                            const cx = (bbox.x0+bbox.x1)/2;
+                            const cy = (bbox.y0+bbox.y1)/2;
+                            if(is_selected){
+                                ctx.lineWidth=4;
+                                ctx.strokeStyle = sel_color;
+                                ctx.beginPath();
+                                ctx.ellipse(cx, cy, obj.width/2, obj.height/2, 0, 0, Math.PI*2);
+                                ctx.stroke();
+                            }
+                            ctx.strokeStyle = '#000000';
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.ellipse(cx, cy, obj.width/2, obj.height/2, 0, 0, Math.PI*2);
+                            const r = Math.min(obj.width/2, obj.height/2)-1;
+                            const ir = r/2; // inner radius
+                            ctx.stroke();
+                            ctx.beginPath();
+                            let angle = 3*Math.PI/10;
+                            ctx.moveTo(cx+r*Math.cos(angle), cy+r*Math.sin(angle));
+                            for(let i = 0; i < 5; i++){
+                                angle += Math.PI/5;
+                                ctx.lineTo(cx+ir*Math.cos(angle), cy+ir*Math.sin(angle));
+                                angle += Math.PI/5;
+                                ctx.lineTo(cx+r*Math.cos(angle), cy+r*Math.sin(angle));
+                            }
+                            ctx.closePath();
+                            ctx.stroke();
+                        }break;
+                        case FixtureType.PIT:{
+                            let w = obj.width - 8;
+                            let h = obj.height - 8;
+                            let x = bx + 4;
+                            let y = by + 4;
+                            if(is_selected){
+                                ctx.lineWidth = 4;
+                                ctx.strokeStyle = sel_color;
+                                ctx.strokeRect(x-2,y-2,w+4,h+4);
+                            }
+                            ctx.lineWidth = 2;
+                            ctx.strokeStyle = '#000000';
+                            ctx.fillStyle = '#00000011';
+                            ctx.fillRect(x,y, w, h);
+                            ctx.fillStyle = '#00000033';
+                            const thick = Math.min(10, Math.min(obj.height/6, obj.width/6));
+                            ctx.fillRect(x+thick,y+thick, w-2*thick, h-2*thick);
+                            ctx.strokeRect(x,y,w,h);
+                            ctx.beginPath();
+                            ctx.moveTo(x, y);
+                            ctx.lineTo(x+thick, y+thick);
+                            ctx.lineTo(x+thick, y+h-thick);
+                            ctx.lineTo(x, y+h);
+                            ctx.lineTo(x+thick, y+h-thick);
+                            ctx.lineTo(x+w-thick, y+h-thick);
+                            ctx.lineTo(x+w, y+h);
+                            ctx.lineTo(x+w-thick, y+h-thick);
+                            ctx.lineTo(x+w-thick, y+thick);
+                            ctx.lineTo(x+w, y);
+                            ctx.lineTo(x+w-thick, y+thick);
+                            ctx.lineTo(x+thick, y+thick);
+                            ctx.stroke();
+                        }break;
+                        case FixtureType.RUBBLE:{
+                            if(is_selected){
+                                ctx.lineWidth = 4;
+                                ctx.strokeStyle = sel_color;
+                                ctx.strokeRect(bx, by, obj.width, obj.height);
+                            }
+                            if(PACKED && PACKED_LOAD==3){
+                                const ri = PACKED.fixtures[0];
+                                ctx.drawImage(PACKEDIMG, ri[2], ri[3], ri[4], ri[5], bx, by, obj.width, obj.height);
+                            }
+                        }break;
+                        case FixtureType.WELL:{
+                            let rx = obj.width/2 - 2;
+                            let ry = obj.height/2 - 2;
+                            let cx = bx + obj.width/2+0.5;
+                            let cy = by + obj.height/2+0.5;
+                            if(is_selected){
+                                ctx.lineWidth = 4;
+                                ctx.strokeStyle = sel_color;
+                                ctx.beginPath();
+                                ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2);
+                                ctx.stroke();
+                            }
+                            ctx.strokeStyle = '#000000';
+                            ctx.fillStyle = '#000000cc';
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2);
+                            ctx.stroke();
+
+                            ctx.beginPath();
+                            ctx.ellipse(cx, cy, rx-8, ry-8, 0, 0, Math.PI*2);
+                            ctx.stroke();
+                            ctx.fill();
+                        }break;
+                    }
+                    if(one_selection && selected.has(obj.id)){
+                        ctx.fillStyle = sel_color;
+                        ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
+                        ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
+                        view.resize.handles.push({
+                            bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
+                            obj_id: obj.id,
+                            topleft:true,
+                        });
+                        view.resize.handles.push({
+                            bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
+                            obj_id: obj.id,
+                            topleft:false,
+                        });
+                    }
+                }break;
+                case CanvasType.FILLED_TILE:{ // TAG renderFILLED_TILE
+                    // drawn already
+                }break;
+                case CanvasType.TERRAIN_TILE:{ // TAG renderTERRAIN_TILE
+                    // drawn already
+                }break;
+                case CanvasType.ICON_TILE:{ // TAG renderICON_TILE
+                    const icon = TERRAIN_ICON_BY_ID.get(obj.terrainicon_id);
+                    if(is_selected){
+                        ctx.fillStyle = sel_color+'aa';
+                        ctx.fillRect(bx+4, by+4, 56, 56);
+                    }
+                    if(icon)
+                        ctx.drawImage(PACKEDIMG, icon[2], icon[3], icon[4], icon[5], bx+4, by+4, 56, 56);
+                }break;
+                case CanvasType.SHAPE:{ // TAG renderSHAPE
+                    // This works well enough for now.
+                    // If things get hairy, I could build a quadtree or whatever.
+                    const line_bbox = {
+                        x0:obj.bbox.x0 + bx,
+                        y0:obj.bbox.y0 + by,
+                        x1:obj.bbox.x1 + bx,
+                        y1:obj.bbox.y1 + by,
+                    };
+                    if(!bbox_overlaps(canvas_bbox, line_bbox)){
+                        break;
+                    }
+                    if(obj.last_bx !== bx || obj.last_by !== by)
+                        obj.path = undefined;
+                    if(!obj.path){
+                        obj.last_bx = bx;
+                        obj.last_by = by;
+                        shape_recalculate_path(obj, bx, by);
+                    }
+                    const oldcap = ctx.lineCap;
+                    const oldjoin = ctx.lineJoin;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    if(is_selected){
+                        ctx.lineWidth=obj.thickness+4;
+                        ctx.strokeStyle = sel_color;
+                        ctx.stroke(obj.path!);
+                    }
+                    ctx.lineWidth = obj.thickness;
+                    ctx.strokeStyle = obj.color;
+                    ctx.stroke(obj.path!);
+                    if(obj.color2.length){
+                        ctx.fillStyle = obj.color2;
+                        ctx.fill(obj.path!);
+                    }
+                    ctx.lineCap = oldcap;
+                    ctx.lineJoin = oldjoin;
+                }break;
+                case CanvasType.ARC:{ // TAG renderARC
+                    const bbox = {
+                        x0:bx,
+                        y0:by,
+                        x1:bx+obj.width,
+                        y1:by+obj.height,
+                    };
+                    if(!bbox_overlaps(bbox, canvas_bbox))
+                        break;
+                    let sa = obj.start_arc & 3;
+                    let ea = obj.end_arc & 3;
+                    let th0 = sa * Math.PI/2;
+                    let th1 = ea * Math.PI/2;
+                    let [cx, cy, rx, ry] = arc_components(obj, bx-obj.base_x, by-obj.base_y);
+                    if(obj.width && obj.height){
+                        if(is_selected){
+                            ctx.lineWidth=8;
+                            ctx.strokeStyle = sel_color;
+                            ctx.beginPath();
+                            ctx.ellipse(cx, cy, rx, ry, 0, th0, th1);
+                            ctx.stroke();
+                        }
+                        ctx.lineWidth=obj.thickness;
+                        ctx.beginPath();
+                        // ctx.strokeStyle = '#000000';
+                        ctx.strokeStyle = obj.color;
+                        ctx.ellipse(cx, cy, rx, ry, 0, th0, th1);
+                        ctx.stroke();
+                        // ctx.strokeStyle = '#8f0000';
+                        // ctx.strokeRect(bbox.x0, bbox.y0, obj.width, obj.height);
+                        // ctx.fillText(`${obj.end_arc} - ${obj.start_arc} = ${obj.end_arc - obj.start_arc} (${sa}, ${ea})`, bx, by);
+                        if(one_selection && selected.has(obj.id)){
+                            ctx.fillStyle = sel_color;
+                            ctx.fillRect(bbox.x0-10, bbox.y0-10, 20, 20);
+                            ctx.fillRect(bbox.x1-10, bbox.y1-10, 20, 20);
+                            view.resize.handles.push({
+                                bbox: { x0: bbox.x0-10, y0: bbox.y0-10, x1: bbox.x0+10, y1: bbox.y0+10, },
+                                obj_id: obj.id,
+                                topleft:true,
+                            });
+                            view.resize.handles.push({
+                                bbox: { x0: bbox.x1-10, y0: bbox.y1-10, x1: bbox.x1+10, y1: bbox.y1+10, },
+                                obj_id: obj.id,
+                                topleft:false,
+                            });
+                        }
                     }
                 }
             }
@@ -6794,8 +6801,9 @@ const enum ToolType {
     ARC     = 16,
     COACHING = 17,
     POLYGON = 18,
+    PASTE   = 19,
 }
-const enum TOOLTYPE { MAX = 17}
+const enum TOOLTYPE { MAX = 20}
 const TOOL_IDS_TO_TOOL = (function():Map<string, ToolType>{
     const m: Map<string, ToolType> = new Map();
     m.set('pan-tool',     ToolType.PAN);
@@ -6817,6 +6825,7 @@ const TOOL_IDS_TO_TOOL = (function():Map<string, ToolType>{
     m.set('arc-tool',     ToolType.ARC);
     m.set('coaching-tool', ToolType.COACHING);
     m.set('polygon-tool', ToolType.POLYGON);
+    m.set('paste-tool', ToolType.PASTE);
     return m;
 }());
 const TOOL_TO_TOOL_ID = [
@@ -6858,6 +6867,8 @@ const TOOL_TO_TOOL_ID = [
     'coaching-tool',
     // ToolType.POLYGON
     'polygon-tool',
+    // ToolType.PASTE
+    'paste-tool',
 ] as const;
 let current_fixture_type = FixtureType.STAIRS;
 const enum TOKENTYPE {
@@ -7128,10 +7139,15 @@ function change_tool(tool:ToolType):void{
     if(finish_click_based_tool) finish_click_based_tool();
     store_global(StorageCategory.CANVAS, 'current_tool', TOOL_TO_TOOL_ID[tool]);
     if(!tools) return;
+    if(tool != ToolType.PASTE && preview_objs.length){
+        preview_objs = [];
+        canvas_request_render();
+    }
     current_tool = tool;
     switch(tool){
         case ToolType.PAN:
         case ToolType.SELECT:
+        case ToolType.PASTE:
             break;
         default:
             for(const views of dungeon_map_views){
@@ -7385,6 +7401,9 @@ document.addEventListener('DOMContentLoaded', function():void{
                                    SHAPETYPE_TO_NAME, SHAPETYPE_TO_SHORT_NAME, SHAPETYPE.MAX,
                                    get_global_default(StorageCategory.CANVAS, 'polygontype', current_polygon));
             break;
+            case ToolType.PASTE:
+                // No multi-option for paste tool
+            break;
             case ToolType.LINE:
                 setup_multi_option(toolel, 'line-tool-menu', ToolType.LINE,
                                    function(i:number):void{
@@ -7488,6 +7507,7 @@ function hiddenid():number {
 
 let GRABBING = false;
 let SELECTING = false;
+let preview_objs: Array<CanvasObject> = [];
 const redo_canvas_cursor = (function():(canvas:HTMLCanvasElement, view:DungeonMapView, modified:boolean)=>void{
     let prev_id = -1;
     function redo_canvas_cursor(canvas:HTMLCanvasElement, view: DungeonMapView, modified:boolean):void{
@@ -7514,6 +7534,11 @@ const redo_canvas_cursor = (function():(canvas:HTMLCanvasElement, view:DungeonMa
                 }
             if(canvas.style.cursor != 'grab')
                 canvas.style.cursor = 'grab';
+            return;
+        }
+        if(current_tool == ToolType.PASTE){
+            if(canvas.style.cursor != 'copy')
+                canvas.style.cursor = 'copy';
             return;
         }
         if(current_tool != ToolType.SELECT){
@@ -8980,6 +9005,15 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 }
                 the_canvas.addEventListener('pointerup', finish_point);
             }break;
+            case ToolType.PASTE:{ // TAG toolPASTE
+                if(COPIED_OBJS.length === 0){
+                    return;
+                }
+                const [x, y] = event_to_coord(e, view);
+                paste_at(view, x, y, COPIED_OBJS);
+                preview_objs = [];
+                canvas_request_render();
+            }break;
             default:{
                 console.log('unknown tool:', current_tool);
             }break;
@@ -8993,6 +9027,41 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
         const modified = e.altKey || e.shiftKey || e.metaKey || e.ctrlKey;
         redo_canvas_cursor(the_canvas, view, modified);
 
+        if (current_tool === ToolType.PASTE) {
+            if (COPIED_OBJS.length === 0) {
+                return;
+            }
+
+            const snap = (x:number, y:number) => [snap_down_to_grid(x), snap_down_to_grid(y)];
+            let [x, y] = event_to_coord(e, view);
+            [x, y] = snap(x, y);
+
+            // Do a pre-pass to get the top left corner of the objects.
+            let x0 = 0;
+            let y0 = 0;
+            if(COPIED_OBJS.length){
+                x0 = COPIED_OBJS[0][INDEX.BASE_X];
+                y0 = COPIED_OBJS[0][INDEX.BASE_Y];
+            }
+            for(let i = 0; i < COPIED_OBJS.length; ++i){
+                const stripped = COPIED_OBJS[i];
+                if(stripped[INDEX.BASE_X] < x0)
+                    x0 = stripped[INDEX.BASE_X];
+                if(stripped[INDEX.BASE_Y] < y0)
+                    y0 = stripped[INDEX.BASE_Y];
+            }
+            const dx = x - x0;
+            const dy = y - y0;
+
+            preview_objs = [];
+            for(let i = 0; i < COPIED_OBJS.length; ++i){
+                const obj = unstrip_obj(COPIED_OBJS[i]);
+                translate_object(obj, dx, dy);
+                preview_objs.push(obj);
+            }
+
+            canvas_request_render();
+        }
     });
     the_canvas.addEventListener('dblclick', function(e:MouseEvent):void{
         let view = get_view(which_canv);
