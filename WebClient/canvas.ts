@@ -1177,6 +1177,10 @@ function new_map_view(map_id:number): [DungeonMapView, DungeonMapView]{
             areas: [],
         },
     };
+    let gs = get_local(StorageCategory.CANVAS, `gridscale.${view.map.map_id}`);
+    if(gs !== undefined && typeof gs === 'number' && (gs == 0 || gs == 1 || gs == 2 || gs == 3)){
+        view.gridscale = gs;
+    }
     const other: DungeonMapView = {
         map: view.map,
         camera_x: view.camera_x,
