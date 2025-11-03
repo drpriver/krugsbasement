@@ -667,6 +667,72 @@ function set_arc_type(i:number):void{
     store_global(StorageCategory.CANVAS, 'arctype', current_arc_type);
 }
 
+const enum SpellAreaType {
+    CONE = 0,
+    SPREAD = 1,
+    SQUARE = 2,
+}
+
+const enum SPELLAREATYPE {
+    MAX = 3,
+}
+
+const SPELLAREATYPE_TO_NAME = ['Cone', 'Spread', 'Square'];
+let current_spell_area = SpellAreaType.CONE;
+function set_spell_area(i:number):void{
+    current_spell_area = i;
+    store_global(StorageCategory.CANVAS, 'spellarea', current_spell_area);
+}
+
+function _3edistance(x:number, y:number):number {
+    x = Math.abs(x);
+    y = Math.abs(y);
+    let diag = Math.min(x, y);
+    let straight = Math.max(x, y) - diag;
+    return straight + diag + (diag >> 1);
+}
+function l2dist(pair:Array<number>):number {
+    return pair[0] * pair[0] + pair[1] * pair[1];
+}
+
+// Helper function to calculate which grid squares are affected by a cone
+// radius_squares: how many grid squares out the cone extends
+// angle_degrees: direction the cone points (0 = right, 90 = down, etc.)
+function get_cone_affected_squares(radius_squares:number, angle_radians:number):Array<{x:number, y:number}>{
+    const squares: Array<{x:number, y:number}> = [];
+    const tau = Math.PI*2;
+    angle_radians = (angle_radians % tau + tau) % tau;
+    const angle_lo = ((angle_radians - tau/7.9) % tau + tau) % tau;
+    const angle_hi = ((angle_radians + tau/7.9) % tau + tau) % tau;
+    for(let dy = -radius_squares; dy < radius_squares; dy++)
+    for(let dx = -radius_squares; dx < radius_squares; dx++){
+        const corners = [
+            [dx, dy, _3edistance(dx, dy)],
+            [dx, dy+1, _3edistance(dx, dy+1)],
+            [dx+1, dy, _3edistance(dx+1, dy)],
+            [dx+1, dy+1, _3edistance(dx+1, dy+1)],
+        ];
+        corners.sort((a, b) => a[2] < b[2]?-1:a[2]>b[2]?1:l2dist(a) < l2dist(b)?-1:l2dist(a)>l2dist(b)?1:0);
+
+        {
+            let corner = corners[3];
+            if(corner[2] > radius_squares)
+                continue;
+            const angle = (Math.atan2(corner[1], corner[0]) % tau + tau) % tau;
+            if(angle_lo < angle_hi){
+                if(angle < angle_lo || angle > angle_hi)
+                    continue;
+            }
+            else {
+                if(angle <= angle_lo && angle >= angle_hi)
+                    continue;
+            }
+            squares.push({x:dx, y:dy});
+        }
+    }
+    return squares;
+}
+
 function arc_components(obj:Arc, offx:number, offy:number):[number, number, number, number]{
     let sa = obj.start_arc & 3;
     let cx = obj.base_x;
@@ -1644,12 +1710,16 @@ function freehand_recalculate_path(obj:FreehandLine|CoachingLine, base_x:number,
 function shape_recalculate_path(obj:Shape, base_x:number, base_y:number):void{
     let points = obj.points;
     // work-around for safari not liking to fill a path with only one point.
-    if(points.length == 2){
+    let length = points.length;
+    if(obj.flags & CanvasFlag.SHAPE_IS_CONE){
+        length -= 4;
+    }
+    if(length == 2){
         points = [points[0], points[1], points[0]+0.01, points[1]+0.01];
+        length = points.length;
     }
     let x0 = base_x;
     let y0 = base_y;
-    const length = points.length;
     const path = new Path2D();
     path.moveTo(x0, y0);
     if(obj.flags & CanvasFlag.SHAPE_IS_POLYGON){
@@ -6607,6 +6677,24 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                     }
                     ctx.lineCap = oldcap;
                     ctx.lineJoin = oldjoin;
+                    if(obj.flags & CanvasFlag.SHAPE_IS_CONE){
+                        let x0 = bx + obj.points[obj.points.length-4];
+                        let y0 = by + obj.points[obj.points.length-3];
+                        let sz = obj.points[obj.points.length-2];
+                        let angle = obj.points[obj.points.length-1];
+                        ctx.beginPath();
+                        ctx.strokeStyle = obj.color;
+                        ctx.moveTo(x0, y0);
+                        let x1 = x0 + sz*Math.cos(angle-Math.PI/4);
+                        let y1 = y0 + sz*Math.sin(angle-Math.PI/4)
+                        let x2 = x0 + sz*Math.cos(angle+Math.PI/4);
+                        let y2 = y0 + sz*Math.sin(angle+Math.PI/4)
+                        ctx.lineTo(x1, y1);
+                        ctx.ellipse(x0, y0, sz, sz, 0, angle-Math.PI/4, angle+Math.PI/4);
+                        ctx.moveTo(x0, y0);
+                        ctx.lineTo(x2, y2);
+                        ctx.stroke();
+                    }
                 }break;
                 case CanvasType.ARC:{ // TAG renderARC
                     const bbox = {
@@ -6802,8 +6890,9 @@ const enum ToolType {
     COACHING = 17,
     POLYGON = 18,
     PASTE   = 19,
+    SPELL   = 20,
 }
-const enum TOOLTYPE { MAX = 20}
+const enum TOOLTYPE { MAX = 21}
 const TOOL_IDS_TO_TOOL = (function():Map<string, ToolType>{
     const m: Map<string, ToolType> = new Map();
     m.set('pan-tool',     ToolType.PAN);
@@ -6826,6 +6915,7 @@ const TOOL_IDS_TO_TOOL = (function():Map<string, ToolType>{
     m.set('coaching-tool', ToolType.COACHING);
     m.set('polygon-tool', ToolType.POLYGON);
     m.set('paste-tool', ToolType.PASTE);
+    m.set('spell-tool', ToolType.SPELL);
     return m;
 }());
 const TOOL_TO_TOOL_ID = [
@@ -6869,6 +6959,8 @@ const TOOL_TO_TOOL_ID = [
     'polygon-tool',
     // ToolType.PASTE
     'paste-tool',
+    // ToolType.SPELL
+    'spell-tool',
 ] as const;
 let current_fixture_type = FixtureType.STAIRS;
 const enum TOKENTYPE {
@@ -7419,6 +7511,12 @@ document.addEventListener('DOMContentLoaded', function():void{
                                    ARCTYPE_TO_NAME, ARCTYPE_TO_NAME, ARCTYPE.MAX,
                                    get_global_default(StorageCategory.CANVAS, 'arctype', current_arc_type));
             break;
+            case ToolType.SPELL:
+                setup_multi_option(toolel, 'spell-tool-menu', ToolType.SPELL,
+                                   set_spell_area,
+                                   SPELLAREATYPE_TO_NAME, SPELLAREATYPE_TO_NAME, SPELLAREATYPE.MAX,
+                                   get_global_default(StorageCategory.CANVAS, 'spellarea', current_spell_area));
+            break;
             default:
             break;
         }
@@ -7607,6 +7705,23 @@ document.addEventListener('DOMContentLoaded', function():void{
     if(finish_click_based_tool)
       finish_click_based_tool();
   };
+});
+document.addEventListener('DOMContentLoaded', function():void{
+    const inp = by_id('spell-size');
+    inp.value = '' + get_global_default(StorageCategory.CANVAS, 'spellsz', +inp.value || 3);
+    inp.onchange = function():void{
+        store_global(StorageCategory.CANVAS, 'spellsz', ""+(+inp.value || 3));
+    };
+    inp.onkeydown = function(e:KeyboardEvent):void{
+      switch(e.key){
+        case 'Enter':
+        case 'Escape':
+          inp.blur();
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+      }
+    };
 });
 document.addEventListener('DOMContentLoaded', function():void{
     const l = by_id('line-thickness');
@@ -9014,6 +9129,226 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 preview_objs = [];
                 canvas_request_render();
             }break;
+            case ToolType.SPELL:{ // TAG toolSPELL
+                const id = get_new_id();
+                // Snap to grid intersection (corner) - spell origin is always at grid intersection
+                let [x0, y0] = event_to_coord_snapped(e, view, snap);
+                const color = get_primary_color();
+
+                let size = (+by_id('spell-size').value) || 1;
+                let is_cone = false;
+                let is_spread = false;
+                let is_square = false;
+                switch(current_spell_area){
+                    case SpellAreaType.CONE:
+                        is_cone = true;
+                        break;
+                    case SpellAreaType.SPREAD:
+                        is_spread = true;
+                        break;
+                    case SpellAreaType.SQUARE:
+                        is_square = true;
+                        break;
+                }
+
+                if(is_square){
+                    const grid_size = gs_to_w(view.gridscale) * REFERENCE.WIDTH;
+                    // Create a filled rectangle
+                    const rect: FilledRectangle = {
+                        type: CanvasType.FILLED_RECT,
+                        id: id,
+                        base_x: x0 - grid_size*(size>>1),
+                        base_y: y0 - grid_size*(size>>1),
+                        flags: CanvasFlag.NONE,
+                        hidinguser: hiddenid(),
+                        width: grid_size * size,
+                        height: grid_size * size,
+                        color: color,
+                        color2: color + '40', // Add transparency
+                    };
+                    add_canv_obj(view.map, rect);
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
+                    canvas_request_render();
+                } else if(is_spread){
+                    // Spreads are full circles - use ellipse for proper circle rendering
+                    const grid_size = gs_to_w(view.gridscale) * REFERENCE.WIDTH;
+                    const ellipse: Ellipse = {
+                        type: CanvasType.ELLIPSE,
+                        id: id,
+                        base_x: x0 - grid_size,
+                        base_y: y0 - grid_size,
+                        flags: CanvasFlag.NONE,
+                        hidinguser: hiddenid(),
+                        width: grid_size * size,
+                        height: grid_size * size,
+                        color: color,
+                        color2: color + '40', // Semi-transparent fill
+                        variant: 2, // FILLED variant
+                    };
+                    add_canv_obj(view.map, ellipse);
+                    publish_obj_by_id(view.map, id);
+                    note_create_by_id_for_undo(view.map, id);
+                    canvas_request_render();
+                } else if(is_cone){
+                    // Cones highlight affected area with a filled shape and an arc outline
+                    let current_angle = 0; // Angle in radians
+                    const grid_size = gs_to_w(view.gridscale) * REFERENCE.WIDTH;
+
+                    // Create a shape for the cone area (filled squares)
+                    const shape = make_shape(id, x0, y0, color, color + '40', 2);
+                    shape.points.push(0, 0, size*grid_size, current_angle);
+                    shape.flags |= CanvasFlag.SHAPE_IS_POLYGON | CanvasFlag.SHAPE_IS_CONE;
+                    add_canv_obj(view.map, shape);
+
+                    view.placing_area.is_placing = true;
+                    view.placing_area.is_line = true;
+                    view.placing_area.x0 = x0;
+                    view.placing_area.y0 = y0;
+                    view.placing_area.x1 = x0;
+                    view.placing_area.y1 = y0;
+
+                    function update_cone_shape():void {
+                        const squares = get_cone_affected_squares(size, current_angle);
+
+                        if(squares.length === 0){
+                            shape.points = [];
+                            shape.bbox = {x0: 0, y0: 0, x1: 0, y1: 0};
+                            shape.path = undefined;
+                            return;
+                        }
+
+                        for(const sq of squares){
+                            sq.x = sq.x * grid_size + x0;
+                            sq.y = sq.y * grid_size + y0;
+                        }
+                        // weird AI generated garbage, but it works for now
+                        // Create a grid map to track which squares are filled
+                        const grid_map = new Map<string, boolean>();
+                        for(const sq of squares){
+                            grid_map.set(`${sq.x},${sq.y}`, true);
+                        }
+
+                        // Build edge map: for each corner point, track which edges connect to it
+                        type EdgeKey = string; // "x1,y1,x2,y2"
+                        const edges = new Set<EdgeKey>();
+
+                        for(const sq of squares){
+                            // Add edges that are on the boundary (adjacent square not in cone)
+                            // Top edge
+                            if(!grid_map.has(`${sq.x},${sq.y - grid_size}`)){
+                                edges.add(`${sq.x},${sq.y},${sq.x + grid_size},${sq.y}`);
+                            }
+                            // Right edge
+                            if(!grid_map.has(`${sq.x + grid_size},${sq.y}`)){
+                                edges.add(`${sq.x + grid_size},${sq.y},${sq.x + grid_size},${sq.y + grid_size}`);
+                            }
+                            // Bottom edge
+                            if(!grid_map.has(`${sq.x},${sq.y + grid_size}`)){
+                                edges.add(`${sq.x + grid_size},${sq.y + grid_size},${sq.x},${sq.y + grid_size}`);
+                            }
+                            // Left edge
+                            if(!grid_map.has(`${sq.x - grid_size},${sq.y}`)){
+                                edges.add(`${sq.x},${sq.y + grid_size},${sq.x},${sq.y}`);
+                            }
+                        }
+
+                        // Trace the perimeter by following connected edges
+                        const outline_points: Array<number> = [];
+                        if(edges.size > 0){
+                            // Start with any edge
+                            const first_edge = edges.values().next().value!;
+                            const [x1, y1, x2, y2] = first_edge.split(',').map(Number);
+                            let curr_x = x2;
+                            let curr_y = y2;
+                            shape.base_x = x1;
+                            shape.base_y = y1;
+                            outline_points.push(x2 - x1, y2 - y1);
+                            edges.delete(first_edge);
+
+                            // Keep following edges until we loop back
+                            let iterations = 0;
+                            while(edges.size > 0 && iterations < 1000){
+                                iterations++;
+                                let found = false;
+
+                                for(const edge of edges){
+                                    const [ex1, ey1, ex2, ey2] = edge.split(',').map(Number);
+                                    // Check if edge starts where we are
+                                    if(ex1 === curr_x && ey1 === curr_y){
+                                        outline_points.push(ex2 - x1, ey2 - y1);
+                                        curr_x = ex2;
+                                        curr_y = ey2;
+                                        edges.delete(edge);
+                                        found = true;
+                                        break;
+                                    }
+                                    // Check if edge ends where we are (reverse direction)
+                                    else if(ex2 === curr_x && ey2 === curr_y){
+                                        outline_points.push(ex1 - x1, ey1 - y1);
+                                        curr_x = ex1;
+                                        curr_y = ey1;
+                                        edges.delete(edge);
+                                        found = true;
+                                        break;
+                                    }
+                                }
+
+                                if(!found) break;
+                            }
+                        }
+
+                        shape.points = outline_points;
+
+                        // Recalculate bbox
+                        if(shape.points.length > 0){
+                            let min_x = shape.points[0];
+                            let max_x = shape.points[0];
+                            let min_y = shape.points[1];
+                            let max_y = shape.points[1];
+                            for(let i = 0; i < shape.points.length; i+=2){
+                                if(shape.points[i] < min_x) min_x = shape.points[i];
+                                if(shape.points[i] > max_x) max_x = shape.points[i];
+                                if(shape.points[i+1] < min_y) min_y = shape.points[i+1];
+                                if(shape.points[i+1] > max_y) max_y = shape.points[i+1];
+                            }
+                            shape.bbox = {x0: min_x, y0: min_y, x1: max_x, y1: max_y};
+                        }
+                        shape.points.push(x0 - shape.base_x, y0-shape.base_y, size*grid_size, current_angle);
+                        shape.path = undefined;
+                    }
+
+                    update_cone_shape();
+                    canvas_request_render();
+
+                    function add_point(e:MouseEvent):void{
+                        e.stopPropagation();
+                        e.preventDefault();
+                        let [rawx, rawy] = event_to_coord(e, view);
+                        let new_angle = Math.atan2(rawy-y0, rawx-x0);
+                        view.placing_area.x1 = rawx;
+                        view.placing_area.y1 = rawy;
+
+                        // Only update if angle changed significantly (avoid constant recalculation)
+                        if(Math.abs(new_angle - current_angle) > 0.01){
+                            current_angle = new_angle;
+                            update_cone_shape();
+                        }
+                        canvas_request_render();
+                    }
+                    the_canvas.addEventListener('pointermove', add_point);
+
+                    function finish():void{
+                        the_canvas.removeEventListener('pointermove', add_point);
+                        the_canvas.removeEventListener('pointerup', finish);
+                        view.placing_area.is_placing = false;
+                        publish_obj_by_id(view.map, id);
+                        note_create_by_id_for_undo(view.map, id);
+                        canvas_request_render();
+                    }
+                    the_canvas.addEventListener('pointerup', finish);
+                }
+            }break;
             default:{
                 console.log('unknown tool:', current_tool);
             }break;
@@ -9472,6 +9807,10 @@ document.addEventListener('DOMContentLoaded', function():void{
             case 'k':
                 if(modified) return;
                 change_tool(ToolType.TILE);
+                break;
+            case 'u':
+                if(modified) return;
+                change_tool(ToolType.SPELL);
                 break;
             case 'y':
                 if(shortcut){

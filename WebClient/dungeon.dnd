@@ -800,6 +800,13 @@
       <b>M</b>easure
     ::div.tool #id(coaching-tool)
       <b>C</b>oaching
+    ::div.tool #id(spell-tool)
+      Spell <b>u</b>
+    ::div.tool-menu #id(spell-tool-menu)
+      ☰
+    ::div
+      ::raw
+        <label style:"max-width:100%">Squares: <input type=number value=1 style="max-width:100%;" id=spell-size></input></label>
   ::div #id(stuff)
     ::raw
       <button id="finish-click-tool" disabled>Finish</button>
