@@ -4899,6 +4899,7 @@ function screenshot_canvas(view:DungeonMapView):void{
             a.href = URL.createObjectURL(b);
             a.download = `${view.map.map_name}.png`;
             a.click();
+            URL.revokeObjectURL(a.href);
         }, 'image/png', 1);
     };
     dialog.show();

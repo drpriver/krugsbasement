@@ -155,6 +155,7 @@ function options_dialog():void{
             a.download = 'maps.json'
             a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type:'application/json'}));
             a.click();
+            URL.revokeObjectURL(a.href);
         });
         dialog.f.screenshot.addEventListener('click', function():void{
             // @ts-ignore

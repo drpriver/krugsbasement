@@ -554,6 +554,7 @@ function get_sbw(): Win{
                 a.download = 'statblocks.json';
                 a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type:'application/json'}));
                 a.click();
+                URL.revokeObjectURL(a.href);
             });
         }
     }

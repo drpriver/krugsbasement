@@ -493,6 +493,7 @@ function make_spreadsheet(id:number, parent:number, flags: SpreadSheetFlags, nam
             a.download = result.name+'.tsv';
             a.href = URL.createObjectURL(new Blob([s], {type:'text/tab-separated-values'}));
             a.click();
+            URL.revokeObjectURL(a.href)
         });
         menu.separator();
         menu.item('Delete Spreadsheet', function():void{
