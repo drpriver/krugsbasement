@@ -4570,10 +4570,10 @@ function launch_edit_dialog(view:DungeonMapView):void{
                 dialog.f['link-note'].value = ""+obj.link_id;
             else
                 dialog.f['link-dungeon'].value = ""+obj.link_id;
-            dialog.f['link-note'].onselect = function(){
+            dialog.f['link-note'].onchange = function(){
                 dialog.f['link-dungeon'].value = '-1';
             }
-            dialog.f['link-dungeon'].onselect = function(){
+            dialog.f['link-dungeon'].onchange = function(){
                 dialog.f['link-note'].value = '-1';
             }
             dialog.show_handler = function():void{
@@ -8539,10 +8539,10 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 }
                 dialog.f['link-dungeon'].value = '-1';
                 dialog.f['link-note'].value = '-1';
-                dialog.f['link-note'].onselect = function(){
+                dialog.f['link-note'].onchange = function(){
                     dialog.f['link-dungeon'].value = '-1';
                 }
-                dialog.f['link-dungeon'].onselect = function(){
+                dialog.f['link-dungeon'].onchange = function(){
                     dialog.f['link-note'].value = '-1';
                 }
                 dialog.ok_handler = function():void{
