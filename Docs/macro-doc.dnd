@@ -6,41 +6,43 @@
 ::toc .left
 ::div
   ::md .comment
-    Expanded Macro Processor::title
-    The expanded functionality of the chat processor can now insert variables
-    into your roll expressions. You can also do basic conditional statements
-    with <tt>if</tt>.
+    Chat Commands and Macros::title
+    The chat box accepts normal messages, dice expressions, slash commands, and
+    small scripts.
 
     Chat Commands::md
-      As a refresher, the server checks if a line of input from a chat message
-      is a command. If it is not a command, it is just text and is just echoed
-      to all users. If it is a command, then something special happens. The
-      server considers a collection of lines all at once.
+      Before a message is sent, the client parses the text into structured chat
+      commands. If a line is not recognized as a command or dice expression, it
+      is sent as normal text. Multiline input is parsed as one script, so
+      commands like <tt>name</tt> and <tt>/color</tt> affect later lines in the
+      same input.
+
 
       The current commands are:
 
       Roll::md .indented .command
-        <tt>roll, r, /roll, /r</tt> or any line of text that can be successfully
-        parsed as a dice expression.
+        <tt>roll</tt>, <tt>r</tt>, <tt>/roll</tt>, <tt>/r</tt>, or any line of
+        text that can be successfully parsed as a dice expression.
 
         The server parses the command as a dice expression, rolls the dice and
         displays the result.
 
       Shuffle::md .indented .command
-        <tt>shuffle, shuf, shuff, /shuffle, /shuff, /shuffle</tt> stuff
+        <tt>shuffle</tt>, <tt>shuf</tt>, <tt>shuff</tt>, <tt>/shuffle</tt>,
+        <tt>/sh</tt>, <tt>/shuf</tt>, <tt>/shuff</tt> stuff
 
         The text after the shuffle is split on whitespace (although quoted text
         is treated as a single thing) and then shuffled. The result is then sent
         back. This is useful for if you need a random order of some things.
 
       Choose::md .indented .command
-        <tt>choose, /choose</tt> stuff
+        <tt>choose</tt>, <tt>/choose</tt>, <tt>/ch</tt> stuff
 
         The text after the choose is broken up the same way as with the shuffle
         command. One of them is chosen and sent back.
 
       Table::md .indented .command
-        <tt>table, /table</tt> tablename
+        <tt>table</tt>, <tt>/table</tt>, <tt>/tab</tt>, <tt>/t</tt> tablename
 
         The named table is looked up and rolled on (which can trigger a roll on
         a different table). The result is then sent back. See
@@ -48,8 +50,14 @@
 
         ::links
           tablesweb = tables.html
+
+      MyTable::md .indented .command
+        <tt>mytable</tt>, <tt>/mytable</tt> tablename
+
+        Like <tt>table</tt>, but rolls on one of your private tables.
+
       Name::md .indented .command
-        <tt>/name</tt> some name
+        <tt>name</tt>, <tt>/name</tt>, <tt>/n</tt> some name
 
         Your chatname is temporarily changed to the given name for display
         purposes in this collection of lines.
@@ -61,9 +69,19 @@
         text.
 
       Say::md .indented .command
-        <tt>/say</tt> some text
+        <tt>say</tt>, <tt>/say</tt>, <tt>/s</tt> some text
 
         Says the text, without trying to parse it as a die roll.
+
+      Comments::md .indented .command
+        <tt>#</tt> comment text
+
+        A <tt>#</tt> starts a comment in most contexts.
+
+        ::pre.macro.indented
+          # This line is ignored.
+          bonus = 4 # favored terrain
+          d20 + bonus
 
       Style::md .indented .command
         - <tt>/color red</tt>
@@ -71,7 +89,7 @@
         - <tt>/italic</tt>
         - <tt>/underline</tt>
         - <tt>/big</tt>
-        - <tt>/boxed</tt>
+        - <tt>/box</tt> or <tt>/boxed</tt>
         - <tt>/anon</tt>
         - <tt>/reset</tt>
 
@@ -98,8 +116,12 @@
 
 
     Macro Processor::md
-      Now for the extra functionality. Basically, a preprocessing step
-      interprets the input, altering the lines that are sent to the server.
+      Now for the extra functionality. A preprocessing step interprets the
+      input, resolves variables and control flow, and sends the resulting
+      commands. This applies to saved macros and to a single
+      submitted chat input, so a multiline chat message can define variables
+      and use them on later lines. We'll refer to a multiline-chat message or anything
+      more than just some basic text or basic roll as a script.
 
       Example::md
         Here's an example, we will then explain afterwards.
@@ -114,14 +136,15 @@
       ::pre .macro
         bonus = 4
       ::md .comment
-        The above creates a local variable, setting it to 4. Assignment
-        statements are "identifier" "=" "whatever stuff"
+        The above creates a script variable, setting it to 4. Assignment
+        statements are "identifier" "=" "whatever stuff". Script variables
+        last for this one submitted chat input or macro run.
 
       ::pre .macro
         attack = d20 + bonus
       ::md .comment
-        The above also creates a local variable, named attack. This one
-        indirectly references the local variable we created before. When it
+        The above also creates a script variable, named attack. This one
+        indirectly references the script variable we created before. When it
         comes time to use this variable, multiple expansions will need to
         happen. I'll explain that in a second.
 
@@ -292,35 +315,36 @@
         It's annoying to have to define all your variables in every script,
         especially when they are values you'll want to use in many places, like
         your strength bonus or your base attack bonus. To help with this, you
-        can define variables in 3 places outside of a macro's body:
+        can define variables in 3 places outside of a script's body:
 
-        1. Attached to the macro (a local variable).
+        1. Attached to the macro (a macro-local variable).
         2. Attached to the macro group (a group variable).
         3. In the special "globals" group (a global variable).
         Each of these locations can have any number of variables.
 
-        A local variable is always visible in the macro, but cannot be accessed
-        from other macros.
+        A macro-local variable is always visible in that saved macro, but
+        cannot be accessed from other macros.
 
         A group variable is visible to macros in that group, but can also be
         accessed from other groups via a "dotted" identifier or by a
-        <tt>use</tt> statement.
+        <tt>use</tt> or <tt>using</tt> statement.
 
         A global variable is visible to all macros.
 
         If these variables conflict, the first in the list is used:
 
-        1. Variables defined in the body of the macro (from <tt>x = 3</tt> for
-           example).
-           * Variables introduced via <tt>use</tt> are also at this level.
+        1. Script variables defined in the submitted chat input or saved macro
+           body (from <tt>x = 3</tt> for example).
+           * Variables introduced via <tt>use</tt> or <tt>using</tt> are also at
+             this level.
 
-        2. Local variables.
+        2. Macro-local variables.
         3. Group variables.
         4. Global variables.
         Not only are these variables accessible in a macro, they are also
         available in the chat box. You can select which group is active by
         clicking on its tab above the chat. The command from the chat box is
-        then treated as if it were a macro in that group for the purposed of
+        then treated as if it were a macro in that group for the purpose of
         variable visibility.
 
       Dotted Identifier and Use::md .comment
@@ -341,8 +365,8 @@
           /roll d20 + 3 +2
         ::md .comment
           This can get pretty repetitive, so to bring all of the variables from a
-          variable group into the local context, you can use the <tt>use</tt>
-          statement.
+          variable group into the local context, you can use the <tt>use</tt> or
+          <tt>using</tt> statement.
 
           You can then do this:
 
@@ -400,19 +424,33 @@
           you choose one from a list of strings. You can define this list.
 
       Spreadsheet Expression::md.comment
-        You can embed references to spreadsheet cells using square brackets.
-        Additionally, bare identifiers will be evaluated as a spreadsheet
-        expression in the context of the spreadsheet that is the same name as
-        the active macro tab. This is useful with named cells. So you can have
-        something like this:
+        Chat and macros can read from spreadsheets. For normal chat and macros,
+        the active macro tab chooses the spreadsheet context: if the
+        active macro tab is named <tt>Yowa</tt>, the macro processor looks for a
+        spreadsheet named <tt>Yowa</tt>.
+
+        Bare identifiers are resolved as macro variables first. If no macro
+        variable matches, the identifier is evaluated as a spreadsheet
+        expression in that active spreadsheet context. This is useful with named
+        cells. So you can have something like this:
 
         ::pre.macro
-          d20 + ref
+          d20 + bab
 
         And if you have a spreadsheet named after your macro group (like
         named after your character) and on that spreadsheet is a cell named
-        "ref" with the value of 2, then the above will be expanded into
+        "bab" with the value of 2, then the above will be expanded into
         <tt>d20 + 2</tt>
+
+        Square brackets evaluate a spreadsheet expression explicitly:
+
+        ::pre.macro
+          d20 + [str_mod + bab]
+
+        In the example above, <tt>str_mod + bab</tt> is evaluated by the
+        spreadsheet engine using the active matching sheet, and the result is
+        inserted into the roll expression. Macro variables can also be expanded
+        inside the brackets before the spreadsheet expression is evaluated.
 
       Repeat Statements::md .comment
         You might need to roll certain dice multiple times and don't want to
@@ -433,7 +471,8 @@
           number. If it evaluates to a negative number or zero, the contents of
           the repeat statement are executed zero times.
 
-          <tt>repeat</tt> can alternatively be spelled as <tt>loop</tt>.
+          <tt>repeat</tt> can alternatively be spelled as <tt>loop</tt> or
+          <tt>times</tt>.
 
           <tt>repeat</tt> blocks are capped at 20.
 

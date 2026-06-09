@@ -1,5 +1,5 @@
 //
-// Copyright © 2024-2025, David Priver
+// Copyright © 2024-2026, David Priver <david@davidpriver.com>
 //
 type Calendar = {
     starting_year: number;

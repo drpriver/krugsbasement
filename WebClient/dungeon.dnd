@@ -1,5 +1,5 @@
 ::comment
-  Copyright © 2021-2025, David Priver
+  Copyright © 2021-2026, David Priver <david@davidpriver.com>
 ::comment
   This is imported by client.dnd and demo.dnd.
   It is only built directly to generate types and to look
@@ -63,6 +63,144 @@
       </div>
       <div class="log" id="privateroll-history"> </div>
       <textarea spellcheck="false" id="privateroll-input" rows="4"></textarea>
+    </div>
+  `);
+  make_window('help', 'Help',
+  `
+    <div id="help-container">
+      <div id="help-tabs" class="window-tab">
+        <span id="help-chat-tab">Chat</span>
+        <span id="help-macros-tab">Macros</span>
+        <span id="help-sheets-tab">Sheets</span>
+      </div>
+      <div id="help-chat" class="help-content">
+        <details>
+          <summary><span>roll dice</span><tt>d20 + 4</tt></summary>
+          <p>Rolls the dice expression and sends the result.</p>
+          <pre>d20 + 4</pre>
+        </details>
+        <details>
+          <summary><span>repeat dice</span><tt>2(d20+4)</tt></summary>
+          <p>Repeats the grouped expression and sums the results.</p>
+          <pre>2(d20+4)</pre>
+        </details>
+        <details>
+          <summary><span>compare</span><tt>d20 &gt;= 10</tt></summary>
+          <p>Rolls a success check. The result is true or false.</p>
+          <pre>d20 &gt;= 10</pre>
+        </details>
+        <details>
+          <summary><span>variables</span><tt>x = 20</tt></summary>
+          <p>Variables last for one submitted chat input or macro run.</p>
+          <pre>x = 20
+          d20 + x</pre>
+        </details>
+        <details>
+          <summary><span>display name</span><tt>/name Jon</tt></summary>
+          <p>Changes the displayed speaker name for later lines in this submitted input.</p>
+          <pre>/name Jon
+          This line is from Jon.
+          /name Goblin
+          This line is from Goblin.</pre>
+        </details>
+        <details>
+          <summary><span>literal text</span><tt>say d20 + str</tt></summary>
+          <p>Sends text without trying to parse it as a roll. A leading backtick does the same thing.</p>
+          <pre>say Roll d20 + str
+          &#96;Roll d20 + str</pre>
+        </details>
+        <details>
+          <summary><span>conditionals</span><tt>if x:</tt></summary>
+          <p>Runs only the lines under the matching branch.</p>
+          <pre>x = 1
+          if x:
+          &nbsp;&nbsp;d20 + 4
+          else:
+          &nbsp;&nbsp;d20</pre>
+        </details>
+        <details>
+          <summary><span>repetition</span><tt>repeat 3:</tt></summary>
+          <p>Runs an indented block more than once, up to 20 times. <tt>loop</tt> and <tt>times</tt> also work.</p>
+          <pre>repeat 3:
+          &nbsp;&nbsp;d20 + 4</pre>
+        </details>
+        <details>
+          <summary><span>help</span><tt>/help macros</tt></summary>
+          <p>Opens this Help window. Use <tt>/help</tt>, <tt>/help macros</tt>, or <tt>/help sheets</tt>.</p>
+          <pre>/help
+          /help macros
+          /help sheets</pre>
+        </details>
+        <details>
+          <summary><span>choose</span><tt>choose one "two words"</tt></summary>
+          <p>Picks one whitespace-separated option. Quotes keep words together.</p>
+          <pre>choose goblin orc "gelatinous cube"</pre>
+        </details>
+        <details>
+          <summary><span>shuffle</span><tt>shuffle a b c</tt></summary>
+          <p>Randomizes the order of the options.</p>
+          <pre>shuffle Alice Bob Carla</pre>
+        </details>
+        <details>
+          <summary><span>table</span><tt>table table-name</tt></summary>
+          <p>Rolls on a named table. Use <tt>mytable</tt> for a private table.</p>
+          <pre>table rumors
+          mytable secrets</pre>
+        </details>
+        <details>
+          <summary><span>style</span><tt>/color red bold italic</tt></summary>
+          <p>Styles later lines in the same submitted input. Use <tt>/reset</tt> to clear styles.</p>
+          <pre>/color red bold italic
+          Danger!
+          /reset
+          This is plain.</pre>
+        </details>
+        <details>
+          <summary><span>comments</span><tt># note</tt></summary>
+          <p>Comments work in rolls, variables, control flow, choose, and shuffle. Raw text commands keep <tt>#</tt> as text.</p>
+          <pre>bonus = 4 # favored terrain
+          d20 + bonus</pre>
+        </details>
+        <p class="help-doc-link"><a href="/docs/macro-doc.html" target="_blank">Full chat command docs</a></p>
+      </div>
+      <div id="help-macros" class="help-content">
+        <table>
+          <tbody>
+            <tr><td>create group</td><td>use the Macros section in the left panel</td></tr>
+            <tr><td>create macro</td><td>right click a macro group, then add a macro</td></tr>
+            <tr><td>run macro</td><td>click its button in the chat macro panel</td></tr>
+            <tr><td>edit macro</td><td>open it from the left panel to edit, test, or use it</td></tr>
+            <tr><td>macro body</td><td>runs as the same script you can type in chat, with saved variables added to scope</td></tr>
+            <tr><td>macro variable</td><td>attached to one saved macro; useful for per-button inputs</td></tr>
+            <tr><td>group variable</td><td>attached to a macro group; visible to that group</td></tr>
+            <tr><td>global variable</td><td>put it in <tt>global</tt> or <tt>globals</tt></td></tr>
+            <tr><td>variable types</td><td>number, boolean, expression, ability score, choice</td></tr>
+            <tr><td>use group</td><td><tt>use Yowa</tt> imports variables from another group</td></tr>
+            <tr><td>dotted name</td><td><tt>Yowa.bab</tt> reads another group's variable</td></tr>
+            <tr><td>matching sheet</td><td>macro tab <tt>Yowa</tt> can read sheet <tt>Yowa</tt></td></tr>
+            <tr><td>named cell</td><td><tt>d20 + attack</tt> uses named cell <tt>attack</tt> from that sheet</td></tr>
+            <tr><td>sheet formula</td><td><tt>d20 + [str_mod + bab]</tt> evaluates a sheet expression</td></tr>
+            <tr><td>docs</td><td><a href="/docs/macro-doc.html" target="_blank">Full macro docs</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="help-sheets" class="help-content">
+        <table>
+          <tbody>
+            <tr><td>new sheet</td><td>click <tt>New Sheet...</tt> in the left panel</td></tr>
+            <tr><td>open sheet</td><td>click a sheet name in the left panel</td></tr>
+            <tr><td>edit cell</td><td>type text or a number directly into a cell</td></tr>
+            <tr><td>formula</td><td>start with <tt>=</tt>, like <tt>=str_mod + bab</tt></td></tr>
+            <tr><td>cell refs</td><td><tt>A1</tt>, <tt>a$</tt>, named columns, and named cells</td></tr>
+            <tr><td>name cell</td><td>right click a cell, then set or clear its name</td></tr>
+            <tr><td>rows/columns</td><td>right click headers to insert, delete, move, sort, or style</td></tr>
+            <tr><td>copy/paste</td><td>copy and paste tab-separated spreadsheet data</td></tr>
+            <tr><td>download</td><td>use the sheet menu to download TSV data</td></tr>
+            <tr><td>functions</td><td>use built-ins like <tt>sum</tt>, <tt>avg</tt>, <tt>round</tt>, and <tt>eval</tt></td></tr>
+            <tr><td>docs</td><td><a href="/docs/spreadsheets.html" target="_blank">Full spreadsheet docs</a></td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   `);
   make_window('cal', 'Calendar',
@@ -871,6 +1009,7 @@
       ::raw
         <button id="privateroll-button">DMs…</button>
         <button id="scratch-button">Scratchpad…</button>
+        <button id="help-button">Help…</button>
   ::div #id(notifications)
   ::div.log #id(chat-history)
   ::div #id(macro-panel)
@@ -878,7 +1017,7 @@
     ::div #id(macro-panel-body)
   ::div.log #id(dice-history)
   ::raw
-    <textarea spellcheck="false" id="chatinput" rows="4"></textarea>
+    <textarea spellcheck="false" id="chatinput" rows="4" placeholder="Message, d20 + 4, or /help"></textarea>
 ::div #id(left)
   ::raw
     <button id="calendar-button">Calendar…</button>

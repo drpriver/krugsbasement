@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2025, David Priver
+// Copyright © 2021-2026, David Priver <david@davidpriver.com>
 //
 
 function elem_with_text<K extends keyof HTMLElementTagNameMap>(tag: K, content:string, id?:string|null, class_?:string|null): HTMLElementTagNameMap[K]{
@@ -503,7 +503,7 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
 }
 
 function reopen_window(w:()=>Win, global_window:NormalWindow, openid:string):void{
-    const get = global_window?get_global_default:get_local_default;
+    const get = global_window==NormalWindow.GLOBAL?get_global_default:get_local_default;
     const state = +get(StorageCategory.WINDOW, openid, ''+WinState.NONE);
     if(state == WinState.OPEN || state == WinState.MINIMIZED){
         const win = w();

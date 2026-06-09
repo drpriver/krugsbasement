@@ -1,5 +1,5 @@
 //
-// Copyright © 2024-2025, David Priver
+// Copyright © 2024-2026, David Priver <david@davidpriver.com>
 //
 let _md_is_init = false;
 const _md_queue: Array<[string, (_:string)=>void]> = [];

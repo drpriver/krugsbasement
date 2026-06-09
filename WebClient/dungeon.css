@@ -744,6 +744,79 @@ body.dark-mode .log div.clickable span {
   line-height: 2.5ex;
   /*height: 12.5ex;*/
 }
+#help-window {
+  min-width: 360px;
+}
+#help-container {
+  display: grid;
+  grid-template-rows: max-content auto;
+  grid-template-columns: 1fr;
+  max-width: 56ch;
+  max-height: 70vh;
+}
+#help-tabs {
+  grid-row: 1;
+  grid-column: 1;
+  display: flex;
+  height: auto;
+  margin-right: 0;
+}
+#help-tabs span {
+  flex: 1 1 0;
+  width: auto;
+}
+.help-content {
+  grid-row: 2;
+  grid-column: 1;
+  overflow: auto;
+  padding: 8px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.help-content table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.help-content td {
+  padding: 3px 5px;
+  vertical-align: top;
+}
+.help-content td:first-child {
+  color: #555;
+  white-space: nowrap;
+}
+.help-content tt {
+  background-color: #f0f0f0;
+  border-radius: 3px;
+  padding: 0 3px;
+}
+.help-content details {
+  border-bottom: 1px solid #ddd;
+  padding: 3px 0;
+}
+.help-content summary {
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 10em 1fr;
+  gap: 8px;
+  align-items: baseline;
+}
+.help-content summary span {
+  color: #555;
+}
+.help-content p {
+  margin: 6px 0 6px 1.5em;
+}
+.help-content pre {
+  background-color: #f0f0f0;
+  border-radius: 3px;
+  margin: 6px 0 8px 1.5em;
+  overflow: auto;
+  padding: 6px 8px;
+}
+.help-doc-link {
+  margin-top: 8px;
+}
 #privateroll-tables-tabs > div,
 #macro-panel-tabs > div {
   background-color: lightgray;
@@ -758,6 +831,7 @@ body.dark-mode .log div.clickable span {
   white-space: nowrap;
 }
 
+#help-tabs span.active,
 #privateroll-tables-tabs > div.active,
 #macro-panel-tabs > div.active {
   background-color: white;
@@ -1076,6 +1150,7 @@ table.ngroup td:last-child {
   body.dark-mode div.hover{
     background-color: #333;
   }
+  body.dark-mode #help-tabs span.active,
   body.dark-mode #privateroll-tables-tabs > div.active,
   body.dark-mode #macro-panel-tabs > div.active {
     border-bottom: 1px solid #666;
@@ -1089,6 +1164,24 @@ table.ngroup td:last-child {
   body.dark-mode #chat{
     /*color: #aaa;*/
     background-color: #333;
+  }
+  body.dark-mode .help-content {
+    color: #ddd;
+  }
+  body.dark-mode .help-content td:first-child {
+    color: #aaa;
+  }
+  body.dark-mode .help-content details {
+    border-bottom-color: #555;
+  }
+  body.dark-mode .help-content summary span {
+    color: #aaa;
+  }
+  body.dark-mode .help-content tt {
+    background-color: #222;
+  }
+  body.dark-mode .help-content pre {
+    background-color: #222;
   }
   body.dark-mode #palette {
     background-color: #333;

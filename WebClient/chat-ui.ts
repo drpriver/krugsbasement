@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2024, David Priver
+// Copyright © 2021-2026, David Priver <david@davidpriver.com>
 //
 
 
@@ -42,6 +42,13 @@ const enum RECENT_DIEROLLS {
 }
 
 const DIEROLL_HISTORY:Array<string> = [];
+let help_tv:TabView|null = null;
+function show_help(tab:number):void{
+    const win = get_window('help');
+    win.show();
+    if(help_tv)
+        help_tv.change_tab(tab);
+}
 document.addEventListener('DOMContentLoaded', function():void{
     let pastrolls = get_local(StorageCategory.MACROS, 'dieroll-history');
     if(!pastrolls) pastrolls = [];
@@ -115,6 +122,19 @@ function add_dice_history_commands(commands: Array<Command>):void{
 }
 
 function preprocess_and_send_chat(text:string, character_id:number, macro_id:number):void{
+    const request = text.trim().toLowerCase();
+    if(request == '/help' || request == '/help chat'){
+        show_help(0);
+        return;
+    }
+    if(request == '/help sheets' || request == '/help sheet'){
+        show_help(2);
+        return;
+    }
+    if(request == '/help macros' || request == '/help macro'){
+        show_help(1);
+        return;
+    }
     let commands: Array<Command> = [];
     let error = evaluate(text, character_id, macro_id, commands);
     if(error.length){
@@ -168,6 +188,22 @@ document.addEventListener('DOMContentLoaded', function():void{
     window.addEventListener('resize', resize_chat);
     const ta = by_id('chatinput');
     setup_chat(ta, preprocess_and_send_chat);
+    help_tv = make_tab_view(
+        [
+            by_id('help-chat-tab'),
+            by_id('help-macros-tab'),
+            by_id('help-sheets-tab'),
+        ],
+        [
+            by_id('help-chat'),
+            by_id('help-macros'),
+            by_id('help-sheets'),
+        ]
+    );
+    by_id('help-button').onclick = function():void{
+        show_help(0);
+    };
+    reopen_window(()=>get_window('help'), NormalWindow.GLOBAL, 'help/open');
     if(SETTINGS.uimode == UiMode.CHAT){
         const chat = by_id('chat');
         chat.classList.add('fullscreen');
@@ -179,4 +215,3 @@ return {
     preprocess_and_send_chat3,
 };
 }());
-
