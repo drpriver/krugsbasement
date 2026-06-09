@@ -1375,7 +1375,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
             case StatementKind.IF:{
                 let cond = eval_expr(statement.test, namespaces, vars, sheetid);
                 if(cond === null){
-                    return "Errorl in if statement: " + current_err_mess;
+                    return "Error in if statement: " + current_err_mess;
                 }
                 if(cond){
                     let e = interpret(statement.iftrue, namespaces, vars, sheetid, outcommands);
