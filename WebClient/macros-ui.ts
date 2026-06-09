@@ -176,7 +176,7 @@ function make_macro_window(cid:number, id:number):MacroWindow {
                 const uil = elem_parent_text(vars, 'label', 'UI');
                 const uiinp = elem_with_parent(uil, 'input');
                 uiinp.type = 'checkbox';
-                uiinp.checked = !!v[4];
+                uiinp.checked = !!(v[4] & VariableUI.SHOW_IN_PANEL);
                 t.oncontextmenu = function(e:MouseEvent):void{
                     const menu = ctx_menu(e);
                     menu.item('Rename', function(e:MouseEvent):void{
@@ -231,7 +231,10 @@ function make_macro_window(cid:number, id:number):MacroWindow {
                         update_var_value(v[0], inp.value);
                 }
                 uiinp.oninput = function():void{
-                    v[4] = uiinp.checked?1:0;
+                    if(uiinp.checked)
+                        v[4] |= VariableUI.SHOW_IN_PANEL;
+                    else
+                        v[4] &= ~VariableUI.SHOW_IN_PANEL;
                     save_mcv_and_signal();
                 };
             }
@@ -322,7 +325,7 @@ function make_vars_window(cid:number):VariablesWindow {
                 const uil = elem_parent_text(vars, 'label', 'UI');
                 const uiinp = elem_with_parent(uil, 'input');
                 uiinp.type = 'checkbox';
-                uiinp.checked = !!v[4];
+                uiinp.checked = !!(v[4] & VariableUI.SHOW_IN_PANEL);
                 t.oncontextmenu = function(e:MouseEvent):void{
                     const menu = ctx_menu(e);
                     menu.item('Rename', function(e:MouseEvent):void{
@@ -378,7 +381,10 @@ function make_vars_window(cid:number):VariablesWindow {
                         update_var_value(v[0], inp.value);
                 }
                 uiinp.oninput = function():void{
-                    v[4] = uiinp.checked?1:0;
+                    if(uiinp.checked)
+                        v[4] |= VariableUI.SHOW_IN_PANEL;
+                    else
+                        v[4] &= ~VariableUI.SHOW_IN_PANEL;
                     save_mcv_and_signal();
                 };
             }
@@ -656,7 +662,7 @@ function setup_macro_panel():void{
             const macro_button = elem_parent_text(mbdiv, 'button', m[1], null, 'macro-button');
             for(let vid of m[3]){
                 const v = VARIABLES.get(vid)!;
-                if(!v[4]) continue;
+                if(!(v[4] & VariableUI.SHOW_IN_PANEL)) continue;
                 make_var(mbdiv, v);
             }
             macro_button.onclick = function(e:MouseEvent):void{
@@ -666,7 +672,7 @@ function setup_macro_panel():void{
         }
         for(let vid of ch[3]){
             let v = VARIABLES.get(vid)!;
-            if(!v[4]) continue;
+            if(!(v[4] & VariableUI.SHOW_IN_PANEL)) continue;
             make_var(vardiv, v);
         }
         views.push(macro_group);

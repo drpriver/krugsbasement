@@ -886,12 +886,16 @@ enum ScriptVariableType: int
     ABILITY_SCORE = 3 # 3.5 style
     CHOICE = 4
 
+enum VariableUI: int flag
+    NONE = 0
+    SHOW_IN_PANEL = 1 << 0
+
 struct Variable: array
     id: int
     name: str
     type: ScriptVariableType
     value: str
-    ui: int
+    ui: VariableUI
     values: [str]
 
 

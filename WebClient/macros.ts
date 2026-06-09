@@ -131,7 +131,7 @@ function del_macro(id:number):void{
 
 function alloc_variable():Variable {
     const id = ++variablecounter;
-    const result: Variable = [id, "", ScriptVariableType.NUMBER, "0", 0, []];
+    const result: Variable = [id, "", ScriptVariableType.NUMBER, "0", VariableUI.NONE, []];
     VARIABLES.set(id, result);
     return result;
 }
