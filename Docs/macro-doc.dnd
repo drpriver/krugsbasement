@@ -435,6 +435,8 @@
 
         <tt>repeat</tt> can alternatively be spelled as <tt>loop</tt>.
 
+        <tt>repeat</tt> blocks are capped at 20.
+
       If Statements::md .comment
         The last major feature is conditional execution. This is done using
         <tt>if</tt> and <tt>else</tt>. An example:
