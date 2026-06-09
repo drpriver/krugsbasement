@@ -1404,6 +1404,8 @@ const evaluate_script = (function():(text:string, vars:Map<string, number|string
                 if(n === null){
                     return "Error in repeat statement: " + current_err_mess;
                 }
+                if(n > 20)
+                    return "Error: Repeat value > 20"
                 for(let i = 0; i < n; i++){
                     let e = interpret(statement.block, namespaces, vars, sheetid, outcommands);
                     if(e) return e;
