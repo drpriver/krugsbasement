@@ -50,7 +50,8 @@ SOCKET.on('disconnect', function(reason:string):void{
 });
 }());
 const IS_FIREFOX = window.navigator.userAgent.search('Firefox') !== -1;
-const IS_SAFARI = window.navigator.userAgent.search('Safari') !== -1;
+const IS_SAFARI = navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome');
+// const IS_SAFARI = window.navigator.userAgent.search('Safari') !== -1;
 
 let session_id = 1;
 ONRECV(ToClient.SESSION_ID, function(resp:number):void{
