@@ -174,10 +174,14 @@ function options_dialog():void{
                     const fr = new FileReader();
                     fr.onload = function():void{
                         if(!fr.result) return;
-                        // @ts-ignore
-                        const new_data = JSON.parse(fr.result);
-                        // @ts-ignore
-                        import_maps(new_data);
+                        try {
+                            // @ts-ignore
+                            const new_data = JSON.parse(fr.result);
+                            // @ts-ignore
+                            import_maps(new_data);
+                        } catch(e){
+
+                        }
                         dialog.hide();
                     };
                     fr.readAsText(file);
