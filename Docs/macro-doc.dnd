@@ -329,35 +329,35 @@
 
         An example of a dotted identifier is as follows:
 
-      ::pre .macro
-        attack = d20 + Yowa.bab + Yowa.dex
-        /roll attack
-      ::md .comment
-        In the above example, <tt>bab</tt> and <tt>dex</tt> were explicitly
-        accessed from the <tt>Yowa</tt> variable group. The above substitutes
-        to:
+        ::pre .macro
+          attack = d20 + Yowa.bab + Yowa.dex
+          /roll attack
+        ::md .comment
+          In the above example, <tt>bab</tt> and <tt>dex</tt> were explicitly
+          accessed from the <tt>Yowa</tt> variable group. The above substitutes
+          to:
 
-      ::pre .macro
-        /roll d20 + 3 +2
-      ::md .comment
-        This can get pretty repetitive, so to bring all of the variables from a
-        variable group into the local context, you can use the <tt>use</tt>
-        statement.
+        ::pre .macro
+          /roll d20 + 3 +2
+        ::md .comment
+          This can get pretty repetitive, so to bring all of the variables from a
+          variable group into the local context, you can use the <tt>use</tt>
+          statement.
 
-        You can then do this:
+          You can then do this:
 
-      ::pre .macro
-        use Yowa
-        attack = d20 + bab + dex
-        /roll attack
-      ::md .comment
-        In the above example, all of the variables from Yowa will then be
-        available and the /roll attack substitutes to:
+        ::pre .macro
+          use Yowa
+          attack = d20 + bab + dex
+          /roll attack
+        ::md .comment
+          In the above example, all of the variables from Yowa will then be
+          available and the /roll attack substitutes to:
 
-      ::pre .macro
-        /roll d20 + 3 + 2
-      ::md .comment
-        Variable groups are also case insensitive.
+        ::pre .macro
+          /roll d20 + 3 + 2
+        ::md .comment
+          Variable groups are also case insensitive.
 
       Variable Kinds::md .comment
         There are four kinds of variables that can be defined.
@@ -421,99 +421,100 @@
         will execute the contents of it a certain number of times. It looks like
         this:
 
-      ::pre .macro
-        repeat 4:
-          d20 + 3
-      ::md .comment
-        Which will roll <tt>d20 + 3</tt> four times, as four different
-        statements.
+        ::pre .macro
+          repeat 4:
+            d20 + 3
+        ::md .comment
+          Which will roll <tt>d20 + 3</tt> four times, as four different
+          statements.
 
-        The <tt>4</tt> in the above example can also be a variable or an
-        expression. It cannot contain a dice expression and must evaluate to a
-        number. If it evaluates to a negative number or zero, the contents of
-        the repeat statement are executed zero times.
+          The <tt>4</tt> in the above example can also be a variable or an
+          expression. It cannot contain a dice expression and must evaluate to a
+          number. If it evaluates to a negative number or zero, the contents of
+          the repeat statement are executed zero times.
 
-        <tt>repeat</tt> can alternatively be spelled as <tt>loop</tt>.
+          <tt>repeat</tt> can alternatively be spelled as <tt>loop</tt>.
 
-        <tt>repeat</tt> blocks are capped at 20.
+          <tt>repeat</tt> blocks are capped at 20.
 
       If Statements::md .comment
         The last major feature is conditional execution. This is done using
         <tt>if</tt> and <tt>else</tt>. An example:
 
-      ::pre .macro
-        rapid = 1
-        if rapid:
-          /roll d20 - 2
-          /roll d20 - 2
-        else:
-          /roll d20
-      ::md .comment
-        The <tt>if</tt> statement is written as "if" "expression" ":". The
-        trailing colon is mandatory. Without it, it is considered a regular line
-        of text.
+        ::pre .macro
+          rapid = 1
+          if rapid:
+            /roll d20 - 2
+            /roll d20 - 2
+          else:
+            /roll d20
+        ::md .comment
+          The <tt>if</tt> statement is written as "if" "expression" ":". The
+          trailing colon is mandatory. Without it, it is considered a regular line
+          of text.
 
-        An expression evaluator is then run and if the result is non-zero, it is
-        considered "true". If it's true, then the indented statements after the
-        if are evaluated.
+          An expression evaluator is then run and if the result is non-zero, it is
+          considered "true". If it's true, then the indented statements after the
+          if are evaluated.
 
-        An <tt>if</tt> can have an <tt>else</tt>, which looks like in the above
-        example. The indented statements after the else are run if the
-        expression turned out to be false (0). An <tt>if</tt> doesn't have to
-        have an <tt>else</tt>. There's also <tt>else if</tt>.
+          An <tt>if</tt> can have an <tt>else</tt>, which looks like in the above
+          example. The indented statements after the else are run if the
+          expression turned out to be false (0). An <tt>if</tt> doesn't have to
+          have an <tt>else</tt>. There's also <tt>else if</tt>.
 
-        With the if you can conditionally send roll commands and also
-        conditionally set variables. For example:
+          With the if you can conditionally send roll commands and also
+          conditionally set variables. For example:
 
-      ::pre .macro
-        prone = 1
-        if prone:
-          penalty = 4
-        else:
-          penalty = 0
-        /roll d20 - penalty
-      ::md .comment
-        With all that, we can finally arrive at our final example which uses all
-        of these features:
+        ::pre .macro
+          prone = 1
+          if prone:
+            penalty = 4
+          else:
+            penalty = 0
+          /roll d20 - penalty
+        ::md .comment
+          With all that, we can finally arrive at our final example which uses all
+          of these features:
 
-      ::pre .macro
-        /name Yowa
-        use Yowa
-        attack = d20 + dex + bab
-        if rapid:
-          Rapid Attack!
-          /roll attack - 2
-          /roll attack - 2
-        else:
-          /roll attack
-      No Dice in Ifs::md .comment
-        Note! if conditions cannot contain dice expressions, directly or
-        indirectly.
+        ::pre .macro
+          /name Yowa
+          use Yowa
+          attack = d20 + dex + bab
+          if rapid:
+            Rapid Attack!
+            /roll attack - 2
+            /roll attack - 2
+          else:
+            /roll attack
+
+        No Dice in Ifs::md .comment
+          Note! if conditions cannot contain dice expressions, directly or
+          indirectly.
 
       Escaping::md .comment
         Rarely, you want to type something that looks like a roll expression,
         but isn't, such as telling someone how to roll something:
 
-      ::pre .macro
-        To roll a strength check, type:
-        Roll d20 + str
-      ::md .comment
-        Variable substitution and expression evaluation will be attempted on
-        this, which would be confusing as it would come out as "Roll d20 + 3" if
-        you had a str variable set to 3, which would then get rolled! To avoid
-        this, you can prefix with a "/say " which will cause the rest to be
-        processed as literal text. You can also use a leading backtick (`) to
-        the same effect. Do not use a trailing backtick.
+        ::pre .macro
+          To roll a strength check, type:
+          Roll d20 + str
+        ::md .comment
+          Variable substitution and expression evaluation will be attempted on
+          this, which would be confusing as it would come out as "Roll d20 + 3" if
+          you had a str variable set to 3, which would then get rolled! To avoid
+          this, you can prefix with a "/say " which will cause the rest to be
+          processed as literal text. You can also use a leading backtick (`) to
+          the same effect. Do not use a trailing backtick.
 
-      ::pre .macro
-        /say Roll d20 + str
-        `Roll d20 + str
-      ::md .comment
-        Generally, slash commands other than /roll are not substituted, so if
-        future slash commands are added there will be no problem.
+        ::pre .macro
+          /say Roll d20 + str
+          `Roll d20 + str
+        ::md .comment
+          Generally, slash commands other than /roll are not substituted, so if
+          future slash commands are added there will be no problem.
 
-        The roll command has to succesfully parse as a dice expression in order
-        for substitution to get involved, so this is a pretty rare occurrence.
+          The roll command has to succesfully parse as a dice expression in order
+          for substitution to get involved, so this is a pretty rare occurrence.
 
 ::css #import
   docs.css
