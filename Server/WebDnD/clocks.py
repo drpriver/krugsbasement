@@ -65,7 +65,7 @@ class Clocks:
     def get_msg(self) -> ClockInitialize:
         return {'type': ClockMsgType.INITIALIZE, 'clocks': sorted(self.clocks.values(), key = lambda c: c['id'])}
 
-    def add_clock(self, msg: ClockNew) -> None:
+    def add_clock(self, msg: ClockNew) -> bool:
         msg['id'] = self.alloc_id()
         cd: ClockData = {
             'id': msg['id'],
@@ -79,69 +79,85 @@ class Clocks:
         self.clocks[msg['id']] = cd
         self._last_mod = time.time()
         self.dirty = True
+        return True
 
-    def clear_clock(self, msg:ClockClear) -> None:
+    def clear_clock(self, msg:ClockClear) -> bool:
         id = msg['id']
         c = self.clocks.get(id)
-        if c:
-            c['events'].clear()
-            self._last_mod = time.time()
-            self.dirty = True
+        if c is None:
+            return False
+        c['events'].clear()
+        self._last_mod = time.time()
+        self.dirty = True
+        return True
 
-    def del_clock(self, msg:ClockDelete) -> None:
+    def del_clock(self, msg:ClockDelete) -> bool:
         id = msg['id']
-        if id in self.clocks:
-            del self.clocks[id]
-            self._last_mod = time.time()
-            self.dirty = True
+        if id not in self.clocks:
+            return False
+        del self.clocks[id]
+        self._last_mod = time.time()
+        self.dirty = True
+        return True
 
-    def edit_clock(self, msg:ClockEdit) -> None:
+    def edit_clock(self, msg:ClockEdit) -> bool:
         id = msg['id']
         c = self.clocks.get(id)
-        if c:
-            c['name'] = msg['name']
-            c['value_name'] = msg['value_name']
-            c['value'] = msg['value']
-            c['flags'] = msg['flags']
-            c['hidinguser'] = msg['hidinguser']
-            self._last_mod = time.time()
-            self.dirty = True
+        if c is None:
+            return False
+        c['name'] = msg['name']
+        c['value_name'] = msg['value_name']
+        c['value'] = msg['value']
+        c['flags'] = msg['flags']
+        c['hidinguser'] = msg['hidinguser']
+        self._last_mod = time.time()
+        self.dirty = True
+        return True
 
-    def add_clock_event(self, msg:ClockEventNew) -> None:
+    def add_clock_event(self, msg:ClockEventNew) -> bool:
         id = msg['clock_id']
         c = self.clocks.get(id)
-        if c:
-            msg['id'] = 1 + (max(ev['id'] for ev in c['events']) if c['events'] else 0)
-            e: ClockEvent = {
-                'id': msg['id'],
-                'name': msg['name'],
-                'when': msg['when'],
-                'flags': msg['flags'],
-            }
-            c['events'].append(e)
-            self._last_mod = time.time()
-            self.dirty = True
-    def edit_clock_event(self, msg:ClockEventEdit) -> None:
+        if c is None:
+            return False
+        msg['id'] = 1 + (max(ev['id'] for ev in c['events']) if c['events'] else 0)
+        e: ClockEvent = {
+            'id': msg['id'],
+            'name': msg['name'],
+            'when': msg['when'],
+            'flags': msg['flags'],
+        }
+        c['events'].append(e)
+        self._last_mod = time.time()
+        self.dirty = True
+        return True
+    def edit_clock_event(self, msg:ClockEventEdit) -> bool:
         id = msg['clock_id']
         c = self.clocks.get(id)
-        if c:
-            id = msg['id']
-            for e in c['events']:
-                if e['id'] == id:
-                    e['name'] = msg['name']
-                    e['when'] = msg['when']
-                    e['flags'] = msg['flags']
-                    self._last_mod = time.time()
-                    self.dirty = True
-                    return
-    def del_clock_event(self, msg:ClockEventDelete) -> None:
+        if c is None:
+            return False
+        id = msg['id']
+        for e in c['events']:
+            if e['id'] == id:
+                e['name'] = msg['name']
+                e['when'] = msg['when']
+                e['flags'] = msg['flags']
+                self._last_mod = time.time()
+                self.dirty = True
+                return True
+        return False
+    def del_clock_event(self, msg:ClockEventDelete) -> bool:
         id = msg['clock_id']
         c = self.clocks.get(id)
-        if c:
-            id = msg['id']
-            c['events'] = [e for e in c['events'] if e['id'] != id]
-            self._last_mod = time.time()
-            self.dirty = True
+        if c is None:
+            return False
+        id = msg['id']
+        new_events = [e for e in c['events'] if e['id'] != id]
+        if len(new_events) == len(c['events']):
+            return False
+        c['events'] = new_events
+        self._last_mod = time.time()
+        self.dirty = True
+        return True
 
 
 def load_clocks(campaign:int) -> None:
@@ -175,26 +191,19 @@ def handle(campaign: int, msg: ClockMsg) -> ClockMsg | None:
         if msg['type'] == ClockMsgType.SHOW:
             return msg
         if msg['type'] == ClockMsgType.CLEAR:
-            clocks.clear_clock(msg)
-            return msg
+            return msg if clocks.clear_clock(msg) else None
         if msg['type'] == ClockMsgType.NEW:
-            clocks.add_clock(msg)
-            return msg
+            return msg if clocks.add_clock(msg) else None
         if msg['type'] == ClockMsgType.DELETE:
-            clocks.del_clock(msg)
-            return msg
+            return msg if clocks.del_clock(msg) else None
         if msg['type'] == ClockMsgType.EDIT:
-            clocks.edit_clock(msg)
-            return msg
+            return msg if clocks.edit_clock(msg) else None
         if msg['type'] == ClockMsgType.EVENT_NEW:
-            clocks.add_clock_event(msg)
-            return msg
+            return msg if clocks.add_clock_event(msg) else None
         if msg['type'] == ClockMsgType.EVENT_EDIT:
-            clocks.edit_clock_event(msg)
-            return msg
+            return msg if clocks.edit_clock_event(msg) else None
         if msg['type'] == ClockMsgType.EVENT_DELETE:
-            clocks.del_clock_event(msg)
-            return msg
+            return msg if clocks.del_clock_event(msg) else None
 
 Reaper = RepeatTimer(60, clock_reaper)
 Reaper.start()
