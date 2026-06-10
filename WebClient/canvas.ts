@@ -669,7 +669,7 @@ function set_arc_type(i:number):void{
 
 const enum SpellAreaType {
     CONE = 0,
-    SPREAD = 1,
+    BURST = 1,
     SQUARE = 2,
     LINE = 3,
 }
@@ -678,7 +678,7 @@ const enum SPELLAREATYPE {
     MAX = 4,
 }
 
-const SPELLAREATYPE_TO_NAME = ['Cone', 'Spread', 'Square', 'Line'];
+const SPELLAREATYPE_TO_NAME = ['Cone', 'Burst', 'Square', 'Line'];
 let current_spell_area = SpellAreaType.CONE;
 function set_spell_area(i:number):void{
     current_spell_area = i;
@@ -833,7 +833,7 @@ function get_line_affected_squares(length_squares:number, angle_radians:number):
     return squares;
 }
 
-function get_spread_affected_squares(radius_squares:number):Array<{x:number, y:number}>{
+function get_burst_affected_squares(radius_squares:number):Array<{x:number, y:number}>{
     const squares: Array<{x:number, y:number}> = [];
     for(let dy = -radius_squares; dy < radius_squares; dy++)
     for(let dx = -radius_squares; dx < radius_squares; dx++){
@@ -865,10 +865,10 @@ function get_square_spell_origin(e:MouseEvent, view:DungeonMapView, size:number,
     return event_to_coord_snapped(e, view, snap);
 }
 
-function make_spread_area_objects(id:number, guide_id:number, x0:number, y0:number, color:string, size:number, grid_size:number):[Shape, Ellipse]{
+function make_burst_area_objects(id:number, guide_id:number, x0:number, y0:number, color:string, size:number, grid_size:number):[Shape, Ellipse]{
     const shape = make_shape(id, x0, y0, color, color + '40', 2);
     shape.flags |= CanvasFlag.SHAPE_IS_POLYGON;
-    const outline = spell_area_outline(get_spread_affected_squares(size), x0, y0, grid_size);
+    const outline = spell_area_outline(get_burst_affected_squares(size), x0, y0, grid_size);
     if(outline){
         shape.base_x = outline.base_x;
         shape.base_y = outline.base_y;
@@ -9377,15 +9377,15 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     ? get_square_spell_origin(e, view, size, snap)
                     : event_to_coord_snapped(e, view, snap);
                 let is_cone = false;
-                let is_spread = false;
+                let is_burst = false;
                 let is_square = false;
                 let is_line = false;
                 switch(current_spell_area){
                     case SpellAreaType.CONE:
                         is_cone = true;
                         break;
-                    case SpellAreaType.SPREAD:
-                        is_spread = true;
+                    case SpellAreaType.BURST:
+                        is_burst = true;
                         break;
                     case SpellAreaType.SQUARE:
                         is_square = true;
@@ -9403,10 +9403,10 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     note_create_by_id_for_undo(view.map, id);
                     preview_objs = [];
                     canvas_request_render();
-                } else if(is_spread){
+                } else if(is_burst){
                     const grid_size = gs_to_w(view.gridscale) * REFERENCE.WIDTH;
                     const guide_id = get_new_id();
-                    const [shape, guide] = make_spread_area_objects(id, guide_id, x0, y0, color, size, grid_size);
+                    const [shape, guide] = make_burst_area_objects(id, guide_id, x0, y0, color, size, grid_size);
                     add_canv_obj(view.map, shape);
                     add_canv_obj(view.map, guide);
                     publish_objs_by_ids(view.map, [id, guide_id]);
@@ -9615,7 +9615,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
 
             canvas_request_render();
         }
-        else if(current_tool === ToolType.SPELL && (current_spell_area === SpellAreaType.SPREAD || current_spell_area === SpellAreaType.SQUARE)){
+        else if(current_tool === ToolType.SPELL && (current_spell_area === SpellAreaType.BURST || current_spell_area === SpellAreaType.SQUARE)){
             const snap = get_snap_func();
             const color = get_primary_color();
             const size = (+by_id('spell-size').value) || 1;
@@ -9623,8 +9623,8 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 ? get_square_spell_origin(e, view, size, snap)
                 : event_to_coord_snapped(e, view, snap);
             const grid_size = gs_to_w(view.gridscale) * REFERENCE.WIDTH;
-            if(current_spell_area === SpellAreaType.SPREAD){
-                const [shape, guide] = make_spread_area_objects(-1, -2, x0, y0, color, size, grid_size);
+            if(current_spell_area === SpellAreaType.BURST){
+                const [shape, guide] = make_burst_area_objects(-1, -2, x0, y0, color, size, grid_size);
                 preview_objs = [shape, guide];
             }
             else
