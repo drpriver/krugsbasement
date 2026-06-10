@@ -103,6 +103,7 @@ class Clocks:
             c['value_name'] = msg['value_name']
             c['value'] = msg['value']
             c['flags'] = msg['flags']
+            c['hidinguser'] = msg['hidinguser']
             self._last_mod = time.time()
             self.dirty = True
 
