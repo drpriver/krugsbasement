@@ -1,6 +1,7 @@
 Changelog::kv
   created:  2023-10-03T21:29:35Z
   resolved: 2025-11-03T07:59:34Z
+  updated:  2026-06-10T05:17:34.726493
 Created Oct 03, 2023, 02:29PM::md .update
 Summary::md .summary
   tool to show spell areas, like 15’ cone, 30’ cone, 10’ spread, 20’
@@ -11,3 +12,6 @@ Summary::md .summary
 Resolved Nov 02, 2025, 11:59PM::md .update
   Claude did some of the work, but implement a tool that shows cones, spreads
   and squares with parameterized size.
+
+Updated Jun 09, 2026, 10:17PM::md .update
+  previous version was garbo, better version now
