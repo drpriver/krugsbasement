@@ -97,14 +97,15 @@ def change_bg_color(campaign:int, map_id:int, bg_color:str) -> None:
 # FIXME: actually sets flags, not numbered
 def set_flags(campaign:int, map_id:int, numbered:MapFlags) -> None:
     m = MAPS[campaign][map_id]
+    flags = m.value.flags
     if numbered & MapFlags.NUMBERED:
-        flags = m.value.flags | MapFlags.NUMBERED
+        flags |= MapFlags.NUMBERED
     else:
-        flags = m.value.flags & ~(MapFlags.NUMBERED)
+        flags &= ~(MapFlags.NUMBERED)
     if numbered & MapFlags.BIG_HEX:
-        flags = m.value.flags | MapFlags.BIG_HEX
+        flags |= MapFlags.BIG_HEX
     else:
-        flags = m.value.flags & ~(MapFlags.BIG_HEX)
+        flags &= ~(MapFlags.BIG_HEX)
     MAPS[campaign][map_id].value = m.value._replace(flags=flags)
 
 def set_parent(campaign:int, map_id:int, parent:int) -> None:
