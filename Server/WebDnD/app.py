@@ -421,6 +421,8 @@ def chat_dm(data:ChatDirectCommandMessage) -> None:
     campaign = get_campaign(request)
     if not data:
         return
+    if data['to'] not in db.get_users_in_campaign(campaign):
+        return
     responses = chat.handle_structured_input(current_user.userid, campaign, data['chatname'], data['commands'], private=False, to=data['to'])
     if not responses: return
     msg: ChatDirectResponse = {'users':[current_user.userid, data['to']], 'msgs':responses}
