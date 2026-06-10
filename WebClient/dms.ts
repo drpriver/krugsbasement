@@ -25,9 +25,9 @@ document.addEventListener('DOMContentLoaded', function():void{
     // just your notification).
     let notifications: Array<HTMLElement> = [];
 
-    function preproc_func(text:string, _:number, __:number):void{
+    async function preproc_func(text:string, _:number, __:number):Promise<void>{
         let commands: Array<Command> = [];
-        let error = evaluate(text, -1, -1, commands);
+        let error = await evaluate(text, -1, -1, commands);
         if(error){
             const log = by_id('privateroll-history');
             const errmess: ChatErrorMsg = [Msg.ERROR, '', error];

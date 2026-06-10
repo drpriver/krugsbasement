@@ -5,12 +5,10 @@
 
 const {
     preprocess_and_send_chat,
-    preprocess_and_send_chat2,
     preprocess_and_send_chat3,
 } = (function():{
-  preprocess_and_send_chat:(text:string, character_id:number, macro_id:number)=>void;
-  preprocess_and_send_chat2:(text:string, sheet_id:number)=>void;
-  preprocess_and_send_chat3:(text:string, vars:Map<string,string>)=>void;
+  preprocess_and_send_chat:(text:string, character_id:number, macro_id:number)=>Promise<void>;
+  preprocess_and_send_chat3:(text:string, vars:Map<string,string>)=>Promise<void>;
 }{
 ONRECV(ToClient.CHAT_STRUCTURED_MSG, function(msgs:Array<ChatMsg>):void{
     const log = by_id('chat-history');
@@ -121,7 +119,7 @@ function add_dice_history_commands(commands: Array<Command>):void{
     }
 }
 
-function preprocess_and_send_chat(text:string, character_id:number, macro_id:number):void{
+async function preprocess_and_send_chat(text:string, character_id:number, macro_id:number):Promise<void>{
     const request = text.trim().toLowerCase();
     if(request == '/help' || request == '/help chat'){
         show_help(0);
@@ -136,7 +134,7 @@ function preprocess_and_send_chat(text:string, character_id:number, macro_id:num
         return;
     }
     let commands: Array<Command> = [];
-    let error = evaluate(text, character_id, macro_id, commands);
+    let error = await evaluate(text, character_id, macro_id, commands);
     if(error.length){
         const log = by_id('chat-history');
         const errmess: ChatErrorMsg = [Msg.ERROR, '', error];
@@ -150,25 +148,9 @@ function preprocess_and_send_chat(text:string, character_id:number, macro_id:num
         EMIT(FromClient.CHAT_STRUCTURED_INPUT, to_send);
     }
 }
-function preprocess_and_send_chat2(text:string, sheet_id:number):void{
+async function preprocess_and_send_chat3(text:string, vars:Map<string,string>):Promise<void>{
     let commands: Array<Command> = [];
-    let error = evaluate2(text, sheet_id, commands);
-    if(error.length){
-        const log = by_id('chat-history');
-        const errmess: ChatErrorMsg = [Msg.ERROR, '', error];
-        add_chat_msgs(log, [errmess], undefined);
-        log.scrollTo({behavior:'smooth', top:log.scrollHeight});
-        return;
-    }
-    if(commands.length){
-        let to_send: ChatCommandMessage = {chatname:SETTINGS.chat.name, commands:commands};
-        add_dice_history_commands(commands);
-        EMIT(FromClient.CHAT_STRUCTURED_INPUT, to_send);
-    }
-}
-function preprocess_and_send_chat3(text:string, vars:Map<string,string>):void{
-    let commands: Array<Command> = [];
-    let error = evaluate3(text, vars, commands);
+    let error = await evaluate3(text, vars, commands);
     if(error.length){
         const log = by_id('chat-history');
         const errmess: ChatErrorMsg = [Msg.ERROR, '', error];
@@ -211,7 +193,6 @@ document.addEventListener('DOMContentLoaded', function():void{
 });
 return {
     preprocess_and_send_chat,
-    preprocess_and_send_chat2,
     preprocess_and_send_chat3,
 };
 }());

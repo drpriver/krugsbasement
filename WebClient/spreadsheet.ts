@@ -317,7 +317,7 @@ function spread_eval_string(sheetid:number, s:string):number|string|null{
         return null;
     }
     const result = SHEET_CTX.evaluate_string(sheetid, s);
-    if(result === "error")
+    if(typeof result == "string" && result.startsWith("error"))
         return null;
     return result;
 }

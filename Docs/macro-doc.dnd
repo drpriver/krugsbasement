@@ -423,6 +423,15 @@
           These are like expression variables, but instead of a string you edit,
           you choose one from a list of strings. You can define this list.
 
+      Prompt Command::md .comment
+        <tt>prompt</tt> or <tt>/prompt</tt> prompts for a value
+        and stores that value in the variable before later lines run.
+
+        ::pre.macro
+          prompt power attack
+          d20 + attack - power attack
+          damage + power attack * 2
+
       Spreadsheet Expression::md.comment
         Chat and macros can read from spreadsheets. For normal chat and macros,
         the active macro tab chooses the spreadsheet context: if the

@@ -156,6 +156,12 @@
           This is plain.</pre>
         </details>
         <details>
+          <summary><span>prompt variable</span><tt>/prompt power attack</tt></summary>
+          <p>Asks for a saved variable value and updates that variable before later lines run.</p>
+          <pre>/prompt power attack
+          d20 + attack - power attack</pre>
+        </details>
+        <details>
           <summary><span>comments</span><tt># note</tt></summary>
           <p>Comments work in rolls, variables, control flow, choose, and shuffle. Raw text commands keep <tt>#</tt> as text.</p>
           <pre>bonus = 4 # favored terrain
@@ -175,6 +181,7 @@
             <tr><td>group variable</td><td>attached to a macro group; visible to that group</td></tr>
             <tr><td>global variable</td><td>put it in <tt>global</tt> or <tt>globals</tt></td></tr>
             <tr><td>variable types</td><td>number, boolean, expression, ability score, choice</td></tr>
+            <tr><td>prompt variable</td><td><tt>/prompt power attack</tt> asks and updates that saved variable</td></tr>
             <tr><td>use group</td><td><tt>use Yowa</tt> imports variables from another group</td></tr>
             <tr><td>dotted name</td><td><tt>Yowa.bab</tt> reads another group's variable</td></tr>
             <tr><td>matching sheet</td><td>macro tab <tt>Yowa</tt> can read sheet <tt>Yowa</tt></td></tr>
@@ -640,6 +647,25 @@
         <td>${textbox('name')}
       ${trbegin('value-row')}
         <td colspan="2">${textarea('values')}
+    </table>
+    `);
+  begin('prompt-variable');
+  make(`
+    ${title("Variable")}
+    <table class="input-container">
+      <tr>
+        <td>${id_label('prompt-label', 'value', 'Value')}
+        <td>${textbox('value')}
+      <tr id="number-row">
+        <td>${id_label('number-label', 'number', 'Value')}
+        <td>${numbox('number')}
+      <tr id="checkbox-row">
+        <td>${id_label('checkbox-label', 'checkbox', 'Value')}
+        <td>${uncheckbox('checkbox')}
+      <tr id="choice-row">
+        <td>${id_label('choice-label', 'choice', 'Value')}
+        <td>${selectbegin('choice')}
+          </select>
     </table>
     `);
   begin('simple-delete');

@@ -3,32 +3,118 @@
 //
 
 // Where should this go?
-function evaluate(text:string, character_id:number, macro_id:number, outarray:Array<Command>):string{
+function prompt_variable(variable:Variable):Promise<string|null>{
+    return new Promise(function(resolve:(value:string|null)=>void):void{
+        const dialog = get_dialog('prompt-variable');
+        dialog.title.textContent = 'Prompt Variable';
+        dialog.f["prompt-label"].textContent = variable[1];
+        dialog.f["number-label"].textContent = variable[1];
+        dialog.f["checkbox-label"].textContent = variable[1];
+        dialog.f["choice-label"].textContent = variable[1];
+        const textrow = dialog.f.value.closest('tr') as HTMLTableRowElement;
+        const numberrow = get_by_id<HTMLTableRowElement>('prompt-variable-number-row');
+        const checkboxrow = get_by_id<HTMLTableRowElement>('prompt-variable-checkbox-row');
+        const choicerow = get_by_id<HTMLTableRowElement>('prompt-variable-choice-row');
+        textrow.style.display = 'none';
+        numberrow.style.display = 'none';
+        checkboxrow.style.display = 'none';
+        choicerow.style.display = 'none';
+        dialog.f.value.value = variable[3];
+        dialog.f.number.value = variable[3];
+        dialog.f.checkbox.checked = variable[3] == "1";
+        switch(variable[2]){
+            case ScriptVariableType.NUMBER:
+            case ScriptVariableType.ABILITY_SCORE:
+                numberrow.style.display = 'table-row';
+                break;
+            case ScriptVariableType.BOOLEAN:
+                checkboxrow.style.display = 'table-row';
+                break;
+            case ScriptVariableType.CHOICE:
+                dialog.f.choice.replaceChildren();
+                for(const choice of variable[5]){
+                    const option = elem_with_parent(dialog.f.choice, 'option');
+                    option.value = choice;
+                    option.textContent = choice;
+                }
+                dialog.f.choice.value = variable[3];
+                choicerow.style.display = 'table-row';
+                break;
+            case ScriptVariableType.STRING:
+                textrow.style.display = 'table-row';
+                break;
+        }
+        dialog.show_handler = function():void{
+            if(IS_TOUCH) return;
+            switch(variable[2]){
+                case ScriptVariableType.NUMBER:
+                case ScriptVariableType.ABILITY_SCORE:
+                    dialog.f.number.focus();
+                    break;
+                case ScriptVariableType.STRING:
+                    dialog.f.value.focus();
+                    break;
+                case ScriptVariableType.CHOICE:
+                    dialog.f.choice.focus();
+                    break;
+                case ScriptVariableType.BOOLEAN:
+                    dialog.f.checkbox.focus();
+                    break;
+            }
+        };
+        dialog.ok_handler = function():void{
+            let value = '';
+            switch(variable[2]){
+                case ScriptVariableType.NUMBER:
+                case ScriptVariableType.ABILITY_SCORE:
+                    value = dialog.f.number.value;
+                    break;
+                case ScriptVariableType.BOOLEAN:
+                    value = dialog.f.checkbox.checked?"1":"0";
+                    break;
+                case ScriptVariableType.CHOICE:
+                    value = dialog.f.choice.value;
+                    break;
+                case ScriptVariableType.STRING:
+                    value = dialog.f.value.value;
+                    break;
+            }
+            variable[3] = value;
+            save_mcv_and_signal();
+            resolve(value);
+        };
+        dialog.cancel_handler = function():void{
+            resolve(null);
+        };
+        dialog.show();
+    });
+}
+
+async function evaluate(text:string, character_id:number, macro_id:number, outarray:Array<Command>):Promise<string>{
     let [ns, vars] = get_script_variables(character_id, macro_id);
-    let result = evaluate_script(text, vars, ns, sheetname_to_id(get_active_char_name()));
-    if(typeof result == 'string')
-        return result;
-    if(result.length > 25)
-        return "Your command results in too much output. Do less.";
-    for(let c of result) outarray.push(c);
+    try{
+        let result = await evaluate_script(text, vars, ns, sheetname_to_id(get_active_char_name()), prompt_variable);
+        if(typeof result == 'string')
+            return result;
+        if(result.length > 25)
+            return "Your command results in too much output. Do less.";
+        for(let c of result) outarray.push(c);
+    }catch(e){
+        return ""+e;
+    }
     return "";
 }
-function evaluate2(text:string, sheet_id:number, outarray:Array<Command>):string{
-    let result = evaluate_script(text, new Map(), new Map(), sheet_id);
-    if(typeof result == 'string')
-        return result;
-    if(result.length > 25)
-        return "Your command results in too much output. Do less.";
-    for(let c of result) outarray.push(c);
-    return "";
-}
-function evaluate3(text:string, vars: Map<string, string>, outarray:Array<Command>):string{
-    let result = evaluate_script(text, vars, new Map(), SHEET.NULL);
-    if(typeof result == 'string')
-        return result;
-    if(result.length > 25)
-        return "Your command results in too much output. Do less.";
-    for(let c of result) outarray.push(c);
+async function evaluate3(text:string, vars: Map<string, string>, outarray:Array<Command>):Promise<string>{
+    try{
+        let result = await evaluate_script(text, vars, new Map(), SHEET.NULL, null);
+        if(typeof result == 'string')
+            return result;
+        if(result.length > 25)
+            return "Your command results in too much output. Do less.";
+        for(let c of result) outarray.push(c);
+    }catch(e){
+        return ""+e;
+    }
     return "";
 }
 

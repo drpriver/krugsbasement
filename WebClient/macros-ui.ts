@@ -93,11 +93,11 @@ function make_macro_window(cid:number, id:number):MacroWindow {
         if(!m) return;
         preprocess_and_send_chat(m[2], cid, m[0]);
     };
-    test.onclick = function():void{
+    test.onclick = async function():Promise<void>{
         const m = MACROS.get(id);
         if(!m) return;
         let commands:Array<Command> = [];
-        let error = evaluate(m[2], cid, m[0], commands);
+        let error = await evaluate(m[2], cid, m[0], commands);
         if(error.length){
             const errmess: ChatErrorMsg = [Msg.ERROR, '', error];
             add_chat_msgs(log, [errmess], undefined);

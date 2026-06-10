@@ -44,9 +44,9 @@ function get_active_char_name():string|null {
 }
 const VARINPUTS:Map<number, Map<string, HTMLInputElement>> = new Map();
 
-function get_script_variables(character_id:number, macro_id:number):[Map<string, Map<string, string>>, Map<string, string>]{
-    let namespaces:Map<string, Map<string, string>> = new Map();
-    let vars:Map<string, string> = new Map();
+function get_script_variables(character_id:number, macro_id:number):[Map<string, Map<string, Variable>>, Map<string, Variable>]{
+    let namespaces:Map<string, Map<string, Variable>> = new Map();
+    let vars:Map<string, Variable> = new Map();
     // This is kind of hacky.
     if(character_id == -1)
         character_id = active_character;
@@ -54,14 +54,7 @@ function get_script_variables(character_id:number, macro_id:number):[Map<string,
         let ns = new Map();
         for(let vid of ch[3]){
             let v = VARIABLES.get(vid)!;
-            let value = v[3];
-            if(v[2] == ScriptVariableType.ABILITY_SCORE)
-                value = ""+ability_score_to_modifier(+value);
-            else if(v[2] == ScriptVariableType.CHOICE){
-                if(Number.isNaN(+value))
-                    value = '"' + value +'"';
-            }
-            ns.set(v[1].toLowerCase(), value);
+            ns.set(v[1].toLowerCase(), v);
         }
         namespaces.set(ch[1].toLowerCase(), ns);
     }
@@ -79,14 +72,7 @@ function get_script_variables(character_id:number, macro_id:number):[Map<string,
         if(ch)
             for(let vid of ch[3]){
                 let v = VARIABLES.get(vid)!;
-                let value = v[3];
-                if(v[2] == ScriptVariableType.ABILITY_SCORE)
-                    value = ""+ability_score_to_modifier(+value);
-                else if(v[2] == ScriptVariableType.CHOICE){
-                    if(Number.isNaN(+value))
-                        value = '"' + value +'"';
-                }
-                vars.set(v[1].toLowerCase(), value);
+                vars.set(v[1].toLowerCase(), v);
             }
     }
     // Then, the macro's variables
@@ -95,14 +81,7 @@ function get_script_variables(character_id:number, macro_id:number):[Map<string,
         if(mac)
             for(let vid of mac[3]){
                 let v = VARIABLES.get(vid)!;
-                let value = v[3];
-                if(v[2] == ScriptVariableType.ABILITY_SCORE)
-                    value = ""+ability_score_to_modifier(+value);
-                else if(v[2] == ScriptVariableType.CHOICE){
-                    if(Number.isNaN(+value))
-                        value = '"' + value +'"';
-                }
-                vars.set(v[1].toLowerCase(), value);
+                vars.set(v[1].toLowerCase(), v);
             }
     }
     return [namespaces, vars];
@@ -215,6 +194,10 @@ function update_var_value(vid:number, val:string):void{
         if(m[0] > macrocounter) macrocounter = m[0];
     }
     for(const v of SETTINGS.macros.variables){
+        if(v[4] === undefined)
+            v[4] = VariableUI.NONE;
+        if(v[5] === undefined)
+            v[5] = [];
         VARIABLES.set(v[0], v);
         if(v[0] > variablecounter) variablecounter = v[0];
     }
@@ -226,10 +209,6 @@ function update_var_value(vid:number, val:string):void{
         if(c[0] > charactercounter) charactercounter = c[0];
     }
 }());
-
-function ability_score_to_modifier(score:number):number{
-    return Math.floor((score-10)/2);
-}
 
 return {
     get_script_variables,
