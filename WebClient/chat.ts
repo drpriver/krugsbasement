@@ -92,8 +92,9 @@ function prompt_variable(variable:Variable):Promise<string|null>{
 
 async function evaluate(text:string, character_id:number, macro_id:number, outarray:Array<Command>):Promise<string>{
     let [ns, vars] = get_script_variables(character_id, macro_id);
+    let sheetname = character_id == -1? get_active_char_name() : get_char_name(character_id);
     try{
-        let result = await evaluate_script(text, vars, ns, sheetname_to_id(get_active_char_name()), prompt_variable);
+        let result = await evaluate_script(text, vars, ns, sheetname_to_id(sheetname), prompt_variable);
         if(typeof result == 'string')
             return result;
         if(result.length > 25)
