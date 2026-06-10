@@ -1,5 +1,5 @@
 //
-// Copyright © 2023-2024, David Priver
+// Copyright © 2023-2026, David Priver <david@davidpriver.com>
 //
 
 type TreeItem = {

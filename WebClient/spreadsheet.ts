@@ -1,5 +1,5 @@
 //
-// Copyright © 2023-2025, David Priver
+// Copyright © 2023-2026, David Priver <david@davidpriver.com>
 //
 
 let SHEET_TV: TreeView;

@@ -1,5 +1,5 @@
 //
-// Copyright © 2025-2025, David Priver
+// Copyright © 2025-2026, David Priver <david@davidpriver.com>
 //
 type Clock = ClockData;
 

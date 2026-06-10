@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2024, David Priver
+// Copyright © 2021-2026, David Priver <david@davidpriver.com>
 //
 type ChatInput = {
     index: number;

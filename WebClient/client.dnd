@@ -1,5 +1,5 @@
 ::comment
-  Copyright © 2021-2025, David Priver
+  Copyright © 2021-2026, David Priver <david@davidpriver.com>
 ::comment
   This is the actual file that makes the webclient.
 ::import
@@ -14,7 +14,7 @@
 ::css #noinline #id(css)
   /js/dungeon.css
 ::js
-  const VERSION = 28;
+  const VERSION = 29;
   for(let id of ['js', 'css']){
     ctx.select_nodes({id})[0].children[0].header += `?v=${VERSION}`
   }

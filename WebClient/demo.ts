@@ -1,5 +1,5 @@
 //
-// Copyright © 2021-2025, David Priver
+// Copyright © 2021-2026, David Priver <david@davidpriver.com>
 //
 
 "use strict";
