@@ -125,6 +125,63 @@ def get_calendar(campaign:int) -> CalendarMsg | None:
     return  c.get_msg()
 
 
+def month_len(
+    year:int,
+    month:int,
+    month_lengths:list[int],
+    flags:CalendarFlags,
+) -> int:
+    result = month_lengths[month]
+    if flags & CalendarFlags.GREGORIAN and month == 1:
+        if year % 4 == 0 and (year % 400 == 0 or year % 100 != 0):
+            result += 1
+    return result
+
+def valid_shape(
+    starting_day_of_week:int,
+    month_names:list[str],
+    month_lengths:list[int],
+    weekday_names:list[str],
+) -> bool:
+    if not month_names:
+        return False
+    if len(month_names) != len(month_lengths):
+        return False
+    if any(not name for name in month_names):
+        return False
+    if any(length <= 0 for length in month_lengths):
+        return False
+    if not weekday_names:
+        return False
+    if any(not name for name in weekday_names):
+        return False
+    if starting_day_of_week < 0 or starting_day_of_week >= len(weekday_names):
+        return False
+    return True
+
+def valid_day(
+    starting_year:int,
+    month_lengths:list[int],
+    flags:CalendarFlags,
+    day:CalendarDay,
+) -> bool:
+    year, month, day_idx, _ = day
+    if year < starting_year:
+        return False
+    if month < 0 or month >= len(month_lengths):
+        return False
+    if day_idx < 0 or day_idx >= month_len(year, month, month_lengths, flags):
+        return False
+    return True
+
+def valid_days(
+    starting_year:int,
+    month_lengths:list[int],
+    flags:CalendarFlags,
+    days:list[CalendarDay],
+) -> bool:
+    return all(valid_day(starting_year, month_lengths, flags, day) for day in days)
+
 
 def handle(campaign: int, msg: CalendarMsg) -> CalendarMsg | None:
     # dlog("msg: %r", msg)
@@ -135,12 +192,19 @@ def handle(campaign: int, msg: CalendarMsg) -> CalendarMsg | None:
             if campaign in CALENDARS:
                 logging.info('campaign %r already has calendar', campaign)
                 return None
+            if not valid_shape(msg[2], msg[3], msg[4], msg[5]):
+                return None
+            if not valid_days(msg[1], msg[4], msg[6], msg[7]):
+                return None
             logging.info('initing calendar from campaign %r', campaign)
             CALENDARS[campaign] = Calendar(campaign, *msg[1:])
             CALENDARS[campaign].dirty = True
             return msg
         if msg[0] == CalendarMsgType.EDITDAY:
             if campaign not in CALENDARS:
+                return None
+            c = CALENDARS[campaign]
+            if not valid_days(c.starting_year, c.month_lengths, c.flags, msg[1]):
                 return None
             CALENDARS[campaign].edit_days(msg[1])
             return msg
