@@ -112,9 +112,9 @@ def set_parent(campaign:int, map_id:int, parent:int) -> None:
     m = MAPS[campaign][map_id]
     MAPS[campaign][map_id].value = m.value._replace(parent=parent)
 
-def new_map_request(campaign:int, map_name:str, grid_type:GridType, flags:MapFlags, grid_color:str, parent:int) -> int:
+def new_map_request(campaign:int, map_name:str, grid_type:GridType, flags:MapFlags, grid_color:str, bg_color:str, parent:int) -> int:
     new_map_id = max(MAPS[campaign].keys()) + 1
-    MAPS[campaign][new_map_id] = SingleMapPersister(campaign, Map(new_map_id, [], map_name, grid_type=grid_type, flags=flags, grid_color=grid_color, parent=parent)).obj
+    MAPS[campaign][new_map_id] = SingleMapPersister(campaign, Map(new_map_id, [], map_name, grid_type=grid_type, flags=flags, grid_color=grid_color, bg_color=bg_color, parent=parent)).obj
     MAP_OBJS_BY_ID[campaign][new_map_id] = {}
     return new_map_id
 
