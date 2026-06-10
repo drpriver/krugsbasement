@@ -1408,8 +1408,21 @@ def get_calendar(campaignid: int) -> dict|None:
         'data': json.loads(row[7]),
     }
 
-def save_clocks(data:list[tuple[int, int, str, int, str, int, str, int]]) -> None:
+def save_clocks(campaign:int, data:list[tuple[int, int, str, int, str, int, str, int]]) -> None:
     with DBLOCK, conn:
+        ids = [r[1] for r in data]
+        if ids:
+            qs = ','.join('?' for _ in ids)
+            conn.execute(f'''
+                DELETE FROM clocks
+                WHERE campaignid = ?
+                AND id NOT IN ({qs});
+            ''', (campaign, *ids))
+        else:
+            conn.execute('''
+                DELETE FROM clocks
+                WHERE campaignid = ?;
+            ''', (campaign,))
         conn.executemany('''
             INSERT INTO
                 clocks(campaignid,
@@ -1451,4 +1464,3 @@ def get_clocks(campaign:int) -> None | list:
         'events': json.loads(r[5]),
         'hidinguser': r[6],
     } for r in rows ]
-

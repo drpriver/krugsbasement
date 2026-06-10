@@ -59,7 +59,7 @@ class Clocks:
             (self.campaign, c['id'], c['name'], c['flags'], c['value_name'], c['value'], json.dumps(c['events']), c['hidinguser']) 
             for c in self.clocks.values()
         ]
-        db.save_clocks(data)
+        db.save_clocks(self.campaign, data)
         self.dirty = False
 
     def get_msg(self) -> ClockInitialize:

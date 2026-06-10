@@ -357,6 +357,16 @@ function make_clock_window(id: number): ClockWindow{
         menu.item('Clear', function():void{
             EMIT(FromClient.CLOCK, {type:ClockMsgType.CLEAR, id:id});
         });
+        menu.item('Delete', function():void{
+            const diag = get_dialog('simple-delete');
+            if(!diag) return;
+            diag.f.delete.checked = false;
+            diag.ok_handler = function():void{
+                if(diag.f.delete.checked)
+                    EMIT(FromClient.CLOCK, {type:ClockMsgType.DELETE, id:id});
+            };
+            diag.show();
+        });
     };
 
     const result: ClockWindow= {
@@ -564,6 +574,16 @@ document.addEventListener('DOMContentLoaded', function():void{
         });
         menu.item('Rename', function():void{
             clock_rename_dialog(id);
+        });
+        menu.item('Delete', function():void{
+            const diag = get_dialog('simple-delete');
+            if(!diag) return;
+            diag.f.delete.checked = false;
+            diag.ok_handler = function():void{
+                if(diag.f.delete.checked)
+                    EMIT(FromClient.CLOCK, {type:ClockMsgType.DELETE, id:id});
+            };
+            diag.show();
         });
         menu.separator();
         menu.item('Cancel');
