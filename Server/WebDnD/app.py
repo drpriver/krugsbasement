@@ -701,6 +701,8 @@ def note_get(note_id: int) -> None:
 def show_note(note_id:int) -> None:
     dlog('wtf %r', note_id)
     campaign = get_campaign(request)
+    if notes.get_note(campaign, note_id) is None:
+        return
     emit(ToClient.NOTE_SHOW, note_id, broadcast=True, include_self=True, to=str(campaign))
 
 
