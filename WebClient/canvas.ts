@@ -671,30 +671,41 @@ const enum SpellAreaType {
     CONE = 0,
     SPREAD = 1,
     SQUARE = 2,
+    LINE = 3,
 }
 
 const enum SPELLAREATYPE {
-    MAX = 3,
+    MAX = 4,
 }
 
-const SPELLAREATYPE_TO_NAME = ['Cone', 'Spread', 'Square'];
+const SPELLAREATYPE_TO_NAME = ['Cone', 'Spread', 'Square', 'Line'];
 let current_spell_area = SpellAreaType.CONE;
 function set_spell_area(i:number):void{
     current_spell_area = i;
+    if(current_spell_area !== SpellAreaType.SPREAD && preview_objs.length){
+        preview_objs = [];
+        canvas_request_render();
+    }
     store_global(StorageCategory.CANVAS, 'spellarea', current_spell_area);
 }
 
-function _3edistance(x:number, y:number):number {
-    x = Math.abs(x);
-    y = Math.abs(y);
-    let diag = Math.min(x, y);
-    let straight = Math.max(x, y) - diag;
-    return straight + diag + (diag >> 1);
+function angle_between_inclusive(angle:number, lo:number, hi:number):boolean{
+    const EPS = 1e-9;
+    if(lo < hi)
+        return angle + EPS >= lo && angle - EPS <= hi;
+    return angle + EPS >= lo || angle - EPS <= hi;
 }
-function l2dist(pair:Array<number>):number {
-    return pair[0] * pair[0] + pair[1] * pair[1];
+function euclidean_distance(x:number, y:number):number{
+    return Math.sqrt(x*x + y*y);
 }
-
+const SPELL_ANGLE_STEP = Math.PI/4;
+const SPELL_ANGLE_SNAP_RADIUS = Math.PI/60;
+function snap_spell_angle(angle:number):number{
+    const snapped = Math.round(angle/SPELL_ANGLE_STEP)*SPELL_ANGLE_STEP;
+    if(Math.abs(angle - snapped) <= SPELL_ANGLE_SNAP_RADIUS)
+        return snapped;
+    return angle;
+}
 // Helper function to calculate which grid squares are affected by a cone
 // radius_squares: how many grid squares out the cone extends
 // angle_degrees: direction the cone points (0 = right, 90 = down, etc.)
@@ -702,35 +713,237 @@ function get_cone_affected_squares(radius_squares:number, angle_radians:number):
     const squares: Array<{x:number, y:number}> = [];
     const tau = Math.PI*2;
     angle_radians = (angle_radians % tau + tau) % tau;
-    const angle_lo = ((angle_radians - tau/7.9) % tau + tau) % tau;
-    const angle_hi = ((angle_radians + tau/7.9) % tau + tau) % tau;
+    const angle_lo = ((angle_radians - tau/8) % tau + tau) % tau;
+    const angle_hi = ((angle_radians + tau/8) % tau + tau) % tau;
     for(let dy = -radius_squares; dy < radius_squares; dy++)
     for(let dx = -radius_squares; dx < radius_squares; dx++){
-        const corners = [
-            [dx, dy, _3edistance(dx, dy)],
-            [dx, dy+1, _3edistance(dx, dy+1)],
-            [dx+1, dy, _3edistance(dx+1, dy)],
-            [dx+1, dy+1, _3edistance(dx+1, dy+1)],
-        ];
-        corners.sort((a, b) => a[2] < b[2]?-1:a[2]>b[2]?1:l2dist(a) < l2dist(b)?-1:l2dist(a)>l2dist(b)?1:0);
-
-        {
-            let corner = corners[3];
-            if(corner[2] > radius_squares)
-                continue;
-            const angle = (Math.atan2(corner[1], corner[0]) % tau + tau) % tau;
-            if(angle_lo < angle_hi){
-                if(angle < angle_lo || angle > angle_hi)
-                    continue;
-            }
-            else {
-                if(angle <= angle_lo && angle >= angle_hi)
-                    continue;
-            }
-            squares.push({x:dx, y:dy});
-        }
+        const cx = dx + 0.5;
+        const cy = dy + 0.5;
+        if(euclidean_distance(cx, cy) > radius_squares + 1e-9)
+            continue;
+        const angle = (Math.atan2(cy, cx) % tau + tau) % tau;
+        if(!angle_between_inclusive(angle, angle_lo, angle_hi))
+            continue;
+        squares.push({x:dx, y:dy});
     }
     return squares;
+}
+
+type SpellPoint = {
+    x: number;
+    y: number;
+};
+function point_in_polygon(point:SpellPoint, polygon:Array<SpellPoint>):boolean{
+    let inside = false;
+    for(let i = 0, j = polygon.length-1; i < polygon.length; j = i++){
+        const pi = polygon[i];
+        const pj = polygon[j];
+        if(((pi.y > point.y) !== (pj.y > point.y)) &&
+           point.x < (pj.x-pi.x) * (point.y-pi.y) / (pj.y-pi.y) + pi.x)
+            inside = !inside;
+    }
+    return inside;
+}
+function point_in_square(point:SpellPoint, x0:number, y0:number):boolean{
+    const EPS = 1e-9;
+    return point.x >= x0-EPS && point.x <= x0+1+EPS && point.y >= y0-EPS && point.y <= y0+1+EPS;
+}
+function segment_intersection(p0:SpellPoint, p1:SpellPoint, p2:SpellPoint, p3:SpellPoint):SpellPoint|null{
+    const EPS = 1e-9;
+    const s1x = p1.x - p0.x;
+    const s1y = p1.y - p0.y;
+    const s2x = p3.x - p2.x;
+    const s2y = p3.y - p2.y;
+    const denom = -s2x*s1y + s1x*s2y;
+    if(Math.abs(denom) < EPS)
+        return null;
+    const s = (-s1y*(p0.x-p2.x) + s1x*(p0.y-p2.y))/denom;
+    const t = ( s2x*(p0.y-p2.y) - s2y*(p0.x-p2.x))/denom;
+    if(s < -EPS || s > 1+EPS || t < -EPS || t > 1+EPS)
+        return null;
+    return {x:p0.x + t*s1x, y:p0.y + t*s1y};
+}
+function add_unique_point(points:Array<SpellPoint>, point:SpellPoint):void{
+    const EPS = 1e-7;
+    for(const p of points){
+        if(Math.abs(p.x-point.x) < EPS && Math.abs(p.y-point.y) < EPS)
+            return;
+    }
+    points.push(point);
+}
+function polygon_touches_square_at_two_points(polygon:Array<SpellPoint>, x0:number, y0:number):boolean{
+    const points: Array<SpellPoint> = [];
+    const square = [
+        {x:x0, y:y0},
+        {x:x0+1, y:y0},
+        {x:x0+1, y:y0+1},
+        {x:x0, y:y0+1},
+    ];
+    for(const p of square){
+        if(point_in_polygon(p, polygon))
+            add_unique_point(points, p);
+    }
+    for(const p of polygon){
+        if(point_in_square(p, x0, y0))
+            add_unique_point(points, p);
+    }
+    for(let i = 0; i < polygon.length; i++){
+        const p0 = polygon[i];
+        const p1 = polygon[(i+1)%polygon.length];
+        for(let j = 0; j < square.length; j++){
+            const p2 = square[j];
+            const p3 = square[(j+1)%square.length];
+            const intersection = segment_intersection(p0, p1, p2, p3);
+            if(intersection)
+                add_unique_point(points, intersection);
+        }
+    }
+    return points.length >= 2;
+}
+function get_line_rect(length_squares:number, angle_radians:number, start_squares:number):Array<SpellPoint>{
+    const LINE_WIDTH_SQUARES = 0.1;
+    const dirx = Math.cos(angle_radians);
+    const diry = Math.sin(angle_radians);
+    const perpx = -diry*LINE_WIDTH_SQUARES/2;
+    const perpy = dirx*LINE_WIDTH_SQUARES/2;
+    const startx = dirx*start_squares;
+    const starty = diry*start_squares;
+    const endx = dirx*length_squares;
+    const endy = diry*length_squares;
+    return [
+        {x:startx-perpx, y:starty-perpy},
+        {x:endx-perpx, y:endy-perpy},
+        {x:endx+perpx, y:endy+perpy},
+        {x:startx+perpx, y:starty+perpy},
+    ];
+}
+function get_line_affected_squares(length_squares:number, angle_radians:number):Array<{x:number, y:number}>{
+    const squares: Array<{x:number, y:number}> = [];
+    const rect = get_line_rect(length_squares, angle_radians, 0.2);
+    const minx = Math.floor(Math.min(...rect.map(p => p.x)));
+    const maxx = Math.ceil(Math.max(...rect.map(p => p.x)));
+    const miny = Math.floor(Math.min(...rect.map(p => p.y)));
+    const maxy = Math.ceil(Math.max(...rect.map(p => p.y)));
+    for(let dy = miny; dy < maxy; dy++)
+    for(let dx = minx; dx < maxx; dx++){
+        if(!polygon_touches_square_at_two_points(rect, dx, dy))
+            continue;
+        squares.push({x:dx, y:dy});
+    }
+    return squares;
+}
+
+function get_spread_affected_squares(radius_squares:number):Array<{x:number, y:number}>{
+    const squares: Array<{x:number, y:number}> = [];
+    for(let dy = -radius_squares; dy < radius_squares; dy++)
+    for(let dx = -radius_squares; dx < radius_squares; dx++){
+        const cx = dx + 0.5;
+        const cy = dy + 0.5;
+        if(euclidean_distance(cx, cy) <= radius_squares + 1e-9)
+            squares.push({x:dx, y:dy});
+    }
+    return squares;
+}
+
+function make_spread_area_objects(id:number, guide_id:number, x0:number, y0:number, color:string, size:number, grid_size:number):[Shape, Ellipse]{
+    const shape = make_shape(id, x0, y0, color, color + '40', 2);
+    shape.flags |= CanvasFlag.SHAPE_IS_POLYGON;
+    const outline = spell_area_outline(get_spread_affected_squares(size), x0, y0, grid_size);
+    if(outline){
+        shape.base_x = outline.base_x;
+        shape.base_y = outline.base_y;
+        shape.points = outline.points;
+        shape.bbox = outline.bbox;
+    }
+    const guide = make_ellipse(guide_id, x0 - size*grid_size, y0 - size*grid_size, color, '', ELLIPSETYPE.HOLLOW);
+    guide.width = size*grid_size*2;
+    guide.height = size*grid_size*2;
+    return [shape, guide];
+}
+
+type SpellAreaOutline = {
+    base_x: number;
+    base_y: number;
+    points: Array<number>;
+    bbox: Bbox;
+};
+function spell_area_outline(squares:Array<{x:number, y:number}>, x0:number, y0:number, grid_size:number):SpellAreaOutline|null{
+    if(squares.length === 0)
+        return null;
+
+    for(const sq of squares){
+        sq.x = sq.x * grid_size + x0;
+        sq.y = sq.y * grid_size + y0;
+    }
+
+    const grid_map = new Map<string, boolean>();
+    for(const sq of squares)
+        grid_map.set(`${sq.x},${sq.y}`, true);
+
+    type EdgeKey = string; // "x1,y1,x2,y2"
+    const edges = new Set<EdgeKey>();
+    for(const sq of squares){
+        if(!grid_map.has(`${sq.x},${sq.y - grid_size}`))
+            edges.add(`${sq.x},${sq.y},${sq.x + grid_size},${sq.y}`);
+        if(!grid_map.has(`${sq.x + grid_size},${sq.y}`))
+            edges.add(`${sq.x + grid_size},${sq.y},${sq.x + grid_size},${sq.y + grid_size}`);
+        if(!grid_map.has(`${sq.x},${sq.y + grid_size}`))
+            edges.add(`${sq.x + grid_size},${sq.y + grid_size},${sq.x},${sq.y + grid_size}`);
+        if(!grid_map.has(`${sq.x - grid_size},${sq.y}`))
+            edges.add(`${sq.x},${sq.y + grid_size},${sq.x},${sq.y}`);
+    }
+
+    const points: Array<number> = [];
+    const first_edge = edges.values().next().value!;
+    const [x1, y1, x2, y2] = first_edge.split(',').map(Number);
+    let curr_x = x2;
+    let curr_y = y2;
+    points.push(x2 - x1, y2 - y1);
+    edges.delete(first_edge);
+
+    let iterations = 0;
+    while(edges.size > 0 && iterations < 1000){
+        iterations++;
+        let found = false;
+        for(const edge of edges){
+            const [ex1, ey1, ex2, ey2] = edge.split(',').map(Number);
+            if(ex1 === curr_x && ey1 === curr_y){
+                points.push(ex2 - x1, ey2 - y1);
+                curr_x = ex2;
+                curr_y = ey2;
+                edges.delete(edge);
+                found = true;
+                break;
+            }
+            else if(ex2 === curr_x && ey2 === curr_y){
+                points.push(ex1 - x1, ey1 - y1);
+                curr_x = ex1;
+                curr_y = ey1;
+                edges.delete(edge);
+                found = true;
+                break;
+            }
+        }
+        if(!found)
+            break;
+    }
+
+    let min_x = points[0];
+    let max_x = points[0];
+    let min_y = points[1];
+    let max_y = points[1];
+    for(let i = 0; i < points.length; i+=2){
+        if(points[i] < min_x) min_x = points[i];
+        if(points[i] > max_x) max_x = points[i];
+        if(points[i+1] < min_y) min_y = points[i+1];
+        if(points[i+1] > max_y) max_y = points[i+1];
+    }
+    return {
+        base_x: x1,
+        base_y: y1,
+        points: points,
+        bbox: {x0: min_x, y0: min_y, x1: max_x, y1: max_y},
+    };
 }
 
 function arc_components(obj:Arc, offx:number, offy:number):[number, number, number, number]{
@@ -1884,6 +2097,7 @@ function get_snap_corner_func(gt:GridType):(x:number, y:number)=>[number, number
             return snap_to_quarter_grid2;
     }
 }
+
 function snap_to_grid_center(x:number):number{
     x = Math.round(x);
     x = x - (x & (REFERENCE.WIDTH-1)) + REFERENCE.WIDTH/2;
@@ -9136,7 +9350,6 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
             }break;
             case ToolType.SPELL:{ // TAG toolSPELL
                 const id = get_new_id();
-                // Snap to grid intersection (corner) - spell origin is always at grid intersection
                 let [x0, y0] = event_to_coord_snapped(e, view, snap);
                 const color = get_primary_color();
 
@@ -9144,6 +9357,7 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 let is_cone = false;
                 let is_spread = false;
                 let is_square = false;
+                let is_line = false;
                 switch(current_spell_area){
                     case SpellAreaType.CONE:
                         is_cone = true;
@@ -9153,6 +9367,9 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         break;
                     case SpellAreaType.SQUARE:
                         is_square = true;
+                        break;
+                    case SpellAreaType.LINE:
+                        is_line = true;
                         break;
                 }
 
@@ -9176,24 +9393,14 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     note_create_by_id_for_undo(view.map, id);
                     canvas_request_render();
                 } else if(is_spread){
-                    // Spreads are full circles - use ellipse for proper circle rendering
                     const grid_size = gs_to_w(view.gridscale) * REFERENCE.WIDTH;
-                    const ellipse: Ellipse = {
-                        type: CanvasType.ELLIPSE,
-                        id: id,
-                        base_x: x0 - grid_size,
-                        base_y: y0 - grid_size,
-                        flags: CanvasFlag.NONE,
-                        hidinguser: hiddenid(),
-                        width: grid_size * size,
-                        height: grid_size * size,
-                        color: color,
-                        color2: color + '40', // Semi-transparent fill
-                        variant: 2, // FILLED variant
-                    };
-                    add_canv_obj(view.map, ellipse);
-                    publish_obj_by_id(view.map, id);
-                    note_create_by_id_for_undo(view.map, id);
+                    const guide_id = get_new_id();
+                    const [shape, guide] = make_spread_area_objects(id, guide_id, x0, y0, color, size, grid_size);
+                    add_canv_obj(view.map, shape);
+                    add_canv_obj(view.map, guide);
+                    publish_objs_by_ids(view.map, [id, guide_id]);
+                    note_mass_create_for_undo(view.map, [id, guide_id]);
+                    preview_objs = [];
                     canvas_request_render();
                 } else if(is_cone){
                     // Cones highlight affected area with a filled shape and an arc outline
@@ -9214,111 +9421,17 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     view.placing_area.y1 = y0;
 
                     function update_cone_shape():void {
-                        const squares = get_cone_affected_squares(size, current_angle);
-
-                        if(squares.length === 0){
+                        const outline = spell_area_outline(get_cone_affected_squares(size, current_angle), x0, y0, grid_size);
+                        if(!outline){
                             shape.points = [];
                             shape.bbox = {x0: 0, y0: 0, x1: 0, y1: 0};
                             shape.path = undefined;
                             return;
                         }
-
-                        for(const sq of squares){
-                            sq.x = sq.x * grid_size + x0;
-                            sq.y = sq.y * grid_size + y0;
-                        }
-                        // weird AI generated garbage, but it works for now
-                        // Create a grid map to track which squares are filled
-                        const grid_map = new Map<string, boolean>();
-                        for(const sq of squares){
-                            grid_map.set(`${sq.x},${sq.y}`, true);
-                        }
-
-                        // Build edge map: for each corner point, track which edges connect to it
-                        type EdgeKey = string; // "x1,y1,x2,y2"
-                        const edges = new Set<EdgeKey>();
-
-                        for(const sq of squares){
-                            // Add edges that are on the boundary (adjacent square not in cone)
-                            // Top edge
-                            if(!grid_map.has(`${sq.x},${sq.y - grid_size}`)){
-                                edges.add(`${sq.x},${sq.y},${sq.x + grid_size},${sq.y}`);
-                            }
-                            // Right edge
-                            if(!grid_map.has(`${sq.x + grid_size},${sq.y}`)){
-                                edges.add(`${sq.x + grid_size},${sq.y},${sq.x + grid_size},${sq.y + grid_size}`);
-                            }
-                            // Bottom edge
-                            if(!grid_map.has(`${sq.x},${sq.y + grid_size}`)){
-                                edges.add(`${sq.x + grid_size},${sq.y + grid_size},${sq.x},${sq.y + grid_size}`);
-                            }
-                            // Left edge
-                            if(!grid_map.has(`${sq.x - grid_size},${sq.y}`)){
-                                edges.add(`${sq.x},${sq.y + grid_size},${sq.x},${sq.y}`);
-                            }
-                        }
-
-                        // Trace the perimeter by following connected edges
-                        const outline_points: Array<number> = [];
-                        if(edges.size > 0){
-                            // Start with any edge
-                            const first_edge = edges.values().next().value!;
-                            const [x1, y1, x2, y2] = first_edge.split(',').map(Number);
-                            let curr_x = x2;
-                            let curr_y = y2;
-                            shape.base_x = x1;
-                            shape.base_y = y1;
-                            outline_points.push(x2 - x1, y2 - y1);
-                            edges.delete(first_edge);
-
-                            // Keep following edges until we loop back
-                            let iterations = 0;
-                            while(edges.size > 0 && iterations < 1000){
-                                iterations++;
-                                let found = false;
-
-                                for(const edge of edges){
-                                    const [ex1, ey1, ex2, ey2] = edge.split(',').map(Number);
-                                    // Check if edge starts where we are
-                                    if(ex1 === curr_x && ey1 === curr_y){
-                                        outline_points.push(ex2 - x1, ey2 - y1);
-                                        curr_x = ex2;
-                                        curr_y = ey2;
-                                        edges.delete(edge);
-                                        found = true;
-                                        break;
-                                    }
-                                    // Check if edge ends where we are (reverse direction)
-                                    else if(ex2 === curr_x && ey2 === curr_y){
-                                        outline_points.push(ex1 - x1, ey1 - y1);
-                                        curr_x = ex1;
-                                        curr_y = ey1;
-                                        edges.delete(edge);
-                                        found = true;
-                                        break;
-                                    }
-                                }
-
-                                if(!found) break;
-                            }
-                        }
-
-                        shape.points = outline_points;
-
-                        // Recalculate bbox
-                        if(shape.points.length > 0){
-                            let min_x = shape.points[0];
-                            let max_x = shape.points[0];
-                            let min_y = shape.points[1];
-                            let max_y = shape.points[1];
-                            for(let i = 0; i < shape.points.length; i+=2){
-                                if(shape.points[i] < min_x) min_x = shape.points[i];
-                                if(shape.points[i] > max_x) max_x = shape.points[i];
-                                if(shape.points[i+1] < min_y) min_y = shape.points[i+1];
-                                if(shape.points[i+1] > max_y) max_y = shape.points[i+1];
-                            }
-                            shape.bbox = {x0: min_x, y0: min_y, x1: max_x, y1: max_y};
-                        }
+                        shape.base_x = outline.base_x;
+                        shape.base_y = outline.base_y;
+                        shape.points = outline.points;
+                        shape.bbox = outline.bbox;
                         shape.points.push(x0 - shape.base_x, y0-shape.base_y, size*grid_size, current_angle);
                         shape.path = undefined;
                     }
@@ -9330,9 +9443,10 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         e.stopPropagation();
                         e.preventDefault();
                         let [rawx, rawy] = event_to_coord(e, view);
-                        let new_angle = Math.atan2(rawy-y0, rawx-x0);
-                        view.placing_area.x1 = rawx;
-                        view.placing_area.y1 = rawy;
+                        const distance = euclidean_distance(rawx-x0, rawy-y0);
+                        let new_angle = snap_spell_angle(Math.atan2(rawy-y0, rawx-x0));
+                        view.placing_area.x1 = x0 + Math.cos(new_angle)*distance;
+                        view.placing_area.y1 = y0 + Math.sin(new_angle)*distance;
 
                         // Only update if angle changed significantly (avoid constant recalculation)
                         if(Math.abs(new_angle - current_angle) > 0.01){
@@ -9349,6 +9463,94 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                         view.placing_area.is_placing = false;
                         publish_obj_by_id(view.map, id);
                         note_create_by_id_for_undo(view.map, id);
+                        canvas_request_render();
+                    }
+                    the_canvas.addEventListener('pointerup', finish);
+                } else if(is_line){
+                    let current_angle = 0;
+                    const grid_size = gs_to_w(view.gridscale) * REFERENCE.WIDTH;
+                    const guide_id = get_new_id();
+                    const hit_shape = make_shape(id, x0, y0, color, color + '40', 2);
+                    hit_shape.flags |= CanvasFlag.SHAPE_IS_POLYGON;
+                    add_canv_obj(view.map, hit_shape);
+                    const guide_shape = make_shape(guide_id, x0, y0, color, '', 2);
+                    guide_shape.flags |= CanvasFlag.SHAPE_IS_POLYGON;
+                    add_canv_obj(view.map, guide_shape);
+
+                    view.placing_area.is_placing = true;
+                    view.placing_area.is_line = true;
+                    view.placing_area.x0 = x0;
+                    view.placing_area.y0 = y0;
+                    view.placing_area.x1 = x0;
+                    view.placing_area.y1 = y0;
+
+                    function set_line_polygon(shape:Shape, points:Array<[number, number]>):void{
+                        const [base_x, base_y] = points[0];
+                        shape.base_x = base_x;
+                        shape.base_y = base_y;
+                        shape.points = [];
+                        let min_x = 0;
+                        let max_x = 0;
+                        let min_y = 0;
+                        let max_y = 0;
+                        for(let i = 1; i < points.length; i++){
+                            const x = points[i][0] - base_x;
+                            const y = points[i][1] - base_y;
+                            shape.points.push(x, y);
+                            if(x < min_x) min_x = x;
+                            if(x > max_x) max_x = x;
+                            if(y < min_y) min_y = y;
+                            if(y > max_y) max_y = y;
+                        }
+                        shape.bbox = {x0: min_x, y0: min_y, x1: max_x, y1: max_y};
+                        shape.path = undefined;
+                    }
+
+                    function update_line_shape():void {
+                        const guide_points = get_line_rect(size, current_angle, 0).map(p => [x0 + p.x*grid_size, y0 + p.y*grid_size] as [number, number]);
+                        set_line_polygon(guide_shape, guide_points);
+
+                        const outline = spell_area_outline(get_line_affected_squares(size, current_angle), x0, y0, grid_size);
+                        if(!outline){
+                            hit_shape.points = [];
+                            hit_shape.bbox = {x0: 0, y0: 0, x1: 0, y1: 0};
+                            hit_shape.path = undefined;
+                            return;
+                        }
+                        hit_shape.base_x = outline.base_x;
+                        hit_shape.base_y = outline.base_y;
+                        hit_shape.points = outline.points;
+                        hit_shape.bbox = outline.bbox;
+                        hit_shape.path = undefined;
+                    }
+
+                    update_line_shape();
+                    canvas_request_render();
+
+                    function add_point(e:MouseEvent):void{
+                        e.stopPropagation();
+                        e.preventDefault();
+                        let [rawx, rawy] = event_to_coord(e, view);
+                        const distance = euclidean_distance(rawx-x0, rawy-y0);
+                        const raw_angle = Math.atan2(rawy-y0, rawx-x0);
+                        let new_angle = snap_spell_angle(raw_angle);
+                        view.placing_area.x1 = x0 + Math.cos(new_angle)*distance;
+                        view.placing_area.y1 = y0 + Math.sin(new_angle)*distance;
+
+                        if(Math.abs(new_angle - current_angle) > 0.01){
+                            current_angle = new_angle;
+                            update_line_shape();
+                        }
+                        canvas_request_render();
+                    }
+                    the_canvas.addEventListener('pointermove', add_point);
+
+                    function finish():void{
+                        the_canvas.removeEventListener('pointermove', add_point);
+                        the_canvas.removeEventListener('pointerup', finish);
+                        view.placing_area.is_placing = false;
+                        publish_objs_by_ids(view.map, [id, guide_id]);
+                        note_mass_create_for_undo(view.map, [id, guide_id]);
                         canvas_request_render();
                     }
                     the_canvas.addEventListener('pointerup', finish);
@@ -9400,6 +9602,16 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                 preview_objs.push(obj);
             }
 
+            canvas_request_render();
+        }
+        else if(current_tool === ToolType.SPELL && current_spell_area === SpellAreaType.SPREAD){
+            const snap = get_snap_func();
+            const [x0, y0] = event_to_coord_snapped(e, view, snap);
+            const color = get_primary_color();
+            const size = (+by_id('spell-size').value) || 1;
+            const grid_size = gs_to_w(view.gridscale) * REFERENCE.WIDTH;
+            const [shape, guide] = make_spread_area_objects(-1, -2, x0, y0, color, size, grid_size);
+            preview_objs = [shape, guide];
             canvas_request_render();
         }
     });
