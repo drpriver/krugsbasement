@@ -53,6 +53,19 @@ def valid_func_io(n_args:int, outx:int, outy:int, ncols:int, nrows:int) -> bool:
         return False
     return True
 
+EDITABLE_FLAGS = (
+    SpreadSheetFlags.CAN_ADD_ROW
+    | SpreadSheetFlags.CAN_ADD_COL
+    | SpreadSheetFlags.CAN_SORT_COLS
+    | SpreadSheetFlags.CAN_DEL_ROW
+    | SpreadSheetFlags.CAN_DEL_COL
+    | SpreadSheetFlags.NUMBERED
+    | SpreadSheetFlags.CAN_MOVE_COLUMNS
+    | SpreadSheetFlags.CAN_MOVE_ROWS
+    | SpreadSheetFlags.LOCKED_FORMULAS
+    | SpreadSheetFlags.CAN_EDIT_CELLS
+)
+
 # We need to have a server side version of the spreadsheet
 # so that we can interpret the abstract commands.
 class SpreadSheet:
@@ -312,6 +325,9 @@ class SpreadSheet:
         return True
 
     def set_flags(self, flags:SpreadSheetFlags) -> bool:
+        flags = (self.flags & ~EDITABLE_FLAGS) | (flags & EDITABLE_FLAGS)
+        if flags == self.flags:
+            return False
         self.flags = flags
         self.flags_dirty = True
         return True
