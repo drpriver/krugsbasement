@@ -1282,7 +1282,7 @@ def get_sheets(campaignid:int) -> list[dict[str, Any]]:
 def save_sheet(campaign:int, id:int, name:str, flags:int, column_names:list[str], cells:list[CellData], parent:int, n_args:int, outx:int, outy:int) -> None:
     cns = json.dumps(column_names, separators=(',',':'))
     c = json.dumps(cells, separators=(',',':'))
-    with DBLOCK:
+    with DBLOCK, conn:
         conn.execute('''
             INSERT INTO
                 sheets(campaignid, sheetid, name, flags, column_names, cells, parent, fio_nargs, fio_outx, fio_outy)
@@ -1292,7 +1292,7 @@ def save_sheet(campaign:int, id:int, name:str, flags:int, column_names:list[str]
         ''', (campaign, id, name, flags, cns, c, parent, n_args, outx, outy))
 
 def save_sheet_func_io(campaign:int, id:int, n_args:int, outx:int, outy:int) -> None:
-    with DBLOCK:
+    with DBLOCK, conn:
         conn.execute('''
             UPDATE sheets
             SET
@@ -1304,7 +1304,7 @@ def save_sheet_func_io(campaign:int, id:int, n_args:int, outx:int, outy:int) -> 
 
 def save_sheet_cells(campaign:int, id:int, cells:list[CellData]) -> None:
     c = json.dumps(cells, separators=(',',':'))
-    with DBLOCK:
+    with DBLOCK, conn:
         conn.execute('''
             UPDATE sheets
             SET cells = ?
@@ -1313,7 +1313,7 @@ def save_sheet_cells(campaign:int, id:int, cells:list[CellData]) -> None:
 
 def save_sheet_col_names(campaign:int, id:int, column_names:list[str]) -> None:
     cns = json.dumps(column_names, separators=(',',':'))
-    with DBLOCK:
+    with DBLOCK, conn:
         conn.execute('''
             UPDATE sheets
             SET column_names = ?
@@ -1321,7 +1321,7 @@ def save_sheet_col_names(campaign:int, id:int, column_names:list[str]) -> None:
         ''', (cns, campaign, id))
 
 def save_sheet_name(campaign:int, id:int, name:str) -> None:
-    with DBLOCK:
+    with DBLOCK, conn:
         conn.execute('''
             UPDATE sheets
             SET name = ?
@@ -1329,7 +1329,7 @@ def save_sheet_name(campaign:int, id:int, name:str) -> None:
         ''', (name, campaign, id))
 
 def save_sheet_flags(campaign:int, id:int, flags:int) -> None:
-    with DBLOCK:
+    with DBLOCK, conn:
         conn.execute('''
             UPDATE sheets
             SET flags = ?
@@ -1337,7 +1337,7 @@ def save_sheet_flags(campaign:int, id:int, flags:int) -> None:
         ''', (flags, campaign, id))
 
 def save_sheet_parent(campaign:int, id:int, parent:int) -> None:
-    with DBLOCK:
+    with DBLOCK, conn:
         conn.execute('''
             UPDATE sheets
             SET parent = ?
@@ -1345,7 +1345,7 @@ def save_sheet_parent(campaign:int, id:int, parent:int) -> None:
         ''', (parent, campaign, id))
 
 def delete_sheet(campaign:int, id:int) -> None:
-    with DBLOCK:
+    with DBLOCK, conn:
         conn.execute('''
             DELETE FROM sheets
             WHERE campaignid = ? AND sheetid = ?;

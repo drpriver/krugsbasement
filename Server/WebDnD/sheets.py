@@ -41,6 +41,18 @@ def should_unload(sheets:list[SpreadSheet], t:float) -> bool:
 def blank_cell() -> CellData:
     return ['', '', CellFlags.NONE] # type: ignore
 
+def valid_func_io(n_args:int, outx:int, outy:int, ncols:int, nrows:int) -> bool:
+    if n_args < 0:
+        return False
+    no_output = outx == -1 and outy == -1
+    if not no_output and (outx < 0 or outy < 0):
+        return False
+    if n_args > ncols:
+        return False
+    if not no_output and (outx >= ncols or outy >= nrows):
+        return False
+    return True
+
 # We need to have a server side version of the spreadsheet
 # so that we can interpret the abstract commands.
 class SpreadSheet:
@@ -140,12 +152,22 @@ class SpreadSheet:
             outy = self.outy,
         )
 
+    def ncols(self) -> int:
+        return len(self.column_names)
+
+    def nrows(self) -> int:
+        ncols = self.ncols()
+        if not ncols:
+            return 0
+        return len(self.cells) // ncols
+
     def delete_column(self, col_idx:int) -> bool:
         if not (self.flags & SpreadSheetFlags.CAN_DEL_COL):
             return False
         if col_idx < 0: return False
-        if col_idx >= len(self.column_names): return False
-        del self.cells[col_idx::len(self.column_names)]
+        if self.ncols() <= 1: return False
+        if col_idx >= self.ncols(): return False
+        del self.cells[col_idx::self.ncols()]
         del self.column_names[col_idx]
         self.cells_dirty = True
         self.col_names_dirty = True
@@ -155,14 +177,16 @@ class SpreadSheet:
         if not (self.flags & SpreadSheetFlags.CAN_DEL_ROW):
             return False
         if row_idx < 0: return False
-        idx = row_idx*len(self.column_names)
-        del self.cells[idx:idx+len(self.column_names)]
+        if row_idx >= self.nrows(): return False
+        ncols = self.ncols()
+        idx = row_idx*ncols
+        del self.cells[idx:idx+ncols]
         self.cells_dirty = True
         return True
 
     def rename_column(self, col_idx:int, name:str) -> bool:
         if col_idx < 0: return False
-        if col_idx >= len(self.column_names): return False
+        if col_idx >= self.ncols(): return False
         self.column_names[col_idx] = name
         self.col_names_dirty = True
         return True
@@ -170,7 +194,10 @@ class SpreadSheet:
     def move_column(self, from_:int, to_:int) -> bool:
         if not (self.flags & SpreadSheetFlags.CAN_MOVE_COLUMNS):
             return False
-        ncols = len(self.column_names)
+        ncols = self.ncols()
+        if from_ < 0 or from_ >= ncols: return False
+        if to_ < 0 or to_ >= ncols: return False
+        if from_ == to_: return False
         c = self.cells
         c[from_::ncols], c[to_::ncols] = c[to_::ncols], c[from_::ncols]
         cn = self.column_names
@@ -182,7 +209,11 @@ class SpreadSheet:
     def move_row(self, from_:int, to_:int) -> bool:
         if not (self.flags & SpreadSheetFlags.CAN_MOVE_ROWS):
             return False
-        ncols = len(self.column_names)
+        nrows = self.nrows()
+        if from_ < 0 or from_ >= nrows: return False
+        if to_ < 0 or to_ >= nrows: return False
+        if from_ == to_: return False
+        ncols = self.ncols()
         from_ *= ncols
         to_ *= ncols
         c = self.cells
@@ -197,16 +228,15 @@ class SpreadSheet:
         if col_idx < 0: return False
         if not (self.flags & SpreadSheetFlags.CAN_EDIT_CELLS):
             return False
-        if col_idx >= len(self.column_names):
+        if col_idx >= self.ncols():
             return False
-        if row_idx >= len(self.cells) // len(self.column_names):
+        if row_idx >= self.nrows():
             return False
 
-        oldval = self.cells[row_idx * len(self.column_names)+col_idx]
+        oldval = self.cells[row_idx * self.ncols()+col_idx]
         if (self.flags & SpreadSheetFlags.LOCKED_FORMULAS) and oldval[0] and oldval[0][0] == '=' and oldval[0] != val[0]:
             return False
-        # FIXME: is this not checking the bounds?
-        self.cells[row_idx*len(self.column_names)+col_idx] = val
+        self.cells[row_idx*self.ncols()+col_idx] = val
         self.cells_dirty = True
         return True
 
@@ -221,17 +251,16 @@ class SpreadSheet:
             if col_idx < 0: return False
             if not (self.flags & SpreadSheetFlags.CAN_EDIT_CELLS):
                 return False
-            if col_idx >= len(self.column_names):
+            if col_idx >= self.ncols():
                 return False
-            if row_idx >= len(self.cells) // len(self.column_names):
+            if row_idx >= self.nrows():
                 return False
-            oldval = self.cells[row_idx * len(self.column_names)+col_idx]
+            oldval = self.cells[row_idx * self.ncols()+col_idx]
             if (self.flags & SpreadSheetFlags.LOCKED_FORMULAS) and oldval[0] and oldval[0][0] == '=' and oldval[0] != val[0]:
                 return False
 
         for row_idx, col_idx, val in zip(row_idxes, col_idxes, vals):
-            # FIXME: is this not checking the bounds?
-            self.cells[row_idx*len(self.column_names)+col_idx] = val
+            self.cells[row_idx*self.ncols()+col_idx] = val
 
         self.cells_dirty = True
         return True
@@ -240,7 +269,8 @@ class SpreadSheet:
         if not (self.flags & SpreadSheetFlags.CAN_ADD_ROW):
             return False
         if whence < 0: return False
-        begin = whence * len(self.column_names)
+        if whence > self.nrows(): return False
+        begin = whence * self.ncols()
         self.cells[begin:begin] = [blank_cell() for _ in self.column_names]
         self.cells_dirty = True
         return True
@@ -248,10 +278,18 @@ class SpreadSheet:
     def add_column(self, whence:int) -> bool:
         if not (self.flags & SpreadSheetFlags.CAN_ADD_COL):
             return False
-        old_cnl = len(self.column_names)
+        if whence < 0: return False
+        if whence > self.ncols(): return False
+        old_cnl = self.ncols()
+        nrows = self.nrows()
+        if old_cnl == 0:
+            if whence != 0: return False
+            self.column_names.append('')
+            self.col_names_dirty = True
+            return True
         self.column_names.insert(whence, '')
-        new_cnl = len(self.column_names)
-        for row in range(len(self.cells)//old_cnl):
+        new_cnl = self.ncols()
+        for row in range(nrows):
             self.cells.insert(whence+row*new_cnl, blank_cell())
         self.col_names_dirty = True
         self.cells_dirty = True
@@ -260,9 +298,12 @@ class SpreadSheet:
     def sort(self, idxes:list[int]) -> bool:
         if not (self.flags & SpreadSheetFlags.CAN_SORT_COLS):
             return False
-        lcn = len(self.column_names)
-        if len(idxes) > len(self.cells) // lcn:
+        lcn = self.ncols()
+        if lcn == 0:
             return False
+        nrows = self.nrows()
+        if len(idxes) != nrows: return False
+        if sorted(idxes) != list(range(nrows)): return False
         cells = []
         for idx in idxes:
             cells.extend(self.cells[idx*lcn:idx*lcn+lcn])
@@ -286,11 +327,15 @@ class SpreadSheet:
             return False
         if self.id == parent:
             return False
+        if parent < 0:
+            return False
         self.parent = parent
         self.parent_dirty = True
         return True
 
     def set_func_io(self, n_args:int, outx:int, outy:int) -> bool:
+        if not valid_func_io(n_args, outx, outy, self.ncols(), self.nrows()):
+            return False
         self.n_args = n_args
         self.outx = outx
         self.outy = outy
@@ -355,6 +400,25 @@ def get_sheet(campaign:int, id:int) -> SpreadSheet|None:
     dlog('Unable to find spreadsheet (%r, %r)', campaign, id)
     return None
 
+def valid_parent(sheets:list[SpreadSheet], id:int, parent:int) -> bool:
+    if parent == 0:
+        return True
+    if parent < 0 or parent == id:
+        return False
+    by_id = {s.id:s for s in sheets}
+    if parent not in by_id:
+        return False
+    seen = {id}
+    while parent:
+        if parent in seen:
+            return False
+        seen.add(parent)
+        sheet = by_id.get(parent)
+        if sheet is None:
+            return False
+        parent = sheet.parent
+    return True
+
 # access must be protected with SHEETSLOCK
 SHEETSLOCK = RLock()
 SPREADSHEETS = {} # type: dict[int, list[SpreadSheet]]
@@ -375,6 +439,10 @@ def handle(campaign:int, msg:SpreadSheetMsg) -> SpreadSheetMsg|None:
         if campaign not in SPREADSHEETS:
             load_spreadsheets(campaign)
         if msg[0] == SpreadSheetMsgType.DELETE:
+            if get_sheet(campaign, msg[1]) is None:
+                return None
+            if any(s.parent == msg[1] for s in SPREADSHEETS[campaign]):
+                return None
             db.delete_sheet(campaign, msg[1])
             SPREADSHEETS[campaign] = [s for s in SPREADSHEETS[campaign] if s.id != msg[1]]
             return msg
@@ -388,6 +456,14 @@ def handle(campaign:int, msg:SpreadSheetMsg) -> SpreadSheetMsg|None:
             if not data['column_names']:
                 data['column_names'] = [''] * 3
                 data['cells'] = [blank_cell() for _ in range(12)]
+            if not valid_parent(SPREADSHEETS[campaign], id, data['parent']):
+                return None
+            if len(data['cells']) % len(data['column_names']) != 0:
+                return None
+            ncols = len(data['column_names'])
+            nrows = len(data['cells']) // ncols
+            if not valid_func_io(data['n_args'], data['outx'], data['outy'], ncols, nrows):
+                return None
             SPREADSHEETS[campaign].append(SpreadSheet(campaign=campaign, **data))
             db.save_sheet(campaign, **data)
             return msg
@@ -396,6 +472,8 @@ def handle(campaign:int, msg:SpreadSheetMsg) -> SpreadSheetMsg|None:
             return None
         sheet = get_sheet(campaign, msg[1])
         if sheet is None: return None
+        if msg[0] == SpreadSheetMsgType.PARENT and not valid_parent(SPREADSHEETS[campaign], msg[1], msg[2]):
+            return None
         meth = METHODS[msg[0]]
         if not meth(sheet, *msg[2:]):
             return None
