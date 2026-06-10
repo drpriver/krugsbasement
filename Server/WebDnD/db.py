@@ -24,7 +24,7 @@ atexit.register(close)
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 24
+DBVERSION = 25
 with conn:
     conn.execute('''PRAGMA encoding = 'UTF-8';''')
     conn.execute('''PRAGMA foreign_keys = ON;''')
@@ -39,13 +39,6 @@ def setup_tables() -> None:
     conn.execute(f'PRAGMA user_version = {DBVERSION};')
     # empty db
     if version == 0:
-        # Key-value store for random app data
-        conn.execute('''
-            CREATE TABLE appdata (
-                key STRING PRIMARY KEY UNIQUE,
-                value ANY
-            );
-        ''')
         conn.execute('''
             CREATE TABLE users (
                 userid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -587,6 +580,10 @@ def setup_tables() -> None:
                 PRIMARY KEY(campaignid, id)
                 );
             ''')
+    if version < 25:
+        conn.execute('''
+            DROP TABLE IF EXISTS appdata;
+        ''')
 
 
 with conn:
@@ -688,40 +685,6 @@ def user_may_access_campaign(userid:int, campaignid:int) -> bool:
             ;
         ''', (userid, campaignid, campaignid)).fetchone() is not None
 
-def store_app_kv(key:str, value:Any) -> None:
-    with DBLOCK, conn:
-        conn.execute('''
-            INSERT INTO
-                appdata(key, value)
-            VALUES
-                (?, ?)
-            ON CONFLICT(key)
-                DO UPDATE SET value=excluded.value
-            ;
-        ''', (key, value))
-def get_app_kv(key:str, default:Any=None) -> Any|None:
-    with DBLOCK:
-        cur = conn.execute('''
-            SELECT
-                value
-            FROM
-                appdata
-            WHERE
-                key = ?
-            ;
-        ''', (key,))
-        row = cur.fetchone()
-        if row is None and default is not None:
-            with conn:
-                conn.execute('''
-                    INSERT INTO
-                        appdata(key, value)
-                    VALUES
-                        (?, ?)
-                    ;
-                ''', (key, default))
-            return default
-    return row[0] if row else None
 def get_and_increment_campaign_session_id(campaign:int) -> int:
     with DBLOCK:
         cur = conn.execute('''
