@@ -112,17 +112,20 @@ function make_note_window(id:number):NoteWindow{
             remove_ctx_menu();
         });
         menu.separator();
-        menu.item('Delete', function():void{
-            const dialog = get_dialog('note-deletion');
-            if(!dialog) return;
-            dialog.f.checkbox.checked = false;
-            dialog.ok_handler = function():void{
-                if(!dialog.f.checkbox.checked)
-                    return;
-                EMIT(FromClient.DELETE_NOTE_REQUEST, id);
-            };
-            dialog.show();
-        });
+        if(!NOTE_TV.has_children(id))
+            menu.item('Delete', function():void{
+                const dialog = get_dialog('note-deletion');
+                if(!dialog) return;
+                dialog.f.checkbox.checked = false;
+                dialog.ok_handler = function():void{
+                    if(!dialog.f.checkbox.checked)
+                        return;
+                    EMIT(FromClient.DELETE_NOTE_REQUEST, id);
+                };
+                dialog.show();
+            });
+        else
+            menu.disabled('Delete');
         menu.separator();
     };
     const edit_button = elem_parent_text(win.win, 'button', 'Edit');

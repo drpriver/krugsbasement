@@ -49,12 +49,39 @@ def load_the_notes(campaign_id:int) -> dict[int, Note]:
 
 NOTES = {} # type: dict[int, dict[int, Note]]
 
-def new_note_request(campaign:int, parent:int) -> int:
+def get_notes(campaign:int) -> dict[int, Note]:
+    if campaign not in NOTES:
+        NOTES[campaign] = load_the_notes(campaign)
+    return NOTES[campaign]
+
+def is_live(note:Note) -> bool:
+    return not (note['flags'] & NOTEFLAGS.DELETED)
+
+def valid_parent(notes:dict[int, Note], note_id:int, parent:int) -> bool:
+    if parent == 0:
+        return True
+    if parent < 0 or parent == note_id:
+        return False
+    parent_note = notes.get(parent)
+    if parent_note is None or not is_live(parent_note):
+        return False
+    seen = {note_id}
+    while parent:
+        if parent in seen:
+            return False
+        seen.add(parent)
+        parent_note = notes.get(parent)
+        if parent_note is None or not is_live(parent_note):
+            return False
+        parent = parent_note['parent']
+    return True
+
+def new_note_request(campaign:int, parent:int) -> tuple[int, int]:
     assert campaign is not None
     with noteslock:
-        if campaign not in NOTES:
-            NOTES[campaign] = load_the_notes(campaign)
-        notes = NOTES[campaign]
+        notes = get_notes(campaign)
+        if not valid_parent(notes, 0, parent):
+            parent = 0
         if not notes:
             result = 1
         else:
@@ -66,15 +93,13 @@ def new_note_request(campaign:int, parent:int) -> int:
             id = result,
             parent = parent,
         )
-    return result
+    return result, parent
 
 def get_notes_for_room(campaign:int) -> list[Note]:
     assert campaign is not None
     with noteslock:
-        if campaign not in NOTES:
-            NOTES[campaign] = load_the_notes(campaign)
-        notes = NOTES[campaign]
-        return [n for n in notes.values() if not (n['flags'] & NOTEFLAGS.DELETED)]
+        notes = get_notes(campaign)
+        return [n for n in notes.values() if is_live(n)]
 
 def get_note(campaign:int, note_id:int) -> Note|None:
     with noteslock:
@@ -91,46 +116,57 @@ def get_note(campaign:int, note_id:int) -> Note|None:
             return None
         return note
 
-def note_update_title(campaign:int, note_id:int, title:str) -> None:
+def note_update_title(campaign:int, note_id:int, title:str) -> bool:
     note = get_note(campaign, note_id)
     if note is None:
-        return
+        return False
     with noteslock:
         note['title'] = title
     noteid = note['id']
     assert campaign is not None
     queue_save(campaign, noteid)
+    return True
     # db.save_note(campaign_id, note['title'], note['body'], note['flags'], note['id'])
 
-def note_update_body(campaign:int, note_id:int, body:str) -> None:
+def note_update_body(campaign:int, note_id:int, body:str) -> bool:
     note = get_note(campaign, note_id)
     if note is None:
-        return
+        return False
     with noteslock:
         note['body'] = body
     noteid = note['id']
     assert campaign is not None
     queue_save(campaign, noteid)
+    return True
     # db.save_note(campaign_id, note['title'], note['body'], note['flags'], note['id'])
-
-def note_update_parent(campaign:int, note_id:int, parent:int) -> None:
-    note = get_note(campaign, note_id)
-    if note is None:
-        return
+def note_update_parent(campaign:int, note_id:int, parent:int) -> bool:
     with noteslock:
+        notes = get_notes(campaign)
+        note = notes.get(note_id)
+        if note is None or not is_live(note):
+            return False
+        if not valid_parent(notes, note_id, parent):
+            return False
+        if note['parent'] == parent:
+            return False
         note['parent'] = parent
-    noteid = note['id']
+        noteid = note['id']
     assert campaign is not None
     queue_save(campaign, noteid)
+    return True
 
 
-def note_delete(campaign:int, note_id:int) -> None:
-    note = get_note(campaign, note_id)
-    # logging.info('deleting note %r: %r', note_id, note)
-    if note is None:
-        return
+def note_delete(campaign:int, note_id:int) -> bool:
     with noteslock:
+        notes = get_notes(campaign)
+        note = notes.get(note_id)
+        if note is None or not is_live(note):
+            return False
+        for n in notes.values():
+            if is_live(n) and n['parent'] == note_id:
+                return False
         note['flags'] |= NOTEFLAGS.DELETED
-    noteid = note['id']
+        noteid = note['id']
     assert campaign is not None
     queue_save(campaign, noteid)
+    return True

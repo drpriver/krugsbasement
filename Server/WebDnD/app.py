@@ -703,7 +703,7 @@ def show_note(note_id:int) -> None:
 @validated
 def new_note_request(parent:int) -> None:
     campaign = get_campaign(request)
-    note_id = notes.new_note_request(campaign, parent)
+    note_id, parent = notes.new_note_request(campaign, parent)
     msg:NewNoteMsg = {'note_id':note_id, 'parent':parent}
     logging.info('new note: %r for campaign %r', msg, campaign)
     emit(ToClient.NEW_NOTE, msg, broadcast=True, include_self=False, to=str(campaign))
@@ -714,7 +714,8 @@ def new_note_request(parent:int) -> None:
 @validated
 def note_update_title(data:NoteUpdateTitle) -> None:
     campaign = get_campaign(request)
-    notes.note_update_title(campaign, data['note_id'], data['title'])
+    if not notes.note_update_title(campaign, data['note_id'], data['title']):
+        return
     dlog('Updating note title. Note: %r. Room: %r. Title: %r', data['note_id'], campaign, data['title'])
     emit(ToClient.NOTE_UPDATE_TITLE, data, broadcast=True, include_self=False, to=str(campaign))
     # emit(ToClient.NOTE_DIRTY, data['note_id'], broadcast=True, include_self=False, to=str(campaign))
@@ -723,7 +724,8 @@ def note_update_title(data:NoteUpdateTitle) -> None:
 @validated
 def note_update_parent(data:NoteParentMsg) -> None:
     campaign = get_campaign(request)
-    notes.note_update_parent(campaign, data['note_id'], data['parent'])
+    if not notes.note_update_parent(campaign, data['note_id'], data['parent']):
+        return
     dlog('Updating note parent. Note: %r. Room: %r. parent: %r', data['note_id'], campaign, data['parent'])
     emit(ToClient.NOTE_PARENT, data, broadcast=True, include_self=False, to=str(campaign))
 
@@ -732,7 +734,8 @@ def note_update_parent(data:NoteParentMsg) -> None:
 def note_update_body(data:NoteUpdateBody) -> None:
     campaign = get_campaign(request)
     dlog('Updating note body. Note: %r. Room: %r', data['note_id'], campaign)
-    notes.note_update_body(campaign, data['note_id'], data['body'])
+    if not notes.note_update_body(campaign, data['note_id'], data['body']):
+        return
     emit(ToClient.NOTE_DIRTY, data['note_id'], broadcast=True, include_self=False, to=str(campaign))
 
 @socketio.on(FromClient.DELETE_NOTE_REQUEST)
@@ -740,7 +743,8 @@ def note_update_body(data:NoteUpdateBody) -> None:
 def note_delete(note_id:int) -> None:
     campaign = get_campaign(request)
     logging.info('delete note: %r for campaign %r', note_id, campaign)
-    notes.note_delete(campaign, note_id)
+    if not notes.note_delete(campaign, note_id):
+        return
     emit(ToClient.NOTE_DELETE, note_id, broadcast=True, include_self=True, to=str(campaign))
 
 @socketio.on(FromClient.RETRIEVE_ROLL_TABLES)
