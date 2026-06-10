@@ -7,7 +7,7 @@
 ::div
   ::md .comment
     Chat Commands and Macros::title
-    The chat box accepts normal messages, dice expressions, slash commands, and
+    The chat box accepts normal messages, dice expressions, commands, and
     small scripts.
 
     Chat Commands::md
@@ -20,6 +20,11 @@
 
       The current commands are:
 
+      Most commands also accept a leading <tt>/</tt> for muscle memory, but the
+      examples below use the preferred form without it. Style commands are the
+      exception: they require <tt>/</tt> because words like <tt>big</tt> and
+      <tt>bold</tt> are too likely to start normal chat text.
+
       Roll::md .indented .command
         <tt>roll</tt>, <tt>r</tt>, <tt>/roll</tt>, <tt>/r</tt>, or any line of
         text that can be successfully parsed as a dice expression.
@@ -28,21 +33,23 @@
         displays the result.
 
       Shuffle::md .indented .command
-        <tt>shuffle</tt>, <tt>shuf</tt>, <tt>shuff</tt>, <tt>/shuffle</tt>,
-        <tt>/sh</tt>, <tt>/shuf</tt>, <tt>/shuff</tt> stuff
+        <tt>shuffle</tt>, <tt>shuf</tt>, <tt>shuff</tt> stuff
+        (<tt>/sh</tt> also works with a slash)
 
         The text after the shuffle is split on whitespace (although quoted text
         is treated as a single thing) and then shuffled. The result is then sent
         back. This is useful for if you need a random order of some things.
 
       Choose::md .indented .command
-        <tt>choose</tt>, <tt>/choose</tt>, <tt>/ch</tt> stuff
+        <tt>choose</tt> stuff
+        (<tt>/ch</tt> also works with a slash)
 
         The text after the choose is broken up the same way as with the shuffle
         command. One of them is chosen and sent back.
 
       Table::md .indented .command
-        <tt>table</tt>, <tt>/table</tt>, <tt>/tab</tt>, <tt>/t</tt> tablename
+        <tt>table</tt> tablename
+        (<tt>/tab</tt> and <tt>/t</tt> also work with a slash)
 
         The named table is looked up and rolled on (which can trigger a roll on
         a different table). The result is then sent back. See
@@ -52,12 +59,13 @@
           tablesweb = tables.html
 
       MyTable::md .indented .command
-        <tt>mytable</tt>, <tt>/mytable</tt> tablename
+        <tt>mytable</tt> tablename
 
         Like <tt>table</tt>, but rolls on one of your private tables.
 
       Name::md .indented .command
-        <tt>name</tt>, <tt>/name</tt>, <tt>/n</tt> some name
+        <tt>name</tt> some name
+        (<tt>/n</tt> also works with a slash)
 
         Your chatname is temporarily changed to the given name for display
         purposes in this collection of lines.
@@ -69,7 +77,8 @@
         text.
 
       Say::md .indented .command
-        <tt>say</tt>, <tt>/say</tt>, <tt>/s</tt> some text
+        <tt>say</tt> some text
+        (<tt>/s</tt> also works with a slash)
 
         Says the text, without trying to parse it as a die roll.
 
@@ -101,7 +110,7 @@
 
         Unlike other commands, multiple styles can be applied at once. For example:
         ::pre.macro.indented
-          /name Jon
+          name Jon
           /color red bold italic
           Danger!
           /reset
@@ -129,7 +138,7 @@
       ::pre .macro
         bonus = 4
         attack = d20 + bonus
-        /roll attack
+        roll attack
       ::md .comment
         I'll break it down line by line.
 
@@ -149,18 +158,18 @@
         happen. I'll explain that in a second.
 
       ::pre .macro
-        /roll attack
+        roll attack
       ::md .comment
         The above is a roll statement, so we try to replace any terms we can
         with known variables. After the first substitution, we end up with:
 
       ::pre .macro
-        /roll d20 + bonus
+        roll d20 + bonus
       ::md .comment
         There is still a variable in this statement, so it is substituted again.
 
       ::pre .macro
-        /roll d20 + 4
+        roll d20 + 4
       ::md .comment
         which is the final line. This line is what will end up being sent to the
         server.
@@ -172,7 +181,7 @@
       ::pre .macro
         attack = d20 + bonus
         bonus = 4
-        /roll attack
+        roll attack
       ::md .comment
         As variables are lazily substituted, this just works.
 
@@ -180,9 +189,9 @@
         Variables are case insensitive. These lines are the same:
 
       ::pre .macro
-        /roll attack
-        /roll ATTACK
-        /roll Attack
+        roll attack
+        roll ATTACK
+        roll Attack
       ::md .comment
         Variables can contain spaces. They cannot contain two consecutive spaces.
       ::pre.macro
@@ -264,7 +273,7 @@
 
         ::pre .macro
           x = 3 + 2
-          /roll 3*x
+          roll 3*x
         will evaluate to 15, as you would expect.
 
         Integer literals are always positive, but since unary operations are
@@ -291,26 +300,26 @@
 
         ::pre .macro
           # This produces 2
-          /roll 2/3*3
+          roll 2/3*3
 
 
           # This produces 0, left side is
           # rounded down to 1, which is not
           # greater than 1
-          /roll 3/2 > 1
+          roll 3/2 > 1
 
 
           # This produces 2, as the left side of
           # the plus and the right side of the
           # plus are both rounded to 1.
-          /roll 3/2 + 3/2
+          roll 3/2 + 3/2
 
         This means that division is not distributive. It is associative.
 
         Rounding is truncation towards 0.
 
         ::pre .macro
-          /roll -3/2 # produces -1
+          roll -3/2 # produces -1
       Grouped Variables::md .comment
         It's annoying to have to define all your variables in every script,
         especially when they are values you'll want to use in many places, like
@@ -355,14 +364,14 @@
 
         ::pre .macro
           attack = d20 + Yowa.bab + Yowa.dex
-          /roll attack
+          roll attack
         ::md .comment
           In the above example, <tt>bab</tt> and <tt>dex</tt> were explicitly
           accessed from the <tt>Yowa</tt> variable group. The above substitutes
           to:
 
         ::pre .macro
-          /roll d20 + 3 +2
+          roll d20 + 3 +2
         ::md .comment
           This can get pretty repetitive, so to bring all of the variables from a
           variable group into the local context, you can use the <tt>use</tt> or
@@ -373,13 +382,13 @@
         ::pre .macro
           use Yowa
           attack = d20 + bab + dex
-          /roll attack
+          roll attack
         ::md .comment
           In the above example, all of the variables from Yowa will then be
-          available and the /roll attack substitutes to:
+          available and <tt>roll attack</tt> substitutes to:
 
         ::pre .macro
-          /roll d20 + 3 + 2
+          roll d20 + 3 + 2
         ::md .comment
           Variable groups are also case insensitive.
 
@@ -432,6 +441,20 @@
           d20 + attack - power attack
           damage + power attack * 2
 
+      Set Command::md .comment
+        <tt>set</tt> or <tt>/set</tt> updates a saved variable without opening
+        a prompt. Like <tt>prompt</tt>, it stores the value before later lines
+        run.
+
+        ::pre.macro
+          set power attack 3
+          d20 + attack - power attack
+
+        You can also target a group explicitly with a dotted name:
+
+        ::pre.macro
+          set Yowa.power attack 3
+
       Spreadsheet Expression::md.comment
         Chat and macros can read from spreadsheets. For normal chat and macros,
         the active macro tab chooses the spreadsheet context: if the
@@ -460,6 +483,15 @@
         spreadsheet engine using the active matching sheet, and the result is
         inserted into the roll expression. Macro variables can also be expanded
         inside the brackets before the spreadsheet expression is evaluated.
+
+        <tt>sheet</tt> or <tt>/sheet</tt> changes the spreadsheet context for
+        the rest of the current chat input or macro run. It does not change
+        which macro tab is active.
+
+        ::pre.macro
+          sheet Garret
+          d20 + attack
+          d20 + [bab + str_mod]
 
       Repeat Statements::md .comment
         You might need to roll certain dice multiple times and don't want to
@@ -492,10 +524,10 @@
         ::pre .macro
           rapid = 1
           if rapid:
-            /roll d20 - 2
-            /roll d20 - 2
+            roll d20 - 2
+            roll d20 - 2
           else:
-            /roll d20
+            roll d20
         ::md .comment
           The <tt>if</tt> statement is written as "if" "expression" ":". The
           trailing colon is mandatory. Without it, it is considered a regular line
@@ -519,21 +551,21 @@
             penalty = 4
           else:
             penalty = 0
-          /roll d20 - penalty
+          roll d20 - penalty
         ::md .comment
           With all that, we can finally arrive at our final example which uses all
           of these features:
 
         ::pre .macro
-          /name Yowa
+          name Yowa
           use Yowa
           attack = d20 + dex + bab
           if rapid:
             Rapid Attack!
-            /roll attack - 2
-            /roll attack - 2
+            roll attack - 2
+            roll attack - 2
           else:
-            /roll attack
+            roll attack
 
         No Dice in Ifs::md .comment
           Note! if conditions cannot contain dice expressions, directly or

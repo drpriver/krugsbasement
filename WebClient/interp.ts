@@ -7,8 +7,9 @@
 // client and server and so are in the shared types.
 //
 type PromptVariableResolver = (variable:Variable)=>Promise<string|null>;
+type SaveVariableResolver = (variable:Variable, value:string)=>void;
 type ScriptVariableValue = number|string|Variable;
-const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariableValue>, namespaces:Map<string, Map<string,ScriptVariableValue>>, sheetid:number, prompt_resolver:PromptVariableResolver|null)=>Promise<Array<Command>|string>{
+const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariableValue>, namespaces:Map<string, Map<string,ScriptVariableValue>>, sheetid:number, prompt_resolver:PromptVariableResolver|null, save_resolver:SaveVariableResolver|null)=>Promise<Array<Command>|string>{
     const enum TokenKind {
         // 0 is reserved for "not a token"
         IDENT    =  1,
@@ -20,6 +21,8 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
         USE      =  7, // use, using
         REPEAT   =  8, // repeat, loop, times
         PROMPT   = 34, // prompt
+        SET      = 35, // set
+        SHEET    = 36, // sheet
 
         LPAREN   =  9, // (
         RPAREN   = 10, // )
@@ -70,6 +73,8 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
         RAW    = 6,
         REPEAT = 7,
         PROMPT = 8,
+        SET    = 9,
+        SHEET  = 10,
     }
 
     type RawStatement = {
@@ -132,8 +137,18 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
         namespace: Token | null,
         name: Token,
     }
+    type SetStatement = {
+        kind: StatementKind.SET,
+        namespace: Token | null,
+        name: Token,
+        value: Array<Token>,
+    }
+    type SheetStatement = {
+        kind: StatementKind.SHEET,
+        name: Token,
+    }
 
-    type Statement = RollStatement | IfStatement | AssignStatement | BlockStatement | UseStatement | RawStatement | ListStatement | RepeatStatement | PromptStatement;
+    type Statement = RollStatement | IfStatement | AssignStatement | BlockStatement | UseStatement | RawStatement | ListStatement | RepeatStatement | PromptStatement | SetStatement | SheetStatement;
 
     function isstartident(char:string):boolean{
         return (/[a-zA-Z]/).test(char);
@@ -163,6 +178,8 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
         'box', 'boxed',
         'big',
         'prompt',
+        'set',
+        'sheet',
     ]);
 
     function tokenize(text:string): Array<Token> {
@@ -215,6 +232,10 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
                     tok.kind = TokenKind.REPEAT;
                 else if(lower == "prompt")
                     tok.kind = TokenKind.PROMPT;
+                else if(lower == "set")
+                    tok.kind = TokenKind.SET;
+                else if(lower == "sheet")
+                    tok.kind = TokenKind.SHEET;
                 else if(!PSEUDO_KWS.has(lower)){
                     while(text[i] == ' ' && i+1 < text.length && isstartident(text[i+1])){
                         for(i++; i < text.length; i++){
@@ -679,8 +700,8 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
         }
     }
 
-    async function eval_expr(expr: Expression, namespaces:Map<string, NameSpace>, vars:NameSpace, sheetid:number): Promise<number | null>{
-        let dice = await expand_dice(expr, namespaces, vars, sheetid, false, new Set());
+    async function eval_expr(expr: Expression, namespaces:Map<string, NameSpace>, vars:NameSpace, ctx:EvalContext): Promise<number | null>{
+        let dice = await expand_dice(expr, namespaces, vars, ctx, false, new Set());
         return eval_dice(dice);
     }
 
@@ -793,6 +814,10 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
                     return parse_repeat(indentation);
                 case TokenKind.PROMPT:
                     return parse_prompt(1);
+                case TokenKind.SET:
+                    return parse_set(1);
+                case TokenKind.SHEET:
+                    return parse_sheet(1);
                 case TokenKind.ELSE:
                     return parse_else(indentation);
                 case TokenKind.USE:
@@ -831,6 +856,10 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
                             return parse_raw(ChatCommand.SAY, 2);
                         case 'prompt':
                             return parse_prompt(2);
+                        case 'set':
+                            return parse_set(2);
+                        case 'sheet':
+                            return parse_sheet(2);
                         case 'color': case 'colour':
                         case 'bold': case 'italic':
                         case 'anon': case 'reset':
@@ -1137,21 +1166,9 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
             }
             while(nskip--)
                 take();
-            skip_spaces();
-            let first = take();
-            if(first.kind != TokenKind.IDENT){
+            let [namespace, name] = parse_variable_name();
+            if(!name)
                 return parse_as_raw();
-            }
-            let namespace:Token|null = null;
-            let name = first;
-            if(current().kind == TokenKind.DOT){
-                take();
-                let second = take();
-                if(second.kind != TokenKind.IDENT)
-                    return parse_as_raw();
-                namespace = first;
-                name = second;
-            }
             skip_spaces();
             let end = take();
             if(!is_end(end.kind)){
@@ -1160,6 +1177,74 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
             let statement:PromptStatement = {
                 kind: StatementKind.PROMPT,
                 namespace: namespace,
+                name: name,
+            };
+            currentblock.statements.push(statement);
+        }
+        function parse_variable_name():[Token|null, Token|null] {
+            skip_spaces();
+            let first = take();
+            if(first.kind != TokenKind.IDENT)
+                return [null, null];
+            let namespace:Token|null = null;
+            let name = first;
+            if(current().kind == TokenKind.DOT){
+                take();
+                let second = take();
+                if(second.kind != TokenKind.IDENT)
+                    return [null, null];
+                namespace = first;
+                name = second;
+            }
+            return [namespace, name];
+        }
+        function parse_set(nskip:number):void{
+            const startidx = index;
+            function parse_as_raw():void{
+                index = startidx;
+                return parse_raw(ChatCommand.SAY, 0);
+            }
+            while(nskip--)
+                take();
+            let [namespace, name] = parse_variable_name();
+            if(!name)
+                return parse_as_raw();
+            skip_spaces();
+            let value = [];
+            for(;;){
+                let tok = take();
+                if(is_end(tok.kind))
+                    break;
+                value.push(tok);
+            }
+            if(!value.length)
+                return parse_as_raw();
+            let statement:SetStatement = {
+                kind: StatementKind.SET,
+                namespace: namespace,
+                name: name,
+                value: value,
+            };
+            currentblock.statements.push(statement);
+        }
+        function parse_sheet(nskip:number):void{
+            const startidx = index;
+            function parse_as_raw():void{
+                index = startidx;
+                return parse_raw(ChatCommand.SAY, 0);
+            }
+            while(nskip--)
+                take();
+            skip_spaces();
+            let name = take();
+            if(name.kind != TokenKind.IDENT)
+                return parse_as_raw();
+            skip_spaces();
+            let end = take();
+            if(!is_end(end.kind))
+                return parse_as_raw();
+            let statement:SheetStatement = {
+                kind: StatementKind.SHEET,
                 name: name,
             };
             currentblock.statements.push(statement);
@@ -1206,6 +1291,9 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
         variable: Variable | null,
     };
     type NameSpace = Map<string, BoundValue>;
+    type EvalContext = {
+        sheetid: number,
+    };
 
     function ability_modifier(score:number):number{
         return Math.floor((score-10)/2);
@@ -1257,14 +1345,14 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
     }
 
 
-    async function expand_dice(expr: Expression, namespaces:Map<string, NameSpace>, vars:NameSpace, sheetid:number, muldiv:boolean, visited:Set<string>): Promise<UnrolledDiceExpr | null> {
+    async function expand_dice(expr: Expression, namespaces:Map<string, NameSpace>, vars:NameSpace, ctx:EvalContext, muldiv:boolean, visited:Set<string>): Promise<UnrolledDiceExpr | null> {
         switch(expr.type){
             case EXPR.NUMBER:
                 return [DieExprTypes.NUMBER, expr.value];
             case EXPR.DICE:
                 return [DieExprTypes.DICE, expr.n, expr.base];
             case EXPR.GROUP:{
-                let e = await expand_dice(expr.expr, namespaces, vars, sheetid, false, visited);
+                let e = await expand_dice(expr.expr, namespaces, vars, ctx, false, visited);
                 if(!e) return e;
                 while(e[0] == DieExprTypes.GROUP) e = e[1];
                 if(e[0] == DieExprTypes.NUMBER) return e;
@@ -1272,9 +1360,9 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
             }
             case EXPR.Binary:{
                 let childmuldiv = expr.btype == Binary.MUL || expr.btype == Binary.DIV;
-                let lhs = await expand_dice(expr.lhs, namespaces, vars, sheetid, childmuldiv, visited);
+                let lhs = await expand_dice(expr.lhs, namespaces, vars, ctx, childmuldiv, visited);
                 if(!lhs) return lhs;
-                let rhs = await expand_dice(expr.rhs, namespaces, vars, sheetid, childmuldiv, visited);
+                let rhs = await expand_dice(expr.rhs, namespaces, vars, ctx, childmuldiv, visited);
                 if(!rhs) return rhs;
                 let btype = expr.btype;
                 for(;;){
@@ -1314,7 +1402,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
                 return result;
             }
             case EXPR.Unary:{
-                let e = await expand_dice(expr.expr, namespaces, vars, sheetid, false, visited);
+                let e = await expand_dice(expr.expr, namespaces, vars, ctx, false, visited);
                 if(!e) return e;
                 if(expr.utype == Unary.PLUS)
                     return e;
@@ -1331,7 +1419,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
                     let toks = await lookup(expr.ident, vars);
                     if(!toks){
                         // try to eval it as a cell reference
-                        let v = spread_eval_string(sheetid, expr.ident);
+                        let v = spread_eval_string(ctx.sheetid, expr.ident);
                         if(v === null){
                             current_err_mess = `Failed to evaluate '${expr.ident}' as cell reference or variable.`;
                             return null;
@@ -1344,14 +1432,14 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
                             current_err_mess = `Failure to parse '${token_text(tokens)}' as expression`;
                             return null;
                         }
-                        return await expand_dice(subexpr, namespaces, vars, sheetid, muldiv, visited);
+                        return await expand_dice(subexpr, namespaces, vars, ctx, muldiv, visited);
                     }
                     let e = parse_expression(toks);
                     if(!e){
                         current_err_mess = `Failure to parse '${token_text(toks)}' as expression`;
                         return null;
                     }
-                    return await expand_dice(e, namespaces, vars, sheetid, muldiv, visited);
+                    return await expand_dice(e, namespaces, vars, ctx, muldiv, visited);
                 }
                 finally {
                     visited.delete(key);
@@ -1375,14 +1463,14 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
                         current_err_mess = `Failure to parse '${token_text(toks)}' as expression`;
                         return null;
                     }
-                    return await expand_dice(e, namespaces, vars, sheetid, muldiv, visited);
+                    return await expand_dice(e, namespaces, vars, ctx, muldiv, visited);
                 }
                 finally {
                     visited.delete(key);
                 }
             }
             case EXPR.NGROUP:{
-                let e = await expand_dice(expr.expr, namespaces, vars, sheetid, false, visited);
+                let e = await expand_dice(expr.expr, namespaces, vars, ctx, false, visited);
                 if(!e) return e;
                 return [DieExprTypes.NGROUP, expr.count, e];
             }
@@ -1391,7 +1479,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
                 let argtoks = tokenize(arg);
                 let s = await simple_expand_token(argtoks, vars, 1);
                 if(s === null) return null;
-                let v = spread_eval_string(sheetid, s);
+                let v = spread_eval_string(ctx.sheetid, s);
                 if(v === null) {
                     current_err_mess = `Failed to evaluate [${s}] as cell formula.`;
                     return null;
@@ -1403,7 +1491,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
                     current_err_mess = `Failure to parse '${token_text(tokens)}' as expression`;
                     return null;
                 }
-                return await expand_dice(subexpr, namespaces, vars, sheetid, muldiv, visited);
+                return await expand_dice(subexpr, namespaces, vars, ctx, muldiv, visited);
             }
         }
     }
@@ -1455,14 +1543,21 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
         }
     }
 
-    async function interpret(statement:Statement, namespaces:Map<string, NameSpace>, vars:NameSpace, sheetid:number, outcommands:Array<Command>, prompt_resolver:PromptVariableResolver|null):Promise<string>{
+    function statement_variable_binding(statement:{namespace:Token|null, name:Token}, namespaces:Map<string, NameSpace>, vars:NameSpace):[BoundValue|null, string] {
+        let name = statement.name.text;
+        if(statement.namespace)
+            return [lookup_ns_binding(statement.namespace.text, name, namespaces), statement.namespace.text + "." + name];
+        return [lookup_binding(name, vars), name];
+    }
+
+    async function interpret(statement:Statement, namespaces:Map<string, NameSpace>, vars:NameSpace, ctx:EvalContext, outcommands:Array<Command>, prompt_resolver:PromptVariableResolver|null, save_resolver:SaveVariableResolver|null):Promise<string>{
         switch(statement.kind){
             case StatementKind.LIST:{
                 outcommands.push([statement.command, statement.content, statement.items]);
                 return "";
             }
             case StatementKind.ROLL:{
-                let unrolled = await expand_dice(statement.expr, namespaces, vars, sheetid, false, new Set());
+                let unrolled = await expand_dice(statement.expr, namespaces, vars, ctx, false, new Set());
                 if(!unrolled){
                     let mess = "Error in '";
                     for(let tok of statement.contents)
@@ -1475,47 +1570,47 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
             }break;
             case StatementKind.BLOCK:{
                 for(let s of statement.statements){
-                    let e = await interpret(s, namespaces, vars, sheetid, outcommands, prompt_resolver);
+                    let e = await interpret(s, namespaces, vars, ctx, outcommands, prompt_resolver, save_resolver);
                     if(e) return e;
                 }
                 return "";
             }break;
             case StatementKind.IF:{
-                let cond = await eval_expr(statement.test, namespaces, vars, sheetid);
+                let cond = await eval_expr(statement.test, namespaces, vars, ctx);
                 if(cond === null){
                     return "Error in if statement: " + current_err_mess;
                 }
                 if(cond){
-                    let e = await interpret(statement.iftrue, namespaces, vars, sheetid, outcommands, prompt_resolver);
+                    let e = await interpret(statement.iftrue, namespaces, vars, ctx, outcommands, prompt_resolver, save_resolver);
                     if(e) return e;
                 }
                 else {
                     let handled = false;
                     for(let elif of statement.elifs){
-                        let t2 = await eval_expr(elif.test, namespaces, vars, sheetid);
+                        let t2 = await eval_expr(elif.test, namespaces, vars, ctx);
                         if(t2){
                             handled = true;
-                            let e = await interpret(elif.block, namespaces, vars, sheetid, outcommands, prompt_resolver);
+                            let e = await interpret(elif.block, namespaces, vars, ctx, outcommands, prompt_resolver, save_resolver);
                             if(e) return e;
                             return "";
                         }
                     }
                     if(!handled && statement.iffalse !== null){
-                        let e = await interpret(statement.iffalse, namespaces, vars, sheetid, outcommands, prompt_resolver);
+                        let e = await interpret(statement.iffalse, namespaces, vars, ctx, outcommands, prompt_resolver, save_resolver);
                         if(e) return e;
                     }
                 }
                 return "";
             }break;
             case StatementKind.REPEAT:{
-                let n = await eval_expr(statement.expr, namespaces, vars, sheetid);
+                let n = await eval_expr(statement.expr, namespaces, vars, ctx);
                 if(n === null){
                     return "Error in repeat statement: " + current_err_mess;
                 }
                 if(n > 20)
                     return "Error: Repeat value > 20"
                 for(let i = 0; i < n; i++){
-                    let e = await interpret(statement.block, namespaces, vars, sheetid, outcommands, prompt_resolver);
+                    let e = await interpret(statement.block, namespaces, vars, ctx, outcommands, prompt_resolver, save_resolver);
                     if(e) return e;
                 }
                 return "";
@@ -1538,15 +1633,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
             case StatementKind.PROMPT:{
                 if(!prompt_resolver)
                     return "Error in prompt statement: prompt is not available here.";
-                let value:BoundValue|null;
-                let name = statement.name.text;
-                if(statement.namespace){
-                    value = lookup_ns_binding(statement.namespace.text, name, namespaces);
-                    name = statement.namespace.text + "." + name;
-                }
-                else {
-                    value = lookup_binding(name, vars);
-                }
+                let [value, name] = statement_variable_binding(statement, namespaces, vars);
                 if(!value)
                     return `Error in prompt statement: failed to lookup '${name}'.`;
                 if(!value.variable)
@@ -1554,6 +1641,25 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
                 let result = await prompt_resolver(value.variable);
                 if(result === null)
                     return `Prompt for '${name}' cancelled.`;
+                return "";
+            }break;
+            case StatementKind.SET:{
+                if(!save_resolver)
+                    return "Error in set statement: set is not available here.";
+                let [value, name] = statement_variable_binding(statement, namespaces, vars);
+                if(!value)
+                    return `Error in set statement: failed to lookup '${name}'.`;
+                if(!value.variable)
+                    return `Error in set statement: '${name}' is not a saved variable.`;
+                const text = token_text(statement.value).trim();
+                save_resolver(value.variable, text);
+                return "";
+            }break;
+            case StatementKind.SHEET:{
+                const sheetid = sheetname_to_id(statement.name.text);
+                if(sheetid == SHEET.NULL)
+                    return `Error in sheet statement: failed to find sheet '${statement.name.text}'.`;
+                ctx.sheetid = sheetid;
                 return "";
             }break;
             case StatementKind.RAW:{
@@ -1571,14 +1677,15 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
         }
     }
 
-    async function really_eval_script(text:string, namespaces:Map<string, NameSpace>, vars:NameSpace, sheetid:number, prompt_resolver:PromptVariableResolver|null):Promise<Array<Command>|string>{
+    async function really_eval_script(text:string, namespaces:Map<string, NameSpace>, vars:NameSpace, sheetid:number, prompt_resolver:PromptVariableResolver|null, save_resolver:SaveVariableResolver|null):Promise<Array<Command>|string>{
         // const before = performance.now();
         let outlines: Array<Command> = [];
         let glob = make_block(null, -1);
         let tokens = tokenize(text);
         let err = parse(tokens, glob);
         if(err !== null) return err;
-        let err2 = await interpret(glob, namespaces, vars, sheetid, outlines, prompt_resolver);
+        let ctx = {sheetid: sheetid};
+        let err2 = await interpret(glob, namespaces, vars, ctx, outlines, prompt_resolver, save_resolver);
         if(err2.length) return err2;
         // const after = performance.now();
         // outlines.push(`Parsing took: ${after-before}ms`);
@@ -1607,7 +1714,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
         };
     }
 
-    async function eval_script(text:string, vars:Map<string, ScriptVariableValue>, namespaces:Map<string, Map<string,ScriptVariableValue>>, sheetid:number, prompt_resolver:PromptVariableResolver|null): Promise<Array<Command>|string> {
+    async function eval_script(text:string, vars:Map<string, ScriptVariableValue>, namespaces:Map<string, Map<string,ScriptVariableValue>>, sheetid:number, prompt_resolver:PromptVariableResolver|null, save_resolver:SaveVariableResolver|null): Promise<Array<Command>|string> {
         current_err_mess = '';
         let newvars: NameSpace = new Map();
         for(const[k, v] of vars.entries()){
@@ -1621,7 +1728,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
             }
             newnamespaces.set(name, newnamespace);
         }
-        return await really_eval_script(text, newnamespaces, newvars, sheetid, prompt_resolver);
+        return await really_eval_script(text, newnamespaces, newvars, sheetid, prompt_resolver, save_resolver);
     }
     return eval_script;
 })();

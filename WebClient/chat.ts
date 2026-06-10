@@ -89,12 +89,16 @@ function prompt_variable(variable:Variable):Promise<string|null>{
         dialog.show();
     });
 }
+function set_saved_variable(variable:Variable, value:string):void{
+    variable[3] = value;
+    save_mcv_and_signal();
+}
 
 async function evaluate(text:string, character_id:number, macro_id:number, outarray:Array<Command>):Promise<string>{
     let [ns, vars] = get_script_variables(character_id, macro_id);
     let sheetname = character_id == -1? get_active_char_name() : get_char_name(character_id);
     try{
-        let result = await evaluate_script(text, vars, ns, sheetname_to_id(sheetname), prompt_variable);
+        let result = await evaluate_script(text, vars, ns, sheetname_to_id(sheetname), prompt_variable, set_saved_variable);
         if(typeof result == 'string')
             return result;
         if(result.length > 25)
@@ -107,7 +111,7 @@ async function evaluate(text:string, character_id:number, macro_id:number, outar
 }
 async function evaluate3(text:string, vars: Map<string, string>, outarray:Array<Command>):Promise<string>{
     try{
-        let result = await evaluate_script(text, vars, new Map(), SHEET.NULL, null);
+        let result = await evaluate_script(text, vars, new Map(), SHEET.NULL, null, null);
         if(typeof result == 'string')
             return result;
         if(result.length > 25)

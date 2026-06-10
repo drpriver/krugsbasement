@@ -96,11 +96,11 @@
           d20 + x</pre>
         </details>
         <details>
-          <summary><span>display name</span><tt>/name Jon</tt></summary>
+          <summary><span>display name</span><tt>name Jon</tt></summary>
           <p>Changes the displayed speaker name for later lines in this submitted input.</p>
-          <pre>/name Jon
+          <pre>name Jon
           This line is from Jon.
-          /name Goblin
+          name Goblin
           This line is from Goblin.</pre>
         </details>
         <details>
@@ -156,10 +156,23 @@
           This is plain.</pre>
         </details>
         <details>
-          <summary><span>prompt variable</span><tt>/prompt power attack</tt></summary>
+          <summary><span>prompt variable</span><tt>prompt power attack</tt></summary>
           <p>Asks for a saved variable value and updates that variable before later lines run.</p>
-          <pre>/prompt power attack
+          <pre>prompt power attack
           d20 + attack - power attack</pre>
+        </details>
+        <details>
+          <summary><span>set variable</span><tt>set power attack 3</tt></summary>
+          <p>Updates a saved variable without opening a prompt.</p>
+          <pre>set power attack 3
+          d20 + attack - power attack</pre>
+        </details>
+        <details>
+          <summary><span>sheet context</span><tt>sheet Garret</tt></summary>
+          <p>Uses a different spreadsheet for bare named cells and bracketed sheet expressions later in the same input.</p>
+          <pre>sheet Garret
+          d20 + attack
+          d20 + [bab + str_mod]</pre>
         </details>
         <details>
           <summary><span>comments</span><tt># note</tt></summary>
@@ -181,10 +194,12 @@
             <tr><td>group variable</td><td>attached to a macro group; visible to that group</td></tr>
             <tr><td>global variable</td><td>put it in <tt>global</tt> or <tt>globals</tt></td></tr>
             <tr><td>variable types</td><td>number, boolean, expression, ability score, choice</td></tr>
-            <tr><td>prompt variable</td><td><tt>/prompt power attack</tt> asks and updates that saved variable</td></tr>
+            <tr><td>prompt variable</td><td><tt>prompt power attack</tt> asks and updates that saved variable</td></tr>
+            <tr><td>set variable</td><td><tt>set power attack 3</tt> updates that saved variable directly</td></tr>
             <tr><td>use group</td><td><tt>use Yowa</tt> imports variables from another group</td></tr>
             <tr><td>dotted name</td><td><tt>Yowa.bab</tt> reads another group's variable</td></tr>
             <tr><td>matching sheet</td><td>macro tab <tt>Yowa</tt> can read sheet <tt>Yowa</tt></td></tr>
+            <tr><td>sheet command</td><td><tt>sheet Garret</tt> changes sheet context for the rest of the input</td></tr>
             <tr><td>named cell</td><td><tt>d20 + attack</tt> uses named cell <tt>attack</tt> from that sheet</td></tr>
             <tr><td>sheet formula</td><td><tt>d20 + [str_mod + bab]</tt> evaluates a sheet expression</td></tr>
             <tr><td>docs</td><td><a href="/docs/macro-doc.html" target="_blank">Full macro docs</a></td></tr>
