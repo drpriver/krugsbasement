@@ -1,5 +1,5 @@
 #
-# Copyright © 2024, David Priver
+# Copyright © 2024-2026, David Priver <david@davidpriver.com>
 #
 from __future__ import annotations
 from typing import Callable, Any, DefaultDict

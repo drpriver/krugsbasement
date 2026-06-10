@@ -1,66 +1,49 @@
 #
-# Copyright © 2021-2024, David Priver
+# Copyright © 2021-2026, David Priver <david@davidpriver.com>
 #
 from __future__ import annotations
 from typing import Any, List
 import random
-from .persist import Persister, Dummy
+from .persist import DirtyCell, RepeatTimer
+from threading import RLock
 from .logs import logging
 from . import db
 import datetime
 import json
 import copy
+import atexit
 
 from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg, UnrolledDiceExpr, Binary, Unary, RolledExpr, RollTableFlags, RollTable, RollTables, ChatHistory, StyleFlags
 
 from enum import IntEnum, IntFlag
 
-class RollTablePersister(Persister[Dummy[List[RollTable]]]):
-    def read_obj(self, obj:Dummy[list[RollTable]])->Dummy[list[RollTable]]:
-        o = db.get_rolltable(self.campaign_id)
-        return Dummy(o) if o is not None else obj
-    def write_obj(self, obj:Dummy[list[RollTable]])->None:
-        # logging.info('write roll table: %r', obj)
-        db.save_rolltable(self.campaign_id, obj.value)
-    def __init__(self, campaignid:int)->None:
-        name = f'{campaignid!r}/rolltables'
-        self.campaign_id = campaignid
-        assert self.campaign_id is not None
-        dont_persist = campaignid == 1
-        super().__init__(Dummy([]), name, dont_persist=dont_persist)
+ROLLTABLES = {} # type: dict[int, DirtyCell[list[RollTable]]]
+PRIVATEROLLTABLES = {} # type: dict[tuple[int, int], DirtyCell[list[RollTable]]]
+ROLLTABLELOCK = RLock()
 
-class PrivateRollTablePersister(Persister[Dummy[List[RollTable]]]):
-    def read_obj(self, obj:Dummy[list[RollTable]])->Dummy[list[RollTable]]:
-        o = db.get_private_rolltable(self.userid, self.campaign_id)
-        return Dummy(o) if o is not None else obj
-    def write_obj(self, obj:Dummy[list[RollTable]])->None:
-        # logging.info('write roll table: %r', obj)
-        db.save_private_rolltable(self.userid, self.campaign_id, obj.value)
-    def __init__(self, userid:int, campaignid:int)->None:
-        name = f'{userid!r}:{campaignid!r}/rolltables'
-        self.campaign_id = campaignid
-        self.userid = userid
-        assert self.campaign_id is not None
-        dont_persist = campaignid == 1
-        super().__init__(Dummy([]), name, dont_persist=dont_persist)
-
-ROLLTABLES = {} # type: dict[int, Dummy[list[RollTable]]]
-PRIVATEROLLTABLES = {} # type: dict[tuple[int, int], Dummy[list[RollTable]]]
-
-def get_roll_tables(campaign:int) -> Dummy[list[RollTable]]:
-    if campaign in ROLLTABLES:
+def get_roll_tables(campaign:int) -> DirtyCell[list[RollTable]]:
+    with ROLLTABLELOCK:
+        if campaign not in ROLLTABLES:
+            tables = DirtyCell(db.get_rolltable(campaign) or [])
+            tables.dirty = False
+            ROLLTABLES[campaign] = tables
         return ROLLTABLES[campaign]
-    ROLLTABLES[campaign] = RollTablePersister(campaign).obj
-    return ROLLTABLES[campaign]
 
-def get_private_tables(user:int, campaign:int) -> Dummy[list[RollTable]]:
-    if (user, campaign) in PRIVATEROLLTABLES:
-        return PRIVATEROLLTABLES[(user, campaign)]
-    PRIVATEROLLTABLES[(user, campaign)] = PrivateRollTablePersister(user, campaign).obj
-    return PRIVATEROLLTABLES[(user, campaign)]
+def get_private_tables(user:int, campaign:int) -> DirtyCell[list[RollTable]]:
+    with ROLLTABLELOCK:
+        key = (user, campaign)
+        if key not in PRIVATEROLLTABLES:
+            tables = DirtyCell(db.get_private_rolltable(user, campaign) or [])
+            tables.dirty = False
+            PRIVATEROLLTABLES[key] = tables
+        return PRIVATEROLLTABLES[key]
 
 def get_both_tables(user:int, campaign:int) -> RollTables:
-    return [get_roll_tables(campaign).value, get_private_tables(user, campaign).value] # type: ignore
+    with ROLLTABLELOCK:
+        return [
+            copy.deepcopy(get_roll_tables(campaign).value),
+            copy.deepcopy(get_private_tables(user, campaign).value),
+        ] # type: ignore
 
 def valid_roll_table_data(data:list[RollTable]) -> bool:
     for d in data:
@@ -75,7 +58,7 @@ def valid_roll_table_data(data:list[RollTable]) -> bool:
                 return False
     return True
 
-def update_roll_table(tables:Dummy[list[RollTable]], data:list[RollTable]) -> None:
+def update_roll_table(tables:DirtyCell[list[RollTable]], data:list[RollTable]) -> None:
     highest = max(t['id'] for t in tables.value) if tables.value else 0
     if highest < 0:
         highest = 1
@@ -94,22 +77,46 @@ def update_roll_tables(user:int, campaign:int, data:RollTables) -> bool:
         return False
     if not valid_roll_table_data(private):
         return False
-    update_roll_table(get_roll_tables(campaign), shared)
-    update_roll_table(get_private_tables(user, campaign), private)
-    return True
+    with ROLLTABLELOCK:
+        update_roll_table(get_roll_tables(campaign), shared)
+        update_roll_table(get_private_tables(user, campaign), private)
+        return True
     # logging.info('tables: %r', tables)
 
 def parse_and_roll_table(campaign:int, line:str) -> tuple[str, str]:
     line = line.strip()
-    tables = get_roll_tables(campaign).value
-    mapping = {d['name'].lower(): d for d in tables}
-    return parse_and_roll_table_inner(mapping, line, line, 0)
+    with ROLLTABLELOCK:
+        tables = get_roll_tables(campaign).value
+        mapping = {d['name'].lower(): d for d in tables}
+        return parse_and_roll_table_inner(mapping, line, line, 0)
 
 def parse_and_roll_private_table(user:int, campaign:int, line:str) -> tuple[str, str]:
     line = line.strip()
-    tables = get_private_tables(user, campaign).value
-    mapping = {d['name'].lower(): d for d in tables}
-    return parse_and_roll_table_inner(mapping, line, line, 0)
+    with ROLLTABLELOCK:
+        tables = get_private_tables(user, campaign).value
+        mapping = {d['name'].lower(): d for d in tables}
+        return parse_and_roll_table_inner(mapping, line, line, 0)
+
+def rolltables_reaper() -> None:
+    with ROLLTABLELOCK:
+        for campaign, tables in ROLLTABLES.items():
+            if campaign == 1 or not tables.dirty:
+                continue
+            try:
+                db.save_rolltable(campaign, tables.value)
+            except Exception as e:
+                logging.error('Error saving rolltables for campaign %r: %s', campaign, e)
+                continue
+            tables.dirty = False
+        for (user, campaign), tables in PRIVATEROLLTABLES.items():
+            if campaign == 1 or not tables.dirty:
+                continue
+            try:
+                db.save_private_rolltable(user, campaign, tables.value)
+            except Exception as e:
+                logging.error('Error saving private rolltables for user/campaign %r/%r: %s', user, campaign, e)
+                continue
+            tables.dirty = False
 
 def parse_and_roll_table_inner(mapping:dict[str, RollTable], key:str, path:str, depth:int) -> tuple[str, str]:
     if depth > 10:
@@ -306,3 +313,7 @@ def structured_roll_die(die:UnrolledDiceExpr) -> None:
         die[1] = exprs # type: ignore
         del die[2] # type: ignore
         return
+
+Reaper = RepeatTimer(60, rolltables_reaper)
+Reaper.start()
+atexit.register(rolltables_reaper)

@@ -1,5 +1,5 @@
 #
-# Copyright © 2021-2025, David Priver
+# Copyright © 2021-2026, David Priver <david@davidpriver.com>
 #
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from . import notes
 from . import sheets
 from . import calendars
 from . import clocks
-from .persist import Persister, RepeatTimer, AppKVPersister
+from .persist import RepeatTimer
 from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize, NewNoteMsg, CanvasParentMsg, NoteParentMsg, MetadataType, MetadataMsg, CalendarMsg, CalendarMsgType, CalendarInitialize, ClockMsg, ClockMsgType
 from .validator import register_list, validated, validate, try_validate
 from . import db
