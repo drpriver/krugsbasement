@@ -72,30 +72,45 @@ def create_maps(campaign:int) -> None:
     MAPS[campaign] = load_maps(campaign)
     MAP_OBJS_BY_ID[campaign] = {k:{o[1]:o for o in v.value.objects} for k,v in MAPS[campaign].items()}
 
-def create_map(campaign:int, map_id:int) -> None:
+def create_map(campaign:int, map_id:int) -> bool:
     if campaign in MAPS and map_id in MAPS[campaign]:
-        return
+        return False
     MAPS[campaign][map_id] = SingleMapPersister(campaign, Map(map_id, [], 'Untitled')).obj
     MAP_OBJS_BY_ID[campaign][map_id] = {}
+    return True
 
-def name_map(campaign:int, map_id: int, map_name:str) -> None:
+def name_map(campaign:int, map_id: int, map_name:str) -> bool:
+    if map_id not in MAPS[campaign]:
+        return False
     m = MAPS[campaign][map_id]
     MAPS[campaign][map_id].value = m.value._replace(map_name=map_name)
+    return True
 
-def change_grid_type(campaign:int, map_id:int, grid_type:GridType) -> None:
+def change_grid_type(campaign:int, map_id:int, grid_type:GridType) -> bool:
+    if map_id not in MAPS[campaign]:
+        return False
     m = MAPS[campaign][map_id]
     MAPS[campaign][map_id].value = m.value._replace(grid_type=grid_type)
+    return True
 
-def change_grid_color(campaign:int, map_id:int, grid_color:str) -> None:
+def change_grid_color(campaign:int, map_id:int, grid_color:str) -> bool:
+    if map_id not in MAPS[campaign]:
+        return False
     m = MAPS[campaign][map_id]
     MAPS[campaign][map_id].value = m.value._replace(grid_color=grid_color)
+    return True
 
-def change_bg_color(campaign:int, map_id:int, bg_color:str) -> None:
+def change_bg_color(campaign:int, map_id:int, bg_color:str) -> bool:
+    if map_id not in MAPS[campaign]:
+        return False
     m = MAPS[campaign][map_id]
     MAPS[campaign][map_id].value = m.value._replace(bg_color=bg_color)
+    return True
 
 # FIXME: actually sets flags, not numbered
-def set_flags(campaign:int, map_id:int, numbered:MapFlags) -> None:
+def set_flags(campaign:int, map_id:int, numbered:MapFlags) -> bool:
+    if map_id not in MAPS[campaign]:
+        return False
     m = MAPS[campaign][map_id]
     flags = m.value.flags
     if numbered & MapFlags.NUMBERED:
@@ -107,10 +122,16 @@ def set_flags(campaign:int, map_id:int, numbered:MapFlags) -> None:
     else:
         flags &= ~(MapFlags.BIG_HEX)
     MAPS[campaign][map_id].value = m.value._replace(flags=flags)
+    return True
 
-def set_parent(campaign:int, map_id:int, parent:int) -> None:
+def set_parent(campaign:int, map_id:int, parent:int) -> bool:
+    if map_id not in MAPS[campaign]:
+        return False
+    if parent != -1 and parent not in MAPS[campaign]:
+        return False
     m = MAPS[campaign][map_id]
     MAPS[campaign][map_id].value = m.value._replace(parent=parent)
+    return True
 
 def new_map_request(campaign:int, map_name:str, grid_type:GridType, flags:MapFlags, grid_color:str, bg_color:str, parent:int) -> int:
     new_map_id = max(MAPS[campaign].keys()) + 1
@@ -119,6 +140,8 @@ def new_map_request(campaign:int, map_name:str, grid_type:GridType, flags:MapFla
     return new_map_id
 
 def delete_map(campaign:int, map_id:int) -> bool:
+    if map_id not in MAPS[campaign]:
+        return False
     m = MAPS[campaign][map_id]
     if m.value.flags & MapFlags.DELETED:
         return False
@@ -139,10 +162,20 @@ def delete_map(campaign:int, map_id:int) -> bool:
     MAPS[campaign][map_id].value = m.value._replace(flags=m.value.flags | MapFlags.DELETED)
     return True
 
-def handle_create(campaign:int, data:List[CreateObjectsMessage]) -> List[CreateObjectsMessage]:
+def handle_create(campaign:int, data:List[CreateObjectsMessage]) -> List[CreateObjectsMessage] | None:
     '''
     { map_id: 0, object:{...}, }
     '''
+    for d in data:
+        map_id = d['map_id']
+        if map_id not in MAPS[campaign]:
+            return None
+        if map_id not in MAP_OBJS_BY_ID[campaign]:
+            return None
+        for obj in d['objects']:
+            obj_id = obj[1]
+            if obj_id in MAP_OBJS_BY_ID[campaign][map_id]:
+                return None
     for d in data:
         map_id = d['map_id']
         for obj in d['objects']:
@@ -152,25 +185,36 @@ def handle_create(campaign:int, data:List[CreateObjectsMessage]) -> List[CreateO
         MAPS[campaign][map_id].dirty = True
     return data
 
-def handle_delete(campaign:int, data:CanvasDeleteMessage) -> CanvasDeleteMessage:
+def handle_delete(campaign:int, data:CanvasDeleteMessage) -> CanvasDeleteMessage | None:
     '''
     {map_id: 0, ids:[1,23]}
     '''
     map_id = data['map_id']
+    if map_id not in MAP_OBJS_BY_ID[campaign]:
+        return None
     OBJS_BY_ID = MAP_OBJS_BY_ID[campaign][map_id]
     obj_ids = data['ids']
+    for obj_id in obj_ids:
+        if obj_id not in OBJS_BY_ID:
+            return None
     for obj_id in obj_ids:
         OBJS_BY_ID[obj_id][4] |= CanvasFlag.DELETED # type: ignore
     MAPS[campaign][map_id].dirty = True
     return data
 
-def handle_update(campaign:int, data:CanvasUpdateMessage) -> CanvasUpdateMessage:
+def handle_update(campaign:int, data:CanvasUpdateMessage) -> CanvasUpdateMessage | None:
     '''
     {map_id:0, obj_states: {...}}
     '''
     map_id = data['map_id']
+    if map_id not in MAP_OBJS_BY_ID[campaign]:
+        return None
     OBJS_BY_ID = MAP_OBJS_BY_ID[campaign][map_id]
     obj_states = data['obj_states']
+    for obj_state in obj_states:
+        obj_id = obj_state[1]
+        if obj_id not in OBJS_BY_ID:
+            return None
     for obj_state in obj_states:
         obj_id = obj_state[1]
         # This must mutate the array!

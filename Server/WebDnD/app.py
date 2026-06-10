@@ -584,8 +584,8 @@ def canvas_dungeon_mode() -> None:
 @validated
 def canvas_create_map(data:int) -> None:
     campaign = get_campaign(request)
-    canvas.create_map(campaign, data)
-    emit(ToClient.CANVAS_CREATE_MAP, data, broadcast=True, include_self=False, to=str(campaign))
+    if canvas.create_map(campaign, data):
+        emit(ToClient.CANVAS_CREATE_MAP, data, broadcast=True, include_self=False, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_PING)
 @validated
@@ -597,8 +597,8 @@ def canvas_ping(data:PingMessage) -> None:
 @validated
 def canvas_name_map(data:NameMapMessage) -> None:
     campaign = get_campaign(request)
-    canvas.name_map(campaign, **data)
-    emit(ToClient.CANVAS_NAME_MAP, data, broadcast=True, include_self=False, to=str(campaign))
+    if canvas.name_map(campaign, **data):
+        emit(ToClient.CANVAS_NAME_MAP, data, broadcast=True, include_self=False, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_NEW_MAP_REQUEST)
 @validated
@@ -628,8 +628,8 @@ def change_grid_type(data:CanvasGridTypeMsg) -> None:
     gt = data['grid_type']
     campaign = get_campaign(request)
     logging.info('Changing grid type to %r for map %r in campaign %r', gt, map_id, campaign)
-    canvas.change_grid_type(campaign, map_id, gt)
-    emit(ToClient.CANVAS_GRID_TYPE, {'map_id':map_id, 'grid_type':gt}, broadcast=True, include_self=True, to=str(campaign))
+    if canvas.change_grid_type(campaign, map_id, gt):
+        emit(ToClient.CANVAS_GRID_TYPE, {'map_id':map_id, 'grid_type':gt}, broadcast=True, include_self=True, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_GRID_COLOR)
 @validated
@@ -638,8 +638,8 @@ def change_grid_color(data:CanvasColorMsg) -> None:
     grid_color = data['color']
     campaign = get_campaign(request)
     logging.info('Changing grid color to %r for map %r in campaign %r', grid_color, map_id, campaign)
-    canvas.change_grid_color(campaign, map_id, grid_color)
-    emit(ToClient.CANVAS_GRID_COLOR, {'map_id':map_id, 'color':grid_color}, broadcast=True, include_self=True, to=str(campaign))
+    if canvas.change_grid_color(campaign, map_id, grid_color):
+        emit(ToClient.CANVAS_GRID_COLOR, {'map_id':map_id, 'color':grid_color}, broadcast=True, include_self=True, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_BG_COLOR)
 @validated
@@ -648,8 +648,8 @@ def change_bg_color(data:CanvasColorMsg) -> None:
     bg_color = data['color']
     campaign = get_campaign(request)
     dlog('Changing bg color to %r for map %r in campaign %r', bg_color, map_id, campaign)
-    canvas.change_bg_color(campaign, map_id, bg_color)
-    emit(ToClient.CANVAS_BG_COLOR, {'map_id':map_id, 'color':bg_color}, broadcast=True, include_self=True, to=str(campaign))
+    if canvas.change_bg_color(campaign, map_id, bg_color):
+        emit(ToClient.CANVAS_BG_COLOR, {'map_id':map_id, 'color':bg_color}, broadcast=True, include_self=True, to=str(campaign))
 
 @socketio.on(FromClient.CANVAS_PARENT)
 @validated
@@ -658,8 +658,8 @@ def change_parent(data:CanvasParentMsg) -> None:
     parent = data['parent']
     campaign = get_campaign(request)
     dlog('Changing parent to %r for map %r in campaign %r', parent, map_id, campaign)
-    canvas.set_parent(campaign, map_id, parent)
-    emit(ToClient.CANVAS_PARENT, data, broadcast=True, include_self=True, to=str(campaign))
+    if canvas.set_parent(campaign, map_id, parent):
+        emit(ToClient.CANVAS_PARENT, data, broadcast=True, include_self=True, to=str(campaign))
 
 
 # FIXME: wrong name, sets flags, not numbered
@@ -669,8 +669,8 @@ def change_grid_flags(data:CanvasGridNumberedMsg) -> None:
     map_id = data['map_id']
     flags = data['numbered']
     campaign = get_campaign(request)
-    canvas.set_flags(campaign, map_id, flags)
-    emit(ToClient.CANVAS_GRID_NUMBERED, {'map_id':map_id, 'numbered':flags}, broadcast=True, include_self=True, to=str(campaign))
+    if canvas.set_flags(campaign, map_id, flags):
+        emit(ToClient.CANVAS_GRID_NUMBERED, {'map_id':map_id, 'numbered':flags}, broadcast=True, include_self=True, to=str(campaign))
 
 
 @socketio.on(FromClient.CANVAS_DELETE_MAP_REQUEST)
