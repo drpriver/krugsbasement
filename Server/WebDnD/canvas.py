@@ -170,6 +170,11 @@ def delete_map(campaign:int, map_id:int) -> bool:
         return False
     if m.value.flags & MapFlags.CANT_DELETE:
         return False
+    for child in MAPS[campaign].values():
+        if child.value.flags & MapFlags.DELETED:
+            continue
+        if child.value.parent == map_id:
+            return False
     # Check that we will have at least one map after the deletion.
     # If we won't then reject the request.
     for m in MAPS[campaign].values():
