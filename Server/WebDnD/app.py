@@ -411,7 +411,7 @@ def chat_test_structured_input(data:ChatCommandMessage)->None:
     if not data:
         return
     responses = chat.handle_structured_input(current_user.userid, campaign, data['chatname'], data['commands'], private=True)
-    emit(ToClient.CHAT_TEST_STRUCTURED_RESPONSE, responses, to=str(campaign))
+    emit(ToClient.CHAT_TEST_STRUCTURED_RESPONSE, responses)
 
 @socketio.on(FromClient.CHAT_DM)
 @validated
