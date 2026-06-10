@@ -24,7 +24,7 @@ from . import sheets
 from . import calendars
 from . import clocks
 from .persist import Persister, RepeatTimer, AppKVPersister
-from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize, NewNoteMsg, CanvasParentMsg, NoteParentMsg, MetadataType, MetadataMsg, CalendarMsg, CalendarMsgType, CalendarInitialize, ClockMsg
+from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize, NewNoteMsg, CanvasParentMsg, NoteParentMsg, MetadataType, MetadataMsg, CalendarMsg, CalendarMsgType, CalendarInitialize, ClockMsg, ClockMsgType
 from .validator import register_list, validated, validate, try_validate
 from . import db
 from .users import User
@@ -805,6 +805,9 @@ def calendar(msg:CalendarMsg) -> None:
 @validated
 def clock(msg:ClockMsg) -> None:
     campaign = get_campaign(request)
+    if msg['type'] == ClockMsgType.NEW or msg['type'] == ClockMsgType.EDIT:
+        if msg['hidinguser']:
+            msg['hidinguser'] = current_user.userid
     response = clocks.handle(campaign, msg)
     if response is not None:
         emit(ToClient.CLOCK, response, broadcast=True, include_self=True, to=str(campaign))
