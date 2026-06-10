@@ -62,6 +62,19 @@ def get_private_tables(user:int, campaign:int) -> Dummy[list[RollTable]]:
 def get_both_tables(user:int, campaign:int) -> RollTables:
     return [get_roll_tables(campaign).value, get_private_tables(user, campaign).value] # type: ignore
 
+def valid_roll_table_data(data:list[RollTable]) -> bool:
+    for d in data:
+        if not d['name'].strip():
+            return False
+        if not d['entries']:
+            return False
+        for entry in d['entries']:
+            if entry['weight'] < 1:
+                return False
+            if entry['weight'] > 1e8:
+                return False
+    return True
+
 def update_roll_table(tables:Dummy[list[RollTable]], data:list[RollTable]) -> None:
     highest = max(t['id'] for t in tables.value) if tables.value else 0
     if highest < 0:
@@ -70,19 +83,20 @@ def update_roll_table(tables:Dummy[list[RollTable]], data:list[RollTable]) -> No
         if d['id'] < 0:
             highest += 1
             d['id'] = highest
-        for entry in d['entries']:
-            if entry['weight'] < 0.5:
-                raise Exception
-            if entry['weight'] > 1e8:
-                raise Exception
     tables.value.clear()
     tables.value.extend(data)
     tables.dirty = True
 
-def update_roll_tables(user:int, campaign:int, data:RollTables) -> None:
-    tables = get_roll_tables(campaign)
-    update_roll_table(get_roll_tables(campaign), data[0])
-    update_roll_table(get_private_tables(user, campaign), data[1])
+def update_roll_tables(user:int, campaign:int, data:RollTables) -> bool:
+    shared = copy.deepcopy(data[0])
+    private = copy.deepcopy(data[1])
+    if not valid_roll_table_data(shared):
+        return False
+    if not valid_roll_table_data(private):
+        return False
+    update_roll_table(get_roll_tables(campaign), shared)
+    update_roll_table(get_private_tables(user, campaign), private)
+    return True
     # logging.info('tables: %r', tables)
 
 def parse_and_roll_table(campaign:int, line:str) -> tuple[str, str]:

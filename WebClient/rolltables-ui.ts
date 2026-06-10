@@ -345,7 +345,12 @@ document.addEventListener('DOMContentLoaded',function():void{
                 const row = tableview.get_row(id);
                 if(!row) return;
                 if(row[0] === cell){
-                    entry.weight = +s;
+                    const weight = Math.floor(+s);
+                    if(!Number.isFinite(weight) || weight < 1 || weight > 1e8){
+                        cell.textContent = ''+entry.weight;
+                        return;
+                    }
+                    entry.weight = weight;
                     cell.textContent = ''+entry.weight;
                 }
                 else {

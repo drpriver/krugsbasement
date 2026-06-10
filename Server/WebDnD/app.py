@@ -6,6 +6,7 @@ from __future__ import annotations
 import os
 import logging
 from typing import NamedTuple, Any
+from urllib.parse import urlparse
 
 from flask import Flask, jsonify, request, Response, send_from_directory, session, abort
 import flask
@@ -777,7 +778,8 @@ def update_roll_tables(tables:RollTables) -> None:
     campaign = get_campaign(request)
     logging.info('Setting roll tables for campaign %r', campaign)
     # logging.info('%r', tables);
-    chat.update_roll_tables(current_user.userid, campaign, tables)
+    if not chat.update_roll_tables(current_user.userid, campaign, tables):
+        return
 
 @socketio.on(FromClient.SPREADSHEET)
 @validated
@@ -809,11 +811,28 @@ def clock(msg:ClockMsg) -> None:
 @validated
 def campaign_metadata(msg:MetadataMsg) -> None:
     if msg[0] == MetadataType.HOMEPAGE:
-        url = msg[1]
+        url = normalize_campaign_homepage_url(msg[1])
+        if url is None:
+            return
+        msg = (MetadataType.HOMEPAGE, url)
         campaign = get_campaign(request)
         db.store_campaign_kv(campaign, 'homepage', url)
         emit(ToClient.METADATA, msg, to=str(campaign), broadcast=True, include_self=True)
         return
+
+def normalize_campaign_homepage_url(url:str) -> str | None:
+    url = url.strip()
+    if not url:
+        return ''
+    parsed = urlparse(url)
+    if parsed.scheme:
+        if parsed.scheme not in ('http', 'https') or not parsed.netloc:
+            return None
+        return url
+    parsed = urlparse('https://' + url)
+    if not parsed.netloc:
+        return None
+    return parsed.geturl()
 
 def get_html(info:db.CampaignInfo, mode:UiMode) -> str:
     global SCREEN
