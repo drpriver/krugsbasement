@@ -612,6 +612,8 @@ def new_map_request(data:NewMapRequest) -> None:
     dlog('data: %r', data)
     campaign = get_campaign(request)
     new_map_id = canvas.new_map_request(campaign, map_name, grid_type, flags, grid_color, bg_color, parent)
+    if new_map_id is None:
+        return
     logging.info('new map: %r for campaign %r, with name: %r', new_map_id, campaign, map_name)
     emit(ToClient.CANVAS_CREATE_MAP, new_map_id, broadcast=True, include_self=True, to=str(campaign))
     emit(ToClient.CANVAS_NAME_MAP, {'map_id':new_map_id, 'map_name':map_name}, broadcast=True, include_self=True, to=str(campaign))

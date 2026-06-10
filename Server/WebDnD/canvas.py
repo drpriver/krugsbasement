@@ -125,16 +125,39 @@ def set_flags(campaign:int, map_id:int, numbered:MapFlags) -> bool:
     return True
 
 def set_parent(campaign:int, map_id:int, parent:int) -> bool:
-    if map_id not in MAPS[campaign]:
-        return False
-    if parent != -1 and parent not in MAPS[campaign]:
+    if not valid_parent(campaign, map_id, parent, existing=True):
         return False
     m = MAPS[campaign][map_id]
     MAPS[campaign][map_id].value = m.value._replace(parent=parent)
     return True
 
-def new_map_request(campaign:int, map_name:str, grid_type:GridType, flags:MapFlags, grid_color:str, bg_color:str, parent:int) -> int:
+def valid_parent(campaign:int, map_id:int, parent:int, existing:bool) -> bool:
+    maps = MAPS[campaign]
+    if existing and map_id not in maps:
+        return False
+    if not existing and map_id in maps:
+        return False
+    if parent == -1:
+        return True
+    if parent == map_id or parent not in maps:
+        return False
+    if maps[parent].value.flags & MapFlags.DELETED:
+        return False
+    seen = set()
+    while parent != -1:
+        if parent == map_id or parent in seen:
+            return False
+        seen.add(parent)
+        parent_obj = maps.get(parent)
+        if parent_obj is None:
+            return False
+        parent = parent_obj.value.parent
+    return True
+
+def new_map_request(campaign:int, map_name:str, grid_type:GridType, flags:MapFlags, grid_color:str, bg_color:str, parent:int) -> int | None:
     new_map_id = max(MAPS[campaign].keys()) + 1
+    if not valid_parent(campaign, new_map_id, parent, existing=False):
+        return None
     MAPS[campaign][new_map_id] = SingleMapPersister(campaign, Map(new_map_id, [], map_name, grid_type=grid_type, flags=flags, grid_color=grid_color, bg_color=bg_color, parent=parent)).obj
     MAP_OBJS_BY_ID[campaign][new_map_id] = {}
     return new_map_id
