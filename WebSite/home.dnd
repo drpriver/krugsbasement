@@ -77,37 +77,22 @@
     const dark_sys = document.getElementById('darkmode-sys');
     const dark_dark = document.getElementById('darkmode-dark');
     const dark_light = document.getElementById('darkmode-light');
-    fetch('/settings')
-    .then(response => response.json())
-    .then(settings => {
-        let mode = settings.darkmode | 0;
-        if(mode < 0 || mode > 2) mode = 0;
-        set_darkmode(mode);
-      switch(current_dark_mode){
-        case 0:
-          dark_sys.checked = true;
-          break;
-        case 1:
-          dark_dark.checked = true;
-          break;
-        case 2:
-          dark_light.checked = true;
-          break;
-      }
+    switch(current_dark_mode){
+      case 0:
+        dark_sys.checked = true;
+        break;
+      case 1:
+        dark_dark.checked = true;
+        break;
+      case 2:
+        dark_light.checked = true;
+        break;
+    }
+    function store_mode(mode){
+      set_darkmode(mode);
       localStorage.setItem('settings.darkmode', ''+mode);
-      function post_mode(mode){
-        set_darkmode(mode);
-        localStorage.setItem('settings.darkmode', ''+mode);
-        fetch('/settings', {
-            method: 'POST',
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({darkmode:mode})
-        });
-      }
-      dark_sys.addEventListener('change', function(){ post_mode(0); });
-      dark_dark.addEventListener('change', function(){ post_mode(1); });
-      dark_light.addEventListener('change', function(){ post_mode(2); });
-    });
+    }
+    dark_sys.addEventListener('change', function(){ store_mode(0); });
+    dark_dark.addEventListener('change', function(){ store_mode(1); });
+    dark_light.addEventListener('change', function(){ store_mode(2); });
   });

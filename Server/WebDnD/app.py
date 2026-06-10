@@ -837,7 +837,9 @@ def get_html(info:db.CampaignInfo, mode:UiMode) -> str:
             else:
                 orig[k] = to_update[k]
     assert current_user.is_authenticated
-    update_vals(vals, settings.get_global(current_user.userid))
+    global_settings = dict(settings.get_global(current_user.userid))
+    global_settings.pop('darkmode', None)
+    update_vals(vals, global_settings)
     update_vals(vals, settings.get_local(current_user.userid, info.id))
     vals['userid'] = current_user.userid
     dlog('get settings: %r', vals)
