@@ -6,13 +6,12 @@ from __future__ import annotations
 import os
 import logging
 from typing import NamedTuple, Any
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 from flask import Flask, jsonify, request, Response, send_from_directory, session, abort
 import flask
 from flask_socketio import SocketIO, emit, join_room, disconnect
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required
-from werkzeug.urls import url_parse, url_encode
 import markupsafe
 
 import appconfig
@@ -146,6 +145,13 @@ def add_errors(node:pydndc.Node, error_list: list[str] | list[tuple[str, str]] |
         raw.append_child(f'<li class="error">{mess}</li>')
     raw.append_child('</ul>')
 
+def local_return_path(path: str | None) -> str:
+    if not path or path != path.strip() or path.startswith('//') or '\\' in path:
+        return '/home'
+    if any(ord(c) < 32 for c in path) or urlparse(path).scheme:
+        return '/home'
+    return path
+
 @app.route('/register', methods=['GET', 'POST'])
 def register() -> Any:
     t0 = time.time()
@@ -167,15 +173,12 @@ def register() -> Any:
         if appconfig.DEV:
             for c in db.get_campaigns().values():
                 db.join_campaign(user.userid, c)
-        next_page = request.args.get('next')
-        if not next_page or url_parse(next_page).netloc != '':
-            return flask.redirect('/home')
-        return flask.redirect(next_page)
+        return flask.redirect(local_return_path(request.args.get('next')))
     next_page = request.args.get('next')
     ctx, nodes = REGISTERTEMPLATE.clone()
     username_errors, email_errors, password_errors, password2_errors, hidden = nodes
 
-    next_page = ('?'+url_encode({'next':next_page})) if next_page else ''
+    next_page = ('?'+urlencode({'next':next_page})) if next_page else ''
     ctx.add_link('login', f'/login{next_page}')
     messages = flask.get_flashed_messages()
     add_errors(username_errors, messages)
@@ -193,10 +196,7 @@ def register() -> Any:
 def login_page() -> Any:
     t0 = time.time()
     if current_user.is_authenticated:
-        next_page = request.args.get('next')
-        if not next_page or url_parse(next_page).netloc != '':
-            return flask.redirect('/home')
-        return flask.redirect(next_page)
+        return flask.redirect(local_return_path(request.args.get('next')))
     form = LoginForm()
     if form.validate_on_submit():
         user = User.lookup_by_name(form.username.data)
@@ -209,15 +209,12 @@ def login_page() -> Any:
             return flask.redirect('/login')
         login_user(user, remember=form.remember_me.data)
         logging.info('logged in user: %r', user)
-        next_page = request.args.get('next')
-        if not next_page or url_parse(next_page).netloc != '':
-            return flask.redirect('/home')
-        return flask.redirect(next_page)
+        return flask.redirect(local_return_path(request.args.get('next')))
     ctx, nodes = LOGINTEMPLATE.clone()
     username_errors, password_errors, hidden = nodes
     next_page = request.args.get('next')
     if next_page:
-        next_page = '?' + url_encode({'next':next_page})
+        next_page = '?' + urlencode({'next':next_page})
     else:
         next_page = ''
     ctx.add_link('register', f'/register{next_page}')
