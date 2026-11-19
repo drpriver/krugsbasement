@@ -2500,9 +2500,14 @@ function make_text(id:number, base_x:number, base_y:number, text:string, size:nu
     };
     return obj;
 }
-function add_text(map:DungeonMap, id:number, base_x:number, base_y:number, text:string, size:number, alignment:TextAlignment, map_id:number):void{
-    const obj = make_text(id, base_x, base_y,  text, size, alignment, map_id);
+function place_text(map:DungeonMap, x:number, y:number, text:string, size:number, alignment:TextAlignment, link_id:number, flags:CanvasFlag):void{
+    const id = get_new_id();
+    const obj = make_text(id, x, y, text, size, alignment, link_id);
+    obj.flags |= flags;
     add_canv_obj(map, obj);
+    publish_obj_by_id(map, id);
+    note_create_by_id_for_undo(map, id);
+    canvas_request_render();
 }
 function make_ez_token(id:number, base_x:number, base_y:number, text:string, color:string, width:number, height:number, hp:number, maxhp:number):EzToken{
     const obj: EzToken = {
@@ -8008,31 +8013,37 @@ document.addEventListener('DOMContentLoaded', function():void{
 
 function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
     const which_canv = the_canvas.id === 'map'?WhichSplit.LEFT:WhichSplit.RIGHT;
-    the_canvas.ondragover = function(e:DragEvent):void{
-        if(!e.dataTransfer!.types.includes(CANV_TV.mime)) return;
+    function accepts_drop(data:DataTransfer|null):data is DataTransfer{
+        return !!data && (data.types.includes(CANV_TV.mime) || data.types.includes(NOTE_TV.mime));
+    }
+    the_canvas.ondragover = the_canvas.ondragenter = function(e:DragEvent):void{
+        if(!accepts_drop(e.dataTransfer)) return;
         e.stopPropagation();
         e.preventDefault();
-        e.dataTransfer!.dropEffect = 'copy';
-        the_canvas.classList.add('dragover');
-    };
-    the_canvas.ondragenter = function(e:DragEvent):void{
-        if(!e.dataTransfer!.types.includes(CANV_TV.mime)) return;
-        e.stopPropagation();
-        e.preventDefault();
-        e.dataTransfer!.dropEffect = 'copy';
+        e.dataTransfer.dropEffect = 'copy';
         the_canvas.classList.add('dragover');
     };
     the_canvas.ondragleave = function(e:DragEvent):void{
-        if(!e.dataTransfer!.types.includes(CANV_TV.mime)) return;
+        if(!accepts_drop(e.dataTransfer)) return;
         the_canvas.classList.remove('dragover');
     };
     the_canvas.ondrop = function(e:DragEvent):void{
-        if(!e.dataTransfer!.types.includes(CANV_TV.mime)) return;
+        const data = e.dataTransfer;
+        if(!accepts_drop(data)) return;
         e.stopPropagation();
         e.preventDefault();
-        const data = +e.dataTransfer!.getData(CANV_TV.mime);
-        change_map(which_canv, data);
         the_canvas.classList.remove('dragover');
+        if(data.types.includes(CANV_TV.mime)){
+            change_map(which_canv, +data.getData(CANV_TV.mime));
+            return;
+        }
+        const note = NOTES.get(+data.getData(NOTE_TV.mime));
+        if(!note || (note.flags & NOTEFLAGS.DELETED)) return;
+        active_split = which_canv;
+        update_map_names();
+        const view = get_view(which_canv);
+        const [x, y] = event_to_coord(e, view);
+        place_text(view.map, x, y, note.title, 12, TextAlignment.CENTER, note.id, CanvasFlag.TEXT_LINKS_NOTE);
     };
     let gesturing = false;
     let stop_pan: (()=>void)| null = null;
@@ -8823,17 +8834,12 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
                     if(map_id == view.map.map_id)
                         map_id = -1;
                     let link_id = map_id == -1?note_id:map_id;
-                    let id = get_new_id();
-                    add_text(view.map, id, x0, y0, text, textsize, alignment, link_id);
-                    // kind of hacky
-                    let o = view.map.canvas_objs.get(id)!;
+                    let flags = CanvasFlag.NONE;
                     if(dialog.f.background.checked)
-                        o.flags |= CanvasFlag.TEXT_HAS_BACKGROUND;
+                        flags |= CanvasFlag.TEXT_HAS_BACKGROUND;
                     if(map_id == -1 && link_id != -1)
-                        o.flags |= CanvasFlag.TEXT_LINKS_NOTE;
-                    publish_obj_by_id(view.map, id);
-                    note_create_by_id_for_undo(view.map, id);
-                    canvas_request_render();
+                        flags |= CanvasFlag.TEXT_LINKS_NOTE;
+                    place_text(view.map, x0, y0, text, textsize, alignment, link_id, flags);
                 };
                 dialog.show_handler = function():void{
                     if(!IS_TOUCH) dialog.f.text.focus();
