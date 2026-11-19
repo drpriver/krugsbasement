@@ -12,7 +12,7 @@ import atexit
 import threading
 logging.basicConfig(level=logging.INFO,format='[%(asctime)s][%(levelname)s] - %(funcName)s: %(message)s')
 
-savequeue = set()
+savequeue: set[tuple[int, int]] = set()
 # I think you could elide this one as you would just save that
 # note on the next tick.
 savelock = threading.RLock()

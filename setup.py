@@ -9,6 +9,7 @@ install_requires = [
 setup(
     name='WebDnD',
     version='0.1dev',
+    python_requires='>=3.14',
     packages=['WebDnD',],
     install_requires=install_requires,
 )

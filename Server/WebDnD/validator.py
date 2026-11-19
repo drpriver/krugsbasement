@@ -80,7 +80,7 @@ def register_dictstruct_field(structname:str, fieldname:str, fieldtypename:Any) 
     if isinstance(fieldtypename, enum.Enum):
         fieldtype = type(fieldtypename)
     else:
-        fieldtype = TYPES[fieldtypename] # type: ignore
+        fieldtype = TYPES[fieldtypename]
     structtype = TYPES[structname]
     structtype.items.append((fieldname, fieldtype)) # type: ignore
 
@@ -92,7 +92,7 @@ def register_arraystruct_field(structname:str, fieldtypename:Any) -> None:
     if isinstance(fieldtypename, enum.Enum):
         fieldtype = type(fieldtypename)
     else:
-        fieldtype = TYPES[fieldtypename] # type: ignore
+        fieldtype = TYPES[fieldtypename]
     structtype = TYPES[structname]
     structtype.items.append(fieldtype) # type: ignore
 

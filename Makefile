@@ -27,7 +27,7 @@ RMRF=rm -rf
 
 else
 # Windows
-PY?=py
+PY?=py -3.14
 CP=$(PY) Scripts/wincpy.py
 MKDIR=$(PY) Scripts/winmkdir.py
 DEVPY=dev_venv/Scripts/python.exe

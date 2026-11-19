@@ -367,7 +367,7 @@ def home() -> Any:
     if ownedcampaigns:
         raw = your_campaigns.make_child(pydndc.NodeType.RAW)
         raw.append_child('<table><tbody>')
-        for id, campaign, magic in ownedcampaigns: # type: ignore
+        for id, campaign, magic in ownedcampaigns:
             if magic:
                 raw.append_child('<tr>'
                         f'<td><a href="/campaigns/{id}">{campaign}</a></td>'
@@ -383,7 +383,6 @@ def home() -> Any:
 
     else:
         your_campaigns.hide = True
-    welcome: pydndc.Node
     welcome.append_child(f'Welcome {name}, this is your home.')
     create.children[0].children[1].header = form.hidden_tag()
     html = ctx.render()
@@ -1066,8 +1065,8 @@ if appconfig.DEV:
     def log_debug(msg:str) -> None:
         campaign = get_campaign(request)
         logging.info('campaign: %r - %r', campaign, msg)
-        msg: ChatPlainMsg = (Msg.PLAIN, '', str(msg), )
-        emit(ToClient.CHAT_STRUCTURED_MSG, [msg])
+        response: ChatPlainMsg = (Msg.PLAIN, '', str(msg))
+        emit(ToClient.CHAT_STRUCTURED_MSG, [response])
 
     @app.route('/kill')
     def kill() -> Any:

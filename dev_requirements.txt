@@ -2,7 +2,7 @@
 pillow
 packrect
 pydndc>=0.29.3
-mypy
+mypy>=1.19
 flask
 gevent
 flask-socketio
