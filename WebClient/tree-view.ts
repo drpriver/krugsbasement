@@ -75,8 +75,6 @@ make_tree_view(_container: HTMLElement, domain:string):TreeView{
             const el = elem('div', null, 'tree-item');
             el.draggable = true;
             const tog = elem_with_parent(el, 'span', null, 'toggle');
-            // tog.textContent = '•';
-            tog.textContent = '▶';
             const sp = elem_parent_text(el, 'span', name, null, 'name');
             let me = false;
             el.ondragstart = function(e:DragEvent):void{
@@ -138,11 +136,9 @@ make_tree_view(_container: HTMLElement, domain:string):TreeView{
                 if(!item) return;
                 if(item.el.classList.contains('closed')){
                     result._expand_item(item);
-                    tog.textContent = '▼';
                 }
                 else{
                     result._collapse_item(item);
-                    tog.textContent = '▶';
                 }
             };
             el.oncontextmenu = function(e:MouseEvent):void{

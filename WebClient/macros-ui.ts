@@ -583,7 +583,6 @@ function setup_macro_left():void{
 
 }
 
-let macro_panel_idx = 0;
 function setup_macro_panel():void{
     setup_macro_left();
     const pt = by_id('macro-panel-tabs');
@@ -598,12 +597,11 @@ function setup_macro_panel():void{
         menu.install();
     };
     pb.replaceChildren();
-    if(MACROS.size)
-        by_id('macro-panel').classList.add('has-macros');
-    else {
+    if(!MACROS.size){
         by_id('macro-panel').classList.remove('has-macros');
         return;
     }
+    const group_ids:number[] = [];
     let tabs = [];
     let views = [];
     function make_var(parent:HTMLElement, v:Variable):void{
@@ -653,6 +651,7 @@ function setup_macro_panel():void{
             continue;
         let d = elem_parent_text(pt, 'div', name, null, 'macro-group-title')
         tabs.push(d);
+        group_ids.push(id);
         let macro_group = elem_with_parent(pb, 'div',null, 'macro-panel-container');
         let macrodiv = elem_with_parent(macro_group, 'div', null, 'macro-panel-macros');
         let vardiv = elem_with_parent(macro_group, 'div', null, 'macro-panel-vars');
@@ -678,34 +677,19 @@ function setup_macro_panel():void{
         views.push(macro_group);
 
     }
-    function do_active_character():void{
-        let i = 0;
-        for(let id of CHARACTERS.keys()){
-            if(i == macro_panel_idx){
-                set_active_char(id);
-                break;
-            }
-            i++;
-        }
-    }
-    {
-      let active = get_active_char();
-      let i = 0;
-      for(let id of CHARACTERS.keys()){
-          if(id == active){
-            macro_panel_idx = i;
-            break;
-          }
-          i++;
-      }
-    }
-    let tv = make_tab_view(tabs, views, 'grid');
-    tv.on_change_handler = function(old_idx:number, new_idx:number):void{
-        macro_panel_idx = new_idx;
-        do_active_character();
+    by_id('macro-panel').classList.toggle('has-macros', tabs.length > 0);
+    const active_id = get_active_char();
+    const idx = Math.max(0, group_ids.indexOf(active_id));
+    const selected_id = group_ids[idx] ?? 0;
+    if(selected_id !== active_id)
+        set_active_char(selected_id);
+    const tv = make_tab_view(tabs, views, 'grid');
+    tv.change_tab(idx);
+    tv.tabs[idx]?.scrollIntoView({block:'nearest', inline:'nearest'});
+    tv.on_change_handler = (_, new_idx)=>{
+        set_active_char(group_ids[new_idx]);
+        tv.tabs[new_idx].scrollIntoView({block:'nearest', inline:'nearest'});
     };
-    do_active_character();
-    tv.change_tab(macro_panel_idx);
 }
 document.addEventListener('DOMContentLoaded', function():void{
     listen_for(ListenEvent.MACROS_RENAMED, setup_macro_panel);

@@ -268,9 +268,17 @@ body.dark-mode #minimized>span:hover {
 
 .mb-div {
   display: grid;
-  grid-template-columns: auto 4em;
-  flex-direction: column;
-  width: 12em;
+  grid-template-columns: minmax(0, 8em) minmax(0, 1fr);
+  max-width: 18em;
+  align-items: start;
+}
+.mb-div > label {
+  grid-column: 2;
+  align-items: center;
+  overflow-wrap: anywhere;
+}
+.mb-div > label > input, .mb-div > label > select {
+  min-width: 0;
 }
 
 label.panel-variable {
@@ -631,7 +639,7 @@ html, body {
   overflow-wrap: break-word;
   z-index: 1;
   grid-template-rows: max-content max-content auto max-content max-content max-content;
-  /*grid-template-columns: max-content;*/
+  grid-template-columns: minmax(0, 1fr);
   background-color: #fff;
   width: 260px;
   /* This thing is the bane of my existence on windows*/
@@ -1043,7 +1051,7 @@ div.rolltable table{
 #macro-panel {
   width: 100%;
   display: none;
-  grid-template-rows: 1.5em auto;
+  grid-template-rows: auto auto;
 }
 #macro-panel.has-macros {
   display: grid;
@@ -1058,7 +1066,13 @@ div.rolltable table{
 #macro-panel-tabs > div:hover {
   background-color: lightgrey;
 }
+#macro-panel-tabs > div.active {
+  font-weight: bold;
+  box-shadow: inset 0 -3px currentColor;
+}
 #macro-panel-tabs {
+  min-width: 0;
+  overflow-x: auto;
   display: flex;
   flex-direction: row;
 }
@@ -1081,7 +1095,7 @@ div.rolltable table{
 .macro-panel-macros {
   display: flex;
   flex-direction: column;
-  width: 100%;
+  min-width: 0;
   padding-bottom: 20px;
 }
 .macro-panel-macros button {
@@ -1595,6 +1609,21 @@ body.dark-mode .tracker-numbered {
 #left li.closed button {
   display: none;
 }
+#map-navigation {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+#current-map-names {
+  min-width: 0;
+  flex: 1;
+}
+#current-map-names > div {
+  padding: 2px 4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
 #left #back-map-button, #left #forward-map-button {
   width: auto;
   margin: 0;
@@ -1642,6 +1671,10 @@ div.tree-item:hover {
 div.tree-item span.name {
   padding: 2px 4px;
 }
+#maps-list .name[aria-current="location"] {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 div.tree-item:before {
   content: "• ";
   font-weight: 1000;
@@ -1664,6 +1697,12 @@ div.tree-item.parent .toggle {
   margin-left: -1em;
   background: none;
   /*font-size: 16px;*/
+}
+div.tree-item.parent .toggle::before {
+  content: "▼";
+}
+div.tree-item.parent.closed .toggle::before {
+  content: "▶";
 }
 div.tree-item.parent .toggle:hover {
   background-color: #ddd;

@@ -1067,8 +1067,14 @@
     ::raw
       <details id="maps-details" open>
         <summary>Maps</summary>
-        <button disabled title="Previous Map" id="back-map-button">←</button>
-        <button disabled title="Next Map" id="forward-map-button">→</button>
+        <div id="map-navigation">
+          <button disabled title="Previous Map" id="back-map-button">←</button>
+          <button disabled title="Next Map" id="forward-map-button">→</button>
+          <div id="current-map-names">
+            <div id="current-map-left" hidden></div>
+            <div id="current-map-right" hidden></div>
+          </div>
+        </div>
         <button title="New Map" id="new-map-button">New Map…</button>
         <div id="maps-list">
         </div>

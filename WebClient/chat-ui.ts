@@ -10,30 +10,31 @@ const {
   preprocess_and_send_chat:(text:string, character_id:number, macro_id:number)=>Promise<void>;
   preprocess_and_send_chat3:(text:string, vars:Map<string,string>)=>Promise<void>;
 }{
-ONRECV(ToClient.CHAT_STRUCTURED_MSG, function(msgs:Array<ChatMsg>):void{
+let following_chat = true;
+function update_chat_position(follow:boolean):void{
     const log = by_id('chat-history');
-    add_chat_msgs(log, msgs, preprocess_and_send_chat);
-    log.scrollTo({behavior:'smooth', top:log.scrollHeight});
+    if(!log.clientHeight) return;
+    if(follow)
+        log.scrollTop = log.scrollHeight;
+    following_chat = log.scrollHeight - log.clientHeight - log.scrollTop <= 2;
+}
+
+ONRECV(ToClient.CHAT_STRUCTURED_MSG, function(msgs:Array<ChatMsg>):void{
+    add_chat_msgs(by_id('chat-history'), msgs, preprocess_and_send_chat);
+    update_chat_position(following_chat);
 });
 
 ONRECV(ToClient.CHAT_CREATE, function(msgs:Array<ChatMsg>):void{
-    const log = by_id('chat-history');
-    add_chat_msgs(log, msgs, preprocess_and_send_chat);
-    log.scrollTop = log.scrollHeight;
+    following_chat = true;
+    add_chat_msgs(by_id('chat-history'), msgs, preprocess_and_send_chat);
+    update_chat_position(following_chat);
 });
-
-function clear_chat():void{
-    const log = by_id('chat-history');
-    log.innerHTML = '';
-}
 
 ONRECV(ToClient.CHAT_CLEAR, function():void{
-    clear_chat();
+    by_id('chat-history').replaceChildren();
+    following_chat = true;
+    update_chat_position(following_chat);
 });
-function resize_chat():void{
-    const hist = by_id('chat-history');
-    hist.scrollTo({top:hist.scrollHeight});
-}
 
 const enum RECENT_DIEROLLS {
     MAX = 4,
@@ -139,7 +140,7 @@ async function preprocess_and_send_chat(text:string, character_id:number, macro_
         const log = by_id('chat-history');
         const errmess: ChatErrorMsg = [Msg.ERROR, '', error];
         add_chat_msgs(log, [errmess], undefined);
-        log.scrollTo({behavior:'smooth', top:log.scrollHeight});
+        update_chat_position(following_chat);
         return;
     }
     if(commands.length){
@@ -155,7 +156,7 @@ async function preprocess_and_send_chat3(text:string, vars:Map<string,string>):P
         const log = by_id('chat-history');
         const errmess: ChatErrorMsg = [Msg.ERROR, '', error];
         add_chat_msgs(log, [errmess], undefined);
-        log.scrollTo({behavior:'smooth', top:log.scrollHeight});
+        update_chat_position(following_chat);
         return;
     }
     if(commands.length){
@@ -166,8 +167,9 @@ async function preprocess_and_send_chat3(text:string, vars:Map<string,string>):P
 }
 
 document.addEventListener('DOMContentLoaded', function():void{
-    resize_chat();
-    window.addEventListener('resize', resize_chat);
+    const log = by_id('chat-history');
+    log.addEventListener('scroll', ()=>update_chat_position(false));
+    new ResizeObserver(()=>update_chat_position(following_chat)).observe(log);
     const ta = by_id('chatinput');
     setup_chat(ta, preprocess_and_send_chat);
     help_tv = make_tab_view(

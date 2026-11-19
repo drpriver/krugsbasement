@@ -1472,6 +1472,7 @@ function change_active_map_view(which:WhichSplit, idx: number, store:boolean):vo
         view.gridscale = gs;
     }
     visually_set_gridscale(view.gridscale);
+    update_map_names();
     canvas_request_render();
 }
 const enum WhichSplit {
@@ -1518,6 +1519,29 @@ function get_map(map_id:number): DungeonMap {
     MAPS.set(map_id, new_map);
     CANV_TV.add_item('Untitled', map_id, null);
     return new_map;
+}
+
+let active_tree_name:HTMLElement|null = null;
+function update_map_names():void{
+    const active_pane = canv2_is_hidden ? WhichSplit.LEFT : active_split;
+    let current_name:HTMLElement|null = null;
+    for(const which of [WhichSplit.LEFT, WhichSplit.RIGHT]){
+        const left = which === WhichSplit.LEFT;
+        const label = by_id(left?'current-map-left':'current-map-right');
+        const idx = left?active_map_view_index:secondary_map_view_index ?? active_map_view_index;
+        const map = dungeon_map_views[idx]?.[which].map;
+        label.hidden = !map || (!left && canv2_is_hidden);
+        if(label.hidden || !map) continue;
+        const side = canv2_is_hidden?'':left?'Left · ':'Right · ';
+        label.textContent = side + map.map_name;
+        if(which === active_pane)
+            current_name = CANV_TV.get_sp(map.map_id);
+    }
+    if(current_name !== active_tree_name){
+        active_tree_name?.removeAttribute('aria-current');
+        current_name?.setAttribute('aria-current', 'location');
+        active_tree_name = current_name;
+    }
 }
 
 function update_disabled_forward_back():void{
@@ -1620,6 +1644,7 @@ ONRECV(ToClient.CANVAS_CREATE_MAP, function(map_id:number):void{
 function rename_map(map:DungeonMap, name:string):void{
     map.map_name = name;
     CANV_TV.rename(map.map_id, name);
+    update_map_names();
 }
 ONRECV(ToClient.CANVAS_NAME_MAP, function(data:NameMapMessage):void{
     const map = get_map(data.map_id);
@@ -1745,6 +1770,7 @@ function zoom_out(view:DungeonMapView):void{
 
 let dpr = 0;
 function resize_canvas():void{
+    update_map_names();
     if(!dpr) dpr = window.devicePixelRatio || 1;
     TheCanvas = by_id('map');
     TheCtx = TheCanvas.getContext('2d', {alpha:false})!;
@@ -8087,7 +8113,10 @@ function install_canvas_listeners(the_canvas:HTMLCanvasElement):void{
     // TAG pointerdown
     // TAG click
     the_canvas.addEventListener('pointerdown', function(e:PointerEvent):void{
-        active_split = which_canv;
+        if(active_split !== which_canv){
+            active_split = which_canv;
+            update_map_names();
+        }
         if(did_remove_ctx_menu()) return;
         if(gesturing) return;
         const enum BUTTON {
