@@ -7132,7 +7132,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         menu.install();
     };
     setup_movable_window(container, handle, WINDOWFLAGS.REMEMBER_POSITION);
-    setup_zsorted_window(container)();
+    setup_zsorted_window(container, ZSORTFLAGS.NONE)();
     ensure_window_is_completely_on_screen(container);
 });
 
@@ -7494,7 +7494,7 @@ document.addEventListener('DOMContentLoaded', function():void{
     const handle = by_id('palette-window-handle');
     setup_movable_window(palette, handle, WINDOWFLAGS.GLOBAL_REMEMBER);
     setup_resizable_window(palette, RESIZEFLAGS.GLOBAL_REMEMBER);
-    palette_top = setup_zsorted_window(palette);
+    palette_top = setup_zsorted_window(palette, ZSORTFLAGS.NONE);
 });
 let tools: Array<HTMLElement> = [];
 function change_tool(tool:ToolType):void{

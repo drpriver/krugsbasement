@@ -29,6 +29,17 @@ body.dark-mode .window, body.dark-mode .tracker-window, body.dark-mode #disconne
 body.dark-mode .tracker-window, body.dark-mode #disconnect, body.dark-mode div.hover {
   box-shadow: 0px 10px 24px rgba(0,0,0,0.8);
 }
+body div.window-behind {
+  box-shadow: 0 2px 6px rgba(0,0,0,.15);
+  --inactive-title-color: #626262;
+}
+body.dark-mode div.window-behind {
+  box-shadow: 0 2px 6px rgba(0,0,0,.45);
+  --inactive-title-color: #b5b5b5;
+}
+.window-behind .window-title, .window-behind > h2 {
+  color: var(--inactive-title-color);
+}
 .window-handle {
   grid-row: 1;
   grid-column-start: 1;

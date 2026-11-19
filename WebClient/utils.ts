@@ -43,15 +43,35 @@ function elem_parent_text<K extends keyof HTMLElementTagNameMap>(parent:HTMLElem
 // FIXME: this infinitely grows, which is ok as zindex is limited to
 // 2**32-1 or something like that, but is still kind of gross, you know?
 let TOPPERMOST_Z = 3;
-function setup_zsorted_window(win:HTMLDivElement):()=>void{
-    win.addEventListener('pointerdown', function():void{
-        make_top();
-    });
+let front_window:HTMLDivElement|null = null;
+function window_hidden(win:HTMLDivElement):void{
+    win.classList.remove('window-behind');
+    if(win !== front_window) return;
+    front_window = null;
+    for(const other of document.querySelectorAll<HTMLDivElement>('.window-behind')){
+        if(other.getClientRects().length && (!front_window || +other.style.zIndex > +front_window.style.zIndex))
+            front_window = other;
+    }
+    front_window?.classList.remove('window-behind');
+}
+const enum ZSORTFLAGS {
+    NONE = 0,
+    SHOW_DEPTH = 1 << 0,
+}
+function setup_zsorted_window(win:HTMLDivElement, flags:ZSORTFLAGS):()=>void{
+    const show_depth = flags & ZSORTFLAGS.SHOW_DEPTH;
+    win.addEventListener('pointerdown', make_top, {capture:true});
+    if(show_depth) win.addEventListener('focusin', make_top);
     function make_top():void{
         let z = +win.style.zIndex;
         if(z < TOPPERMOST_Z){
             TOPPERMOST_Z++;
             win.style.zIndex = ""+TOPPERMOST_Z;
+        }
+        if(show_depth && front_window !== win){
+            front_window?.classList.add('window-behind');
+            win.classList.remove('window-behind');
+            front_window = win;
         }
     }
     return make_top;
@@ -445,12 +465,13 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
                 restorer.remove();
             result.state = WinState.CLOSED;
             result.win.style.display = 'none';
+            window_hidden(win);
             if(result.openid) store(StorageCategory.WINDOW, result.openid, ''+result.state);
             if(result.close_handler) result.close_handler();
         },
         show: function(): void{
             if(result.state == WinState.OPEN)
-                return;
+                return result.make_top();
             if(result.state == WinState.MINIMIZED){
                 result.restore();
                 return;
@@ -470,6 +491,7 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
             by_id('minimized').append(restorer);
             result.win.style.display = 'none';
             result.state = WinState.MINIMIZED;
+            window_hidden(win);
             if(result.openid) store(StorageCategory.WINDOW, result.openid, ''+result.state);
             if(result.minimize_handler) result.minimize_handler();
         },
@@ -486,12 +508,13 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
             restorer.remove();
             result.win.remove();
             result.state = WinState.NONE;
+            window_hidden(win);
             if(result.remove_handler) result.remove_handler();
         },
         make_top: function():void{ },
         state: WinState.NONE,
     };
-    result.make_top = setup_zsorted_window(win);
+    result.make_top = setup_zsorted_window(win, ZSORTFLAGS.SHOW_DEPTH);
     let wf = !win.id? WINDOWFLAGS.NONE: global_window?WINDOWFLAGS.GLOBAL_REMEMBER:WINDOWFLAGS.LOCAL_REMEMBER;
     let rf = !win.id? RESIZEFLAGS.NONE: global_window?RESIZEFLAGS.GLOBAL_REMEMBER:RESIZEFLAGS.LOCAL_REMEMBER;
     setup_movable_window(win, wh, wf);

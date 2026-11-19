@@ -41,7 +41,7 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
     result.window.style.position = 'fixed';
     result.window.style.transform = 'none';
     setup_movable_window(result.window, result.windowhandle, WINDOWFLAGS.NONE);
-    result.make_top = setup_zsorted_window(result.window);
+    result.make_top = setup_zsorted_window(result.window, ZSORTFLAGS.SHOW_DEPTH);
     // The caller of this function should be generated, so this is safe,
     // despite being based on any.
     for(let field of fields){
@@ -87,6 +87,7 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
         result.hidden = true;
         OPENDIALOG = null;
         result.window.style.display = 'none';
+        window_hidden(result.window);
         if(result.hide_handler)
             result.hide_handler();
         if(document.activeElement){
