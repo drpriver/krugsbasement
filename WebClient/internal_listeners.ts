@@ -24,8 +24,9 @@ const enum ListenEvent {
     DARKMODE_CHANGED = 3,
     // Fixed sized elements need to be recomputed
     LAYOUT_CHANGED = 4,
+    NOTE_BODY_CHANGED = 5,
 }
-const INTERNAL_LISTENERS: Array<Array<()=>void>> = [[], [], [], [], []];
+const INTERNAL_LISTENERS: Array<Array<()=>void>> = [[], [], [], [], [], []];
 
 function listen_for(e:ListenEvent, cb:()=>void):void{
     INTERNAL_LISTENERS[e].push(cb);

@@ -50,6 +50,7 @@
     "WebClient/calendar.ts",
     "WebClient/clock.ts",
     "WebClient/scratchpad.ts",
-    "WebClient/statblocks.ts"
+    "WebClient/statblocks.ts",
+    "WebClient/omni-search.ts"
   ]
 }

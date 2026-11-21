@@ -172,6 +172,7 @@ function make_note_window(id:number):NoteWindow{
         update_content(result);
         content.style.display = 'block';
         sync_note();
+        signal_for(ListenEvent.NOTE_BODY_CHANGED);
 
     }
     function start_editing():void{
@@ -192,7 +193,7 @@ function make_note_window(id:number):NoteWindow{
     win.show_handler = function():void{
         const note = NOTES.get(id);
         if(!note) return;
-        if(note.need_receive) EMIT(FromClient.GET_NOTE, id);
+        refresh_stale_note(note);
         result.refresh();
     };
     win.close_handler = function():void{
@@ -208,10 +209,18 @@ type Note_ = {
     id: number;
     need_send: boolean;
     need_receive: boolean;
+    request_pending?: boolean;
     parent: number;
 }
 const NOTES: Map<number, Note_> = new Map();
 const NOTE_WINDOWS: Map<number, NoteWindow> = new Map();
+
+function refresh_stale_note(note:Note_):void{
+    if(!note.need_receive || note.request_pending) return;
+    note.request_pending = true;
+    note.need_receive = false;
+    EMIT(FromClient.GET_NOTE, note.id);
+}
 
 function get_note_window(id:number):NoteWindow{
     let window = NOTE_WINDOWS.get(id);
@@ -224,6 +233,13 @@ function get_note_window(id:number):NoteWindow{
 
 document.addEventListener('DOMContentLoaded', function():void{
     function onget(n_:Note):void{
+        const previous = NOTES.get(n_.id);
+        if(!previous || previous.flags & NOTEFLAGS.DELETED) return;
+        if(previous.request_pending && previous.need_receive){
+            previous.request_pending = false;
+            refresh_stale_note(previous);
+            return;
+        }
         const n: Note_ = n_ as Note_;
         n.need_receive = false;
         n.need_send = false;
@@ -232,6 +248,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         if(window && window.win.win.parentElement){
             window.refresh();
         }
+        signal_for(ListenEvent.NOTE_BODY_CHANGED);
         // TODO: rename li
     }
     ONRECV(ToClient.GOT_NOTE, onget);
@@ -240,9 +257,8 @@ document.addEventListener('DOMContentLoaded', function():void{
         if(!note) return;
         note.need_receive = true;
         const window = NOTE_WINDOWS.get(note_id);
-        if(!window) return;
-        if(window.win.win.parentNode)
-            EMIT(FromClient.GET_NOTE, note_id);
+        if(window?.win.win.parentNode) refresh_stale_note(note);
+        signal_for(ListenEvent.NOTE_BODY_CHANGED);
     });
     function add_note(id:number, note:Note_, parent:number|null):void{
         NOTE_TV.add_item(note.title, id, parent);

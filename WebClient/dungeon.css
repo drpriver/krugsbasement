@@ -20,6 +20,75 @@ body.dark-mode #home-link a {
 button {
   text-transform: capitalize;
 }
+#omni-search-window {
+  left: max(1rem, calc(50% - 16rem));
+  width: min(32rem, calc(100vw - 2rem));
+  max-height: 80vh;
+}
+#omni-search {
+  padding: .75rem;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+#omni-search [role="option"] {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+#omni-search-window-handle {
+  touch-action: none;
+}
+#omni-search-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: .4rem;
+  font-size: 1rem;
+}
+#omni-search:has(#omni-search-regex:checked) #omni-search-input {
+  font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
+}
+#omni-search-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem .75rem;
+}
+#omni-search label kbd {
+  margin-inline-start: .3em;
+  font-size: .8em;
+}
+#omni-search-results {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  max-height: 52vh;
+}
+#omni-search h3 {
+  margin: .7rem .4rem .25rem;
+  font-size: .9rem;
+}
+#omni-search [role="option"] {
+  padding: .35rem .5rem;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+#omni-search small {
+  text-align: right;
+}
+#omni-search .search-excerpt {
+  display: block;
+  margin-top: .15rem;
+  text-align: left;
+}
+#omni-search [aria-selected="true"] {
+  color: HighlightText;
+  background: Highlight;
+}
+#omni-search [role="option"]:hover {
+  outline: 1px solid currentColor;
+  outline-offset: -1px;
+}
 body.dark-mode .window, body.dark-mode .tracker-window, body.dark-mode #disconnect, body.dark-mode div.hover {
   border: 1px solid #585858;
 }

@@ -2,13 +2,14 @@
 // Copyright © 2021-2026, David Priver <david@davidpriver.com>
 //
 
+let CANV_TV: TreeView;
 const {
     export_maps,
     import_maps,
     screenshot,
     resize_canvas,
+    find_map_content,
 } = (function(){
-let CANV_TV: TreeView;
 // XXX: This races the websocket, although the event loop probably
 //      saves you.
 document.addEventListener('DOMContentLoaded', function():void{
@@ -58,6 +59,7 @@ if(SETTINGS.uimode != UiMode.NORMAL){
         import_maps: dummy_import,
         screenshot: dummy_screenshot,
         resize_canvas: dummy_resize_canvas,
+        find_map_content: ()=>'',
     };
 }
 let SHOW_FPS = false;
@@ -10354,10 +10356,22 @@ document.addEventListener('DOMContentLoaded', function():void{
 });
 listen_for(ListenEvent.DARKMODE_CHANGED, canvas_request_render);
 listen_for(ListenEvent.LAYOUT_CHANGED, resize_canvas);
+function find_map_content(id:number, excerpt:(text:string)=>string):string{
+    const map = MAPS.get(id);
+    if(!map) return '';
+    for(const obj of map.canvas_obj_array){
+        if(obj.type !== CanvasType.TEXT && obj.type !== CanvasType.EZ_TOKEN) continue;
+        if(obj.flags & CanvasFlag.DELETED || (obj.hidinguser && obj.hidinguser !== SETTINGS.userid)) continue;
+        const match = excerpt(obj.text);
+        if(match) return match;
+    }
+    return '';
+}
 return {
     export_maps,
     import_maps,
     screenshot,
     resize_canvas,
+    find_map_content,
 };
 }());

@@ -2,7 +2,7 @@
 // Copyright © 2021-2026, David Priver <david@davidpriver.com>
 //
 
-(function():void{
+const open_macro_editor = (function(){
 
 type MacroWindow = {
     cid: number;
@@ -404,6 +404,11 @@ function get_macro_window(cid:number, id:number):MacroWindow {
     return m;
 }
 
+function open_macro_editor(cid:number, mid:number):void{
+    if(CHARACTERS.get(cid)?.[2].includes(mid) && MACROS.has(mid))
+        get_macro_window(cid, mid).win.show();
+}
+
 function get_vars_window(cid:number):VariablesWindow{
     let c = VARIABLES_WINDOWS.get(cid);
     if(c) return c;
@@ -550,7 +555,7 @@ function setup_macro_left():void{
                     remove_ctx_menu();
                 });
                 menu.item('Edit', function():void{
-                    get_macro_window(cid, mid).win.show();
+                    open_macro_editor(cid, mid);
                 });
                 menu.separator();
                 menu.item('Delete', function():void{
@@ -574,7 +579,7 @@ function setup_macro_left():void{
             };
             mli.onclick = function(e:MouseEvent):void{
                 e.stopPropagation();
-                get_macro_window(cid, mid).win.show();
+                open_macro_editor(cid, mid);
             };
             const openid = `/macros/open/${cid}-${mid}`;
             reopen_window(()=>get_macro_window(cid, mid).win, NormalWindow.LOCAL, openid);
@@ -696,4 +701,5 @@ document.addEventListener('DOMContentLoaded', function():void{
     setup_macro_panel();
 });
 
+return open_macro_editor;
 }());

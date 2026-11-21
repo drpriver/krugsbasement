@@ -30,6 +30,19 @@
     `;
     raw.add_child(inner);
   }
+  make_window('omni-search', 'Search campaign', `
+    <div id="omni-search">
+      <input id="omni-search-input" type="text" role="combobox" aria-label="Search by name"
+        aria-autocomplete="list" aria-controls="omni-search-results" aria-expanded="true"
+        placeholder="Search by name…" autocomplete="off" spellcheck="false">
+      <div id="omni-search-filters" role="group" aria-label="Search in"></div>
+      <label><input id="omni-search-contents" type="checkbox"> Search contents</label>
+      <label><input id="omni-search-regex" type="checkbox"> Regex</label>
+      <label><input id="omni-search-keep-open" type="checkbox"> Keep open after selection</label>
+      <div id="omni-search-results" role="listbox" aria-label="Campaign matches"></div>
+      <div id="omni-search-empty" role="status" hidden>No matches</div>
+    </div>
+  `);
   make_window('rolltable', 'Roll Tables',
   `
     <div id="rolltable-container" class="window-container">
@@ -1046,6 +1059,7 @@
       ::raw
         <button id="tables-button">Tables…</button>
         <button id="options-button">Options…</button>
+        <button id="omni-search-button" aria-haspopup="dialog">Search…</button>
     ::div.three-buttons
       ::raw
         <button id="privateroll-button">DMs…</button>
