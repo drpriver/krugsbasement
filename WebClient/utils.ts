@@ -60,7 +60,15 @@ const enum ZSORTFLAGS {
 }
 function setup_zsorted_window(win:HTMLDivElement, flags:ZSORTFLAGS):()=>void{
     const show_depth = flags & ZSORTFLAGS.SHOW_DEPTH;
-    win.addEventListener('pointerdown', make_top, {capture:true});
+    win.addEventListener('pointerdown', e=>{
+        if(show_depth && win !== front_window && e.button === 0 && e.target instanceof Element
+            && e.target.closest('.window-closer, .window-minimizer')){
+            // Leave focus in the front window while the click closes or minimizes this one.
+            e.preventDefault();
+            return;
+        }
+        make_top();
+    }, {capture:true});
     if(show_depth) win.addEventListener('focusin', make_top);
     function make_top():void{
         let z = +win.style.zIndex;
