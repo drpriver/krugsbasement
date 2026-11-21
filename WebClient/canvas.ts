@@ -59,7 +59,7 @@ if(SETTINGS.uimode != UiMode.NORMAL){
         import_maps: dummy_import,
         screenshot: dummy_screenshot,
         resize_canvas: dummy_resize_canvas,
-        find_map_content: ()=>'',
+        find_map_content: ()=>null,
     };
 }
 let SHOW_FPS = false;
@@ -10356,16 +10356,29 @@ document.addEventListener('DOMContentLoaded', function():void{
 });
 listen_for(ListenEvent.DARKMODE_CHANGED, canvas_request_render);
 listen_for(ListenEvent.LAYOUT_CHANGED, resize_canvas);
-function find_map_content(id:number, excerpt:(text:string)=>string):string{
+function find_map_content(id:number, pattern:RegExp):CampaignContentMatch|null{
     const map = MAPS.get(id);
-    if(!map) return '';
+    if(!map) return null;
     for(const obj of map.canvas_obj_array){
         if(obj.type !== CanvasType.TEXT && obj.type !== CanvasType.EZ_TOKEN) continue;
         if(obj.flags & CanvasFlag.DELETED || (obj.hidinguser && obj.hidinguser !== SETTINGS.userid)) continue;
-        const match = excerpt(obj.text);
-        if(match) return match;
+        const snippet = content_excerpt(obj.text, pattern);
+        if(!snippet) continue;
+        return {snippet, open:()=>{
+            const current = MAPS.get(id)?.canvas_objs.get(obj.id);
+            if(!current || current.flags & CanvasFlag.DELETED || (current.hidinguser && current.hidinguser !== SETTINGS.userid)) return;
+            change_map(WhichSplit.LEFT, id);
+            const view = get_view(WhichSplit.LEFT);
+            const hex = !!(view.map.grid_type & GridType.HEX);
+            // Text bounds are measured on the map's first draw.
+            if(current.type === CanvasType.TEXT && !current.bboxes.length) render(performance.now());
+            const box = get_bbox(current, hex);
+            view.camera_x = TheCanvas.clientWidth / (2 * view.scale) - (box.x0 + box.x1) / 2;
+            view.camera_y = TheCanvas.clientHeight / (2 * view.scale) - (box.y0 + box.y1) / 2 * (hex ? HEX_Y_FIX : 1);
+            canvas_request_render();
+        }};
     }
-    return '';
+    return null;
 }
 return {
     export_maps,

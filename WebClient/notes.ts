@@ -69,8 +69,33 @@ type NoteWindow = {
     ed_container: HTMLDivElement;
     editor: HTMLTextAreaElement;
     refresh: ()=>void;
+    reveal_match: (pattern:RegExp)=>void;
     is_editing: boolean;
 };
+function reveal_rendered_passage(content:HTMLElement, text:string):boolean{
+    if(!text) return false;
+    const start = (content.textContent || '').indexOf(text);
+    if(start < 0) return false;
+    const end = start + text.length;
+    const nodes = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
+    const range = document.createRange();
+    let offset = 0;
+    for(let node=nodes.nextNode(); node; node=nodes.nextNode()){
+        const next = offset + (node as Text).length;
+        if(start >= offset && start < next) range.setStart(node, start - offset);
+        if(end <= next){
+            range.setEnd(node, end - offset);
+            const selection = window.getSelection();
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+            content.scrollTop += range.getBoundingClientRect().top - content.getBoundingClientRect().top - content.clientHeight / 3;
+            return true;
+        }
+        offset = next;
+    }
+    return false;
+}
+
 function update_content(n:NoteWindow):void{
     let note = NOTES.get(n.id);
     if(!note){
@@ -144,6 +169,15 @@ function make_note_window(id:number):NoteWindow{
     monospace_textarea(editor, stop_editing);
     const result: NoteWindow = { id, win, edit_button, content, ed_container, editor,
     is_editing:false,
+    reveal_match:function(pattern:RegExp):void{
+        const match = pattern.exec(editor.value);
+        if(!match) return;
+        if(!result.is_editing && reveal_rendered_passage(content, match[0])) return;
+        // A match in Markdown syntax may exist only in the source.
+        start_editing();
+        editor.focus();
+        editor.setSelectionRange(match.index, match.index + match[0].length);
+    },
     refresh:function():void{
         const note = NOTES.get(id);
         if(!note) return;
@@ -164,8 +198,10 @@ function make_note_window(id:number):NoteWindow{
         if(!result.is_editing) return;
         const note = NOTES.get(id);
         if(!note) return;
-        note.body = editor.value;
-        note.need_send = true;
+        if(note.body !== editor.value){
+            note.body = editor.value;
+            note.need_send = true;
+        }
         result.is_editing = false;
         edit_button.textContent = 'Edit';
         ed_container.style.display = 'none';
@@ -181,7 +217,7 @@ function make_note_window(id:number):NoteWindow{
         edit_button.textContent = 'Done';
         ed_container.style.display = 'grid';
         content.style.display = 'none';
-        setTimeout(()=>editor.focus(), 0);
+        editor.focus();
     }
     edit_button.onclick = function(e:MouseEvent):void{
         e.stopPropagation();

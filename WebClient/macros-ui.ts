@@ -404,9 +404,15 @@ function get_macro_window(cid:number, id:number):MacroWindow {
     return m;
 }
 
-function open_macro_editor(cid:number, mid:number):void{
-    if(CHARACTERS.get(cid)?.[2].includes(mid) && MACROS.has(mid))
-        get_macro_window(cid, mid).win.show();
+function open_macro_editor(cid:number, mid:number, pattern?:RegExp):void{
+    if(!CHARACTERS.get(cid)?.[2].includes(mid) || !MACROS.has(mid)) return;
+    const w = get_macro_window(cid, mid);
+    w.win.show();
+    const match = pattern?.exec(w.editor.value);
+    if(match){
+        w.editor.focus();
+        w.editor.setSelectionRange(match.index, match.index + match[0].length);
+    }
 }
 
 function get_vars_window(cid:number):VariablesWindow{

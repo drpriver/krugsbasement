@@ -7,9 +7,12 @@ type CampaignSearchItem = {
     name: string;
     parent: string;
     open: ()=>void;
+    find_content?: (pattern:RegExp)=>CampaignContentMatch|null;
 };
 
-function search_tree_items(tree:TreeView): Array<CampaignSearchItem>{
+type CampaignContentMatch = {snippet:string, open:()=>void};
+
+function search_tree_items(tree:TreeView, find_content:(id:number, pattern:RegExp)=>CampaignContentMatch|null): Array<CampaignSearchItem>{
     const entries: Array<CampaignSearchItem> = [];
     for(const [id, item] of tree._items){
         const path:string[] = [];
@@ -25,6 +28,7 @@ function search_tree_items(tree:TreeView): Array<CampaignSearchItem>{
             name: item.sp.textContent || '',
             parent: path.reverse().join(' › '),
             open: ()=>tree._items.get(id)?.el.click(),
+            find_content: pattern=>find_content(id, pattern),
         });
     }
     return entries;
@@ -35,45 +39,75 @@ function search_macro_items(): Array<CampaignSearchItem>{
     for(const [cid, character] of CHARACTERS){
         for(const mid of character[2]){
             const macro = MACROS.get(mid);
-            if(macro)
-                macros.push({id:mid, name:macro[1], parent:character[1], open:()=>open_macro_editor(cid, mid)});
+            if(macro){
+                macros.push({id:mid, name:macro[1], parent:character[1], open:()=>open_macro_editor(cid, mid),
+                    find_content:pattern=>{
+                        const snippet = content_excerpt(macro[2], pattern);
+                        return snippet ? {snippet, open:()=>open_macro_editor(cid, mid, pattern)} : null;
+                    },
+                });
+            }
         }
     }
     return macros;
 }
 
-function find_sheet_content(id:number, excerpt:(text:string)=>string):string{
+function search_clock_items():CampaignSearchItem[]{
+    const items:CampaignSearchItem[] = [];
+    for(const clock of clocks.values()){
+        if(clock.hidinguser && clock.hidinguser !== SETTINGS.userid) continue;
+        items.push({id:clock.id, name:clock.name, parent:'', open:()=>{
+            const current = clocks.get(clock.id);
+            if(!current || (current.hidinguser && current.hidinguser !== SETTINGS.userid)) return;
+            const w = get_or_create_clock_window(current.id);
+            w?.win.show();
+            w?.win.win.focus();
+        }});
+    }
+    return items;
+}
+
+function find_sheet_content(id:number, pattern:RegExp):CampaignContentMatch|null{
     const sheet = SPREADSHEETS.get(id);
-    if(!sheet) return '';
-    for(const name of sheet.column_names){
-        const match = excerpt(name);
-        if(match) return 'Column · ' + match;
+    if(!sheet) return null;
+    function result(snippet:string, cell:HTMLElement):CampaignContentMatch{
+        return {snippet, open:()=>{
+            const current = SPREADSHEETS.get(id);
+            if(!current) return;
+            current.win.show();
+            if(current.grid.contains(cell)){
+                cell.focus();
+                cell.scrollIntoView({block:'nearest', inline:'nearest'});
+            }
+        }};
+    }
+    for(const [c, name] of sheet.column_names.entries()){
+        const match = content_excerpt(name, pattern);
+        if(match) return result('Column · ' + match, sheet.headers[c]);
     }
     for(let r = 0; r < sheet.cell_sources.length; r++){
         const row = sheet.cell_sources[r];
         for(let c = 0; c < row.length; c++){
             const display = sheet.cell_displays[r][c];
-            const match = excerpt(row[c]) || excerpt(sheet.cell_extras[r][c][0])
-                || (display !== row[c] && excerpt(display));
+            const match = content_excerpt(row[c], pattern) || content_excerpt(sheet.cell_extras[r][c][0], pattern)
+                || (display !== row[c] && content_excerpt(display, pattern));
             if(match){
                 const address = c < 26 ? String.fromCharCode(65+c) + (r+1) : 'R' + (r+1) + 'C' + (c+1);
-                return address + ' · ' + match;
+                return result(address + ' · ' + match, sheet.cell_elems[r][c]);
             }
         }
     }
-    return '';
+    return null;
 }
 
-function content_excerpt(pattern:RegExp):(text:string)=>string{
-    return text=>{
-        if(!text) return '';
-        const match = pattern.exec(text);
-        if(!match) return '';
-        const start = Math.max(0, match.index - 30);
-        const end = Math.min(text.length, match.index + Math.min(match[0].length, 80) + 45);
-        return (start ? '…' : '') + text.slice(start, end).replace(/\s+/g, ' ').trim()
-            + (end < text.length ? '…' : '');
-    };
+function content_excerpt(text:string, pattern:RegExp):string{
+    if(!text) return '';
+    const match = pattern.exec(text);
+    if(!match) return '';
+    const start = Math.max(0, match.index - 30);
+    const end = Math.min(text.length, match.index + Math.min(match[0].length, 80) + 45);
+    return (start ? '…' : '') + text.slice(start, end).replace(/\s+/g, ' ').trim()
+        + (end < text.length ? '…' : '');
 }
 
 function campaign_match_score(name:string, query:string, pattern:RegExp|null):number{
@@ -118,25 +152,33 @@ document.addEventListener('DOMContentLoaded', function():void{
         render();
     };
     let waiting_for_notes = false;
-    function find_note_content(id:number, excerpt:(text:string)=>string):string{
+    function find_note_content(id:number, pattern:RegExp):CampaignContentMatch|null{
         const note = NOTES.get(id);
-        if(!note || note.flags & NOTEFLAGS.DELETED) return '';
+        if(!note || note.flags & NOTEFLAGS.DELETED) return null;
         const editor = NOTE_WINDOWS.get(id);
-        if(editor?.is_editing) return excerpt(editor.editor.value);
-        refresh_stale_note(note);
-        if(note.request_pending){
-            waiting_for_notes = true;
-            return '';
+        if(!editor?.is_editing){
+            refresh_stale_note(note);
+            if(note.request_pending){
+                waiting_for_notes = true;
+                return null;
+            }
         }
-        return excerpt(note.body);
+        const snippet = content_excerpt(editor?.is_editing ? editor.editor.value : note.body, pattern);
+        return snippet ? {snippet, open:()=>{
+            if(!NOTE_TV._items.has(id)) return;
+            const w = get_note_window(id);
+            w.win.show();
+            w.reveal_match(pattern);
+        }} : null;
     }
-    const sources:Array<[string, ()=>Array<CampaignSearchItem>, (id:number, excerpt:(text:string)=>string)=>string]> = [
-        ['Maps', ()=>search_tree_items(CANV_TV), find_map_content],
-        ['Notes', ()=>search_tree_items(NOTE_TV), find_note_content],
-        ['Sheets', ()=>search_tree_items(SHEET_TV), find_sheet_content],
-        ['Macros', search_macro_items, (id, excerpt)=>excerpt(MACROS.get(id)![2])],
+    const sources:Array<[string, ()=>Array<CampaignSearchItem>]> = [
+        ['Maps', ()=>search_tree_items(CANV_TV, find_map_content)],
+        ['Notes', ()=>search_tree_items(NOTE_TV, find_note_content)],
+        ['Sheets', ()=>search_tree_items(SHEET_TV, find_sheet_content)],
+        ['Macros', search_macro_items],
+        ['Clocks', search_clock_items],
     ];
-    const categories = sources.map(([name, items, find_content])=>{
+    const categories = sources.map(([name, items])=>{
         const key = 'omni-search/' + name;
         const label = elem_with_parent(filters, 'label');
         const checkbox = elem_with_parent(label, 'input');
@@ -158,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function():void{
             store_global(StorageCategory.UI, key, checkbox.checked);
             render();
         };
-        return {name, key, checkbox, items, find_content};
+        return {name, key, checkbox, items};
     });
     function toggle_solo(checkbox:HTMLInputElement, was_checked:boolean):void{
         const was_solo = was_checked && categories.every(c=>c.checkbox === checkbox || !c.checkbox.checked);
@@ -229,17 +271,17 @@ document.addEventListener('DOMContentLoaded', function():void{
         }
         input.removeAttribute('aria-invalid');
         const name_query = pattern ? query : query.toLowerCase();
-        const excerpt = contents.checked && query
-            ? content_excerpt(pattern || new RegExp(query.replace(/[.*+?^{}$()|[\]\\]/g, '\\$&'), 'iu'))
+        const content_pattern = contents.checked && query
+            ? pattern || new RegExp(query.replace(/[.*+?^{}$()|[\]\\]/g, '\\$&'), 'iu')
             : null;
         const enabled = categories.filter(category=>category.checkbox.checked);
-        const groups = enabled.map(({name, items, find_content})=>{
+        const groups = enabled.map(({name, items})=>{
             const matches = [];
             for(const item of items()){
                 const score = campaign_match_score(item.name, name_query, pattern);
-                const snippet = excerpt && score === Infinity ? find_content(item.id, excerpt) : '';
-                if(snippet || Number.isFinite(score))
-                    matches.push({item, score:snippet ? 3 : score, snippet});
+                const hit = content_pattern && score === Infinity ? item.find_content?.(content_pattern) : null;
+                if(hit || Number.isFinite(score))
+                    matches.push({item, score:hit ? 3 : score, hit});
             }
             matches.sort((a,b)=>a.score - b.score || a.item.name.localeCompare(b.item.name)
                 || a.item.parent.localeCompare(b.item.parent));
@@ -252,18 +294,19 @@ document.addEventListener('DOMContentLoaded', function():void{
             section.setAttribute('role', 'group');
             section.setAttribute('aria-label', group.name);
             elem_parent_text(section, 'h3', group.name);
-            for(const {item, snippet} of group.matches){
+            for(const {item, hit} of group.matches){
                 const row = elem_with_parent(section, 'div', 'omni-result-' + rows.length);
                 row.dataset.key = JSON.stringify([group.name, item.id, item.parent]);
                 row.setAttribute('role', 'option');
                 row.setAttribute('aria-selected', 'false');
                 const title = elem_parent_text(row, 'span', item.name);
-                if(snippet) elem_parent_text(title, 'small', snippet, null, 'search-excerpt');
+                if(hit) elem_parent_text(title, 'small', hit.snippet, null, 'search-excerpt');
                 if(item.parent) elem_parent_text(row, 'small', item.parent);
                 const index = rows.length;
                 row.onclick = ()=>{
                     if(!keep_open.checked) win.close();
-                    item.open();
+                    if(hit) hit.open();
+                    else item.open();
                     if(keep_open.checked){
                         select(index);
                         win.make_top();
@@ -317,7 +360,7 @@ document.addEventListener('DOMContentLoaded', function():void{
     let note_frame = 0;
     listen_for(ListenEvent.NOTE_BODY_CHANGED, ()=>{
         if(note_frame || win.state !== WinState.OPEN || !contents.checked || !input.value
-            || !categories.some(c=>c.find_content === find_note_content && c.checkbox.checked)) return;
+            || !categories.some(c=>c.name === 'Notes' && c.checkbox.checked)) return;
         note_frame = requestAnimationFrame(()=>{
             note_frame = 0;
             if(contents.checked) refresh_results();
@@ -328,7 +371,12 @@ document.addEventListener('DOMContentLoaded', function():void{
             || e.key.toLowerCase() !== 'k' || e.shiftKey || e.altKey || e.isComposing) return;
         e.preventDefault();
         e.stopPropagation();
+        const was_open = win.state === WinState.OPEN;
         show();
+        if(was_open){
+            navigating = false;
+            input.select();
+        }
     }, true);
     win.win.onkeydown = function(e):void{
         e.stopPropagation();
