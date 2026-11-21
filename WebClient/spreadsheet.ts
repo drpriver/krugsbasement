@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         const ss = SPREADSHEETS.get(id);
         if(ss) ss.win.show();
     };
-    SHEET_TV.on_ctxmenu = function(id:number, e:MouseEvent):void{
+    SHEET_TV.on_ctxmenu = function(id:number, e:MouseEvent, sp:HTMLElement):void{
         const menu = ctx_menu(e);
         const ss = SPREADSHEETS.get(id);
         if(!ss) return;
@@ -25,8 +25,6 @@ document.addEventListener('DOMContentLoaded', function():void{
         menu.item('Rename', function(e:MouseEvent):void{
             e.stopPropagation();
             e.preventDefault();
-            const sp = SHEET_TV.get_sp(id);
-            if(!sp) return;
             edit_element_inline(sp, EditElementFlags.SELECT, function(txt:string):void{
                 EMIT(FromClient.SPREADSHEET, [SpreadSheetMsgType.NAME, id, txt]);
             });

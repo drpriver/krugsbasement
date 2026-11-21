@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         window.win.t.textContent = note.title;
         window.win.show();
     };
-    NOTE_TV.on_ctxmenu = function(id:number, e:MouseEvent):void{
+    NOTE_TV.on_ctxmenu = function(id:number, e:MouseEvent, sp:HTMLElement):void{
         const menu = ctx_menu(e);
         menu.item('Show Others', function():void{
             EMIT(FromClient.NOTE_SHOW, id);
@@ -26,8 +26,6 @@ document.addEventListener('DOMContentLoaded', function():void{
         menu.item('Rename', function(e:MouseEvent):void{
             e.stopPropagation();
             e.preventDefault();
-            const sp = NOTE_TV.get_sp(id);
-            if(!sp) return;
             edit_element_inline(sp, EditElementFlags.SELECT, function(v:string):void{
                 EMIT(FromClient.NOTE_UPDATE_TITLE, {note_id:id, title:v});
                 const note = NOTES.get(id)!;

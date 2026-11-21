@@ -12,8 +12,9 @@ type TreeItem = {
 
 type TreeView = {
     on_click?: ((key:number) => void) | ((key:number, e:MouseEvent)=>void);
-    on_ctxmenu?:(key:number, e:MouseEvent) => void;
+    on_ctxmenu?:(key:number, e:MouseEvent, name:HTMLElement) => void;
     on_drop?:(dropped:number, onto:number|null) => void;
+    bind_item_drag:(el:HTMLElement, key:number)=>void;
     add_item:(name:string, key:number, parent:number|null)=>void;
     // like add_item, but doesn't rebuild the tree.
     add_item_:(name:string, key:number, parent:number|null)=>void;
@@ -38,6 +39,17 @@ type TreeView = {
 function
 make_tree_view(_container: HTMLElement, domain:string):TreeView{
     const mime = 'application/krug-'+domain;
+    function move_item(data:DataTransfer, parent:number|null):void{
+        const text = data.getData(mime);
+        if(!text) return;
+        const key = Number(text);
+        const item = result._items.get(key);
+        if(!item || item.parent === parent || (parent !== null && !result._items.has(parent))) return;
+        result.change_parent_(key, parent);
+        if(item.parent !== parent) return; // The move would create a cycle.
+        result.rebuild();
+        result.on_drop?.(key, parent);
+    }
     _container.ondragover = function(e:DragEvent):void{
         if(!e.dataTransfer!.types.includes(mime)) return;
         e.stopPropagation();
@@ -61,24 +73,22 @@ make_tree_view(_container: HTMLElement, domain:string):TreeView{
         e.stopPropagation();
         e.preventDefault();
         _container.classList.remove('dragover');
-        const data = +e.dataTransfer!.getData(mime);
-        result.change_parent(data, null);
-        if(result.on_drop)
-            result.on_drop(data, null);
+        move_item(e.dataTransfer!, null);
     };
     const result: TreeView = {
         add_item:(name:string, key:number, parent:number|null):void=>{
             result.add_item_(name, key, parent);
             result.rebuild();
         },
-        add_item_:(name:string, key:number, parent:number|null):void=>{
-            const el = elem('div', null, 'tree-item');
+        bind_item_drag:(el:HTMLElement, key:number):void=>{
             el.draggable = true;
-            const tog = elem_with_parent(el, 'span', null, 'toggle');
-            const sp = elem_parent_text(el, 'span', name, null, 'name');
             let me = false;
             el.ondragstart = function(e:DragEvent):void{
-                e.dataTransfer!.setData(mime, ''+key)
+                if(!result._items.has(key)){
+                    e.preventDefault();
+                    return;
+                }
+                e.dataTransfer!.setData(mime, ''+key);
                 e.dataTransfer!.effectAllowed = 'all';
                 me = true;
                 el.classList.add('dragging');
@@ -114,12 +124,14 @@ make_tree_view(_container: HTMLElement, domain:string):TreeView{
                 e.preventDefault();
                 el.classList.remove('dragover');
                 if(me) return;
-                const data = +e.dataTransfer!.getData(mime);
-                if(data == key) return;
-                if(result.on_drop)
-                    result.on_drop(data as number, key);
-                result.change_parent(data as number, key);
+                move_item(e.dataTransfer!, key);
             };
+        },
+        add_item_:(name:string, key:number, parent:number|null):void=>{
+            const el = elem('div', null, 'tree-item');
+            result.bind_item_drag(el, key);
+            const tog = elem_with_parent(el, 'span', null, 'toggle');
+            const sp = elem_parent_text(el, 'span', name, null, 'name');
             el.onclick = function(e:MouseEvent):void{
                 // I don't know why this has to be here.
                 // Other things don't suffer from this
@@ -142,7 +154,7 @@ make_tree_view(_container: HTMLElement, domain:string):TreeView{
                 }
             };
             el.oncontextmenu = function(e:MouseEvent):void{
-                if(result.on_ctxmenu) result.on_ctxmenu(key, e);
+                if(result.on_ctxmenu) result.on_ctxmenu(key, e, sp);
             };
             const item:TreeItem = {
                 el,

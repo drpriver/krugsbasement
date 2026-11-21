@@ -38,7 +38,7 @@
       <div id="omni-search-filters" role="group" aria-label="Search in"></div>
       <label><input id="omni-search-contents" type="checkbox"> Search contents</label>
       <label><input id="omni-search-regex" type="checkbox"> Regex</label>
-      <label><input id="omni-search-keep-open" type="checkbox"> Keep open after selection</label>
+      <label title="Shift-click or Shift+Enter to reverse this for one result"><input id="omni-search-keep-open" type="checkbox"> Keep open after selection</label>
       <div id="omni-search-results" role="listbox" aria-label="Campaign matches"></div>
       <div id="omni-search-empty" role="status" hidden>No matches</div>
     </div>

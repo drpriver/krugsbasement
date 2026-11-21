@@ -7,6 +7,8 @@ type CampaignSearchItem = {
     name: string;
     parent: string;
     open: ()=>void;
+    context_menu: (e:MouseEvent, name:HTMLElement)=>void;
+    tree?: TreeView;
     find_content?: (pattern:RegExp)=>CampaignContentMatch|null;
 };
 
@@ -27,6 +29,10 @@ function search_tree_items(tree:TreeView, find_content:(id:number, pattern:RegEx
             id,
             name: item.sp.textContent || '',
             parent: path.reverse().join(' › '),
+            tree,
+            context_menu: (e, name)=>{
+                if(tree._items.has(id)) tree.on_ctxmenu?.(id, e, name);
+            },
             open: ()=>tree._items.get(id)?.el.click(),
             find_content: pattern=>find_content(id, pattern),
         });
@@ -41,6 +47,7 @@ function search_macro_items(): Array<CampaignSearchItem>{
             const macro = MACROS.get(mid);
             if(macro){
                 macros.push({id:mid, name:macro[1], parent:character[1], open:()=>open_macro_editor(cid, mid),
+                    context_menu:(e, name)=>macro_context_menu(cid, mid, e, name),
                     find_content:pattern=>{
                         const snippet = content_excerpt(macro[2], pattern);
                         return snippet ? {snippet, open:()=>open_macro_editor(cid, mid, pattern)} : null;
@@ -56,7 +63,11 @@ function search_clock_items():CampaignSearchItem[]{
     const items:CampaignSearchItem[] = [];
     for(const clock of clocks.values()){
         if(clock.hidinguser && clock.hidinguser !== SETTINGS.userid) continue;
-        items.push({id:clock.id, name:clock.name, parent:'', open:()=>{
+        items.push({id:clock.id, name:clock.name, parent:'', context_menu:(e, name)=>{
+            const current = clocks.get(clock.id);
+            if(current && (!current.hidinguser || current.hidinguser === SETTINGS.userid))
+                clock_tv.on_ctxmenu?.(clock.id, e, name);
+        }, open:()=>{
             const current = clocks.get(clock.id);
             if(!current || (current.hidinguser && current.hidinguser !== SETTINGS.userid)) return;
             const w = get_or_create_clock_window(current.id);
@@ -230,22 +241,35 @@ document.addEventListener('DOMContentLoaded', function():void{
     const shortcut = IS_MAC ? '⌘K' : 'Ctrl+K';
     trigger.title = 'Search campaign (' + shortcut + ')';
     trigger.setAttribute('aria-keyshortcuts', IS_MAC ? 'Meta+K' : 'Control+K');
-    const rows:HTMLElement[] = [];
+    const rows:{el:HTMLElement, open:()=>void}[] = [];
     let active = -1;
     let navigating = false;
     let return_focus:HTMLElement|null = null;
 
     function select(index:number):void{
-        if(active >= 0) rows[active].setAttribute('aria-selected', 'false');
+        if(active >= 0) rows[active].el.setAttribute('aria-selected', 'false');
         active = index;
         if(active < 0){
             input.removeAttribute('aria-activedescendant');
             return;
         }
-        const row = rows[active];
+        const row = rows[active].el;
         row.setAttribute('aria-selected', 'true');
         input.setAttribute('aria-activedescendant', row.id);
         if(navigating) row.scrollIntoView({block:'nearest'});
+    }
+
+    function open_result(index:number, invert_keep_open:boolean):void{
+        const result = rows[index];
+        if(!result) return;
+        const stay_open = keep_open.checked !== invert_keep_open;
+        if(!stay_open) win.close();
+        result.open();
+        if(stay_open){
+            select(index);
+            win.make_top();
+            input.focus();
+        }
     }
 
     function render():void{
@@ -299,21 +323,18 @@ document.addEventListener('DOMContentLoaded', function():void{
                 row.dataset.key = JSON.stringify([group.name, item.id, item.parent]);
                 row.setAttribute('role', 'option');
                 row.setAttribute('aria-selected', 'false');
-                const title = elem_parent_text(row, 'span', item.name);
+                const title = elem_with_parent(row, 'span');
+                const name = elem_parent_text(title, 'span', item.name);
                 if(hit) elem_parent_text(title, 'small', hit.snippet, null, 'search-excerpt');
                 if(item.parent) elem_parent_text(row, 'small', item.parent);
                 const index = rows.length;
-                row.onclick = ()=>{
-                    if(!keep_open.checked) win.close();
-                    if(hit) hit.open();
-                    else item.open();
-                    if(keep_open.checked){
-                        select(index);
-                        win.make_top();
-                        input.focus();
-                    }
+                row.onclick = e=>{
+                    if(IS_MAC && e.ctrlKey) return;
+                    open_result(index, e.shiftKey);
                 };
-                rows.push(row);
+                row.oncontextmenu = e=>item.context_menu(e, name);
+                item.tree?.bind_item_drag(row, item.id);
+                rows.push({el:row, open:hit ? hit.open : item.open});
             }
         }
         empty.textContent = waiting_for_notes ? 'Updating notes…' : enabled.length ? 'No matches' : 'Select a category to search.';
@@ -347,24 +368,34 @@ document.addEventListener('DOMContentLoaded', function():void{
     input.oninput = render;
     function refresh_results():void{
         if(win.state !== WinState.OPEN) return;
-        const key = navigating ? rows[active]?.dataset.key : undefined;
+        const key = navigating ? rows[active]?.el.dataset.key : undefined;
         render();
         if(key){
-            const index = rows.findIndex(row=>row.dataset.key === key);
+            const index = rows.findIndex(row=>row.el.dataset.key === key);
             if(index >= 0){
                 navigating = true;
                 select(index);
             }
         }
     }
-    let note_frame = 0;
-    listen_for(ListenEvent.NOTE_BODY_CHANGED, ()=>{
-        if(note_frame || win.state !== WinState.OPEN || !contents.checked || !input.value
-            || !categories.some(c=>c.name === 'Notes' && c.checkbox.checked)) return;
-        note_frame = requestAnimationFrame(()=>{
-            note_frame = 0;
-            if(contents.checked) refresh_results();
+    // A drop on a result or a drag out to the sidebar can change the displayed paths.
+    let refresh_frame = 0;
+    function schedule_refresh():void{
+        if(refresh_frame) return;
+        refresh_frame = requestAnimationFrame(()=>{
+            refresh_frame = 0;
+            if(!results.querySelector('.dragging, .editing')) refresh_results();
         });
+    }
+    results.addEventListener('drop', schedule_refresh, true);
+    results.addEventListener('dragend', schedule_refresh);
+    results.addEventListener('focusout', e=>{
+        if(e.target instanceof HTMLInputElement) schedule_refresh();
+    });
+    listen_for(ListenEvent.NOTE_BODY_CHANGED, ()=>{
+        if(win.state !== WinState.OPEN || !contents.checked || !input.value
+            || !categories.some(c=>c.name === 'Notes' && c.checkbox.checked)) return;
+        schedule_refresh();
     });
     window.addEventListener('keydown', function(e):void{
         if(!(IS_MAC ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey)
@@ -408,7 +439,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         }
         else if(e.key === 'Enter' || (e.key === ' ' && navigating)){
             e.preventDefault();
-            rows[active]?.click();
+            open_result(active, e.key === 'Enter' && e.shiftKey);
         }
     };
 });

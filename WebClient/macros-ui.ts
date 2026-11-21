@@ -2,7 +2,7 @@
 // Copyright © 2021-2026, David Priver <david@davidpriver.com>
 //
 
-const open_macro_editor = (function(){
+const {open_macro_editor, macro_context_menu} = (function(){
 
 type MacroWindow = {
     cid: number;
@@ -447,6 +447,43 @@ function add_macro_dialog(cid:number):void{
     dialog.show();
 }
 
+function macro_context_menu(cid:number, mid:number, e:MouseEvent, name:HTMLElement):void{
+    const m = MACROS.get(mid);
+    if(!m || !CHARACTERS.get(cid)?.[2].includes(mid)) return;
+    const menu = ctx_menu(e);
+    menu.item('Rename', function(e:MouseEvent):void{
+        e.stopPropagation();
+        e.preventDefault();
+        edit_element_inline(name, EditElementFlags.SELECT, function(s:string):void{
+            m[1] = s;
+            save_mcv_and_signal();
+        });
+        remove_ctx_menu();
+    });
+    menu.item('Edit', function():void{
+        open_macro_editor(cid, mid);
+    });
+    menu.separator();
+    menu.item('Delete', function():void{
+        const dialog = get_dialog('simple-delete');
+        if(!dialog) return;
+        dialog.title.textContent = 'Delete Macro';
+        dialog.f.delete.checked = false;
+        dialog.ok_handler = function():void{
+            if(!dialog.f.delete.checked) return;
+            del_macro(mid);
+            const ident = (cid << 16) | mid;
+            const w = MACRO_WINDOWS.get(ident);
+            if(w) w.win.close();
+            save_mcv_and_signal();
+        };
+        dialog.show();
+    });
+    menu.separator();
+    menu.canceller();
+    menu.install();
+}
+
 function setup_macro_left():void{
     const button = by_id('new-macro-group-button');
     button.onclick = function():void{
@@ -549,40 +586,7 @@ function setup_macro_left():void{
             const m = MACROS.get(mid);
             if(!m) continue;
             const mli = elem_parent_text(nested, 'li', m[1]);
-            mli.oncontextmenu = function(e:MouseEvent):void{
-                const menu = ctx_menu(e);
-                menu.item('Rename', function(e:MouseEvent):void{
-                    e.stopPropagation();
-                    e.preventDefault();
-                    edit_element_inline(mli, EditElementFlags.SELECT, function(s:string):void{
-                        m[1] = s;
-                        save_mcv_and_signal();
-                    });
-                    remove_ctx_menu();
-                });
-                menu.item('Edit', function():void{
-                    open_macro_editor(cid, mid);
-                });
-                menu.separator();
-                menu.item('Delete', function():void{
-                    const dialog = get_dialog('simple-delete');
-                    if(!dialog) return;
-                    dialog.title.textContent = 'Delete Macro';
-                    dialog.f.delete.checked = false;
-                    dialog.ok_handler = function():void{
-                        if(!dialog.f.delete.checked) return;
-                        del_macro(mid);
-                        const ident = (cid << 16) | mid;
-                        const w = MACRO_WINDOWS.get(ident);
-                        if(w) w.win.close();
-                        save_mcv_and_signal();
-                    };
-                    dialog.show();
-                });
-                menu.separator();
-                menu.canceller();
-                menu.install();
-            };
+            mli.oncontextmenu = e=>macro_context_menu(cid, mid, e, mli);
             mli.onclick = function(e:MouseEvent):void{
                 e.stopPropagation();
                 open_macro_editor(cid, mid);
@@ -707,5 +711,5 @@ document.addEventListener('DOMContentLoaded', function():void{
     setup_macro_panel();
 });
 
-return open_macro_editor;
+return {open_macro_editor, macro_context_menu};
 }());
