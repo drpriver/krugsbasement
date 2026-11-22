@@ -258,6 +258,7 @@
         ${shortcut_group('Windows and the minimized strip', [
           ['Alt+.', 'Focus the next open window.'],
           ['Alt+,', 'Focus the previous open window.'],
+          ['Alt+G', 'Move the front window. Arrows move 16 pixels. Hold Shift for 1 pixel. Enter places the window. Esc returns it to its starting position.'],
           ['Alt+M', 'Minimize the front window.'],
           ['Alt+X', 'Close the front window.'],
           ['Alt+J', 'Focus the newest minimized window. Press again to focus the front open window.'],

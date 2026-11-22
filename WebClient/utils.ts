@@ -45,10 +45,13 @@ function elem_parent_text<K extends keyof HTMLElementTagNameMap>(parent:HTMLElem
 let TOPPERMOST_Z = 3;
 let front_window:HTMLDivElement|null = null;
 const windows_in_opening_order = new Map<HTMLDivElement, ()=>void>();
+const keyboard_window_moves = new WeakMap<HTMLDivElement, ()=>void>();
+let cancel_window_move:(()=>void)|null = null;
 function window_hidden(win:HTMLDivElement, minimized = false):void{
     if(!minimized) windows_in_opening_order.delete(win);
     win.classList.remove('window-behind');
     if(win !== front_window) return;
+    cancel_window_move?.();
     front_window = null;
     for(const other of windows_in_opening_order.keys()){
         if(other.getClientRects().length && (!front_window || +other.style.zIndex > +front_window.style.zIndex))
@@ -79,6 +82,7 @@ function setup_zsorted_window(win:HTMLDivElement, flags:ZSORTFLAGS):()=>void{
             win.style.zIndex = ""+TOPPERMOST_Z;
         }
         if(show_depth && front_window !== win){
+            cancel_window_move?.();
             windows_in_opening_order.set(win, make_top);
             front_window?.classList.add('window-behind');
             win.classList.remove('window-behind');
@@ -100,6 +104,7 @@ const enum WINDOWFLAGS {
     LOCAL = 1 << 1,
     LOCAL_REMEMBER = LOCAL|REMEMBER_POSITION,
     GLOBAL_REMEMBER = REMEMBER_POSITION,
+    KEYBOARD_MOVE = 1 << 2,
 };
 
 
@@ -111,23 +116,17 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
     let xorg = 0;
     let yorg = 0;
 
-    // To prevent spamming the localStorage, uses this to debounce.
-    let save_in_flight = false;
-    let save_position = function(x:number, y:number):void{};
-    if(flags &  WINDOWFLAGS.REMEMBER_POSITION){
-        save_position = function (x:number, y:number):void{
-            x = 100*x/window.innerWidth;
-            y = 100*y/window.innerHeight;
-            if(save_in_flight) return;
-            save_in_flight = true;
-            setTimeout(function():void{
-                if(flags & WINDOWFLAGS.LOCAL)
-                    store_local(StorageCategory.WINDOW, win.id, [x+'%', y+'%']);
-                else
-                    store_global(StorageCategory.WINDOW, win.id, [x+'%', y+'%']);
-                save_in_flight = false;
-            }, 100);
-        }
+    function save_position():void{
+        if(!(flags & WINDOWFLAGS.REMEMBER_POSITION)) return;
+        const r = win.getBoundingClientRect();
+        const store = flags & WINDOWFLAGS.LOCAL ? store_local : store_global;
+        store(StorageCategory.WINDOW, win.id, [100*r.left/window.innerWidth+'%', 100*r.top/window.innerHeight+'%']);
+    }
+    if(flags & WINDOWFLAGS.KEYBOARD_MOVE){
+        handle.title = IS_MAC ? 'Move window (⌥G)' : 'Move window (Alt+G)';
+        keyboard_window_moves.set(win, ()=>{
+            if(!dragging && !cancel_window_move) grab_window(win, handle, save_position);
+        });
     }
     let old_pos;
     if(flags & WINDOWFLAGS.LOCAL)
@@ -170,8 +169,7 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
         handle.removeEventListener('pointerup', endmove);
         handle.style.cursor = 'grab';
         dragging = false;
-        let r = win.getBoundingClientRect();
-        save_position(r.left, r.top);
+        save_position();
     }
     function pointermove(e:PointerEvent):void{
         if(!dragging) return;
@@ -179,26 +177,57 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
         e.stopPropagation();
         let xdiff = e.screenX - x;
         let ydiff = e.screenY - y;
-        let newy = yorg + ydiff;
-        let newx = xorg + xdiff;
-        let r = win.getBoundingClientRect();
-        let xmarg = r.width;
-        let ymarg = r.height;
-        // let xmarg = IS_TOUCH?r.width:(r.width > 128? 128: r.width);
-        // let ymarg = IS_TOUCH?r.height:(r.height > 128? 128: r.height);
-        if(newx + xmarg > window.innerWidth)
-            newx = window.innerWidth - xmarg;
-        if(newy + ymarg > window.innerHeight)
-            newy = window.innerHeight - ymarg;
-        if(newy < 0) newy = 0;
-        if(newx < 0) newx = 0;
-        win.style.top = 100*newy/window.innerHeight + '%';
-        win.style.left = 100*newx/window.innerWidth + '%';
+        move_window_to(win, xorg + xdiff, yorg + ydiff);
         xorg += xdiff;
         yorg += ydiff;
         x = e.screenX;
         y = e.screenY;
     }
+}
+function grab_window(win:HTMLDivElement, handle:HTMLDivElement, save_position:()=>void):void{
+    const {left, top, right, bottom} = win.style;
+    const previous = document.activeElement;
+    const place_key = IS_MAC ? 'Return' : 'Enter';
+    const hint = elem_parent_text(handle, 'span', 'Arrows to move · '+place_key+' to place · Esc to cancel', null, 'window-move-hint');
+    hint.tabIndex = -1;
+    function cancel():void{ finish(false); }
+    function finish(place:boolean):void{
+        cancel_window_move = null;
+        hint.removeEventListener('blur', cancel);
+        window.removeEventListener('pointerdown', cancel, true);
+        if(place) save_position();
+        else Object.assign(win.style, {left, top, right, bottom});
+        hint.remove();
+    }
+    cancel_window_move = cancel;
+    hint.addEventListener('blur', cancel);
+    window.addEventListener('pointerdown', cancel, true);
+    hint.onkeydown = e=>{
+        if(e.altKey || e.ctrlKey || e.metaKey || e.isComposing) return;
+        const step = e.shiftKey ? 1 : 16;
+        const r = win.getBoundingClientRect();
+        let x = r.left, y = r.top;
+        switch(e.key){
+            case 'ArrowLeft': x -= step; break;
+            case 'ArrowRight': x += step; break;
+            case 'ArrowUp': y -= step; break;
+            case 'ArrowDown': y += step; break;
+            case 'Enter':
+            case 'Escape':
+                e.preventDefault();
+                e.stopPropagation();
+                finish(e.key === 'Enter');
+                if(previous === win) focus_app_window(win);
+                else if(previous instanceof HTMLElement && previous.isConnected) previous.focus({preventScroll:true});
+                return;
+            default: return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        win.style.right = win.style.bottom = 'initial';
+        move_window_to(win, x, y);
+    };
+    hint.focus({preventScroll:true});
 }
 const enum RESIZEFLAGS {
   NONE = 0,
@@ -247,7 +276,7 @@ function setup_resizable_window(win:HTMLDivElement, flags: RESIZEFLAGS):void{
 const IS_WINDOWS = window.navigator.platform.includes('Windows') || window.navigator.platform.includes('Win32');
 const IS_MAC = window.navigator.platform.includes('Mac');
 const WINDOW_CLOSE_TITLE = IS_MAC ? 'Close (⌥X)' : 'Close (Alt+X)';
-const mac_window_keys:Record<string,string> = {KeyJ:'j', KeyX:'x', KeyM:'m', Comma:',', Period:'.'};
+const mac_window_keys:Record<string,string> = {KeyJ:'j', KeyX:'x', KeyM:'m', KeyG:'g', Comma:',', Period:'.'};
 
 function focus_app_window(win:HTMLDivElement):void{
     // A newly shown window can leave keyboard focus in the window behind it.
@@ -282,6 +311,14 @@ window.addEventListener('keydown', function(e):void{
         return;
     }
     if(!front_window) return;
+    if(key === 'g'){
+        const grab = keyboard_window_moves.get(front_window);
+        if(!grab) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if(!e.repeat) grab();
+        return;
+    }
     if(key === '.' || key === ','){
         const visible = Array.from(windows_in_opening_order.keys()).filter(win=>win.getClientRects().length);
         if(!visible.length) return;
@@ -316,20 +353,16 @@ function setup_closable_window(win:HTMLElement, closer:HTMLElement, onclose:()=>
     closer.title = 'Close';
 }
 
+function move_window_to(win:HTMLElement, x:number, y:number):void{
+    const r = win.getBoundingClientRect();
+    x = Math.max(0, Math.min(x, window.innerWidth - r.width));
+    y = Math.max(0, Math.min(y, window.innerHeight - r.height));
+    win.style.top = 100*y/window.innerHeight + '%';
+    win.style.left = 100*x/window.innerWidth + '%';
+}
 function ensure_window_is_completely_on_screen(win:HTMLElement):void{
-    let r = win.getBoundingClientRect();
-    let newx = r.left;
-    let newy = r.top;
-    let xmarg = r.width;
-    let ymarg = r.height;
-    if(newx + xmarg > window.innerWidth)
-        newx = window.innerWidth - xmarg;
-    if(newy + ymarg > window.innerHeight)
-        newy = window.innerHeight - ymarg;
-    if(newy < 0) newy = 0;
-    if(newx < 0) newx = 0;
-    win.style.top = 100*newy/window.innerHeight + '%';
-    win.style.left = 100*newx/window.innerWidth + '%';
+    const r = win.getBoundingClientRect();
+    move_window_to(win, r.left, r.top);
 }
 
 // This function is for when you need a dynamic element with a dynamic
@@ -595,7 +628,7 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
     result.make_top = setup_zsorted_window(win, ZSORTFLAGS.SHOW_DEPTH);
     let wf = !win.id? WINDOWFLAGS.NONE: global_window?WINDOWFLAGS.GLOBAL_REMEMBER:WINDOWFLAGS.LOCAL_REMEMBER;
     let rf = !win.id? RESIZEFLAGS.NONE: global_window?RESIZEFLAGS.GLOBAL_REMEMBER:RESIZEFLAGS.LOCAL_REMEMBER;
-    setup_movable_window(win, wh, wf);
+    setup_movable_window(win, wh, wf | WINDOWFLAGS.KEYBOARD_MOVE);
     // XXX: hack
     if(!(openid && openid.startsWith('spreadsheet')))
         setup_resizable_window(win, rf);

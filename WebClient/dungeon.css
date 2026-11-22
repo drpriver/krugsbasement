@@ -123,6 +123,28 @@ body.dark-mode div.window-behind {
   -webkit-user-select: none;
   user-select: none;
 }
+.window-handle:has(> .window-move-hint) {
+  position: relative;
+}
+.window-handle:has(> .window-move-hint) > :not(.window-move-hint) {
+  visibility: hidden;
+}
+.window-move-hint {
+  position: absolute;
+  z-index: 1;
+  inset: 0 0 auto;
+  min-height: 100%;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  padding: 2px 4px;
+  border-radius: inherit;
+  background: Highlight;
+  color: HighlightText;
+  text-align: center;
+  font: 13px/1.2 system-ui, sans-serif;
+  pointer-events: none;
+}
 #options, #tree{
   -webkit-user-select: none;
   user-select: none;
