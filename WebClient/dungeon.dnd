@@ -78,6 +78,22 @@
       <textarea spellcheck="false" id="privateroll-input" rows="4"></textarea>
     </div>
   `);
+  function shortcut_label(keys){
+    return keys.split(/( \/ |, or |, | or )/).map((key, index) => {
+      if(index % 2) return key; // Separators between alternative shortcuts.
+      const ctrlKeys = key.replaceAll('Ctrl/Cmd+', 'Ctrl+');
+      const macKeys = key.replaceAll('Ctrl/Cmd+', '⌘')
+        .replaceAll('Alt+Shift+', '⌥⇧').replaceAll('Alt+', '⌥');
+      const macLabel = macKeys === ctrlKeys ? '' : ` data-mac-keys="${macKeys}"`;
+      return `<kbd${macLabel}>${ctrlKeys}</kbd>`;
+    }).join('');
+  }
+  function shortcut_group(title, rows, open = false){
+    const body = rows.map(([keys, action, macOnly]) => {
+      return `<tr${macOnly ? ' hidden data-mac-only' : ''}><th scope="row">${shortcut_label(keys)}</th><td>${action}</td></tr>`;
+    }).join('');
+    return `<details${open ? ' open' : ''}><summary>${title}</summary><table><tbody>${body}</tbody></table></details>`;
+  }
   make_window('help', 'Help',
   `
     <div id="help-container">
@@ -85,6 +101,7 @@
         <span id="help-chat-tab">Chat</span>
         <span id="help-macros-tab">Macros</span>
         <span id="help-sheets-tab">Sheets</span>
+        <span id="help-shortcuts-tab">Shortcuts</span>
       </div>
       <div id="help-chat" class="help-content">
         <details>
@@ -139,10 +156,11 @@
         </details>
         <details>
           <summary><span>help</span><tt>/help macros</tt></summary>
-          <p>Opens this Help window. Use <tt>/help</tt>, <tt>/help macros</tt>, or <tt>/help sheets</tt>.</p>
+          <p>Open Help or jump directly to a tab.</p>
           <pre>/help
           /help macros
-          /help sheets</pre>
+          /help sheets
+          /help shortcuts</pre>
         </details>
         <details>
           <summary><span>choose</span><tt>choose one "two words"</tt></summary>
@@ -235,6 +253,95 @@
             <tr><td>docs</td><td><a href="/docs/spreadsheets.html" target="_blank">Full spreadsheet docs</a></td></tr>
           </tbody>
         </table>
+      </div>
+      <div id="help-shortcuts" class="help-content">
+        ${shortcut_group('Windows and the minimized strip', [
+          ['Alt+.', 'Focus the next open window.'],
+          ['Alt+,', 'Focus the previous open window.'],
+          ['Alt+M', 'Minimize the front window.'],
+          ['Alt+X', 'Close the front window.'],
+          ['Alt+J', 'Focus the newest minimized window. Press again to focus the front open window.'],
+          ['← / →', 'Move to the previous or next minimized window.'],
+          ['Enter or Space', 'Restore the focused minimized window.'],
+          ['X', 'Close the focused minimized window.'],
+        ], true)}
+        ${shortcut_group('Campaign search', [
+          ['Ctrl/Cmd+K', 'Open campaign search.'],
+          ['↑ / ↓', 'Select the previous or next result.'],
+          ['Enter', 'Open the selected result.'],
+          ['Shift+Enter', 'Open the result with the opposite of the current Keep open setting.'],
+          ['Alt+1–5', 'Toggle Maps (1), Notes (2), Sheets (3), Macros (4), or Clocks (5).'],
+          ['Alt+Shift+1–5', 'Search only that category. Repeat on the same category to enable all five.'],
+          ['Alt+C / Alt+R / Alt+K', 'Toggle Search contents, Regex, or Keep open, respectively.'],
+          ['Esc', 'Close search.'],
+        ])}
+        ${shortcut_group('Map tools', [
+          ['S / N / M', 'Select, Pan, or Measure.'],
+          ['W / D / F', 'Wall, Door, or Fixture.'],
+          ['L / R / E', 'Line, Rectangle, or Ellipse.'],
+          ['H / P / A', 'Shape, Polygon, or Arc.'],
+          ['T / O / I', 'Text, Token, or Image.'],
+          ['K / C / U', 'Tile, Coaching, or Spell.'],
+          ['1–9', 'Choose an option by its position in the active tool’s menu. With Select, 1–6 choose Map &amp; Token, Map, Token, Background, Coaching, or Any.'],
+          ['B', 'Toggle BigFill.'],
+        ])}
+        ${shortcut_group('Map navigation and selections', [
+          ['Arrow keys', 'Move a single selected token by one snap step. Otherwise, pan the map.'],
+          ['Shift+click', 'Ping that point on the map.'],
+          ['Alt+drag', 'Pan temporarily. Dragging with the middle mouse button also pans.'],
+          ['Enter', 'Finish the current click-based tool, or open the map menu at the center of the canvas.'],
+          ['Esc', 'Dismiss a menu, finish a click-based tool, dismiss an open dialog, or clear the selection.'],
+          ['Space', 'Toggle Acted on each selected token.'],
+          ['Shift+Space', 'Clear all status flags on selected tokens.'],
+          ['Delete or Backspace', 'Delete selected objects.'],
+          ['Ctrl/Cmd+X, C, V', 'Cut or copy map objects, or paste the copied objects at the pointer.'],
+          ['Ctrl/Cmd+Z / Y', 'Undo or redo a map change. While drawing a polygon, Undo removes the last point.'],
+        ])}
+        ${shortcut_group('Chat and private rolls', [
+          ['Enter / Shift+Enter', 'Send the message or insert a new line.'],
+          ['↑ / ↓', 'Recall the previous or next message.'],
+          ['Esc', 'Leave the input field.'],
+          ['Ctrl+P / N / J', 'Recall the previous message, recall the next message, or send.', true],
+        ])}
+        ${shortcut_group('Sheets', [
+          ['Arrow keys', 'Move between cells. Hold Shift to extend the selected range.'],
+          ['Esc', 'Collapse the range to the active cell, or cancel a cell or header edit.'],
+          ['Delete', 'Clear the selected cells.'],
+          ['Enter / Shift+Enter', 'While editing a cell, save and move down or right. At the edge, request a new row or column.'],
+          ['Ctrl+Enter', 'From a selected cell, insert a row below. From a column header, insert a row at the top.'],
+          ['Ctrl+Shift+Enter', 'Insert a column to the right.'],
+          ['Ctrl+Shift+arrows', 'Move the current row up or down, or the current column left or right.'],
+          ['Ctrl/Cmd+B, I, U, D', 'Toggle bold, italic, underline, or strikethrough on the selection.'],
+          ['Ctrl/Cmd+X, C, V', 'Cut, copy, or paste cells.'],
+          ['Ctrl/Cmd+Z / Y', 'Undo or redo a sheet change.'],
+          ['Ctrl+P / N / B / F', 'Move up, down, left, or right. In cells, hold Shift to extend the range.', true],
+          ['Ctrl+H', 'Start editing the cell or column header.', true],
+        ])}
+        ${shortcut_group('Roll tables', [
+          ['Arrow keys', 'Move between cells in the roll table.'],
+          ['Enter', 'Move down from a weight or value cell. While editing, Enter saves and Esc cancels.'],
+          ['Enter or Space', 'Toggle Table? when its checkbox cell is focused.'],
+          ['Ctrl+Enter', 'From a weight or value cell, insert a row below.'],
+          ['Ctrl+Shift+↑ / ↓', 'Move the row up or down.'],
+          ['Ctrl+Delete', 'Delete the current row.'],
+          ['Ctrl+P / N / B / F', 'Move up, down, left, or right. Ctrl+H edits a weight or value.', true],
+        ])}
+        ${shortcut_group('Clocks and statblocks', [
+          ['→, ↓, or N', 'Advance the focused clock.'],
+          ['←, ↑, or P', 'Move the focused clock back.'],
+          ['Enter / Esc', 'In the statblock filter, open the first match or clear the filter.'],
+          ['↑ or K / ↓ or J', 'In statblock results, select the previous or next match.'],
+          ['Enter or Space', 'Show the focused statblock. Hold Shift to open it in a separate window.'],
+        ])}
+        ${shortcut_group('Editors, dialogs, and menus', [
+          ['Tab / Shift+Tab', 'In notes, macros, and the scratchpad, insert two spaces or remove two spaces immediately before the cursor.'],
+          ['Esc', 'Leave the editor. In an inline rename field, cancel the edit.'],
+          ['Enter', 'Save an inline rename or accept a single-line dialog field.'],
+          ['Shift+Enter', 'Accept a multiline text or Markdown dialog.'],
+          ['↓, J, or Tab', 'Move to the next context menu item. ↑ or K moves to the previous item.'],
+          ['Enter or Space / Esc', 'Activate the focused menu item or dismiss the menu.'],
+          ['0–9, Delete, Backspace', 'In a numeric menu item, focus the number field. Enter applies the value and closes the menu.'],
+        ])}
       </div>
     </div>
   `);

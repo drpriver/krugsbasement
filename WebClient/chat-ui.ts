@@ -134,6 +134,10 @@ async function preprocess_and_send_chat(text:string, character_id:number, macro_
         show_help(1);
         return;
     }
+    if(request == '/help shortcuts'){
+        show_help(3);
+        return;
+    }
     let commands: Array<Command> = [];
     let error = await evaluate(text, character_id, macro_id, commands);
     if(error.length){
@@ -172,16 +176,25 @@ document.addEventListener('DOMContentLoaded', function():void{
     new ResizeObserver(()=>update_chat_position(following_chat)).observe(log);
     const ta = by_id('chatinput');
     setup_chat(ta, preprocess_and_send_chat);
+    const shortcuts = by_id('help-shortcuts');
+    if(IS_MAC){
+        for(const label of shortcuts.querySelectorAll<HTMLElement>('[data-mac-keys]'))
+            label.textContent = label.dataset.macKeys!;
+        for(const row of shortcuts.querySelectorAll<HTMLElement>('[data-mac-only]'))
+            row.hidden = false;
+    }
     help_tv = make_tab_view(
         [
             by_id('help-chat-tab'),
             by_id('help-macros-tab'),
             by_id('help-sheets-tab'),
+            by_id('help-shortcuts-tab'),
         ],
         [
             by_id('help-chat'),
             by_id('help-macros'),
             by_id('help-sheets'),
+            shortcuts,
         ]
     );
     by_id('help-button').onclick = function():void{

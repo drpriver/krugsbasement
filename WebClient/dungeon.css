@@ -169,28 +169,38 @@ body.dark-mode div.window-behind {
   width: calc(100vw - 540px);
   z-index: 5;
 }
-#minimized>span {
+#minimized>button {
+  appearance: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   font-size: 1rem;
+  text-transform: none;
+  padding: 0;
   border-radius: 8px;
   -webkit-user-select: none;
   user-select: none;
   white-space: nowrap;
   border: 4px solid transparent;
 }
-#minimized>span>span {
+#minimized>button>span {
   display: block;
   background-color: #f0f0f0;
   padding: 1ch;
   border-radius: 8px;
 }
-#minimized>span:hover {
+#minimized>button:focus {
+  outline: 2px solid currentColor;
+  outline-offset: -3px;
+}
+#minimized>button:hover {
   cursor: pointer;
   background-color: #d8d8d8;
 }
-body.dark-mode #minimized>span>span {
+body.dark-mode #minimized>button>span {
   background-color: #2d2d2d;
 }
-body.dark-mode #minimized>span:hover {
+body.dark-mode #minimized>button:hover {
   background-color: #424242;
 }
 
@@ -833,14 +843,19 @@ body.dark-mode .log div.clickable span {
   /*height: 12.5ex;*/
 }
 #help-window {
-  min-width: 360px;
+  width: min(56ch, 100vw);
+  min-width: min(360px, 100vw);
+  height: calc(70vh + 32px);
+  min-height: min(8rem, 100vh);
+  max-width: 100vw;
+  max-height: 100vh;
+  /* The shared resize setup sets overflow inline. Only the active Help pane scrolls. */
+  overflow: hidden !important;
+  grid-template: max-content minmax(0, 1fr) / minmax(0, 1fr);
 }
 #help-container {
   display: grid;
-  grid-template-rows: max-content auto;
-  grid-template-columns: 1fr;
-  max-width: 56ch;
-  max-height: 70vh;
+  grid-template: max-content minmax(0, 1fr) / minmax(0, 1fr);
 }
 #help-tabs {
   grid-row: 1;
@@ -891,6 +906,24 @@ body.dark-mode .log div.clickable span {
 }
 .help-content summary span {
   color: #555;
+}
+#help-shortcuts summary {
+  display: list-item;
+  font-weight: bold;
+}
+#help-shortcuts table {
+  table-layout: fixed;
+}
+#help-shortcuts th {
+  width: 10.5em;
+  box-sizing: border-box;
+  padding: 3px 5px;
+  text-align: left;
+  vertical-align: top;
+}
+#help-shortcuts kbd {
+  font: inherit;
+  white-space: nowrap;
 }
 .help-content p {
   margin: 6px 0 6px 1.5em;

@@ -44,11 +44,13 @@ function elem_parent_text<K extends keyof HTMLElementTagNameMap>(parent:HTMLElem
 // 2**32-1 or something like that, but is still kind of gross, you know?
 let TOPPERMOST_Z = 3;
 let front_window:HTMLDivElement|null = null;
-function window_hidden(win:HTMLDivElement):void{
+const windows_in_opening_order = new Map<HTMLDivElement, ()=>void>();
+function window_hidden(win:HTMLDivElement, minimized = false):void{
+    if(!minimized) windows_in_opening_order.delete(win);
     win.classList.remove('window-behind');
     if(win !== front_window) return;
     front_window = null;
-    for(const other of document.querySelectorAll<HTMLDivElement>('.window-behind')){
+    for(const other of windows_in_opening_order.keys()){
         if(other.getClientRects().length && (!front_window || +other.style.zIndex > +front_window.style.zIndex))
             front_window = other;
     }
@@ -77,6 +79,7 @@ function setup_zsorted_window(win:HTMLDivElement, flags:ZSORTFLAGS):()=>void{
             win.style.zIndex = ""+TOPPERMOST_Z;
         }
         if(show_depth && front_window !== win){
+            windows_in_opening_order.set(win, make_top);
             front_window?.classList.add('window-behind');
             win.classList.remove('window-behind');
             front_window = win;
@@ -244,9 +247,21 @@ function setup_resizable_window(win:HTMLDivElement, flags: RESIZEFLAGS):void{
 const IS_WINDOWS = window.navigator.platform.includes('Windows') || window.navigator.platform.includes('Win32');
 const IS_MAC = window.navigator.platform.includes('Mac');
 const WINDOW_CLOSE_TITLE = IS_MAC ? 'Close (⌥X)' : 'Close (Alt+X)';
+const mac_window_keys:Record<string,string> = {KeyJ:'j', KeyX:'x', KeyM:'m', Comma:',', Period:'.'};
+
+function focus_app_window(win:HTMLDivElement):void{
+    // A newly shown window can leave keyboard focus in the window behind it.
+    if(win !== front_window) windows_in_opening_order.get(win)?.();
+    if(!win.hasAttribute('tabindex')){
+        // Allow this jump without changing how later clicks on the window take focus.
+        win.tabIndex = -1;
+        win.addEventListener('blur', ()=>win.removeAttribute('tabindex'), {once:true});
+    }
+    win.focus({preventScroll:true});
+}
 
 window.addEventListener('keydown', function(e):void{
-    if(!front_window || _ctxmenu_remover || !e.altKey || e.ctrlKey || e.metaKey || e.shiftKey
+    if(_ctxmenu_remover || !e.altKey || e.ctrlKey || e.metaKey || e.shiftKey
         || e.isComposing || e.defaultPrevented) return;
     // Firefox also reports AltGraph for an ordinary Option press on macOS.
     if(!IS_MAC && e.getModifierState('AltGraph')) return;
@@ -254,9 +269,31 @@ window.addEventListener('keydown', function(e):void{
     if(target instanceof HTMLElement && (target.isContentEditable
         || target.matches('textarea, select, input:not([type=checkbox], [type=radio], [type=button], [type=submit])'))) return;
     // Option can produce a symbol instead of a letter on macOS.
-    const key = IS_MAC ? e.code : 'Key' + e.key.toUpperCase();
-    if(key !== 'KeyX' && key !== 'KeyM') return;
-    const selector = key === 'KeyX' ? '.window-closer' : '.window-minimizer';
+    const key = IS_MAC ? mac_window_keys[e.code] : e.key.toLowerCase();
+    if(key === 'j'){
+        const strip = by_id('minimized');
+        const destination = strip.contains(document.activeElement) ? front_window : strip.lastElementChild;
+        if(!(destination instanceof HTMLElement)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if(e.repeat) return;
+        if(destination === front_window) focus_app_window(front_window);
+        else destination.focus();
+        return;
+    }
+    if(!front_window) return;
+    if(key === '.' || key === ','){
+        const visible = Array.from(windows_in_opening_order.keys()).filter(win=>win.getClientRects().length);
+        if(!visible.length) return;
+        const current = visible.indexOf(front_window);
+        const next = key === '.' ? current + 1 : (current < 0 ? 0 : current) - 1;
+        e.preventDefault();
+        e.stopPropagation();
+        if(!e.repeat) focus_app_window(visible[(next + visible.length) % visible.length]);
+        return;
+    }
+    if(key !== 'x' && key !== 'm') return;
+    const selector = key === 'x' ? '.window-closer' : '.window-minimizer';
     const control = front_window.querySelector<HTMLElement>(':scope > .window-handle > ' + selector);
     if(!control) return;
     e.preventDefault();
@@ -453,12 +490,24 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
         m.style.gridColumn = '2';
         x.style.gridColumn = '1';
     }
-    const restorer = elem('span');
+    const restorer = elem('button');
+    restorer.type = 'button';
     const restorer_text = elem_with_parent(restorer, 'span');
     restorer.onclick = function(e:MouseEvent):void{
         e.preventDefault();
         e.stopPropagation();
         result.restore();
+    };
+    restorer.onkeydown = function(e):void{
+        if(e.key.toLowerCase() !== 'x' || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey
+            || e.isComposing || e.defaultPrevented || _ctxmenu_remover) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if(e.repeat) return;
+        const next = restorer.nextElementSibling || restorer.previousElementSibling;
+        if(next instanceof HTMLButtonElement) next.focus();
+        else if(front_window) focus_app_window(front_window);
+        result.close();
     };
     restorer.oncontextmenu = function(e:MouseEvent):void{
         const menu = ctx_menu(e);
@@ -515,11 +564,12 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
         },
         minimize: function(): void{
             if(result.state != WinState.OPEN) return;
+            restorer.setAttribute('aria-label', 'Restore ' + result.t.textContent);
             restorer_text.textContent = result.t.textContent +' □';
             by_id('minimized').append(restorer);
             result.win.style.display = 'none';
             result.state = WinState.MINIMIZED;
-            window_hidden(win);
+            window_hidden(win, true);
             if(result.openid) store(StorageCategory.WINDOW, result.openid, ''+result.state);
             if(result.minimize_handler) result.minimize_handler();
         },

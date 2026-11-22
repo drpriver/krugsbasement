@@ -55,13 +55,15 @@ listen_for(ListenEvent.LAYOUT_CHANGED, function(){
     }
     m.style.width = `calc(100vw - ${w}px)`;
 });
-let tools_restorer: HTMLSpanElement | null;
+let tools_restorer: HTMLButtonElement | null;
 function set_tools_vis(show:boolean):void{
     SETTINGS.hidetools = show;
     if(SETTINGS.hidetools){
         if(!tools_restorer){
 
-            tools_restorer = elem_with_parent(by_id('minimized'), 'span');
+            tools_restorer = elem('button');
+            tools_restorer.type = 'button';
+            tools_restorer.setAttribute('aria-label', 'Restore Tools');
             elem_parent_text(tools_restorer, 'span', 'Tools □');
             tools_restorer.onclick = function(e:MouseEvent):void{
                 e.stopPropagation();
@@ -76,12 +78,11 @@ function set_tools_vis(show:boolean):void{
                 menu.install();
             };
         }
-        tools_restorer.style.display = 'inline';
+        if(!tools_restorer.isConnected) by_id('minimized').append(tools_restorer);
         by_id('tool-container').style.display = 'none';
     }
     else{
-        if(tools_restorer)
-            tools_restorer.style.display = 'none';
+        tools_restorer?.remove();
         by_id('tool-container').style.display = 'flex';
     }
     signal_for(ListenEvent.LAYOUT_CHANGED);
@@ -108,6 +109,20 @@ function setchatname(name:string):void{
 }
 
 document.addEventListener('DOMContentLoaded', function():void{
+    const strip = by_id('minimized');
+    strip.title = 'Switch between minimized windows and the front window (' + (IS_MAC ? '⌥J' : 'Alt+J') + ')';
+    strip.addEventListener('focusin', ()=>{ strip.style.zIndex = '' + (TOPPERMOST_Z + 1); });
+    strip.addEventListener('focusout', ()=>{ strip.style.zIndex = ''; });
+    strip.addEventListener('keydown', e=>{
+        if(e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        if(e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.isComposing) return;
+        const button = e.target;
+        if(!(button instanceof HTMLButtonElement)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const next = e.key === 'ArrowLeft' ? button.previousElementSibling : button.nextElementSibling;
+        if(next instanceof HTMLButtonElement) next.focus();
+    });
     set_chat_vis(!!get_local(StorageCategory.SETTINGS, 'hidechat'));
     set_left_vis(!!get_local(StorageCategory.SETTINGS, 'hideleft'));
     set_tools_vis(!!get_local(StorageCategory.SETTINGS, 'hidetools'));
