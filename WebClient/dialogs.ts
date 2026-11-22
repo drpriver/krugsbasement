@@ -40,6 +40,7 @@ function make_dialog<Key extends keyof DialogIdMap>(name:Key, fields: Array<stri
     let f: any = result.f as any;
     result.window.style.position = 'fixed';
     result.window.style.transform = 'none';
+    result.close.title = WINDOW_CLOSE_TITLE;
     setup_movable_window(result.window, result.windowhandle, WINDOWFLAGS.NONE);
     result.make_top = setup_zsorted_window(result.window, ZSORTFLAGS.SHOW_DEPTH);
     // The caller of this function should be generated, so this is safe,

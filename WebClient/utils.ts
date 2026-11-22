@@ -243,6 +243,26 @@ function setup_resizable_window(win:HTMLDivElement, flags: RESIZEFLAGS):void{
 // But now it seems things are reporting "Win32"?.
 const IS_WINDOWS = window.navigator.platform.includes('Windows') || window.navigator.platform.includes('Win32');
 const IS_MAC = window.navigator.platform.includes('Mac');
+const WINDOW_CLOSE_TITLE = IS_MAC ? 'Close (⌥X)' : 'Close (Alt+X)';
+
+window.addEventListener('keydown', function(e):void{
+    if(!front_window || _ctxmenu_remover || !e.altKey || e.ctrlKey || e.metaKey || e.shiftKey
+        || e.isComposing || e.defaultPrevented) return;
+    // Firefox also reports AltGraph for an ordinary Option press on macOS.
+    if(!IS_MAC && e.getModifierState('AltGraph')) return;
+    const target = e.target;
+    if(target instanceof HTMLElement && (target.isContentEditable
+        || target.matches('textarea, select, input:not([type=checkbox], [type=radio], [type=button], [type=submit])'))) return;
+    // Option can produce a symbol instead of a letter on macOS.
+    const key = IS_MAC ? e.code : 'Key' + e.key.toUpperCase();
+    if(key !== 'KeyX' && key !== 'KeyM') return;
+    const selector = key === 'KeyX' ? '.window-closer' : '.window-minimizer';
+    const control = front_window.querySelector<HTMLElement>(':scope > .window-handle > ' + selector);
+    if(!control) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if(!e.repeat) control.click();
+}, true);
 
 function setup_closable_window(win:HTMLElement, closer:HTMLElement, onclose:()=>void):void{
     if(IS_WINDOWS)
@@ -413,13 +433,13 @@ type Win = {
     remove_handler?: ()=>void;
 }
 function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement, m:HTMLSpanElement, t:HTMLSpanElement, global_window:NormalWindow, openid:null|string){
-    x.title = 'Close';
+    x.title = WINDOW_CLOSE_TITLE;
     x.onclick = function(e:MouseEvent):void{
         e.stopPropagation();
         e.preventDefault();
         result.close();
     };
-    m.title = 'Minimize';
+    m.title = IS_MAC ? 'Minimize (⌥M)' : 'Minimize (Alt+M)';
     m.onclick = function(e:MouseEvent):void{
         e.stopPropagation();
         e.preventDefault();
