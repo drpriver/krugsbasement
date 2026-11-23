@@ -7119,6 +7119,12 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
     }
 }
 document.addEventListener('DOMContentLoaded', function():void{
+    const fps = by_id('options-fps');
+    fps.checked = SHOW_FPS;
+    fps.addEventListener('change', function():void{
+        SHOW_FPS = fps.checked;
+        canvas_request_render();
+    });
     const container = by_id('tool-container');
     const handle = by_id('tool-container-handle');
     handle.ondblclick = function(e:MouseEvent):void{
