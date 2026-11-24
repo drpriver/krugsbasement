@@ -2,8 +2,10 @@
 // Copyright © 2024-2026, David Priver <david@davidpriver.com>
 //
 let _md_is_init = false;
-const _md_queue: Array<[string, (_:string)=>void]> = [];
-const _md_to_html: (text:string, cb:(_:string)=>void)=>void = (function(){
+let _md_load_failed = false;
+type MarkdownCallback = (html:string, ok:boolean)=>void;
+const _md_queue: Array<[string, MarkdownCallback]> = [];
+const _md_to_html: (text:string, cb:MarkdownCallback)=>void = (function(){
     let wasm_instance: WebAssembly.Instance;
     const decoder = new TextDecoder();
     const encoder = new TextEncoder();
@@ -28,17 +30,16 @@ const _md_to_html: (text:string, cb:(_:string)=>void)=>void = (function(){
         let text = decoder.decode(textmem);
         return text;
     }
-    function do_it(text:string, cb:(_:string)=>void):void{
-        (wasm_instance.exports as any).reset_memory();
-        const marshalled = marshall_string(text);
-        const result = (wasm_instance.exports as any).make_html(marshalled);
-        if(result){
-            const jsresult = wasm_string_to_js(result);
-            cb(jsresult);
+    function do_it(text:string, cb:MarkdownCallback):void{
+        let html;
+        try {
+            (wasm_instance.exports as any).reset_memory();
+            const marshalled = marshall_string(text);
+            const result = (wasm_instance.exports as any).make_html(marshalled);
+            if(result) html = wasm_string_to_js(result);
+        } catch {
         }
-        else {
-            cb("<div>Error</div>");
-        }
+        cb(html ?? '<div>Error</div>', html !== undefined);
     }
     let imports = {
       env: {
@@ -53,14 +54,23 @@ const _md_to_html: (text:string, cb:(_:string)=>void)=>void = (function(){
         wasm_instance = x.instance;
         (wasm_instance.exports.memory as any).grow(1024);
         memory = new Uint8Array((wasm_instance.exports.memory as any).buffer);
+    }).then(()=>{
         _md_is_init = true;
         for(let q of _md_queue)
             do_it(q[0], q[1]);
         _md_queue.length = 0;
+    }, ()=>{
+        _md_load_failed = true;
+        for(const [, cb] of _md_queue) cb('<div>Error</div>', false);
+        _md_queue.length = 0;
     });
     return do_it;
 })();
-function md_to_html(text:string, cb:(_:string)=>void):void{
+function md_to_html(text:string, cb:MarkdownCallback):void{
+    if(_md_load_failed){
+        cb('<div>Error</div>', false);
+        return;
+    }
     if(!_md_is_init){
         _md_queue.push([text, cb]);
         return;

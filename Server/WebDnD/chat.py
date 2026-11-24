@@ -13,8 +13,9 @@ import json
 import copy
 import atexit
 
-from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatMsg, UnrolledDiceExpr, Binary, Unary, RolledExpr, RollTableFlags, RollTable, RollTables, ChatHistory, StyleFlags
+from .messages import ToClient, ChatCommand, DieExprTypes, Msg, Command, ChatContent, ChatGroupItem, ChatMsg, UnrolledDiceExpr, Binary, Unary, RolledExpr, RollTableFlags, RollTable, RollTables, ChatHistory, StyleFlags
 
+from .messages import DirectPeer
 from enum import IntEnum, IntFlag
 
 ROLLTABLES = {} # type: dict[int, DirtyCell[list[RollTable]]]
@@ -146,9 +147,10 @@ def get_history(campaign:int) -> list[ChatMsg]:
 
 def get_private_history(userid:int, campaign:int) -> list[ChatHistory]:
     allmsgs = db.get_private_chat(userid, campaign)
-    by_chat = {} # type: dict[int, list[ChatMsg]]
-    for type, chatname, data, uid, touserid in allmsgs:
-        group = touserid if uid == userid else uid
+    # An empty thread also advertises Clankers to the DM picker on join.
+    by_chat:dict[int, list[ChatMsg]] = {DirectPeer.CLANKERS: []}
+    for type, chatname, data, uid, touserid, clankers in allmsgs:
+        group = DirectPeer.CLANKERS if clankers else (touserid if uid == userid else uid)
         if group not in by_chat:
             by_chat[group] = []
         by_chat[group].append([type, chatname, json.loads(data)]) # type: ignore
@@ -157,18 +159,29 @@ def get_private_history(userid:int, campaign:int) -> list[ChatHistory]:
     result = [[k, v[-500:]] for k, v in by_chat.items()]
     return result # type: ignore
 
-def handle_structured_input(userid:int, campaign:int, user:str, commands:list[Command], private:bool, to:int|None=None) -> list[ChatMsg]:
+def handle_structured_input(userid:int, campaign:int, user:str, commands:list[Command], private:bool, to:int|None=None, clankers:bool=False) -> list[ChatMsg]:
     color = ''
     styleflags = StyleFlags.NONE
-    def echo(user:str, text:str) -> ChatMsg:
+    group:tuple[str, str]|None = None
+    result:list[ChatMsg] = []
+
+    def emit(item:ChatContent) -> None:
+        if group is None:
+            result.append(item)
+        else:
+            group_id, title = group
+            data:ChatGroupItem = {'sender_id': userid, 'group_id': group_id, 'title': title, 'item': item}
+            result.append((Msg.GROUP_ITEM, item[1], data))
+
+    def echo(user:str, text:str) -> ChatContent:
         return [Msg.ECHOABLE_TEXT, user, text] # type: ignore
-    def plain(user:str, text:str) -> ChatMsg:
+    def plain(user:str, text:str) -> ChatContent:
         return [Msg.PLAIN, user, text] # type: ignore
-    def dieroll(dice:Any) -> ChatMsg:
+    def dieroll(dice:Any) -> ChatContent:
         return [Msg.DICEROLL, '', dice] # type: ignore
-    def error(e:str) -> ChatMsg:
+    def error(e:str) -> ChatContent:
         return [Msg.ERROR, '', e] # type: ignore
-    def styled(user:str, text:str) -> ChatMsg:
+    def styled(user:str, text:str) -> ChatContent:
         return [Msg.STYLED_TEXT, user, [text, styleflags, color]] # type: ignore
 
     def parse_style(line:str) -> None:
@@ -176,7 +189,7 @@ def handle_structured_input(userid:int, campaign:int, user:str, commands:list[Co
         nonlocal color
         toks = line.lower().split()
         i = 0
-        TOKS = frozenset({'bold', 'italic', 'anon', 'underline', 'underlined', 'box', 'boxed', 'reset', 'color', 'colour', 'big'})
+        TOKS = frozenset({'bold', 'italic', 'anon', 'underline', 'underlined', 'box', 'boxed', 'reset', 'color', 'colour', 'big', 'small'})
         while i < len(toks):
             tok = toks[i]
             if tok not in TOKS:
@@ -195,7 +208,11 @@ def handle_structured_input(userid:int, campaign:int, user:str, commands:list[Co
             elif tok == 'reset':
                 styleflags = StyleFlags.NONE
             elif tok == 'big':
+                styleflags &= ~StyleFlags.SMALL
                 styleflags ^= StyleFlags.BIG
+            elif tok == 'small':
+                styleflags &= ~StyleFlags.BIG
+                styleflags ^= StyleFlags.SMALL
             elif tok == 'color' or tok == 'colour':
                 peek = toks[i+1] if i + 1 < len(toks) else ''
                 if peek in TOKS:
@@ -209,17 +226,19 @@ def handle_structured_input(userid:int, campaign:int, user:str, commands:list[Co
             i += 1
 
     apparent_user = user
-    result = []
     for command in commands:
         cc = ChatCommand(command[0])
+        if command[0] == ChatCommand.GROUP:
+            group = (command[1], command[2])
+            continue
         if cc != ChatCommand.NAME and cc != ChatCommand.STYLE:
             line = command[1]
             if cc != ChatCommand.SAY:
-                result.append(echo(apparent_user, line))
+                emit(echo(apparent_user, line))
             elif styleflags:
-                result.append(styled(apparent_user, line))
+                emit(styled(apparent_user, line))
             else:
-                result.append(plain(apparent_user, line))
+                emit(plain(apparent_user, line))
             del line
 
         if cc == ChatCommand.STYLE:
@@ -228,7 +247,7 @@ def handle_structured_input(userid:int, campaign:int, user:str, commands:list[Co
         elif cc == ChatCommand.ROLL:
             dice: UnrolledDiceExpr = command[2] # type: ignore
             structured_roll_die(dice)
-            result.append(dieroll(dice))
+            emit(dieroll(dice))
         elif cc == ChatCommand.SAY:
             pass
         elif cc == ChatCommand.NAME:
@@ -236,32 +255,32 @@ def handle_structured_input(userid:int, campaign:int, user:str, commands:list[Co
         elif cc == ChatCommand.SHUFFLE:
             stuff: list[str] = command[2] # type: ignore
             random.shuffle(stuff)
-            result.append(plain('', ' '.join(stuff)))
+            emit(plain('', ' '.join(stuff)))
         elif cc == ChatCommand.CHOOSE:
             options: list[str] = command[2] # type: ignore
             if options:
                 choice = random.choice(options)
-                result.append(plain(apparent_user, choice))
+                emit(plain(apparent_user, choice))
         elif cc == ChatCommand.TABLE:
             table: str = command[2] # type: ignore
             try:
                 table_result, path = parse_and_roll_table(campaign, table)
             except Exception as e:
-                result.append(error(str(e)))
+                emit(error(str(e)))
             else:
                 if not table_result:
                     table_result = '(No entry)'
-                result.append(plain('', path + ': '+table_result))
+                emit(plain('', path + ': '+table_result))
         elif cc == ChatCommand.MYTABLE:
             table: str = command[2] # type: ignore
             try:
                 table_result, path = parse_and_roll_private_table(userid, campaign, table)
             except Exception as e:
-                result.append(error(str(e)))
+                emit(error(str(e)))
             else:
                 if not table_result:
                     table_result = '(No entry)'
-                result.append(plain('', path + ': '+table_result))
+                emit(plain('', path + ': '+table_result))
         else:
             raise Exception(cc)
 
@@ -269,7 +288,7 @@ def handle_structured_input(userid:int, campaign:int, user:str, commands:list[Co
         utcnow = datetime.datetime.utcnow()
         if to is not None:
             for msg in result:
-                db.save_private_chat_msg(campaign, msg[0], msg[1], msg[2], created=utcnow, userid=userid, to=to)
+                db.save_private_chat_msg(campaign, msg[0], msg[1], msg[2], created=utcnow, userid=userid, to=to, clankers=clankers)
         else:
             for msg in result:
                 db.save_chat_msg(campaign, msg[0], msg[1], msg[2], created=utcnow, userid=userid)

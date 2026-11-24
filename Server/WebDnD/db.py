@@ -24,7 +24,7 @@ atexit.register(close)
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 25
+DBVERSION = 26
 with conn:
     conn.execute('''PRAGMA encoding = 'UTF-8';''')
     conn.execute('''PRAGMA foreign_keys = ON;''')
@@ -584,6 +584,8 @@ def setup_tables() -> None:
         conn.execute('''
             DROP TABLE IF EXISTS appdata;
         ''')
+    if version < 26:
+        conn.execute('ALTER TABLE privatechats ADD COLUMN clankers INTEGER NOT NULL DEFAULT 0')
 
 
 with conn:
@@ -757,16 +759,16 @@ def save_chat_msg(campaignid:int, msgtype:int, chatname:str, data:Any, created:A
             ;
         ''', (campaignid, msgtype, chatname, created, data, userid))
 
-def save_private_chat_msg(campaignid:int, msgtype:int, chatname:str, data:Any, created:Any, userid:int, to:int) -> None:
+def save_private_chat_msg(campaignid:int, msgtype:int, chatname:str, data:Any, created:Any, userid:int, to:int, clankers:bool=False) -> None:
     data = json.dumps(data, separators=(',',':'))
     with DBLOCK, conn:
         conn.execute('''
             INSERT INTO
-                privatechats(campaignid, type, chatname, created, data, userid, touserid)
+                privatechats(campaignid, type, chatname, created, data, userid, touserid, clankers)
             VALUES
-                (?, ?, ?, ?, ?, ?, ?)
+                (?, ?, ?, ?, ?, ?, ?, ?)
             ;
-        ''', (campaignid, msgtype, chatname, created, data, userid, to))
+        ''', (campaignid, msgtype, chatname, created, data, userid, to, clankers))
 
 def save_map(id:int, map_id:int, map_name:str, objects:list, flags:int, grid_type:int, grid_color:str, bg_color:str, parent:int) -> None:
     blob = json.dumps(objects, separators=(',',':'))
@@ -952,11 +954,12 @@ def get_private_chat(userid:int, campaignid:int) -> list:
     with DBLOCK:
         cur = conn.execute('''
             SELECT
-                type, chatname, data, userid, touserid
+                type, chatname, data, userid, touserid, clankers
             FROM
                 privatechats
             WHERE
                 campaignid = ? AND (userid = ? OR touserid = ?)
+            ORDER BY msgid
             ;
         ''', (campaignid, userid, userid))
         return cur.fetchall()

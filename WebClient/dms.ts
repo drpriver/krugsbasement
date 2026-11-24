@@ -26,8 +26,13 @@ document.addEventListener('DOMContentLoaded', function():void{
     let notifications: Array<HTMLElement> = [];
 
     async function preproc_func(text:string, _:number, __:number):Promise<void>{
+        const to = lv.active ?? SETTINGS.userid;
         let commands: Array<Command> = [];
-        let error = await evaluate(text, -1, -1, commands);
+        let error;
+        if(to === DirectPeer.CLANKERS)
+            commands.push([ChatCommand.SAY, text]);
+        else
+            error = await evaluate(text, -1, -1, commands);
         if(error){
             const log = by_id('privateroll-history');
             const errmess: ChatErrorMsg = [Msg.ERROR, '', error];
@@ -36,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function():void{
             return;
         }
         if(commands.length){
-            let to_send: ChatDirectCommandMessage = {chatname:SETTINGS.chat.name, to:lv.active?lv.active:SETTINGS.userid, commands:commands};
+            let to_send: ChatDirectCommandMessage = {chatname:SETTINGS.chat.name, to, commands};
             EMIT(FromClient.CHAT_DM, to_send);
         }
     }
@@ -69,12 +74,13 @@ document.addEventListener('DOMContentLoaded', function():void{
             }
         }
         if(lv.active !== user || privateroll.state != WinState.OPEN){
-            if(user !== SETTINGS.userid){
+            const incoming = user !== SETTINGS.userid && (user !== DirectPeer.CLANKERS || from === DirectPeer.CLANKERS);
+            if(incoming){
                 let name = USERS.get(user);
                 if(!name) name = "anon";
                 lv.rename(`(*)\u00A0${name}`, user);
             }
-            if(privateroll.state != WinState.OPEN && user !== SETTINGS.userid){
+            if(privateroll.state != WinState.OPEN && incoming){
                 let noti = by_id('notifications');
                 let name = USERS.get(user);
                 if(!name) name = "anon";
@@ -141,6 +147,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         }
     });
     ONRECV(ToClient.USER_LIST, function(users:Array<UserListItem>):void{
+        const previous = lv.active;
         lv.clear();
         log.innerHTML = '';
         for(let [uid, _] of users){
@@ -151,8 +158,13 @@ document.addEventListener('DOMContentLoaded', function():void{
         for(let [uid, chatname] of users){
             lv.add_item(uid == SETTINGS.userid?`${chatname} (Me)` : chatname, uid);
             USERS.set(uid, chatname);
+            if(uid === SETTINGS.userid && chats.has(DirectPeer.CLANKERS)){
+                USERS.set(DirectPeer.CLANKERS, 'Clankers');
+                lv.add_item('Clankers', DirectPeer.CLANKERS);
+                if(!histories.has(DirectPeer.CLANKERS)) histories.set(DirectPeer.CLANKERS, []);
+            }
         }
-        lv.make_active(users[0][0]);
+        lv.make_active(previous !== undefined && lv.index_of(previous) !== -1 ? previous : users[0]?.[0]);
     });
     ONRECV(ToClient.USER_RENAME, function(user:UserListItem):void{
         let [uid, chatname] = user;
@@ -165,6 +177,7 @@ document.addEventListener('DOMContentLoaded', function():void{
         lv.rename(uid == SETTINGS.userid?`${chatname} (Me) `: chatname, uid);
     });
     ONRECV(ToClient.CHAT_PRIVATE_CREATE, function(data:Array<ChatHistory>):void{
+        chats.delete(DirectPeer.CLANKERS);
         for(let [uid, msgs] of data){
             chats.set(uid, msgs);
         }

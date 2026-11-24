@@ -13,7 +13,11 @@
     Chat Commands::md
       Before a message is sent, the client parses the text into structured chat
       commands. If a line is not recognized as a command or dice expression, it
-      is sent as normal text. Multiline input is parsed as one script, so
+      is sent as normal text. Consecutive prose lines form one message, keeping
+      blank lines and indentation for Markdown lists, tables, and paragraphs.
+      A command or dice roll ends the prose message. Use <tt>/say</tt> to send
+      an individual line as its own message.
+      Multiline input is parsed as one script, so
       commands like <tt>name</tt> and <tt>/color</tt> affect later lines in the
       same input.
 
@@ -92,19 +96,31 @@
           bonus = 4 # favored terrain
           d20 + bonus
 
+      Collapsible groups::md .indented .command
+        Use <tt>/group ID Title</tt> to put the following output in a collapsed group.
+        The ID is one word. Consecutive messages from you with the same group ID
+        appear together. If another message comes between them, the next use
+        of that ID starts a new group at the bottom of the chat.
+
+        ::pre.macro.indented
+          /group checks Skill checks
+          roll d20 + 3
+
       Style::md .indented .command
         - <tt>/color red</tt>
         - <tt>/bold</tt>
         - <tt>/italic</tt>
         - <tt>/underline</tt>
         - <tt>/big</tt>
+        - <tt>/small</tt>
         - <tt>/box</tt> or <tt>/boxed</tt>
         - <tt>/anon</tt>
         - <tt>/reset</tt>
 
         Applies a style to the rest of the chat commands in the current
         macro/multiline input. Color can be a valid CSS color.
-        bold, italic, underline, big, boxed and anon are all toggles.
+        bold, italic, underline, big, small, boxed and anon are all toggles.
+        Choosing a size clears the other size.
         Issuing them a second time will turn them off.
         Reset will clear all currently applied styles.
 
@@ -233,6 +249,7 @@
         box
         boxed
         big
+        small
 
 
       Expressions::md .comment

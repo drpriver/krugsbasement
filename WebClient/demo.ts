@@ -58,21 +58,28 @@ function roll_dice(die:UnrolledDiceExpr):RolledExpr{
     }
 }
 
-function interpret_chat_input(chatname:string, commands:Array<Command>):Array<any>{
-    let responses: Array<any> = [];
+function interpret_chat_input(chatname:string, commands:Array<Command>):Array<ChatMsg>{
+    let responses: Array<ChatMsg> = [];
+    let group: GroupCommand | undefined;
+    function emit(item:ChatContent):void{
+        if(group){
+            responses.push([Msg.GROUP_ITEM, item[1], {sender_id:SETTINGS.userid, group_id:group[1], title:group[2], item}]);
+        }
+        else responses.push(item);
+    }
     let styleflags: StyleFlags = 0;
     let color = '';
     function echo(user:string, text:string):void{
-        responses.push([Msg.ECHOABLE_TEXT, user, text]);
+        emit([Msg.ECHOABLE_TEXT, user, text]);
     }
     function plain(user:string, text:string):void{
-        responses.push([Msg.PLAIN, user, text]);
+        emit([Msg.PLAIN, user, text]);
     }
     function dieroll(dice:RolledExpr):void{
-        responses.push([Msg.DICEROLL, '', dice]);
+        emit([Msg.DICEROLL, '', dice]);
     }
     function styled(user:string, text:string):void{
-        responses.push([Msg.STYLED_TEXT, user, [text, styleflags, color]]);
+        emit([Msg.STYLED_TEXT, user, [text, styleflags, color]]);
     }
     function parse_style(line:string):void{
         const toks = line.toLowerCase().split(/\s/);
@@ -100,13 +107,18 @@ function interpret_chat_input(chatname:string, commands:Array<Command>):Array<an
                     styleflags = StyleFlags.NONE;
                     break;
                 case 'big':
+                    styleflags &= ~StyleFlags.SMALL;
                     styleflags ^= StyleFlags.BIG;
+                    break;
+                case 'small':
+                    styleflags &= ~StyleFlags.BIG;
+                    styleflags ^= StyleFlags.SMALL;
                     break;
                 case 'color':
                 case 'colour':
                 {
                     let peek = i+1<toks.length? toks[i+1] : '';
-                    for (let t of ['bold', 'italic', 'anon', 'underline', 'underlined', 'box', 'boxed', 'reset', 'color', 'colour', 'big']){
+                    for (let t of ['bold', 'italic', 'anon', 'underline', 'underlined', 'box', 'boxed', 'reset', 'color', 'colour', 'big', 'small']){
                         if(t == peek){
                             peek = '';
                             break;
@@ -131,6 +143,10 @@ function interpret_chat_input(chatname:string, commands:Array<Command>):Array<an
     */
     let apparent_user = chatname;
     for(let command of commands){
+        if(command[0] === ChatCommand.GROUP){
+            group = command;
+            continue;
+        }
         let cc = command[0];
         if(cc != ChatCommand.NAME && cc != ChatCommand.STYLE){
             let line = command[1];

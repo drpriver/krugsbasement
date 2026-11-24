@@ -75,12 +75,19 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
         PROMPT = 8,
         SET    = 9,
         SHEET  = 10,
+        PROSE  = 11,
+    }
+
+    type ProseStatement = {
+        kind: StatementKind.PROSE,
+        lines: string[],
+        blockIndent: number,
     }
 
     type RawStatement = {
         kind: StatementKind.RAW,
         content: string,
-        command: ChatCommand.TABLE | ChatCommand.SAY | ChatCommand.NAME | ChatCommand.MYTABLE | ChatCommand.STYLE,
+        command: ChatCommand.TABLE | ChatCommand.SAY | ChatCommand.NAME | ChatCommand.MYTABLE | ChatCommand.STYLE | ChatCommand.GROUP,
         original: string, // for table
     }
 
@@ -148,7 +155,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
         name: Token,
     }
 
-    type Statement = RollStatement | IfStatement | AssignStatement | BlockStatement | UseStatement | RawStatement | ListStatement | RepeatStatement | PromptStatement | SetStatement | SheetStatement;
+    type Statement = RollStatement | IfStatement | AssignStatement | BlockStatement | UseStatement | RawStatement | ListStatement | RepeatStatement | PromptStatement | SetStatement | SheetStatement | ProseStatement;
 
     function isstartident(char:string):boolean{
         return (/[a-zA-Z]/).test(char);
@@ -166,6 +173,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
     const PSEUDO_KWS = new Set([
         'r', 'roll', 'ro', 'rol', 'rolll', 'rl', 'rll',
         'n', 'name',
+        'group',
         'sh', 'shuffle', 'shuff', 'shuf',
         'ch', 'choose',
         't', 'tab', 'table',
@@ -176,7 +184,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
         'anon', 'reset',
         'underline', 'underlined',
         'box', 'boxed',
-        'big',
+        'big', 'small',
         'prompt',
         'set',
         'sheet',
@@ -708,6 +716,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
     function parse(tokens:Array<Token>, topblock:BlockStatement): string | null{
         let index = 0;
         let currentblock = topblock;
+        let leadingSpace = '';
         let error: string | null = null;
         function err(tok:Token, mess:string):void{
             error = `Error at '${tok.text}': ${mess}`;
@@ -768,13 +777,32 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
                 }
             }
         }
+        function append_prose(line:string):void{
+            const statements = currentblock.statements;
+            const last = statements[statements.length-1];
+            if(last?.kind === StatementKind.PROSE){
+                last.lines.push(leadingSpace.slice(last.blockIndent) + line);
+            }
+            else {
+                const blockIndent = currentblock.parent ? leadingSpace.length : 0;
+                statements.push({kind:StatementKind.PROSE, lines:[leadingSpace.slice(blockIndent) + line], blockIndent});
+            }
+        }
         function parse_line():void{
             let token = current();
-            let indentation = 0;
+            leadingSpace = '';
             if(token.kind == TokenKind.SPACE){
-                indentation = token.text.length;
+                leadingSpace = token.text;
                 token = take_and_next();
             }
+            if(is_end(token.kind)){
+                const last = currentblock.statements[currentblock.statements.length-1];
+                if(token.kind === TokenKind.ENDLINE && last?.kind === StatementKind.PROSE)
+                    last.lines.push('');
+                index++;
+                return;
+            }
+            const indentation = leadingSpace.length;
             if(indentation <= currentblock.indentation)
                 find_parent(indentation);
             switch(token.kind){
@@ -822,10 +850,6 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
                     return parse_else(indentation);
                 case TokenKind.USE:
                     return parse_use();
-                case TokenKind.ENDLINE:
-                case TokenKind.COMMENT:
-                    index++;
-                    return;
                 case TokenKind.SLASH:{
                     let peeked = peek_no_space();
                     switch(peeked.kind){
@@ -844,6 +868,8 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
                             return parse_roll(2);
                         case 'n': case 'name':
                             return parse_raw(ChatCommand.NAME, 2)
+                        case 'group':
+                            return parse_raw(ChatCommand.GROUP, 2);
                         case 'sh': case 'shuffle': case 'shuff': case 'shuf':
                             return parse_list(ChatCommand.SHUFFLE, 2);
                         case 'ch': case 'choose':
@@ -865,7 +891,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
                         case 'anon': case 'reset':
                         case 'underline': case 'underlined':
                         case 'box': case 'boxed':
-                        case 'big':
+                        case 'big': case 'small':
                             return parse_raw(ChatCommand.STYLE, 1);
                     }
                     return parse_raw(ChatCommand.SAY, 0);
@@ -966,18 +992,7 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
             }
             let expr = parse_expression(contents.slice(nskip));
             if(!expr){
-                let result: RawStatement = {
-                    kind: StatementKind.RAW,
-                    command: ChatCommand.SAY,
-                    original: '', // unused here
-                    content: (function():string{
-                        let s = "";
-                        for(let c of contents)
-                            s += c.text;
-                        return s;
-                    }()),
-                };
-                currentblock.statements.push(result);
+                append_prose(token_text(contents));
                 return;
             }
             let statement:RollStatement = {
@@ -1249,7 +1264,8 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
             };
             currentblock.statements.push(statement);
         }
-        function parse_raw(command:ChatCommand.SAY | ChatCommand.TABLE | ChatCommand.MYTABLE | ChatCommand.NAME | ChatCommand.STYLE, nskip:number):void{
+        function parse_raw(command:RawStatement['command'], nskip:number):void{
+            const implicitSay = command === ChatCommand.SAY && nskip === 0;
             let raw: RawStatement = {
                 kind: StatementKind.RAW,
                 content: '',
@@ -1271,7 +1287,8 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
                 raw.content += tok.text;
                 raw.original += tok.text;
             }
-            currentblock.statements.push(raw);
+            if(implicitSay) append_prose(raw.content);
+            else currentblock.statements.push(raw);
         }
         while(index < tokens.length && error === null){
             try{
@@ -1552,6 +1569,9 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
 
     async function interpret(statement:Statement, namespaces:Map<string, NameSpace>, vars:NameSpace, ctx:EvalContext, outcommands:Array<Command>, prompt_resolver:PromptVariableResolver|null, save_resolver:SaveVariableResolver|null):Promise<string>{
         switch(statement.kind){
+            case StatementKind.PROSE:
+                outcommands.push([ChatCommand.SAY, statement.lines.join('\n').trimEnd()]);
+                return '';
             case StatementKind.LIST:{
                 outcommands.push([statement.command, statement.content, statement.items]);
                 return "";
@@ -1663,6 +1683,12 @@ const evaluate_script = (function():(text:string, vars:Map<string, ScriptVariabl
                 return "";
             }break;
             case StatementKind.RAW:{
+                if(statement.command == ChatCommand.GROUP){
+                    const parts = /^(\S+)\s+(.+)$/.exec(statement.content.trim());
+                    if(!parts) return 'Use /group followed by a group ID and a title.';
+                    outcommands.push([ChatCommand.GROUP, parts[1], parts[2]]);
+                    return "";
+                }
                 if(statement.command == ChatCommand.TABLE){
                     outcommands.push([ChatCommand.TABLE, statement.original, statement.content.trim()]);
                     return "";

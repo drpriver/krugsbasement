@@ -20,6 +20,7 @@ enum FromClient: int
     CHAT_TEST_STRUCTURED_INPUT = 4
     # CHAT_PRIVATE_INPUT = 28
     CHAT_DM = 29
+    CLANKERS_REPLY = 39
     # Roll Tables
     # -----------
     RETRIEVE_ROLL_TABLES = 5
@@ -143,6 +144,7 @@ enum ChatCommand: int
     TABLE = 5
     MYTABLE = 6
     STYLE = 7
+    GROUP = 8
 
 struct NameCommand: array
     type = ChatCommand.NAME
@@ -182,6 +184,11 @@ struct StyleCommand: array
     type = ChatCommand.STYLE
     text: str
 
+struct GroupCommand: array
+    type = ChatCommand.GROUP
+    group_id: str
+    title: str
+
 union Command: array
     NameCommand
     RollCommand
@@ -191,10 +198,14 @@ union Command: array
     TableCommand
     MyTableCommand
     StyleCommand
+    GroupCommand
 
 struct ChatCommandMessage: dict
     chatname: str
     commands: [Command]
+
+enum DirectPeer: int
+    CLANKERS = -1
 
 struct ChatDirectCommandMessage: dict
     chatname: str
@@ -324,6 +335,7 @@ enum Msg: int
     DICEROLL = 3
     ECHOABLE_TEXT = 4
     STYLED_TEXT = 5
+    GROUP_ITEM = 6
 
 struct ChatPlainMsg: array
     type = Msg.PLAIN
@@ -354,6 +366,7 @@ enum StyleFlags: int flag
     UNDERLINE = 1 << 4
     BOXED = 1 << 5
     BIG = 1 << 6
+    SMALL = 1 << 7
 
 struct StyledText: array
     text: str
@@ -365,6 +378,24 @@ struct ChatStyledMsg: array
     user: str
     data: StyledText
 
+union ChatContent: array
+    ChatPlainMsg
+    ChatErrorMsg
+    ChatNewRollMsg
+    ChatEchoableMsg
+    ChatStyledMsg
+
+struct ChatGroupItem: dict
+    sender_id: int
+    group_id: str
+    title: str
+    item: ChatContent
+
+struct ChatGroupedMsg: array
+    type = Msg.GROUP_ITEM
+    user: str
+    data: ChatGroupItem
+
 # ChatMsg
 # -------
 # The actual chat message union. Use the type field to discriminate.
@@ -374,6 +405,7 @@ union ChatMsg: array
     ChatNewRollMsg
     ChatEchoableMsg
     ChatStyledMsg
+    ChatGroupedMsg
 
 struct ChatDirectResponse: dict
     users: [int]
@@ -1038,7 +1070,7 @@ struct RollTableNames: dict
     private: [str]
 
 enum Api: int
-    VERSION = 13
+    VERSION = 15
 
 message ToClientMsg: ToClient
     // Unique id for generating object ids clientside.
@@ -1093,6 +1125,7 @@ message FromClientMsg: FromClient
     CHAT_TEST_STRUCTURED_INPUT = ChatCommandMessage
     # CHAT_PRIVATE_INPUT = ChatCommandMessage
     CHAT_DM = ChatDirectCommandMessage
+    CLANKERS_REPLY = ChatCommandMessage
     RETRIEVE_ROLL_TABLES = void
     UPDATE_ROLL_TABLES = RollTables
     CANVAS_CREATE_OBJECTS = [CreateObjectsMessage]

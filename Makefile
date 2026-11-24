@@ -177,6 +177,7 @@ WEBDNDFILES=\
 	    Server/WebDnD/users.py \
 	    Server/WebDnD/validator.py \
 	    Server/WebDnD/sheets.py \
+	    Server/WebDnD/sheet_model.py \
 	    Server/WebDnD/calendars.py \
 	    Server/WebDnD/clocks.py \
 

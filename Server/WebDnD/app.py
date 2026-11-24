@@ -23,6 +23,7 @@ from . import sheets
 from . import calendars
 from . import clocks
 from .persist import RepeatTimer
+from .messages import DirectPeer
 from .messages import FromClient, ToClient, ChatCommandMessage, CreateObjectsMessage, CanvasUpdateMessage, CanvasDeleteMessage, NameMapMessage, NewMapRequest, CanvasGridTypeMsg, CanvasGridNumberedMsg, RollTable, NoteUpdateBody, NoteUpdateTitle, GatherMessage, PingMessage, ChatPlainMsg, Msg, LocalSetting, RollTables, ChatDirectCommandMessage, ChatDirectResponse, RollTableNames, Api, CanvasColorMsg, UiMode, SpreadSheetMsg, SpreadSheetMsgType, SpreadSheetInitialize, NewNoteMsg, CanvasParentMsg, NoteParentMsg, MetadataType, MetadataMsg, CalendarMsg, CalendarMsgType, CalendarInitialize, ClockMsg, ClockMsgType
 from .validator import register_list, validated, validate, try_validate
 from . import db
@@ -413,19 +414,27 @@ def chat_test_structured_input(data:ChatCommandMessage)->None:
 @socketio.on(FromClient.CHAT_DM)
 @validated
 def chat_dm(data:ChatDirectCommandMessage) -> None:
+    send_direct_message(data, data['to'])
+
+@socketio.on(FromClient.CLANKERS_REPLY)
+@validated
+def clankers_reply(data:ChatCommandMessage) -> None:
+    send_direct_message(data, DirectPeer.CLANKERS, reply=True)
+
+def send_direct_message(data:ChatCommandMessage|ChatDirectCommandMessage, peer:int, reply:bool=False) -> None:
     assert current_user.is_authenticated
-    dlog('chat_dm: %r', data);
     campaign = get_campaign(request)
-    if not data:
+    owner = current_user.userid
+    clankers = peer == DirectPeer.CLANKERS
+    recipient = owner if clankers else peer
+    if recipient not in db.get_users_in_campaign(campaign):
         return
-    if data['to'] not in db.get_users_in_campaign(campaign):
-        return
-    responses = chat.handle_structured_input(current_user.userid, campaign, data['chatname'], data['commands'], private=False, to=data['to'])
+    responses = chat.handle_structured_input(owner, campaign, data['chatname'], data['commands'], private=False, to=recipient, clankers=clankers)
     if not responses: return
-    msg: ChatDirectResponse = {'users':[current_user.userid, data['to']], 'msgs':responses}
-    # dlog('msg: %r', msg)
-    sids = sorted(set(get_sids_of_user_for_campaign(campaign, current_user.userid) + get_sids_of_user_for_campaign(campaign, data['to'])))
-    dlog('sids: %r', sids)
+    msg: ChatDirectResponse = {'users':[peer, owner] if reply else [owner, peer], 'msgs':responses}
+    sids = set(get_sids_of_user_for_campaign(campaign, owner))
+    if recipient != owner:
+        sids.update(get_sids_of_user_for_campaign(campaign, recipient))
     for sid in sids:
         emit(ToClient.CHAT_DIRECT_MSG, msg, to=sid)
 

@@ -132,20 +132,44 @@ const {
 
 function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:string, __:number, ___:number)=>void):void{
     for(let i = 0; i < msgs.length; i++){
-        const msg = msgs[i];
-        const entry = elem_with_parent(log, 'div');
+        let msg = msgs[i];
+        let parent = log;
+        if(msg[0] === Msg.GROUP_ITEM){
+            const group = msg[2];
+            const key = JSON.stringify([group.sender_id, group.group_id]);
+            const last = log.lastElementChild;
+            let details:HTMLDetailsElement;
+            if(last instanceof HTMLDetailsElement && last.dataset.chatGroup === key){
+                details = last;
+            }else{
+                details = elem_with_parent(log, 'details', null, 'chat-group');
+                details.dataset.chatGroup = key;
+                const summary = elem_parent_text(details, 'summary', group.title);
+                elem_with_parent(summary, 'span');
+            }
+            const count = details.childElementCount;
+            details.firstElementChild!.lastElementChild!.textContent = ` (${count} ${count === 1 ? 'message' : 'messages'})`;
+            parent = details;
+            msg = group.item;
+        }
+        const entry = elem_with_parent(parent, 'div');
         const type_ = msg[0];
         const user_ = msg[1];
         switch(type_){
             case Msg.PLAIN:{
-                const data = msg[2];
-                if(user_){
-                    const user = elem_with_text('b', user_+': ');
-                    entry.appendChild(user);
-                }
-                const text = document.createTextNode(data);
-                entry.appendChild(text);
-
+                const text = msg[2];
+                const sender = user_ ? elem_with_text('b', user_+': ') : null;
+                entry.classList.add('chat-prose');
+                entry.textContent = text;
+                if(sender) entry.prepend(sender);
+                md_to_html(text, (html, ok)=>{
+                    if(!ok || !html) return;
+                    entry.innerHTML = html;
+                    if(sender){
+                        const first = entry.firstElementChild;
+                        (first?.tagName === 'P' ? first : entry).prepend(sender);
+                    }
+                });
             }break;
             case Msg.STYLED_TEXT:{
                 const data = msg[2];
@@ -156,7 +180,8 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:st
                     const user = elem_with_text('b', user_+': ');
                     entry.appendChild(user);
                 }
-                const sp = elem_parent_text(entry,'span', text)
+                const sp = elem_parent_text(entry,'span', text);
+                if(text.includes('\n')) sp.style.whiteSpace = 'pre-wrap';
                 if(flags & StyleFlags.BOLD)
                     sp.style.fontWeight = 'bold';
                 if(flags & StyleFlags.ITALIC)
@@ -172,6 +197,9 @@ function add_chat_msgs(log:HTMLElement, msgs:Array<ChatMsg>, label_target?:(_:st
                 }
                 if(flags & StyleFlags.BIG){
                     sp.style.fontSize = '150%';
+                }
+                else if(flags & StyleFlags.SMALL){
+                    sp.style.fontSize = '85%';
                 }
             }break;
             case Msg.ECHOABLE_TEXT:{

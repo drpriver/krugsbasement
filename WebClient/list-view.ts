@@ -42,6 +42,7 @@ function make_list_view<K>(listcontainer:HTMLDivElement, flags:ListViewFlags):Li
         clear:function():void{
             for(let [_, el] of result.items)
                 el.remove();
+            result.items.length = 0;
             result.active = undefined;
         },
         make_active: function(key:K | undefined):void{
