@@ -24,7 +24,8 @@ atexit.register(close)
 # The R is for re-entrant
 DBLOCK = threading.RLock()
 
-DBVERSION = 26
+DBVERSION = 27
+PRIVATE_CHAT_HISTORY_LIMIT = 500
 with conn:
     conn.execute('''PRAGMA encoding = 'UTF-8';''')
     conn.execute('''PRAGMA foreign_keys = ON;''')
@@ -32,11 +33,21 @@ with conn:
     conn.execute('''PRAGMA journal_mode = WAL;''')
     for qk in conn.execute('''PRAGMA quick_check;''').fetchall():
         logging.info('db quick_check: %r', *qk)
+
+def trim_clankers_chat(campaignid:int, userid:int) -> None:
+    conn.execute('''
+        DELETE FROM privatechats
+        WHERE clankers = 1 AND campaignid = ? AND userid = ? AND msgid <= (
+            SELECT msgid FROM privatechats
+            WHERE clankers = 1 AND campaignid = ? AND userid = ?
+            ORDER BY msgid DESC LIMIT 1 OFFSET ?
+        )
+    ''', (campaignid, userid, campaignid, userid, PRIVATE_CHAT_HISTORY_LIMIT))
+
 def setup_tables() -> None:
     version = conn.execute('PRAGMA user_version;').fetchone()[0]
     if version == DBVERSION:
         return
-    conn.execute(f'PRAGMA user_version = {DBVERSION};')
     # empty db
     if version == 0:
         conn.execute('''
@@ -586,6 +597,21 @@ def setup_tables() -> None:
         ''')
     if version < 26:
         conn.execute('ALTER TABLE privatechats ADD COLUMN clankers INTEGER NOT NULL DEFAULT 0')
+    if version < 27:
+        conn.execute('''
+            CREATE INDEX IF NOT EXISTS clankers_history
+            ON privatechats(campaignid, userid, msgid)
+            WHERE clankers = 1
+            ''')
+        threads = conn.execute('''
+            SELECT campaignid, userid
+            FROM privatechats
+            WHERE clankers = 1
+            GROUP BY campaignid, userid HAVING count(*) > ?
+        ''', (PRIVATE_CHAT_HISTORY_LIMIT,)).fetchall()
+        for campaignid, userid in threads:
+            trim_clankers_chat(campaignid, userid)
+    conn.execute(f'PRAGMA user_version = {DBVERSION};')
 
 
 with conn:
@@ -769,6 +795,8 @@ def save_private_chat_msg(campaignid:int, msgtype:int, chatname:str, data:Any, c
                 (?, ?, ?, ?, ?, ?, ?, ?)
             ;
         ''', (campaignid, msgtype, chatname, created, data, userid, to, clankers))
+        if clankers:
+            trim_clankers_chat(campaignid, userid)
 
 def save_map(id:int, map_id:int, map_name:str, objects:list, flags:int, grid_type:int, grid_color:str, bg_color:str, parent:int) -> None:
     blob = json.dumps(objects, separators=(',',':'))

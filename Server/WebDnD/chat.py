@@ -156,7 +156,7 @@ def get_private_history(userid:int, campaign:int) -> list[ChatHistory]:
         by_chat[group].append([type, chatname, json.loads(data)]) # type: ignore
     # FIXME: this means we are building potentially large list in memory
     # instead of limiting this at the DB level.
-    result = [[k, v[-500:]] for k, v in by_chat.items()]
+    result = [[k, v[-db.PRIVATE_CHAT_HISTORY_LIMIT:]] for k, v in by_chat.items()]
     return result # type: ignore
 
 def handle_structured_input(userid:int, campaign:int, user:str, commands:list[Command], private:bool, to:int|None=None, clankers:bool=False) -> list[ChatMsg]:
