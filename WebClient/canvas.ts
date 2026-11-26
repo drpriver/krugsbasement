@@ -5069,6 +5069,7 @@ const enum RenderFlags {
     SHOW_FPS = 1 << 1,
     DO_PINGS = 1 << 2,
     DRAW_TEXT = 1 << 3,
+    CACHE_HEX = 1 << 4,
 }
 function render(timestamp:DOMHighResTimeStamp):void{
     if(!TheCtx) return;
@@ -5079,6 +5080,7 @@ function render(timestamp:DOMHighResTimeStamp):void{
     if(SHOW_FPS) flags |= RenderFlags.SHOW_FPS;
     flags |= RenderFlags.DO_PINGS;
     flags |= RenderFlags.DRAW_TEXT;
+    flags |= RenderFlags.CACHE_HEX;
     actually_render(timestamp, TheCtx, view, flags);
     if(!canv2_is_hidden){
         const view2 = get_view(WhichSplit.RIGHT);
@@ -5194,6 +5196,228 @@ function get_text_height(metric: TextMetrics): number {
     return metric.fontBoundingBoxAscent;
 }
 
+function hex_tile_path():Path2D{
+    const full = REFERENCE.WIDTH;
+    const path = new Path2D();
+    path.moveTo(-9, full/2);
+    path.lineTo(9, full);
+    path.lineTo(full-9, full);
+    path.lineTo(full+9, full/2);
+    path.lineTo(full-9, 0);
+    path.lineTo(9, 0);
+    path.closePath();
+    return path;
+}
+const hex_tile = hex_tile_path();
+const SELECTED_COLOR = '#33ffdd';
+
+function paint_hex(ctx:CanvasRenderingContext2D, fill:string|number, selected:boolean, numbered:boolean, x:number, y:number):void{
+    let color:string;
+    let terrain:Terrain|undefined;
+    if(typeof fill == 'number'){
+        terrain = TERRAIN_BY_ID.get(fill);
+        if(!terrain) return;
+        color = terrain[2];
+    }
+    else color = fill;
+    ctx.fillStyle = selected ? SELECTED_COLOR : color;
+    ctx.fill(hex_tile);
+    if(terrain && terrain[5])
+        ctx.drawImage(PACKEDIMG, terrain[3], terrain[4], terrain[5], terrain[6], 4, 4, 56, 56);
+    if(numbered){
+        ctx.fillStyle = color == '#000000' ? '#ffffff' : '#000000';
+        ctx.fillText(`${x>>6},${y>>6}`, 32, 63);
+    }
+}
+
+type OverviewTile = {x:number, y:number, fill:string|number, selected:boolean};
+type TerrainOverview = {
+    tiles:OverviewTile[], image:HTMLCanvasElement, resolution:number, x:number, y:number,
+    width:number, height:number, pack_size:number, painted:number, timer?:number,
+};
+const terrain_overviews = new WeakMap<CanvasRenderingContext2D, TerrainOverview>();
+
+function paint_overview_batch(cache:TerrainOverview):void{
+    cache.timer = undefined;
+    const image = cache.image;
+    if(!cache.painted){
+        image.width = cache.width;
+        image.height = cache.height;
+    }
+    const painter = image.getContext('2d');
+    if(!painter){
+        cache.resolution = 0;
+        return;
+    }
+    painter.imageSmoothingQuality = 'medium';
+    const r = cache.resolution;
+    const end = Math.min(cache.painted+512, cache.tiles.length);
+    for(; cache.painted < end; cache.painted++){
+        const tile = cache.tiles[cache.painted];
+        painter.setTransform(r, 0, 0, r, (tile.x-cache.x)*r, (tile.y-cache.y)*r);
+        paint_hex(painter, tile.fill, tile.selected, false, tile.x, tile.y);
+    }
+    if(end < cache.tiles.length)
+        cache.timer = window.setTimeout(()=>paint_overview_batch(cache), 0);
+}
+
+function draw_terrain_overview(ctx:CanvasRenderingContext2D, layers:CanvasLayers, selected:Set<number>, scale_y:number):boolean{
+    let cache = terrain_overviews.get(ctx);
+    if(!cache){
+        cache = {tiles:[], image:document.createElement('canvas'), resolution:0, x:0, y:0,
+            width:0, height:0, pack_size:0, painted:0};
+        terrain_overviews.set(ctx, cache);
+    }
+    // Painting, undo and incoming updates can all mutate tiles in place.
+    // Compare the visible inputs in paint order, independently of the camera.
+    let changed = cache.pack_size != TERRAIN_BY_ID.size;
+    let count = 0;
+    for(const layer of [layers.filled, layers.terrain]){
+        for(const tile of layer){
+            if(tile.flags & CanvasFlag.DELETED || (tile.hidinguser && tile.hidinguser != SETTINGS.userid)) continue;
+            const x = tile.base_x, y = tile.base_y;
+            const fill = tile.type == CanvasType.FILLED_TILE ? tile.color : tile.terrain_id;
+            const highlight = selected.has(tile.id);
+            const old = cache.tiles[count];
+            if(!old || old.x != x || old.y != y || old.fill !== fill || old.selected != highlight){
+                cache.tiles[count] = {x, y, fill, selected:highlight};
+                changed = true;
+            }
+            count++;
+        }
+    }
+    if(changed || count != cache.tiles.length){
+        clearTimeout(cache.timer);
+        cache.timer = undefined;
+        cache.tiles.length = count;
+        cache.pack_size = TERRAIN_BY_ID.size;
+        cache.painted = 0;
+        if(!count) return false;
+        let min_x = Infinity, min_y = Infinity, max_x = -Infinity, max_y = -Infinity;
+        for(const tile of cache.tiles){
+            min_x = Math.min(min_x, tile.x);
+            min_y = Math.min(min_y, tile.y);
+            max_x = Math.max(max_x, tile.x);
+            max_y = Math.max(max_y, tile.y);
+        }
+        const width = max_x-min_x+REFERENCE.WIDTH+18;
+        const height = max_y-min_y+REFERENCE.WIDTH;
+        // Limit each display's bitmap to about 8 megapixels and avoid magnifying it.
+        cache.resolution = Math.min(1, 4095/width, 4095/height, Math.sqrt(8_000_000/(width*height)));
+        cache.width = Math.ceil(width*cache.resolution);
+        cache.height = Math.ceil(height*cache.resolution);
+        cache.x = min_x-9;
+        cache.y = min_y;
+    }
+    if(!count || scale_y > cache.resolution) return false;
+    if(cache.painted < count){
+        // Use live tiles until the whole image is ready, including during edits.
+        if(cache.timer === undefined)
+            cache.timer = window.setTimeout(paint_overview_batch, 16, cache);
+        return false;
+    }
+    ctx.drawImage(cache.image, cache.x, cache.y, cache.image.width/cache.resolution, cache.image.height/cache.resolution);
+    return true;
+}
+
+function draw_hex_tiles(ctx:CanvasRenderingContext2D, layers:CanvasLayers, view:DungeonMapView, bounds:Bbox, cache_tiles:boolean):void{
+    const scale_x = dpr*view.scale;
+    const scale_y = scale_x*HEX_Y_FIX;
+    const origin_x = scale_x*view.camera_x;
+    const origin_y = scale_x*view.camera_y;
+    const numbered = !!(view.map.flags & MapFlags.NUMBERED);
+    if(cache_tiles && !numbered && scale_y <= 1 && layers.filled.length+layers.terrain.length >= 512){
+        ctx.setTransform(scale_x, 0, 0, scale_y, origin_x, origin_y);
+        if(draw_terrain_overview(ctx, layers, view.selected, scale_y)) return;
+    }
+    const full = REFERENCE.WIDTH;
+    for(const tiles of [layers.filled, layers.terrain]){
+        for(const obj of tiles){
+            if(obj.flags & CanvasFlag.DELETED || (obj.hidinguser && obj.hidinguser != SETTINGS.userid)) continue;
+            const x = obj.base_x, y = obj.base_y;
+            if(x+full+9 < bounds.x0 || x-9 > bounds.x1 || y+full < bounds.y0 || y > bounds.y1) continue;
+            ctx.setTransform(scale_x, 0, 0, scale_y, origin_x+scale_x*x, origin_y+scale_y*y);
+            const fill = obj.type == CanvasType.TERRAIN_TILE ? obj.terrain_id : obj.color;
+            paint_hex(ctx, fill, view.selected.has(obj.id), numbered, x, y);
+        }
+    }
+}
+
+function stroke_hex_grid(ctx:CanvasRenderingContext2D, x:number, y:number, width:number, height:number, big:boolean):void{
+    function columns(full:number, left:number, right:number, first_x:number, weight:number):void{
+        const half = full/2;
+        const path = new Path2D();
+        path.moveTo(left, -half);
+        const rows = Math.ceil(height/full)+3;
+        for(let row = 0; row < rows; row++){
+            const top = row*full;
+            path.lineTo(left, top-half);
+            path.lineTo(right, top);
+            path.lineTo(full+left, top);
+            path.lineTo(right, top);
+        }
+        ctx.save();
+        ctx.lineWidth = weight;
+        ctx.translate(fmod(x, 2*full)+first_x, fmod(y, full)-full-half);
+        const pairs = Math.ceil(width/(2*full))+3;
+        for(let i = 0; i < pairs; i++){
+            ctx.stroke(path);
+            ctx.translate(full, half);
+            ctx.stroke(path);
+            ctx.translate(full, -half);
+        }
+        ctx.restore();
+    }
+    const full = REFERENCE.WIDTH;
+    columns(full, -9, 9, -3*full, 1);
+    if(big)
+        columns(6*full, -76, 54, -5.3333*full-6*full+1, 4);
+}
+
+type HexGridPatterns = {color:string, big:boolean, levels:Map<number, CanvasPattern>};
+const hex_grid_patterns = new WeakMap<CanvasRenderingContext2D, HexGridPatterns>();
+function draw_hex_grid(ctx:CanvasRenderingContext2D, x:number, y:number, width:number, height:number, pixel_scale:number, color:string, big:boolean, cache_grid:boolean):void{
+    if(!cache_grid || pixel_scale > 1){
+        ctx.strokeStyle = color;
+        stroke_hex_grid(ctx, x, y, width, height, big);
+        return;
+    }
+    // One repeating piece of the grid serves the entire viewport. Keep a few
+    // resolutions so a zoom reversal can reuse the same pattern immediately.
+    let cache = hex_grid_patterns.get(ctx);
+    if(!cache || cache.color != color || cache.big != big){
+        cache = {color, big, levels:new Map()};
+        hex_grid_patterns.set(ctx, cache);
+    }
+    const level = 2**Math.ceil(Math.log2(pixel_scale));
+    let pattern = cache.levels.get(level);
+    const period = (big ? 6 : 1)*REFERENCE.WIDTH;
+    if(!pattern){
+        const tile = document.createElement('canvas');
+        tile.width = Math.max(1, Math.round(2*period*level));
+        tile.height = Math.max(1, Math.round(period*HEX_Y_FIX*level));
+        const tile_ctx = tile.getContext('2d');
+        if(tile_ctx){
+            tile_ctx.scale(tile.width/(2*period), tile.height/period);
+            tile_ctx.strokeStyle = color;
+            stroke_hex_grid(tile_ctx, 0, 0, 2*period, period, big);
+            pattern = ctx.createPattern(tile, 'repeat') ?? undefined;
+        }
+        if(!pattern){
+            ctx.strokeStyle = color;
+            stroke_hex_grid(ctx, x, y, width, height, big);
+            return;
+        }
+        pattern.setTransform(new DOMMatrix().scale(2*period/tile.width, period/tile.height));
+        cache.levels.set(level, pattern);
+    }
+    const dx = fmod(x, 2*period);
+    const dy = fmod(y, period);
+    ctx.translate(dx, dy);
+    ctx.fillStyle = pattern;
+    ctx.fillRect(-dx, -dy, width, height);
+}
+
 function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingContext2D, view:DungeonMapView, flags:RenderFlags):void{
     // console.log('render', performance.now());
     const before = flags & RenderFlags.SHOW_FPS?performance.now():0;
@@ -5211,7 +5435,6 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
     const is_darkmode = !!(flags & RenderFlags.DARK_MODE);
     const background = is_darkmode? '#333333' : '#ffffff';
     const cvs_bg = map.bg_color.length? map.bg_color : background;
-    const SELECTED_COLOR = '#33ffdd';
     const COULD_SELECT_COLOR = '#aaccaa';
     const hovered_id = view.hovered_id;
     const selected = view.selected;
@@ -5247,48 +5470,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
         ctx.textAlign = 'center';
         // draw hex version of map
         if(map.grid_type & GridType.HEX){
-            const scale_x = dpr*SCALE;
-            const scale_y = scale_x*HEX_Y_FIX;
-            const origin_x = scale_x*camera_x;
-            const origin_y = scale_x*camera_y;
-            const half = REFERENCE.WIDTH/2;
-            const full = REFERENCE.WIDTH;
-            const p = new Path2D();
-            p.moveTo(-9, half);
-            p.lineTo(+9, full);
-            p.lineTo(REFERENCE.WIDTH-9, full);
-            p.lineTo(REFERENCE.WIDTH+9, half);
-            p.lineTo(REFERENCE.WIDTH-9, 0);
-            p.lineTo(+9, 0);
-            p.closePath();
-            for(const tiles of [layers.filled, layers.terrain]){
-                for(const obj of tiles){
-                    if(obj.flags & CanvasFlag.DELETED || (obj.hidinguser && obj.hidinguser != SETTINGS.userid))
-                        continue;
-                    const x = obj.base_x;
-                    const y = obj.base_y;
-                    if(x+full+9 < canvas_bbox.x0 || x-9 > canvas_bbox.x1 ||
-                       y+full < canvas_bbox.y0 || y > canvas_bbox.y1)
-                        continue;
-                    let color:string;
-                    let info:Terrain|undefined;
-                    if(obj.type == CanvasType.TERRAIN_TILE){
-                        info = TERRAIN_BY_ID.get(obj.terrain_id);
-                        if(!info) continue;
-                        color = info[2];
-                    }
-                    else color = obj.color;
-                    ctx.setTransform(scale_x, 0, 0, scale_y, origin_x+scale_x*x, origin_y+scale_y*y);
-                    ctx.fillStyle = selected.has(obj.id) ? SELECTED_COLOR : color;
-                    ctx.fill(p);
-                    if(info && info[5])
-                        ctx.drawImage(PACKEDIMG, info[3], info[4], info[5], info[6], 4, 4, 56, 56);
-                    if(map.flags & MapFlags.NUMBERED){
-                        ctx.fillStyle = color == '#000000' ? '#ffffff' : '#000000';
-                        ctx.fillText(`${x>>6},${y>>6}`, 32, 63);
-                    }
-                }
-            }
+            draw_hex_tiles(ctx, layers, view, canvas_bbox, !!(flags & RenderFlags.CACHE_HEX));
         }
         else {
             ctx.scale(SCALE, SCALE);
@@ -5354,65 +5536,10 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
     if(map.grid_type & GridType.NOGRID){
     }
     else if(map.grid_type & GridType.HEX){
-        function draw_hex_grid():void{
-            let grid_base_y = fmod(camera_y*HEX_Y_FIX_INV, REFERENCE.WIDTH);
-            let grid_base_x = fmod(camera_x, REFERENCE.WIDTH*2);
-            ctx.lineWidth = 1;
-            // ctx.strokeStyle = '#000000';
-            ctx.strokeStyle = map.grid_color.length?map.grid_color:'#888888';
-            grid_base_x -= REFERENCE.WIDTH;
-            const half = REFERENCE.WIDTH/2;
-            const full = REFERENCE.WIDTH;
-            const p = new Path2D();
-            p.moveTo(-9, -half);
-            const n_y = Math.ceil(height/(SCALE*HEX_Y_FIX*full))+3;
-            for(let i = 0; i < n_y; i++){
-                p.lineTo(-9, i*full-half);
-                p.lineTo(+9, i*full);
-                p.lineTo(-9+full, i*full);
-                p.lineTo(+9, i*full);
-            }
-            ctx.save();
-            ctx.translate(grid_base_x-3*full, grid_base_y-full);
-            const pairs = Math.ceil(width/(SCALE*2*full))+3;
-            for(let i = 0; i < pairs; i++){
-                ctx.translate(full, -half);
-                ctx.stroke(p);
-                ctx.translate(full, +half);
-                ctx.stroke(p);
-            }
-            ctx.restore();
-            if(map.flags & MapFlags.BIG_HEX){
-                let big_base_y = fmod(camera_y*HEX_Y_FIX_INV, 6*REFERENCE.WIDTH);
-                let big_base_x = fmod(camera_x, 6*REFERENCE.WIDTH*2);
-                ctx.lineWidth = 4;
-                big_base_x -= 5.3333*REFERENCE.WIDTH;
-                const half = 6*REFERENCE.WIDTH/2;
-                const full = 6*REFERENCE.WIDTH;
-                const p = new Path2D();
-                p.moveTo(-76, -half);
-                const n_y = Math.ceil(height/(SCALE*HEX_Y_FIX*full))+3;
-                for(let i = 0; i < n_y; i++){
-                    p.lineTo(-76, i*full-half);
-                    p.lineTo(+54, i*full);
-                    p.lineTo(-76+full, i*full);
-                    p.lineTo(+54, i*full);
-                }
-                ctx.save();
-                ctx.translate(big_base_x-2*full+1, big_base_y-full);
-                const pairs = Math.ceil(width/(SCALE*2*full))+3;
-                for(let i = 0; i < pairs; i++){
-                    ctx.translate(full, -half);
-                    ctx.stroke(p);
-                    ctx.translate(full, +half);
-                    ctx.stroke(p);
-                }
-                ctx.restore();
-            }
-        }
         ctx.save();
         ctx.scale(1, HEX_Y_FIX);
-        draw_hex_grid();
+        draw_hex_grid(ctx, camera_x, camera_y*HEX_Y_FIX_INV, width/SCALE, height/(SCALE*HEX_Y_FIX),
+            SCALE*dpr, map.grid_color || '#888888', !!(map.flags & MapFlags.BIG_HEX), !!(flags & RenderFlags.CACHE_HEX));
         ctx.restore();
     }
     else {
