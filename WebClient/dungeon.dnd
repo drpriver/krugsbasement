@@ -62,6 +62,8 @@
   make_window('privateroll', 'Private Rolls',
   `
     <div id="privateroll-container">
+      <button class="phone-only" id="phone-recipient" aria-expanded="false" aria-controls="privateroll-targets">Choose recipient</button>
+      <button class="phone-only" id="phone-dm-tables" aria-expanded="false">Roll tables</button>
       <div id="privateroll-targets" class="window-group-list">
       </div>
       <div id="privateroll-tables">
@@ -75,7 +77,8 @@
         </div>
       </div>
       <div class="log" id="privateroll-history"> </div>
-      <textarea spellcheck="false" id="privateroll-input" rows="4"></textarea>
+      <textarea spellcheck="false" id="privateroll-input" aria-label="Direct message" rows="4"></textarea>
+      <button id="phone-dm-send" class="phone-only">Send</button>
     </div>
   `);
   function shortcut_label(keys){
@@ -677,6 +680,12 @@
       ${label('hidetools', 'Hide Tools')}
       ${uncheckbox('hidetools')}
       <br>
+      <div id="layout" role="radiogroup" aria-label="Layout">
+        <strong>Layout</strong>
+        <label><input type="radio" name="layout" value="auto"> Automatic</label>
+        <label><input type="radio" name="layout" value="mobile"> Mobile</label>
+        <label><input type="radio" name="layout" value="desktop"> Desktop</label>
+      </div>
       <span style="font-weight:bold">Dark Mode:</span>
       ${radio('system')}
       ${label('system', 'System')}
@@ -1023,6 +1032,16 @@
   }
 
 ::raw
+  <nav id="phone-nav" class="phone-only" aria-label="Campaign navigation">
+    <button data-view="map">Map</button>
+    <button data-view="chat">Chat</button>
+    <button data-view="dms">DMs</button>
+    <button data-view="campaign">Campaign</button>
+  </nav>
+  <div id="phone-map-actions" class="phone-only">
+    <button id="phone-tools">Tools · Pan</button>
+    <button id="phone-finish">Finish</button>
+  </div>
   <canvas id="map"></canvas>
   <canvas id="map2"></canvas>
 ::div #id(scale) .scale
@@ -1040,6 +1059,8 @@
     <span></span>
 
 ::div #id(tool-container)
+  ::raw
+    <h1 class="phone-only">Map tools</h1>
   ::div #id(tool-container-handle)
   ::div #id(tools)
     ::div.tool #id(pan-tool)
@@ -1151,12 +1172,15 @@
 
 ::raw
   <div id="palette" class="window">
+    <h1 class="phone-only">Choose tile</h1>
     <div id="palette-window-handle" class="window-handle">
     </div>
     <div id="palette-icons">
     </div>
   </div>
 ::div.chat #id(chat)
+  ::raw
+    <header class="phone-only" id="phone-chat-header"><h1>Chat</h1><button id="phone-rolls" aria-expanded="false">Rolls</button></header>
   ::div #id(tree)
     ::div #id(home-link)
       ::raw
@@ -1181,8 +1205,10 @@
   ::div.log #id(dice-history)
   ::raw
     <textarea spellcheck="false" id="chatinput" rows="4" placeholder="Message, d20 + 4, or /help"></textarea>
+    <button class="phone-only" id="phone-chat-send">Send</button>
 ::div #id(left)
   ::raw
+    <h1 class="phone-only">Campaign</h1>
     <button id="calendar-button">Calendar…</button>
     <button id="statblock-button">Statblocks…</button>
   ::div #id(left-stuff)

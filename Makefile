@@ -109,8 +109,8 @@ TSFILES:= WebClient/socket.d.ts \
 
 Generated/client.js: $(TSFILES) | Generated node_modules
 	$(TSC) $^ $(TSCFLAGS) --outFile $@
-Generated/client.min.js: Generated/client.js | Generated node_modules
-	$(TERSER) $< -o $@ --mangle toplevel
+Generated/client.min.js: Generated/client.js Makefile | Generated node_modules
+	$(TERSER) $< -o $@ --enclose --mangle
 Generated/demo.js: WebClient/demo.ts Generated/messages.ts | Generated node_modules
 	$(TSC) $^ $(TSCFLAGS) --outFile $@
 

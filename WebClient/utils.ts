@@ -147,6 +147,7 @@ function setup_movable_window(win:HTMLDivElement, handle:HTMLDivElement, flags: 
         win.style.right = 'initial';
     }
     handle.addEventListener('pointerdown', function(e:PointerEvent):void{
+        if(phone_layout) return;
         if(e.target !== handle)
             return;
         handle.setPointerCapture(e.pointerId);
@@ -261,7 +262,7 @@ function setup_resizable_window(win:HTMLDivElement, flags: RESIZEFLAGS):void{
         wants_store_dimensions = true;
         setTimeout(()=>{
           wants_store_dimensions = false;
-          if(!win.offsetWidth || !win.offsetHeight) return;
+          if(phone_layout || !win.offsetWidth || !win.offsetHeight) return;
           const sz = [win.offsetWidth, win.offsetHeight];
           if(flags & RESIZEFLAGS.LOCAL)
             store_local(StorageCategory.WINDOW, storeid, sz);
@@ -561,6 +562,7 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
         menu.install();
     };
     wh.ondblclick = function(e:MouseEvent):void{
+        if(phone_layout) return;
         e.stopPropagation();
         e.preventDefault();
         result.minimize();
@@ -576,12 +578,15 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
             result.state = WinState.CLOSED;
             result.win.style.display = 'none';
             window_hidden(win);
-            if(result.openid) store(StorageCategory.WINDOW, result.openid, ''+result.state);
+            phone_close_panel(win);
+            if(!phone_layout && result.openid) store(StorageCategory.WINDOW, result.openid, ''+result.state);
             if(result.close_handler) result.close_handler();
         },
         show: function(): void{
-            if(result.state == WinState.OPEN)
+            if(result.state == WinState.OPEN){
+                phone_show_panel(win);
                 return result.make_top();
+            }
             if(result.state == WinState.MINIMIZED){
                 result.restore();
                 return;
@@ -590,12 +595,14 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
                 document.body.append(result.win);
             result.state = WinState.OPEN;
             result.win.style.display = 'grid';
+            phone_show_panel(win);
             result.make_top();
-            ensure_window_is_completely_on_screen(result.win);
-            if(result.openid) store(StorageCategory.WINDOW, result.openid, ''+result.state);
+            if(!phone_layout) ensure_window_is_completely_on_screen(result.win);
+            if(!phone_layout && result.openid) store(StorageCategory.WINDOW, result.openid, ''+result.state);
             if(result.show_handler) result.show_handler();
         },
         minimize: function(): void{
+            if(phone_layout) return result.close();
             if(result.state != WinState.OPEN) return;
             restorer.setAttribute('aria-label', 'Restore ' + result.t.textContent);
             restorer_text.textContent = result.t.textContent +' □';
@@ -611,11 +618,13 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
             restorer.remove();
             result.win.style.display = 'grid';
             result.state = WinState.OPEN;
+            phone_show_panel(win);
             result.make_top();
             if(result.openid) store(StorageCategory.WINDOW, result.openid, ''+result.state);
             if(result.restore_handler) result.restore_handler();
         },
         remove: function():void{
+            phone_close_panel(win);
             restorer.remove();
             result.win.remove();
             result.state = WinState.NONE;
@@ -626,6 +635,11 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
         state: WinState.NONE,
     };
     result.make_top = setup_zsorted_window(win, ZSORTFLAGS.SHOW_DEPTH);
+    if(win.id !== 'privateroll-window'){
+        const back = elem_parent_text(wh, 'button', 'Back', null, 'phone-only');
+        back.type = 'button';
+        back.onclick = result.close;
+    }
     let wf = !win.id? WINDOWFLAGS.NONE: global_window?WINDOWFLAGS.GLOBAL_REMEMBER:WINDOWFLAGS.LOCAL_REMEMBER;
     let rf = !win.id? RESIZEFLAGS.NONE: global_window?RESIZEFLAGS.GLOBAL_REMEMBER:RESIZEFLAGS.LOCAL_REMEMBER;
     setup_movable_window(win, wh, wf | WINDOWFLAGS.KEYBOARD_MOVE);
@@ -637,6 +651,7 @@ function normal_window(win:HTMLDivElement, wh:HTMLDivElement, x:HTMLSpanElement,
 }
 
 function reopen_window(w:()=>Win, global_window:NormalWindow, openid:string):void{
+    if(phone_layout) return;
     const get = global_window==NormalWindow.GLOBAL?get_global_default:get_local_default;
     const state = +get(StorageCategory.WINDOW, openid, ''+WinState.NONE);
     if(state == WinState.OPEN || state == WinState.MINIMIZED){

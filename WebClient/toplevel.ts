@@ -95,13 +95,14 @@ document.addEventListener('DOMContentLoaded', function(){
     };
     function ontoggle(e:ToggleEvent):void{
         const id = (e.target! as HTMLDetailsElement).id;
-        const skey = `/details/state/${id}`;
+        const skey = phone_layout ? `/phone/details/${id}` : `/details/state/${id}`;
         store_local(StorageCategory.UI, skey, e.newState);
     }
     for(const key of ['maps-details', 'sheets-details', 'notes-details', 'macros-details', 'clocks-details'] as const){
           const elem = by_id(key);
-          const stored = get_local(StorageCategory.UI, `/details/state/${key}`);
+          const stored = get_local(StorageCategory.UI, phone_layout ? `/phone/details/${key}` : `/details/state/${key}`);
           if(stored) elem.open = stored == 'open';
+          else if(phone_layout) elem.open = false;
           // @ts-ignore
           setTimeout(()=> elem.ontoggle = ontoggle, 0);
     }

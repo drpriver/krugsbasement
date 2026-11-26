@@ -1433,16 +1433,15 @@ table.ngroup td:last-child {
 #tool-container, #palette{
   touch-action: none;
 }
-@media only screen and (hover: none) and (pointer: coarse),
-@media only screen and (hover: none) and (pointer: coarse)
-{
-  #tool-container, #macro-panel, #dice-history, #notifications, .tracker-window {
+@media (hover: none) and (pointer: coarse) {
+  :where(.legacy-touch-layout) :is(#tool-container, #macro-panel, #dice-history, #notifications),
+  :where(.legacy-touch-layout) .tracker-window {
     display: none;
   }
-  .three-buttons {
-   display: none;
+  :where(.legacy-touch-layout) .three-buttons button:not(#options-button) {
+    display: none;
   }
-  #chat {
+  :where(.legacy-touch-layout) #chat {
     grid-template-rows: max-content auto max-content;
     grid-template-columns: auto;
     top: 0;
@@ -1453,7 +1452,7 @@ table.ngroup td:last-child {
     width: 100vw;
     max-width: 100vw;
   }
-  #chat-history {
+  :where(.legacy-touch-layout) #chat-history {
     width: auto;
   }
 }
@@ -1466,7 +1465,7 @@ body.mobile #chat-history,
 body.mobile .window {
   touch-action: pan-y;
 }
-body.mobile #chat {
+body.mobile:not(.phone) #chat {
   font-size: 50%;
 }
 body.mobile textarea,
@@ -2279,3 +2278,242 @@ body.dark-mode .statblock-content label:hover{
   min-height: 40vh;
   min-width: 40ch;
 }
+
+.phone-only { display: none; }
+/* Keep a usable map between the sidebars on phones using the desktop layout. */
+body[data-layout="desktop"] #left { max-width: 25vw; }
+body[data-layout="desktop"] #chat:not(.fullscreen) { max-width: 38vw; }
+body.phone {
+  --phone-height: 100dvh;
+  --phone-top: 0px;
+  --nav-height: calc(54px + env(safe-area-inset-bottom));
+  --page-height: calc(var(--phone-height) - var(--nav-height));
+  --surface: #fafafa;
+  --raised: #fff;
+  --edge: #c8cbd0;
+  --accent: #2157bd;
+  --active: #e6edfc;
+}
+body.phone.dark-mode {
+  --surface: #242526;
+  --raised: #303133;
+  --edge: #505256;
+  --accent: #a9c7ff;
+  --active: #314469;
+}
+.phone .phone-only { display: block; }
+.phone > * { touch-action: auto; }
+.phone #map, .phone #map2 { touch-action: none; }
+.phone #phone-nav {
+  position: fixed;
+  z-index: 3;
+  inset: calc(var(--phone-top) + var(--page-height)) 0 auto;
+  height: var(--nav-height);
+  padding: 5px max(6px, env(safe-area-inset-right)) calc(5px + env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--raised);
+  border-top: 1px solid var(--edge);
+}
+.phone #phone-nav button {
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: inherit;
+  font: 600 15px system-ui, sans-serif;
+}
+.phone #phone-nav button[aria-current] { color: var(--accent); background: var(--active); }
+.phone.phone-detail :is(#left, #chat, #phone-map-actions, #map, #map2, #tool-container, #palette) {
+  visibility: hidden;
+}
+.phone:has(#notifications > div) #phone-nav [data-view="dms"]::after {
+  content: '';
+  display: inline-block;
+  margin-left: 5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.phone h1.phone-only, .phone #phone-chat-header h1, .phone #palette h1 {
+  font: 650 22px/1.3 system-ui, sans-serif;
+  margin: 0;
+  padding: 12px 16px;
+}
+.phone #phone-map-actions {
+  position: fixed;
+  display: flex;
+  gap: 6px;
+  top: max(10px, env(safe-area-inset-top));
+  right: max(10px, env(safe-area-inset-right));
+  z-index: 1;
+}
+.phone #phone-map-actions button, .phone #phone-rolls, .phone #phone-dm-tables, .phone #phone-recipient {
+  font: 600 15px system-ui, sans-serif;
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  min-height: 44px;
+  padding: 0 14px;
+  color: inherit;
+  background: var(--raised);
+}
+.phone:not(:has(#finish-click-tool:enabled)) #phone-finish,
+.phone:not([data-mobile-view="map"]) :is(#phone-map-actions, #map, #map2),
+.phone:not([data-mobile-view="tools"]) #tool-container,
+.phone:not([data-mobile-view="palette"]) #palette,
+.phone:not([data-mobile-view="campaign"]) #left,
+.phone:not([data-mobile-view="chat"]) #chat,
+.phone :is(.window, .tracker-window):not(.phone-current, #palette, #privateroll-window),
+.phone:not([data-mobile-view="dms"]) #privateroll-window,
+.phone :is(#scale, #minimized, #tool-container-handle, #privateroll-button, #palette-window-handle, .window-minimizer) {
+  display: none !important;
+}
+.phone :is(#tool-container, #palette, #chat, #left, #privateroll-window, .phone-current) {
+  position: fixed;
+  inset: var(--phone-top) 0 auto !important;
+  box-sizing: border-box;
+  width: 100% !important;
+  height: var(--page-height) !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  resize: none !important;
+  padding-bottom: 0 !important;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--surface);
+  touch-action: auto;
+}
+.phone .phone-current { grid-template-columns: minmax(0, 1fr); }
+.phone .window-handle { cursor: default; }
+.phone .phone-current > .window-handle {
+  min-height: 44px;
+  height: auto;
+  grid-template-columns: 60px minmax(0, 1fr) 60px;
+  align-items: center;
+}
+.phone .phone-current > .window-handle .window-closer { display: none; }
+.phone .phone-current > .window-handle .window-title {
+  grid-column: 2;
+  height: auto;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.phone .window-handle > button.phone-only {
+  grid-area: 1 / 1;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: 600 15px system-ui, sans-serif;
+}
+.phone .tracker-grid { max-width: 100%; min-height: 0; }
+.phone .tracker-window { grid-template-rows: max-content minmax(0, 1fr); }
+.phone div.hover {
+  max-height: var(--phone-height);
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
+  left: 0 !important;
+  right: 0;
+  top: var(--phone-top) !important;
+  margin-inline: auto;
+  box-sizing: border-box;
+  overflow: auto;
+}
+.phone #left, .phone #tool-container {
+  display: block !important;
+  overflow: auto;
+  overscroll-behavior: contain;
+  font-size: 16px;
+}
+.phone #left { padding: 0 12px 16px; }
+.phone #left h1 { padding-left: 0; }
+.phone #left-stuff { display: block; overflow: visible; }
+.phone #left :is(ul, li, .tree-item) { touch-action: pan-y; }
+.phone #left .tree-item { min-height: 40px; align-content: center; }
+.phone #left button { min-height: 40px; width: auto; }
+.phone #left details { border-color: var(--edge); }
+.phone #left summary { padding: 14px 2px; }
+.phone #left #tree { margin-top: 14px; }
+.phone #left .three-buttons { display: flex; flex-wrap: wrap; }
+.phone #left .three-buttons button { flex: 1; margin: 3px; }
+.phone #tool-container { padding: 0 12px 12px; }
+.phone #tool-container h1 { padding-left: 0; }
+.phone #tools { grid-template-columns: 1fr 1fr; gap: 2px; font-size: 16px; }
+.phone #tools > .tool, .phone #tools > .tool-menu { padding: 11px; }
+.phone #tools b { text-decoration: none; }
+.phone #pan-tool { display: block !important; }
+.phone #stuff, .phone #tool-container .scale { font-size: 16px; }
+.phone #stuff button { min-height: 40px; }
+.phone #colors, .phone #keyboardless-buttons, .phone #zoomers { background: var(--surface); }
+.phone #palette { overflow: hidden !important; }
+.phone #palette-icons { height: calc(100% - 56px); }
+.phone #chat {
+  display: grid;
+  grid-template: "header header" auto "messages messages" minmax(0,1fr) "input send" auto / minmax(0,1fr) auto;
+  padding: 0 8px 8px;
+  gap: 6px;
+  font-size: 16px;
+}
+.phone #phone-chat-header { grid-area: header; display: flex; justify-content: space-between; align-items: center; }
+.phone #phone-chat-header h1 { padding-left: 4px; }
+.phone #chat-history { grid-area: messages; display: block !important; min-height: 0; line-height: 1.45; }
+.phone #chatinput { grid-area: input; display: block !important; }
+.phone :is(#chatinput, #privateroll-input) {
+  margin: 0;
+  min-width: 0;
+  width: 100%;
+  height: 46px;
+  padding: 9px;
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  font: 16px/1.4 system-ui, sans-serif;
+}
+.phone :is(#phone-chat-send, #phone-dm-send) {
+  grid-area: send;
+  margin: 0;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 0;
+  background: var(--active);
+  color: var(--accent);
+  font-weight: 650;
+}
+.phone #chat :is(#notifications, #macro-panel, #dice-history) { display: none !important; }
+.phone #chat.phone-rolls-open {
+  grid-template: "header header" auto "messages messages" minmax(0,1fr) "macros macros" auto "dice dice" auto "input send" auto / minmax(0,1fr) auto;
+}
+.phone #chat.phone-rolls-open #macro-panel.has-macros {
+  display: grid !important;
+  grid-area: macros;
+  max-height: min(35dvh, 280px);
+  overflow: auto;
+}
+.phone #macro-panel-body { min-height: 0; }
+.phone #chat.phone-rolls-open #dice-history:not(:empty) {
+  display: block !important;
+  grid-area: dice;
+  max-height: 12dvh;
+  overflow: auto;
+}
+.phone #privateroll-window { grid-template: auto minmax(0, 1fr) / 100%; overflow: hidden !important; }
+.phone #privateroll-window-handle { height: 48px; align-items: center; }
+.phone #privateroll-close { visibility: hidden; }
+.phone #privateroll-container {
+  grid-template: "recipient toggle" auto "targets targets" auto "tables tables" auto "history history" minmax(0, 1fr) "input send" auto / minmax(0,1fr) auto;
+  padding: 6px 8px 8px;
+  gap: 6px;
+}
+.phone #phone-recipient { grid-area: recipient; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phone #privateroll-targets { display: none; height: auto; max-height: 28dvh; width: auto; border: 0; }
+.phone .phone-pick-recipient #privateroll-targets { display: flex; }
+.phone #privateroll-targets > div { flex: none; align-content: center; min-height: 44px; }
+.phone #phone-dm-tables { grid-area: toggle; }
+.phone #privateroll-tables { display: none; width: 100%; max-height: 28dvh; overflow: auto; }
+.phone .phone-tables-open #privateroll-tables { display: grid; }
+.phone #privateroll-history { min-height: 0; }

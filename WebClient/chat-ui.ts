@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function():void{
     log.addEventListener('scroll', ()=>update_chat_position(false));
     new ResizeObserver(()=>update_chat_position(following_chat)).observe(log);
     const ta = by_id('chatinput');
-    setup_chat(ta, preprocess_and_send_chat);
+    setup_chat(ta, preprocess_and_send_chat, by_id('phone-chat-send'));
     const shortcuts = by_id('help-shortcuts');
     if(IS_MAC){
         for(const label of shortcuts.querySelectorAll<HTMLElement>('[data-mac-keys]'))

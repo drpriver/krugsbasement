@@ -9,7 +9,7 @@ type ChatInput = {
     enter_func: (_:string, __:number, ___:number)=>void;
     set_history: (_:Array<string>)=>void;
 };
-function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string, __:number, ___:number)=>void):ChatInput{
+function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string, __:number, ___:number)=>void, send:HTMLButtonElement):ChatInput{
     const hist: ChatInput = {
         index: 0,
         current_text: "",
@@ -24,6 +24,17 @@ function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string, __:number, _
             chat.value = "";
         },
     };
+    function submit():void{
+        const value = chat.value;
+        if(!value.length) return;
+        chat.value = "";
+        hist.enter_func(value, -1, -1);
+        if(value !== hist.history[hist.history.length-1]) hist.history.push(value);
+        hist.index = hist.history.length;
+        hist.current_text = "";
+        hist.set_text = "";
+    }
+    send.onclick = submit;
     chat.addEventListener('keydown', function(e):void{
         e.stopPropagation();
         if(IS_MAC && e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey){
@@ -55,17 +66,7 @@ function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string, __:number, _
                 }return;
                 case 'j':{
                     e.preventDefault();
-                    const value = chat.value;
-                    if(value.length){
-                        chat.value = "";
-                        hist.enter_func(value, -1, -1);
-                        if(!(hist.history.length && value == hist.history[hist.history.length-1])){
-                            hist.history.push(value);
-                        }
-                        hist.index = hist.history.length;
-                        hist.current_text = "";
-                        hist.set_text = "";
-                    }
+                    submit();
                 }return;
             }
         }
@@ -74,17 +75,7 @@ function setup_chat(chat:HTMLTextAreaElement, enter_func:(_:string, __:number, _
         switch(e.key){
             case 'Enter':{
                 e.preventDefault();
-                const value = chat.value;
-                if(value.length){
-                    chat.value = "";
-                    hist.enter_func(value, -1, -1);
-                    if(!(hist.history.length && value == hist.history[hist.history.length-1])){
-                        hist.history.push(value);
-                    }
-                    hist.index = hist.history.length;
-                    hist.current_text = "";
-                    hist.set_text = "";
-                }
+                submit();
             }break;
             case 'ArrowUp':{
                 if(chat.value && chat.value != hist.set_text) break;

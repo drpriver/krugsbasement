@@ -18,6 +18,8 @@ document.addEventListener('DOMContentLoaded', function():void{
     let log = by_id('privateroll-history');
     let chats: Map<number, Array<ChatMsg>> = new Map();
     let histories: Map<number, Array<string>> = new Map();
+    const drafts = new Map<number, string>();
+    let draft_recipient:number|undefined;
     // NOTE: for now this is the only producer/consumer of notifications, so
     // all the logic is localized here. If I come up with another reasonable
     // use case for notifications, I should move it out and come up with an
@@ -47,6 +49,8 @@ document.addEventListener('DOMContentLoaded', function():void{
     }
     lv.activate_handler = function(k:number|undefined):void{
         if(k === undefined) return;
+        if(draft_recipient !== undefined) drafts.set(draft_recipient, chat.value);
+        draft_recipient = k;
         log.innerHTML = '';
         let msgs = chats.get(k);
         if(k !== SETTINGS.userid){
@@ -60,6 +64,8 @@ document.addEventListener('DOMContentLoaded', function():void{
         }
         let h = histories.get(k);
         hist.set_history(h?h:[]);
+        chat.value = drafts.get(k) || '';
+        by_id('phone-recipient').textContent = 'To · '+(USERS.get(k) || 'anon')+' ▾';
         if(!IS_TOUCH)chat.focus();
     };
     ONRECV(ToClient.CHAT_DIRECT_MSG, function(msg:ChatDirectResponse):void{
@@ -109,7 +115,16 @@ document.addEventListener('DOMContentLoaded', function():void{
         log.scrollTo({behavior:'smooth', top:log.scrollHeight});
     });
     let chat = by_id('privateroll-input');
-    let hist = setup_chat(chat, preproc_func);
+    const container = by_id('privateroll-container');
+    const recipient = by_id('phone-recipient');
+    recipient.onclick = ()=>{
+        recipient.setAttribute('aria-expanded', String(container.classList.toggle('phone-pick-recipient')));
+    };
+    targets.addEventListener('click', ()=>{
+        container.classList.remove('phone-pick-recipient');
+        recipient.setAttribute('aria-expanded', 'false');
+    }, true);
+    let hist = setup_chat(chat, preproc_func, by_id('phone-dm-send'));
     privateroll.show_handler = function():void{
         EMIT(FromClient.GET_ROLL_TABLE_NAMES);
         for(let e of notifications)

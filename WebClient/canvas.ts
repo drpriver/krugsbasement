@@ -1629,6 +1629,7 @@ function change_map(which:WhichSplit, map_id:number):void{
         if(mv.map.map_id == map_id){
             change_active_map_view(which, i, true);
             map_hist.add(map_id);
+            phone_navigate('map');
             break;
         }
     }
@@ -1793,7 +1794,12 @@ function resize_canvas():void{
     const wh = window.innerHeight;
     let width;
     let height;
-    if(SETTINGS.hidechat){
+    const sidebar_width = phone_layout ? 0 : by_id('left').offsetWidth;
+    if(phone_layout){
+        width = ww;
+        height = by_id('phone-nav').getBoundingClientRect().top;
+    }
+    else if(SETTINGS.hidechat){
         width = ww;
         height = wh;
     }
@@ -1803,7 +1809,7 @@ function resize_canvas():void{
     }
     width |= 0;
     height |= 0;
-    width -= by_id('left').offsetWidth;
+    width = Math.max(0, width - sidebar_width);
 
     if(!canv2_is_hidden){
         TheCanvas2 = by_id('map2');
@@ -1813,7 +1819,7 @@ function resize_canvas():void{
         TheCanvas2.height = height * dpr;
         TheCanvas2.style.height = height + 'px';
         TheCanvas2.style.width = width + 'px';
-        TheCanvas2.style.left = by_id('left').offsetWidth + width + 'px';
+        TheCanvas2.style.left = sidebar_width + width + 'px';
         TheCanvas2.style.display = 'block';
         TheCanvas2.style.borderLeft = DARKMODE?'1px solid white':'1px solid black';
         TheCtx2.scale(dpr, dpr);
@@ -1826,7 +1832,7 @@ function resize_canvas():void{
     TheCanvas.height = height * dpr;
     TheCanvas.style.width = width + 'px';
     TheCanvas.style.height = height + 'px';
-    TheCanvas.style.left = by_id('left').offsetWidth + 'px';
+    TheCanvas.style.left = sidebar_width + 'px';
     TheCtx.scale(dpr, dpr);
     canvas_request_render();
 }
@@ -2692,10 +2698,11 @@ function make_fixture(id:number, x:number, y:number, ftype:FixtureType):FixtureO
     return obj;
 }
 
-document.addEventListener('DOMContentLoaded', function():void{resize_canvas();resize_canvas();
-document.body.addEventListener('load', resize_canvas);
+document.addEventListener('DOMContentLoaded', function():void{
+    resize_canvas();
+    document.body.addEventListener('load', resize_canvas);
+    window.addEventListener('resize', resize_canvas);
 });
-window.addEventListener('resize', resize_canvas);
 function clear_canvas(map:DungeonMap):void{
     map.layers = undefined;
     map.canvas_obj_array.length = 0;
@@ -7356,6 +7363,7 @@ const RECTTYPE_TO_NAME = [
 ];
 let current_rect_type = RECTTYPE.HOLLOW;
 let current_tool:ToolType = (function():ToolType{
+    if(phone_layout) return ToolType.PAN;
     let t = get_global(StorageCategory.CANVAS, 'current_tool');
     if(t === undefined)
         t = localStorage.getItem('current_tool');
@@ -7543,9 +7551,9 @@ function make_terrain_palette():void{
                 label.appendChild(packed_to_img(terr[3], terr[4], terr[5], terr[6], terr[1], 0, 0));
             icons.appendChild(inp);
             icons.appendChild(label);
-            label.addEventListener('pointerdown', make_cb(terr[0]));
+            inp.addEventListener('change', make_cb(terr[0]));
             if(terr[0] == current_terrain_id){
-                label.click();
+                inp.checked = true;
                 label.scrollIntoView();
             }
         }
@@ -7575,9 +7583,9 @@ function make_terrain_icon_palette():void{
         label.appendChild(packed_to_img(ti[2], ti[3], ti[4], ti[5], ti[1], 0, 0));
         icons.appendChild(inp);
         icons.appendChild(label);
-        label.addEventListener('pointerdown', make_cb(ti[0]));
+        inp.addEventListener('change', make_cb(ti[0]));
         if(ti[0] == current_terrain_icon_id){
-            label.click();
+            inp.checked = true;
             label.scrollIntoView();
         }
     }
@@ -7594,13 +7602,19 @@ document.addEventListener('DOMContentLoaded', function():void{
 let tools: Array<HTMLElement> = [];
 function change_tool(tool:ToolType):void{
     if(finish_click_based_tool) finish_click_based_tool();
-    store_global(StorageCategory.CANVAS, 'current_tool', TOOL_TO_TOOL_ID[tool]);
+    if(!phone_layout) store_global(StorageCategory.CANVAS, 'current_tool', TOOL_TO_TOOL_ID[tool]);
     if(!tools) return;
     if(tool != ToolType.PASTE && preview_objs.length){
         preview_objs = [];
         canvas_request_render();
     }
     current_tool = tool;
+    const tool_name = TOOL_TO_TOOL_ID[tool].replace('-tool', '');
+    by_id('phone-tools').textContent = 'Tools · '+tool_name[0].toUpperCase()+tool_name.slice(1);
+    if(phone_layout && phone_route.view === 'tools'){
+        // Menu choices apply the tile subtype after change_tool returns.
+        queueMicrotask(()=>phone_navigate(tool === ToolType.TILE && current_tile_type !== TileType.FILLED ? 'palette' : 'map'));
+    }
     switch(tool){
         case ToolType.PAN:
         case ToolType.SELECT:
@@ -7658,6 +7672,9 @@ function make_tri_menu(e:MouseEvent, options:Array<TriItem>):void{
 }
 document.addEventListener('DOMContentLoaded', function():void{
     tools = Array.from(document.getElementsByClassName('tool')) as Array<HTMLElement>;
+    by_id('palette-icons').addEventListener('click', e=>{
+        if(phone_layout && e.target instanceof HTMLInputElement) phone_navigate('map');
+    });
     color_picker_ = by_id('color-picker');
     color_picker2_ = by_id('color-picker2');
     for(let i = 0; i < tools.length; ++i){
