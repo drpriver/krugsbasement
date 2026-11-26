@@ -1253,6 +1253,12 @@ document.addEventListener('DOMContentLoaded', function():void{
 
 const MAPS:Map<number,DungeonMap> = new Map();
 
+type CanvasLayers = {
+    filled: FilledTile[];
+    terrain: TerrainTile[];
+    objects: CanvasObject[];
+};
+
 type DungeonMap = {
     map_id: number; // integer
     parent: number;
@@ -1263,7 +1269,7 @@ type DungeonMap = {
     flags: MapFlags;
     canvas_obj_array: Array<CanvasObject>;
     canvas_objs: Map<number, CanvasObject>;
-    is_sorted: boolean;
+    layers?: CanvasLayers; // References in drawing order, rebuilt when objects are added or cleared.
     undo_stack: Array<UndoEvent>;
     undo_position: number; // integer
     pings: Array<Ping>;
@@ -1510,7 +1516,6 @@ function get_map(map_id:number): DungeonMap {
 
         canvas_obj_array: [],
         canvas_objs: new Map(),
-        is_sorted: true,
 
         undo_stack: [],
         undo_position: 0,
@@ -1629,13 +1634,20 @@ function change_map(which:WhichSplit, map_id:number):void{
     }
     canvas_request_render();
 }
-function sort_canv_objs(map:DungeonMap):void{
-    if(map.is_sorted)
-        return;
+function sort_canv_objs(map:DungeonMap):CanvasLayers{
+    if(map.layers)
+        return map.layers;
     map.canvas_obj_array.sort(function(first:CanvasObject, second:CanvasObject):number{
         return SORTORDER[first.type] - SORTORDER[second.type];
     });
-    map.is_sorted = true;
+    const layers:CanvasLayers = {filled:[], terrain:[], objects:[]};
+    for(const obj of map.canvas_obj_array){
+        if(obj.type == CanvasType.FILLED_TILE) layers.filled.push(obj);
+        else if(obj.type == CanvasType.TERRAIN_TILE) layers.terrain.push(obj);
+        else layers.objects.push(obj);
+    }
+    map.layers = layers;
+    return layers;
 }
 ONRECV(ToClient.CANVAS_CREATE_MAP, function(map_id:number):void{
     if(MAPS.has(map_id))
@@ -2685,6 +2697,7 @@ document.body.addEventListener('load', resize_canvas);
 });
 window.addEventListener('resize', resize_canvas);
 function clear_canvas(map:DungeonMap):void{
+    map.layers = undefined;
     map.canvas_obj_array.length = 0;
     map.canvas_objs.clear();
     map.undo_stack.length = 0;
@@ -4163,7 +4176,7 @@ function move_selected_objects(view:DungeonMapView, rigid:boolean, base_x:number
 function add_canv_obj(map:DungeonMap, obj:CanvasObject):void{
     map.canvas_objs.set(obj.id, obj);
     map.canvas_obj_array.push(obj);
-    map.is_sorted = false;
+    map.layers = undefined;
 }
 
 //
@@ -5189,7 +5202,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
     view.resize.handles = [];
     view.action.areas = [];
     const map = view.map;
-    sort_canv_objs(map);
+    const layers = sort_canv_objs(map);
     if(view.selection_area.is_selecting){
         view.selected.clear();
         note_selections(view);
@@ -5201,14 +5214,14 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
     const SELECTED_COLOR = '#33ffdd';
     const COULD_SELECT_COLOR = '#aaccaa';
     const hovered_id = view.hovered_id;
-    const canvas_obj_array = map.canvas_obj_array;
     const selected = view.selected;
     const camera_x = view.camera_x;
     const camera_y = view.camera_y;
     const scale = view.scale;
     const gridscale = view.gridscale;
-    const width = ctx.canvas.width;
-    const height = ctx.canvas.height;
+    // The camera and grid use CSS pixels. The backing store uses device pixels.
+    const width = ctx.canvas.width / dpr;
+    const height = ctx.canvas.height / dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = cvs_bg;
@@ -5229,32 +5242,15 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
     }
     // TAG renderTILES
     {
-        const bgtiles: Array<FilledTile> = [];
-        const terraintiles: Array<TerrainTile> = [];
-        const length = canvas_obj_array.length;
-        for(let i = 0; i < length; ++i){
-            const obj = canvas_obj_array[i];
-            if(obj.flags & CanvasFlag.DELETED)
-                continue;
-            if(obj.hidinguser && obj.hidinguser != SETTINGS.userid)
-                continue;
-            if(obj.type == CanvasType.FILLED_TILE){
-                bgtiles.push(obj);
-                continue;
-            }
-            if(obj.type == CanvasType.TERRAIN_TILE){
-                terraintiles.push(obj);
-                continue;
-            }
-        }
-        ctx.scale(SCALE, SCALE);
-        ctx.translate(camera_x, camera_y);
         ctx.font = 12 + 'px sans-serif';
         ctx.textBaseline = 'bottom';
         ctx.textAlign = 'center';
         // draw hex version of map
         if(map.grid_type & GridType.HEX){
-            ctx.scale(1, HEX_Y_FIX);
+            const scale_x = dpr*SCALE;
+            const scale_y = scale_x*HEX_Y_FIX;
+            const origin_x = scale_x*camera_x;
+            const origin_y = scale_x*camera_y;
             const half = REFERENCE.WIDTH/2;
             const full = REFERENCE.WIDTH;
             const p = new Path2D();
@@ -5265,73 +5261,41 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
             p.lineTo(REFERENCE.WIDTH-9, 0);
             p.lineTo(+9, 0);
             p.closePath();
-            for(let obj of bgtiles){
-                const bbox = {
-                    x0:obj.base_x-9,
-                    y0:obj.base_y,
-                    x1:obj.base_x+REFERENCE.WIDTH+9,
-                    y1:obj.base_y+REFERENCE.WIDTH,
-                };
-                if(!bbox_overlaps(bbox, canvas_bbox)){
-                    continue;
-                }
-                ctx.save();
-                const is_selected = selected.has(obj.id);
-                if(is_selected)
-                    ctx.fillStyle = SELECTED_COLOR;
-                else
-                    ctx.fillStyle = obj.color;
-                ctx.translate(obj.base_x, obj.base_y);
-                ctx.fill(p);
-                if(map.flags & MapFlags.NUMBERED){
-                    if(obj.color == '#000000')
-                        ctx.fillStyle = '#ffffff';
-                    else
-                        ctx.fillStyle = '#000000';
-                    ctx.fillText(`${obj.base_x>>6},${obj.base_y>>6}`, 32, 63);
-                }
-                ctx.restore();
-            }
-            for(let obj of terraintiles){
-                const bbox = {
-                    x0:obj.base_x-9,
-                    y0:obj.base_y,
-                    x1:obj.base_x+REFERENCE.WIDTH+9,
-                    y1:obj.base_y+REFERENCE.WIDTH,
-                };
-                if(!bbox_overlaps(bbox, canvas_bbox)){
-                    continue;
-                }
-                ctx.save();
-                const is_selected = selected.has(obj.id);
-                const info = TERRAIN_BY_ID.get(obj.terrain_id);
-                if(info){
-                    if(is_selected)
-                        ctx.fillStyle = SELECTED_COLOR;
-                    else
-                        ctx.fillStyle = info[2];
-                    ctx.translate(obj.base_x, obj.base_y);
+            for(const tiles of [layers.filled, layers.terrain]){
+                for(const obj of tiles){
+                    if(obj.flags & CanvasFlag.DELETED || (obj.hidinguser && obj.hidinguser != SETTINGS.userid))
+                        continue;
+                    const x = obj.base_x;
+                    const y = obj.base_y;
+                    if(x+full+9 < canvas_bbox.x0 || x-9 > canvas_bbox.x1 ||
+                       y+full < canvas_bbox.y0 || y > canvas_bbox.y1)
+                        continue;
+                    let color:string;
+                    let info:Terrain|undefined;
+                    if(obj.type == CanvasType.TERRAIN_TILE){
+                        info = TERRAIN_BY_ID.get(obj.terrain_id);
+                        if(!info) continue;
+                        color = info[2];
+                    }
+                    else color = obj.color;
+                    ctx.setTransform(scale_x, 0, 0, scale_y, origin_x+scale_x*x, origin_y+scale_y*y);
+                    ctx.fillStyle = selected.has(obj.id) ? SELECTED_COLOR : color;
                     ctx.fill(p);
-                    if(info[5]){
-                        ctx.save();
-                        ctx.translate(4, 4);
-                        ctx.scale(56/250, 56/250);
-                        ctx.drawImage(PACKEDIMG, info[3], info[4], info[5], info[6], 0, 0, 250, 250);
-                        ctx.restore();
-                    }
+                    if(info && info[5])
+                        ctx.drawImage(PACKEDIMG, info[3], info[4], info[5], info[6], 4, 4, 56, 56);
                     if(map.flags & MapFlags.NUMBERED){
-                        if(info[2] == '#000000')
-                            ctx.fillStyle = '#ffffff';
-                        else
-                            ctx.fillStyle = '#000000';
-                        ctx.fillText(`${obj.base_x>>6},${obj.base_y>>6}`, 32, 63);
+                        ctx.fillStyle = color == '#000000' ? '#ffffff' : '#000000';
+                        ctx.fillText(`${x>>6},${y>>6}`, 32, 63);
                     }
                 }
-                ctx.restore();
             }
         }
         else {
-            for(let obj of bgtiles){
+            ctx.scale(SCALE, SCALE);
+            ctx.translate(camera_x, camera_y);
+            for(const obj of layers.filled){
+                if(obj.flags & CanvasFlag.DELETED || (obj.hidinguser && obj.hidinguser != SETTINGS.userid))
+                    continue;
                 const size = obj.size? obj.size: 1;
                 const bbox = {
                     x0:obj.base_x,
@@ -5349,7 +5313,9 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                     ctx.fillStyle = obj.color;
                 ctx.fillRect(obj.base_x, obj.base_y, REFERENCE.WIDTH*size, REFERENCE.WIDTH*size);
             }
-            for(let obj of terraintiles){
+            for(const obj of layers.terrain){
+                if(obj.flags & CanvasFlag.DELETED || (obj.hidinguser && obj.hidinguser != SETTINGS.userid))
+                    continue;
                 const bbox = {
                     x0:obj.base_x,
                     y0:obj.base_y,
@@ -5399,7 +5365,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
             const full = REFERENCE.WIDTH;
             const p = new Path2D();
             p.moveTo(-9, -half);
-            let n_y = Math.ceil(height/SCALE/REFERENCE.WIDTH)+3;
+            const n_y = Math.ceil(height/(SCALE*HEX_Y_FIX*full))+3;
             for(let i = 0; i < n_y; i++){
                 p.lineTo(-9, i*full-half);
                 p.lineTo(+9, i*full);
@@ -5408,8 +5374,8 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
             }
             ctx.save();
             ctx.translate(grid_base_x-3*full, grid_base_y-full);
-            let n_x = Math.ceil(width/SCALE/REFERENCE.WIDTH)+3;
-            for(let i = 0; i < n_x; i++){
+            const pairs = Math.ceil(width/(SCALE*2*full))+3;
+            for(let i = 0; i < pairs; i++){
                 ctx.translate(full, -half);
                 ctx.stroke(p);
                 ctx.translate(full, +half);
@@ -5425,7 +5391,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                 const full = 6*REFERENCE.WIDTH;
                 const p = new Path2D();
                 p.moveTo(-76, -half);
-                let n_y = Math.ceil(height/SCALE/REFERENCE.WIDTH/6)+3;
+                const n_y = Math.ceil(height/(SCALE*HEX_Y_FIX*full))+3;
                 for(let i = 0; i < n_y; i++){
                     p.lineTo(-76, i*full-half);
                     p.lineTo(+54, i*full);
@@ -5434,8 +5400,8 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                 }
                 ctx.save();
                 ctx.translate(big_base_x-2*full+1, big_base_y-full);
-                let n_x = Math.ceil(width/SCALE/REFERENCE.WIDTH/6)+3;
-                for(let i = 0; i < n_x; i++){
+                const pairs = Math.ceil(width/(SCALE*2*full))+3;
+                for(let i = 0; i < pairs; i++){
                     ctx.translate(full, -half);
                     ctx.stroke(p);
                     ctx.translate(full, +half);
@@ -5503,7 +5469,7 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
         ctx.fillRect(x0+1, y0+1, (w-2)*hp/maxhp, 6);
     }
     const one_selection = selected.size == 1;
-    const arrays = [canvas_obj_array, preview_objs];
+    const arrays = [layers.objects, preview_objs];
     for(let a = 0; a < 2; a++){
         let array = arrays[a];
         let length = array.length;
@@ -6896,12 +6862,6 @@ function actually_render(timestamp:DOMHighResTimeStamp, ctx:CanvasRenderingConte
                             topleft:false,
                         });
                     }
-                }break;
-                case CanvasType.FILLED_TILE:{ // TAG renderFILLED_TILE
-                    // drawn already
-                }break;
-                case CanvasType.TERRAIN_TILE:{ // TAG renderTERRAIN_TILE
-                    // drawn already
                 }break;
                 case CanvasType.ICON_TILE:{ // TAG renderICON_TILE
                     const icon = TERRAIN_ICON_BY_ID.get(obj.terrainicon_id);
